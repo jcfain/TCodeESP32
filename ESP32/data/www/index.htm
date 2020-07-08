@@ -1,0 +1,106 @@
+<!DOCTYPE html PUBLIC"-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  <meta content="utf-8" http-equiv="encoding">
+<head>
+  <title>TCode ESP32</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- <link rel="icon" href="data:,"> -->
+  <link rel="stylesheet" type="text/css" href="style">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script type="text/javascript" src="settings"></script>
+</head>
+<body>
+  <div id="errorMessage" class="error" hidden="true"></div>
+  <div id="info" class="info" hidden="true"></div>
+  <h1>TCode Settings</h1>
+  <div style="font-size: small;">(only affects json input)</div>
+  <div class="sliderHeading">X Range</div>
+  <div id="xRangeLabel">100%</div>
+  <div slider id="xRangeSlider">
+    <div>
+      <div id="xInverseMin" inverse-left style="width:0%;"></div>
+      <div id="xInverseMax" inverse-right style="width:100%;"></div>
+      <div id="xRange" range style="left:0%;right:0%;"></div>
+      <span id="xThumbMin" thumb style="left:0%;"></span>
+      <span id="xThumbMax" thumb style="left:100%;"></span>
+      <div id="xSignMin" sign style="left:0%;">
+        <span id="xValueMin">0</span>
+      </div>
+      <div id="xSignMax" sign style="left:100%;">
+        <span id="xValueMax">100</span>
+      </div>
+    </div>
+    <input id="xMin" type="range" tabindex="0" value="0" max="100" min="0" step="1" oninput="onMinInput('x')" />
+    <input id="xMax" type="range" tabindex="0" value="100" max="100" min="0" step="1" oninput="onMaxInput('x')" />
+  </div>
+
+  <div class="sliderHeading">Y Roll Range</div>
+  <div id="yRollRangeLabel">100%</div>
+  <div slider id="yRollRangeSlider">
+    <div>
+      <div id="yRollInverseMin" inverse-left style="width:0%;"></div>
+      <div id="yRollInverseMax" inverse-right style="width:100%;"></div>
+      <div id="yRollRange" range style="left:0%;right:0%;"></div>
+      <span id="yRollThumbMin" thumb style="left:0%;"></span>
+      <span id="yRollThumbMax" thumb style="left:100%;"></span>
+      <div id="yRollSignMin" sign style="left:0%;">
+        <span id="yRollValueMin">0</span>
+      </div>
+      <div id="yRollSignMax" sign style="left:100%;">
+        <span id="yRollValueMax">100</span>
+      </div>
+    </div>
+    <input id="yRollMin" type="range" tabindex="0" value="0" max="100" min="0" step="1" oninput="onMinInput('yRoll')" />
+    <input id="yRollMax" type="range" tabindex="0" value="100" max="100" min="0" step="1" oninput="onMaxInput('yRoll')" />
+  </div>
+  
+  <div class="sliderHeading">X Roll Range</div>
+  <div id="xRollRangeLabel">100%</div>
+  <div slider id="xRollRangeSlider">
+    <div>
+      <div id="xRollInverseMin" inverse-left style="width:0%;"></div>
+      <div id="xRollInverseMax" inverse-right style="width:100%;"></div>
+      <div id="xRollRange" range style="left:0%;right:0%;"></div>
+      <span id="xRollThumbMin" thumb style="left:0%;"></span>
+      <span id="xRollThumbMax" thumb style="left:100%;"></span>
+      <div id="xRollSignMin" sign style="left:0%;">
+        <span id="xRollValueMin">0</span>
+      </div>
+      <div id="xRollSignMax" sign style="left:100%;">
+        <span id="xRollValueMax">100</span>
+      </div>
+    </div>
+    <input id="xRollMin" type="range" tabindex="0" value="0" max="100" min="0" step="1" oninput="onMinInput('xRoll')" />
+    <input id="xRollMax" type="range" tabindex="0" value="100" max="100" min="0" step="1" oninput="onMaxInput('xRoll')" />
+  </div>
+
+  <div class="sliderHeading">Speed</div>
+  <div id="speedLabel">1000ms</div>
+  <div slider id="speedSlider">
+    <div>
+      <!-- <div id="speedInverseMin" inverse-left style="width:50%;"></div> -->
+      <div id="speedInverseMax" inverse-right style="width:50%;"></div>
+      <div id="speedRange" range style="left:0%;right:50%;"></div>
+      <span id="speedThumb" thumb style="left:50%;"></span>
+      <div id="speedSign" sign style="left:50%;">
+        <span id="speedValue">1000</span>
+      </div>
+    </div>
+    <input id="speedInput" type="range" tabindex="0" value="1000" max="2000" min="0" step="1" oninput="onSpeedInput()" />
+  </div>
+
+  <h1>Device Settings</h1>
+  <div id="requiresRestart" hidden="true" style="color: red;">Restart required!!</div>
+  <form action="/restart" method="POST">
+    <div>Udp port</div>
+    <input id="udpServerPort" type="text" maxlength="5" onchange="updateUdpPort()">
+    <div>Host name</div>
+    <input id="hostname" type="text" maxlength="63" onchange="updateHostName()">
+    <div>Friendly name</div>
+    <input id="friendlyName" type="text" maxlength="100" onchange="updateFriendlyName()">
+    <br>
+    <button type="submit" name="reset">Restart device</button>
+  </form>
+</body>
+</html>
