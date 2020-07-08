@@ -55,7 +55,7 @@ void setup() {
       return;
   }
   SettingsHandler::load();
-  if (strcmp(SettingsHandler::ssid, "YOUR SSID HERE") != 0 || SettingsHandler::ssid != nullptr) {
+  if (strcmp(SettingsHandler::ssid, "YOUR SSID HERE") != 0 && SettingsHandler::ssid != nullptr) {
       wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass); 
       if (wifi.isConnected()) {
         udpHandler.setup(SettingsHandler::udpServerPort);
