@@ -1,6 +1,6 @@
 {
-	"ssid": "hex",
-	"wifiPass": "***REMOVED***",
+	"ssid": "YOUR SSID HERE",
+	"wifiPass": "YOUR PASSWORD HERE",
 	"hostname": "DoesNothingAtThisTime",
 	"friendlyName": "DoesNothingAtThisTime",
 	"udpServerPort": 8000,
