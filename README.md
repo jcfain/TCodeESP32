@@ -18,3 +18,6 @@ This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). I
   ### FILE SYSTEM
     Make sure modify /data/userSettings.json with your wifi ssid and password.
     Upload the filesystem image and monitor the COM port to se the ip address.
+    
+    If you only want bluetooth you should be able to just pair with the board 
+    and connect to the COM port created.
