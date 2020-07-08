@@ -1,0 +1,15 @@
+{
+	"ssid": "YOUR SSID HERE",
+	"wifiPass": "YOUR PASSWORD HERE",
+	"hostname": "DoesNothingAtThisTime",
+	"friendlyName": "DoesNothingAtThisTime",
+	"udpServerPort": 8000,
+	"webServerPort": 80,
+	"xMin": 1,
+	"xMax": 1000,
+	"yRollMin": 1,
+	"yRollMax": 1000,
+	"xRollMin": 1,
+	"xRollMax": 1000,
+	"speed": 1000
+}
