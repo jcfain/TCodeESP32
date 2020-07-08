@@ -2,7 +2,8 @@
 This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). It adds Network capabilities and bluetooth.
 
 ## INSTALLATION:
-
+  First You need to install the dev environment for the ESP32 and arduino.
+  A good place to start https://github.com/espressif/arduino-esp32#installation-instructions
   ### LIBRARIES 
     You will need a few additional libraries to build this sketch.
     - ESP32Servo
