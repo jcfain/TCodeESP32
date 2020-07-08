@@ -8,7 +8,7 @@ This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). I
     - ESP32Servo
     - ESP Async Webserver
     - EAsyncTCP
-    - EArduinoJson
+    - ArduinoJson
     
   ### TOOLS
     I used Visual studio code and PlatformIO for this project.
