@@ -31,14 +31,6 @@ SOFTWARE. */
 #include "SettingsHandler.h"
 //#include "OTAHandler.h"
 
-enum Input {
-  WifiMode,
-  BluetoothMode,
-  SerialMode
-};
-
-Input inputMode = WifiMode;
-
 ServoHandler servoHandler;
 WifiHandler wifi;
 Udphandler udpHandler;
