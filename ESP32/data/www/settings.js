@@ -189,8 +189,16 @@ function updateSpeedUI(millisec)
     $("#speedInverseMax").css("width", (100-value) + "%");
     $("#speedRange").css("right", (100-value) + "%");
     //$("#speedRange").css("left", value + "%");
-    $("#speedValue").text(millisec);
-    $("#speedLabel").text(millisec + "ms");
+    if (millisec > 999) 
+    {
+        $("#speedValue").text(millisec);
+        $("#speedLabel").text(millisec + "ms");
+    } 
+    else 
+    {
+        $("#speedValue").text("off");
+        $("#speedLabel").text("off");
+    }
 }
 
 function updateRangePercentageLabel(axis, minValue, maxValue) 
@@ -210,7 +218,7 @@ function percentageToTcode(value)
 
 function speedToPercentage(tcodeValue) 
 {
-    return convertRange(1, 2000, 1, 100, tcodeValue);
+    return convertRange(999, 4000, 0, 100, tcodeValue);
 }
 
 function convertRange(input_start, input_end, output_start, output_end, value) 
@@ -221,8 +229,9 @@ function convertRange(input_start, input_end, output_start, output_end, value)
 
 function onSpeedInput() 
 {
-    updateSpeedUI($("#speedInput").val());
-    userSettings["speed"] = parseInt($("#speedInput").val());
+    var speedInMillisecs = parseInt($("#speedInput").val())
+    userSettings["speed"] = speedInMillisecs > 999 ? speedInMillisecs : 0;
+    updateSpeedUI(speedInMillisecs);
     updateUserSettings();
 }
 

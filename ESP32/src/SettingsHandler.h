@@ -195,7 +195,7 @@ class SettingsHandler
             return 1000;
         }
 
-        void LogSaveDebug(DynamicJsonDocument doc) 
+        static void LogSaveDebug(DynamicJsonDocument doc) 
         {
             Serial.print("save ssid ");
             Serial.println((const char*) doc["ssid"]);
@@ -225,7 +225,7 @@ class SettingsHandler
             Serial.println((int)doc["speed"]);
         }
 
-        void LogUpdateDebug() 
+        static void LogUpdateDebug() 
         {
             Serial.print("update ssid ");
             Serial.println(ssid);
