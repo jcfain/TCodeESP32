@@ -67,12 +67,14 @@ void loop() {
     // Serial.println(data);
     for (char *c = data; *c; ++c) {
       servoHandler.read(*c);
+      servoHandler.execute();
     }
     delete[] data;
   } else if (Serial.available() > 0) {
     servoHandler.read(Serial.read());
+    servoHandler.execute();
   } else if (bluetooth.available() > 0) {
     servoHandler.read(bluetooth.read());
+    servoHandler.execute();
   }
-  servoHandler.execute();
 }
