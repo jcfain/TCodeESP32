@@ -87,7 +87,13 @@
         <span id="speedValue">1000</span>
       </div>
     </div>
-    <input id="speedInput" type="range" tabindex="0" value="1000" max="2000" min="0" step="1" oninput="onSpeedInput()" />
+    <input id="speedInput" type="range" tabindex="0" value="1500" max="4000" min="999" step="1" oninput="onSpeedInput()" list="midSpeed" />
+    <datalist id="midSpeed">
+      <option value="1000">
+      <option value="1500">
+      <option value="2500">
+      <option value="3500">
+    </datalist>
   </div>
 
   <h1>Device Settings</h1>

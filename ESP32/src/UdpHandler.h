@@ -108,10 +108,12 @@ class Udphandler
               //Serial.print("integer_string");
               //Serial.println(integer_string);
               strcat (buffer, integer_string);
-              char speed_string[5];
-              sprintf(speed_string, "%d", SettingsHandler::speed);
-              strcat (buffer, "S");
-              strcat (buffer, speed_string);
+              if (SettingsHandler::speed > 0) {
+                char speed_string[5];
+                sprintf(speed_string, "%d", SettingsHandler::speed);
+                strcat (buffer, "S");
+                strcat (buffer, speed_string);
+              }
               strcat (buffer, " ");
               //Serial.print("buffer");
               //Serial.println(buffer);

@@ -1,3 +1,21 @@
+
+// OSR-Release v2.4,
+// by TempestMAx 1-7-20
+// Please copy, share, learn, innovate, give attribution.
+// Decodes T-code commands and uses them to control servos and vibration motors
+// Can handle three linear channels (L0, L1, L2), three rotation channels (R0, R1, R2) 
+// and two vibration channels (V0, V1)
+// This code is designed to drive the OSR series of robot, but is also intended to be
+// used as a template to be adapted to run other t-code controlled arduino projects
+// Have fun, play safe!
+// History:
+// v2.0 - TCode v0.2 compatible, 28-1-2020
+// v2.1 - OSR2 release, 1-2-2020
+// v2.2 - OSR2+ release, 1-3-2020
+// v2.3 - T-Valve support added, 1-5-2020
+// v2.4 - T-wist support added; LR servos now +/- 350 for the sake of Raser1's sanity, 7-10-2020
+
+
 // ----------------------------
 //   Serial Comms Interface
 // ----------------------------
@@ -107,17 +125,20 @@ class ToyComms {
         case '7':
         case '8':
         case '9':
+              //Serial.printf("inByte: %u\n", inByte);
           if (interval || velocity) {
             // Update the number
             inNum2 = inNum2*10;
             if (inNum2 > 10000) {inNum2 = inNum2 % 10000;}
             inNum2 = inNum2 + (inByte - 48);
+              //Serial.printf("inNum2: %u\n", inNum2);
           // If L,V or R  
           } else if (linear || vibration || rotation || device) {
             // If less than 4 digits so far, update the number
             if (inNum1 < 10000) {
               inNum1 = inNum1*10;
               inNum1 = inNum1 + (inByte - 48);
+              //Serial.printf("inNum1: %u\n", inNum1);
             }
             
           }
@@ -137,7 +158,7 @@ class ToyComms {
             }
 
             // Increase to 4 digits, if not entered
-            while (inNum1 < 10000) {
+            while (inNum1 < 10000) { 
               inNum1 = inNum1*10;
             }
             // Eliminate "1" marker
@@ -249,6 +270,8 @@ class ToyComms {
               if (xLbuff1[n]>0) {
 
                 // Execute control command
+                // Serial.print("ToyCom xLinear ");
+                // Serial.printf("n: %u, t: %lu\n", n, t);
                 xL0[n] = xLinear(n,t);
                 xL1[n] = xLbuff1[n];
                 // Write the initial time
@@ -264,6 +287,16 @@ class ToyComms {
                   // Time interval
                   tL1[n] = tL0[n] + xLbuff2[n];
                 }
+                  // if(n==2) {
+                  //   Serial.print("tL0[n] ");
+                  //   Serial.println(tL0[n]);
+                  //   Serial.print("tL1[n] ");
+                  //   Serial.println(tL1[n]);
+                  //   Serial.print("xLbuff2[n] ");
+                  //   Serial.println(xLbuff2[n]);
+                  //   Serial.print("(1000*tL1[n])/xLbuff2[n] ");
+                  //   Serial.println((1000*tL1[n])/xLbuff2[n]);
+                  // }
                 // Clear channel buffer
                 xLbuff1[n] = 0;
                 xLbuff2[n] = 0;
@@ -347,57 +380,80 @@ class ToyComms {
     }
 
     // Establish linear position from time (1-1000)
-    int xLinear(int i,unsigned long t) {
+    float xLinear(int i,unsigned long t) {
       // i is axis
       // t is time point
       // x will be the return value
-      int x;
+      float x;
       
+                //  Serial.print("xLinear ");
+                //  Serial.printf("i: %u, t: %lu, tL1[i]: %lu, tL0[i]: %lu\n", i, t, tL1[i], tL0[i]);
       // Ramp value
-      if (t > tL1[i]) {
+      if (t >= tL1[i]) {
+                //Serial.println("t > tL1[i]");
         x = xL1[i];
       } else if (t < tL0[i]) {
+                //Serial.println("t < tL0[i]");
         x = xL0[i];
       } else {
-        x = map(t,tL0[i],tL1[i],xL0[i],xL1[i]);
+                //Serial.println("else map");
+        x = mapRange(t,tL0[i],tL1[i],xL0[i],xL1[i]);
       }
       
       return x;
     }
     
     // Establish rotation position from time (1-1000)
-    int xRotate(int i,unsigned long t) {
+    float xRotate(int i,unsigned long t) {
       // i is axis
       // t is time point
       // x will be the return value
-      int x;
+      float x;
       
+                //  Serial.print("xRotate ");
+                //  Serial.printf("i: %u, t: %lu, tR1[i]: %lu, tR0[i]: %lu\n", i, t, tR1[i], tR0[i]);
       // Ramp value
-      if (t > tR1[i]) {
+      if (t >= tR1[i]) {
+        // if(i==2) {
+        //         Serial.print("t > tR1[i] ");
+        //         Serial.println(xR1[i]);
+        // }
         x = xR1[i];
       } else if (t < tR0[i]) {
+        // if(i==2) {
+        //         Serial.print("t < tR0[i] ");
+        //         Serial.println(xR0[i]);
+        // }
         x = xR0[i];
       } else {
-        x = map(t,tR0[i],tR1[i],xR0[i],xR1[i]);
+        // if(i==2) {
+        //         Serial.println("map");
+        //         Serial.println(t);
+        //         Serial.println(tR0[i]);
+        //         Serial.println(tR1[i]);
+        //         Serial.println(xR0[i]);
+        //         Serial.println(xR1[i]);
+        // }
+        x = mapRange(t,tR0[i],tR1[i],xR0[i],xR1[i]);
       }
       
       return x;
     }
 
     // Establish vibration level from time (1-1000)
-    int xVibe(int i,unsigned long t) {
+    float xVibe(int i,unsigned long t) {
       // i is level
       // t is time point
       // x will be the return value
-      int x;
+      float x;
       
       // Ramp value
-      if (t > tV1[i]) {
+      if (t >= tV1[i]) {
         x = xV1[i];
       } else if (t < tV0[i]) {
         x = xV0[i];
       } else {
-        x = map(t,tV0[i],tV1[i],xV0[i],xV1[i]);
+        x = mapRange(t,tV0[i],tV1[i],xV0[i],xV1[i]);
       }
       
       return x;
@@ -451,5 +507,9 @@ class ToyComms {
 
     // Device commands
     int Dbuff;
-    
+    float mapRange(float x, float in_min, float in_max, float out_min, float out_max) 
+    {
+      x = constrain(x, in_min, in_max);
+      return (x - in_min) * (out_max - out_min) / (float)(in_max - in_min) + out_min;
+    }
 };
