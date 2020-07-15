@@ -69,12 +69,13 @@ void loop() {
       servoHandler.read(*c);
       servoHandler.execute();
     }
-    delete[] data;
   } else if (Serial.available() > 0) {
     servoHandler.read(Serial.read());
-    servoHandler.execute();
   } else if (bluetooth.available() > 0) {
     servoHandler.read(bluetooth.read());
-    servoHandler.execute();
   }
+  if (data == nullptr) {
+    servoHandler.execute();
+  } 
+  delete[] data;
 }
