@@ -217,9 +217,13 @@ public:
             b = map(yLin,1,1000,-180,180);
             c = map(yRot,1,1000,-180,180);
             d = map(zRot,1,1000,-350,350);
-            twist = 5 * (xRot - map(analogRead(Pot1_PIN),923,100,1,1000));
-            twist = constrain(twist, -750, 750);
-            //twist = map(xRot,480,520,-180,180);
+            int potentiometerIn = analogRead(Pot1_PIN);
+            if (potentiometerIn > 0) {
+                twist = 5 * (xRot - map(potentiometerIn,923,100,1,1000));
+                twist = constrain(twist, -750, 750);
+            } else {
+                twist = map(xRot,480,520,-180,180);
+            }
 
             //Serial.printf("a %d, b %d, c %d, d %d, twist %d\n", a,b,c,d,twist);
             //Serial.printf("zRot %d, yLin %d, yRot %d, zRot %d, xRot %d\n", xLin,yLin,yRot,zRot,xRot);

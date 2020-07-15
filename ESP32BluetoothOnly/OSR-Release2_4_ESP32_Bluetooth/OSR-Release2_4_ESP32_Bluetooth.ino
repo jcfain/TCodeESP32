@@ -1,4 +1,3 @@
-
 // OSR-Release v2.4,
 // by TempestMAx 1-7-20
 // Please copy, share, learn, innovate, give attribution.
@@ -13,16 +12,25 @@
 // v2.1 - OSR2 release, 1-2-2020
 // v2.2 - OSR2+ release, 1-3-2020
 // v2.3 - T-Valve support added, 1-5-2020
-// v2.4 - T-wist support added; LR servos now +/- 350 for the sake of Raser1's sanity, 7-10-2020
+// v2.4 - T-wist support added; LR servos now +/- 350 for the sake of Raser1's sanity, 1-7-2020
+// v2.4.1 - Adding support for ESP32 bluetooth
 
+
+// Libraries to include
+#include <ESP32Servo.h>
+#include <BluetoothSerial.h>
+
+#if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
+#error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
+#endif
+
+BluetoothSerial SerialBT;
 
 // ----------------------------
 //   Serial Comms Interface
 // ----------------------------
 // This is a t-code object that manages the serial comms from the computer
 // Leave this section of the code alone unless you know what you're doing
-
-#include <BluetoothSerial.h>
 
 class ToyComms {
   public:
@@ -125,20 +133,17 @@ class ToyComms {
         case '7':
         case '8':
         case '9':
-              //Serial.printf("inByte: %u\n", inByte);
           if (interval || velocity) {
             // Update the number
             inNum2 = inNum2*10;
             if (inNum2 > 10000) {inNum2 = inNum2 % 10000;}
             inNum2 = inNum2 + (inByte - 48);
-              //Serial.printf("inNum2: %u\n", inNum2);
           // If L,V or R  
           } else if (linear || vibration || rotation || device) {
             // If less than 4 digits so far, update the number
             if (inNum1 < 10000) {
               inNum1 = inNum1*10;
               inNum1 = inNum1 + (inByte - 48);
-              //Serial.printf("inNum1: %u\n", inNum1);
             }
             
           }
@@ -158,7 +163,7 @@ class ToyComms {
             }
 
             // Increase to 4 digits, if not entered
-            while (inNum1 < 10000) { 
+            while (inNum1 < 10000) {
               inNum1 = inNum1*10;
             }
             // Eliminate "1" marker
@@ -270,8 +275,6 @@ class ToyComms {
               if (xLbuff1[n]>0) {
 
                 // Execute control command
-                // Serial.print("ToyCom xLinear ");
-                // Serial.printf("n: %u, t: %lu\n", n, t);
                 xL0[n] = xLinear(n,t);
                 xL1[n] = xLbuff1[n];
                 // Write the initial time
@@ -287,16 +290,6 @@ class ToyComms {
                   // Time interval
                   tL1[n] = tL0[n] + xLbuff2[n];
                 }
-                  // if(n==2) {
-                  //   Serial.print("tL0[n] ");
-                  //   Serial.println(tL0[n]);
-                  //   Serial.print("tL1[n] ");
-                  //   Serial.println(tL1[n]);
-                  //   Serial.print("xLbuff2[n] ");
-                  //   Serial.println(xLbuff2[n]);
-                  //   Serial.print("(1000*tL1[n])/xLbuff2[n] ");
-                  //   Serial.println((1000*tL1[n])/xLbuff2[n]);
-                  // }
                 // Clear channel buffer
                 xLbuff1[n] = 0;
                 xLbuff2[n] = 0;
@@ -386,17 +379,12 @@ class ToyComms {
       // x will be the return value
       int x;
       
-                //  Serial.print("xLinear ");
-                //  Serial.printf("i: %u, t: %lu, tL1[i]: %lu, tL0[i]: %lu\n", i, t, tL1[i], tL0[i]);
       // Ramp value
       if (t >= tL1[i]) {
-                //Serial.println("t > tL1[i]");
         x = xL1[i];
       } else if (t < tL0[i]) {
-                //Serial.println("t < tL0[i]");
         x = xL0[i];
       } else {
-                //Serial.println("else map");
         x = map(t,tL0[i],tL1[i],xL0[i],xL1[i]);
       }
       
@@ -410,30 +398,12 @@ class ToyComms {
       // x will be the return value
       int x;
       
-                //  Serial.print("xRotate ");
-                //  Serial.printf("i: %u, t: %lu, tR1[i]: %lu, tR0[i]: %lu\n", i, t, tR1[i], tR0[i]);
       // Ramp value
       if (t >= tR1[i]) {
-        // if(i==2) {
-        //         Serial.print("t > tR1[i] ");
-        //         Serial.println(xR1[i]);
-        // }
         x = xR1[i];
       } else if (t < tR0[i]) {
-        // if(i==2) {
-        //         Serial.print("t < tR0[i] ");
-        //         Serial.println(xR0[i]);
-        // }
         x = xR0[i];
       } else {
-        // if(i==2) {
-        //         Serial.println("map");
-        //         Serial.println(t);
-        //         Serial.println(tR0[i]);
-        //         Serial.println(tR1[i]);
-        //         Serial.println(xR0[i]);
-        //         Serial.println(xR1[i]);
-        // }
         x = map(t,tR0[i],tR1[i],xR0[i],xR1[i]);
       }
       
@@ -467,7 +437,6 @@ class ToyComms {
 
   private:
 
-    BluetoothSerial SerialBT;
     // Input parameters
     boolean linear;
     boolean vibration;
@@ -507,9 +476,227 @@ class ToyComms {
 
     // Device commands
     int Dbuff;
-    float mapRange(float x, float in_min, float in_max, float out_min, float out_max) 
-    {
-      x = constrain(x, in_min, in_max);
-      return (x - in_min) * (out_max - out_min) / (float)(in_max - in_min) + out_min;
-    }
+    
 };
+
+
+
+
+
+
+
+
+// ----------------------------
+//   SETUP
+// ----------------------------
+// This code runs once, on startup
+
+// Declare class
+// This uses the t-code object above
+ToyComms toy; 
+
+// Declare servos
+Servo Servo0;  // Fore-Aft Servo
+Servo Servo1;  // Right Servo
+Servo Servo2;  // Left Servo
+Servo Servo3;  // Pitch Servo
+Servo Servo4;  // Valve Servo
+Servo Servo5;  // Twist Servo
+
+// Specify which pins are attached to what here
+#define Servo0_PIN 19  // Fore-Aft Servo
+#define Servo1_PIN 12  // Right Servo
+#define Servo2_PIN 13  // Left Servo
+#define Servo3_PIN 14  // Pitch Servo
+#define Servo4_PIN 15  // Valve Servo
+#define Servo5_PIN 2  // Twist Servo
+#define Vibe0_PIN 22   // Vibration motor 1
+#define Vibe1_PIN 23   // Vibration motor 2
+#define Pot1_PIN 33   // Twist potentiometer
+
+// Declare timing variables
+unsigned long nextPulse;
+int tick;
+
+// Position variables
+int xLin,yLin,zLin;
+// Rotation variables
+int xRot,yRot,zRot;
+// Vibration variables
+int vibe0,vibe1;
+// Velocity tracker variables, for T-Valve
+int xLast;
+float xValve;
+
+// Setup function
+// This is run once, when the arduino starts
+void setup() {
+
+  // Start serial
+  Serial.begin(115200);
+  if(!SerialBT.begin("TCodeESP32")){
+    Serial.println("An error occurred initializing Bluetooth");
+  }
+  Serial.println("Bluetooth started");
+  toy.identifyTCode();
+
+  // Declare servos and set zero
+  Servo0.attach(Servo0_PIN);
+  Servo1.attach(Servo1_PIN);
+  Servo2.attach(Servo2_PIN);
+  Servo3.attach(Servo3_PIN);
+  Servo4.attach(Servo4_PIN);
+  Servo5.attach(Servo5_PIN); // AAK
+
+  pinMode(Pot1_PIN,INPUT);
+  adcAttachPin(Pot1_PIN);
+  analogReadResolution(11);
+  analogSetAttenuation(ADC_6db);
+  
+  delay(500);
+  Servo0.writeMicroseconds(1500);
+  Servo1.writeMicroseconds(1500);
+  Servo2.writeMicroseconds(1500);
+  Servo3.writeMicroseconds(1500);
+  Servo4.writeMicroseconds(1500);
+  Servo5.writeMicroseconds(1500); //AAK
+
+  // Set vibration PWM pins
+  pinMode(Vibe0_PIN,OUTPUT);
+  pinMode(Vibe1_PIN,OUTPUT);
+  // Test vibration channels
+  analogWrite(Vibe0_PIN,127);
+  delay(300);
+  analogWrite(Vibe0_PIN,0);
+  analogWrite(Vibe1_PIN,127);
+  delay(300);
+  analogWrite(Vibe1_PIN,0);
+
+  // Set servo pulse interval
+  tick = 20; //ms
+  // Set time for first pulse
+  nextPulse = millis() + tick;
+
+  // Velocity tracker
+  xLast = 500;
+  xValve = 0;
+
+  // Signal done
+  Serial.println("Ready!");
+  SerialBT.println("Ready!");
+
+}
+
+
+
+
+// ----------------------------
+//   MAIN
+// ----------------------------
+// This loop runs continuously
+
+void loop() {
+
+  // Read serial
+  // This will run continuously
+  if (Serial.available() > 0) {
+    // Send the serial bytes to the t-code object
+    // This is the only required input for the object
+    toy.serialRead(Serial.read());
+  } else if (SerialBT.available() > 0) {
+    toy.serialRead(SerialBT.read());
+  }
+
+  // Pulse Servos based on time interval
+  // This function will run every 20ms, sending a pulse to the servos
+  if (millis() > nextPulse) {
+    unsigned long t = nextPulse;
+    nextPulse = nextPulse + tick;
+
+    // Collect inputs
+    // These functions query the t-code object for the position/level at a specified time
+    // Number recieved will be an integer, 1-1000
+    xLin = toy.xLinear(0,t);
+    yLin = toy.xLinear(1,t);
+    //zLin = toy.xLinear(2,t); (not used)
+    xRot = toy.xRotate(0,t);
+    yRot = toy.xRotate(1,t);
+    zRot = toy.xRotate(2,t);
+    vibe0 = toy.xVibe(0,t);
+    vibe1 = toy.xVibe(1,t);
+
+    // If you want to mix your servos differently, enter your code below:
+    
+    // Forward-Backward compensation
+    // This calculates platform movement to account for the arc of the servos
+    float lin1,lin2;
+    int b2;
+    lin1 = xLin-500;
+    lin1 = lin1*0.00157079632;
+    lin2 = 0.853-cos(lin1);
+    lin2 = 1133*lin2;
+    b2 = lin2;
+
+    // Calculate valve position
+    float Vel,ValveCmd,suck;
+    Vel = xLin - xLast;
+    xLast = xLin;
+    suck = 20;
+    if (Vel > suck) {
+      ValveCmd = Vel-suck;
+    } else if (Vel < 0){
+      ValveCmd = -Vel;
+    } else {
+      ValveCmd = 0;
+    }
+    xValve = (4*xValve + ValveCmd)/5;
+    int e;
+    e = 20*xValve;
+    if (e > 1000) {e = 1000;}
+
+
+    // Mix and send servo channels
+    // Linear scale inputs to servo appropriate numbers
+    int a,b,c,d,twist;
+    a = map(xLin,1,1000,-350,350);
+    b = map(yLin,1,1000,-180,180);
+    c = map(yRot,1,1000,-180,180);
+    d = map(zRot,1,1000,-350,350);
+            int potentiometerIn = analogRead(Pot1_PIN);
+            if (potentiometerIn > 0) {
+                twist = 5 * (xRot - map(potentiometerIn,923,100,1,1000));
+                twist = constrain(twist, -750, 750);
+            } else {
+                twist = map(xRot,480,520,-180,180);
+            }
+    
+    // Send signals to the servos
+    // Note: 1000 = -45deg, 2000 = +45deg
+    Servo0.writeMicroseconds(1500 - b + b2);
+    Servo1.writeMicroseconds(1500 + a + c);
+    Servo2.writeMicroseconds(1500 - a + c);
+    Servo3.writeMicroseconds(1500 - d);
+    Servo4.writeMicroseconds(2000 - e);
+    Servo5.writeMicroseconds(1500 + twist);
+
+    // Done with servo channels
+
+    // Output vibration channels
+    // These should drive PWM pins connected to vibration motors via MOSFETs or H-bridges.
+    if ((vibe0 > 1) && (vibe0 <= 1000)) {
+      analogWrite(Vibe0_PIN,map(vibe0,2,1000,31,255));
+    } else {
+      analogWrite(Vibe0_PIN,0);
+    }
+    if ((vibe1 > 1) && (vibe1 <= 1000)) {
+      analogWrite(Vibe1_PIN,map(vibe1,2,1000,31,255));
+    } else {
+      analogWrite(Vibe1_PIN,0);
+    }
+
+    // Done with vibration channels
+    
+  }
+
+
+}
