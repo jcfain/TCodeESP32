@@ -414,19 +414,27 @@ class ToyComms {
                 //  Serial.printf("i: %u, t: %lu, tR1[i]: %lu, tR0[i]: %lu\n", i, t, tR1[i], tR0[i]);
       // Ramp value
       if (t >= tR1[i]) {
-        // if(i==2) {
-        //         Serial.print("t > tR1[i] ");
+        // if(i==0) {
+        //         Serial.print("t >= tR1[i] ");
+        //         Serial.println(t);
+        //         Serial.println(tR0[i]);
+        //         Serial.println(tR1[i]);
+        //         Serial.println(xR0[i]);
         //         Serial.println(xR1[i]);
         // }
         x = xR1[i];
       } else if (t < tR0[i]) {
-        // if(i==2) {
+        // if(i==0) {
         //         Serial.print("t < tR0[i] ");
+        //         Serial.println(t);
+        //         Serial.println(tR0[i]);
+        //         Serial.println(tR1[i]);
         //         Serial.println(xR0[i]);
+        //         Serial.println(xR1[i]);
         // }
         x = xR0[i];
       } else {
-        // if(i==2) {
+        // if(i==0) {
         //         Serial.println("map");
         //         Serial.println(t);
         //         Serial.println(tR0[i]);
