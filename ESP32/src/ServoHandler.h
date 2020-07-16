@@ -103,8 +103,6 @@ public:
 
         pinMode(Pot1_PIN,INPUT);
         adcAttachPin(Pot1_PIN);
-        analogReadResolution(11);
-        analogSetAttenuation(ADC_6db);
 
         delay(500);
         
@@ -147,8 +145,6 @@ public:
 
     void read(byte inByte) 
     {
-        //Serial.print(inByte);
-        // This will run continuously
         // Send the serial bytes to the t-code object
         // This is the only required input for the object
         toy.serialRead(inByte);
@@ -176,7 +172,7 @@ public:
             zRot = toy.xRotate(2,t);
             // Serial.print("zRot ");
             // Serial.println(zRot);
-            //Serial.printf("zRot: %u, t: %lu\n", zRot, t);
+            // Serial.printf("zRot: %u, t: %lu\n", zRot, t);
             vibe0 = toy.xVibe(0,t);
             vibe1 = toy.xVibe(1,t);
 
@@ -219,11 +215,18 @@ public:
             d = map(zRot,1,1000,-350,350);
             int potentiometerIn = analogRead(Pot1_PIN);
             if (potentiometerIn > 0) {
-                twist = 5 * (xRot - map(potentiometerIn,923,100,1,1000));
+                twist = 1 * (xRot - map(potentiometerIn,4095,100,1,1000));
                 twist = constrain(twist, -750, 750);
             } else {
                 twist = map(xRot,480,520,-180,180);
             }
+            // Serial.print("potentiometerIn: ");
+            // Serial.println(potentiometerIn);
+            // Serial.print("twist: ");
+            // Serial.println(twist);
+            // Serial.print("xRot: ");
+            // Serial.println(xRot);
+
 
             //Serial.printf("a %d, b %d, c %d, d %d, twist %d\n", a,b,c,d,twist);
             //Serial.printf("zRot %d, yLin %d, yRot %d, zRot %d, xRot %d\n", xLin,yLin,yRot,zRot,xRot);

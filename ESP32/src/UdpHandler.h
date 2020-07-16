@@ -103,14 +103,16 @@ class Udphandler
               {
                 strcat(buffer, channel);
               }
-              char integer_string[7];
-              sprintf(integer_string, "%d", SettingsHandler::calculateRange(channel, value));
+              char integer_string[4];
+              sprintf(integer_string, "%03d", SettingsHandler::calculateRange(channel, value));
+              //pad(integer_string);
+              //sprintf(integer_string, "%d", SettingsHandler::calculateRange(channel, value));
               //Serial.print("integer_string");
               //Serial.println(integer_string);
               strcat (buffer, integer_string);
               if (SettingsHandler::speed > 0) {
                 char speed_string[5];
-                sprintf(speed_string, "%d", SettingsHandler::speed);
+                sprintf(speed_string, "%04d", SettingsHandler::speed);
                 strcat (buffer, "S");
                 strcat (buffer, speed_string);
               }
