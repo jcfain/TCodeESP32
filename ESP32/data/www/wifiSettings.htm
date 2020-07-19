@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC"-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  <meta content="utf-8" http-equiv="encoding">
+<head>
+  <title>TCode ESP32</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- <link rel="icon" href="data:,"> -->
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <script type="text/javascript" src="jquery"></script>
+  <script type="text/javascript" src="settings.js"></script>
+</head>
+<body>
+  <div id="errorMessage" class="error" hidden="true"></div>
+  <div id="info" class="info" hidden="true"></div>
+
+  <h1>Wifi Settings</h1>
+  <div id="requiresRestart" hidden="true" style="color: red;">Restart required!!</div>
+  <div>SSID</div>
+  <input id="ssid" type="text" maxlength="100" oninput="updateSSID()">
+  <div>Password</div>
+  <input id="wifiPass" type="password" maxlength="100" oninput="updatePassword()">
+  <br />
+  <input type="checkbox" onclick="showWifiPassword()">Show Password</input>
+  <br />
+  <!-- <button name="connectWifi" onclick="connectWifi()">Test</button> -->
+  <br />
+  <form action="/restart" method="POST">
+    <button type="submit" id="resetBtn" name="reset" disabled="true">Restart device</button>
+  </form>
+</body>
+</html>

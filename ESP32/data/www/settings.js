@@ -23,17 +23,32 @@ SOFTWARE. */
 
 var userSettings = {};
 var upDateTimeout;
+var restartRequired = false;
+var documentLoaded = false;
 $(document).ready( 
     async function () 
     {
-        await getUserSettings()
+        fetch('/userSettings')
+        .then(function(response) {
+            if (!response.ok) {
+                $("#errorMessage").attr("hidden", false);
+                $("#errorMessage").text("Error loading user settings!");
+            } else {
+                response.json().then(data => {
+                    userSettings = data;
+                    if ($("#xMin").length) {
+                        getUserSettings()
+                    } else {
+                        getWifiSettings();
+                    }
+                });
+            }
+        });
     }
 );
 
-async function getUserSettings() 
+function getUserSettings() 
 {
-    let response = await fetch('/userSettings');
-    userSettings = await response.json();
 
     var xMin = userSettings["xMin"];
     var xMax = userSettings["xMax"];
@@ -64,50 +79,58 @@ async function getUserSettings()
     $("#udpServerPort").val(userSettings["udpServerPort"]);
     $("#hostname").val(userSettings["hostname"]);
     $("#friendlyName").val(userSettings["friendlyName"]);
+    documentLoaded = true;
 }
 
 async function updateUserSettings() 
 {
-    if(upDateTimeout !== null) 
-    {
-        clearTimeout(upDateTimeout);
-    }
-    upDateTimeout = setTimeout(() => 
-    {
-        $("#errorMessage").attr("hidden", true);
-        $("#errorMessage").text("");
-        $("#info").attr("hidden", false);
-        $("#info").text("Saving...");
-        $("#info").css("color", 'black');
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", "/settings", true);
-        xhr.onreadystatechange = function() 
+    if (documentLoaded) {
+        if(upDateTimeout !== null) 
         {
-            if (xhr.readyState === 4) {
-                var response = JSON.parse(xhr.responseText);
-                if (response["msg"] !== "done") 
-                {
-                    $("#errorMessage").attr("hidden", false);
-                    $("#errorMessage").text("Error saving: " + response["msg"]);
-                } 
-                else 
-                {
-                    $("#info").attr("hidden", false);
-                    $("#info").text("Settings saved!");
-                    $("#info").css("color", 'green');
-                    setTimeout(() => 
+            clearTimeout(upDateTimeout);
+        }
+        upDateTimeout = setTimeout(() => 
+        {
+            $("#errorMessage").attr("hidden", true);
+            $("#errorMessage").text("");
+            $("#info").attr("hidden", false);
+            $("#info").text("Saving...");
+            $("#info").css("color", 'black');
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/settings", true);
+            xhr.onreadystatechange = function() 
+            {
+                if (xhr.readyState === 4) {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response["msg"] !== "done") 
                     {
-                        $("#info").attr("hidden", true);
-                        $("#info").text("");
-                    }, 5000)
+                        $("#errorMessage").attr("hidden", false);
+                        $("#errorMessage").text("Error saving: " + response["msg"]);
+                    } 
+                    else 
+                    {
+                        $("#info").attr("hidden", false);
+                        $("#info").text("Settings saved!");
+                        $("#info").css("color", 'green');
+                        if (restartRequired) 
+                        {
+                            $('#requiresRestart').show();
+                            $('#resetBtn').prop("disabled", false );
+                        }
+                        setTimeout(() => 
+                        {
+                            $("#info").attr("hidden", true);
+                            $("#info").text("");
+                        }, 5000)
+                    }
                 }
             }
-          }
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        var body = JSON.stringify(userSettings);
-        xhr.send(body);
-        upDateTimeout = null;
-    }, 3000);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            var body = JSON.stringify(userSettings);
+            xhr.send(body);
+            upDateTimeout = null;
+        }, 3000);
+    }
 }
 
 function onMinInput(axis) 
@@ -237,21 +260,85 @@ function onSpeedInput()
 
 function updateUdpPort() 
 {
-    userSettings["speed"] = parseInt($('udpServerPort').text);
-    $('#requiresRestart').show();
+    userSettings["speed"] = parseInt($('#udpServerPort').val());
+    showRestartRequired();
     updateUserSettings();
 }
 
 function updateHostName() 
 {
-    userSettings["hostname"] = $('hostname').text;
-    $('#requiresRestart').show();
+    userSettings["hostname"] = $('#hostname').val();
+    showRestartRequired();
     updateUserSettings();
 }
 
 function updateFriendlyName() 
 {
-    userSettings["friendlyName"] = $('friendlyName').text;
-    $('#requiresRestart').show();
+    userSettings["friendlyName"] = $('#friendlyName').val();
+    showRestartRequired();
     updateUserSettings();
+}
+
+
+//wifiSettings.htm functions
+
+function getWifiSettings() 
+{
+    $("#ssid").val(userSettings["ssid"]);
+    $("#wifiPass").val(userSettings["wifiPass"]);
+    documentLoaded = true;
+}
+
+function connectWifi() {
+    
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/connectWifi", true);
+    xhr.onreadystatechange = function() 
+    {
+        if (xhr.readyState === 4) {
+            var response = JSON.parse(xhr.responseText);
+            if (!response["connected"]) 
+            {
+                var x = document.getElementById("errorMessage");
+                x.hidden = false;
+                x.text = "Error connection to wifi access point";
+            } 
+            else 
+            {
+                $("#info").attr("hidden", false);
+                $("#info").text("Wifi Connected! IP Address: " + response["IPAddress"] + " Keep this IP address and restart the device. After rebooting enter the IP address into your browsers address bar.");
+                $("#info").css("color", 'green');
+            }
+        }
+    }
+    xhr.send();
+}
+
+function updateSSID() {
+    userSettings["ssid"] = $('#ssid').val();
+    showRestartRequired();
+    updateUserSettings();
+}
+
+function updatePassword() {
+    userSettings["wifiPass"] = $('#wifiPass').val();
+    showRestartRequired();
+    updateUserSettings();
+}
+
+function showWifiPassword() {
+    var x = document.getElementById('wifiPassword');
+    x.oninput = null;
+    if (x.type === "password") {
+      x.type = "text";
+    } else {
+      x.type = "password";
+    }
+    x.oninput = updatePassword();
+}
+
+function showRestartRequired() {
+    if (documentLoaded) {
+        restartRequired = true;
+    }
 }

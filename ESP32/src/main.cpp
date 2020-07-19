@@ -38,7 +38,7 @@ BluetoothHandler bluetooth;
 WebHandler webHandler;
 // This has issues running with the webserver.
 //OTAHandler otaHandler;
-
+boolean apMode = false;
 void setup() {
 
   Serial.begin(115200);
@@ -48,34 +48,62 @@ void setup() {
   }
   SettingsHandler::load();
   if (strcmp(SettingsHandler::ssid, "YOUR SSID HERE") != 0 && SettingsHandler::ssid != nullptr) {
-      wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass); 
-      if (wifi.isConnected()) {
+      if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) { 
         udpHandler.setup(SettingsHandler::udpServerPort);
         webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName);
+      } 
+      else 
+      {
+        apMode = true;
+        if (wifi.startAp()) 
+        {
+          webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
+        }
       }
+  } 
+  else 
+  {
+    apMode = true;
+    if (wifi.startAp()) 
+    {
+      webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
+    }
   }
-  bluetooth.setup();
-  //otaHandler.setup();
-  servoHandler.setup();
+  if (!apMode) 
+  {
+    bluetooth.setup();
+    //otaHandler.setup();
+    servoHandler.setup();
+  }
 }
 
 void loop() {
-  //otaHandler.handle();
-  char* data = udpHandler.read();
-  if (data != nullptr) {
-    // Serial.print("web writing: ");
-    // Serial.println(data);
-    for (char *c = data; *c; ++c) {
-      servoHandler.read(*c);
-      servoHandler.execute();
+  if (!apMode) 
+  {
+    //otaHandler.handle();
+    char* data = udpHandler.read();
+    if (data != nullptr) 
+    {
+      // Serial.print("web writing: ");
+      // Serial.println(data);
+      for (char *c = data; *c; ++c) 
+      {
+        servoHandler.read(*c);
+        servoHandler.execute();
+      }
+    } 
+    else if (Serial.available() > 0) 
+    {
+      servoHandler.read(Serial.read());
+    } 
+    else if (bluetooth.available() > 0) 
+    {
+      servoHandler.read(bluetooth.read());
     }
-  } else if (Serial.available() > 0) {
-    servoHandler.read(Serial.read());
-  } else if (bluetooth.available() > 0) {
-    servoHandler.read(bluetooth.read());
+    if (data == nullptr) 
+    {
+      servoHandler.execute();
+    } 
+    delete[] data;
   }
-  if (data == nullptr) {
-    servoHandler.execute();
-  } 
-  delete[] data;
 }

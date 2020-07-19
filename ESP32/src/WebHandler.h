@@ -20,6 +20,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
+#pragma once
+
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include <ESPAsyncWebServer.h>
@@ -27,8 +29,10 @@ SOFTWARE. */
 #include <AsyncJson.h>
 #include <ESPmDNS.h>
 #include "SettingsHandler.h"
+#include "WifiHandler.h"
 
 AsyncWebServer server(80);
+
 class WebHandler {
     private:
         //AsyncWebServer server = AsyncWebServer(80);
@@ -45,7 +49,7 @@ class WebHandler {
         }
 
     public:
-        void setup(int port, char* hostName, char* friendlyName) {
+        void setup(int port, char* hostName, char* friendlyName, bool apMode = false) {
             // Changing the port at runtime crashes the ESP32.
             // if (port == 0) {
             //     port = 80;
@@ -57,23 +61,79 @@ class WebHandler {
             // This has issues running with the webserver.
             //startMDNS(hostName, friendlyName);
 
-            //Route for root / web page
-            server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-                request->send(SPIFFS, "/www/index.htm", "text/html");
+            // Route for root / web page
+            // if (apMode) 
+            // {
+            //     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+            //     {
+            //         request->send(SPIFFS, "/www/wifiSettings.htm");
+            //     });
+            // }
+            // else 
+            // {
+            //     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+            //     {
+            //         request->send(SPIFFS, "/www/index.htm");
+            //     });
+            // }
+
+            // server.on("/wifiSettings", HTTP_GET, [](AsyncWebServerRequest *request)
+            // {
+            //     request->send(SPIFFS, "/www/wifiSettings.htm");
+            // });
+
+            // server.on("/jquery", HTTP_GET, [](AsyncWebServerRequest *request)
+            // {
+            //     request->send(SPIFFS, "/www/jquery-3.5.1.min.js");
+            // });
+
+            // server.on("/settings", HTTP_GET, [](AsyncWebServerRequest *request) 
+            // {
+            //     request->send(SPIFFS, "/www/settings.js");
+            // });
+
+            // server.on("/style", HTTP_GET, [](AsyncWebServerRequest *request) 
+            // {
+            //     request->send(SPIFFS, "/www/style.css", "text/css");
+            // });
+
+            server.on("/userSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
+            {
+                request->send(SPIFFS, "/userSettings.json");
+            });   
+
+            server.on("/jquery", HTTP_GET, [](AsyncWebServerRequest* request) {
+                AsyncWebServerResponse* response = request->beginResponse(SPIFFS, "/www/js/jquery-3.5.1.min.js.gz", "text/javascript");
+                response->addHeader("Content-Encoding", "gzip");
+                request->send(response);
             });
 
-            server.on("/settings", HTTP_GET, [](AsyncWebServerRequest *request) {
-                request->send(SPIFFS, "/www/settings.js", "text/javascript");
-            });
-            server.on("/userSettings", HTTP_GET, [](AsyncWebServerRequest *request) {
-                request->send(SPIFFS, "/userSettings.json", "text/javascript");
+            server.on("/connectWifi", HTTP_POST, [](AsyncWebServerRequest *request) 
+            {
+                WifiHandler wifi;
+                const size_t capacity = JSON_OBJECT_SIZE(2);
+                DynamicJsonDocument doc(capacity);
+                if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) 
+                {
+
+                    doc["connected"] = true;
+                    doc["IPAddress"] = wifi.ip().toString();
+                }
+                else 
+                {
+                    doc["connected"] = false;
+                    doc["IPAddress"] = "0.0.0.0";
+
+                }
+                String output;
+                serializeJson(doc, output);
+                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", output);
+                request->send(response);
             });
 
-            server.on("/style", HTTP_GET, [](AsyncWebServerRequest *request) {
-                request->send(SPIFFS, "/www/style.css", "text/css");
-            });
 
-            server.on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) {
+            server.on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
+            {
                 // AsyncResponseStream *response = request->beginResponseStream("application/json");
                 // DynamicJsonBuffer jsonBuffer;
                 // JsonObject &root = jsonBuffer.createObject();
@@ -83,7 +143,8 @@ class WebHandler {
                 // request->send(response);
             });
 
-            server.on("^\\/sensor\\/([0-9]+)$", HTTP_GET, [] (AsyncWebServerRequest *request) {
+            server.on("^\\/sensor\\/([0-9]+)$", HTTP_GET, [] (AsyncWebServerRequest *request) 
+            {
                 String sensorId = request->pathArg(0);
             });
 
@@ -92,10 +153,13 @@ class WebHandler {
             //     request->send(200);
             // }, handleUpload);server.on("/reset", HTTP_POST, [](AsyncWebServerRequest *request){
 
-            server.on("/restart", HTTP_POST, [](AsyncWebServerRequest *request){
-                request->send(200, "text/plain","Restarting device, wait about 10 seconds and navigate to the configuration page again.");
+            server.on("/restart", HTTP_POST, [](AsyncWebServerRequest *request)
+            {
+                request->send(200, "text/plain","Restarting device, wait about 10-20 seconds and navigate to the network IP address in your browser address bar.");
                 delay(2000);
+                Serial.println("Device restarting...");
                 ESP.restart();
+                delay(5000);
             });
 
             AsyncCallbackJsonWebHandler* handler = new AsyncCallbackJsonWebHandler("/settings", [](AsyncWebServerRequest *request, JsonVariant &json) {
@@ -129,9 +193,18 @@ class WebHandler {
                     request->send(404);
                 }
             });
-            
+
+            server.rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
+            //server.serveStatic("/js/", SPIFFS, "/www/js/").setCacheControl("max-age=31536000");
+            server.serveStatic("/", SPIFFS, "/www/");
+            // server.serveStatic("/wifiSettings", SPIFFS, "/www/wifiSettings.htm");
+            // server.serveStatic("/style", SPIFFS, "/www/style.css");
+            // server.serveStatic("/userSettings", SPIFFS, "/userSettings.json");
+            // server.serveStatic("/settings", SPIFFS, "/www/settings.js");
+            // server.serveStatic("/jquery", SPIFFS, "/www/jquery-3.5.1.min.js");
             server.begin();
         }
+
         private:
             void startMDNS(char* hostName, char* friendlyName)
             {
