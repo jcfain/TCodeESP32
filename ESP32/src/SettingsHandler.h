@@ -58,12 +58,12 @@ class SettingsHandler
         {
             if(json.size() > 0) 
             {
-                const char* ssidConst = json["ssid"] | "unknown";
+                const char* ssidConst = json["ssid"];
                 if( ssid != nullptr) 
                 {
                     strcpy(ssid, ssidConst);
                 }
-                const char* wifiPassConst = json["wifiPass"] | "unknown";
+                const char* wifiPassConst = json["wifiPass"];
                 if( wifiPass != nullptr) 
                 {
                     strcpy(wifiPass, wifiPassConst);

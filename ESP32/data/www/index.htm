@@ -6,9 +6,9 @@
   <title>TCode ESP32</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- <link rel="icon" href="data:,"> -->
-  <link rel="stylesheet" type="text/css" href="style">
+  <link rel="stylesheet" type="text/css" href="style.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <script type="text/javascript" src="settings"></script>
+  <script type="text/javascript" src="settings.js"></script>
 </head>
 <body>
   <div id="errorMessage" class="error" hidden="true"></div>
@@ -100,13 +100,15 @@
   <div id="requiresRestart" hidden="true" style="color: red;">Restart required!!</div>
   <form action="/restart" method="POST">
     <div>Udp port</div>
-    <input id="udpServerPort" type="text" maxlength="5" onchange="updateUdpPort()">
+    <input id="udpServerPort" type="text" maxlength="5" oninput="updateUdpPort()">
     <div>Host name</div>
-    <input id="hostname" type="text" maxlength="63" onchange="updateHostName()">
+    <input id="hostname" type="text" maxlength="63" oninput="updateHostName()">
     <div>Friendly name</div>
-    <input id="friendlyName" type="text" maxlength="100" onchange="updateFriendlyName()">
+    <input id="friendlyName" type="text" maxlength="100" oninput="updateFriendlyName()">
     <br>
-    <button type="submit" name="reset">Restart device</button>
+    <a href="/wifiSettings.htm">Wifi settings</a>
+    <br>
+    <button type="submit" id="resetBtn" name="reset" disabled="true">Restart device</button>
   </form>
 </body>
 </html>

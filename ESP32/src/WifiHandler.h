@@ -20,7 +20,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
- #include <WiFi.h>
+#pragma once
+
+#include <WiFi.h>
 
 class WifiHandler 
 {
@@ -40,27 +42,56 @@ class WifiHandler
       return WiFi.macAddress();
     }
 
-    void connect(char ssid[100], char pass[100]) 
+    bool connect(char ssid[100], char pass[100]) 
     {
         WiFi.disconnect(true);
         //Serial.println("Setting mode");
         WiFi.mode(WIFI_STA);
         WiFi.setSleep(false);
-        WiFi.setHostname("OSR2");
+        WiFi.setHostname("TCodeESP32");
         Serial.printf("Establishing connection to  %s\n", ssid);
         WiFi.begin(ssid, pass);
-        while (!isConnected()) 
+        int connectStartTimeout = millis() + connectTimeOut;
+        while (!isConnected() && millis() < connectStartTimeout) 
         {
           delay(1000);
           Serial.print(".");
+          if (millis() > connectStartTimeout) {
+            Serial.println("Wifi timed out connection to AP");
+            return false;
+          }
         }
-        IPAddress ipAddress = ip();
+      IPAddress ipAddress = ip();
       Serial.print("Connected: IP: ");
       Serial.println(ipAddress);
+      return true;
+    }
+
+    bool startAp() {
+      WiFi.disconnect(true);
+      WiFi.mode(WIFI_AP);
+      //WiFi.setHostname("TCodeESP32");
+      WiFi.softAP(ssid);
+      delay(100);
+      //WiFi.softAPConfig(IPAddress(192, 168, 1, 1), IPAddress(192, 168, 1, 1), IPAddress(255, 255, 255, 0));
+      // Set your Static IP address
+      IPAddress local_IP(192, 168, 1, 1);
+      IPAddress subnet(255, 255, 255, 0);
+      // Set your Gateway IP address
+      IPAddress gateway(192, 168, 1, 254);
+      if (!WiFi.softAPConfig(local_IP, gateway, subnet)) {
+        Serial.println("STA Failed to configure");
+        return false;
+      }
+      Serial.print("Wifi started in APMode: ");
+      Serial.println(WiFi.softAPIP());
+      return true;
     }
 
     private: 
-    
+    const char *ssid = "TCodeESP32Setup";
+    const char *password = "12345678";
+    int connectTimeOut = 10000;
   //  String translateEncryptionType(wifi_auth_mode_t encryptionType) {
   //    switch (encryptionType) {
   //      case (WIFI_AUTH_OPEN):
