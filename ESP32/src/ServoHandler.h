@@ -24,23 +24,31 @@ class ServoHandler
 private:
     ToyComms toy; 
     // Declare servos
-    Servo ForeAftServo;  // Fore-Aft Servo
-    Servo RightServo;  // Right Servo
-    Servo LeftServo;  // Left Servo
-    Servo PitchServo;  // Pitch Servo
-    Servo ValveServo;  // Valve Servo
-    Servo TwistServo;  // Twist Servo
+    Servo ForeAftServo;  // (OSR3 only)
+    Servo RightServo;
+    Servo LeftServo;
+    Servo PitchServo;
+    Servo ValveServo;
+    Servo TwistServo;
 
     // Specify which pins are attached to what here
-    #define ForeAftServo_PIN 19  // Fore-Aft Servo
-    #define RightServo_PIN 12  // Right Servo
-    #define LeftServo_PIN 13  // Left Servo
-    #define PitchServo_PIN 14  // Pitch Servo
-    #define ValveServo_PIN 15  // Valve Servo
-    #define TwistServo_PIN 2  // Twist Servo
-    #define Vibe0_PIN 22   // Vibration motor 1
-    #define Vibe1_PIN 23   // Vibration motor 2
-    #define Pot1_PIN 33   // Twist potentiometer
+    const int ForeAftServo_PIN = 19;  // (OSR3 only)
+    const int RightServo_PIN = 12;
+    const int LeftServo_PIN = 13;
+    const int PitchServo_PIN = 14;
+    const int ValveServo_PIN = 15;
+    const int TwistServo_PIN = 2;
+    const int Vibe0_PIN = 22;
+    const int Vibe1_PIN = 23;
+    const int Pot1_PIN = 33;
+
+    // Arm servo zeros
+    // Change these to adjust arm positions
+    // (1500 = centre)
+    const int ForeAftServo_ZERO = 1500;  // (OSR3 only)
+    const int RightServo_ZERO = 1500;
+    const int LeftServo_ZERO = 1500;
+    const int PitchServo_ZERO = 1500;
 
     // Declare timing variables
     unsigned long nextPulse;
@@ -59,10 +67,17 @@ private:
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup() 
+    void setup(int servoFrequency) 
     {
         toy.identifyTCode();
         
+        ForeAftServo.setPeriodHertz(servoFrequency);
+        RightServo.setPeriodHertz(servoFrequency);
+        LeftServo.setPeriodHertz(servoFrequency);
+        PitchServo.setPeriodHertz(servoFrequency);
+        // ValveServo.setPeriodHertz(servoFrequency);
+        // TwistServo.setPeriodHertz(servoFrequency);
+
         // Declare servos and set zero
         int forAftChannel = ForeAftServo.attach(ForeAftServo_PIN);
         if (forAftChannel == 0) 
@@ -125,11 +140,11 @@ public:
         analogWrite(Vibe1_PIN,0);
 
         // Set servo pulse interval
-        tick = 20; //ms
+        tick = 1000/servoFrequency; //ms
         // Set time for first pulse
         nextPulse = millis() + tick;
 
-        // Velocity tracker
+        // Velocity tracker, for T-Valve
         xLast = 500;
         xValve = 0;
 
@@ -181,16 +196,17 @@ public:
             // Forward-Backward compensation
             // This calculates platform movement to account for the arc of the servos
             float lin1,lin2;
-            int b2;
+            int fwd2;
             lin1 = xLin-500;
             lin1 = lin1*0.00157079632;
             lin2 = 0.853-cos(lin1);
             lin2 = 1133*lin2;
-            b2 = lin2;
+            fwd2 = lin2;
 
             // Calculate valve position
             float Vel,ValveCmd,suck;
             Vel = xLin - xLast;
+            Vel = 50*Vel/tick;
             xLast = xLin;
             suck = 20;
             if (Vel > suck) {
@@ -201,18 +217,17 @@ public:
                 ValveCmd = 0;
             }
             xValve = (4*xValve + ValveCmd)/5;
-            int e;
-            e = 20*xValve;
-            if (e > 1000) {e = 1000;}
 
 
             // Mix and send servo channels
             // Linear scale inputs to servo appropriate numbers
-            int a,b,c,d,twist;
-            a = map(xLin,1,1000,-350,350);
-            b = map(yLin,1,1000,-180,180);
-            c = map(yRot,1,1000,-180,180);
-            d = map(zRot,1,1000,-350,350);
+            int stroke,fwd,roll,pitch,valve,twist;
+            stroke = map(xLin,1,1000,-350,350);
+            fwd    = map(yLin,1,1000,-180,180);
+            roll   = map(yRot,1,1000,-180,180);
+            pitch  = map(zRot,1,1000,-350,350);
+            valve  = 20*xValve;
+            valve  = constrain(valve, 0, 1000);   
             int potentiometerIn = analogRead(Pot1_PIN);
             if (potentiometerIn > 0) {
                 twist = 1 * (xRot - map(potentiometerIn,4095,100,1,1000));
@@ -233,11 +248,11 @@ public:
             
             // Send signals to the servos
             // Note: 1000 = -45deg, 2000 = +45deg
-            ForeAftServo.writeMicroseconds(1500 - b + b2);
-            RightServo.writeMicroseconds(1500 + a + c);
-            LeftServo.writeMicroseconds(1500 - a + c);
-            PitchServo.writeMicroseconds(1500 - d);
-            ValveServo.writeMicroseconds(2000 - e);
+            ForeAftServo.writeMicroseconds(ForeAftServo_ZERO - fwd + fwd2);
+            RightServo.writeMicroseconds(RightServo_ZERO + stroke + roll);
+            LeftServo.writeMicroseconds(LeftServo_ZERO - stroke + roll);
+            PitchServo.writeMicroseconds(PitchServo_ZERO - pitch);
+            ValveServo.writeMicroseconds(2000 - valve);
             TwistServo.writeMicroseconds(1500 + twist);
 
             // Done with servo channels

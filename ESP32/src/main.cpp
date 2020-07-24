@@ -39,6 +39,7 @@ WebHandler webHandler;
 // This has issues running with the webserver.
 //OTAHandler otaHandler;
 boolean apMode = false;
+char udpData[255];
 void setup() {
 
   Serial.begin(115200);
@@ -69,24 +70,24 @@ void setup() {
       webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
     }
   }
-  if (!apMode) 
-  {
+  // if (!apMode) 
+  // {
     bluetooth.setup();
     //otaHandler.setup();
-    servoHandler.setup();
-  }
+    servoHandler.setup(SettingsHandler::servoFrequency);
+  //}
 }
 
 void loop() {
   if (!apMode) 
   {
     //otaHandler.handle();
-    char* data = udpHandler.read();
-    if (data != nullptr) 
+    udpHandler.read(udpData);
+    if (strlen(udpData) > 0) 
     {
       // Serial.print("web writing: ");
-      // Serial.println(data);
-      for (char *c = data; *c; ++c) 
+      // Serial.println(udpData);
+      for (char *c = udpData; *c; ++c) 
       {
         servoHandler.read(*c);
         servoHandler.execute();
@@ -100,10 +101,9 @@ void loop() {
     {
       servoHandler.read(bluetooth.read());
     }
-    if (data == nullptr) 
+    if (strlen(udpData) == 0) 
     {
       servoHandler.execute();
     } 
-    delete[] data;
   }
 }

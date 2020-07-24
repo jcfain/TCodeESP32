@@ -79,6 +79,8 @@ function getUserSettings()
     $("#udpServerPort").val(userSettings["udpServerPort"]);
     $("#hostname").val(userSettings["hostname"]);
     $("#friendlyName").val(userSettings["friendlyName"]);
+    $("#servoFrequency").val(userSettings["servoFrequency"]);
+    
     documentLoaded = true;
 }
 
@@ -261,6 +263,13 @@ function onSpeedInput()
 function updateUdpPort() 
 {
     userSettings["speed"] = parseInt($('#udpServerPort').val());
+    showRestartRequired();
+    updateUserSettings();
+}
+
+function updateServoFrequency() 
+{
+    userSettings["servoFrequency"] = parseInt($('#servoFrequency').val());
     showRestartRequired();
     updateUserSettings();
 }

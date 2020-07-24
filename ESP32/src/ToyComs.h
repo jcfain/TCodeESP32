@@ -14,6 +14,7 @@
 // v2.2 - OSR2+ release, 1-3-2020
 // v2.3 - T-Valve support added, 1-5-2020
 // v2.4 - T-wist support added; LR servos now +/- 350 for the sake of Raser1's sanity, 7-10-2020
+// v2.5 - Experimental build. Servo Library replaced with alternative capable of high frequencies. 23-7-2020
 
 
 // ----------------------------
@@ -297,6 +298,8 @@ class ToyComms {
                   //   Serial.print("(1000*tL1[n])/xLbuff2[n] ");
                   //   Serial.println((1000*tL1[n])/xLbuff2[n]);
                   // }
+                // Smoothing limit
+                if (tL1[n]-tL0[n] < 20) { tL1[n] = tL0[n] + 20; }
                 // Clear channel buffer
                 xLbuff1[n] = 0;
                 xLbuff2[n] = 0;
@@ -325,6 +328,8 @@ class ToyComms {
                   // Time interval
                   tR1[n] = tR0[n] + xRbuff2[n];
                 }
+                // Smoothing limit
+                if (tR1[n]-tR0[n] < 20) { tR1[n] = tR0[n] + 20; }
                 // Clear channel buffer
                 xRbuff1[n] = 0;
                 xRbuff2[n] = 0;
