@@ -42,6 +42,7 @@ class SettingsHandler
         static int xRollMin;
         static int xRollMax;
         static int speed;
+        static int servoFrequency;
 
         static void load() 
         {
@@ -84,6 +85,7 @@ class SettingsHandler
                 xRollMin = json["xRollMin"] | 1;
                 xRollMax = json["xRollMax"] | 1000;
                 speed = json["speed"] | 1000;
+                servoFrequency = json["servoFrequency"] | 50;
 
                 //LogUpdateDebug();
 
@@ -136,7 +138,8 @@ class SettingsHandler
             doc["xRollMin"] = xRollMin;
             doc["xRollMax"] = xRollMax;
             doc["speed"] = speed;
-            
+            doc["servoFrequency"] = servoFrequency;
+
             //LogSaveDebug(doc);
 
             if (serializeJson(doc, file) == 0) 
@@ -157,7 +160,7 @@ class SettingsHandler
     private:
         //static char* filename = "/userSettings.json";
         // Use http://arduinojson.org/assistant to compute the capacity.
-        static const size_t readCapacity = JSON_OBJECT_SIZE(13) + 500;
+        static const size_t readCapacity = JSON_OBJECT_SIZE(14) + 500;
         static const size_t saveCapacity = JSON_OBJECT_SIZE(18);
 
         //TODO: Need to think this out better.
@@ -223,6 +226,8 @@ class SettingsHandler
             Serial.println((int)doc["xRollMax"]);
             Serial.print("save speed ");
             Serial.println((int)doc["speed"]);
+            Serial.print("save servoFrequency ");
+            Serial.println((int)doc["servoFrequency"]);
         }
 
         static void LogUpdateDebug() 
@@ -251,6 +256,8 @@ class SettingsHandler
             Serial.println(xRollMax);
             Serial.print("update speed ");
             Serial.println(speed);
+            Serial.print("update servoFrequency ");
+            Serial.println(servoFrequency);
         }
 };
 
@@ -268,3 +275,4 @@ int SettingsHandler::yRollMax;
 int SettingsHandler::xRollMin;
 int SettingsHandler::xRollMax;
 int SettingsHandler::speed;
+int SettingsHandler::servoFrequency;

@@ -99,6 +99,8 @@
   <h1>Device Settings</h1>
   <div id="requiresRestart" hidden="true" style="color: red;">Restart required!!</div>
   <form action="/restart" method="POST">
+    <div>Servo Frequency</div>
+    <input id="servoFrequency" type="text" maxlength="3" oninput="updateServoFrequency()">
     <div>Udp port</div>
     <input id="udpServerPort" type="text" maxlength="5" oninput="updateUdpPort()">
     <div>Host name</div>

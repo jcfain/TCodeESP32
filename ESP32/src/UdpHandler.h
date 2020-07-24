@@ -37,11 +37,12 @@ class Udphandler
       udpInitialized = true;
     }
 
-    char* read() 
+    void read(char* udpData) 
     {
       if (!udpInitialized) 
       {
-        return nullptr;
+        udpData[0] = {0};
+        return;
       }
       // if there's data available, read a packet
       int packetSize = wifiUdp.parsePacket();
@@ -84,10 +85,11 @@ class Udphandler
           DeserializationError error = deserializeJson(doc, packetBuffer);
           if (error) {
               Serial.println(F("Failed to read udp jsonobject, using default configuration"));
-              return nullptr;
+              udpData = nullptr;
+              return;
           }
           JsonArray arr = doc.as<JsonArray>();
-          char buffer[300] = "";
+          char buffer[100] = "";
           for(JsonObject repo: arr) 
           { 
             const char* channel = repo["Channel"];
@@ -116,25 +118,24 @@ class Udphandler
                 strcat (buffer, "S");
                 strcat (buffer, speed_string);
               }
-              strcat (buffer, " ");
-              //Serial.print("buffer");
-              //Serial.println(buffer);
+              strcat(buffer, " ");
+              // Serial.print("buffer");
+              // Serial.println(buffer);
             }
           }
           strcat(buffer, "\n");
-          char* tcode = new char[strlen(buffer) + 1];
-          strcpy(tcode, buffer);
+          strcpy(udpData, buffer);
           // Serial.print("tcode: ");
-          // Serial.println(tcode);
-          return tcode;
+          // Serial.println(udpData);
+          return;
         } 
-        char* tcode = new char[strlen(packetBuffer) + 1];
-        strcpy(tcode, packetBuffer);
+        //udpData[strlen(packetBuffer) + 1];
+        strcpy(udpData, packetBuffer);
         // Serial.print("tcode: ");
-        // Serial.println(tcode);
-        return tcode;
+        // Serial.println(udpData);
+        return;
       }
-      return nullptr;
+      udpData[0] = {0};
     }
     
 /*     void listen(int localPort)
