@@ -42,68 +42,68 @@ boolean apMode = false;
 char udpData[255];
 void setup() {
 
-  Serial.begin(115200);
-  if(!SPIFFS.begin(true)){
-      Serial.println("An Error has occurred while mounting SPIFFS");
-      return;
-  }
-  SettingsHandler::load();
-  if (strcmp(SettingsHandler::ssid, "YOUR SSID HERE") != 0 && SettingsHandler::ssid != nullptr) {
-      if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) { 
-        udpHandler.setup(SettingsHandler::udpServerPort);
-        webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName);
-      } 
-      else 
-      {
-        apMode = true;
-        if (wifi.startAp()) 
-        {
-          webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
-        }
-      }
-  } 
-  else 
+	Serial.begin(115200);
+	if(!SPIFFS.begin(true)){
+		Serial.println("An Error has occurred while mounting SPIFFS");
+		return;
+	}
+	SettingsHandler::load();
+	if (strcmp(SettingsHandler::ssid, "YOUR SSID HERE") != 0 && SettingsHandler::ssid != nullptr) {
+		if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) { 
+			udpHandler.setup(SettingsHandler::udpServerPort);
+			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName);
+		} 
+		else 
+		{
+			apMode = true;
+			if (wifi.startAp()) 
+			{
+				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
+			}
+		}
+	} 
+	else 
+	{
+		apMode = true;
+		if (wifi.startAp()) 
+		{
+			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
+		}
+	}
+  if (!apMode) 
   {
-    apMode = true;
-    if (wifi.startAp()) 
-    {
-      webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
-    }
-  }
-  // if (!apMode) 
-  // {
     bluetooth.setup();
     //otaHandler.setup();
     servoHandler.setup(SettingsHandler::servoFrequency);
-  //}
+  }
 }
 
 void loop() {
-  if (!apMode) 
-  {
-    //otaHandler.handle();
-    udpHandler.read(udpData);
-    if (strlen(udpData) > 0) 
-    {
-      // Serial.print("web writing: ");
-      // Serial.println(udpData);
-      for (char *c = udpData; *c; ++c) 
-      {
-        servoHandler.read(*c);
-        servoHandler.execute();
-      }
-    } 
-    else if (Serial.available() > 0) 
-    {
-      servoHandler.read(Serial.read());
-    } 
-    else if (bluetooth.available() > 0) 
-    {
-      servoHandler.read(bluetooth.read());
-    }
-    if (strlen(udpData) == 0) 
-    {
-      servoHandler.execute();
-    } 
-  }
+	if (!apMode) 
+	{
+		//otaHandler.handle();
+		udpHandler.read(udpData);
+		if (strlen(udpData) > 0) 
+		{
+			// Serial.print("web writing: ");
+			// Serial.println(udpData);
+			for (char *c = udpData; *c; ++c) 
+			{
+				servoHandler.read(*c);
+				servoHandler.execute();
+			}
+		} 
+		else if (Serial.available() > 0) 
+		{
+			servoHandler.read(Serial.read());
+		} 
+		else if (bluetooth.available() > 0) 
+		{
+			servoHandler.read(bluetooth.read());
+		}
+		if (strlen(udpData) == 0) 
+		{
+			servoHandler.execute();
+		} 
+	}
 }
