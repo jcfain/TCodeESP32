@@ -65,13 +65,13 @@ class Udphandler
         //Serial.println("packetBuffer");
         //Serial.println(packetBuffer);
         //send a reply, to the IP address and port that sent us the packet we received
-        if (strcmp(packetBuffer, "password") == 0) 
+        if (strcmp(packetBuffer, SettingsHandler::HandShakeChannel) == 0) 
         {
           Serial.println("Handshake received");
           wifiUdp.beginPacket(wifiUdp.remoteIP(), 54000);
           int i = 0;
-          while (ReplyBuffer[i] != 0)
-            wifiUdp.write((uint8_t)ReplyBuffer[i++]);
+          while (SettingsHandler::TCodeVersion[i] != 0)
+            wifiUdp.write((uint8_t)SettingsHandler::TCodeVersion[i++]);
           wifiUdp.endPacket();
         } 
         else if (strpbrk(packetBuffer, jsonIdentifier) != nullptr) 
@@ -182,6 +182,5 @@ class Udphandler
     WiFiUDP wifiUdp;
     bool udpInitialized = false;
     char packetBuffer[255];; //buffer to hold incoming packet
-    char ReplyBuffer[10] = "connected";       // a string to send back
     char jsonIdentifier[2] = "{";
 };
