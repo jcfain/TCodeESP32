@@ -30,7 +30,7 @@ class SettingsHandler
 {
   public:
         const static char TCodeVersion[11];
-        const static char HandShakeChannel[3];
+        const static char HandShakeChannel[4];
         static char ssid[32];
         static char wifiPass[63];
         static int udpServerPort;
@@ -265,7 +265,7 @@ class SettingsHandler
 
 
 const char SettingsHandler::TCodeVersion[11] = "TCode v0.2";
-const char SettingsHandler::HandShakeChannel[3] = "D1";
+const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 char SettingsHandler::ssid[32];
 char SettingsHandler::wifiPass[63];
 char SettingsHandler::hostname[63];
