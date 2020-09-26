@@ -30,6 +30,20 @@ body {
 .sliderHeading {
   margin-top: 3rem;
 }
+.centerFlex {
+	display: flex;
+	align-content: center;
+	flex-direction: column;
+}
+table {
+	align-self: center;
+}
+table > tbody > tr > td:last-child {
+	text-align: left;
+}
+table > tbody > tr > td:first-child {
+	text-align: right;
+}
 
 [slider] {
   position: relative;

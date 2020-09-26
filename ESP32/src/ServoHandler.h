@@ -14,9 +14,30 @@
 // v2.2 - OSR2+ release, 1-3-2020
 // v2.3 - T-Valve support added, 1-5-2020
 // v2.4 - T-wist support added; LR servos now +/- 350 for the sake of Raser1's sanity, 7-10-2020
+// v2.6 - Experimental build. For use with Parallax Feedback 360° Servo (900-00360) in T-wist. 23-9-2020
 
 #include <ESP32Servo.h>
 #include "ToyComs.h"
+#include "SettingsHandler.h"
+
+volatile int twistFeedBackPin = SettingsHandler::TwistFeedBack_PIN;
+// Twist position monitor variables
+volatile int twistPulseLength = 0;
+volatile int twistPulseCycle = 1099;
+volatile int twistPulseStart = 0;
+// Twist position detection functions
+void IRAM_ATTR twistChange() 
+{
+	if(digitalRead(twistFeedBackPin) == HIGH)
+	{
+		twistPulseCycle = micros()-twistPulseStart;
+  		twistPulseStart = micros();
+	}
+	else
+	{
+  		twistPulseLength = micros()-twistPulseStart;
+	}
+}
 
 class ServoHandler 
 {
@@ -24,7 +45,6 @@ class ServoHandler
 private:
     ToyComms toy; 
     // Declare servos
-    Servo ForeAftServo;  // (OSR3 only)
     Servo RightServo;
     Servo LeftServo;
     Servo PitchServo;
@@ -32,20 +52,17 @@ private:
     Servo TwistServo;
 
     // Specify which pins are attached to what here
-    const int ForeAftServo_PIN = 19;  // (OSR3 only)
-    const int RightServo_PIN = 12;
-    const int LeftServo_PIN = 13;
-    const int PitchServo_PIN = 14;
-    const int ValveServo_PIN = 15;
-    const int TwistServo_PIN = 2;
-    const int Vibe0_PIN = 22;
-    const int Vibe1_PIN = 23;
-    const int Pot1_PIN = 33;
+    const int RightServo_PIN = SettingsHandler::RightServo_PIN;
+    const int LeftServo_PIN = SettingsHandler::LeftServo_PIN;
+    const int PitchServo_PIN = SettingsHandler::PitchServo_PIN;
+    const int ValveServo_PIN = SettingsHandler::ValveServo_PIN;
+    const int TwistServo_PIN = SettingsHandler::TwistServo_PIN;
+    const int Vibe0_PIN = SettingsHandler::Vibe0_PIN;
+    const int Vibe1_PIN = SettingsHandler::Vibe1_PIN;
 
     // Arm servo zeros
     // Change these to adjust arm positions
     // (1500 = centre)
-    const int ForeAftServo_ZERO = 1500;  // (OSR3 only)
     const int RightServo_ZERO = 1500;
     const int LeftServo_ZERO = 1500;
     const int PitchServo_ZERO = 1500;
@@ -64,6 +81,11 @@ private:
     float xLast;
     float xValve;
 
+	// Twist position monitor variables
+	float twistServoAngPos = 0.5;
+	int twistTurns = 0;
+	float twistPos;
+
 public:
     // Setup function
     // This is run once, when the arduino starts
@@ -71,7 +93,6 @@ public:
     {
         toy.identifyTCode();
         
-        ForeAftServo.setPeriodHertz(servoFrequency);
         RightServo.setPeriodHertz(servoFrequency);
         LeftServo.setPeriodHertz(servoFrequency);
         PitchServo.setPeriodHertz(servoFrequency);
@@ -79,12 +100,6 @@ public:
         // TwistServo.setPeriodHertz(servoFrequency);
 
         // Declare servos and set zero
-        int forAftChannel = ForeAftServo.attach(ForeAftServo_PIN);
-        if (forAftChannel == 0) 
-        {
-            Serial.print("Failure to connect to foraft pin: ");
-            Serial.println(ForeAftServo_PIN);
-        }
         int rightChannel = RightServo.attach(RightServo_PIN);
         if (rightChannel == 0) 
         {
@@ -116,12 +131,9 @@ public:
             Serial.println(TwistServo_PIN);
         }
 
-        pinMode(Pot1_PIN,INPUT);
-        adcAttachPin(Pot1_PIN);
 
         delay(500);
         
-        ForeAftServo.writeMicroseconds(1500);
         RightServo.writeMicroseconds(1500);
         LeftServo.writeMicroseconds(1500);
         PitchServo.writeMicroseconds(1500);
@@ -147,6 +159,10 @@ public:
         // Velocity tracker, for T-Valve
         xLast = 500;
         xValve = 0;
+
+		// Initiate position tracking for twist
+		pinMode(twistFeedBackPin, INPUT);
+		attachInterrupt(twistFeedBackPin, twistChange, CHANGE);
 
         // Signal done
         Serial.println("Ready!");
@@ -193,15 +209,6 @@ public:
 
             // If you want to mix your servos differently, enter your code below:
             
-            // Forward-Backward compensation
-            // This calculates platform movement to account for the arc of the servos
-            float lin1,lin2;
-            int fwd2;
-            lin1 = xLin-500;
-            lin1 = lin1*0.00157079632;
-            lin2 = 0.853-cos(lin1);
-            lin2 = 1133*lin2;
-            fwd2 = lin2;
 
             // Calculate valve position
             float Vel,ValveCmd,suck;
@@ -218,25 +225,36 @@ public:
             }
             xValve = (4*xValve + ValveCmd)/5;
 
+            if (!SettingsHandler::continousTwist) {
+				// Calculate twist position
+				float dutyCycle = twistPulseLength;
+				dutyCycle = dutyCycle/twistPulseCycle;
+				float angPos = (dutyCycle - 0.029)/0.942;
+				angPos = constrain(angPos,0,1) - 0.5;
+				if (angPos - twistServoAngPos < - 0.8) { twistTurns += 1; }
+				if (angPos - twistServoAngPos > 0.8) { twistTurns -= 1; }
+				twistServoAngPos = angPos;
+				twistPos = 1000*(angPos + twistTurns);
+			}
 
             // Mix and send servo channels
             // Linear scale inputs to servo appropriate numbers
-            int stroke,fwd,roll,pitch,valve,twist;
+            int stroke,roll,pitch,valve,twist;
             stroke = map(xLin,1,1000,-350,350);
-            fwd    = map(yLin,1,1000,-180,180);
             roll   = map(yRot,1,1000,-180,180);
             pitch  = map(zRot,1,1000,-350,350);
             valve  = 20*xValve;
             valve  = constrain(valve, 0, 1000);   
-            int potentiometerIn = analogRead(Pot1_PIN);
-            if (potentiometerIn > 0) {
-                twist = 1 * (xRot - map(potentiometerIn,4095,100,1,1000));
+            if (!SettingsHandler::continousTwist) {
+    			twist  = 2*(xRot - map(twistPos,-1500,1500,1000,1));
                 twist = constrain(twist, -750, 750);
             } else {
-                twist = map(xRot,480,520,-180,180);
+                twist = map(xRot,1,1000,-180,180);
             }
-            // Serial.print("potentiometerIn: ");
-            // Serial.println(potentiometerIn);
+            // Serial.print("SettingsHandler::continousTwist: ");
+            // Serial.println(SettingsHandler::continousTwist);
+            // Serial.print("twistPos: ");
+            // Serial.println(twistPos);
             // Serial.print("twist: ");
             // Serial.println(twist);
             // Serial.print("xRot: ");
@@ -248,7 +266,6 @@ public:
             
             // Send signals to the servos
             // Note: 1000 = -45deg, 2000 = +45deg
-            ForeAftServo.writeMicroseconds(ForeAftServo_ZERO - fwd + fwd2);
             RightServo.writeMicroseconds(RightServo_ZERO + stroke + roll);
             LeftServo.writeMicroseconds(LeftServo_ZERO - stroke + roll);
             PitchServo.writeMicroseconds(PitchServo_ZERO - pitch);

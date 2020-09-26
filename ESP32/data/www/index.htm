@@ -99,16 +99,118 @@
   <h1>Device Settings</h1>
   <div id="requiresRestart" hidden="true" style="color: red;">Restart required!!</div>
   <form action="/restart" method="POST">
-    <div>Servo Frequency</div>
-    <input id="servoFrequency" type="text" maxlength="3" oninput="updateServoFrequency()">
-    <div>Udp port</div>
-    <input id="udpServerPort" type="text" maxlength="5" oninput="updateUdpPort()">
-    <div>Host name</div>
-    <input id="hostname" type="text" maxlength="63" oninput="updateHostName()">
-    <div>Friendly name</div>
-    <input id="friendlyName" type="text" maxlength="100" oninput="updateFriendlyName()">
+	<div class="centerFlex">
+		<table id="deviceSettingsTable">
+			<tr>
+				<td>
+					<span>Servo Frequency</span> 
+				</td>
+				<td>
+					<input id="servoFrequency" type="text" maxlength="3" oninput="updateServoFrequency()">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span>RightServo PIN</span> 
+				</td>
+				<td>
+					<input id="RightServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span>LeftServo PIN</span> 
+				</td>
+				<td>
+					<input id="LeftServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span>PitchServo PIN</span> 
+				</td>
+				<td>
+					<input id="PitchServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span>ValveServo PIN</span> 
+				</td>
+				<td>
+					<input id="ValveServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span>TwistServo PIN</span> 
+				</td>
+				<td>
+					<input id="TwistServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span>TwistFeedBack PIN</span> 
+				</td>
+				<td>
+					<input id="TwistFeedBack_PIN" type="text" maxlength="3" oninput="updatePins()">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span>Continuous twist</span> 
+				</td>
+				<td>
+					<input id="continuousTwist" type="checkbox" onchange="updateContinuousTwist()">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span>Vibe0 PIN</span> 
+				</td>
+				<td>
+					<input id="Vibe0_PIN" type="text" maxlength="3" oninput="updatePins()">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span>Vibe1 PIN</span> 
+				</td>
+				<td>
+					<input id="Vibe1_PIN" type="text" maxlength="3" oninput="updatePins()">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span>Udp port</span> 
+				</td>
+				<td>
+					<input id="udpServerPort" type="text" maxlength="5" oninput="updateUdpPort()">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span>Host name</span> 
+				</td>
+				<td>
+					<input id="hostname" type="text" maxlength="63" oninput="updateHostName()">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span>Friendly name</span> 
+				</td>
+				<td>
+					<input id="friendlyName" type="text" maxlength="100" oninput="updateFriendlyName()">
+				</td>
+			</tr>
+		</table>
+	</div>
+    <br>
     <br>
     <a href="/wifiSettings.htm">Wifi settings</a>
+    <br>
     <br>
     <button type="submit" id="resetBtn" name="reset" disabled="true">Restart device</button>
   </form>
