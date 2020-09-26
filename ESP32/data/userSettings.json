@@ -12,5 +12,14 @@
 	"xRollMin": 1,
 	"xRollMax": 1000,
 	"speed": 1000,
-	"servoFrequency": 50
+	"servoFrequency": 50,
+	"continousTwist": false,
+	"TwistFeedBack_PIN": 27,
+	"RightServo_PIN": 12,
+	"LeftServo_PIN": 13,
+	"PitchServo_PIN": 14,
+	"ValveServo_PIN": 15,
+	"TwistServo_PIN": 2,
+	"Vibe0_PIN": 22,
+	"Vibe1_PIN": 23
 }

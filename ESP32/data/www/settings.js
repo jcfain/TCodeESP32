@@ -79,7 +79,17 @@ function getUserSettings()
     $("#udpServerPort").val(userSettings["udpServerPort"]);
     $("#hostname").val(userSettings["hostname"]);
     $("#friendlyName").val(userSettings["friendlyName"]);
-    $("#servoFrequency").val(userSettings["servoFrequency"]);
+	$("#servoFrequency").val(userSettings["servoFrequency"]);
+	
+    $("#continousTwist").val(userSettings["continousTwist"]);
+    $("#TwistFeedBack_PIN").val(userSettings["TwistFeedBack_PIN"]);
+    $("#RightServo_PIN").val(userSettings["RightServo_PIN"]);
+    $("#LeftServo_PIN").val(userSettings["LeftServo_PIN"]);
+    $("#PitchServo_PIN").val(userSettings["PitchServo_PIN"]);
+    $("#ValveServo_PIN").val(userSettings["ValveServo_PIN"]);
+    $("#TwistServo_PIN").val(userSettings["TwistServo_PIN"]);
+    $("#Vibe0_PIN").val(userSettings["Vibe0_PIN"]);
+    $("#Vibe1_PIN").val(userSettings["Vibe1_PIN"]);
     
     documentLoaded = true;
 }
@@ -274,6 +284,28 @@ function updateServoFrequency()
     updateUserSettings();
 }
 
+function updateContinuousTwist()
+{
+	var checked = $('#continuousTwist').prop('checked');
+	if (checked) 
+	{
+		if (confirm("WARNING! If you enable continuous twist\nMAKE SURE THERE ARE NO WIRES CONNECTED TO YOUR FLESHLIGHT CASE!\nThis can twist the wires and possible injury can occur.\n CONFIRM THERE ARE NO WIRES CONNECTED?")) 
+		{
+			userSettings["continousTwist"] = checked;
+			updateUserSettings();
+		} 
+		else 
+		{
+			$('#continuousTwist').prop('checked', false);
+		} 
+	}
+	else
+	{
+		userSettings["continousTwist"] = false;
+		updateUserSettings();
+	}
+}
+
 function updateHostName() 
 {
     userSettings["hostname"] = $('#hostname').val();
@@ -284,6 +316,20 @@ function updateHostName()
 function updateFriendlyName() 
 {
     userSettings["friendlyName"] = $('#friendlyName').val();
+    showRestartRequired();
+    updateUserSettings();
+}
+
+function updatePins() 
+{
+    userSettings["TwistFeedBack_PIN"] = $('#TwistFeedBack_PIN').val();
+    userSettings["RightServo_PIN"] = $('#RightServo_PIN').val();
+    userSettings["LeftServo_PIN"] = $('#LeftServo_PIN').val();
+    userSettings["PitchServo_PIN"] = $('#PitchServo_PIN').val();
+    userSettings["ValveServo_PIN"] = $('#ValveServo_PIN').val();
+    userSettings["TwistServo_PIN"] = $('#TwistServo_PIN').val();
+    userSettings["Vibe0_PIN"] = $('#Vibe0_PIN').val();
+    userSettings["Vibe1_PIN"] = $('#Vibe1_PIN').val();
     showRestartRequired();
     updateUserSettings();
 }

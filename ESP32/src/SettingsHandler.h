@@ -37,6 +37,14 @@ class SettingsHandler
         static int webServerPort;
         static char hostname[63];
         static char friendlyName[100];
+		static int TwistFeedBack_PIN;
+		static int RightServo_PIN;
+		static int LeftServo_PIN;
+		static int PitchServo_PIN;
+		static int ValveServo_PIN;
+		static int TwistServo_PIN;
+		static int Vibe0_PIN;
+		static int Vibe1_PIN;
         static int xMin;
         static int xMax;
         static int yRollMin;
@@ -45,6 +53,7 @@ class SettingsHandler
         static int xRollMax;
         static int speed;
         static int servoFrequency;
+		static bool continousTwist;
 
         static void load() 
         {
@@ -88,6 +97,15 @@ class SettingsHandler
                 xRollMax = json["xRollMax"] | 1000;
                 speed = json["speed"] | 1000;
                 servoFrequency = json["servoFrequency"] | 50;
+				continousTwist = json["continousTwist"];
+				TwistFeedBack_PIN = json["TwistFeedBack_PIN"];
+				RightServo_PIN = json["RightServo_PIN"];
+				LeftServo_PIN = json["LeftServo_PIN"];
+				PitchServo_PIN = json["PitchServo_PIN"];
+				ValveServo_PIN = json["ValveServo_PIN"];
+				TwistServo_PIN = json["TwistServo_PIN"];
+				Vibe0_PIN = json["Vibe0_PIN"];
+				Vibe1_PIN = json["Vibe1_PIN"];
 
                 //LogUpdateDebug();
 
@@ -141,6 +159,15 @@ class SettingsHandler
             doc["xRollMax"] = xRollMax;
             doc["speed"] = speed;
             doc["servoFrequency"] = servoFrequency;
+			doc["continousTwist"] = continousTwist;
+			doc["TwistFeedBack_PIN"] = TwistFeedBack_PIN;
+			doc["RightServo_PIN"] = RightServo_PIN;
+			doc["LeftServo_PIN"] = LeftServo_PIN;
+			doc["PitchServo_PIN"] = PitchServo_PIN;
+			doc["ValveServo_PIN"] = ValveServo_PIN;
+			doc["TwistServo_PIN"] = TwistServo_PIN;
+			doc["Vibe0_PIN"] = Vibe0_PIN;
+			doc["Vibe1_PIN"] = Vibe1_PIN;
 
             //LogSaveDebug(doc);
 
@@ -162,8 +189,8 @@ class SettingsHandler
     private:
         //static char* filename = "/userSettings.json";
         // Use http://arduinojson.org/assistant to compute the capacity.
-        static const size_t readCapacity = JSON_OBJECT_SIZE(14) + 500;
-        static const size_t saveCapacity = JSON_OBJECT_SIZE(18);
+        static const size_t readCapacity = JSON_OBJECT_SIZE(25) + 550;
+        static const size_t saveCapacity = JSON_OBJECT_SIZE(27);
 
         //TODO: Need to think this out better.
         static int getchannelMin(const char* channel) 
@@ -230,6 +257,24 @@ class SettingsHandler
             Serial.println((int)doc["speed"]);
             Serial.print("save servoFrequency ");
             Serial.println((int)doc["servoFrequency"]);
+            Serial.print("save continousTwist ");
+            Serial.println((bool)doc["continousTwist"]);
+            Serial.print("save TwistFeedBack_PIN ");
+            Serial.println((int)doc["TwistFeedBack_PIN"]);
+            Serial.print("save RightServo_PIN ");
+            Serial.println((int)doc["RightServo_PIN"]);
+            Serial.print("save LeftServo_PIN ");
+            Serial.println((int)doc["LeftServo_PIN"]);
+            Serial.print("save PitchServo_PIN ");
+            Serial.println((int)doc["PitchServo_PIN"]);
+            Serial.print("save ValveServo_PIN ");
+            Serial.println((int)doc["ValveServo_PIN"]);
+            Serial.print("save TwistServo_PIN ");
+            Serial.println((int)doc["TwistServo_PIN"]);
+            Serial.print("save Vibe0_PIN ");
+            Serial.println((int)doc["Vibe0_PIN"]);
+            Serial.print("save Vibe1_PIN ");
+            Serial.println((int)doc["Vibe1_PIN"]);
         }
 
         static void LogUpdateDebug() 
@@ -260,6 +305,24 @@ class SettingsHandler
             Serial.println(speed);
             Serial.print("update servoFrequency ");
             Serial.println(servoFrequency);
+            Serial.print("update continousTwist ");
+            Serial.println(continousTwist);
+            Serial.print("update TwistFeedBack_PIN ");
+            Serial.println(TwistFeedBack_PIN);
+            Serial.print("update RightServo_PIN ");
+            Serial.println(RightServo_PIN);
+            Serial.print("update LeftServo_PIN ");
+            Serial.println(LeftServo_PIN);
+            Serial.print("update PitchServo_PIN ");
+            Serial.println(PitchServo_PIN);
+            Serial.print("update ValveServo_PIN ");
+            Serial.println(ValveServo_PIN);
+            Serial.print("update TwistServo_PIN ");
+            Serial.println(TwistServo_PIN);
+            Serial.print("update Vibe0_PIN ");
+            Serial.println(Vibe0_PIN);
+            Serial.print("update Vibe1_PIN ");
+            Serial.println(Vibe1_PIN);
         }
 };
 
@@ -272,6 +335,14 @@ char SettingsHandler::hostname[63];
 char SettingsHandler::friendlyName[100];
 int SettingsHandler::udpServerPort;
 int SettingsHandler::webServerPort;
+int SettingsHandler::TwistFeedBack_PIN = 27;
+int SettingsHandler::RightServo_PIN = 12;
+int SettingsHandler::LeftServo_PIN = 13;
+int SettingsHandler::PitchServo_PIN = 14;
+int SettingsHandler::ValveServo_PIN = 15;
+int SettingsHandler::TwistServo_PIN = 2;
+int SettingsHandler::Vibe0_PIN = 22;
+int SettingsHandler::Vibe1_PIN = 23;
 int SettingsHandler::xMin;
 int SettingsHandler::xMax;
 int SettingsHandler::yRollMin;
@@ -280,3 +351,4 @@ int SettingsHandler::xRollMin;
 int SettingsHandler::xRollMax;
 int SettingsHandler::speed;
 int SettingsHandler::servoFrequency;
+bool SettingsHandler::continousTwist;
