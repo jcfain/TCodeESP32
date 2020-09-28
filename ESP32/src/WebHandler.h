@@ -102,7 +102,8 @@ class WebHandler {
                 request->send(SPIFFS, "/userSettings.json");
             });   
 
-            server.on("/jquery", HTTP_GET, [](AsyncWebServerRequest* request) {
+            server.on("/jquery", HTTP_GET, [](AsyncWebServerRequest* request) 
+			{
                 AsyncWebServerResponse* response = request->beginResponse(SPIFFS, "/www/js/jquery-3.5.1.min.js.gz", "text/javascript");
                 response->addHeader("Content-Encoding", "gzip");
                 request->send(response);
@@ -131,6 +132,22 @@ class WebHandler {
                 request->send(response);
             });
 
+            server.on("/toggleContinousTwist", HTTP_POST, [](AsyncWebServerRequest *request) 
+            {
+				SettingsHandler::continousTwist = !SettingsHandler::continousTwist;
+				if (SettingsHandler::save()) 
+				{
+					char returnJson[45];
+					sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", SettingsHandler::continousTwist ? "true" : "false");
+					AsyncWebServerResponse *response = request->beginResponse(200, "application/json", returnJson);
+					request->send(response);
+				} 
+				else 
+				{
+					AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"Error saving settings\"}");
+					request->send(response);
+				}
+            });
 
             server.on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
@@ -162,7 +179,8 @@ class WebHandler {
                 delay(5000);
             });
 
-            AsyncCallbackJsonWebHandler* handler = new AsyncCallbackJsonWebHandler("/settings", [](AsyncWebServerRequest *request, JsonVariant &json) {
+            AsyncCallbackJsonWebHandler* handler = new AsyncCallbackJsonWebHandler("/settings", [](AsyncWebServerRequest *request, JsonVariant &json) 
+			{
                 JsonObject jsonObj = json.as<JsonObject>();
                 if(SettingsHandler::update(jsonObj))
                 {
@@ -186,7 +204,8 @@ class WebHandler {
 
             server.addHandler(handler);
             
-            server.onNotFound([](AsyncWebServerRequest *request) {
+            server.onNotFound([](AsyncWebServerRequest *request) 
+			{
                 if (request->method() == HTTP_OPTIONS) {
                     request->send(200);
                 } else {
