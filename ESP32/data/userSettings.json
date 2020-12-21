@@ -21,5 +21,11 @@
 	"ValveServo_PIN": 15,
 	"TwistServo_PIN": 2,
 	"Vibe0_PIN": 22,
-	"Vibe1_PIN": 23
+	"Vibe1_PIN": 23,
+	"staticIP": false,
+	"localIP": "192.168.0.150",
+	"gateway": "192.168.0.1",
+	"subnet": "255.255.255.0",
+	"dns1": "8.8.8.8",
+	"dns2": "8.8.4.4"
 }

@@ -23,7 +23,7 @@
 // This is a t-code object that manages the serial comms from the computer
 // Leave this section of the code alone unless you know what you're doing
 
-#include <BluetoothSerial.h>
+//#include <BluetoothSerial.h>
 
 class ToyComms {
   public:
@@ -34,6 +34,7 @@ class ToyComms {
       xL1[0] = 500;
       xL1[1] = 500;
       xL1[2] = 500;
+      xL1[3] = 500;
       xR1[0] = 500;
       xR1[1] = 500;
       xR1[2] = 500;
@@ -173,7 +174,7 @@ class ToyComms {
             i = i % 10;
 
             // If the commanded axis exists, process command
-            if (0<=i && i<=2) {
+            if (0<=i && i<=3) {
 
               //If it's a linear command
               if (linear) {
@@ -267,7 +268,7 @@ class ToyComms {
 
             byte n;
             // Execute Linear Channels
-            for (n = 0; n <= 2; n++) {
+            for (n = 0; n <= 3; n++) {
               if (xLbuff1[n]>0) {
 
                 // Execute control command
@@ -475,12 +476,12 @@ class ToyComms {
     // Function to identify the current TCode type over serial
     void identifyTCode() {
       Serial.println("TCode v0.2");
-      SerialBT.println("TCode v0.2");
+      //SerialBT.println("TCode v0.2");
     }
 
   private:
 
-    BluetoothSerial SerialBT;
+    //BluetoothSerial SerialBT;
     // Input parameters
     boolean linear;
     boolean vibration;
@@ -492,13 +493,13 @@ class ToyComms {
     int inNum2;
 
     // Linear motion
-    int xLbuff1[3];
-    int xLbuff2[3];
-    boolean xLbuffSpd[3];
-    int xL0[3];
-    int xL1[3];
-    long tL0[3];
-    long tL1[3];
+    int xLbuff1[4];
+    int xLbuff2[4];
+    boolean xLbuffSpd[4];
+    int xL0[4];
+    int xL1[4];
+    long tL0[4];
+    long tL1[4];
 
     // Rotation
     int xRbuff1[3];

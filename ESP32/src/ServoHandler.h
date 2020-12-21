@@ -15,6 +15,8 @@
 // v2.3 - T-Valve support added, 1-5-2020
 // v2.4 - T-wist support added; LR servos now +/- 350 for the sake of Raser1's sanity, 7-10-2020
 // v2.6 - Experimental build. For use with Parallax Feedback 360° Servo (900-00360) in T-wist. 23-9-2020
+// v2.7 - T-valve suction level control added to L3. 25-11-2020
+// v2.7b - T-valve suction level algorithm modified. 30-11-2020
 
 #include <ESP32Servo.h>
 #include "ToyComs.h"
@@ -77,6 +79,8 @@ private:
     float xRot,yRot,zRot;
     // Vibration variables
     float vibe0,vibe1;
+	// Vibration variables
+	int suck;
     // Velocity tracker variables, for T-Valve
     float xLast;
     float xValve;
@@ -96,6 +100,7 @@ public:
         RightServo.setPeriodHertz(servoFrequency);
         LeftServo.setPeriodHertz(servoFrequency);
         PitchServo.setPeriodHertz(servoFrequency);
+		ValveServo.setTimerWidth(20);
         // ValveServo.setPeriodHertz(servoFrequency);
         // TwistServo.setPeriodHertz(servoFrequency);
 
@@ -196,8 +201,9 @@ public:
                 // Serial.printf("n: 0, t: %lu\n", t);
             xLin = toy.xLinear(0,t);
             //Serial.printf("xLin: %u, t: %lu\n", xLin, t);
-            yLin = toy.xLinear(1,t);
+            //yLin = toy.xLinear(1,t); (not used)
             //zLin = toy.xLinear(2,t); (not used)
+    		suck = toy.xLinear(3,t);
             xRot = toy.xRotate(0,t);
             yRot = toy.xRotate(1,t);
             zRot = toy.xRotate(2,t);
@@ -210,21 +216,35 @@ public:
             // If you want to mix your servos differently, enter your code below:
             
 
-            // Calculate valve position
-            float Vel,ValveCmd,suck;
-            Vel = xLin - xLast;
-            Vel = 50*Vel/tick;
-            xLast = xLin;
-            suck = 20;
-            if (Vel > suck) {
-                ValveCmd = Vel-suck;
-            } else if (Vel < 0){
-                ValveCmd = -Vel;
-            } else {
-                ValveCmd = 0;
-            }
-            xValve = (4*xValve + ValveCmd)/5;
+            //Calculate valve position
+			//Track receiver velocity
 
+			// float Vel,ValveCmd;
+			// Vel = xLin - xLast;
+			// xLast = xLin;
+			// if (Vel < 0) {
+			// 	ValveCmd = 1000;
+			// } else {
+			// 	ValveCmd = 1000-suck;
+			// }
+			// xValve = (2*xValve + ValveCmd)/3;     
+			
+			float Vel,ValveCmd,suck;
+			Vel = xLin - xLast;
+			Vel = 50*Vel/tick;
+			xLast = xLin;
+			suck = 20;
+			if (Vel > suck) {
+				ValveCmd = Vel-suck;
+			} else if (Vel < 0){
+				ValveCmd = -Vel;
+			} else {
+				ValveCmd = 0;
+			}
+			xValve = (4*xValve + ValveCmd)/5;
+
+            //Serial.print("xValve: ");
+            //Serial.println(xValve);
             if (!SettingsHandler::continousTwist) {
 				// Calculate twist position
 				float dutyCycle = twistPulseLength;
@@ -242,9 +262,10 @@ public:
             int stroke,roll,pitch,valve,twist;
             stroke = map(xLin,1,1000,-350,350);
             roll   = map(yRot,1,1000,-180,180);
-            pitch  = map(zRot,1,1000,-350,350);
-            valve  = 20*xValve;
-            valve  = constrain(valve, 0, 1000);   
+            pitch  = map(zRot,1,1000,-350,350);  
+			valve  = constrain(20*xValve, 0, 1000);
+			//valve  = map(valve,1000,1, 1,1000);  
+			//valve  = constrain(xValve, 0, 1000);
             if (!SettingsHandler::continousTwist) {
     			twist  = 2*(xRot - map(twistPos,-1500,1500,1000,1));
                 twist = constrain(twist, -750, 750);
@@ -269,8 +290,8 @@ public:
             RightServo.writeMicroseconds(RightServo_ZERO + stroke + roll);
             LeftServo.writeMicroseconds(LeftServo_ZERO - stroke + roll);
             PitchServo.writeMicroseconds(PitchServo_ZERO - pitch);
-            ValveServo.writeMicroseconds(2000 - valve);
-            TwistServo.writeMicroseconds(1500 + twist);
+            ValveServo.writeMicroseconds(1000 + valve);
+            TwistServo.writeMicroseconds(1500 - twist);
 
             // Done with servo channels
 
