@@ -38,6 +38,7 @@ $(document).ready(
                     userSettings = data;
                     if ($("#xMin").length) {
                         getUserSettings()
+                        getWifiSettings();
                     } else {
                         getWifiSettings();
                     }
@@ -341,6 +342,12 @@ function getWifiSettings()
 {
     $("#ssid").val(userSettings["ssid"]);
     $("#wifiPass").val(userSettings["wifiPass"]);
+    $("#staticIP").prop('checked', userSettings["staticIP"]);
+    $("#localIP").val(userSettings["localIP"]);
+    $("#gateway").val(userSettings["gateway"]);
+    $("#subnet").val(userSettings["subnet"]);
+    $("#dns1").val(userSettings["dns1"]);
+    $("#dns2").val(userSettings["dns2"]);
     documentLoaded = true;
 }
 
@@ -369,18 +376,6 @@ function connectWifi() {
     xhr.send();
 }
 
-function updateSSID() {
-    userSettings["ssid"] = $('#ssid').val();
-    showRestartRequired();
-    updateUserSettings();
-}
-
-function updatePassword() {
-    userSettings["wifiPass"] = $('#wifiPass').val();
-    showRestartRequired();
-    updateUserSettings();
-}
-
 function showWifiPassword() {
     var x = document.getElementById('wifiPassword');
     x.oninput = null;
@@ -390,6 +385,26 @@ function showWifiPassword() {
       x.type = "password";
     }
     x.oninput = updatePassword();
+}
+
+function updateStaticIP() {
+    userSettings["ssid"] = $('#ssid').val();
+    userSettings["wifiPass"] = $('#wifiPass').val();
+	var staticIP = $('#staticIP').prop('checked');
+	var localIP = $('#localIP').val();
+	var gateway = $('#gateway').val();
+	var subnet = $('#subnet').val();
+	var dns1 = $('#dns1').val();
+	var dns2 = $('#dns2').val();
+    userSettings["staticIP"] = staticIP;
+    userSettings["localIP"] = localIP;
+    userSettings["gateway"] = gateway;
+    userSettings["subnet"] = subnet;
+    userSettings["dns1"] = dns1;
+    userSettings["dns2"] = dns2;
+	showRestartRequired();
+	updateUserSettings();
+	
 }
 
 function showRestartRequired() {

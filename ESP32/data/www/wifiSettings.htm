@@ -15,16 +15,80 @@
   <div id="info" class="info" hidden="true"></div>
 
   <h1>Wifi Settings</h1>
-  <div id="requiresRestart" hidden="true" style="color: red;">Restart required!!</div>
-  <div>SSID</div>
-  <input id="ssid" type="text" maxlength="100" oninput="updateSSID()">
-  <div>Password</div>
-  <input id="wifiPass" type="password" maxlength="100" oninput="updatePassword()">
-  <br />
-  <input type="checkbox" onclick="showWifiPassword()">Show Password</input>
-  <br />
-  <!-- <button name="connectWifi" onclick="connectWifi()">Test</button> -->
-  <br />
+  <div class="centerFlex">
+  <table id="wifiSettingsTable">
+	  <tr>
+		  <td>
+			  <span>SSID</span> 
+		  </td>
+		  <td>
+			  <input id="ssid" type="text" maxlength="32" oninput="updateStaticIP()">
+		  </td>
+	  </tr>
+	  <tr>
+		  <td>
+			  <span>Password</span> 
+		  </td>
+		  <td>
+			  <input id="wifiPass" type="text" maxlength="63" oninput="updateStaticIP()">
+		  </td>
+	  </tr>
+	  <tr>
+		<td>
+		</td>
+		  <td>
+			  <input type="checkbox" onclick="showWifiPassword()">Show Password</input>
+		  </td>
+	  </tr>
+	  <tr>
+		<td>
+		</td>
+		  <td>
+			  <input id="staticIP" type="checkbox" onclick="updateStaticIP()">Static IP</input>
+		  </td>
+	  </tr>
+	  <tr>
+		  <td>
+			  <span>IP</span> 
+		  </td>
+		  <td>
+			  <input id="localIP" type="text" maxlength="15" oninput="updateStaticIP()">
+		  </td>
+	  </tr>
+	  <tr>
+		  <td>
+			  <span>Gateway</span> 
+		  </td>
+		  <td>
+			  <input id="gateway" type="text" maxlength="15" oninput="updateStaticIP()">
+		  </td>
+	  </tr>
+	  <tr>
+		  <td>
+			  <span>Subnet</span> 
+		  </td>
+		  <td>
+			  <input id="subnet" type="text" maxlength="15" oninput="updateStaticIP()">
+		  </td>
+	  </tr>
+	  <tr>
+		  <td>
+			  <span>DNS 1</span> 
+		  </td>
+		  <td>
+			  <input id="dns1" type="text" maxlength="15" oninput="updateStaticIP()">
+		  </td>
+	  </tr>
+	  <tr>
+		  <td>
+			  <span>DNS 2</span> 
+		  </td>
+		  <td>
+			  <input id="dns2" type="text" maxlength="15" oninput="updateStaticIP()">
+		  </td>
+	  </tr>
+  </table>
+  </div>
   <form action="/restart" method="POST">
     <button type="submit" id="resetBtn" name="reset" disabled="true">Restart device</button>
   </form>

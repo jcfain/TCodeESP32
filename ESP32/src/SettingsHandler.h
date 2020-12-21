@@ -54,6 +54,12 @@ class SettingsHandler
         static int speed;
         static int servoFrequency;
 		static bool continousTwist;
+		static bool staticIP;
+		static char localIP[15];
+		static char gateway[15];
+		static char subnet[15];
+		static char dns1[15];
+		static char dns2[15];
 
         static void load() 
         {
@@ -106,6 +112,22 @@ class SettingsHandler
 				TwistServo_PIN = json["TwistServo_PIN"];
 				Vibe0_PIN = json["Vibe0_PIN"];
 				Vibe1_PIN = json["Vibe1_PIN"];
+				staticIP = json["staticIP"];
+                const char* localIPTemp = json["localIP"];
+                if (localIPTemp != nullptr)
+                    strcpy(localIP, localIPTemp);
+                const char* gatewayTemp = json["gateway"];
+                if (gatewayTemp != nullptr)
+                    strcpy(gateway, gatewayTemp);
+                const char* subnetTemp = json["subnet"];
+                if (subnetTemp != nullptr)
+                    strcpy(subnet, subnetTemp);
+                const char* dns1Temp = json["dns1"];
+                if (dns1Temp != nullptr)
+                    strcpy(dns1, dns1Temp);
+                const char* dns2Temp = json["dns2"];
+                if (dns2Temp != nullptr)
+                    strcpy(dns2, dns2Temp);
 
                 //LogUpdateDebug();
 
@@ -168,6 +190,12 @@ class SettingsHandler
 			doc["TwistServo_PIN"] = TwistServo_PIN;
 			doc["Vibe0_PIN"] = Vibe0_PIN;
 			doc["Vibe1_PIN"] = Vibe1_PIN;
+			doc["staticIP"] = staticIP;
+			doc["localIP"] = localIP;
+			doc["gateway"] = gateway;
+			doc["subnet"] = subnet;
+			doc["dns1"] = dns1;
+			doc["dns2"] = dns2;
 
             //LogSaveDebug(doc);
 
@@ -189,8 +217,8 @@ class SettingsHandler
     private:
         //static char* filename = "/userSettings.json";
         // Use http://arduinojson.org/assistant to compute the capacity.
-        static const size_t readCapacity = JSON_OBJECT_SIZE(25) + 550;
-        static const size_t saveCapacity = JSON_OBJECT_SIZE(27);
+        static const size_t readCapacity = JSON_OBJECT_SIZE(40) + 666;
+        static const size_t saveCapacity = JSON_OBJECT_SIZE(40);
 
         //TODO: Need to think this out better.
         static int getchannelMin(const char* channel) 
@@ -275,6 +303,18 @@ class SettingsHandler
             Serial.println((int)doc["Vibe0_PIN"]);
             Serial.print("save Vibe1_PIN ");
             Serial.println((int)doc["Vibe1_PIN"]);
+            Serial.print("save staticIP ");
+            Serial.println((bool)doc["staticIP"]);
+            Serial.print("save localIP ");
+            Serial.println((const char*) doc["localIP"]);
+            Serial.print("save gateway ");
+            Serial.println((const char*) doc["gateway"]);
+            Serial.print("save subnet ");
+            Serial.println((const char*) doc["subnet"]);
+            Serial.print("save dns1 ");
+            Serial.println((const char*) doc["dns1"]);
+            Serial.print("save dns2 ");
+            Serial.println((const char*) doc["dns2"]);
         }
 
         static void LogUpdateDebug() 
@@ -323,6 +363,18 @@ class SettingsHandler
             Serial.println(Vibe0_PIN);
             Serial.print("update Vibe1_PIN ");
             Serial.println(Vibe1_PIN);
+            Serial.print("update staticIP ");
+            Serial.println(staticIP);
+            Serial.print("update localIP ");
+            Serial.println(localIP);
+            Serial.print("update gateway ");
+            Serial.println(gateway);
+            Serial.print("update subnet ");
+            Serial.println(subnet);
+            Serial.print("update dns1 ");
+            Serial.println(dns1);
+            Serial.print("update dns2 ");
+            Serial.println(dns2);
         }
 };
 
@@ -352,3 +404,9 @@ int SettingsHandler::xRollMax;
 int SettingsHandler::speed;
 int SettingsHandler::servoFrequency;
 bool SettingsHandler::continousTwist;
+bool SettingsHandler::staticIP;
+char SettingsHandler::localIP[15];
+char SettingsHandler::gateway[15];
+char SettingsHandler::subnet[15];
+char SettingsHandler::dns1[15];
+char SettingsHandler::dns2[15];

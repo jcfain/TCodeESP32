@@ -26,7 +26,7 @@ SOFTWARE. */
 #include "ServoHandler.h"
 #include "WifiHandler.h"
 #include "UdpHandler.h"
-#include "BluetoothHandler.h"
+//#include "BluetoothHandler.h"
 #include "WebHandler.h"
 #include "SettingsHandler.h"
 //#include "OTAHandler.h"
@@ -34,7 +34,7 @@ SOFTWARE. */
 ServoHandler servoHandler;
 WifiHandler wifi;
 Udphandler udpHandler;
-BluetoothHandler bluetooth;
+//BluetoothHandler bluetooth;
 WebHandler webHandler;
 // This has issues running with the webserver.
 //OTAHandler otaHandler;
@@ -43,13 +43,15 @@ char udpData[255];
 void setup() {
 
 	Serial.begin(115200);
-	if(!SPIFFS.begin(true)){
+	if(!SPIFFS.begin(true))
+	{
 		Serial.println("An Error has occurred while mounting SPIFFS");
 		return;
 	}
 	SettingsHandler::load();
 	if (strcmp(SettingsHandler::ssid, "YOUR SSID HERE") != 0 && SettingsHandler::ssid != nullptr) {
-		if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) { 
+		if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) 
+		{ 
 			udpHandler.setup(SettingsHandler::udpServerPort);
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName);
 		} 
@@ -72,7 +74,7 @@ void setup() {
 	}
   if (!apMode) 
   {
-    bluetooth.setup();
+    //bluetooth.setup();
     //otaHandler.setup();
     servoHandler.setup(SettingsHandler::servoFrequency);
   }
@@ -97,10 +99,10 @@ void loop() {
 		{
 			servoHandler.read(Serial.read());
 		} 
-		else if (bluetooth.available() > 0) 
-		{
-			servoHandler.read(bluetooth.read());
-		}
+		// else if (bluetooth.available() > 0) 
+		// {
+		// 	servoHandler.read(bluetooth.read());
+		// }
 		if (strlen(udpData) == 0) 
 		{
 			servoHandler.execute();
