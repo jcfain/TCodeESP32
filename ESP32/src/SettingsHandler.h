@@ -40,7 +40,10 @@ class SettingsHandler
 		static int TwistFeedBack_PIN;
 		static int RightServo_PIN;
 		static int LeftServo_PIN;
-		static int PitchServo_PIN;
+		static int RightUpperServo_PIN;
+		static int LeftUpperServo_PIN;
+		static int PitchLeftServo_PIN;
+		static int PitchRightServo_PIN;
 		static int ValveServo_PIN;
 		static int TwistServo_PIN;
 		static int Vibe0_PIN;
@@ -60,11 +63,21 @@ class SettingsHandler
 		static char subnet[15];
 		static char dns1[15];
 		static char dns2[15];
+		static bool sr6Mode;
+    	static int RightServo_ZERO;
+    	static int LeftServo_ZERO;
+    	static int RightUpperServo_ZERO;
+    	static int LeftUpperServo_ZERO;
+    	static int PitchLeftServo_ZERO;
+    	static int PitchRightServo_ZERO;
+    	static int TwistServo_ZERO;
+    	static int ValveServo_ZERO;
+		static bool autoValve;
 
         static void load() 
         {
             const char* filename = "/userSettings.json";
-            DynamicJsonDocument doc(readCapacity);
+            DynamicJsonDocument doc(deserialize);
             File file = SPIFFS.open(filename, "r");
             DeserializationError error = deserializeJson(doc, file);
             if (error)
@@ -107,7 +120,10 @@ class SettingsHandler
 				TwistFeedBack_PIN = json["TwistFeedBack_PIN"];
 				RightServo_PIN = json["RightServo_PIN"];
 				LeftServo_PIN = json["LeftServo_PIN"];
-				PitchServo_PIN = json["PitchServo_PIN"];
+				RightUpperServo_PIN = json["RightUpperServo_PIN"];
+				LeftUpperServo_PIN = json["LeftUpperServo_PIN"];
+				PitchLeftServo_PIN = json["PitchLeftServo_PIN"];
+				PitchRightServo_PIN = json["PitchRightServo_PIN"];
 				ValveServo_PIN = json["ValveServo_PIN"];
 				TwistServo_PIN = json["TwistServo_PIN"];
 				Vibe0_PIN = json["Vibe0_PIN"];
@@ -129,7 +145,18 @@ class SettingsHandler
                 if (dns2Temp != nullptr)
                     strcpy(dns2, dns2Temp);
 
-                //LogUpdateDebug();
+				sr6Mode = json["sr6Mode"];
+    			RightServo_ZERO = json["RightServo_ZERO"];
+    			LeftServo_ZERO = json["LeftServo_ZERO"];
+    			RightUpperServo_ZERO = json["RightUpperServo_ZERO"];
+    			LeftUpperServo_ZERO = json["LeftUpperServo_ZERO"];
+    			PitchLeftServo_ZERO = json["PitchLeftServo_ZERO"];
+    			PitchRightServo_ZERO = json["PitchRightServo_ZERO"];
+    			TwistServo_ZERO = json["TwistServo_ZERO"];
+    			ValveServo_ZERO = json["ValveServo_ZERO"];
+				autoValve = json["autoValve"];
+
+                LogUpdateDebug();
 
                 return true;
             } 
@@ -164,7 +191,7 @@ class SettingsHandler
             }
 
             // Allocate a temporary JsonDocument
-            DynamicJsonDocument doc(saveCapacity);
+            DynamicJsonDocument doc(serialize);
 
 
             doc["ssid"] = ssid;
@@ -185,7 +212,10 @@ class SettingsHandler
 			doc["TwistFeedBack_PIN"] = TwistFeedBack_PIN;
 			doc["RightServo_PIN"] = RightServo_PIN;
 			doc["LeftServo_PIN"] = LeftServo_PIN;
-			doc["PitchServo_PIN"] = PitchServo_PIN;
+			doc["RightUpperServo_PIN"] = RightUpperServo_PIN;
+			doc["LeftUpperServo_PIN"] = LeftUpperServo_PIN;
+			doc["PitchLeftServo_PIN"] = PitchLeftServo_PIN;
+			doc["PitchRightServo_PIN"] = PitchRightServo_PIN;
 			doc["ValveServo_PIN"] = ValveServo_PIN;
 			doc["TwistServo_PIN"] = TwistServo_PIN;
 			doc["Vibe0_PIN"] = Vibe0_PIN;
@@ -196,8 +226,18 @@ class SettingsHandler
 			doc["subnet"] = subnet;
 			doc["dns1"] = dns1;
 			doc["dns2"] = dns2;
+			doc["sr6Mode"] = sr6Mode;
+			doc["RightServo_ZERO"] = RightServo_ZERO;
+			doc["LeftServo_ZERO"] = LeftServo_ZERO;
+			doc["RightUpperServo_ZERO"] = RightUpperServo_ZERO;
+			doc["LeftUpperServo_ZERO"] = LeftUpperServo_ZERO;
+			doc["PitchLeftServo_ZERO"] = PitchLeftServo_ZERO;
+			doc["PitchRightServo_ZERO"] = PitchRightServo_ZERO;
+			doc["TwistServo_ZERO"] = TwistServo_ZERO;
+			doc["ValveServo_ZERO"] = ValveServo_ZERO;
+			doc["autoValve"] = autoValve;
 
-            //LogSaveDebug(doc);
+            LogSaveDebug(doc);
 
             if (serializeJson(doc, file) == 0) 
             {
@@ -217,8 +257,11 @@ class SettingsHandler
     private:
         //static char* filename = "/userSettings.json";
         // Use http://arduinojson.org/assistant to compute the capacity.
-        static const size_t readCapacity = JSON_OBJECT_SIZE(40) + 666;
+        static const size_t readCapacity = JSON_OBJECT_SIZE(55) + 800;
         static const size_t saveCapacity = JSON_OBJECT_SIZE(40);
+		static const int deserialize = 1536;
+		static const int serialize = 1536;
+
 
         //TODO: Need to think this out better.
         static int getchannelMin(const char* channel) 
@@ -293,8 +336,14 @@ class SettingsHandler
             Serial.println((int)doc["RightServo_PIN"]);
             Serial.print("save LeftServo_PIN ");
             Serial.println((int)doc["LeftServo_PIN"]);
-            Serial.print("save PitchServo_PIN ");
-            Serial.println((int)doc["PitchServo_PIN"]);
+            Serial.print("save RightUpperServo_PIN ");
+            Serial.println((int)doc["RightUpperServo_PIN"]);
+            Serial.print("save LeftUpperServo_PIN ");
+            Serial.println((int)doc["LeftUpperServo_PIN"]);
+            Serial.print("save PitchLeftServo_PIN ");
+            Serial.println((int)doc["PitchLeftServo_PIN"]);
+            Serial.print("save PitchRightServo_PIN ");
+            Serial.println((int)doc["PitchRightServo_PIN"]);
             Serial.print("save ValveServo_PIN ");
             Serial.println((int)doc["ValveServo_PIN"]);
             Serial.print("save TwistServo_PIN ");
@@ -315,6 +364,26 @@ class SettingsHandler
             Serial.println((const char*) doc["dns1"]);
             Serial.print("save dns2 ");
             Serial.println((const char*) doc["dns2"]);
+            Serial.print("save sr6Mode ");
+            Serial.println((bool)doc["sr6Mode"]);
+            Serial.print("save RightServo_ZERO ");
+            Serial.println((int)doc["RightServo_ZERO"]);
+            Serial.print("save LeftServo_ZERO ");
+            Serial.println((int)doc["LeftServo_ZERO"]);
+            Serial.print("save RightUpperServo_ZERO ");
+            Serial.println((int)doc["RightUpperServo_ZERO"]);
+            Serial.print("save LeftUpperServo_ZERO ");
+            Serial.println((int)doc["LeftUpperServo_ZERO"]);
+            Serial.print("save PitchLeftServo_ZERO ");
+            Serial.println((int)doc["PitchLeftServo_ZERO"]);
+            Serial.print("save PitchRightServo_ZERO ");
+            Serial.println((int)doc["PitchRightServo_ZERO"]);
+            Serial.print("save TwistServo_ZERO ");
+            Serial.println((int)doc["TwistServo_ZERO"]);
+            Serial.print("save ValveServo_ZERO ");
+            Serial.println((int)doc["ValveServo_ZERO"]);
+            Serial.print("save autoValve ");
+            Serial.println((bool)doc["autoValve"]);
         }
 
         static void LogUpdateDebug() 
@@ -353,8 +422,14 @@ class SettingsHandler
             Serial.println(RightServo_PIN);
             Serial.print("update LeftServo_PIN ");
             Serial.println(LeftServo_PIN);
-            Serial.print("update PitchServo_PIN ");
-            Serial.println(PitchServo_PIN);
+            Serial.print("update RightUpperServo_PIN ");
+            Serial.println(RightUpperServo_PIN);
+            Serial.print("update LeftUpperServo_PIN ");
+            Serial.println(LeftUpperServo_PIN);
+            Serial.print("update PitchLeftServo_PIN ");
+            Serial.println(PitchLeftServo_PIN);
+            Serial.print("update PitchRightServo_PIN ");
+            Serial.println(PitchRightServo_PIN);
             Serial.print("update ValveServo_PIN ");
             Serial.println(ValveServo_PIN);
             Serial.print("update TwistServo_PIN ");
@@ -375,6 +450,26 @@ class SettingsHandler
             Serial.println(dns1);
             Serial.print("update dns2 ");
             Serial.println(dns2);
+            Serial.print("update sr6Mode ");
+            Serial.println(sr6Mode);
+            Serial.print("update RightServo_ZERO ");
+            Serial.println(RightServo_ZERO);
+            Serial.print("update LeftServo_ZERO ");
+            Serial.println(LeftServo_ZERO);
+            Serial.print("update RightUpperServo_ZERO ");
+            Serial.println(RightUpperServo_ZERO);
+            Serial.print("update LeftUpperServo_ZERO ");
+            Serial.println(LeftUpperServo_ZERO);
+            Serial.print("update PitchLeftServo_ZERO ");
+            Serial.println(PitchLeftServo_ZERO);
+            Serial.print("update PitchRightServo_ZERO ");
+            Serial.println(PitchRightServo_ZERO);
+            Serial.print("update TwistServo_ZERO ");
+            Serial.println(TwistServo_ZERO);
+            Serial.print("update ValveServo_ZERO ");
+            Serial.println(ValveServo_ZERO);
+            Serial.print("update autoValve ");
+            Serial.println(autoValve);
         }
 };
 
@@ -387,14 +482,17 @@ char SettingsHandler::hostname[63];
 char SettingsHandler::friendlyName[100];
 int SettingsHandler::udpServerPort;
 int SettingsHandler::webServerPort;
-int SettingsHandler::TwistFeedBack_PIN = 27;
-int SettingsHandler::RightServo_PIN = 12;
-int SettingsHandler::LeftServo_PIN = 13;
-int SettingsHandler::PitchServo_PIN = 14;
-int SettingsHandler::ValveServo_PIN = 15;
-int SettingsHandler::TwistServo_PIN = 2;
-int SettingsHandler::Vibe0_PIN = 22;
-int SettingsHandler::Vibe1_PIN = 23;
+int SettingsHandler::PitchRightServo_PIN = 14;
+int SettingsHandler::RightUpperServo_PIN = 12;
+int SettingsHandler::RightServo_PIN = 13;
+int SettingsHandler::PitchLeftServo_PIN = 4;
+int SettingsHandler::LeftUpperServo_PIN = 2;
+int SettingsHandler::LeftServo_PIN = 15;
+int SettingsHandler::ValveServo_PIN = 22;
+int SettingsHandler::TwistServo_PIN = 27;
+int SettingsHandler::TwistFeedBack_PIN = 26;
+int SettingsHandler::Vibe0_PIN = 18;
+int SettingsHandler::Vibe1_PIN = 19;
 int SettingsHandler::xMin;
 int SettingsHandler::xMax;
 int SettingsHandler::yRollMin;
@@ -410,3 +508,13 @@ char SettingsHandler::gateway[15];
 char SettingsHandler::subnet[15];
 char SettingsHandler::dns1[15];
 char SettingsHandler::dns2[15];
+bool SettingsHandler::sr6Mode;
+int SettingsHandler::RightServo_ZERO = 1500;
+int SettingsHandler::LeftServo_ZERO = 1500;
+int SettingsHandler::RightUpperServo_ZERO = 1500;
+int SettingsHandler::LeftUpperServo_ZERO = 1500;
+int SettingsHandler::PitchLeftServo_ZERO = 1500;
+int SettingsHandler::PitchRightServo_ZERO = 1500;
+int SettingsHandler::TwistServo_ZERO = 1500;
+int SettingsHandler::ValveServo_ZERO = 1500; 
+bool SettingsHandler::autoValve = false;

@@ -35,13 +35,17 @@ body {
 	align-content: center;
 	flex-direction: column;
 }
-table {
+.rootTable {
 	align-self: center;
 }
-table > tbody > tr > td:last-child {
+.rootTable > tbody > tr > td {
+	vertical-align:top;
+	padding: 16px;
+}
+.formTable > tbody > tr > td:last-child {
 	text-align: left;
 }
-table > tbody > tr > td:first-child {
+.formTable > tbody > tr > td:first-child {
 	text-align: right;
 }
 
