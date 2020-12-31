@@ -86,11 +86,27 @@ function getUserSettings()
     $("#TwistFeedBack_PIN").val(userSettings["TwistFeedBack_PIN"]);
     $("#RightServo_PIN").val(userSettings["RightServo_PIN"]);
     $("#LeftServo_PIN").val(userSettings["LeftServo_PIN"]);
-    $("#PitchServo_PIN").val(userSettings["PitchServo_PIN"]);
+    $("#RightUpperServo_PIN").val(userSettings["RightUpperServo_PIN"]);
+    $("#LeftUpperServo_PIN").val(userSettings["LeftUpperServo_PIN"]);
+    $("#PitchLeftServo_PIN").val(userSettings["PitchLeftServo_PIN"]);
+    $("#PitchRightServo_PIN").val(userSettings["PitchRightServo_PIN"]);
     $("#ValveServo_PIN").val(userSettings["ValveServo_PIN"]);
-    $("#TwistServo_PIN").val(userSettings["TwistServo_PIN"]);
+	$("#TwistServo_PIN").val(userSettings["TwistServo_PIN"]);
+	
+    $("#RightServo_ZERO").val(userSettings["RightServo_ZERO"]);
+    $("#LeftServo_ZERO").val(userSettings["LeftServo_ZERO"]);
+    $("#RightUpperServo_ZERO").val(userSettings["RightUpperServo_ZERO"]);
+    $("#LeftUpperServo_ZERO").val(userSettings["LeftUpperServo_ZERO"]);
+    $("#PitchLeftServo_ZERO").val(userSettings["PitchLeftServo_ZERO"]);
+    $("#PitchRightServo_ZERO").val(userSettings["PitchRightServo_ZERO"]);
+    $("#ValveServo_ZERO").val(userSettings["ValveServo_ZERO"]);
+	$("#TwistServo_ZERO").val(userSettings["TwistServo_ZERO"]);
+	
     $("#Vibe0_PIN").val(userSettings["Vibe0_PIN"]);
     $("#Vibe1_PIN").val(userSettings["Vibe1_PIN"]);
+	$("#sr6Mode").prop('checked', userSettings["sr6Mode"]);
+	$("#autoValve").prop('checked', userSettings["autoValve"]);
+	
     
     documentLoaded = true;
 }
@@ -273,7 +289,7 @@ function onSpeedInput()
 
 function updateUdpPort() 
 {
-    userSettings["speed"] = parseInt($('#udpServerPort').val());
+    userSettings["udpServerPort"] = parseInt($('#udpServerPort').val());
     showRestartRequired();
     updateUserSettings();
 }
@@ -321,14 +337,36 @@ function updateFriendlyName()
     updateUserSettings();
 }
 
+function setSR6Mode() {
+    userSettings["sr6Mode"] = $('#sr6Mode').prop('checked');
+	updateUserSettings();
+}
+
+function setAutoValve() {
+    userSettings["autoValve"] = $('#autoValve').prop('checked');
+	updateUserSettings();
+}
+
+
 function updatePins() 
 {
     userSettings["TwistFeedBack_PIN"] = $('#TwistFeedBack_PIN').val();
     userSettings["RightServo_PIN"] = $('#RightServo_PIN').val();
+    userSettings["RightServo_ZERO"] = $('#RightServo_ZERO').val();
     userSettings["LeftServo_PIN"] = $('#LeftServo_PIN').val();
-    userSettings["PitchServo_PIN"] = $('#PitchServo_PIN').val();
+    userSettings["LeftServo_ZERO"] = $('#LeftServo_ZERO').val();
+    userSettings["RightUpperServo_PIN"] = $('#RightUpperServo_PIN').val();
+    userSettings["RightUpperServo_ZERO"] = $('#RightUpperServo_ZERO').val();
+    userSettings["LeftUpperServo_PIN"] = $('#LeftUpperServo_PIN').val();
+    userSettings["LeftUpperServo_ZERO"] = $('#LeftUpperServo_ZERO').val();
+    userSettings["PitchLeftServo_PIN"] = $('#PitchLeftServo_PIN').val();
+    userSettings["PitchLeftServo_ZERO"] = $('#PitchLeftServo_ZERO').val();
+    userSettings["PitchRightServo_PIN"] = $('#PitchRightServo_PIN').val();
+    userSettings["PitchRightServo_ZERO"] = $('#PitchRightServo_ZERO').val();
     userSettings["ValveServo_PIN"] = $('#ValveServo_PIN').val();
+    userSettings["ValveServo_ZERO"] = $('#ValveServo_ZERO').val();
     userSettings["TwistServo_PIN"] = $('#TwistServo_PIN').val();
+    userSettings["TwistServo_ZERO"] = $('#TwistServo_ZERO').val();
     userSettings["Vibe0_PIN"] = $('#Vibe0_PIN').val();
     userSettings["Vibe1_PIN"] = $('#Vibe1_PIN').val();
     showRestartRequired();

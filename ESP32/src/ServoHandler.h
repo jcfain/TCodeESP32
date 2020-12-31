@@ -49,25 +49,36 @@ private:
     // Declare servos
     Servo RightServo;
     Servo LeftServo;
-    Servo PitchServo;
+    Servo RightUpperServo;
+    Servo LeftUpperServo;
+    Servo PitchLeftServo;
+    Servo PitchRightServo;
     Servo ValveServo;
     Servo TwistServo;
 
     // Specify which pins are attached to what here
-    const int RightServo_PIN = SettingsHandler::RightServo_PIN;
-    const int LeftServo_PIN = SettingsHandler::LeftServo_PIN;
-    const int PitchServo_PIN = SettingsHandler::PitchServo_PIN;
-    const int ValveServo_PIN = SettingsHandler::ValveServo_PIN;
-    const int TwistServo_PIN = SettingsHandler::TwistServo_PIN;
-    const int Vibe0_PIN = SettingsHandler::Vibe0_PIN;
-    const int Vibe1_PIN = SettingsHandler::Vibe1_PIN;
+    int RightServo_PIN = SettingsHandler::RightServo_PIN;
+    int LeftServo_PIN = SettingsHandler::LeftServo_PIN;
+    int RightUpperServo_PIN = SettingsHandler::RightUpperServo_PIN;
+    int LeftUpperServo_PIN = SettingsHandler::LeftUpperServo_PIN;
+    int PitchLeftServo_PIN = SettingsHandler::PitchLeftServo_PIN;
+    int PitchRightServo_PIN = SettingsHandler::PitchRightServo_PIN;
+    int ValveServo_PIN = SettingsHandler::ValveServo_PIN;
+    int TwistServo_PIN = SettingsHandler::TwistServo_PIN;
+    int Vibe0_PIN = SettingsHandler::Vibe0_PIN;
+    int Vibe1_PIN = SettingsHandler::Vibe1_PIN;
 
     // Arm servo zeros
     // Change these to adjust arm positions
     // (1500 = centre)
-    const int RightServo_ZERO = 1500;
-    const int LeftServo_ZERO = 1500;
-    const int PitchServo_ZERO = 1500;
+    int RightServo_ZERO = SettingsHandler::RightServo_ZERO;
+    int LeftServo_ZERO = SettingsHandler::LeftServo_ZERO;
+    int RightUpperServo_ZERO = SettingsHandler::RightUpperServo_ZERO;
+    int LeftUpperServo_ZERO = SettingsHandler::LeftUpperServo_ZERO;
+    int PitchLeftServo_ZERO = SettingsHandler::PitchLeftServo_ZERO;
+    int PitchRightServo_ZERO = SettingsHandler::PitchRightServo_ZERO;
+    int TwistServo_ZERO = SettingsHandler::TwistServo_ZERO;
+    int ValveServo_ZERO = SettingsHandler::ValveServo_ZERO;
 
     // Declare timing variables
     unsigned long nextPulse;
@@ -79,7 +90,7 @@ private:
     float xRot,yRot,zRot;
     // Vibration variables
     float vibe0,vibe1;
-	// Vibration variables
+	
 	int suck;
     // Velocity tracker variables, for T-Valve
     float xLast;
@@ -97,13 +108,35 @@ public:
     {
         toy.identifyTCode();
         
+    	RightServo_ZERO = SettingsHandler::RightServo_ZERO;
+    	LeftServo_ZERO = SettingsHandler::LeftServo_ZERO;
+    	RightUpperServo_ZERO = SettingsHandler::RightUpperServo_ZERO;
+    	LeftUpperServo_ZERO = SettingsHandler::LeftUpperServo_ZERO;
+    	PitchLeftServo_ZERO = SettingsHandler::PitchLeftServo_ZERO;
+    	PitchRightServo_ZERO = SettingsHandler::PitchRightServo_ZERO;
+    	TwistServo_ZERO = SettingsHandler::TwistServo_ZERO;
+    	ValveServo_ZERO = SettingsHandler::ValveServo_ZERO;
+
         RightServo.setPeriodHertz(servoFrequency);
+        RightUpperServo.setPeriodHertz(servoFrequency);
         LeftServo.setPeriodHertz(servoFrequency);
-        PitchServo.setPeriodHertz(servoFrequency);
-		ValveServo.setTimerWidth(20);
+        LeftUpperServo.setPeriodHertz(servoFrequency);
+        PitchLeftServo.setPeriodHertz(servoFrequency);
+        PitchRightServo.setPeriodHertz(servoFrequency);
+		//ValveServo.setTimerWidth(20);
         // ValveServo.setPeriodHertz(servoFrequency);
         // TwistServo.setPeriodHertz(servoFrequency);
 
+		RightServo_PIN = SettingsHandler::RightServo_PIN;
+		LeftServo_PIN = SettingsHandler::LeftServo_PIN;
+		RightUpperServo_PIN = SettingsHandler::RightUpperServo_PIN;
+		LeftUpperServo_PIN = SettingsHandler::LeftUpperServo_PIN;
+		PitchLeftServo_PIN = SettingsHandler::PitchLeftServo_PIN;
+		PitchRightServo_PIN = SettingsHandler::PitchRightServo_PIN;
+		ValveServo_PIN = SettingsHandler::ValveServo_PIN;
+		TwistServo_PIN = SettingsHandler::TwistServo_PIN;
+		Vibe0_PIN = SettingsHandler::Vibe0_PIN;
+		Vibe1_PIN = SettingsHandler::Vibe1_PIN;
         // Declare servos and set zero
         int rightChannel = RightServo.attach(RightServo_PIN);
         if (rightChannel == 0) 
@@ -111,17 +144,35 @@ public:
             Serial.print("Failure to connect to right pin: ");
             Serial.println(RightServo_PIN);
         }
+        int rightUpperChannel = RightUpperServo.attach(RightUpperServo_PIN);
+        if (rightUpperChannel == 0) 
+        {
+            Serial.print("Failure to connect to right upper pin: ");
+            Serial.println(RightUpperServo_PIN);
+        }
         int leftChannel = LeftServo.attach(LeftServo_PIN);
         if (leftChannel == 0) 
         {
             Serial.print("Failure to connect to left pin: ");
             Serial.println(LeftServo_PIN);
         }
-        int pitchChannel = PitchServo.attach(PitchServo_PIN);
+        int leftUpperChannel = LeftUpperServo.attach(LeftUpperServo_PIN);
+        if (leftUpperChannel == 0) 
+        {
+            Serial.print("Failure to connect to left upper pin: ");
+            Serial.println(LeftUpperServo_PIN);
+        }
+        int pitchChannel = PitchLeftServo.attach(PitchLeftServo_PIN);
         if (pitchChannel == 0) 
         {
-            Serial.print("Failure to connect to pitch pin: ");
-            Serial.println(PitchServo_PIN);
+            Serial.print("Failure to connect to pitch left pin: ");
+            Serial.println(PitchLeftServo_PIN);
+        }
+        int pitchRightChannel = PitchRightServo.attach(PitchRightServo_PIN);
+        if (pitchRightChannel == 0) 
+        {
+            Serial.print("Failure to connect to pitch right pin: ");
+            Serial.println(PitchRightServo_PIN);
         }
         int valveChannel = ValveServo.attach(ValveServo_PIN);
         if (valveChannel == 0) 
@@ -139,11 +190,14 @@ public:
 
         delay(500);
         
-        RightServo.writeMicroseconds(1500);
-        LeftServo.writeMicroseconds(1500);
-        PitchServo.writeMicroseconds(1500);
-        ValveServo.writeMicroseconds(1500);
-        TwistServo.writeMicroseconds(1500);
+        RightServo.writeMicroseconds(RightServo_ZERO);
+        LeftServo.writeMicroseconds(LeftServo_ZERO);
+        RightUpperServo.writeMicroseconds(RightUpperServo_ZERO);
+        LeftUpperServo.writeMicroseconds(LeftUpperServo_ZERO);
+        PitchLeftServo.writeMicroseconds(PitchLeftServo_ZERO);
+        PitchRightServo.writeMicroseconds(PitchRightServo_ZERO);
+        ValveServo.writeMicroseconds(ValveServo_ZERO);
+        TwistServo.writeMicroseconds(TwistServo_ZERO);
 
         // Set vibration PWM pins
         pinMode(Vibe0_PIN,OUTPUT);
@@ -201,8 +255,12 @@ public:
                 // Serial.printf("n: 0, t: %lu\n", t);
             xLin = toy.xLinear(0,t);
             //Serial.printf("xLin: %u, t: %lu\n", xLin, t);
-            //yLin = toy.xLinear(1,t); (not used)
-            //zLin = toy.xLinear(2,t); (not used)
+
+			// SR6 /////////////////
+			yLin = toy.xLinear(1,t);
+			zLin = toy.xLinear(2,t);
+			////////////////////////
+
     		suck = toy.xLinear(3,t);
             xRot = toy.xRotate(0,t);
             yRot = toy.xRotate(1,t);
@@ -218,34 +276,39 @@ public:
 
             //Calculate valve position
 			//Track receiver velocity
-
-			// float Vel,ValveCmd;
-			// Vel = xLin - xLast;
-			// xLast = xLin;
-			// if (Vel < 0) {
-			// 	ValveCmd = 1000;
-			// } else {
-			// 	ValveCmd = 1000-suck;
-			// }
-			// xValve = (2*xValve + ValveCmd)/3;     
-			
-			float Vel,ValveCmd,suck;
-			Vel = xLin - xLast;
-			Vel = 50*Vel/tick;
-			xLast = xLin;
-			suck = 20;
-			if (Vel > suck) {
-				ValveCmd = Vel-suck;
-			} else if (Vel < 0){
-				ValveCmd = -Vel;
-			} else {
-				ValveCmd = 0;
+			if (SettingsHandler::autoValve)
+			{
+				float Vel,ValveCmd,localSuck;
+				Vel = xLin - xLast;
+				Vel = 50*Vel/tick;
+				xLast = xLin;
+				localSuck = 20;
+				if (Vel > localSuck) {
+					ValveCmd = Vel-localSuck;
+				} else if (Vel < 0){
+					ValveCmd = -Vel;
+				} else {
+					ValveCmd = 0;
+				}
+				xValve = (4*xValve + ValveCmd)/5;
+			} 
+			else 
+			{
+				float Vel,ValveCmd;
+				Vel = xLin - xLast;
+				xLast = xLin;
+				if (Vel < 0) {
+					ValveCmd = 1000;
+				} else {
+					ValveCmd = 1000-suck;
+				}
+				xValve = (2*xValve + ValveCmd)/3;     
 			}
-			xValve = (4*xValve + ValveCmd)/5;
 
             //Serial.print("xValve: ");
             //Serial.println(xValve);
-            if (!SettingsHandler::continousTwist) {
+            if (!SettingsHandler::continousTwist) 
+			{
 				// Calculate twist position
 				float dutyCycle = twistPulseLength;
 				dutyCycle = dutyCycle/twistPulseCycle;
@@ -257,41 +320,67 @@ public:
 				twistPos = 1000*(angPos + twistTurns);
 			}
 
-            // Mix and send servo channels
-            // Linear scale inputs to servo appropriate numbers
-            int stroke,roll,pitch,valve,twist;
-            stroke = map(xLin,1,1000,-350,350);
-            roll   = map(yRot,1,1000,-180,180);
-            pitch  = map(zRot,1,1000,-350,350);  
+			if (SettingsHandler::sr6Mode) 
+			{
+				//Serial.print("SR6 mode");
+				int roll,pitch,fwd,thrust,side;
+				roll = map(yRot,0,1000,320,-320);
+				pitch = map(zRot,0,1000,-320,320);
+				fwd = map(yLin,0,1000,360,-360);
+				thrust = map(xLin,0,1000,-360,360);
+				side = map(zLin,0,1000,135,-135);    
+
+				LeftServo.writeMicroseconds(LeftServo_ZERO + thrust + fwd - roll - pitch/2);
+				LeftUpperServo.writeMicroseconds(LeftUpperServo_ZERO + thrust - fwd - roll + pitch/2);
+
+				RightUpperServo.writeMicroseconds(RightUpperServo_ZERO - thrust + fwd - roll - pitch/2);
+				RightServo.writeMicroseconds(RightServo_ZERO - thrust - fwd - roll + pitch/2);
+
+				PitchLeftServo.writeMicroseconds(constrain(PitchLeftServo_ZERO + 200 - thrust/2 + fwd/2 + roll - pitch - side, PitchLeftServo_ZERO-600,PitchLeftServo_ZERO+1000));
+				PitchRightServo.writeMicroseconds(constrain(PitchRightServo_ZERO - 200 + thrust/2 - fwd/2 + roll + pitch - side, PitchRightServo_ZERO-1000,PitchRightServo_ZERO+600));
+
+			}
+			else 
+			{
+				//Serial.print("OSR mode");
+				// Mix and send servo channels
+				// Linear scale inputs to servo appropriate numbers
+				int stroke,roll,pitch;
+				stroke = map(xLin,1,1000,-350,350);
+				roll   = map(yRot,1,1000,-180,180);
+				pitch  = map(zRot,1,1000,-350,350);  
+				//valve  = map(valve,1000,1, 1,1000);  
+				//valve  = constrain(xValve, 0, 1000);
+				// Serial.print("SettingsHandler::continousTwist: ");
+				// Serial.println(SettingsHandler::continousTwist);
+				// Serial.print("twistPos: ");
+				// Serial.println(twistPos);
+				// Serial.print("twist: ");
+				// Serial.println(twist);
+				// Serial.print("xRot: ");
+				// Serial.println(xRot);
+
+
+				//Serial.printf("a %d, b %d, c %d, d %d, twist %d\n", a,b,c,d,twist);
+				//Serial.printf("zRot %d, yLin %d, yRot %d, zRot %d, xRot %d\n", xLin,yLin,yRot,zRot,xRot);
+				
+				// Send signals to the servos
+				// Note: 1000 = -45deg, 2000 = +45deg
+				RightServo.writeMicroseconds(RightServo_ZERO + stroke + roll);
+				LeftServo.writeMicroseconds(LeftServo_ZERO - stroke + roll);
+				PitchLeftServo.writeMicroseconds(PitchLeftServo_ZERO - pitch);
+			}
+
+			int valve,twist;
 			valve  = constrain(20*xValve, 0, 1000);
-			//valve  = map(valve,1000,1, 1,1000);  
-			//valve  = constrain(xValve, 0, 1000);
-            if (!SettingsHandler::continousTwist) {
-    			twist  = 2*(xRot - map(twistPos,-1500,1500,1000,1));
-                twist = constrain(twist, -750, 750);
-            } else {
-                twist = map(xRot,1,1000,-180,180);
-            }
-            // Serial.print("SettingsHandler::continousTwist: ");
-            // Serial.println(SettingsHandler::continousTwist);
-            // Serial.print("twistPos: ");
-            // Serial.println(twistPos);
-            // Serial.print("twist: ");
-            // Serial.println(twist);
-            // Serial.print("xRot: ");
-            // Serial.println(xRot);
-
-
-            //Serial.printf("a %d, b %d, c %d, d %d, twist %d\n", a,b,c,d,twist);
-            //Serial.printf("zRot %d, yLin %d, yRot %d, zRot %d, xRot %d\n", xLin,yLin,yRot,zRot,xRot);
-            
-            // Send signals to the servos
-            // Note: 1000 = -45deg, 2000 = +45deg
-            RightServo.writeMicroseconds(RightServo_ZERO + stroke + roll);
-            LeftServo.writeMicroseconds(LeftServo_ZERO - stroke + roll);
-            PitchServo.writeMicroseconds(PitchServo_ZERO - pitch);
-            ValveServo.writeMicroseconds(1000 + valve);
-            TwistServo.writeMicroseconds(1500 - twist);
+			if (!SettingsHandler::continousTwist) {
+				twist  = 2*(xRot - map(twistPos,-1500,1500,1000,1));
+				twist = constrain(twist, -750, 750);
+			} else {
+				twist = map(xRot,1,1000,-180,180);
+			}
+			TwistServo.writeMicroseconds(TwistServo_ZERO + twist);
+			ValveServo.writeMicroseconds((ValveServo_ZERO - 500) + valve);
 
             // Done with servo channels
 
