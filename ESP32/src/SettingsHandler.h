@@ -48,6 +48,7 @@ class SettingsHandler
 		static int TwistServo_PIN;
 		static int Vibe0_PIN;
 		static int Vibe1_PIN;
+		static int Lube_Pin;
         static int xMin;
         static int xMax;
         static int yRollMin;
@@ -73,6 +74,19 @@ class SettingsHandler
     	static int TwistServo_ZERO;
     	static int ValveServo_ZERO;
 		static bool autoValve;
+		static bool inverseValve;
+		static int lubeAmount;
+		static bool displayEnabled;
+		static int Display_Screen_Width; 
+		static int Display_Screen_Height; 
+		static int Temp_PIN; 
+		static int Heater_PIN;
+		static int HeatLED_PIN;
+		static int TargetTemp;
+		static int HeatPWM;
+		static int HoldPWM;
+		static int Display_I2C_Address;
+		static int Display_Rst_PIN;
 
         static void load() 
         {
@@ -128,6 +142,7 @@ class SettingsHandler
 				TwistServo_PIN = json["TwistServo_PIN"];
 				Vibe0_PIN = json["Vibe0_PIN"];
 				Vibe1_PIN = json["Vibe1_PIN"];
+				Lube_Pin = json["Lube_Pin"];
 				staticIP = json["staticIP"];
                 const char* localIPTemp = json["localIP"];
                 if (localIPTemp != nullptr)
@@ -155,6 +170,8 @@ class SettingsHandler
     			TwistServo_ZERO = json["TwistServo_ZERO"];
     			ValveServo_ZERO = json["ValveServo_ZERO"];
 				autoValve = json["autoValve"];
+				inverseValve = json["inverseValve"];
+				lubeAmount = json["lubeAmount"] | 255;
 
                 LogUpdateDebug();
 
@@ -220,6 +237,7 @@ class SettingsHandler
 			doc["TwistServo_PIN"] = TwistServo_PIN;
 			doc["Vibe0_PIN"] = Vibe0_PIN;
 			doc["Vibe1_PIN"] = Vibe1_PIN;
+			doc["Lube_Pin"] = Lube_Pin;
 			doc["staticIP"] = staticIP;
 			doc["localIP"] = localIP;
 			doc["gateway"] = gateway;
@@ -236,8 +254,11 @@ class SettingsHandler
 			doc["TwistServo_ZERO"] = TwistServo_ZERO;
 			doc["ValveServo_ZERO"] = ValveServo_ZERO;
 			doc["autoValve"] = autoValve;
+			doc["inverseValve"] = inverseValve;
+			doc["lubeAmount"] = lubeAmount;
+			
 
-            LogSaveDebug(doc);
+            //LogSaveDebug(doc);
 
             if (serializeJson(doc, file) == 0) 
             {
@@ -257,8 +278,8 @@ class SettingsHandler
     private:
         //static char* filename = "/userSettings.json";
         // Use http://arduinojson.org/assistant to compute the capacity.
-        static const size_t readCapacity = JSON_OBJECT_SIZE(55) + 800;
-        static const size_t saveCapacity = JSON_OBJECT_SIZE(40);
+        static const size_t readCapacity = JSON_OBJECT_SIZE(65) + 900;
+        static const size_t saveCapacity = JSON_OBJECT_SIZE(50);
 		static const int deserialize = 1536;
 		static const int serialize = 1536;
 
@@ -352,6 +373,8 @@ class SettingsHandler
             Serial.println((int)doc["Vibe0_PIN"]);
             Serial.print("save Vibe1_PIN ");
             Serial.println((int)doc["Vibe1_PIN"]);
+            Serial.print("save Lube_Pin ");
+            Serial.println((int)doc["Lube_Pin"]);
             Serial.print("save staticIP ");
             Serial.println((bool)doc["staticIP"]);
             Serial.print("save localIP ");
@@ -384,6 +407,10 @@ class SettingsHandler
             Serial.println((int)doc["ValveServo_ZERO"]);
             Serial.print("save autoValve ");
             Serial.println((bool)doc["autoValve"]);
+            Serial.print("save inverseValve ");
+            Serial.println((bool)doc["inverseValve"]);
+            Serial.print("save lubeAmount ");
+            Serial.println((int)doc["lubeAmount"]);
         }
 
         static void LogUpdateDebug() 
@@ -438,6 +465,8 @@ class SettingsHandler
             Serial.println(Vibe0_PIN);
             Serial.print("update Vibe1_PIN ");
             Serial.println(Vibe1_PIN);
+            Serial.print("update Lube_Pin ");
+            Serial.println(Lube_Pin);
             Serial.print("update staticIP ");
             Serial.println(staticIP);
             Serial.print("update localIP ");
@@ -470,6 +499,10 @@ class SettingsHandler
             Serial.println(ValveServo_ZERO);
             Serial.print("update autoValve ");
             Serial.println(autoValve);
+            Serial.print("update inverseValve ");
+            Serial.println(inverseValve);
+            Serial.print("update lubeAmount ");
+            Serial.println(lubeAmount);
         }
 };
 
@@ -488,11 +521,15 @@ int SettingsHandler::RightServo_PIN = 13;
 int SettingsHandler::PitchLeftServo_PIN = 4;
 int SettingsHandler::LeftUpperServo_PIN = 2;
 int SettingsHandler::LeftServo_PIN = 15;
-int SettingsHandler::ValveServo_PIN = 22;
+int SettingsHandler::ValveServo_PIN = 25;
 int SettingsHandler::TwistServo_PIN = 27;
 int SettingsHandler::TwistFeedBack_PIN = 26;
 int SettingsHandler::Vibe0_PIN = 18;
 int SettingsHandler::Vibe1_PIN = 19;
+int SettingsHandler::Lube_Pin = 23;
+int SettingsHandler::Temp_PIN = 5; 
+int SettingsHandler::Heater_PIN = 18;
+int SettingsHandler::HeatLED_PIN = 19;
 int SettingsHandler::xMin;
 int SettingsHandler::xMax;
 int SettingsHandler::yRollMin;
@@ -518,3 +555,14 @@ int SettingsHandler::PitchRightServo_ZERO = 1500;
 int SettingsHandler::TwistServo_ZERO = 1500;
 int SettingsHandler::ValveServo_ZERO = 1500; 
 bool SettingsHandler::autoValve = false;
+bool SettingsHandler::inverseValve = false;
+int SettingsHandler::lubeAmount = 255;
+
+bool SettingsHandler::displayEnabled = true;
+int SettingsHandler::Display_Screen_Width = 128; 
+int SettingsHandler::Display_Screen_Height = 64; 
+int SettingsHandler::TargetTemp = 40;
+int SettingsHandler::HeatPWM = 255;
+int SettingsHandler::HoldPWM = 110;
+int SettingsHandler::Display_I2C_Address = 0x3C;
+int SettingsHandler::Display_Rst_PIN = -1;
