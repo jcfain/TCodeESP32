@@ -28,7 +28,6 @@ SOFTWARE. */
 #include <AsyncTCP.h>
 #include <AsyncJson.h>
 #include <ESPmDNS.h>
-#include "SettingsHandler.h"
 #include "WifiHandler.h"
 
 AsyncWebServer server(80);

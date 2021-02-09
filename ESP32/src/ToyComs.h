@@ -32,7 +32,7 @@ class ToyComms {
     ToyComms() {
       // Centralise everything
       xL1[0] = 500;
-      xL1[1] = 400;
+      xL1[1] = 500;
       xL1[2] = 500;
       xL1[3] = 500;
       xR1[0] = 500;

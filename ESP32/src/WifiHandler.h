@@ -51,7 +51,8 @@ class WifiHandler
         WiFi.setHostname("TCodeESP32");
 		if (SettingsHandler::staticIP) 
 		{
-        	Serial.printf("Setting static IP settings  %s\n", SettingsHandler::localIP);
+        	Serial.print("Setting static IP settings:");
+        	Serial.println(SettingsHandler::localIP);
 			uint8_t ipAddress[4];
 			sscanf(SettingsHandler::localIP, "%u.%u.%u.%u", &ipAddress[0], &ipAddress[1], &ipAddress[2], &ipAddress[3]);
 			uint8_t gateway[4];
@@ -64,23 +65,25 @@ class WifiHandler
 			sscanf(SettingsHandler::dns2, "%u.%u.%u.%u", &dns2[0], &dns2[1], &dns2[2], &dns2[3]);
 			WiFi.config(IPAddress(ipAddress), IPAddress(gateway), IPAddress(subnet), IPAddress(dns1), IPAddress(dns2));
 		}
-        Serial.printf("Establishing connection to  %s\n", ssid);
+        Serial.print("Establishing connection to");
+        Serial.println(ssid);
         WiFi.begin(ssid, pass);
         int connectStartTimeout = millis() + connectTimeOut;
         while (!isConnected() && millis() < connectStartTimeout) 
         {
-          delay(1000);
-          Serial.print(".");
-          if (millis() > connectStartTimeout) {
-            Serial.println("Wifi timed out connection to AP");
-            return false;
-          }
+			delay(1000);
+			Serial.print(".");
         }
-      IPAddress ipAddress = ip();
-      Serial.println();
-      Serial.print("Connected: IP: ");
-      Serial.println(ipAddress);
-      return true;
+		if (millis() > connectStartTimeout) 
+		{
+			Serial.println("Wifi timed out connection to AP");
+			return false;
+		}
+		IPAddress ipAddress = ip();
+		Serial.println("");
+		Serial.print("Connected: IP: ");
+		Serial.println(ipAddress);
+		return true;
     }
 
     bool startAp() {
@@ -95,9 +98,10 @@ class WifiHandler
       IPAddress subnet(255, 255, 255, 0);
       // Set your Gateway IP address
       IPAddress gateway(192, 168, 1, 254);
-      if (!WiFi.softAPConfig(local_IP, gateway, subnet)) {
-        Serial.println("STA Failed to configure");
-        return false;
+      if (!WiFi.softAPConfig(local_IP, gateway, subnet)) 
+	  {
+			Serial.println("STA Failed to configure");
+			return false;
       }
       Serial.print("Wifi started in APMode: ");
       Serial.println(WiFi.softAPIP());

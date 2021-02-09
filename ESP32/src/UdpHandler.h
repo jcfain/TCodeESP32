@@ -24,7 +24,6 @@ SOFTWARE. */
 #include <WiFiUdp.h>
 #include <string>
 #include <ArduinoJson.h>
-#include "SettingsHandler.h"
 
 
 class Udphandler 
@@ -86,7 +85,7 @@ class Udphandler
 			//DynamicJsonDocument doc(readCapacity);
 			DeserializationError error = deserializeJson(doc, packetBuffer);
 			if (error) {
-				Serial.println(F("Failed to read udp jsonobject, using default configuration"));
+				Serial.println("Failed to read udp jsonobject, using default configuration");
 				udpData = nullptr;
 				return;
 			}

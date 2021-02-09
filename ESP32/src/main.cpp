@@ -23,43 +23,67 @@ SOFTWARE. */
 
 #include <Arduino.h>
 #include <SPIFFS.h>
+#include "SettingsHandler.h"
+#include "DisplayHandler.h"
 #include "ServoHandler.h"
 #include "WifiHandler.h"
 #include "UdpHandler.h"
 //#include "BluetoothHandler.h"
 #include "WebHandler.h"
-#include "SettingsHandler.h"
 //#include "OTAHandler.h"
 
+Udphandler udpHandler;
 ServoHandler servoHandler;
 WifiHandler wifi;
-Udphandler udpHandler;
 //BluetoothHandler bluetooth;
 WebHandler webHandler;
+DisplayHandler* displayHandler;
 // This has issues running with the webserver.
 //OTAHandler otaHandler;
 boolean apMode = false;
+boolean setupSucceeded = false;
 char udpData[255];
-void setup() {
-
+void setup() 
+{
 	Serial.begin(115200);
 	if(!SPIFFS.begin(true))
 	{
 		Serial.println("An Error has occurred while mounting SPIFFS");
+		setupSucceeded = false;
 		return;
 	}
 	SettingsHandler::load();
-	if (strcmp(SettingsHandler::ssid, "YOUR SSID HERE") != 0 && SettingsHandler::ssid != nullptr) {
+	if(SettingsHandler::displayEnabled)
+	{
+		displayHandler = new DisplayHandler();
+		displayHandler->setup();
+	}
+	
+	displayHandler->println("Setting up wifi...");
+	if (strcmp(SettingsHandler::ssid, "YOUR SSID HERE") != 0 && SettingsHandler::ssid != nullptr) 
+	{
+		displayHandler->println("Connecting to: ");
+		displayHandler->println(SettingsHandler::ssid);
 		if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) 
 		{ 
+			displayHandler->setLocalWifiStatus(true);
+			displayHandler->println("Connected: ");
+			displayHandler->println(wifi.ip().toString());
+			displayHandler->setLocalIPAddress(wifi.ip());
+			displayHandler->println("Starting UDP");
 			udpHandler.setup(SettingsHandler::udpServerPort);
+			displayHandler->println("Starting web server on port: ");
+			displayHandler->println(SettingsHandler::webServerPort);
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName);
 		} 
 		else 
 		{
+			displayHandler->println("Connection failed");
+			displayHandler->println("Starting in APMode");
 			apMode = true;
 			if (wifi.startAp()) 
 			{
+				displayHandler->setLocalWifiStatus(false);
 				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
 			}
 		}
@@ -67,25 +91,29 @@ void setup() {
 	else 
 	{
 		apMode = true;
+		displayHandler->println("Starting in APMode");
 		if (wifi.startAp()) 
 		{
+			displayHandler->setLocalWifiStatus(false);
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
 		}
 	}
-  if (!apMode) 
-  {
     //bluetooth.setup();
     //otaHandler.setup();
+	displayHandler->println("Setting up servos");
     servoHandler.setup(SettingsHandler::servoFrequency);
-  }
+	setupSucceeded = true;
+	displayHandler->println("Starting system...");
+	delay(5000);
+	displayHandler->clearDisplay();
 }
 
 void loop() {
-	if (!apMode) 
+	if(setupSucceeded)
 	{
 		//otaHandler.handle();
 		udpHandler.read(udpData);
-		if (strlen(udpData) > 0) 
+		if (!apMode && strlen(udpData) > 0) 
 		{
 			// Serial.print("web writing: ");
 			// Serial.println(udpData);
@@ -107,5 +135,9 @@ void loop() {
 		{
 			servoHandler.execute();
 		} 
+		if(SettingsHandler::displayEnabled)
+		{
+			displayHandler->loop();
+		}
 	}
 }

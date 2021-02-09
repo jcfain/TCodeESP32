@@ -26,6 +26,7 @@
 	"TwistFeedBack_PIN": 26,
 	"Vibe0_PIN": 18,
 	"Vibe1_PIN": 19,
+	"Lube_Pin": 23,
 	"staticIP": true,
 	"localIP": "192.168.0.150",
 	"gateway": "192.168.0.1",
@@ -40,5 +41,7 @@
 	"PitchRightServo_ZERO": 1500,
 	"TwistServo_ZERO": 1500,
 	"ValveServo_ZERO": 1500, 
-	"autoValve": false
+	"autoValve": false,
+	"inverseValve": false,
+	"lubeAmount": 255
 }

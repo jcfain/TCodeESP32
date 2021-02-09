@@ -53,6 +53,14 @@
 						</tr>
 						<tr>
 							<td>
+								<span>Inverse T-Valve</span> 
+							</td>
+							<td>
+								<input id="inverseValve" type="checkbox" onclick="setInverseValve()"></input>
+							</td>
+						</tr>
+						<tr>
+							<td>
 								<span>RightServo PIN/ZERO</span> 
 							</td>
 							<td>
@@ -132,10 +140,26 @@
 						</tr>
 						<tr>
 							<td>
-								<span>Vibe1 PIN</span> 
+								<span>Vibe1/Lube PIN</span> 
 							</td>
 							<td>
 								<input id="Vibe1_PIN" type="text" maxlength="3" oninput="updatePins()">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span>Manual lube PIN</span> 
+							</td>
+							<td>
+								<input id="Lube_Pin" type="text" maxlength="3" oninput="updatePins()">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span>Manual lube speed (1-255)</span> 
+							</td>
+							<td>
+								<input id="lubeAmount" type="text" maxlength="3" oninput="updateLubeAmount()">
 							</td>
 						</tr>
 						<tr>

@@ -104,8 +104,11 @@ function getUserSettings()
 	
     $("#Vibe0_PIN").val(userSettings["Vibe0_PIN"]);
     $("#Vibe1_PIN").val(userSettings["Vibe1_PIN"]);
+	$("#Lube_Pin").val(userSettings["Lube_Pin"]);
+	$("#lubeAmount").val(userSettings["lubeAmount"]);
 	$("#sr6Mode").prop('checked', userSettings["sr6Mode"]);
 	$("#autoValve").prop('checked', userSettings["autoValve"]);
+	$("#inverseValve").prop('checked', userSettings["inverseValve"]);
 	
     
     documentLoaded = true;
@@ -346,7 +349,10 @@ function setAutoValve() {
     userSettings["autoValve"] = $('#autoValve').prop('checked');
 	updateUserSettings();
 }
-
+function setInverseValve() {
+    userSettings["inverseValve"] = $('#inverseValve').prop('checked');
+	updateUserSettings();
+}
 
 function updatePins() 
 {
@@ -368,11 +374,16 @@ function updatePins()
     userSettings["TwistServo_PIN"] = $('#TwistServo_PIN').val();
     userSettings["TwistServo_ZERO"] = $('#TwistServo_ZERO').val();
     userSettings["Vibe0_PIN"] = $('#Vibe0_PIN').val();
-    userSettings["Vibe1_PIN"] = $('#Vibe1_PIN').val();
+	userSettings["Vibe1_PIN"] = $('#Vibe1_PIN').val();
+	userSettings["Lube_Pin"] = $('#Lube_Pin').val();
     showRestartRequired();
     updateUserSettings();
 }
-
+function updateLubeAmount()
+{
+    userSettings["lubeAmount"] = parseInt($('#lubeAmount').val());
+    updateUserSettings();
+}
 
 //wifiSettings.htm functions
 
