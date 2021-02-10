@@ -19,7 +19,6 @@ This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). I
     - Adafruit GFX Library
     - Adafruit BusIO
     - SPI
-    - greiman/SSD1306Ascii@^1.3.0
     
   #### TOOLS
     I used Visual studio code and PlatformIO for this project.
