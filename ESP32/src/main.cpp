@@ -53,9 +53,9 @@ void setup()
 		return;
 	}
 	SettingsHandler::load();
+	displayHandler = new DisplayHandler();
 	if(SettingsHandler::displayEnabled)
 	{
-		displayHandler = new DisplayHandler();
 		displayHandler->setup();
 	}
 	
@@ -66,36 +66,50 @@ void setup()
 		displayHandler->println(SettingsHandler::ssid);
 		if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) 
 		{ 
-			displayHandler->setLocalWifiStatus(true);
+			displayHandler->setLocalWifiConnected(true);
 			displayHandler->println("Connected: ");
 			displayHandler->println(wifi.ip().toString());
 			displayHandler->setLocalIPAddress(wifi.ip());
 			displayHandler->println("Starting UDP");
 			udpHandler.setup(SettingsHandler::udpServerPort);
-			displayHandler->println("Starting web server on port: ");
-			displayHandler->println(SettingsHandler::webServerPort);
+			displayHandler->println("Starting web server");
+			//displayHandler->println(SettingsHandler::webServerPort);
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName);
 		} 
 		else 
 		{
+			displayHandler->setLocalWifiConnected(false);
+			displayHandler->clearDisplay();
 			displayHandler->println("Connection failed");
 			displayHandler->println("Starting in APMode");
 			apMode = true;
 			if (wifi.startAp()) 
 			{
-				displayHandler->setLocalWifiStatus(false);
+				displayHandler->println("APMode started");
+				displayHandler->setLocalApModeConnected(true);
 				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
 			}
+			else
+			{
+				displayHandler->setLocalApModeConnected(false);
+			}
+			
 		}
 	} 
 	else 
 	{
 		apMode = true;
+		displayHandler->setLocalWifiConnected(false);
 		displayHandler->println("Starting in APMode");
 		if (wifi.startAp()) 
 		{
-			displayHandler->setLocalWifiStatus(false);
+			displayHandler->println("APMode started");
+			displayHandler->setLocalApModeConnected(true);
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
+		}
+		else
+		{
+			displayHandler->setLocalApModeConnected(false);
 		}
 	}
     //bluetooth.setup();
@@ -104,7 +118,6 @@ void setup()
     servoHandler.setup(SettingsHandler::servoFrequency);
 	setupSucceeded = true;
 	displayHandler->println("Starting system...");
-	delay(5000);
 	displayHandler->clearDisplay();
 }
 
@@ -137,7 +150,7 @@ void loop() {
 		} 
 		if(SettingsHandler::displayEnabled)
 		{
-			displayHandler->loop();
+			displayHandler->loop(wifi.RSSI());
 		}
 	}
 }

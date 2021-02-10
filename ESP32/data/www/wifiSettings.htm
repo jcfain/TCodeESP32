@@ -16,7 +16,7 @@
 
   <h1>Wifi Settings</h1>
   <div class="centerFlex">
-  <table id="wifiSettingsTable" class="formTable">
+  <table id="wifiSettingsTable" class="rootTable">
 	  <tr>
 		  <td>
 			  <span>SSID</span> 
@@ -85,6 +85,14 @@
 		  </td>
 		  <td>
 			  <input id="dns2" type="text" maxlength="15" oninput="updateStaticIP()">
+		  </td>
+	  </tr>
+	  <tr>
+		  <td>
+			  <span>Display enabled</span> 
+		  </td>
+		  <td>
+			  <input id="displayEnabled" type="checkbox" onclick="setDisplaySettings()"></input>
 		  </td>
 	  </tr>
   </table>

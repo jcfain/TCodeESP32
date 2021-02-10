@@ -109,8 +109,22 @@ function getUserSettings()
 	$("#sr6Mode").prop('checked', userSettings["sr6Mode"]);
 	$("#autoValve").prop('checked', userSettings["autoValve"]);
 	$("#inverseValve").prop('checked', userSettings["inverseValve"]);
+
+	$("#displayEnabled").prop('checked', userSettings["displayEnabled"]);
+	$("#sleeveTempEnabled").prop('checked', userSettings["sleeveTempEnabled"]);
+	$("#tempControlEnabled").prop('checked', userSettings["tempControlEnabled"]);
+	$("#Display_Screen_Width").val(userSettings["Display_Screen_Width"]);
+	$("#Display_Screen_Height").val(userSettings["Display_Screen_Height"]);
+	$("#TargetTemp").val(userSettings["TargetTemp"]);
+	$("#HeatPWM").val(userSettings["HeatPWM"]);
+	$("#HoldPWM").val(userSettings["HoldPWM"]);
+	$("#Display_I2C_Address").val(userSettings["Display_I2C_Address"]);
+	$("#Display_Rst_PIN").val(userSettings["Display_Rst_PIN"]);
+	$("#Temp_PIN").val(userSettings["Temp_PIN"]);
+	$("#Heater_PIN").val(userSettings["Heater_PIN"]);
+	$("#HeatLED_PIN").val(userSettings["HeatLED_PIN"]);
+	$("#WarmUpTime").val(userSettings["WarmUpTime"]);
 	
-    
     documentLoaded = true;
 }
 
@@ -382,6 +396,27 @@ function updatePins()
 function updateLubeAmount()
 {
     userSettings["lubeAmount"] = parseInt($('#lubeAmount').val());
+    updateUserSettings();
+}
+
+function setDisplaySettings()
+{
+    userSettings["displayEnabled"] = $('#displayEnabled').prop('checked');
+    userSettings["sleeveTempEnabled"] = $('#sleeveTempEnabled').prop('checked');
+    userSettings["tempControlEnabled"] = $('#tempControlEnabled').prop('checked');
+    userSettings["Temp_PIN"] = parseInt($('#Temp_PIN').val());
+    userSettings["Heater_PIN"] = parseInt($('#Heater_PIN').val());
+    userSettings["HeatLED_PIN"] = parseInt($('#HeatLED_PIN').val());
+    userSettings["Display_Screen_Width"] = parseInt($('#Display_Screen_Width').val());
+    userSettings["Display_Screen_Height"] = parseInt($('#Display_Screen_Height').val());
+    userSettings["TargetTemp"] = parseInt($('#TargetTemp').val());
+    userSettings["HeatPWM"] = parseInt($('#HeatPWM').val());
+    userSettings["HoldPWM"] = parseInt($('#HoldPWM').val());
+    userSettings["Display_Rst_PIN"] = parseInt($('#Display_Rst_PIN').val());
+    userSettings["Display_I2C_Address"] = $('#Display_I2C_Address').val();
+    userSettings["WarmUpTime"] = parseInt($('#WarmUpTime').val());
+	
+    showRestartRequired();
     updateUserSettings();
 }
 

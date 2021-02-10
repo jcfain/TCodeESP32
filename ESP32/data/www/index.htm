@@ -40,7 +40,7 @@
 								<span>Servo Frequency</span> 
 							</td>
 							<td>
-								<input id="servoFrequency" type="text" maxlength="3" oninput="updateServoFrequency()">
+								<input id="servoFrequency" type="text" oninput="updateServoFrequency()">
 							</td>
 						</tr>
 						<tr>
@@ -64,7 +64,7 @@
 								<span>RightServo PIN/ZERO</span> 
 							</td>
 							<td>
-								<input id="RightServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+								<input id="RightServo_PIN" type="text" oninput="updatePins()">
 							</td>
 							<td>
 								<input id="RightServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
@@ -75,7 +75,7 @@
 								<span>LeftServo PIN/ZERO</span> 
 							</td>
 							<td>
-								<input id="LeftServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+								<input id="LeftServo_PIN" type="text" oninput="updatePins()">
 							</td>
 							<td>
 								<input id="LeftServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
@@ -86,7 +86,7 @@
 								<span>PitchLeftServo PIN/ZERO</span> 
 							</td>
 							<td>
-								<input id="PitchLeftServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+								<input id="PitchLeftServo_PIN" type="text" oninput="updatePins()">
 							</td>
 							<td>
 								<input id="PitchLeftServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
@@ -97,7 +97,7 @@
 								<span>ValveServo PIN/ZERO</span> 
 							</td>
 							<td>
-								<input id="ValveServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+								<input id="ValveServo_PIN" type="text" oninput="updatePins()">
 							</td>
 							<td>
 								<input id="ValveServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
@@ -108,7 +108,7 @@
 								<span>TwistServo PIN/ZERO</span> 
 							</td>
 							<td>
-								<input id="TwistServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+								<input id="TwistServo_PIN" type="text" oninput="updatePins()">
 							</td>
 							<td>
 								<input id="TwistServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
@@ -119,7 +119,7 @@
 								<span>TwistFeedBack PIN</span> 
 							</td>
 							<td>
-								<input id="TwistFeedBack_PIN" type="text" maxlength="3" oninput="updatePins()">
+								<input id="TwistFeedBack_PIN" type="text" oninput="updatePins()">
 							</td>
 						</tr>
 						<tr>
@@ -135,7 +135,7 @@
 								<span>Vibe0 PIN</span> 
 							</td>
 							<td>
-								<input id="Vibe0_PIN" type="text" maxlength="3" oninput="updatePins()">
+								<input id="Vibe0_PIN" type="text" oninput="updatePins()">
 							</td>
 						</tr>
 						<tr>
@@ -143,7 +143,7 @@
 								<span>Vibe1/Lube PIN</span> 
 							</td>
 							<td>
-								<input id="Vibe1_PIN" type="text" maxlength="3" oninput="updatePins()">
+								<input id="Vibe1_PIN" type="text"  oninput="updatePins()">
 							</td>
 						</tr>
 						<tr>
@@ -151,7 +151,7 @@
 								<span>Manual lube PIN</span> 
 							</td>
 							<td>
-								<input id="Lube_Pin" type="text" maxlength="3" oninput="updatePins()">
+								<input id="Lube_Pin" type="text" oninput="updatePins()">
 							</td>
 						</tr>
 						<tr>
@@ -184,6 +184,123 @@
 							</td>
 							<td>
 								<input id="friendlyName" type="text" maxlength="100" oninput="updateFriendlyName()">
+							</td>
+						</tr>
+					</table>
+					<table id="deviceSettingsDisplayTable" class="formTable">
+						<th>
+							<h3>Display Settings</h3>
+						</th>
+						<tr>
+							<td>
+								<span>Display enabled</span> 
+							</td>
+							<td>
+								<input id="displayEnabled" type="checkbox" onclick="setDisplaySettings()"></input>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span>I2C address</span> 
+							</td>
+							<td>
+								<input id="Display_I2C_Address" type="text" oninput="setDisplaySettings()">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span>Display rst PIN</span> 
+							</td>
+							<td>
+								<input id="Display_Rst_PIN" type="text" oninput="setDisplaySettings()">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span> Screen width</span> 
+							</td>
+							<td>
+								<input id="Display_Screen_Width" type="text" oninput="setDisplaySettings()">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span>Screen height</span> 
+							</td>
+							<td>
+								<input id="Display_Screen_Height" type="text" oninput="setDisplaySettings()">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span>Sleeve temperature enabled</span> 
+							</td>
+							<td>
+								<input id="sleeveTempEnabled" type="checkbox" onclick="setDisplaySettings()"></input>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span>Temp_PIN</span> 
+							</td>
+							<td>
+								<input id="Temp_PIN" type="text" oninput="setDisplaySettings()">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span>Temperature control enabled</span> 
+							</td>
+							<td>
+								<input id="tempControlEnabled" type="checkbox" onclick="setDisplaySettings()"></input>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span>Heater_PIN</span> 
+							</td>
+							<td>
+								<input id="Heater_PIN" type="text" oninput="setDisplaySettings()">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span>HeatLED_PIN</span> 
+							</td>
+							<td>
+								<input id="HeatLED_PIN" type="text" oninput="setDisplaySettings()">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span>Target Temperature</span> 
+							</td>
+							<td>
+								<input id="TargetTemp" type="text" oninput="setDisplaySettings()">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span>Heat PWM</span> 
+							</td>
+							<td>
+								<input id="HeatPWM" type="text" oninput="setDisplaySettings()">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span>Hold PWM</span> 
+							</td>
+							<td>
+								<input id="HoldPWM" type="text" oninput="setDisplaySettings()">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span>Warm up time (millis)</span> 
+							</td>
+							<td>
+								<input id="WarmUpTime" type="text"  oninput="setDisplaySettings()">
 							</td>
 						</tr>
 					</table>
