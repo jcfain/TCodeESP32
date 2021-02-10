@@ -13,14 +13,19 @@ This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). I
     - ESP Async Webserver
     - EAsyncTCP
     - ArduinoJson
+    - paulstoffregen/OneWire@^2.3.5
+    - milesburton/DallasTemperature@^3.9.1
+    - adafruit/Adafruit SSD1306@^2.4.3
+    - Adafruit GFX Library
+    - Adafruit BusIO
+    - SPI
     
   #### TOOLS
     I used Visual studio code and PlatformIO for this project.
     I believe the sketch could be built in the Arduino IDE but I have not tested.
     
   #### FILE SYSTEM
-    Make sure modify /data/userSettings.json with your wifi ssid and password.
-    Upload the filesystem image and monitor the COM port to se the ip address.
+    Modify /data/userSettings.json with your wifi ssid and password.
+    Upload the filesystem image and monitor the COM port to se the ip address if dynamic.
     
-    If you only want bluetooth you should be able to just pair with the board 
-    and connect to the COM port created.
+    You can also set the wifi settings via the web interface in AP mode on first boot.
