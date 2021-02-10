@@ -22,6 +22,7 @@ SOFTWARE. */
 
 #pragma once
 
+#include <sstream>
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
 
@@ -30,6 +31,7 @@ class SettingsHandler
 {
   public:
         const static char TCodeVersion[11];
+        const static char TCodeESP32Version[13];
         const static char HandShakeChannel[4];
         static char ssid[32];
         static char wifiPass[63];
@@ -77,6 +79,8 @@ class SettingsHandler
 		static bool inverseValve;
 		static int lubeAmount;
 		static bool displayEnabled;
+		static bool sleeveTempEnabled;
+		static bool tempControlEnabled;
 		static int Display_Screen_Width; 
 		static int Display_Screen_Height; 
 		static int Temp_PIN; 
@@ -87,6 +91,7 @@ class SettingsHandler
 		static int HoldPWM;
 		static int Display_I2C_Address;
 		static int Display_Rst_PIN;
+		static int WarmUpTime;
 
         static void load() 
         {
@@ -172,8 +177,24 @@ class SettingsHandler
 				autoValve = json["autoValve"];
 				inverseValve = json["inverseValve"];
 				lubeAmount = json["lubeAmount"] | 255;
+				displayEnabled = json["displayEnabled"];
+				sleeveTempEnabled = json["sleeveTempEnabled"];
+				tempControlEnabled = json["tempControlEnabled"];
+				Display_Screen_Width = json["tempControlEnabled"] | 128;
+				Display_Screen_Height = json["tempControlEnabled"] | 64;
+				Temp_PIN = json["tempControlEnabled"] | 5;
+				Heater_PIN = json["tempControlEnabled"] | 33;
+				HeatLED_PIN = json["tempControlEnabled"] | 32;
+				TargetTemp = json["tempControlEnabled"] | 40;
+				HeatPWM = json["tempControlEnabled"] | 255;
+				HoldPWM = json["tempControlEnabled"] | 110;
+                const char* Display_I2C_AddressTemp = json["Display_I2C_Address"];
+                if (Display_I2C_AddressTemp != nullptr)
+					Display_I2C_Address = (int)strtol(Display_I2C_AddressTemp, NULL, 0);
+				Display_Rst_PIN = json["tempControlEnabled"] | -1;
+				WarmUpTime = json["WarmUpTime"] | 600000;
 
-                LogUpdateDebug();
+                //LogUpdateDebug();
 
                 return true;
             } 
@@ -256,6 +277,22 @@ class SettingsHandler
 			doc["autoValve"] = autoValve;
 			doc["inverseValve"] = inverseValve;
 			doc["lubeAmount"] = lubeAmount;
+			doc["displayEnabled"] = displayEnabled;
+			doc["sleeveTempEnabled"] = sleeveTempEnabled;
+			doc["tempControlEnabled"] = tempControlEnabled;
+			doc["Display_Screen_Width"] = Display_Screen_Width;
+			doc["Display_Screen_Height"] = Display_Screen_Height;
+			doc["TargetTemp"] = TargetTemp;
+			doc["HeatPWM"] = HeatPWM;
+			doc["HoldPWM"] = HoldPWM;
+			std::stringstream Display_I2C_Address_String;
+			Display_I2C_Address_String << "0x" << std::hex << Display_I2C_Address;
+			doc["Display_I2C_Address"] = Display_I2C_Address_String.str();
+			doc["Display_Rst_PIN"] = Display_Rst_PIN;
+			doc["Temp_PIN"] = Temp_PIN;
+			doc["Heater_PIN"] = Heater_PIN;
+			doc["HeatLED_PIN"] = Display_Rst_PIN;
+			doc["WarmUpTime"] = WarmUpTime;
 			
 
             //LogSaveDebug(doc);
@@ -278,9 +315,9 @@ class SettingsHandler
     private:
         //static char* filename = "/userSettings.json";
         // Use http://arduinojson.org/assistant to compute the capacity.
-        static const size_t readCapacity = JSON_OBJECT_SIZE(65) + 900;
-        static const size_t saveCapacity = JSON_OBJECT_SIZE(50);
-		static const int deserialize = 1536;
+        static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
+        static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
+		static const int deserialize = 2048;
 		static const int serialize = 1536;
 
 
@@ -411,6 +448,34 @@ class SettingsHandler
             Serial.println((bool)doc["inverseValve"]);
             Serial.print("save lubeAmount ");
             Serial.println((int)doc["lubeAmount"]);
+            Serial.print("save Temp_PIN ");
+            Serial.println((int)doc["Temp_PIN"]);
+            Serial.print("save Heater_PIN ");
+            Serial.println((int)doc["Heater_PIN"]);
+            Serial.print("save HeatLED_PIN ");
+            Serial.println((int)doc["HeatLED_PIN"]);
+            Serial.print("save displayEnabled ");
+            Serial.println((bool)doc["displayEnabled"]);
+            Serial.print("save tempControlEnabled ");
+            Serial.println((bool)doc["tempControlEnabled"]);
+            Serial.print("save tempControlEnabled ");
+            Serial.println((bool)doc["tempControlEnabled"]);
+            Serial.print("save Display_Screen_Width ");
+            Serial.println((int)doc["Display_Screen_Width"]);
+            Serial.print("save Display_Screen_Height ");
+            Serial.println((int)doc["Display_Screen_Height"]);
+            Serial.print("save TargetTemp ");
+            Serial.println((int)doc["TargetTemp"]);
+            Serial.print("save HeatPWM ");
+            Serial.println((int)doc["HeatPWM"]);
+            Serial.print("save HoldPWM ");
+            Serial.println((int)doc["HoldPWM"]);
+            Serial.print("save Display_I2C_Address ");
+            Serial.println((int)doc["Display_I2C_Address"]);
+            Serial.print("save Display_Rst_PIN ");
+            Serial.println((int)doc["Display_Rst_PIN"]);
+            Serial.print("save WarmUpTime ");
+            Serial.println((int)doc["WarmUpTime"]);
         }
 
         static void LogUpdateDebug() 
@@ -503,11 +568,40 @@ class SettingsHandler
             Serial.println(inverseValve);
             Serial.print("update lubeAmount ");
             Serial.println(lubeAmount);
+
+            Serial.print("update displayEnabled ");
+            Serial.println(displayEnabled);
+            Serial.print("update sleeveTempEnabled ");
+            Serial.println(sleeveTempEnabled);
+            Serial.print("update Display_Screen_Width ");
+            Serial.println(Display_Screen_Width);
+            Serial.print("update Display_Screen_Height ");
+            Serial.println(Display_Screen_Height);
+            Serial.print("update TargetTemp ");
+            Serial.println(TargetTemp);
+            Serial.print("update HeatPWM ");
+            Serial.println(HeatPWM);
+            Serial.print("update HoldPWM ");
+            Serial.println(HoldPWM);
+            Serial.print("update Display_I2C_Address ");
+            Serial.println(Display_I2C_Address);
+            Serial.print("update Display_Rst_PIN ");
+            Serial.println(Display_Rst_PIN);
+
+            Serial.print("update Temp_PIN ");
+            Serial.println(Temp_PIN);
+            Serial.print("update Heater_PIN ");
+            Serial.println(Heater_PIN);
+            Serial.print("update HeatLED_PIN ");
+            Serial.println(HeatLED_PIN);
+            Serial.print("update WarmUpTime ");
+            Serial.println(WarmUpTime);
         }
 };
 
 
 const char SettingsHandler::TCodeVersion[11] = "TCode v0.2";
+const char SettingsHandler::TCodeESP32Version[13] = "ESP32 v0.16b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 char SettingsHandler::ssid[32];
 char SettingsHandler::wifiPass[63];
@@ -528,8 +622,8 @@ int SettingsHandler::Vibe0_PIN = 18;
 int SettingsHandler::Vibe1_PIN = 19;
 int SettingsHandler::Lube_Pin = 23;
 int SettingsHandler::Temp_PIN = 5; 
-int SettingsHandler::Heater_PIN = 18;
-int SettingsHandler::HeatLED_PIN = 19;
+int SettingsHandler::Heater_PIN = 33;
+int SettingsHandler::HeatLED_PIN = 32;
 int SettingsHandler::xMin;
 int SettingsHandler::xMax;
 int SettingsHandler::yRollMin;
@@ -558,7 +652,9 @@ bool SettingsHandler::autoValve = false;
 bool SettingsHandler::inverseValve = false;
 int SettingsHandler::lubeAmount = 255;
 
-bool SettingsHandler::displayEnabled = true;
+bool SettingsHandler::displayEnabled = false;
+bool SettingsHandler::sleeveTempEnabled = false;
+bool SettingsHandler::tempControlEnabled = false;
 int SettingsHandler::Display_Screen_Width = 128; 
 int SettingsHandler::Display_Screen_Height = 64; 
 int SettingsHandler::TargetTemp = 40;
@@ -566,3 +662,4 @@ int SettingsHandler::HeatPWM = 255;
 int SettingsHandler::HoldPWM = 110;
 int SettingsHandler::Display_I2C_Address = 0x3C;
 int SettingsHandler::Display_Rst_PIN = -1;
+int SettingsHandler::WarmUpTime = 600000;

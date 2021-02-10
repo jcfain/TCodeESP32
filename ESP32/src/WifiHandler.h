@@ -41,6 +41,10 @@ class WifiHandler
     {
       return WiFi.macAddress();
     }
+	int8_t RSSI()
+	{
+		return WiFi.RSSI();
+	}
 
     bool connect(char ssid[100], char pass[100]) 
     {

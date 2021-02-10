@@ -22,7 +22,7 @@ SOFTWARE. */
 
 #include <Wire.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include "../lib/Ext/Adafruit_SSD1306_RSB.h"
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
@@ -30,8 +30,12 @@ SOFTWARE. */
 
 class DisplayHandler
 {
+	private:
+	bool bootTime;
+	int bootTimer;
 	IPAddress _ipAddress;
 	bool _wifiConnected = false;
+	bool _apModeConnected = false;
 	int SCREEN_WIDTH = SettingsHandler::Display_Screen_Width; // OLED display width, in pixels
 	int SCREEN_HEIGHT = SettingsHandler::Display_Screen_Height; // OLED display height, in pixels
 	int Temp_PIN = SettingsHandler::Temp_PIN; // Temp Sensor Pin
@@ -47,7 +51,7 @@ class DisplayHandler
 
 	OneWire oneWire;
 	DallasTemperature sensors;
-	Adafruit_SSD1306 display;
+	Adafruit_SSD1306_RSB display;
 
 	public:
 	DisplayHandler() : 
@@ -60,6 +64,8 @@ class DisplayHandler
 
 	void setup() 
 	{
+		bootTime = true;
+		bootTimer = millis() + 600000;
     	Serial.println(F("Setting up display"));
 		pinMode(HeatLED_PIN, OUTPUT);
 		pinMode(Heater_PIN,OUTPUT);
@@ -98,9 +104,13 @@ class DisplayHandler
 		_ipAddress = ipAddress;
 	}
 
-	void setLocalWifiStatus(bool status)
+	void setLocalWifiConnected(bool status)
 	{
 		_wifiConnected = status;
+	}
+	void setLocalApModeConnected(bool status)
+	{
+		_apModeConnected = status;
 	}
 
 	void clearDisplay()
@@ -111,14 +121,34 @@ class DisplayHandler
 		}
 	}
 
-	void loop() 
+	void loop(int8_t RSSI) 
 	{
 		if(displayConnected)
 		{
-			int tempValue = sensors.getTempCByIndex(0);
-			sensors.requestTemperatures();
 
-			display.setCursor(0,0);
+			int bars;
+			//  int bars = map(RSSI,-80,-44,1,6); // this method doesn't refelct the Bars well
+			// simple if then to set the number of bars
+			
+			if (RSSI > -55) { 
+				bars = 5;
+			} else if (RSSI < -55 && RSSI > -65) {
+				bars = 4;
+			} else if (RSSI < -65 && RSSI > -70) {
+				bars = 3;
+			} else if (RSSI < -70 && RSSI > -78) {
+				bars = 2;
+			} else if (RSSI < -78 && RSSI > -82) {
+				bars = 1;
+			} else {
+				bars = 0;
+			}
+			for (int b=0; b <= bars; b++) 
+			{
+				display.fillRect((SCREEN_WIDTH - 17) + (b*3), 10 - (b*2),2,b*2,WHITE); 
+			}
+
+			display.setCursor(0,3);
 			if(!_wifiConnected)
 			{
 				display.println("AP mode");
@@ -128,50 +158,66 @@ class DisplayHandler
 			}
 			else
 			{
-				display.print("IP:");
+				display.print("IP: ");
 				display.println(_ipAddress);
 			}
+			display.setCursor(0,15);
+			display.print(SettingsHandler::TCodeVersion);
+			display.println(" Ready");
+			display.setCursor(0,25);
+			display.println(SettingsHandler::TCodeESP32Version);
 			
-			//Display Temperature
-			display.setCursor(0,40);
-			display.println("Sleeve temp:");
-			display.setCursor(3,50);
-			if (tempValue > 0) 
+			if(SettingsHandler::sleeveTempEnabled)
 			{
-				display.print(tempValue,1);
-				display.print("C ");
-			}
-			// Serial.print("Sleeve temp: ");
-			// Serial.println(tempValue);
-
-			// Serial.print("OLED write error: ");
-			// Serial.println(oled.getWriteError());
-			//Temperature Controls
-			display.setCursor(13,50);
-			if (tempValue < TargetTemp && tempValue > 0) 
-			{
-				//digitalWrite(HeatLED_PIN, 255);
-				ledcWrite(Heater_PIN, HeatPWM);
-				display.println("HEAT");
-			} 
-			else if (tempValue >= TargetTemp && tempValue <= TargetTemp) 
-			{
-				//digitalWrite(HeatLED_PIN, HoldPWM);
-				ledcWrite(Heater_PIN, HoldPWM);
-				display.println("HOLD");
-			} 
-			else if (tempValue < 0) 
-			{
-				display.setCursor(3,50);
-				//digitalWrite(HeatLED_PIN, HoldPWM);
-				ledcWrite(Heater_PIN, 0);
-				display.println("Error reading temp");
-			} 
-			else 
-			{
-				//digitalWrite(HeatLED_PIN, 0);
-				ledcWrite(Heater_PIN, 0);
-				display.println("COOL");
+				int tempValue = sensors.getTempCByIndex(0);
+				sensors.requestTemperatures();
+				//Display Temperature
+				display.setCursor(0,40);
+				display.print("Sleeve temp: ");
+				if (tempValue > 0) 
+				{
+					display.setCursor(75,40);
+					display.fillRect(75, 40, SCREEN_WIDTH - 75, 10, BLACK);
+					display.print(tempValue,1);
+					display.print((char)247);
+					display.print("C");
+				} else
+				{
+					display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
+					display.setCursor(15,50);
+					digitalWrite(HeatLED_PIN, HoldPWM);
+					ledcWrite(Heater_PIN, 0);
+					display.println("Error reading");
+				}
+				
+				if(SettingsHandler::tempControlEnabled)
+				{
+					if(millis() >= bootTimer)
+						bootTime = false;
+					//Temperature Controls
+					display.setCursor(15,50);
+					if (tempValue < TargetTemp && tempValue > 0 || bootTime) 
+					{
+						display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
+						digitalWrite(HeatLED_PIN, 255);
+						ledcWrite(Heater_PIN, HeatPWM);
+						display.println("HEATING");
+					} 
+					else if ((tempValue >= TargetTemp && tempValue <= TargetTemp) ) 
+					{
+						display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
+						digitalWrite(HeatLED_PIN, HoldPWM);
+						ledcWrite(Heater_PIN, HoldPWM);
+						display.println("HOLDING");
+					} 
+					else 
+					{
+						display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
+						digitalWrite(HeatLED_PIN, 0);
+						ledcWrite(Heater_PIN, 0);
+						display.println("COOLING");
+					}
+				}
 			}
 			display.display();
 		}
@@ -182,7 +228,8 @@ class DisplayHandler
 		if(displayConnected)
 		{
 			display.println(value);
-			display.display();
+			display.display();	
+			//display.startvertscroll(0x04, 0x1F, true);
 		}
 	}
 
