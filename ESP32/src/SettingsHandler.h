@@ -180,21 +180,21 @@ class SettingsHandler
 				displayEnabled = json["displayEnabled"];
 				sleeveTempEnabled = json["sleeveTempEnabled"];
 				tempControlEnabled = json["tempControlEnabled"];
-				Display_Screen_Width = json["tempControlEnabled"] | 128;
-				Display_Screen_Height = json["tempControlEnabled"] | 64;
-				Temp_PIN = json["tempControlEnabled"] | 5;
-				Heater_PIN = json["tempControlEnabled"] | 33;
-				HeatLED_PIN = json["tempControlEnabled"] | 32;
-				TargetTemp = json["tempControlEnabled"] | 40;
-				HeatPWM = json["tempControlEnabled"] | 255;
-				HoldPWM = json["tempControlEnabled"] | 110;
+				Display_Screen_Width = json["Display_Screen_Width"] | 128;
+				Display_Screen_Height = json["Display_Screen_Height"] | 64;
+				Temp_PIN = json["Temp_PIN"] | 5;
+				Heater_PIN = json["Heater_PIN"] | 33;
+				HeatLED_PIN = json["HeatLED_PIN"] | 32;
+				TargetTemp = json["TargetTemp"] | 40;
+				HeatPWM = json["HeatPWM"] | 255;
+				HoldPWM = json["HoldPWM"] | 110;
                 const char* Display_I2C_AddressTemp = json["Display_I2C_Address"];
                 if (Display_I2C_AddressTemp != nullptr)
 					Display_I2C_Address = (int)strtol(Display_I2C_AddressTemp, NULL, 0);
-				Display_Rst_PIN = json["tempControlEnabled"] | -1;
+				Display_Rst_PIN = json["Display_Rst_PIN"] | -1;
 				WarmUpTime = json["WarmUpTime"] | 600000;
 
-                //LogUpdateDebug();
+                LogUpdateDebug();
 
                 return true;
             } 
