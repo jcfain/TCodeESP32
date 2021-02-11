@@ -14,9 +14,18 @@
   <div id="errorMessage" class="error" hidden="true"></div>
   <div id="info" class="info" hidden="true"></div>
 
-  <h1>Wifi Settings</h1>
   <div class="centerFlex">
   <table id="wifiSettingsTable" class="rootTable">
+	<thead>
+		<tr>
+			<th>
+				<h1>Wifi Settings</h1>
+			</th>
+		</tr>
+	</thead>
+	<tr>
+		<td>
+		<table id="deviceSettingsTable" class="formTable">
 	  <tr>
 		  <td>
 			  <span>SSID</span> 
@@ -33,18 +42,20 @@
 			  <input id="wifiPass" type="text" maxlength="63" oninput="updateStaticIP()">
 		  </td>
 	  </tr>
-	  <tr>
+	  <!-- <tr>
 		<td>
+			<span>Show password</span> 
 		</td>
 		  <td>
 			  <input type="checkbox" onclick="showWifiPassword()">Show Password</input>
 		  </td>
-	  </tr>
+	  </tr> -->
 	  <tr>
 		<td>
+			<span>Static IP</span> 
 		</td>
 		  <td>
-			  <input id="staticIP" type="checkbox" onclick="updateStaticIP()">Static IP</input>
+			  <input id="staticIP" type="checkbox" onclick="updateStaticIP()"></input>
 		  </td>
 	  </tr>
 	  <tr>
@@ -95,6 +106,9 @@
 			  <input id="displayEnabled" type="checkbox" onclick="setDisplaySettings()"></input>
 		  </td>
 	  </tr>
+	  </table>
+		</td>
+	</tr>
   </table>
   </div>
   <form action="/restart" method="POST">

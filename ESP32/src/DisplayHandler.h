@@ -68,13 +68,13 @@ class DisplayHandler
 		bootTimer = millis() + 600000;
     	Serial.println(F("Setting up display"));
 		pinMode(HeatLED_PIN, OUTPUT);
-		pinMode(Heater_PIN,OUTPUT);
+		pinMode(Heater_PIN, OUTPUT);
 
 		// Serial.begin(115200);
 		// delay(1000);
 
-		//Wire.begin();
-		//Wire.setClock(400000L);
+		// Wire.begin();
+		// Wire.setClock(400000L);
 
 
 		if (RST_PIN >= 0)
@@ -172,20 +172,22 @@ class DisplayHandler
 				int tempValue = sensors.getTempCByIndex(0);
 				sensors.requestTemperatures();
 				//Display Temperature
+				Serial.println(tempValue);
 				display.setCursor(0,40);
 				display.print("Sleeve temp: ");
-				if (tempValue > 0) 
+				if (tempValue >= 0) 
 				{
 					display.setCursor(75,40);
 					display.fillRect(75, 40, SCREEN_WIDTH - 75, 10, BLACK);
-					display.print(tempValue,1);
+					display.print(tempValue, 1);
 					display.print((char)247);
 					display.print("C");
-				} else
+				} 
+				else
 				{
 					display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
 					display.setCursor(15,50);
-					digitalWrite(HeatLED_PIN, HoldPWM);
+					digitalWrite(HeatLED_PIN, 0);
 					ledcWrite(Heater_PIN, 0);
 					display.println("Error reading");
 				}
@@ -194,18 +196,27 @@ class DisplayHandler
 				{
 					if(millis() >= bootTimer)
 						bootTime = false;
-					//Temperature Controls
-					display.setCursor(15,50);
-					if (tempValue < TargetTemp && tempValue > 0 || bootTime) 
+					//Temperature Contro
+					if (tempValue < TargetTemp && tempValue > 0 || tempValue > 0 && bootTime) 
 					{
 						display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
+						display.setCursor(15,50);
 						digitalWrite(HeatLED_PIN, 255);
 						ledcWrite(Heater_PIN, HeatPWM);
 						display.println("HEATING");
 					} 
+					else if (tempValue < 0) 
+					{
+						display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
+						display.setCursor(15,50);
+						digitalWrite(HeatLED_PIN, 0);
+						ledcWrite(Heater_PIN, 0);
+						display.println("Error reading");
+					}
 					else if ((tempValue >= TargetTemp && tempValue <= TargetTemp) ) 
 					{
 						display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
+						display.setCursor(15,50);
 						digitalWrite(HeatLED_PIN, HoldPWM);
 						ledcWrite(Heater_PIN, HoldPWM);
 						display.println("HOLDING");
@@ -213,6 +224,7 @@ class DisplayHandler
 					else 
 					{
 						display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
+						display.setCursor(15,50);
 						digitalWrite(HeatLED_PIN, 0);
 						ledcWrite(Heater_PIN, 0);
 						display.println("COOLING");

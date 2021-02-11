@@ -55,7 +55,7 @@ class WifiHandler
         WiFi.setHostname("TCodeESP32");
 		if (SettingsHandler::staticIP) 
 		{
-        	Serial.print("Setting static IP settings:");
+        	Serial.print("Setting static IP settings: ");
         	Serial.println(SettingsHandler::localIP);
 			uint8_t ipAddress[4];
 			sscanf(SettingsHandler::localIP, "%u.%u.%u.%u", &ipAddress[0], &ipAddress[1], &ipAddress[2], &ipAddress[3]);
@@ -69,9 +69,12 @@ class WifiHandler
 			sscanf(SettingsHandler::dns2, "%u.%u.%u.%u", &dns2[0], &dns2[1], &dns2[2], &dns2[3]);
 			WiFi.config(IPAddress(ipAddress), IPAddress(gateway), IPAddress(subnet), IPAddress(dns1), IPAddress(dns2));
 		}
-        Serial.print("Establishing connection to");
-        Serial.println(ssid);
-        WiFi.begin(ssid, pass);
+        Serial.print("Establishing connection to ");
+        Serial.print(ssid);
+		if(pass[0] == '\0')
+        	WiFi.begin(ssid);
+		else
+        	WiFi.begin(ssid, pass);
         int connectStartTimeout = millis() + connectTimeOut;
         while (!isConnected() && millis() < connectStartTimeout) 
         {
@@ -84,7 +87,7 @@ class WifiHandler
 			return false;
 		}
 		IPAddress ipAddress = ip();
-		Serial.println("");
+		Serial.println();
 		Serial.print("Connected: IP: ");
 		Serial.println(ipAddress);
 		return true;
