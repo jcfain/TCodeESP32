@@ -161,16 +161,16 @@ class DisplayHandler
 				display.print("IP: ");
 				display.println(_ipAddress);
 			}
-			display.setCursor(0,15);
+			display.setCursor(0,16);
 			display.print(SettingsHandler::TCodeVersion);
 			display.println(" Ready");
-			display.setCursor(0,25);
+			display.setCursor(0,26);
 			display.println(SettingsHandler::TCodeESP32Version);
 			
 			if(SettingsHandler::sleeveTempEnabled)
 			{
-				int tempValue = sensors.getTempCByIndex(0);
 				sensors.requestTemperatures();
+				float tempValue = sensors.getTempCByIndex(0);
 				//Display Temperature
 				Serial.println(tempValue);
 				display.setCursor(0,40);

@@ -615,7 +615,7 @@ int SettingsHandler::RightServo_PIN = 13;
 int SettingsHandler::PitchLeftServo_PIN = 4;
 int SettingsHandler::LeftUpperServo_PIN = 2;
 int SettingsHandler::LeftServo_PIN = 15;
-int SettingsHandler::ValveServo_PIN = 25;
+int SettingsHandler::ValveServo_PIN = 28;
 int SettingsHandler::TwistServo_PIN = 27;
 int SettingsHandler::TwistFeedBack_PIN = 26;
 int SettingsHandler::Vibe0_PIN = 18;
@@ -624,6 +624,7 @@ int SettingsHandler::Lube_Pin = 23;
 int SettingsHandler::Temp_PIN = 5; 
 int SettingsHandler::Heater_PIN = 33;
 int SettingsHandler::HeatLED_PIN = 32;
+// pin 25 cannot be servo. Throws error
 int SettingsHandler::xMin;
 int SettingsHandler::xMax;
 int SettingsHandler::yRollMin;
