@@ -21,7 +21,7 @@
 	"PitchLeftServo_PIN": 4,
 	"LeftUpperServo_PIN": 2,
 	"LeftServo_PIN": 15,
-	"ValveServo_PIN": 22,
+	"ValveServo_PIN": 25,
 	"TwistServo_PIN": 27,
 	"TwistFeedBack_PIN": 26,
 	"Vibe0_PIN": 18,
