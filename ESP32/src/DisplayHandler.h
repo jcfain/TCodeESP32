@@ -46,17 +46,16 @@ class DisplayHandler
 	int HoldPWM = SettingsHandler::HoldPWM; // Hold heat PWM setting 0-255
 	int I2C_ADDRESS = SettingsHandler::Display_I2C_Address; // Display address
 	int RST_PIN = SettingsHandler::Display_Rst_PIN; // Display RST_PIN if needed
+	int WarmUpTime = SettingsHandler::WarmUpTime; // Time to hold heating on first boot
 	bool displayConnected = false;
 	int currentPrintLine = 0;
+	int lastUpdate = 0;
+	const int nextUpdate = 1000;
 
-	OneWire oneWire;
-	DallasTemperature sensors;
 	Adafruit_SSD1306_RSB display;
 
 	public:
 	DisplayHandler() : 
-		oneWire(Temp_PIN), 
-		sensors(&oneWire),
 		display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1)
 	{
 
@@ -65,7 +64,7 @@ class DisplayHandler
 	void setup() 
 	{
 		bootTime = true;
-		bootTimer = millis() + 600000;
+		bootTimer = millis() + WarmUpTime;
     	Serial.println(F("Setting up display"));
 		pinMode(HeatLED_PIN, OUTPUT);
 		pinMode(Heater_PIN, OUTPUT);
@@ -123,9 +122,11 @@ class DisplayHandler
 
 	void loop(int8_t RSSI) 
 	{
-		if(displayConnected)
+		if(displayConnected && millis() >= lastUpdate + nextUpdate)
 		{
-
+			lastUpdate = millis();
+			//Serial.print("Display Core: ");
+			//Serial.println(xPortGetCoreID());
 			int bars;
 			//  int bars = map(RSSI,-80,-44,1,6); // this method doesn't refelct the Bars well
 			// simple if then to set the number of bars
@@ -169,10 +170,9 @@ class DisplayHandler
 			
 			if(SettingsHandler::sleeveTempEnabled)
 			{
-				sensors.requestTemperatures();
-				float tempValue = sensors.getTempCByIndex(0);
+				float tempValue = TemperatureHandler::getTemp();
 				//Display Temperature
-				Serial.println(tempValue);
+				//Serial.println(tempValue);
 				display.setCursor(0,40);
 				display.print("Sleeve temp: ");
 				if (tempValue >= 0) 
@@ -197,7 +197,7 @@ class DisplayHandler
 					if(millis() >= bootTimer)
 						bootTime = false;
 					//Temperature Contro
-					if (tempValue < TargetTemp && tempValue > 0 || tempValue > 0 && bootTime) 
+					if ((tempValue < TargetTemp && tempValue > 0) || (tempValue > 0 && bootTime)) 
 					{
 						display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
 						display.setCursor(15,50);

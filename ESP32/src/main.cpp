@@ -24,6 +24,7 @@ SOFTWARE. */
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include "SettingsHandler.h"
+#include "TemperatureHandler.h"
 #include "DisplayHandler.h"
 #include "ServoHandler.h"
 #include "WifiHandler.h"
@@ -38,6 +39,7 @@ WifiHandler wifi;
 //BluetoothHandler bluetooth;
 WebHandler webHandler;
 DisplayHandler* displayHandler;
+TaskHandle_t temperatureTask;
 // This has issues running with the webserver.
 //OTAHandler otaHandler;
 boolean apMode = false;
@@ -53,6 +55,18 @@ void setup()
 		return;
 	}
 	SettingsHandler::load();
+	if(SettingsHandler::sleeveTempEnabled)
+	{
+		TemperatureHandler::setup();
+		xTaskCreatePinnedToCore(
+			TemperatureHandler::startLoop,/* Function to implement the task */
+			"TempTask", /* Name of the task */
+			10000,  /* Stack size in words */
+			NULL,  /* Task input parameter */
+			0,  /* Priority of the task */
+			&temperatureTask,  /* Task handle. */
+			0); /* Core where the task should run */
+	}
 	displayHandler = new DisplayHandler();
 	if(SettingsHandler::displayEnabled)
 	{
@@ -121,7 +135,8 @@ void setup()
 	displayHandler->clearDisplay();
 }
 
-void loop() {
+void loop() 
+{
 	if(setupSucceeded)
 	{
 		//otaHandler.handle();

@@ -194,7 +194,7 @@ class SettingsHandler
 				Display_Rst_PIN = json["Display_Rst_PIN"] | -1;
 				WarmUpTime = json["WarmUpTime"] | 600000;
 
-                LogUpdateDebug();
+                //LogUpdateDebug();
 
                 return true;
             } 
