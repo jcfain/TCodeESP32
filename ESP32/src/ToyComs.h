@@ -27,7 +27,7 @@
 
 class ToyComms {
   public:
-
+	//String command;
     // Setup function
     ToyComms() {
       // Centralise everything
@@ -42,6 +42,7 @@ class ToyComms {
 
     // Function to process serial input
     void serialRead(byte inByte) {
+		//command += (const char)inByte;
       switch (inByte) {
 
         // Start - Linear Motion input
@@ -261,7 +262,9 @@ class ToyComms {
 
           // If it's a new line character
           if (inByte == 10) {
-
+			//Serial.println("execute ");
+			//Serial.println(command);
+			//command.clear();
             // Mark input time
             unsigned long t;
             t = millis();
