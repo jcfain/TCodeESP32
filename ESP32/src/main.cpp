@@ -24,10 +24,10 @@ SOFTWARE. */
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include "SettingsHandler.h"
+#include "WifiHandler.h"
 #include "TemperatureHandler.h"
 #include "DisplayHandler.h"
 #include "ServoHandler.h"
-#include "WifiHandler.h"
 #include "UdpHandler.h"
 //#include "BluetoothHandler.h"
 #include "WebHandler.h"
@@ -40,6 +40,7 @@ WifiHandler wifi;
 WebHandler webHandler;
 DisplayHandler* displayHandler;
 TaskHandle_t temperatureTask;
+TaskHandle_t displayTask;
 // This has issues running with the webserver.
 //OTAHandler otaHandler;
 boolean apMode = false;
@@ -63,7 +64,7 @@ void setup()
 			"TempTask", /* Name of the task */
 			10000,  /* Stack size in words */
 			NULL,  /* Task input parameter */
-			0,  /* Priority of the task */
+			1,  /* Priority of the task */
 			&temperatureTask,  /* Task handle. */
 			0); /* Core where the task should run */
 	}
@@ -80,7 +81,6 @@ void setup()
 		displayHandler->println(SettingsHandler::ssid);
 		if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) 
 		{ 
-			displayHandler->setLocalWifiConnected(true);
 			displayHandler->println("Connected: ");
 			displayHandler->println(wifi.ip().toString());
 			displayHandler->setLocalIPAddress(wifi.ip());
@@ -92,7 +92,6 @@ void setup()
 		} 
 		else 
 		{
-			displayHandler->setLocalWifiConnected(false);
 			displayHandler->clearDisplay();
 			displayHandler->println("Connection failed");
 			displayHandler->println("Starting in APMode");
@@ -113,7 +112,6 @@ void setup()
 	else 
 	{
 		apMode = true;
-		displayHandler->setLocalWifiConnected(false);
 		displayHandler->println("Starting in APMode");
 		if (wifi.startAp()) 
 		{
@@ -131,8 +129,22 @@ void setup()
 	displayHandler->println("Setting up servos");
     servoHandler.setup(SettingsHandler::servoFrequency);
 	setupSucceeded = true;
+	displayHandler->clearDisplay();
 	displayHandler->println("Starting system...");
 	displayHandler->clearDisplay();
+	
+	if(SettingsHandler::displayEnabled)
+	{
+		xTaskCreatePinnedToCore(
+			DisplayHandler::startLoop,/* Function to implement the task */
+			"DisplayTask", /* Name of the task */
+			10000,  /* Stack size in words */
+			displayHandler,  /* Task input parameter */
+			1,  /* Priority of the task */
+			&displayTask,  /* Task handle. */
+			1); /* Core where the task should run */
+	}
+	
 }
 
 void loop() 
@@ -143,7 +155,7 @@ void loop()
 		udpHandler.read(udpData);
 		if (!apMode && strlen(udpData) > 0) 
 		{
-			// Serial.print("web writing: ");
+			// Serial.print("udp writing: ");
 			// Serial.println(udpData);
 			for (char *c = udpData; *c; ++c) 
 			{
@@ -159,13 +171,13 @@ void loop()
 		// {
 		// 	servoHandler.read(bluetooth.read());
 		// }
-		if (strlen(udpData) == 0) 
+		if (strlen(udpData) == 0) // No wifi data
 		{
 			servoHandler.execute();
 		} 
-		if(SettingsHandler::displayEnabled)
-		{
-			displayHandler->loop(wifi.RSSI());
-		}
+		if(SettingsHandler::tempControlEnabled)
+			TemperatureHandler::setControlStatus();
+		// if(SettingsHandler::displayEnabled)
+		// 	displayHandler->loop();
 	}
 }

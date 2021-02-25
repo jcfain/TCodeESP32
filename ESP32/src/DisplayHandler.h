@@ -23,57 +23,41 @@ SOFTWARE. */
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include "../lib/Ext/Adafruit_SSD1306_RSB.h"
-#include <OneWire.h>
-#include <DallasTemperature.h>
 
 #pragma once
 
 class DisplayHandler
 {
-	private:
-	bool bootTime;
-	int bootTimer;
+	public:
 	IPAddress _ipAddress;
-	bool _wifiConnected = false;
 	bool _apModeConnected = false;
 	int SCREEN_WIDTH = SettingsHandler::Display_Screen_Width; // OLED display width, in pixels
 	int SCREEN_HEIGHT = SettingsHandler::Display_Screen_Height; // OLED display height, in pixels
-	int Temp_PIN = SettingsHandler::Temp_PIN; // Temp Sensor Pin
-	int Heater_PIN = SettingsHandler::Heater_PIN;   // Heater PWM
-	int HeatLED_PIN = SettingsHandler::HeatLED_PIN; // Indicator LED
-	int TargetTemp = SettingsHandler::TargetTemp; // Desired Temp in degC
-	int HeatPWM = SettingsHandler::HeatPWM; // Heating PWM setting 0-255
-	int HoldPWM = SettingsHandler::HoldPWM; // Hold heat PWM setting 0-255
 	int I2C_ADDRESS = SettingsHandler::Display_I2C_Address; // Display address
 	int RST_PIN = SettingsHandler::Display_Rst_PIN; // Display RST_PIN if needed
-	int WarmUpTime = SettingsHandler::WarmUpTime; // Time to hold heating on first boot
 	bool displayConnected = false;
 	int currentPrintLine = 0;
 	int lastUpdate = 0;
 	const int nextUpdate = 1000;
+	bool _isRunning = false;
 
 	Adafruit_SSD1306_RSB display;
 
-	public:
 	DisplayHandler() : 
-		display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1)
+		display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, RST_PIN, 100000UL, 100000UL)
 	{
 
 	}
 
 	void setup() 
 	{
-		bootTime = true;
-		bootTimer = millis() + WarmUpTime;
     	Serial.println(F("Setting up display"));
-		pinMode(HeatLED_PIN, OUTPUT);
-		pinMode(Heater_PIN, OUTPUT);
 
 		// Serial.begin(115200);
 		// delay(1000);
 
-		// Wire.begin();
-		// Wire.setClock(400000L);
+		//Wire.begin();
+		//Wire.setClock(100000UL);
 
 
 		if (RST_PIN >= 0)
@@ -103,10 +87,6 @@ class DisplayHandler
 		_ipAddress = ipAddress;
 	}
 
-	void setLocalWifiConnected(bool status)
-	{
-		_wifiConnected = status;
-	}
 	void setLocalApModeConnected(bool status)
 	{
 		_apModeConnected = status;
@@ -120,119 +100,107 @@ class DisplayHandler
 		}
 	}
 
-	void loop(int8_t RSSI) 
+	static void startLoop(void* displayHandlerRef)
 	{
-		if(displayConnected && millis() >= lastUpdate + nextUpdate)
-		{
-			lastUpdate = millis();
-			//Serial.print("Display Core: ");
-			//Serial.println(xPortGetCoreID());
-			int bars;
-			//  int bars = map(RSSI,-80,-44,1,6); // this method doesn't refelct the Bars well
-			// simple if then to set the number of bars
-			
-			if (RSSI > -55) { 
-				bars = 5;
-			} else if (RSSI < -55 && RSSI > -65) {
-				bars = 4;
-			} else if (RSSI < -65 && RSSI > -70) {
-				bars = 3;
-			} else if (RSSI < -70 && RSSI > -78) {
-				bars = 2;
-			} else if (RSSI < -78 && RSSI > -82) {
-				bars = 1;
-			} else {
-				bars = 0;
-			}
-			for (int b=0; b <= bars; b++) 
-			{
-				display.fillRect((SCREEN_WIDTH - 17) + (b*3), 10 - (b*2),2,b*2,WHITE); 
-			}
+		((DisplayHandler*)displayHandlerRef)->loop();
+	}
 
-			display.setCursor(0,3);
-			if(!_wifiConnected)
+	bool isRunning()
+	{
+		return _isRunning;
+	}
+	void stopRunning()
+	{
+		_isRunning = false;
+	}
+
+	void loop()
+	{
+		_isRunning = true;
+		while(_isRunning) 
+		{
+			if(displayConnected && millis() >= lastUpdate + nextUpdate)
 			{
-				display.println("AP mode");
-				display.println();
-				display.println("SSID: TCodeESP32Setup");
-				display.println("IP: 192.168.1.1");
-			}
-			else
-			{
-				display.print("IP: ");
-				display.println(_ipAddress);
-			}
-			display.setCursor(0,16);
-			display.print(SettingsHandler::TCodeVersion);
-			display.println(" Ready");
-			display.setCursor(0,26);
-			display.println(SettingsHandler::TCodeESP32Version);
-			
-			if(SettingsHandler::sleeveTempEnabled)
-			{
-				float tempValue = TemperatureHandler::getTemp();
-				//Display Temperature
-				//Serial.println(tempValue);
-				display.setCursor(0,40);
-				display.print("Sleeve temp: ");
-				if (tempValue >= 0) 
+				lastUpdate = millis();
+				// Serial.print("Display Core: ");
+				// Serial.println(xPortGetCoreID());
+				if(WifiHandler::isConnected())
 				{
-					display.setCursor(75,40);
-					display.fillRect(75, 40, SCREEN_WIDTH - 75, 10, BLACK);
-					display.print(tempValue, 1);
-					display.print((char)247);
-					display.print("C");
-				} 
-				else
+					if(_apModeConnected)
+					{
+						display.println("AP mode");
+						display.println();
+						display.println("SSID: TCodeESP32Setup");
+						display.println("IP: 192.168.1.1");
+					}
+					else
+					{
+						int bars;
+						//  int bars = map(RSSI,-80,-44,1,6); // this method doesn't refelct the Bars well
+						// simple if then to set the number of bars
+						int8_t RSSI = WifiHandler::getRSSI();
+						if (RSSI > -55) { 
+							bars = 5;
+						} else if (RSSI < -55 && RSSI > -65) {
+							bars = 4;
+						} else if (RSSI < -65 && RSSI > -70) {
+							bars = 3;
+						} else if (RSSI < -70 && RSSI > -78) {
+							bars = 2;
+						} else if (RSSI < -78 && RSSI > -82) {
+							bars = 1;
+						} else {
+							bars = 0;
+						}
+						for (int b=0; b <= bars; b++) 
+						{
+							display.fillRect((SCREEN_WIDTH - 17) + (b*3), 10 - (b*2),2,b*2,WHITE); 
+						}
+
+						display.setCursor(0,3);
+						display.print("IP: ");
+						display.println(_ipAddress);
+					}
+					
+				}
+
+				display.setCursor(0,16);
+				display.print(SettingsHandler::TCodeVersion);
+				display.println(" Ready");
+				display.setCursor(0,26);
+				display.println(SettingsHandler::TCodeESP32Version);
+				
+				if(SettingsHandler::sleeveTempEnabled)
 				{
+					float tempValue = TemperatureHandler::getTemp();
+					String tempStatus = TemperatureHandler::getControlStatus();
+					//Display Temperature
+					//Serial.println(tempValue);
+					display.setCursor(0,40);
+					display.print("Sleeve temp: ");
+					if (tempValue >= 0) 
+					{
+						display.setCursor(75,40);
+						display.fillRect(75, 40, SCREEN_WIDTH - 75, 10, BLACK);
+						display.print(tempValue, 1);
+						display.print((char)247);
+						display.print("C");
+					}
+					//Temperature Control
 					display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
 					display.setCursor(15,50);
-					digitalWrite(HeatLED_PIN, 0);
-					ledcWrite(Heater_PIN, 0);
-					display.println("Error reading");
+					display.println(tempStatus);
 				}
-				
-				if(SettingsHandler::tempControlEnabled)
-				{
-					if(millis() >= bootTimer)
-						bootTime = false;
-					//Temperature Contro
-					if ((tempValue < TargetTemp && tempValue > 0) || (tempValue > 0 && bootTime)) 
-					{
-						display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
-						display.setCursor(15,50);
-						digitalWrite(HeatLED_PIN, 255);
-						ledcWrite(Heater_PIN, HeatPWM);
-						display.println("HEATING");
-					} 
-					else if (tempValue < 0) 
-					{
-						display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
-						display.setCursor(15,50);
-						digitalWrite(HeatLED_PIN, 0);
-						ledcWrite(Heater_PIN, 0);
-						display.println("Error reading");
-					}
-					else if ((tempValue >= TargetTemp && tempValue <= TargetTemp) ) 
-					{
-						display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
-						display.setCursor(15,50);
-						digitalWrite(HeatLED_PIN, HoldPWM);
-						ledcWrite(Heater_PIN, HoldPWM);
-						display.println("HOLDING");
-					} 
-					else 
-					{
-						display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
-						display.setCursor(15,50);
-						digitalWrite(HeatLED_PIN, 0);
-						ledcWrite(Heater_PIN, 0);
-						display.println("COOLING");
-					}
-				}
+				display.display();
 			}
-			display.display();
+        	vTaskDelay(1000/portTICK_PERIOD_MS);
+			// Serial.print("Display task: "); // stack size used
+			// Serial.print(uxTaskGetStackHighWaterMark( NULL )); // stack size used
+			// Serial.println();
+			// Serial.flush();
 		}
+		
+  		vTaskDelete( NULL );
 	}
 
 	void println(String value)
