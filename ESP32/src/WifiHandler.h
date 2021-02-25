@@ -28,7 +28,7 @@ class WifiHandler
 {
   
   public:
-    bool isConnected() 
+    static bool isConnected() 
     {
       return WiFi.isConnected();
     }
@@ -42,6 +42,10 @@ class WifiHandler
       return WiFi.macAddress();
     }
 	int8_t RSSI()
+	{
+		return WiFi.RSSI();
+	}
+	static int8_t getRSSI()
 	{
 		return WiFi.RSSI();
 	}
@@ -119,6 +123,7 @@ class WifiHandler
     const char *ssid = "TCodeESP32Setup";
     const char *password = "12345678";
     int connectTimeOut = 10000;
+	static int8_t _rssi;
   //  String translateEncryptionType(wifi_auth_mode_t encryptionType) {
   //    switch (encryptionType) {
   //      case (WIFI_AUTH_OPEN):

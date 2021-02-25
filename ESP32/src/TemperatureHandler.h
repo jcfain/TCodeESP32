@@ -32,14 +32,28 @@ class TemperatureHandler
 	static OneWire oneWire;
 	static DallasTemperature sensors;
 	static float _currentTemp;
+	static String _currentStatus;
 	static bool _isRunning;
-	static std::mutex mtx; 
+	static bool bootTime;
+	static int bootTimer;
+	static int Temp_PIN; // Temp Sensor Pin
+	static int Heater_PIN;   // Heater PWM
+	static int HeatLED_PIN; // Indicator LED
+	static int TargetTemp; // Desired Temp in degC
+	static int HeatPWM; // Heating PWM setting 0-255
+	static int HoldPWM; // Hold heat PWM setting 0-255
+	static int WarmUpTime; // Time to hold heating on first boot
 
 	public: 
 	static void setup()
 	{
-		oneWire.begin(SettingsHandler::Temp_PIN);
+		oneWire.begin(Temp_PIN);
 		sensors.setOneWire(&oneWire);
+		bootTime = true;
+		bootTimer = millis() + WarmUpTime;
+		pinMode(HeatLED_PIN, OUTPUT);
+		pinMode(Heater_PIN, OUTPUT);
+		//sensors.setWaitForConversion(false);
 	}
 
 	static void startLoop(void * parameter)
@@ -49,30 +63,88 @@ class TemperatureHandler
 		//Serial.println(xPortGetCoreID());
 		while(_isRunning)
 		{
-			mtx.lock();
 			sensors.requestTemperatures();
 			_currentTemp = sensors.getTempCByIndex(0);
-			mtx.unlock();
         	vTaskDelay(1000/portTICK_PERIOD_MS);
+			// Serial.print("Temp task: "); // stack size used
+			// Serial.print(uxTaskGetStackHighWaterMark( NULL )); // stack size used
+			// Serial.println();
+			// Serial.flush();
 		}
+		
+  		vTaskDelete( NULL );
+	}
+
+	static String setControlStatus()
+	{		
+		//Serial.println(_currentTemp);
+		
+		if(SettingsHandler::tempControlEnabled)
+		{
+			if (_currentTemp < 0) 
+			{
+				digitalWrite(HeatLED_PIN, 0);
+				ledcWrite(Heater_PIN, 0);
+				_currentStatus = "Error reading";
+			} 
+			else
+			{
+				if(millis() >= bootTimer)
+					bootTime = false;
+				if ((_currentTemp < TargetTemp && _currentTemp > 0) || (_currentTemp > 0 && bootTime)) 
+				{
+					digitalWrite(HeatLED_PIN, 255);
+					ledcWrite(Heater_PIN, HeatPWM);
+					_currentStatus = "HEATING";
+				} 
+				else if ((_currentTemp >= TargetTemp && _currentTemp <= TargetTemp) ) 
+				{
+					digitalWrite(HeatLED_PIN, HoldPWM);
+					ledcWrite(Heater_PIN, HoldPWM);
+					_currentStatus = "HOLDING";
+				} 
+				else 
+				{
+					digitalWrite(HeatLED_PIN, 0);
+					ledcWrite(Heater_PIN, 0);
+					_currentStatus = "COOLING";
+				}
+			}
+		}
+		else
+		{
+				_currentStatus = "";
+		}
+		return _currentStatus;
 	}
 
 	static float getTemp()
-	{  	mtx.lock();
-		float temp = _currentTemp;
-		mtx.unlock();
-		return temp;
+	{
+		return _currentTemp;
+	}
+
+	static String getControlStatus()
+	{
+		return _currentStatus;
 	}
 
 	static void stop()
 	{
-		mtx.lock();
 		_isRunning = false;
-		mtx.unlock();
 	}
 };
+
 float TemperatureHandler::_currentTemp = 0.0f;
+String TemperatureHandler::_currentStatus = "Unknown";
 bool TemperatureHandler::_isRunning = false;
-std::mutex TemperatureHandler::mtx; 
 OneWire TemperatureHandler::oneWire;
 DallasTemperature TemperatureHandler::sensors;
+bool TemperatureHandler::bootTime;
+int TemperatureHandler::bootTimer;
+int TemperatureHandler::Temp_PIN = SettingsHandler::Temp_PIN; // Temp Sensor Pin
+int TemperatureHandler::Heater_PIN = SettingsHandler::Heater_PIN;   // Heater PWM
+int TemperatureHandler::HeatLED_PIN = SettingsHandler::HeatLED_PIN; // Indicator LED
+int TemperatureHandler::TargetTemp = SettingsHandler::TargetTemp; // Desired Temp in degC
+int TemperatureHandler::HeatPWM = SettingsHandler::HeatPWM; // Heating PWM setting 0-255
+int TemperatureHandler::HoldPWM = SettingsHandler::HoldPWM;  // Hold heat PWM setting 0-255
+int TemperatureHandler::WarmUpTime = SettingsHandler::WarmUpTime; // Time to hold heating on first boot
