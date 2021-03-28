@@ -49,7 +49,10 @@ class WifiHandler
 	{
 		return WiFi.RSSI();
 	}
-
+	static bool apMode()
+	{
+		return _apMode;
+	}
     bool connect(char ssid[100], char pass[100]) 
     {
         WiFi.disconnect(true);
@@ -94,6 +97,7 @@ class WifiHandler
 		Serial.println();
 		Serial.print("Connected: IP: ");
 		Serial.println(ipAddress);
+	  	_apMode = false;
 		return true;
     }
 
@@ -114,6 +118,7 @@ class WifiHandler
 			Serial.println("STA Failed to configure");
 			return false;
       }
+	  _apMode = true;
       Serial.print("Wifi started in APMode: ");
       Serial.println(WiFi.softAPIP());
       return true;
@@ -124,6 +129,7 @@ class WifiHandler
     const char *password = "12345678";
     int connectTimeOut = 10000;
 	static int8_t _rssi;
+	static bool _apMode;
   //  String translateEncryptionType(wifi_auth_mode_t encryptionType) {
   //    switch (encryptionType) {
   //      case (WIFI_AUTH_OPEN):
@@ -141,3 +147,4 @@ class WifiHandler
   //    }
   //  }
 };
+bool WifiHandler::_apMode = false;

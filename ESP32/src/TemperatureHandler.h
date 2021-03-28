@@ -38,7 +38,6 @@ class TemperatureHandler
 	static int bootTimer;
 	static int Temp_PIN; // Temp Sensor Pin
 	static int Heater_PIN;   // Heater PWM
-	static int HeatLED_PIN; // Indicator LED
 	static int TargetTemp; // Desired Temp in degC
 	static int HeatPWM; // Heating PWM setting 0-255
 	static int HoldPWM; // Hold heat PWM setting 0-255
@@ -51,7 +50,6 @@ class TemperatureHandler
 		sensors.setOneWire(&oneWire);
 		bootTime = true;
 		bootTimer = millis() + WarmUpTime;
-		pinMode(HeatLED_PIN, OUTPUT);
 		pinMode(Heater_PIN, OUTPUT);
 		//sensors.setWaitForConversion(false);
 	}
@@ -83,7 +81,6 @@ class TemperatureHandler
 		{
 			if (_currentTemp < 0) 
 			{
-				digitalWrite(HeatLED_PIN, 0);
 				ledcWrite(Heater_PIN, 0);
 				_currentStatus = "Error reading";
 			} 
@@ -93,19 +90,16 @@ class TemperatureHandler
 					bootTime = false;
 				if ((_currentTemp < TargetTemp && _currentTemp > 0) || (_currentTemp > 0 && bootTime)) 
 				{
-					digitalWrite(HeatLED_PIN, 255);
 					ledcWrite(Heater_PIN, HeatPWM);
 					_currentStatus = "HEATING";
 				} 
 				else if ((_currentTemp >= TargetTemp && _currentTemp <= TargetTemp) ) 
 				{
-					digitalWrite(HeatLED_PIN, HoldPWM);
 					ledcWrite(Heater_PIN, HoldPWM);
 					_currentStatus = "HOLDING";
 				} 
 				else 
 				{
-					digitalWrite(HeatLED_PIN, 0);
 					ledcWrite(Heater_PIN, 0);
 					_currentStatus = "COOLING";
 				}
@@ -143,7 +137,6 @@ bool TemperatureHandler::bootTime;
 int TemperatureHandler::bootTimer;
 int TemperatureHandler::Temp_PIN = SettingsHandler::Temp_PIN; // Temp Sensor Pin
 int TemperatureHandler::Heater_PIN = SettingsHandler::Heater_PIN;   // Heater PWM
-int TemperatureHandler::HeatLED_PIN = SettingsHandler::HeatLED_PIN; // Indicator LED
 int TemperatureHandler::TargetTemp = SettingsHandler::TargetTemp; // Desired Temp in degC
 int TemperatureHandler::HeatPWM = SettingsHandler::HeatPWM; // Heating PWM setting 0-255
 int TemperatureHandler::HoldPWM = SettingsHandler::HoldPWM;  // Hold heat PWM setting 0-255

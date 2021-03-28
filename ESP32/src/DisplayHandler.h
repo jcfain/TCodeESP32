@@ -30,7 +30,6 @@ class DisplayHandler
 {
 	public:
 	IPAddress _ipAddress;
-	bool _apModeConnected = false;
 	int SCREEN_WIDTH = SettingsHandler::Display_Screen_Width; // OLED display width, in pixels
 	int SCREEN_HEIGHT = SettingsHandler::Display_Screen_Height; // OLED display height, in pixels
 	int I2C_ADDRESS = SettingsHandler::Display_I2C_Address; // Display address
@@ -87,11 +86,6 @@ class DisplayHandler
 		_ipAddress = ipAddress;
 	}
 
-	void setLocalApModeConnected(bool status)
-	{
-		_apModeConnected = status;
-	}
-
 	void clearDisplay()
 	{
 		if(displayConnected)
@@ -124,51 +118,56 @@ class DisplayHandler
 				lastUpdate = millis();
 				// Serial.print("Display Core: ");
 				// Serial.println(xPortGetCoreID());
+					display.setCursor(0,3);
 				if(WifiHandler::isConnected())
 				{
-					if(_apModeConnected)
-					{
-						display.println("AP mode");
-						display.println();
-						display.println("SSID: TCodeESP32Setup");
-						display.println("IP: 192.168.1.1");
+					int bars;
+					//  int bars = map(RSSI,-80,-44,1,6); // this method doesn't refelct the Bars well
+					// simple if then to set the number of bars
+					int8_t RSSI = WifiHandler::getRSSI();
+					if (RSSI > -55) { 
+						bars = 5;
+					} else if (RSSI < -55 && RSSI > -65) {
+						bars = 4;
+					} else if (RSSI < -65 && RSSI > -70) {
+						bars = 3;
+					} else if (RSSI < -70 && RSSI > -78) {
+						bars = 2;
+					} else if (RSSI < -78 && RSSI > -82) {
+						bars = 1;
+					} else {
+						bars = 0;
 					}
-					else
+					for (int b=0; b <= bars; b++) 
 					{
-						int bars;
-						//  int bars = map(RSSI,-80,-44,1,6); // this method doesn't refelct the Bars well
-						// simple if then to set the number of bars
-						int8_t RSSI = WifiHandler::getRSSI();
-						if (RSSI > -55) { 
-							bars = 5;
-						} else if (RSSI < -55 && RSSI > -65) {
-							bars = 4;
-						} else if (RSSI < -65 && RSSI > -70) {
-							bars = 3;
-						} else if (RSSI < -70 && RSSI > -78) {
-							bars = 2;
-						} else if (RSSI < -78 && RSSI > -82) {
-							bars = 1;
-						} else {
-							bars = 0;
-						}
-						for (int b=0; b <= bars; b++) 
-						{
-							display.fillRect((SCREEN_WIDTH - 17) + (b*3), 10 - (b*2),2,b*2,WHITE); 
-						}
+						display.fillRect((SCREEN_WIDTH - 17) + (b*3), 10 - (b*2),2,b*2,WHITE); 
+					}
 
-						display.setCursor(0,3);
-						display.print("IP: ");
-						display.println(_ipAddress);
-					}
+					display.print("IP: ");
+					display.println(_ipAddress);
+					display.setCursor(0,16);
+					display.print(SettingsHandler::TCodeVersion);
+					display.println(" Ready");
+					display.setCursor(0,26);
+					display.println(SettingsHandler::TCodeESP32Version);
 					
+				} 
+				else if(WifiHandler::apMode)
+				{
+					display.println("AP mode: 192.168.1.1");
+					display.setCursor(0,16);
+					display.println("SSID: TCodeESP32Setup");
+					display.setCursor(0,26);
+					display.print(SettingsHandler::TCodeVersion);
+					display.println(" Ready");
+					display.setCursor(0,36);
+					display.println(SettingsHandler::TCodeESP32Version);
+				}
+				else
+				{
+					display.println("Wifi error");
 				}
 
-				display.setCursor(0,16);
-				display.print(SettingsHandler::TCodeVersion);
-				display.println(" Ready");
-				display.setCursor(0,26);
-				display.println(SettingsHandler::TCodeESP32Version);
 				
 				if(SettingsHandler::sleeveTempEnabled)
 				{
@@ -176,19 +175,19 @@ class DisplayHandler
 					String tempStatus = TemperatureHandler::getControlStatus();
 					//Display Temperature
 					//Serial.println(tempValue);
-					display.setCursor(0,40);
+					display.setCursor(0,46);
 					display.print("Sleeve temp: ");
 					if (tempValue >= 0) 
 					{
-						display.setCursor(75,40);
-						display.fillRect(75, 40, SCREEN_WIDTH - 75, 10, BLACK);
+						display.setCursor(75,46);
+						display.fillRect(75, 46, SCREEN_WIDTH - 75, 10, BLACK);
 						display.print(tempValue, 1);
 						display.print((char)247);
 						display.print("C");
 					}
 					//Temperature Control
-					display.fillRect(0, 50, SCREEN_WIDTH, 10, BLACK);
-					display.setCursor(15,50);
+					display.fillRect(0, 56, SCREEN_WIDTH, 10, BLACK);
+					display.setCursor(15,56);
 					display.println(tempStatus);
 				}
 				display.display();

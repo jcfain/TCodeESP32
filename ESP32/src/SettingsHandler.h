@@ -33,6 +33,7 @@ class SettingsHandler
         const static char TCodeVersion[11];
         const static char TCodeESP32Version[14];
         const static char HandShakeChannel[4];
+		static bool bluetoothEnabled;
         static char ssid[32];
         static char wifiPass[63];
         static int udpServerPort;
@@ -97,11 +98,36 @@ class SettingsHandler
         {
             const char* filename = "/userSettings.json";
             DynamicJsonDocument doc(deserialize);
-            File file = SPIFFS.open(filename, "r");
+			File file;
+			bool loadingDefault = false;
+			if(!SPIFFS.exists(filename)) 
+			{
+            	file = SPIFFS.open("/userSettingsDefault.json", "r");
+				loadingDefault = true;
+			} 
+			else 
+			{
+            	file = SPIFFS.open(filename, "r");
+			}
             DeserializationError error = deserializeJson(doc, file);
             if (error)
                 Serial.println(F("Failed to read settings file, using default configuration"));
             update(doc.as<JsonObject>());
+
+			if(loadingDefault)
+				save();
+        }
+
+        static void reset() 
+        {
+            const char* filename = "/userSettingsDefault.json";
+            DynamicJsonDocument doc(deserialize);
+            File file = SPIFFS.open(filename, "r");
+            DeserializationError error = deserializeJson(doc, file);
+            if (error)
+                Serial.println(F("Failed to read default settings file, using default configuration"));
+            update(doc.as<JsonObject>());
+			save();
         }
 
         static bool update(JsonObject json) 
@@ -126,7 +152,8 @@ class SettingsHandler
                 const char* friendlyNameTemp = json["friendlyName"];
                 if (friendlyNameTemp != nullptr)
                     strcpy(friendlyName, friendlyNameTemp);
-
+					
+				bluetoothEnabled =  json["bluetoothEnabled"];
                 xMin = json["xMin"] | 1;
                 xMax = json["xMax"] | 1000;
                 yRollMin = json["yRollMin"] | 1;
@@ -184,7 +211,6 @@ class SettingsHandler
 				Display_Screen_Height = json["Display_Screen_Height"] | 64;
 				Temp_PIN = json["Temp_PIN"] | 5;
 				Heater_PIN = json["Heater_PIN"] | 33;
-				HeatLED_PIN = json["HeatLED_PIN"] | 32;
 				TargetTemp = json["TargetTemp"] | 40;
 				HeatPWM = json["HeatPWM"] | 255;
 				HoldPWM = json["HoldPWM"] | 110;
@@ -238,6 +264,7 @@ class SettingsHandler
             doc["webServerPort"] = webServerPort;
             doc["hostname"] =  hostname;
             doc["friendlyName"] = friendlyName;
+            doc["bluetoothEnabled"] = bluetoothEnabled;
             doc["xMin"] = xMin;
             doc["xMax"] = xMax;
             doc["yRollMin"] = yRollMin;
@@ -291,7 +318,6 @@ class SettingsHandler
 			doc["Display_Rst_PIN"] = Display_Rst_PIN;
 			doc["Temp_PIN"] = Temp_PIN;
 			doc["Heater_PIN"] = Heater_PIN;
-			doc["HeatLED_PIN"] = Display_Rst_PIN;
 			doc["WarmUpTime"] = WarmUpTime;
 			
 
@@ -452,8 +478,6 @@ class SettingsHandler
             Serial.println((int)doc["Temp_PIN"]);
             Serial.print("save Heater_PIN ");
             Serial.println((int)doc["Heater_PIN"]);
-            Serial.print("save HeatLED_PIN ");
-            Serial.println((int)doc["HeatLED_PIN"]);
             Serial.print("save displayEnabled ");
             Serial.println((bool)doc["displayEnabled"]);
             Serial.print("save tempControlEnabled ");
@@ -592,8 +616,6 @@ class SettingsHandler
             Serial.println(Temp_PIN);
             Serial.print("update Heater_PIN ");
             Serial.println(Heater_PIN);
-            Serial.print("update HeatLED_PIN ");
-            Serial.println(HeatLED_PIN);
             Serial.print("update WarmUpTime ");
             Serial.println(WarmUpTime);
         }
@@ -601,8 +623,9 @@ class SettingsHandler
 
 
 const char SettingsHandler::TCodeVersion[11] = "TCode v0.2";
-const char SettingsHandler::TCodeESP32Version[14] = "ESP32 v0.161b";
+const char SettingsHandler::TCodeESP32Version[14] = "ESP32 v0.162b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
+bool SettingsHandler::bluetoothEnabled = true;
 char SettingsHandler::ssid[32];
 char SettingsHandler::wifiPass[63];
 char SettingsHandler::hostname[63];
@@ -623,7 +646,7 @@ int SettingsHandler::Vibe1_PIN = 19;
 int SettingsHandler::Lube_Pin = 23;
 int SettingsHandler::Temp_PIN = 5; 
 int SettingsHandler::Heater_PIN = 33;
-int SettingsHandler::HeatLED_PIN = 32;
+//int SettingsHandler::HeatLED_PIN = 32;
 // pin 25 cannot be servo. Throws error
 int SettingsHandler::xMin;
 int SettingsHandler::xMax;
