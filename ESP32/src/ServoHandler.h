@@ -20,7 +20,6 @@
 
 #include <ESP32Servo.h>
 #include "ToyComs.h"
-#include "SettingsHandler.h"
 
 volatile int twistFeedBackPin = SettingsHandler::TwistFeedBack_PIN;
 // Twist position monitor variables
@@ -67,6 +66,16 @@ private:
     int TwistServo_PIN = SettingsHandler::TwistServo_PIN;
     int Vibe0_PIN = SettingsHandler::Vibe0_PIN;
     int Vibe1_PIN = SettingsHandler::Vibe1_PIN;
+    int Lube_PIN = SettingsHandler::Lube_Pin;
+
+	int rightServoConnected = 0;
+	int rightUpperServoConnected = 0;
+	int leftServoConnected = 0;
+	int leftUpperServoConnected = 0;
+	int pitchServoConnected = 0;
+	int pitchRightServoConnected = 0;
+	int valveServoConnected = 0;
+	int twistServoConnected = 0;
 
     // Arm servo zeros
     // Change these to adjust arm positions
@@ -100,6 +109,13 @@ private:
 	float twistServoAngPos = 0.5;
 	int twistTurns = 0;
 	float twistPos;
+
+	// Servo microseconds per radian
+	// (Standard: 637 μs/rad)
+	// (LW-20: 700 μs/rad)
+	int ms_per_rad = 637;  // (μs/rad)
+
+	int lubeAmount = SettingsHandler::lubeAmount;;
 
 public:
     // Setup function
@@ -137,67 +153,91 @@ public:
 		TwistServo_PIN = SettingsHandler::TwistServo_PIN;
 		Vibe0_PIN = SettingsHandler::Vibe0_PIN;
 		Vibe1_PIN = SettingsHandler::Vibe1_PIN;
+
         // Declare servos and set zero
-        int rightChannel = RightServo.attach(RightServo_PIN);
-        if (rightChannel == 0) 
+        rightServoConnected = RightServo.attach(RightServo_PIN);
+        if (rightServoConnected == 0) 
         {
             Serial.print("Failure to connect to right pin: ");
             Serial.println(RightServo_PIN);
         }
-        int rightUpperChannel = RightUpperServo.attach(RightUpperServo_PIN);
-        if (rightUpperChannel == 0) 
+        rightUpperServoConnected = RightUpperServo.attach(RightUpperServo_PIN);
+        if (rightUpperServoConnected == 0) 
         {
             Serial.print("Failure to connect to right upper pin: ");
             Serial.println(RightUpperServo_PIN);
         }
-        int leftChannel = LeftServo.attach(LeftServo_PIN);
-        if (leftChannel == 0) 
+        leftServoConnected = LeftServo.attach(LeftServo_PIN);
+        if (leftServoConnected == 0) 
         {
             Serial.print("Failure to connect to left pin: ");
             Serial.println(LeftServo_PIN);
         }
-        int leftUpperChannel = LeftUpperServo.attach(LeftUpperServo_PIN);
-        if (leftUpperChannel == 0) 
+        leftUpperServoConnected = LeftUpperServo.attach(LeftUpperServo_PIN);
+        if (leftUpperServoConnected == 0) 
         {
             Serial.print("Failure to connect to left upper pin: ");
             Serial.println(LeftUpperServo_PIN);
         }
-        int pitchChannel = PitchLeftServo.attach(PitchLeftServo_PIN);
-        if (pitchChannel == 0) 
+        pitchServoConnected = PitchLeftServo.attach(PitchLeftServo_PIN);
+        if (pitchServoConnected == 0) 
         {
             Serial.print("Failure to connect to pitch left pin: ");
             Serial.println(PitchLeftServo_PIN);
         }
-        int pitchRightChannel = PitchRightServo.attach(PitchRightServo_PIN);
-        if (pitchRightChannel == 0) 
+        pitchRightServoConnected = PitchRightServo.attach(PitchRightServo_PIN);
+        if (pitchRightServoConnected == 0) 
         {
             Serial.print("Failure to connect to pitch right pin: ");
             Serial.println(PitchRightServo_PIN);
         }
-        int valveChannel = ValveServo.attach(ValveServo_PIN);
-        if (valveChannel == 0) 
+        valveServoConnected = ValveServo.attach(ValveServo_PIN);
+        if (valveServoConnected == 0) 
         {
             Serial.print("Failure to connect to valve pin: ");
             Serial.println(ValveServo_PIN);
         }
-        int twistChannel = TwistServo.attach(TwistServo_PIN); 
-        if (twistChannel == 0) 
+        twistServoConnected = TwistServo.attach(TwistServo_PIN); 
+        if (twistServoConnected == 0) 
         {
             Serial.print("Failure to connect to twist pin: ");
             Serial.println(TwistServo_PIN);
         }
 
-
         delay(500);
         
-        RightServo.writeMicroseconds(RightServo_ZERO);
-        LeftServo.writeMicroseconds(LeftServo_ZERO);
-        RightUpperServo.writeMicroseconds(RightUpperServo_ZERO);
-        LeftUpperServo.writeMicroseconds(LeftUpperServo_ZERO);
-        PitchLeftServo.writeMicroseconds(PitchLeftServo_ZERO);
-        PitchRightServo.writeMicroseconds(PitchRightServo_ZERO);
-        ValveServo.writeMicroseconds(ValveServo_ZERO);
-        TwistServo.writeMicroseconds(TwistServo_ZERO);
+        if (rightServoConnected != 0) 
+		{
+        	RightServo.writeMicroseconds(RightServo_ZERO);
+		}
+        if (leftServoConnected != 0) 
+		{
+        	LeftServo.writeMicroseconds(LeftServo_ZERO);
+		}
+        if (rightUpperServoConnected != 0) 
+		{
+        	RightUpperServo.writeMicroseconds(RightUpperServo_ZERO);
+		}
+        if (leftUpperServoConnected != 0) 
+		{
+        	LeftUpperServo.writeMicroseconds(LeftUpperServo_ZERO);
+		}
+        if (pitchServoConnected != 0) 
+		{
+        	PitchLeftServo.writeMicroseconds(PitchLeftServo_ZERO);
+		}
+        if (pitchRightServoConnected != 0) 
+		{
+        	PitchRightServo.writeMicroseconds(PitchRightServo_ZERO);
+		}
+        if (valveServoConnected != 0) 
+		{
+        	ValveServo.writeMicroseconds(ValveServo_ZERO);
+		}
+        if (twistServoConnected != 0) 
+		{
+        	TwistServo.writeMicroseconds(TwistServo_ZERO);
+		}
 
         // Set vibration PWM pins
         pinMode(Vibe0_PIN,OUTPUT);
@@ -209,6 +249,7 @@ public:
         analogWrite(Vibe1_PIN,127);
         delay(300);
         analogWrite(Vibe1_PIN,0);
+  		pinMode(Lube_PIN,INPUT);
 
         // Set servo pulse interval
         tick = 1000/servoFrequency; //ms
@@ -324,21 +365,33 @@ public:
 			{
 				//Serial.print("SR6 mode");
 				int roll,pitch,fwd,thrust,side;
-				roll = map(yRot,0,1000,320,-320);
-				pitch = map(zRot,0,1000,-320,320);
-				fwd = map(yLin,0,1000,360,-360);
-				thrust = map(xLin,0,1000,-360,360);
-				side = map(zLin,0,1000,135,-135);    
+				roll = map(yRot,0,1000,-3000,3000);
+				pitch = map(zRot,0,1000,-2500,2500);
+				fwd = map(yLin,0,1000,-3000,3000);
+				thrust = map(xLin,0,1000,-6000,6000);
+    			side = map(zLin,0,1000,-3000,3000);
 
-				LeftServo.writeMicroseconds(LeftServo_ZERO + thrust + fwd - roll - pitch/2);
-				LeftUpperServo.writeMicroseconds(LeftUpperServo_ZERO + thrust - fwd - roll + pitch/2);
+				// Main
+				int leftLowerValue = SetMainServo(16248 - fwd, 1500 + thrust + roll);
+				int leftUpperValue = SetMainServo(16248 - fwd, 1500 - thrust - roll);
+				int rightUpperValue = SetMainServo(16248 - fwd, 1500 - thrust + roll);//reversed both rights
+				int rightLowerValue = SetMainServo(16248 - fwd, 1500 + thrust - roll);
+				// Pitcher
+				int picthLeftValue = SetPitchServo(16248 - fwd, 4500 - thrust,  side - 1.5*roll, -pitch);
+				int pitchRightValue = SetPitchServo(16248 - fwd, 4500 - thrust, -side + 1.5*roll, -pitch);
 
-				RightUpperServo.writeMicroseconds(RightUpperServo_ZERO - thrust + fwd - roll - pitch/2);
-				RightServo.writeMicroseconds(RightServo_ZERO - thrust - fwd - roll + pitch/2);
-
-				PitchLeftServo.writeMicroseconds(constrain(PitchLeftServo_ZERO + 200 - thrust/2 + fwd/2 + roll - pitch - side, PitchLeftServo_ZERO-600,PitchLeftServo_ZERO+1000));
-				PitchRightServo.writeMicroseconds(constrain(PitchRightServo_ZERO - 200 + thrust/2 - fwd/2 + roll + pitch - side, PitchRightServo_ZERO-1000,PitchRightServo_ZERO+600));
-
+				if (leftServoConnected != 0) 
+					LeftServo.writeMicroseconds(LeftServo_ZERO - leftLowerValue);
+				if (leftUpperServoConnected != 0) 
+					LeftUpperServo.writeMicroseconds(LeftUpperServo_ZERO + leftUpperValue);
+				if (rightServoConnected != 0) 
+					RightServo.writeMicroseconds(RightServo_ZERO + rightLowerValue);//reversed both rights
+				if (rightUpperServoConnected != 0) 
+					RightUpperServo.writeMicroseconds(RightUpperServo_ZERO - rightUpperValue);
+				if (pitchServoConnected != 0) 
+					PitchLeftServo.writeMicroseconds(constrain(PitchLeftServo_ZERO - picthLeftValue, PitchLeftServo_ZERO-600, PitchLeftServo_ZERO+1000));
+				if (pitchRightServoConnected != 0) 
+					PitchRightServo.writeMicroseconds(constrain(PitchRightServo_ZERO + pitchRightValue, PitchRightServo_ZERO-1000, PitchRightServo_ZERO+600));
 			}
 			else 
 			{
@@ -366,39 +419,82 @@ public:
 				
 				// Send signals to the servos
 				// Note: 1000 = -45deg, 2000 = +45deg
-				RightServo.writeMicroseconds(RightServo_ZERO + stroke + roll);
-				LeftServo.writeMicroseconds(LeftServo_ZERO - stroke + roll);
-				PitchLeftServo.writeMicroseconds(PitchLeftServo_ZERO - pitch);
+
+				if (rightServoConnected != 0) 
+					RightServo.writeMicroseconds(RightServo_ZERO + stroke + roll);
+				if (leftServoConnected != 0) 
+					LeftServo.writeMicroseconds(LeftServo_ZERO - stroke + roll);
+				if (pitchServoConnected != 0) 
+					PitchLeftServo.writeMicroseconds(PitchLeftServo_ZERO - pitch);
 			}
 
 			int valve,twist;
-			valve  = constrain(20*xValve, 0, 1000);
-			if (!SettingsHandler::continousTwist) {
+			valve  = xValve - 500;
+			valve  = constrain(valve, -500, 500);
+			if (!SettingsHandler::continousTwist) 
+			{
 				twist  = 2*(xRot - map(twistPos,-1500,1500,1000,1));
 				twist = constrain(twist, -750, 750);
 			} else {
 				twist = map(xRot,1,1000,-180,180);
 			}
-			TwistServo.writeMicroseconds(TwistServo_ZERO + twist);
-			ValveServo.writeMicroseconds((ValveServo_ZERO - 500) + valve);
+
+			if (valveServoConnected != 0) 
+				ValveServo.writeMicroseconds((ValveServo_ZERO - 500) + valve);
+			if (twistServoConnected != 0) 
+				TwistServo.writeMicroseconds(TwistServo_ZERO + twist);
 
             // Done with servo channels
 
             // Output vibration channels
             // These should drive PWM pins connected to vibration motors via MOSFETs or H-bridges.
-            if ((vibe0 > 1) && (vibe0 <= 1000)) {
+            if ((vibe0 > 1) && (vibe0 <= 1000)) 
                 analogWrite(Vibe0_PIN,map(vibe0,2,1000,31,255));
-            } else {
+			else 
                 analogWrite(Vibe0_PIN,0);
-            }
-            if ((vibe1 > 1) && (vibe1 <= 1000)) {
+
+            if ((vibe1 > 1) && (vibe1 <= 1000)) 
                 analogWrite(Vibe1_PIN,map(vibe1,2,1000,31,255));
-            } else {
-                analogWrite(Vibe1_PIN,0);
-            }
+			else if (digitalRead(Lube_PIN) == HIGH) 
+				// For iLube - if no software action, check the manual button too
+				analogWrite(Vibe1_PIN, lubeAmount);
+			else 
+      			analogWrite(Vibe1_PIN,0);
 
             // Done with vibration channels
             
         }
     }
+
+	// Function to calculate the angle for the main arm servos
+	// Inputs are target x,y coords of receiver pivot in 1/100 of a mm
+	int SetMainServo(float x, float y) 
+	{
+		x /= 100; y /= 100;          // Convert to mm
+		float gamma = atan2(x,y);    // Angle of line from servo pivot to receiver pivot
+		float csq = sq(x) + sq(y);   // Square of distance between servo pivot and receiver pivot
+		float c = sqrt(csq);         // Distance between servo pivot and receiver pivot
+		float beta = acos((csq - 28125)/(100*c));  // Angle between c-line and servo arm
+		int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
+		return out;
+	}
+
+
+	// Function to calculate the angle for the pitcher arm servos
+	// Inputs are target x,y,z coords of receiver upper pivot in 1/100 of a mm
+	// Also pitch in 1/100 of a degree
+	int SetPitchServo(float x, float y, float z, float pitch) 
+	{
+		pitch *= 0.0001745; // Convert to radians
+		x += 5500*sin(0.2618 + pitch);
+		y -= 5500*cos(0.2618 + pitch);
+		x /= 100; y /= 100; z /= 100;   // Convert to mm
+		float bsq = 36250 - sq(75 + z); // Equivalent arm length
+		float gamma = atan2(x,y);       // Angle of line from servo pivot to receiver pivot
+		float csq = sq(x) + sq(y);      // Square of distance between servo pivot and receiver pivot
+		float c = sqrt(csq);            // Distance between servo pivot and receiver pivot
+		float beta = acos((csq + 5625 - bsq)/(150*c)); // Angle between c-line and servo arm
+		int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
+		return out;
+	}
 };

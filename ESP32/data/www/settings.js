@@ -26,31 +26,61 @@ var upDateTimeout;
 var restartRequired = false;
 var documentLoaded = false;
 $(document).ready( 
-    async function () 
-    {
-        fetch('/userSettings')
-        .then(function(response) {
-            if (!response.ok) {
-                $("#errorMessage").attr("hidden", false);
-                $("#errorMessage").text("Error loading user settings!");
-            } else {
-                response.json().then(data => {
-                    userSettings = data;
-                    if ($("#xMin").length) {
-                        getUserSettings()
-                        getWifiSettings();
-                    } else {
-                        getWifiSettings();
-                    }
-                });
-            }
-        });
-    }
+	onDocumentLoad()
 );
+
+async function onDocumentLoad()
+{
+	fetch('/userSettings')
+	.then(function(response) {
+		if (!response.ok) {
+			$("#errorMessage").attr("hidden", false);
+			$("#errorMessage").text("Error loading user settings!");
+		} else {
+			response.json().then(data => {
+				userSettings = data;
+				if ($("#xMin").length) {
+					getUserSettings()
+					getWifiSettings();
+				} else {
+					getWifiSettings();
+				}
+			});
+		}
+	});
+}
+
+function onDefaultClick() 
+{		
+	if (confirm("WARNING! Are you sure you wish to reset ALL settings?")) 
+	{
+		$("#info").attr("hidden", false);
+		$("#info").text("Resetting...");
+		$("#info").css("color", 'black');
+		var xhr = new XMLHttpRequest();
+		xhr.open("POST", "/default", true);
+		xhr.onreadystatechange = function() 
+		{
+			if (xhr.readyState === 4) 
+			{
+				onDocumentLoad();
+				$("#info").text("Settings reset!");
+				$("#info").css("color", 'green');
+				$('#requiresRestart').show();
+				$('#resetBtn').prop("disabled", false );
+				setTimeout(() => 
+				{
+					$("#info").attr("hidden", true);
+					$("#info").text("");
+				}, 5000)
+			}
+		}
+		xhr.send();
+	}
+}
 
 function getUserSettings() 
 {
-
     var xMin = userSettings["xMin"];
     var xMax = userSettings["xMax"];
     $("#xMin").val(xMin);
@@ -122,7 +152,6 @@ function getUserSettings()
 	$("#Display_Rst_PIN").val(userSettings["Display_Rst_PIN"]);
 	$("#Temp_PIN").val(userSettings["Temp_PIN"]);
 	$("#Heater_PIN").val(userSettings["Heater_PIN"]);
-	$("#HeatLED_PIN").val(userSettings["HeatLED_PIN"]);
 	$("#WarmUpTime").val(userSettings["WarmUpTime"]);
 	
     documentLoaded = true;
@@ -146,7 +175,8 @@ async function updateUserSettings()
             xhr.open("POST", "/settings", true);
             xhr.onreadystatechange = function() 
             {
-                if (xhr.readyState === 4) {
+                if (xhr.readyState === 4) 
+				{
                     var response = JSON.parse(xhr.responseText);
                     if (response["msg"] !== "done") 
                     {
@@ -406,7 +436,6 @@ function setDisplaySettings()
     userSettings["tempControlEnabled"] = $('#tempControlEnabled').prop('checked');
     userSettings["Temp_PIN"] = parseInt($('#Temp_PIN').val());
     userSettings["Heater_PIN"] = parseInt($('#Heater_PIN').val());
-    userSettings["HeatLED_PIN"] = parseInt($('#HeatLED_PIN').val());
     userSettings["Display_Screen_Width"] = parseInt($('#Display_Screen_Width').val());
     userSettings["Display_Screen_Height"] = parseInt($('#Display_Screen_Height').val());
     userSettings["TargetTemp"] = parseInt($('#TargetTemp').val());
@@ -461,17 +490,15 @@ function connectWifi() {
 }
 
 function showWifiPassword() {
-    var x = document.getElementById('wifiPassword');
-    x.oninput = null;
+    var x = document.getElementById('wifiPass');
     if (x.type === "password") {
       x.type = "text";
     } else {
       x.type = "password";
     }
-    x.oninput = updatePassword();
 }
 
-function updateStaticIP() {
+function updateWifiSettings() {
     userSettings["ssid"] = $('#ssid').val();
     userSettings["wifiPass"] = $('#wifiPass').val();
 	var staticIP = $('#staticIP').prop('checked');
@@ -489,6 +516,13 @@ function updateStaticIP() {
 	showRestartRequired();
 	updateUserSettings();
 	
+}
+
+function updateBlueToothSettings()
+{
+    userSettings["bluetoothEnabled"] = $('#bluetoothEnabled').prop('checked');
+	showRestartRequired();
+	updateUserSettings();
 }
 
 function showRestartRequired() {

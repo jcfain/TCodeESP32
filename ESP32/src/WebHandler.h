@@ -177,6 +177,11 @@ class WebHandler {
                 ESP.restart();
                 delay(5000);
             });
+            server.on("/default", HTTP_POST, [](AsyncWebServerRequest *request)
+            {
+                Serial.println("Settings default");
+				SettingsHandler::reset();
+            });
 
             AsyncCallbackJsonWebHandler* handler = new AsyncCallbackJsonWebHandler("/settings", [](AsyncWebServerRequest *request, JsonVariant &json) 
 			{
@@ -212,14 +217,8 @@ class WebHandler {
                 }
             });
 
-            server.rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
-            //server.serveStatic("/js/", SPIFFS, "/www/js/").setCacheControl("max-age=31536000");
+            //server.rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
             server.serveStatic("/", SPIFFS, "/www/");
-            // server.serveStatic("/wifiSettings", SPIFFS, "/www/wifiSettings.htm");
-            // server.serveStatic("/style", SPIFFS, "/www/style.css");
-            // server.serveStatic("/userSettings", SPIFFS, "/userSettings.json");
-            // server.serveStatic("/settings", SPIFFS, "/www/settings.js");
-            // server.serveStatic("/jquery", SPIFFS, "/www/jquery-3.5.1.min.js");
             server.begin();
         }
 

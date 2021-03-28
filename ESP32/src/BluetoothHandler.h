@@ -19,6 +19,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
+
+
 /* 
 #include <BluetoothSerial.h>
 
@@ -30,11 +32,13 @@ class BluetoothHandler
 {
   public:
     bool setup() {
-      if(!SerialBT.begin("TCodeESP32")){
+      if(!SerialBT.begin("TCodeESP32"))
+	  {
         Serial.println("An error occurred initializing Bluetooth");
         return false;
       }
       Serial.println("Bluetooth started");
+	  _isConnected = true;
       return true;
     }
 
@@ -42,17 +46,27 @@ class BluetoothHandler
       return SerialBT.read();
     }
 
-    void write(int message) {
+    void write(uint8_t message) {
       // Serial.print("BTWrite: ");
       // Serial.println(message);
       SerialBT.write(message);
+    }
+    void println(const char* message) {
+      // Serial.print("BTWrite: ");
+      // Serial.println(message);
+      SerialBT.println(message);
     }
 
     int available() {
       return SerialBT.available();
     }
 
+	bool isConnected() 
+	{
+		return _isConnected;
+	}
+
   private:
+  	bool _isConnected = false;
     BluetoothSerial SerialBT;
-};
- */
+}; */

@@ -27,17 +27,18 @@ SOFTWARE. */
 #include "WifiHandler.h"
 #include "TemperatureHandler.h"
 #include "DisplayHandler.h"
+#include "BluetoothHandler.h"
 #include "ServoHandler.h"
 #include "UdpHandler.h"
-//#include "BluetoothHandler.h"
 #include "WebHandler.h"
 //#include "OTAHandler.h"
 
+//BluetoothHandler btHandler;
 Udphandler udpHandler;
 ServoHandler servoHandler;
 WifiHandler wifi;
-//BluetoothHandler bluetooth;
 WebHandler webHandler;
+
 DisplayHandler* displayHandler;
 TaskHandle_t temperatureTask;
 TaskHandle_t displayTask;
@@ -99,12 +100,7 @@ void setup()
 			if (wifi.startAp()) 
 			{
 				displayHandler->println("APMode started");
-				displayHandler->setLocalApModeConnected(true);
 				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
-			}
-			else
-			{
-				displayHandler->setLocalApModeConnected(false);
 			}
 			
 		}
@@ -116,15 +112,13 @@ void setup()
 		if (wifi.startAp()) 
 		{
 			displayHandler->println("APMode started");
-			displayHandler->setLocalApModeConnected(true);
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
 		}
-		else
-		{
-			displayHandler->setLocalApModeConnected(false);
-		}
 	}
-    //bluetooth.setup();
+	// if(SettingsHandler::bluetoothEnabled)
+	// {
+    // 	btHandler.setup();
+	// }
     //otaHandler.setup();
 	displayHandler->println("Setting up servos");
     servoHandler.setup(SettingsHandler::servoFrequency);
@@ -167,9 +161,9 @@ void loop()
 		{
 			servoHandler.read(Serial.read());
 		} 
-		// else if (bluetooth.available() > 0) 
+		// else if (SettingsHandler::bluetoothEnabled && btHandler.isConnected() && btHandler.available() > 0) 
 		// {
-		// 	servoHandler.read(bluetooth.read());
+		// 	servoHandler.read(btHandler.read());
 		// }
 		if (strlen(udpData) == 0) // No wifi data
 		{
@@ -177,7 +171,5 @@ void loop()
 		} 
 		if(SettingsHandler::tempControlEnabled)
 			TemperatureHandler::setControlStatus();
-		// if(SettingsHandler::displayEnabled)
-		// 	displayHandler->loop();
 	}
 }

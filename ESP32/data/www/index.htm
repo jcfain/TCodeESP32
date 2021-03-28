@@ -7,15 +7,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- <link rel="icon" href="data:,"> -->
   <link rel="stylesheet" type="text/css" href="style.css">
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> -->
+  <script type="text/javascript" src="jquery"></script>
   <script type="text/javascript" src="settings.js"></script>
 </head>
 <body>
   <div id="errorMessage" class="error" hidden="true"></div>
   <div id="info" class="info" hidden="true"></div>
+  <div id="requiresRestart" hidden="true" class="restartRequired">Restart required!!</div>
 
   <h1>Device Settings</h1>
-  <div id="requiresRestart" hidden="true" style="color: red;">Restart required!!</div>
   <form action="/restart" method="POST">
 	<div class="centerFlex">
 		<table class="rootTable">
@@ -28,7 +29,7 @@
 						<h2>SR6 (Only) Settings</h2>
 					</th>
 					<th>
-						<h2>Wifi Settings</h2>
+						<h2>Wireless Settings</h2>
 					</th>
 				</tr>
 			</thead>
@@ -265,14 +266,6 @@
 						</tr>
 						<tr>
 							<td>
-								<span>HeatLED_PIN</span> 
-							</td>
-							<td>
-								<input id="HeatLED_PIN" type="text" oninput="setDisplaySettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
 								<span>Target Temperature</span> 
 							</td>
 							<td>
@@ -351,13 +344,13 @@
 					</table>
 				</td>
 				<td>
-					<table id="wifiSettingsTable" class="formTable">
+					<table id="wirelessSettingsTable" class="formTable">
 						<tr>
 							<td>
 								<span>SSID</span> 
 							</td>
 							<td>
-								<input id="ssid" type="text" maxlength="32" oninput="updateStaticIP()">
+								<input id="ssid" type="text" maxlength="32" oninput="updateWifiSettings()">
 							</td>
 						</tr>
 						<tr>
@@ -365,7 +358,7 @@
 								<span>Password</span> 
 							</td>
 							<td>
-								<input id="wifiPass" type="text" maxlength="63" oninput="updateStaticIP()">
+								<input id="wifiPass" type="password" maxlength="63" oninput="updateWifiSettings()">
 							</td>
 						</tr>
 						<tr>
@@ -377,9 +370,10 @@
 						</tr>
 						<tr>
 							<td>
+								<span>Static IP</span> 
 							</td>
 							<td>
-								<input id="staticIP" type="checkbox" onclick="updateStaticIP()">Static IP</input>
+								<input id="staticIP" type="checkbox" onclick="updateWifiSettings()"></input>
 							</td>
 						</tr>
 						<tr>
@@ -387,7 +381,7 @@
 								<span>IP</span> 
 							</td>
 							<td>
-								<input id="localIP" type="text" maxlength="15" oninput="updateStaticIP()">
+								<input id="localIP" type="text" maxlength="15" oninput="updateWifiSettings()">
 							</td>
 						</tr>
 						<tr>
@@ -395,7 +389,7 @@
 								<span>Gateway</span> 
 							</td>
 							<td>
-								<input id="gateway" type="text" maxlength="15" oninput="updateStaticIP()">
+								<input id="gateway" type="text" maxlength="15" oninput="updateWifiSettings()">
 							</td>
 						</tr>
 						<tr>
@@ -403,7 +397,7 @@
 								<span>Subnet</span> 
 							</td>
 							<td>
-								<input id="subnet" type="text" maxlength="15" oninput="updateStaticIP()">
+								<input id="subnet" type="text" maxlength="15" oninput="updateWifiSettings()">
 							</td>
 						</tr>
 						<tr>
@@ -411,7 +405,7 @@
 								<span>DNS 1</span> 
 							</td>
 							<td>
-								<input id="dns1" type="text" maxlength="15" oninput="updateStaticIP()">
+								<input id="dns1" type="text" maxlength="15" oninput="updateWifiSettings()">
 							</td>
 						</tr>
 						<tr>
@@ -419,9 +413,17 @@
 								<span>DNS 2</span> 
 							</td>
 							<td>
-								<input id="dns2" type="text" maxlength="15" oninput="updateStaticIP()">
+								<input id="dns2" type="text" maxlength="15" oninput="updateWifiSettings()">
 							</td>
 						</tr>
+						<!-- <tr>
+							<td>
+								<span>Bluetooth enabled</span> 
+							</td>
+							<td>
+								<input id="bluetoothEnabled" type="checkbox" onclick="updateBlueToothSettings()"></input>
+							</td>
+						</tr> -->
 					</table>
 				</td>
 				</tr>
@@ -511,5 +513,9 @@
       <option value="3500">
     </datalist>
   </div>
+</br>
+</br>
+</br>
+  <button id="resetSettingsBtn" onclick="onDefaultClick()">Reset ALL settings</button>
 </body>
 </html>

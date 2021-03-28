@@ -479,7 +479,8 @@ class ToyComms {
     // Function to identify the current TCode type over serial
     void identifyTCode() {
       Serial.println("TCode v0.2");
-      //SerialBT.println("TCode v0.2");
+	//   if(SettingsHandler::bluetoothEnabled)
+	//   	SerialBT.println("TCode v0.2");
     }
 
   private:

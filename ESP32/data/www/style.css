@@ -21,6 +21,12 @@ p{
   top: 10%;
   right: 5%;
 }
+.restartRequired {
+  color: red;
+  position: fixed;
+  top: 12%;
+  right: 5%;
+}
 body {
   background-color: lightgray;
   color: black;
