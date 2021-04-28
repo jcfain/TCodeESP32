@@ -1,8 +1,8 @@
 {
 	"ssid": "YOUR SSID HERE",
 	"wifiPass": "YOUR PASSWORD HERE",
-	"hostname": "DoesNothingAtThisTime",
-	"friendlyName": "DoesNothingAtThisTime",
+	"hostname": "tcode",
+	"friendlyName": "ESP32 TCode",
 	"bluetoothEnabled": false,
 	"udpServerPort": 8000,
 	"webServerPort": 80,

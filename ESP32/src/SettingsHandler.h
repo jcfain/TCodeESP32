@@ -623,7 +623,7 @@ class SettingsHandler
 
 
 const char SettingsHandler::TCodeVersion[11] = "TCode v0.2";
-const char SettingsHandler::TCodeESP32Version[14] = "ESP32 v0.162b";
+const char SettingsHandler::TCodeESP32Version[14] = "ESP32 v0.163b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 bool SettingsHandler::bluetoothEnabled = true;
 char SettingsHandler::ssid[32];

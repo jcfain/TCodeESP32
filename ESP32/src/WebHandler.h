@@ -58,7 +58,7 @@ class WebHandler {
             // server = AsyncWebServer(port);
 
             // This has issues running with the webserver.
-            //startMDNS(hostName, friendlyName);
+            startMDNS(hostName, friendlyName);
 
             // Route for root / web page
             // if (apMode) 
@@ -229,19 +229,12 @@ class WebHandler {
                 Serial.println(hostName);
                 Serial.print("friendlyName: ");
                 Serial.println(friendlyName);
-                //initialize mDNS service
-                esp_err_t err = mdns_init();
-                if (err) {
-                    printf("MDNS Init failed: %d\n", err);
+                if (!MDNS.begin(hostName)) {
+                    printf("MDNS Init failed");
                     return;
                 }
-
-                //set hostname
-                mdns_hostname_set(hostName);
-                //set default instance
-                mdns_instance_name_set(friendlyName);
-
-                mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0);
-                mdns_service_add(NULL, "_tcodeRemote", "_udp", SettingsHandler::udpServerPort, NULL, 0);
+                MDNS.setInstanceName(friendlyName);
+                MDNS.addService("http", "tcp", 80);
+                MDNS.addService("tcode", "udp", SettingsHandler::udpServerPort);
             }
 };
