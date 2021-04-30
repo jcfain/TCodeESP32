@@ -19,415 +19,409 @@
   <h1>Device Settings</h1>
   <form action="/restart" method="POST">
 	<div class="centerFlex">
-		<table class="rootTable">
-			<thead>
-				<tr>
+		<div class="rootTable">
+			<div>
+				<div>
+					<h2>General Settings</h2>
+				</div>
+				<table id="deviceSettingsTable" class="formTable">
+					<tr>
+						<td>
+							<span>Servo Frequency</span> 
+						</td>
+						<td>
+							<input id="servoFrequency" type="text" oninput="updateServoFrequency()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Auto T-Valve</span> 
+						</td>
+						<td>
+							<input id="autoValve" type="checkbox" onclick="setAutoValve()"></input>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Inverse T-Valve</span> 
+						</td>
+						<td>
+							<input id="inverseValve" type="checkbox" onclick="setInverseValve()"></input>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>RightServo PIN/ZERO</span> 
+						</td>
+						<td>
+							<input id="RightServo_PIN" type="text" oninput="updatePins()">
+						</td>
+						<td>
+							<input id="RightServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>LeftServo PIN/ZERO</span> 
+						</td>
+						<td>
+							<input id="LeftServo_PIN" type="text" oninput="updatePins()">
+						</td>
+						<td>
+							<input id="LeftServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>PitchLeftServo PIN/ZERO</span> 
+						</td>
+						<td>
+							<input id="PitchLeftServo_PIN" type="text" oninput="updatePins()">
+						</td>
+						<td>
+							<input id="PitchLeftServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>ValveServo PIN/ZERO</span> 
+						</td>
+						<td>
+							<input id="ValveServo_PIN" type="text" oninput="updatePins()">
+						</td>
+						<td>
+							<input id="ValveServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>TwistServo PIN/ZERO</span> 
+						</td>
+						<td>
+							<input id="TwistServo_PIN" type="text" oninput="updatePins()">
+						</td>
+						<td>
+							<input id="TwistServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>TwistFeedBack PIN</span> 
+						</td>
+						<td>
+							<input id="TwistFeedBack_PIN" type="text" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Continuous twist</span> 
+						</td>
+						<td>
+							<input id="continuousTwist" type="checkbox" onchange="updateContinuousTwist()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Vibe0 PIN</span> 
+						</td>
+						<td>
+							<input id="Vibe0_PIN" type="text" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Vibe1/Lube PIN</span> 
+						</td>
+						<td>
+							<input id="Vibe1_PIN" type="text"  oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Manual lube PIN</span> 
+						</td>
+						<td>
+							<input id="Lube_Pin" type="text" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Manual lube speed (1-255)</span> 
+						</td>
+						<td>
+							<input id="lubeAmount" type="text" maxlength="3" oninput="updateLubeAmount()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Udp port</span> 
+						</td>
+						<td>
+							<input id="udpServerPort" type="text" maxlength="5" oninput="updateUdpPort()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Host name</span> 
+						</td>
+						<td>
+							<input id="hostname" type="text" maxlength="63" oninput="updateHostName()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Friendly name</span> 
+						</td>
+						<td>
+							<input id="friendlyName" type="text" maxlength="100" oninput="updateFriendlyName()">
+						</td>
+					</tr>
+				</table>
+				<table id="deviceSettingsDisplayTable" class="formTable">
 					<th>
-						<h2>General Settings</h2>
+						<h3>Display Settings</h3>
 					</th>
-					<th>
-						<h2>SR6 (Only) Settings</h2>
-					</th>
-					<th>
-						<h2>Wireless Settings</h2>
-					</th>
-				</tr>
-			</thead>
-			<tr>
-				<td>
-					<table id="deviceSettingsTable" class="formTable">
-						<tr>
-							<td>
-								<span>Servo Frequency</span> 
-							</td>
-							<td>
-								<input id="servoFrequency" type="text" oninput="updateServoFrequency()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Auto T-Valve</span> 
-							</td>
-							<td>
-								<input id="autoValve" type="checkbox" onclick="setAutoValve()"></input>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Inverse T-Valve</span> 
-							</td>
-							<td>
-								<input id="inverseValve" type="checkbox" onclick="setInverseValve()"></input>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>RightServo PIN/ZERO</span> 
-							</td>
-							<td>
-								<input id="RightServo_PIN" type="text" oninput="updatePins()">
-							</td>
-							<td>
-								<input id="RightServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>LeftServo PIN/ZERO</span> 
-							</td>
-							<td>
-								<input id="LeftServo_PIN" type="text" oninput="updatePins()">
-							</td>
-							<td>
-								<input id="LeftServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>PitchLeftServo PIN/ZERO</span> 
-							</td>
-							<td>
-								<input id="PitchLeftServo_PIN" type="text" oninput="updatePins()">
-							</td>
-							<td>
-								<input id="PitchLeftServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>ValveServo PIN/ZERO</span> 
-							</td>
-							<td>
-								<input id="ValveServo_PIN" type="text" oninput="updatePins()">
-							</td>
-							<td>
-								<input id="ValveServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>TwistServo PIN/ZERO</span> 
-							</td>
-							<td>
-								<input id="TwistServo_PIN" type="text" oninput="updatePins()">
-							</td>
-							<td>
-								<input id="TwistServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>TwistFeedBack PIN</span> 
-							</td>
-							<td>
-								<input id="TwistFeedBack_PIN" type="text" oninput="updatePins()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Continuous twist</span> 
-							</td>
-							<td>
-								<input id="continuousTwist" type="checkbox" onchange="updateContinuousTwist()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Vibe0 PIN</span> 
-							</td>
-							<td>
-								<input id="Vibe0_PIN" type="text" oninput="updatePins()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Vibe1/Lube PIN</span> 
-							</td>
-							<td>
-								<input id="Vibe1_PIN" type="text"  oninput="updatePins()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Manual lube PIN</span> 
-							</td>
-							<td>
-								<input id="Lube_Pin" type="text" oninput="updatePins()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Manual lube speed (1-255)</span> 
-							</td>
-							<td>
-								<input id="lubeAmount" type="text" maxlength="3" oninput="updateLubeAmount()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Udp port</span> 
-							</td>
-							<td>
-								<input id="udpServerPort" type="text" maxlength="5" oninput="updateUdpPort()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Host name</span> 
-							</td>
-							<td>
-								<input id="hostname" type="text" maxlength="63" oninput="updateHostName()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Friendly name</span> 
-							</td>
-							<td>
-								<input id="friendlyName" type="text" maxlength="100" oninput="updateFriendlyName()">
-							</td>
-						</tr>
-					</table>
-					<table id="deviceSettingsDisplayTable" class="formTable">
-						<th>
-							<h3>Display Settings</h3>
-						</th>
-						<tr>
-							<td>
-								<span>Display enabled</span> 
-							</td>
-							<td>
-								<input id="displayEnabled" type="checkbox" onclick="setDisplaySettings()"></input>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>I2C address</span> 
-							</td>
-							<td>
-								<input id="Display_I2C_Address" type="text" oninput="setDisplaySettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Display rst PIN</span> 
-							</td>
-							<td>
-								<input id="Display_Rst_PIN" type="text" oninput="setDisplaySettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span> Screen width</span> 
-							</td>
-							<td>
-								<input id="Display_Screen_Width" type="text" oninput="setDisplaySettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Screen height</span> 
-							</td>
-							<td>
-								<input id="Display_Screen_Height" type="text" oninput="setDisplaySettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Sleeve temperature enabled</span> 
-							</td>
-							<td>
-								<input id="sleeveTempEnabled" type="checkbox" onclick="setDisplaySettings()"></input>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Temp_PIN</span> 
-							</td>
-							<td>
-								<input id="Temp_PIN" type="text" oninput="setDisplaySettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Temperature control enabled</span> 
-							</td>
-							<td>
-								<input id="tempControlEnabled" type="checkbox" onclick="setDisplaySettings()"></input>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Heater_PIN</span> 
-							</td>
-							<td>
-								<input id="Heater_PIN" type="text" oninput="setDisplaySettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Target Temperature</span> 
-							</td>
-							<td>
-								<input id="TargetTemp" type="text" oninput="setDisplaySettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Heat PWM</span> 
-							</td>
-							<td>
-								<input id="HeatPWM" type="text" oninput="setDisplaySettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Hold PWM</span> 
-							</td>
-							<td>
-								<input id="HoldPWM" type="text" oninput="setDisplaySettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Warm up time (millis)</span> 
-							</td>
-							<td>
-								<input id="WarmUpTime" type="text"  oninput="setDisplaySettings()">
-							</td>
-						</tr>
-					</table>
-				</td>
-				<td>
-					<table id="deviceSR6SettingsTable" class="formTable">
-						<tr>
-							<td>
-								<span>SR6 mode</span> 
-							</td>
-							<td>
-								<input id="sr6Mode" type="checkbox" onclick="setSR6Mode()"></input>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Right Upper Servo PIN/ZERO</span> 
-							</td>
-							<td>
-								<input id="RightUpperServo_PIN" type="text" maxlength="3" oninput="updatePins()">
-							</td>
-							<td>
-								<input id="RightUpperServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>LeftUpper Servo PIN/ZERO</span> 
-							</td>
-							<td>
-								<input id="LeftUpperServo_PIN" type="text" maxlength="3" oninput="updatePins()">
-							</td>
-							<td>
-								<input id="LeftUpperServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Pitch Right Servo PIN/ZERO</span> 
-							</td>
-							<td>
-								<input id="PitchRightServo_PIN" type="text" maxlength="3" oninput="updatePins()">
-							</td>
-							<td>
-								<input id="PitchRightServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
-							</td>
-						</tr>
-					</table>
-				</td>
-				<td>
-					<table id="wirelessSettingsTable" class="formTable">
-						<tr>
-							<td>
-								<span>SSID</span> 
-							</td>
-							<td>
-								<input id="ssid" type="text" maxlength="32" oninput="updateWifiSettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Password</span> 
-							</td>
-							<td>
-								<input id="wifiPass" type="password" maxlength="63" oninput="updateWifiSettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-							</td>
-							<td>
-								<input type="checkbox" onclick="showWifiPassword()">Show Password</input>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Static IP</span> 
-							</td>
-							<td>
-								<input id="staticIP" type="checkbox" onclick="updateWifiSettings()"></input>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>IP</span> 
-							</td>
-							<td>
-								<input id="localIP" type="text" maxlength="15" oninput="updateWifiSettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Gateway</span> 
-							</td>
-							<td>
-								<input id="gateway" type="text" maxlength="15" oninput="updateWifiSettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>Subnet</span> 
-							</td>
-							<td>
-								<input id="subnet" type="text" maxlength="15" oninput="updateWifiSettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>DNS 1</span> 
-							</td>
-							<td>
-								<input id="dns1" type="text" maxlength="15" oninput="updateWifiSettings()">
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<span>DNS 2</span> 
-							</td>
-							<td>
-								<input id="dns2" type="text" maxlength="15" oninput="updateWifiSettings()">
-							</td>
-						</tr>
-						<!-- <tr>
-							<td>
-								<span>Bluetooth enabled</span> 
-							</td>
-							<td>
-								<input id="bluetoothEnabled" type="checkbox" onclick="updateBlueToothSettings()"></input>
-							</td>
-						</tr> -->
-					</table>
-				</td>
-				</tr>
-		</table>
+					<tr>
+						<td>
+							<span>Display enabled</span> 
+						</td>
+						<td>
+							<input id="displayEnabled" type="checkbox" onclick="setDisplaySettings()"></input>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>I2C address</span> 
+						</td>
+						<td>
+							<input id="Display_I2C_Address" type="text" oninput="setDisplaySettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Display rst PIN</span> 
+						</td>
+						<td>
+							<input id="Display_Rst_PIN" type="text" oninput="setDisplaySettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span> Screen width</span> 
+						</td>
+						<td>
+							<input id="Display_Screen_Width" type="text" oninput="setDisplaySettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Screen height</span> 
+						</td>
+						<td>
+							<input id="Display_Screen_Height" type="text" oninput="setDisplaySettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Sleeve temperature enabled</span> 
+						</td>
+						<td>
+							<input id="sleeveTempEnabled" type="checkbox" onclick="setDisplaySettings()"></input>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Temp_PIN</span> 
+						</td>
+						<td>
+							<input id="Temp_PIN" type="text" oninput="setDisplaySettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Temperature control enabled</span> 
+						</td>
+						<td>
+							<input id="tempControlEnabled" type="checkbox" onclick="setDisplaySettings()"></input>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Heater_PIN</span> 
+						</td>
+						<td>
+							<input id="Heater_PIN" type="text" oninput="setDisplaySettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Target Temperature</span> 
+						</td>
+						<td>
+							<input id="TargetTemp" type="text" oninput="setDisplaySettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Heat PWM</span> 
+						</td>
+						<td>
+							<input id="HeatPWM" type="text" oninput="setDisplaySettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Hold PWM</span> 
+						</td>
+						<td>
+							<input id="HoldPWM" type="text" oninput="setDisplaySettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Warm up time (millis)</span> 
+						</td>
+						<td>
+							<input id="WarmUpTime" type="text"  oninput="setDisplaySettings()">
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div>
+				<div>
+					<h2>SR6 (Only) Settings</h2>
+				</div>
+				<table id="deviceSR6SettingsTable" class="formTable">
+					<tr>
+						<td>
+							<span>SR6 mode</span> 
+						</td>
+						<td>
+							<input id="sr6Mode" type="checkbox" onclick="setSR6Mode()"></input>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Right Upper Servo PIN/ZERO</span> 
+						</td>
+						<td>
+							<input id="RightUpperServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+						</td>
+						<td>
+							<input id="RightUpperServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>LeftUpper Servo PIN/ZERO</span> 
+						</td>
+						<td>
+							<input id="LeftUpperServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+						</td>
+						<td>
+							<input id="LeftUpperServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Pitch Right Servo PIN/ZERO</span> 
+						</td>
+						<td>
+							<input id="PitchRightServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+						</td>
+						<td>
+							<input id="PitchRightServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div>
+				<div>
+					<h2>Wireless Settings</h2>
+				</div>
+				<table id="wirelessSettingsTable" class="formTable">
+					<tr>
+						<td>
+							<span>SSID</span> 
+						</td>
+						<td>
+							<input id="ssid" type="text" maxlength="32" oninput="updateWifiSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Password</span> 
+						</td>
+						<td>
+							<input id="wifiPass" type="password" maxlength="63" oninput="updateWifiSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+						</td>
+						<td>
+							<input type="checkbox" onclick="showWifiPassword()">Show Password</input>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Static IP</span> 
+						</td>
+						<td>
+							<input id="staticIP" type="checkbox" onclick="updateWifiSettings()"></input>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span id="localIPLabel">IP</span> 
+						</td>
+						<td>
+							<input id="localIP" type="text" maxlength="15" oninput="updateWifiSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span id="gatewayLabel">Gateway</span> 
+						</td>
+						<td>
+							<input id="gateway" type="text" maxlength="15" oninput="updateWifiSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span id="subnetLabel">Subnet</span> 
+						</td>
+						<td>
+							<input id="subnet" type="text" maxlength="15" oninput="updateWifiSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span id="dns1Label">DNS 1</span> 
+						</td>
+						<td>
+							<input id="dns1" type="text" maxlength="15" oninput="updateWifiSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span id="dns2Label">DNS 2</span> 
+						</td>
+						<td>
+							<input id="dns2" type="text" maxlength="15" oninput="updateWifiSettings()">
+						</td>
+					</tr>
+					<!-- <tr>
+						<td>
+							<span>Bluetooth enabled</span> 
+						</td>
+						<td>
+							<input id="bluetoothEnabled" type="checkbox" onclick="updateBlueToothSettings()"></input>
+						</td>
+					</tr> -->
+				</table>
+			</div>
+		</div>
 	</div>
     <button type="submit" id="resetBtn" name="reset" disabled="true">Restart device</button>
   </form>
