@@ -30,7 +30,7 @@
 	"Lube_Pin": 23,
 	"Temp_PIN": 5,
 	"Heater_PIN":  33,
-	"staticIP": true,
+	"staticIP": false,
 	"localIP": "192.168.0.150",
 	"gateway": "192.168.0.1",
 	"subnet": "255.255.255.0",

@@ -171,7 +171,7 @@ class WebHandler {
 
             server.on("/restart", HTTP_POST, [](AsyncWebServerRequest *request)
             {
-                request->send(200, "text/plain","Restarting device, wait about 10-20 seconds and navigate to the network IP address in your browser address bar.");
+                request->send(200, "text/plain",String("Restarting device, wait about 10-20 seconds and navigate to ") + (SettingsHandler::hostname) + ".local or the network IP address in your browser address bar.");
                 delay(2000);
                 Serial.println("Device restarting...");
                 ESP.restart();

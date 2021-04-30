@@ -43,10 +43,17 @@ body {
 }
 .rootTable {
 	align-self: center;
+  display: flex;
+  flex-flow: row;
+  flex-basis: 100%;
+  flex-wrap: wrap;
 }
-.rootTable > tbody > tr > td {
+.rootTable > div {
 	vertical-align:top;
-	padding: 16px;
+	margin: 16px;
+}
+.formTable h3 {
+  text-align: right;
 }
 .formTable > tbody > tr > td:last-child {
 	text-align: left;

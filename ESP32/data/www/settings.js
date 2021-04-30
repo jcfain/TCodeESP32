@@ -456,6 +456,7 @@ function getWifiSettings()
     $("#ssid").val(userSettings["ssid"]);
     $("#wifiPass").val(userSettings["wifiPass"]);
     $("#staticIP").prop('checked', userSettings["staticIP"]);
+    toggleStaticIPSettings(userSettings["staticIP"]);
     $("#localIP").val(userSettings["localIP"]);
     $("#gateway").val(userSettings["gateway"]);
     $("#subnet").val(userSettings["subnet"]);
@@ -508,6 +509,7 @@ function updateWifiSettings() {
 	var dns1 = $('#dns1').val();
 	var dns2 = $('#dns2').val();
     userSettings["staticIP"] = staticIP;
+    toggleStaticIPSettings(staticIP);
     userSettings["localIP"] = localIP;
     userSettings["gateway"] = gateway;
     userSettings["subnet"] = subnet;
@@ -517,7 +519,36 @@ function updateWifiSettings() {
 	updateUserSettings();
 	
 }
+function toggleStaticIPSettings(enabled)
+{
+    if(!enabled) 
+    {
+        $('#localIPLabel').hide();
+        $('#gatewayLabel').hide();
+        $('#subnetLabel').hide();
+        $('#dns1Label').hide();
+        $('#dns2Label').hide();
+        $('#localIP').hide();
+        $('#gateway').hide();
+        $('#subnet').hide();
+        $('#dns1').hide();
+        $('#dns2').hide();
+    } 
+    else
+    {
+        $('#localIPLabel').show();
+        $('#gatewayLabel').show();
+        $('#subnetLabel').show();
+        $('#dns1Label').show();
+        $('#dns2Label').show();
+        $('#localIP').show();
+        $('#gateway').show();
+        $('#subnet').show();
+        $('#dns1').show();
+        $('#dns2').show();
+    }
 
+}
 function updateBlueToothSettings()
 {
     userSettings["bluetoothEnabled"] = $('#bluetoothEnabled').prop('checked');
