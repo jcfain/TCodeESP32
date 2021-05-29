@@ -228,19 +228,30 @@ class SettingsHandler
         }
 
         //Untested
-        static bool parse(const char* jsonInput) 
+        static bool parse(const String jsonInput) 
         {
             DynamicJsonDocument doc(readCapacity);
-            DeserializationError error = deserializeJson(doc, jsonInput, sizeof(jsonInput));
+            DeserializationError error = deserializeJson(doc, jsonInput);
             if (error) 
             {
-                Serial.println(F("Failed to read settings file, using default configuration"));
+                Serial.println(F("Failed to deserialize json string"));
                 return false;
             }
             update(doc.as<JsonObject>());
+            save();
             return true;
         }
-
+        static char* getJsonForBLE() 
+        {
+            //DynamicJsonDocument doc(readCapacity);
+            //DeserializationError error = deserializeJson(doc, jsonInput, sizeof(jsonInput));
+            const char* filename = "/userSettings.json";
+            File file = SPIFFS.open(filename, "r");
+            size_t size = file.size();
+            char bytes[size];
+            file.readBytes(bytes, size);
+            return bytes;
+        }
         static bool save() 
         {
             const char* filename = "/userSettings.json";

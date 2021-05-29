@@ -32,13 +32,14 @@ SOFTWARE. */
 #include "UdpHandler.h"
 #include "WebHandler.h"
 //#include "OTAHandler.h"
+//#include "BLEHandler.h"
 
 //BluetoothHandler btHandler;
 Udphandler udpHandler;
 ServoHandler servoHandler;
 WifiHandler wifi;
 WebHandler webHandler;
-
+//BLEHandler bleHandler;
 DisplayHandler* displayHandler;
 TaskHandle_t temperatureTask;
 TaskHandle_t displayTask;
@@ -102,7 +103,7 @@ void setup()
 				displayHandler->println("APMode started");
 				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
 			}
-			
+			displayHandler->println("Starting BLE setup");
 		}
 	} 
 	else 
@@ -114,12 +115,14 @@ void setup()
 			displayHandler->println("APMode started");
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
 		}
+		displayHandler->println("Starting BLE setup");
 	}
 	// if(SettingsHandler::bluetoothEnabled)
 	// {
     // 	btHandler.setup();
 	// }
     //otaHandler.setup();
+	//bleHandler.setup();
 	displayHandler->println("Setting up servos");
     servoHandler.setup(SettingsHandler::servoFrequency);
 	setupSucceeded = true;
