@@ -32,14 +32,14 @@ SOFTWARE. */
 #include "UdpHandler.h"
 #include "WebHandler.h"
 //#include "OTAHandler.h"
-//#include "BLEHandler.h"
+#include "BLEHandler.h"
 
 //BluetoothHandler btHandler;
 Udphandler udpHandler;
 ServoHandler servoHandler;
 WifiHandler wifi;
 WebHandler webHandler;
-//BLEHandler bleHandler;
+BLEHandler* bleHandler = new BLEHandler();
 DisplayHandler* displayHandler;
 TaskHandle_t temperatureTask;
 TaskHandle_t displayTask;
@@ -98,31 +98,40 @@ void setup()
 			displayHandler->println("Connection failed");
 			displayHandler->println("Starting in APMode");
 			apMode = true;
-			if (wifi.startAp()) 
+			if (wifi.startAp(bleHandler)) 
 			{
 				displayHandler->println("APMode started");
 				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
+			} 
+			else 
+			{
+				displayHandler->println("APMode start failed");
 			}
-			displayHandler->println("Starting BLE setup");
+			// displayHandler->println("Starting BLE setup");
+			// bleHandler->setup();
 		}
 	} 
 	else 
 	{
 		apMode = true;
 		displayHandler->println("Starting in APMode");
-		if (wifi.startAp()) 
+		if (wifi.startAp(bleHandler)) 
 		{
 			displayHandler->println("APMode started");
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
 		}
+		else 
+		{
+			displayHandler->println("APMode start failed");
+		}
 		displayHandler->println("Starting BLE setup");
+		bleHandler->setup();
 	}
 	// if(SettingsHandler::bluetoothEnabled)
 	// {
     // 	btHandler.setup();
 	// }
     //otaHandler.setup();
-	//bleHandler.setup();
 	displayHandler->println("Setting up servos");
     servoHandler.setup(SettingsHandler::servoFrequency);
 	setupSucceeded = true;

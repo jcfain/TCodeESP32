@@ -48,7 +48,10 @@ class WebHandler {
         }
 
     public:
+        bool initialized = false;
+        bool MDNSInitialized = false;
         void setup(int port, char* hostName, char* friendlyName, bool apMode = false) {
+            stop();
             // Changing the port at runtime crashes the ESP32.
             // if (port == 0) {
             //     port = 80;
@@ -58,7 +61,10 @@ class WebHandler {
             // server = AsyncWebServer(port);
 
             // This has issues running with the webserver.
-            startMDNS(hostName, friendlyName);
+            if(!apMode)
+            {
+                startMDNS(hostName, friendlyName);
+            }
 
             // Route for root / web page
             // if (apMode) 
@@ -220,11 +226,26 @@ class WebHandler {
             //server.rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
             server.serveStatic("/", SPIFFS, "/www/");
             server.begin();
+            initialized = true;
+        }
+        void stop() {
+            if(initialized) 
+            {
+                initialized = false;
+                server.end();
+            }
+            if(MDNSInitialized)
+            {
+                 MDNS.end();
+                 MDNSInitialized = false;
+            }
         }
 
         private:
             void startMDNS(char* hostName, char* friendlyName)
             {
+                if(MDNSInitialized)
+                    MDNS.end();
                 Serial.print("hostName: ");
                 Serial.println(hostName);
                 Serial.print("friendlyName: ");
@@ -236,5 +257,6 @@ class WebHandler {
                 MDNS.setInstanceName(friendlyName);
                 MDNS.addService("http", "tcp", 80);
                 MDNS.addService("tcode", "udp", SettingsHandler::udpServerPort);
+                MDNSInitialized = true;
             }
 };

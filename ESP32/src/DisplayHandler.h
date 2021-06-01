@@ -208,6 +208,7 @@ class DisplayHandler
 		{
 			display.println(value);
 			display.display();	
+			//Serial.println(value);
 			//display.startvertscroll(0x04, 0x1F, true);
 		}
 	}
