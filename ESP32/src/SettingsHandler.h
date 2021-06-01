@@ -241,6 +241,7 @@ class SettingsHandler
             save();
             return true;
         }
+        
         static char* getJsonForBLE() 
         {
             //DynamicJsonDocument doc(readCapacity);
@@ -248,10 +249,74 @@ class SettingsHandler
             const char* filename = "/userSettings.json";
             File file = SPIFFS.open(filename, "r");
             size_t size = file.size();
-            char bytes[size];
+            char* bytes = new char[size];
             file.readBytes(bytes, size);
             return bytes;
         }
+
+        static String serializeWifiSettings()
+        {
+            DynamicJsonDocument doc(serialize);
+            String output;
+            doc["ssid"] = ssid;
+            doc["wifiPass"] = wifiPass;
+			doc["staticIP"] = staticIP;
+			doc["localIP"] = localIP;
+			doc["gateway"] = gateway;
+			doc["subnet"] = subnet;
+			doc["dns1"] = dns1;
+			doc["dns2"] = dns2;
+            doc["servoFrequency"] = servoFrequency;
+			doc["sr6Mode"] = sr6Mode;
+            if (serializeJson(doc, output) == 0) 
+            {
+                Serial.println(F("Failed to write to file"));
+                return "{}";
+            }
+            return output;
+        }
+
+        static bool derializeWifiSettings(String data)
+        {
+            String output;
+            DynamicJsonDocument doc(deserialize);
+            DeserializationError error = deserializeJson(doc, data);
+            if (error) 
+            {
+                Serial.println(F("Failed to read settings file, using default configuration"));
+                return false;
+            }
+            const char* ssidConst = doc["ssid"];
+            if( ssid != nullptr) 
+            {
+                strcpy(ssid, ssidConst);
+            }
+            const char* wifiPassConst = doc["wifiPass"];
+            if( wifiPass != nullptr) 
+            {
+                strcpy(wifiPass, wifiPassConst);
+            }
+            staticIP = doc["staticIP"];
+            servoFrequency = doc["servoFrequency"] | 50;
+            const char* localIPTemp = doc["localIP"];
+            if (localIPTemp != nullptr)
+                strcpy(localIP, localIPTemp);
+            const char* gatewayTemp = doc["gateway"];
+            if (gatewayTemp != nullptr)
+                strcpy(gateway, gatewayTemp);
+            const char* subnetTemp = doc["subnet"];
+            if (subnetTemp != nullptr)
+                strcpy(subnet, subnetTemp);
+            const char* dns1Temp = doc["dns1"];
+            if (dns1Temp != nullptr)
+                strcpy(dns1, dns1Temp);
+            const char* dns2Temp = doc["dns2"];
+            if (dns2Temp != nullptr)
+                strcpy(dns2, dns2Temp);
+            sr6Mode = doc["sr6Mode"];
+            return save();
+        }
+
         static bool save() 
         {
             const char* filename = "/userSettings.json";
@@ -333,7 +398,6 @@ class SettingsHandler
 			
 
             //LogSaveDebug(doc);
-
             if (serializeJson(doc, file) == 0) 
             {
                 Serial.println(F("Failed to write to file"));
@@ -634,7 +698,7 @@ class SettingsHandler
 
 
 const char SettingsHandler::TCodeVersion[11] = "TCode v0.2";
-const char SettingsHandler::TCodeESP32Version[14] = "ESP32 v0.163b";
+const char SettingsHandler::TCodeESP32Version[14] = "ESP32 v0.164b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 bool SettingsHandler::bluetoothEnabled = true;
 char SettingsHandler::ssid[32];

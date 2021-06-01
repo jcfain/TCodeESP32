@@ -122,6 +122,7 @@ public:
     // This is run once, when the arduino starts
     void setup(int servoFrequency) 
     {
+		toy.setup();
         toy.identifyTCode();
         
     	RightServo_ZERO = SettingsHandler::RightServo_ZERO;
@@ -377,7 +378,7 @@ public:
 				int rightUpperValue = SetMainServo(16248 - fwd, 1500 - thrust + roll);//reversed both rights
 				int rightLowerValue = SetMainServo(16248 - fwd, 1500 + thrust - roll);
 				// Pitcher
-				int picthLeftValue = SetPitchServo(16248 - fwd, 4500 - thrust,  side - 1.5*roll, -pitch);
+				int pitchLeftValue = SetPitchServo(16248 - fwd, 4500 - thrust,  side - 1.5*roll, -pitch);
 				int pitchRightValue = SetPitchServo(16248 - fwd, 4500 - thrust, -side + 1.5*roll, -pitch);
 
 				if (leftServoConnected != 0) 
@@ -389,7 +390,7 @@ public:
 				if (rightUpperServoConnected != 0) 
 					RightUpperServo.writeMicroseconds(RightUpperServo_ZERO - rightUpperValue);
 				if (pitchServoConnected != 0) 
-					PitchLeftServo.writeMicroseconds(constrain(PitchLeftServo_ZERO - picthLeftValue, PitchLeftServo_ZERO-600, PitchLeftServo_ZERO+1000));
+					PitchLeftServo.writeMicroseconds(constrain(PitchLeftServo_ZERO - pitchLeftValue, PitchLeftServo_ZERO-600, PitchLeftServo_ZERO+1000));
 				if (pitchRightServoConnected != 0) 
 					PitchRightServo.writeMicroseconds(constrain(PitchRightServo_ZERO + pitchRightValue, PitchRightServo_ZERO-1000, PitchRightServo_ZERO+600));
 			}

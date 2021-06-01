@@ -28,8 +28,9 @@
 class ToyComms {
   public:
 	//String command;
+  
     // Setup function
-    ToyComms() {
+    void setup() {
       // Centralise everything
       xL1[0] = 500;
       xL1[1] = 500;
@@ -37,7 +38,7 @@ class ToyComms {
       xL1[3] = 500;
       xR1[0] = 500;
       xR1[1] = 500;
-      xR1[2] = 750;
+      xR1[2] = SettingsHandler::sr6Mode ? 750 : 500;
     }
 
     // Function to process serial input
