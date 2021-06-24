@@ -372,27 +372,61 @@ public:
 				thrust = map(xLin,0,1000,-6000,6000);
     			side = map(zLin,0,1000,-3000,3000);
 
-				// Main
-				int leftLowerValue = SetMainServo(16248 - fwd, 1500 + thrust + roll);
-				int leftUpperValue = SetMainServo(16248 - fwd, 1500 - thrust - roll);
-				int rightUpperValue = SetMainServo(16248 - fwd, 1500 - thrust + roll);//reversed both rights
-				int rightLowerValue = SetMainServo(16248 - fwd, 1500 + thrust - roll);
-				// Pitcher
-				int pitchLeftValue = SetPitchServo(16248 - fwd, 4500 - thrust,  side - 1.5*roll, -pitch);
-				int pitchRightValue = SetPitchServo(16248 - fwd, 4500 - thrust, -side + 1.5*roll, -pitch);
+				if(SettingsHandler::inverseStroke) 
+				{
+					// Main
+					int leftLowerValue = SetMainServo(16248 - fwd, 1500 - thrust - roll);
+					int leftUpperValue = SetMainServo(16248 - fwd, 1500 + thrust + roll);
+					if (leftServoConnected != 0) 
+						LeftServo.writeMicroseconds(LeftServo_ZERO - leftLowerValue);
+					if (leftUpperServoConnected != 0) 
+						LeftUpperServo.writeMicroseconds(LeftUpperServo_ZERO + leftUpperValue);
 
-				if (leftServoConnected != 0) 
-					LeftServo.writeMicroseconds(LeftServo_ZERO - leftLowerValue);
-				if (leftUpperServoConnected != 0) 
-					LeftUpperServo.writeMicroseconds(LeftUpperServo_ZERO + leftUpperValue);
-				if (rightServoConnected != 0) 
-					RightServo.writeMicroseconds(RightServo_ZERO + rightLowerValue);//reversed both rights
-				if (rightUpperServoConnected != 0) 
-					RightUpperServo.writeMicroseconds(RightUpperServo_ZERO - rightUpperValue);
-				if (pitchServoConnected != 0) 
-					PitchLeftServo.writeMicroseconds(constrain(PitchLeftServo_ZERO - pitchLeftValue, PitchLeftServo_ZERO-600, PitchLeftServo_ZERO+1000));
-				if (pitchRightServoConnected != 0) 
-					PitchRightServo.writeMicroseconds(constrain(PitchRightServo_ZERO + pitchRightValue, PitchRightServo_ZERO-1000, PitchRightServo_ZERO+600));
+					int rightUpperValue = SetMainServo(16248 - fwd, 1500 + thrust - roll);//reversed both rights
+					int rightLowerValue = SetMainServo(16248 - fwd, 1500 - thrust + roll);
+					if (rightServoConnected != 0) 
+						RightServo.writeMicroseconds(RightServo_ZERO + rightLowerValue);//reversed both rights
+					if (rightUpperServoConnected != 0) 
+						RightUpperServo.writeMicroseconds(RightUpperServo_ZERO - rightUpperValue);
+				} 
+				else 
+				{
+					// Main
+					int leftLowerValue = SetMainServo(16248 - fwd, 1500 + thrust + roll);
+					int leftUpperValue = SetMainServo(16248 - fwd, 1500 - thrust - roll);
+					if (leftServoConnected != 0) 
+						LeftServo.writeMicroseconds(LeftServo_ZERO - leftLowerValue);
+					if (leftUpperServoConnected != 0) 
+						LeftUpperServo.writeMicroseconds(LeftUpperServo_ZERO + leftUpperValue);
+
+					int rightUpperValue = SetMainServo(16248 - fwd, 1500 - thrust + roll);//reversed both rights
+					int rightLowerValue = SetMainServo(16248 - fwd, 1500 + thrust - roll);
+					if (rightServoConnected != 0) 
+						RightServo.writeMicroseconds(RightServo_ZERO + rightLowerValue);//reversed both rights
+					if (rightUpperServoConnected != 0) 
+						RightUpperServo.writeMicroseconds(RightUpperServo_ZERO - rightUpperValue);
+				}
+
+				if(SettingsHandler::inversePitch) 
+				{
+					// Pitcher
+					int pitchLeftValue = SetPitchServo(16248 - fwd, 4500 - thrust,  side - 1.5*roll, -pitch);
+					int pitchRightValue = SetPitchServo(16248 - fwd, 4500 - thrust, -side + 1.5*roll, -pitch);
+					if (pitchServoConnected != 0) 
+						PitchLeftServo.writeMicroseconds(constrain(PitchLeftServo_ZERO + pitchLeftValue, PitchLeftServo_ZERO-1000, PitchLeftServo_ZERO+600));
+					if (pitchRightServoConnected != 0) 
+						PitchRightServo.writeMicroseconds(constrain(PitchRightServo_ZERO - pitchRightValue, PitchRightServo_ZERO-600, PitchRightServo_ZERO+1000));
+				}
+				else
+				{
+					// Pitcher
+					int pitchLeftValue = SetPitchServo(16248 - fwd, 4500 - thrust,  side - 1.5*roll, -pitch);
+					int pitchRightValue = SetPitchServo(16248 - fwd, 4500 - thrust, -side + 1.5*roll, -pitch);
+					if (pitchServoConnected != 0) 
+						PitchLeftServo.writeMicroseconds(constrain(PitchLeftServo_ZERO - pitchLeftValue, PitchLeftServo_ZERO-600, PitchLeftServo_ZERO+1000));
+					if (pitchRightServoConnected != 0) 
+						PitchRightServo.writeMicroseconds(constrain(PitchRightServo_ZERO + pitchRightValue, PitchRightServo_ZERO-1000, PitchRightServo_ZERO+600));
+				}
 			}
 			else 
 			{
@@ -421,12 +455,30 @@ public:
 				// Send signals to the servos
 				// Note: 1000 = -45deg, 2000 = +45deg
 
-				if (rightServoConnected != 0) 
-					RightServo.writeMicroseconds(RightServo_ZERO + stroke + roll);
-				if (leftServoConnected != 0) 
-					LeftServo.writeMicroseconds(LeftServo_ZERO - stroke + roll);
-				if (pitchServoConnected != 0) 
-					PitchLeftServo.writeMicroseconds(PitchLeftServo_ZERO - pitch);
+				if(SettingsHandler::inverseStroke) 
+				{
+					if (rightServoConnected != 0) 
+						RightServo.writeMicroseconds(RightServo_ZERO - stroke + roll);
+					if (leftServoConnected != 0) 
+						LeftServo.writeMicroseconds(LeftServo_ZERO + stroke + roll);
+				} 
+				else 
+				{
+					if (rightServoConnected != 0) 
+						RightServo.writeMicroseconds(RightServo_ZERO + stroke + roll);
+					if (leftServoConnected != 0) 
+						LeftServo.writeMicroseconds(LeftServo_ZERO - stroke + roll);
+				}
+				if(SettingsHandler::inversePitch) 
+				{
+					if (pitchServoConnected != 0) 
+						PitchLeftServo.writeMicroseconds(PitchLeftServo_ZERO + pitch);
+				}
+				else 
+				{
+					if (pitchServoConnected != 0) 
+						PitchLeftServo.writeMicroseconds(PitchLeftServo_ZERO - pitch);
+				}
 			}
 
 			int valve,twist;

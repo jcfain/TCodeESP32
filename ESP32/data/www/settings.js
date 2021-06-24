@@ -139,6 +139,8 @@ function getUserSettings()
 	$("#sr6Mode").prop('checked', userSettings["sr6Mode"]);
 	$("#autoValve").prop('checked', userSettings["autoValve"]);
 	$("#inverseValve").prop('checked', userSettings["inverseValve"]);
+	$("#inverseStroke").prop('checked', userSettings["inverseStroke"]);
+	$("#inversePitch").prop('checked', userSettings["inversePitch"]);
 
 	$("#displayEnabled").prop('checked', userSettings["displayEnabled"]);
 	$("#sleeveTempEnabled").prop('checked', userSettings["sleeveTempEnabled"]);
@@ -386,6 +388,7 @@ function updateFriendlyName()
 
 function setSR6Mode() {
     userSettings["sr6Mode"] = $('#sr6Mode').prop('checked');
+    showRestartRequired();
 	updateUserSettings();
 }
 
@@ -395,6 +398,14 @@ function setAutoValve() {
 }
 function setInverseValve() {
     userSettings["inverseValve"] = $('#inverseValve').prop('checked');
+	updateUserSettings();
+}
+function setInverseStroke() {
+    userSettings["inverseStroke"] = $('#inverseStroke').prop('checked');
+	updateUserSettings();
+}
+function setInversePitch() {
+    userSettings["inversePitch"] = $('#inversePitch').prop('checked');
 	updateUserSettings();
 }
 

@@ -46,6 +46,8 @@
 	"ValveServo_ZERO": 1500, 
 	"autoValve": false,
 	"inverseValve": false,
+	"inverseStroke": false,
+	"inversePitch": false,
 	"lubeAmount": 255,
 	"displayEnabled": true,
 	"sleeveTempEnabled": false,
