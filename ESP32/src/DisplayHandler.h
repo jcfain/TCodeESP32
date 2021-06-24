@@ -172,7 +172,6 @@ class DisplayHandler
 				if(SettingsHandler::sleeveTempEnabled)
 				{
 					float tempValue = TemperatureHandler::getTemp();
-					String tempStatus = TemperatureHandler::getControlStatus();
 					//Display Temperature
 					//Serial.println(tempValue);
 					display.setCursor(0,46);
@@ -185,9 +184,11 @@ class DisplayHandler
 						display.print((char)247);
 						display.print("C");
 					}
-					//Temperature Control
+				}
+				if(SettingsHandler::tempControlEnabled) {
 					display.fillRect(0, 56, SCREEN_WIDTH, 10, BLACK);
 					display.setCursor(15,56);
+					String tempStatus = TemperatureHandler::getControlStatus();
 					display.println(tempStatus);
 				}
 				display.display();

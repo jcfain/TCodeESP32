@@ -78,6 +78,8 @@ class SettingsHandler
     	static int ValveServo_ZERO;
 		static bool autoValve;
 		static bool inverseValve;
+		static bool inverseStroke;
+		static bool inversePitch;
 		static int lubeAmount;
 		static bool displayEnabled;
 		static bool sleeveTempEnabled;
@@ -203,6 +205,8 @@ class SettingsHandler
     			ValveServo_ZERO = json["ValveServo_ZERO"];
 				autoValve = json["autoValve"];
 				inverseValve = json["inverseValve"];
+				inverseStroke = json["inverseStroke"];
+				inversePitch = json["inversePitch"];
 				lubeAmount = json["lubeAmount"] | 255;
 				displayEnabled = json["displayEnabled"];
 				sleeveTempEnabled = json["sleeveTempEnabled"];
@@ -220,7 +224,7 @@ class SettingsHandler
 				Display_Rst_PIN = json["Display_Rst_PIN"] | -1;
 				WarmUpTime = json["WarmUpTime"] | 600000;
 
-                //LogUpdateDebug();
+                LogUpdateDebug();
 
                 return true;
             } 
@@ -379,6 +383,8 @@ class SettingsHandler
 			doc["ValveServo_ZERO"] = ValveServo_ZERO;
 			doc["autoValve"] = autoValve;
 			doc["inverseValve"] = inverseValve;
+			doc["inverseStroke"] = inverseStroke;
+			doc["inversePitch"] = inversePitch;
 			doc["lubeAmount"] = lubeAmount;
 			doc["displayEnabled"] = displayEnabled;
 			doc["sleeveTempEnabled"] = sleeveTempEnabled;
@@ -547,6 +553,10 @@ class SettingsHandler
             Serial.println((bool)doc["autoValve"]);
             Serial.print("save inverseValve ");
             Serial.println((bool)doc["inverseValve"]);
+            Serial.print("save inverseStroke ");
+            Serial.println((bool)doc["inverseStroke"]);
+            Serial.print("save inversePitch ");
+            Serial.println((bool)doc["inversePitch"]);
             Serial.print("save lubeAmount ");
             Serial.println((int)doc["lubeAmount"]);
             Serial.print("save Temp_PIN ");
@@ -665,6 +675,10 @@ class SettingsHandler
             Serial.println(autoValve);
             Serial.print("update inverseValve ");
             Serial.println(inverseValve);
+            Serial.print("update inverseStroke ");
+            Serial.println(inverseStroke);
+            Serial.print("update inversePitch ");
+            Serial.println(inversePitch);
             Serial.print("update lubeAmount ");
             Serial.println(lubeAmount);
 
@@ -698,7 +712,7 @@ class SettingsHandler
 
 
 const char SettingsHandler::TCodeVersion[11] = "TCode v0.2";
-const char SettingsHandler::TCodeESP32Version[14] = "ESP32 v0.164b";
+const char SettingsHandler::TCodeESP32Version[14] = "ESP32 v0.165b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 bool SettingsHandler::bluetoothEnabled = true;
 char SettingsHandler::ssid[32];
@@ -749,6 +763,8 @@ int SettingsHandler::TwistServo_ZERO = 1500;
 int SettingsHandler::ValveServo_ZERO = 1500; 
 bool SettingsHandler::autoValve = false;
 bool SettingsHandler::inverseValve = false;
+bool SettingsHandler::inverseStroke = false;
+bool SettingsHandler::inversePitch = false;
 int SettingsHandler::lubeAmount = 255;
 
 bool SettingsHandler::displayEnabled = false;
