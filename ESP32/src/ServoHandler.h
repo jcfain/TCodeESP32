@@ -482,11 +482,16 @@ public:
 			}
 
 			int valve,twist;
-			valve  = xValve - 500;
-			valve  = constrain(valve, -500, 500);
+			if(SettingsHandler::inverseValve)
+				valve  = 500 - xValve;
+			else 
+				valve  = xValve - 500;
+
+			valve = constrain(valve, -500, 500);
+
 			if (!SettingsHandler::continousTwist) 
 			{
-				twist  = 2*(xRot - map(twistPos,-1500,1500,1000,1));
+				twist = 2*(xRot - map(twistPos,-1500,1500,1000,1));
 				twist = constrain(twist, -750, 750);
 			} else {
 				twist = map(xRot,1,1000,-180,180);
