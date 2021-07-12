@@ -29,3 +29,5 @@ This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). I
     Upload the filesystem image and monitor the COM port to se the ip address if dynamic.
     
     You can also set the wifi settings via the web interface in AP mode on first boot.
+    Or you can use the Android configurator app I wrote found here:
+    https://www.patreon.com/posts/tcode-android-51962566
