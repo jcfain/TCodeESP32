@@ -1,4 +1,5 @@
 {
+	"TCodeVersion": 1,
 	"ssid": "YOUR SSID HERE",
 	"wifiPass": "YOUR PASSWORD HERE",
 	"hostname": "tcode",
@@ -48,6 +49,7 @@
 	"inverseValve": false,
 	"inverseStroke": false,
 	"inversePitch": false,
+	"valveServo90Degrees": false,
 	"lubeAmount": 255,
 	"displayEnabled": true,
 	"sleeveTempEnabled": false,

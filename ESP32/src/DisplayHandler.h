@@ -146,7 +146,7 @@ class DisplayHandler
 					display.print("IP: ");
 					display.println(_ipAddress);
 					display.setCursor(0,16);
-					display.print(SettingsHandler::TCodeVersion);
+					display.print(SettingsHandler::TCodeVersionName);
 					display.println(" Ready");
 					display.setCursor(0,26);
 					display.println(SettingsHandler::TCodeESP32Version);
@@ -158,7 +158,7 @@ class DisplayHandler
 					display.setCursor(0,16);
 					display.println("SSID: TCodeESP32Setup");
 					display.setCursor(0,26);
-					display.print(SettingsHandler::TCodeVersion);
+					display.print(SettingsHandler::TCodeVersionName);
 					display.println(" Ready");
 					display.setCursor(0,36);
 					display.println(SettingsHandler::TCodeESP32Version);

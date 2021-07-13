@@ -39,12 +39,7 @@ async function onDocumentLoad()
 		} else {
 			response.json().then(data => {
 				userSettings = data;
-				if ($("#xMin").length) {
-					getUserSettings()
-					getWifiSettings();
-				} else {
-					getWifiSettings();
-				}
+                getUserSettings()
 			});
 		}
 	});
@@ -81,6 +76,9 @@ function onDefaultClick()
 
 function getUserSettings() 
 {
+    toggleNonTCodev3Options(userSettings["TCodeVersion"] == 1);
+    toggleDeviceOptions(userSettings["sr6Mode"]);
+    toggleStaticIPSettings(userSettings["staticIP"]);
     var xMin = userSettings["xMin"];
     var xMax = userSettings["xMax"];
     $("#xMin").val(xMin);
@@ -139,6 +137,7 @@ function getUserSettings()
 	$("#sr6Mode").prop('checked', userSettings["sr6Mode"]);
 	$("#autoValve").prop('checked', userSettings["autoValve"]);
 	$("#inverseValve").prop('checked', userSettings["inverseValve"]);
+	$("#valveServo90Degrees").prop('checked', userSettings["valveServo90Degrees"]);
 	$("#inverseStroke").prop('checked', userSettings["inverseStroke"]);
 	$("#inversePitch").prop('checked', userSettings["inversePitch"]);
 
@@ -155,7 +154,17 @@ function getUserSettings()
 	$("#Temp_PIN").val(userSettings["Temp_PIN"]);
 	$("#Heater_PIN").val(userSettings["Heater_PIN"]);
 	$("#WarmUpTime").val(userSettings["WarmUpTime"]);
+    $('#TCodeVersion').val(userSettings["TCodeVersion"]).prop('selected', true);
 	
+    $("#ssid").val(userSettings["ssid"]);
+    $("#wifiPass").val(userSettings["wifiPass"]);
+    $("#staticIP").prop('checked', userSettings["staticIP"]);
+    $("#localIP").val(userSettings["localIP"]);
+    $("#gateway").val(userSettings["gateway"]);
+    $("#subnet").val(userSettings["subnet"]);
+    $("#dns1").val(userSettings["dns1"]);
+    $("#dns2").val(userSettings["dns2"]);
+
     documentLoaded = true;
 }
 
@@ -388,6 +397,7 @@ function updateFriendlyName()
 
 function setSR6Mode() {
     userSettings["sr6Mode"] = $('#sr6Mode').prop('checked');
+    toggleDeviceOptions(userSettings["sr6Mode"]);
     showRestartRequired();
 	updateUserSettings();
 }
@@ -399,6 +409,26 @@ function setAutoValve() {
 function setInverseValve() {
     userSettings["inverseValve"] = $('#inverseValve').prop('checked');
 	updateUserSettings();
+}
+function setValveServo90Degrees() {
+	var checked = $('#valveServo90Degrees').prop('checked');
+	if (checked) 
+	{
+		if (confirm("WARNING! If you 90 degree servo\nMAKE SURE YOU ARE NOT USING THE T-Valve LID!\nThe servo will stall hitting the wall and burn out!")) 
+		{
+			userSettings["valveServo90Degrees"] = checked;
+			updateUserSettings();
+		} 
+		else 
+		{
+			$('#valveServo90Degrees').prop('checked', false);
+		} 
+	}
+	else
+	{
+		userSettings["valveServo90Degrees"] = false;
+		updateUserSettings();
+	}
 }
 function setInverseStroke() {
     userSettings["inverseStroke"] = $('#inverseStroke').prop('checked');
@@ -413,25 +443,29 @@ function updatePins()
 {
     userSettings["TwistFeedBack_PIN"] = $('#TwistFeedBack_PIN').val();
     userSettings["RightServo_PIN"] = $('#RightServo_PIN').val();
-    userSettings["RightServo_ZERO"] = $('#RightServo_ZERO').val();
     userSettings["LeftServo_PIN"] = $('#LeftServo_PIN').val();
-    userSettings["LeftServo_ZERO"] = $('#LeftServo_ZERO').val();
     userSettings["RightUpperServo_PIN"] = $('#RightUpperServo_PIN').val();
-    userSettings["RightUpperServo_ZERO"] = $('#RightUpperServo_ZERO').val();
     userSettings["LeftUpperServo_PIN"] = $('#LeftUpperServo_PIN').val();
-    userSettings["LeftUpperServo_ZERO"] = $('#LeftUpperServo_ZERO').val();
     userSettings["PitchLeftServo_PIN"] = $('#PitchLeftServo_PIN').val();
-    userSettings["PitchLeftServo_ZERO"] = $('#PitchLeftServo_ZERO').val();
     userSettings["PitchRightServo_PIN"] = $('#PitchRightServo_PIN').val();
-    userSettings["PitchRightServo_ZERO"] = $('#PitchRightServo_ZERO').val();
     userSettings["ValveServo_PIN"] = $('#ValveServo_PIN').val();
-    userSettings["ValveServo_ZERO"] = $('#ValveServo_ZERO').val();
     userSettings["TwistServo_PIN"] = $('#TwistServo_PIN').val();
-    userSettings["TwistServo_ZERO"] = $('#TwistServo_ZERO').val();
     userSettings["Vibe0_PIN"] = $('#Vibe0_PIN').val();
 	userSettings["Vibe1_PIN"] = $('#Vibe1_PIN').val();
 	userSettings["Lube_Pin"] = $('#Lube_Pin').val();
     showRestartRequired();
+    updateUserSettings();
+}
+function updateZeros() 
+{
+    userSettings["RightServo_ZERO"] = $('#RightServo_ZERO').val();
+    userSettings["LeftServo_ZERO"] = $('#LeftServo_ZERO').val();
+    userSettings["RightUpperServo_ZERO"] = $('#RightUpperServo_ZERO').val();
+    userSettings["LeftUpperServo_ZERO"] = $('#LeftUpperServo_ZERO').val();
+    userSettings["PitchLeftServo_ZERO"] = $('#PitchLeftServo_ZERO').val();
+    userSettings["PitchRightServo_ZERO"] = $('#PitchRightServo_ZERO').val();
+    userSettings["ValveServo_ZERO"] = $('#ValveServo_ZERO').val();
+    userSettings["TwistServo_ZERO"] = $('#TwistServo_ZERO').val();
     updateUserSettings();
 }
 function updateLubeAmount()
@@ -458,22 +492,6 @@ function setDisplaySettings()
 	
     showRestartRequired();
     updateUserSettings();
-}
-
-//wifiSettings.htm functions
-
-function getWifiSettings() 
-{
-    $("#ssid").val(userSettings["ssid"]);
-    $("#wifiPass").val(userSettings["wifiPass"]);
-    $("#staticIP").prop('checked', userSettings["staticIP"]);
-    toggleStaticIPSettings(userSettings["staticIP"]);
-    $("#localIP").val(userSettings["localIP"]);
-    $("#gateway").val(userSettings["gateway"]);
-    $("#subnet").val(userSettings["subnet"]);
-    $("#dns1").val(userSettings["dns1"]);
-    $("#dns2").val(userSettings["dns2"]);
-    documentLoaded = true;
 }
 
 function connectWifi() {
@@ -558,11 +576,44 @@ function toggleStaticIPSettings(enabled)
         $('#dns1').show();
         $('#dns2').show();
     }
-
 }
+function toggleDeviceOptions(sr6Mode)
+{
+    if(sr6Mode) 
+    {
+        $('.osrOnly').hide();
+        $('.sr6Only').show();
+    } 
+    else
+    {
+        $('.osrOnly').show();
+        $('.sr6Only').hide();
+    }
+}
+
+function toggleNonTCodev3Options(v3)
+{
+    if(v3) 
+    {
+        $('.v2Only').hide();
+    } 
+    else
+    {
+        $('.v2Only').show();
+    }
+}
+
 function updateBlueToothSettings()
 {
     userSettings["bluetoothEnabled"] = $('#bluetoothEnabled').prop('checked');
+	showRestartRequired();
+	updateUserSettings();
+}
+
+function setTCodeVersion() 
+{
+    userSettings["TCodeVersion"] = parseInt($('#TCodeVersion').val());
+    toggleNonTCodev3Options(userSettings["TCodeVersion"] == 1)
 	showRestartRequired();
 	updateUserSettings();
 }
