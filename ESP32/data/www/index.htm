@@ -25,7 +25,26 @@
 					<h2>General Settings</h2>
 				</div>
 				<table id="deviceSettingsTable" class="formTable">
-					<tr>
+					<tr title="Choose the version of TCode you want the firmware to use.">
+						<td>
+							<span>TCode version</span> 
+						</td>
+						<td>
+							<select name="TCodeVersion" id="TCodeVersion" onchange="setTCodeVersion()">
+								<option value="0">V2</option>
+								<option value="1">V3</option>
+							</select>
+						</td>
+					</tr>
+					<tr title="Uncheck this if you are building an OSR">
+						<td>
+							<span>SR6 mode</span> 
+						</td>
+						<td>
+							<input id="sr6Mode" type="checkbox" onclick="setSR6Mode()"></input>
+						</td>
+					</tr>
+					<tr title="This sets the frequency of the main servos. L/R and Pitch">
 						<td>
 							<span>Servo Frequency</span> 
 						</td>
@@ -33,7 +52,7 @@
 							<input id="servoFrequency" type="text" oninput="updateServoFrequency()">
 						</td>
 					</tr>
-					<tr>
+					<tr title="This will revert the T-Valve to the original behavior. (Depricated)" class="v2Only">
 						<td>
 							<span>Auto T-Valve</span> 
 						</td>
@@ -41,12 +60,20 @@
 							<input id="autoValve" type="checkbox" onclick="setAutoValve()"></input>
 						</td>
 					</tr>
-					<tr>
+					<tr title="Check this if your T-Valve micro servo closes on down stroke. aka:MG90S">
 						<td>
 							<span>Inverse T-Valve</span> 
 						</td>
 						<td>
 							<input id="inverseValve" type="checkbox" onclick="setInverseValve()"></input>
+						</td>
+					</tr>
+					<tr title="Check this if your T-Valve micro servo is 90 degrees range instead of 180. aka:MG90S">
+						<td>
+							<span>T-Valve 90 degree servo</span> 
+						</td>
+						<td>
+							<input id="valveServo90Degrees" type="checkbox" onclick="setValveServo90Degrees()"></input>
 						</td>
 					</tr>
 					<tr>
@@ -57,7 +84,7 @@
 							<input id="inverseStroke" type="checkbox" onclick="setInverseStroke()"></input>
 						</td>
 					</tr>
-					<tr>
+					<tr class="osrOnly">
 						<td>
 							<span>Inverse Pitch</span> 
 						</td>
@@ -73,7 +100,7 @@
 							<input id="RightServo_PIN" type="text" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="RightServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+							<input id="RightServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -84,7 +111,7 @@
 							<input id="LeftServo_PIN" type="text" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="LeftServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+							<input id="LeftServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -95,7 +122,7 @@
 							<input id="PitchLeftServo_PIN" type="text" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="PitchLeftServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+							<input id="PitchLeftServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -106,7 +133,7 @@
 							<input id="ValveServo_PIN" type="text" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="ValveServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+							<input id="ValveServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -117,7 +144,7 @@
 							<input id="TwistServo_PIN" type="text" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="TwistServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+							<input id="TwistServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -168,7 +195,7 @@
 							<input id="lubeAmount" type="text" maxlength="3" oninput="updateLubeAmount()">
 						</td>
 					</tr>
-					<tr>
+					<tr title="The UDP port on which TCode is sent over the network on. Change this if you have a conflict on your local network.\nOtherwise, just leave it be.">
 						<td>
 							<span>Udp port</span> 
 						</td>
@@ -176,7 +203,7 @@
 							<input id="udpServerPort" type="text" maxlength="5" oninput="updateUdpPort()">
 						</td>
 					</tr>
-					<tr>
+					<tr title="This is the name of the device you will use to access this page after WiFi connection. default(tcode.local)\nSome routers DO NOT support mDNS so you may need to use the IP address anyways.\n\nYou may also use this address in some apps (XTP) to send TCode over the network.">
 						<td>
 							<span>Host name</span> 
 						</td>
@@ -303,19 +330,11 @@
 					</tr>
 				</table>
 			</div>
-			<div>
+			<div class="sr6Only">
 				<div>
-					<h2>SR6 (Only) Settings</h2>
+					<h2>SR6 Settings</h2>
 				</div>
 				<table id="deviceSR6SettingsTable" class="formTable">
-					<tr>
-						<td>
-							<span>SR6 mode</span> 
-						</td>
-						<td>
-							<input id="sr6Mode" type="checkbox" onclick="setSR6Mode()"></input>
-						</td>
-					</tr>
 					<tr>
 						<td>
 							<span>Right Upper Servo PIN/ZERO</span> 
@@ -324,7 +343,7 @@
 							<input id="RightUpperServo_PIN" type="text" maxlength="3" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="RightUpperServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+							<input id="RightUpperServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -335,7 +354,7 @@
 							<input id="LeftUpperServo_PIN" type="text" maxlength="3" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="LeftUpperServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+							<input id="LeftUpperServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -346,7 +365,7 @@
 							<input id="PitchRightServo_PIN" type="text" maxlength="3" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="PitchRightServo_ZERO" type="text" maxlength="4" oninput="updatePins()">
+							<input id="PitchRightServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
 						</td>
 					</tr>
 				</table>
@@ -356,9 +375,9 @@
 					<h2>Wireless Settings</h2>
 				</div>
 				<table id="wirelessSettingsTable" class="formTable">
-					<tr>
+					<tr title="The ESP32 currently only supports 2.4ghz connections.\nIf you enter a 5ghz ssid here your ESP32 WILL NOT CONNECT!">
 						<td>
-							<span>SSID</span> 
+							<span>SSID (2.4ghz only)</span> 
 						</td>
 						<td>
 							<input id="ssid" type="text" maxlength="32" oninput="updateWifiSettings()">

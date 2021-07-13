@@ -28,7 +28,8 @@ SOFTWARE. */
 #include "TemperatureHandler.h"
 #include "DisplayHandler.h"
 #include "BluetoothHandler.h"
-#include "ServoHandler.h"
+#include "TCode/v2/ServoHandler2.h"
+#include "TCode/v3/ServoHandler3.h"
 #include "UdpHandler.h"
 #include "WebHandler.h"
 //#include "OTAHandler.h"
@@ -36,7 +37,8 @@ SOFTWARE. */
 
 //BluetoothHandler btHandler;
 Udphandler udpHandler;
-ServoHandler servoHandler;
+ServoHandler2 servoHandler2;
+ServoHandler3 servoHandler3;
 WifiHandler wifi;
 WebHandler webHandler;
 BLEHandler* bleHandler = new BLEHandler();
@@ -133,7 +135,11 @@ void setup()
 	// }
     //otaHandler.setup();
 	displayHandler->println("Setting up servos");
-    servoHandler.setup(SettingsHandler::servoFrequency);
+	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) {
+    	servoHandler2.setup(SettingsHandler::servoFrequency);
+	} else {
+		servoHandler3.setup(SettingsHandler::servoFrequency);
+	}
 	setupSucceeded = true;
 	displayHandler->clearDisplay();
 	displayHandler->println("Starting system...");
@@ -161,26 +167,47 @@ void loop()
 		udpHandler.read(udpData);
 		if (!apMode && strlen(udpData) > 0) 
 		{
-			// Serial.print("udp writing: ");
-			// Serial.println(udpData);
-			for (char *c = udpData; *c; ++c) 
+			
+			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
 			{
-				servoHandler.read(*c);
-				servoHandler.execute();
+					// Serial.print("udp writing: ");
+					// Serial.println(udpData);
+					for (char *c = udpData; *c; ++c) 
+					{
+						servoHandler2.read(*c);
+						servoHandler2.execute();
+					}
+			} 
+			else 
+			{
+				servoHandler3.read(udpData);
 			}
 		} 
 		else if (Serial.available() > 0) 
 		{
-			servoHandler.read(Serial.read());
+			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
+			{
+				servoHandler2.read(Serial.read());
+			} 
+			else
+			{
+				char line[255]; 
+				Serial.readBytesUntil(10, line, 255);
+				servoHandler3.read(line);
+			}
 		} 
 		// else if (SettingsHandler::bluetoothEnabled && btHandler.isConnected() && btHandler.available() > 0) 
 		// {
 		// 	servoHandler.read(btHandler.read());
 		// }
-		if (strlen(udpData) == 0) // No wifi data
+		if (SettingsHandler::TCodeVersionEnum == TCodeVersion::v2 && strlen(udpData) == 0) // No wifi data
 		{
-			servoHandler.execute();
+			servoHandler2.execute();
 		} 
+		else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v3)
+		{
+			servoHandler3.execute();
+		}
 		if(SettingsHandler::tempControlEnabled)
 			TemperatureHandler::setControlStatus();
 	}

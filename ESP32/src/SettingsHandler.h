@@ -26,11 +26,16 @@ SOFTWARE. */
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
 
+enum TCodeVersion {
+    v2,
+    v3
+};
 
 class SettingsHandler 
 {
   public:
-        const static char TCodeVersion[11];
+        static String TCodeVersionName;
+        static TCodeVersion TCodeVersionEnum;
         const static char TCodeESP32Version[14];
         const static char HandShakeChannel[4];
 		static bool bluetoothEnabled;
@@ -80,6 +85,7 @@ class SettingsHandler
 		static bool inverseValve;
 		static bool inverseStroke;
 		static bool inversePitch;
+		static bool valveServo90Degrees;
 		static int lubeAmount;
 		static bool displayEnabled;
 		static bool sleeveTempEnabled;
@@ -146,6 +152,8 @@ class SettingsHandler
                 {
                     strcpy(wifiPass, wifiPassConst);
                 }
+                TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 1);
+                TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
                 udpServerPort = json["udpServerPort"] | 8000;
                 webServerPort = json["webServerPort"] | 80;
                 const char* hostnameTemp = json["hostname"];
@@ -205,6 +213,7 @@ class SettingsHandler
     			ValveServo_ZERO = json["ValveServo_ZERO"];
 				autoValve = json["autoValve"];
 				inverseValve = json["inverseValve"];
+				valveServo90Degrees = json["valveServo90Degrees"];
 				inverseStroke = json["inverseStroke"];
 				inversePitch = json["inversePitch"];
 				lubeAmount = json["lubeAmount"] | 255;
@@ -224,7 +233,7 @@ class SettingsHandler
 				Display_Rst_PIN = json["Display_Rst_PIN"] | -1;
 				WarmUpTime = json["WarmUpTime"] | 600000;
 
-                //LogUpdateDebug();
+                // LogUpdateDebug();
 
                 return true;
             } 
@@ -338,6 +347,7 @@ class SettingsHandler
             DynamicJsonDocument doc(serialize);
 
 
+            doc["TCodeVersion"] = TCodeVersionEnum;
             doc["ssid"] = ssid;
             doc["wifiPass"] = wifiPass;
             doc["udpServerPort"] = udpServerPort;
@@ -383,6 +393,7 @@ class SettingsHandler
 			doc["ValveServo_ZERO"] = ValveServo_ZERO;
 			doc["autoValve"] = autoValve;
 			doc["inverseValve"] = inverseValve;
+			doc["valveServo90Degrees"] = valveServo90Degrees;
 			doc["inverseStroke"] = inverseStroke;
 			doc["inversePitch"] = inversePitch;
 			doc["lubeAmount"] = lubeAmount;
@@ -403,7 +414,7 @@ class SettingsHandler
 			doc["WarmUpTime"] = WarmUpTime;
 			
 
-            //LogSaveDebug(doc);
+            // LogSaveDebug(doc);
             if (serializeJson(doc, file) == 0) 
             {
                 Serial.println(F("Failed to write to file"));
@@ -463,8 +474,24 @@ class SettingsHandler
             return 1000;
         }
 
+        static String TCodeVersionMapper(TCodeVersion version) 
+        {
+            switch (version)
+            {
+            case 0:
+                return "TCode v0.2";
+                break;
+            
+            default:
+                return "TCode v0.3";
+                break;
+            }
+        }
+
         static void LogSaveDebug(DynamicJsonDocument doc) 
         {
+            Serial.print("save TCodeVersionEnum ");
+            Serial.println((int)doc["TCodeVersion"]);
             Serial.print("save ssid ");
             Serial.println((const char*) doc["ssid"]);
             Serial.print("save wifiPass ");
@@ -553,6 +580,8 @@ class SettingsHandler
             Serial.println((bool)doc["autoValve"]);
             Serial.print("save inverseValve ");
             Serial.println((bool)doc["inverseValve"]);
+            Serial.print("save valveServo90Degrees ");
+            Serial.println((bool)doc["valveServo90Degrees"]);
             Serial.print("save inverseStroke ");
             Serial.println((bool)doc["inverseStroke"]);
             Serial.print("save inversePitch ");
@@ -589,6 +618,8 @@ class SettingsHandler
 
         static void LogUpdateDebug() 
         {
+            Serial.print("update TCodeVersionEnum ");
+            Serial.println(TCodeVersionEnum);
             Serial.print("update ssid ");
             Serial.println(ssid);
             Serial.print("update wifiPass ");
@@ -675,6 +706,8 @@ class SettingsHandler
             Serial.println(autoValve);
             Serial.print("update inverseValve ");
             Serial.println(inverseValve);
+            Serial.print("update valveServo90Degrees ");
+            Serial.println(valveServo90Degrees);
             Serial.print("update inverseStroke ");
             Serial.println(inverseStroke);
             Serial.print("update inversePitch ");
@@ -710,9 +743,9 @@ class SettingsHandler
         }
 };
 
-
-const char SettingsHandler::TCodeVersion[11] = "TCode v0.2";
-const char SettingsHandler::TCodeESP32Version[14] = "ESP32 v0.167b";
+String SettingsHandler::TCodeVersionName;
+TCodeVersion SettingsHandler::TCodeVersionEnum;
+const char SettingsHandler::TCodeESP32Version[14] = "ESP32 v3.1b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 bool SettingsHandler::bluetoothEnabled = true;
 char SettingsHandler::ssid[32];
@@ -763,6 +796,7 @@ int SettingsHandler::TwistServo_ZERO = 1500;
 int SettingsHandler::ValveServo_ZERO = 1500; 
 bool SettingsHandler::autoValve = false;
 bool SettingsHandler::inverseValve = false;
+bool SettingsHandler::valveServo90Degrees = false;
 bool SettingsHandler::inverseStroke = false;
 bool SettingsHandler::inversePitch = false;
 int SettingsHandler::lubeAmount = 255;

@@ -71,8 +71,8 @@ class Udphandler
 			Serial.println("Handshake received");
 			wifiUdp.beginPacket(wifiUdp.remoteIP(), wifiUdp.remotePort());
 			int i = 0;
-			while (SettingsHandler::TCodeVersion[i] != 0)
-				wifiUdp.write((uint8_t)SettingsHandler::TCodeVersion[i++]);
+			while (SettingsHandler::TCodeVersionName[i] != 0)
+				wifiUdp.write((uint8_t)SettingsHandler::TCodeVersionName[i++]);
 			wifiUdp.endPacket();
 			udpData = nullptr;
 			return;
