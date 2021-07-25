@@ -60,6 +60,7 @@ void setup()
 		return;
 	}
 	SettingsHandler::load();
+	Serial.println(SettingsHandler::ESP32Version);
 	if(SettingsHandler::sleeveTempEnabled)
 	{
 		TemperatureHandler::setup();

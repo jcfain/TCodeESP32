@@ -79,6 +79,7 @@ function getUserSettings()
     toggleNonTCodev3Options(userSettings["TCodeVersion"] == 1);
     toggleDeviceOptions(userSettings["sr6Mode"]);
     toggleStaticIPSettings(userSettings["staticIP"]);
+    $("#version").html(userSettings["esp32Version"]);
     var xMin = userSettings["xMin"];
     var xMax = userSettings["xMax"];
     $("#xMin").val(xMin);

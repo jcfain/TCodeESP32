@@ -149,7 +149,7 @@ class DisplayHandler
 					display.print(SettingsHandler::TCodeVersionName);
 					display.println(" Ready");
 					display.setCursor(0,26);
-					display.println(SettingsHandler::TCodeESP32Version);
+					display.println(SettingsHandler::ESP32Version);
 					
 				} 
 				else if(WifiHandler::apMode)
@@ -161,7 +161,7 @@ class DisplayHandler
 					display.print(SettingsHandler::TCodeVersionName);
 					display.println(" Ready");
 					display.setCursor(0,36);
-					display.println(SettingsHandler::TCodeESP32Version);
+					display.println(SettingsHandler::ESP32Version);
 				}
 				else
 				{
