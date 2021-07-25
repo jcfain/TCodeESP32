@@ -21,6 +21,12 @@ p{
   top: 10%;
   right: 5%;
 }
+.version {
+  color: black;
+  position: fixed;
+  top: 5%;
+  right: 5%;
+}
 .restartRequired {
   color: red;
   position: fixed;

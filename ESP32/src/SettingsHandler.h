@@ -36,7 +36,7 @@ class SettingsHandler
   public:
         static String TCodeVersionName;
         static TCodeVersion TCodeVersionEnum;
-        const static char TCodeESP32Version[14];
+        const static char ESP32Version[14];
         const static char HandShakeChannel[4];
 		static bool bluetoothEnabled;
         static char ssid[32];
@@ -120,9 +120,11 @@ class SettingsHandler
             DeserializationError error = deserializeJson(doc, file);
             if (error)
                 Serial.println(F("Failed to read settings file, using default configuration"));
-            update(doc.as<JsonObject>());
+            JsonObject jsonObj = doc.as<JsonObject>();
+            const char* storedVersion = jsonObj["esp32Version"];
+            update(jsonObj);
 
-			if(loadingDefault)
+			if(loadingDefault || strcmp(storedVersion, ESP32Version) != 0)
 				save();
         }
 
@@ -347,6 +349,7 @@ class SettingsHandler
             DynamicJsonDocument doc(serialize);
 
 
+            doc["esp32Version"] = ESP32Version;
             doc["TCodeVersion"] = TCodeVersionEnum;
             doc["ssid"] = ssid;
             doc["wifiPass"] = wifiPass;
@@ -745,7 +748,7 @@ class SettingsHandler
 
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::TCodeESP32Version[14] = "ESP32 v3.1b";
+const char SettingsHandler::ESP32Version[14] = "ESP32 v0.2b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 bool SettingsHandler::bluetoothEnabled = true;
 char SettingsHandler::ssid[32];

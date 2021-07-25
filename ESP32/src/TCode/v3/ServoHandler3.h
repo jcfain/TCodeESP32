@@ -108,7 +108,7 @@ public:
         PitchServo_Freq = servoFrequency;
         MainServo_Int = 1000000/MainServo_Freq;
         PitchServo_Int = 1000000/PitchServo_Freq;
-        tcode.setup(SettingsHandler::TCodeESP32Version, SettingsHandler::TCodeVersionName);
+        tcode.setup(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName);
         // Start serial connection and report status
         Serial.begin(115200);
         tcode.StringInput("D0");

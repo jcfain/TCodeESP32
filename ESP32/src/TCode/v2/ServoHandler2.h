@@ -456,7 +456,7 @@ public:
 				twist = 2*(xRot - map(twistPos,-1500,1500,1000,1));
 				twist = constrain(twist, -750, 750);
 			} else {
-				twist = map(xRot,1,1000,-180,180);
+				twist = map(xRot,1,1000,-750,750);
 			}
 
 			if (valveServoConnected != 0) 
