@@ -11,9 +11,42 @@ p{
   font-size: 1.5rem;
 }
 .error {
-  color: red;
+  border-radius: 25px;
+  background-color:firebrick;
+  color: black;
+  width: 500px;
+  height: auto;
+  position: fixed;
+  top: 5%;
+  left: calc(50vw - 250px);
+  opacity: 95%;
+  box-shadow: 5px 5px #888888;
+  display: flex;
+  flex-direction: row;
+}
+.errorHeader {
   font-weight: bolder;
   font-size: xx-large;
+  align-self: self-start;
+  margin: 10px;
+}
+.errorButton {
+  border-radius: 5px;
+  background-color: black;
+  color: firebrick;
+  width: 25px;
+  height: 25px;
+  align-self: flex-start;
+  margin: 10px;
+}
+.errorText {
+  font-weight: bolder;
+  text-align: start;
+  margin: 10px;
+}
+.x {
+  font-size: large;
+  font-weight: bolder;
 }
 .info {
   color: green;
@@ -57,17 +90,54 @@ body {
 .rootTable > div {
 	vertical-align:top;
 	margin: 16px;
+  display: flex;
+  flex-direction: column;
+  align-content: center;
+}
+.formTable {
+  border-collapse: separate; 
+  border-spacing: 0 5px; 
+  border: 1px solid black;
+  box-shadow: 5px 5px #888888;
+  border-radius: 10px;
+  margin: 10px;
+  padding: 25px;
 }
 .formTable h3 {
-  text-align: right;
+  text-align: center;
+  margin-top: -10px;
 }
-.formTable > tbody > tr > td:last-child {
+.formTable > tbody > tr:not(.servoHeader) > td:last-child {
 	text-align: left;
 }
-.formTable > tbody > tr > td:first-child {
+.formTable > tbody > tr:not(.servoHeader) > td:first-child {
 	text-align: right;
 }
-
+.servoHeader {
+  text-align: left;
+  font-weight: bolder;
+}
+.servoHeader > td {
+  padding: 5px;
+  border: 1px solid transparent;
+  border-style: solid none;
+  background: darkgray;
+}
+.servoHeader > td:first-child:not(.other) {
+  text-align: right;
+  border-right: 1px solid black;
+  border-top-left-radius: 10px; 
+  border-bottom-left-radius: 10px;
+}
+.servoHeader > td:last-child:not(.other) {
+  border-top-right-radius: 10px; 
+  border-left: 1px solid black;
+  border-bottom-right-radius: 10px;
+}
+.displaySettingsHeader {
+  text-align: center;
+  margin-top: 30px;
+}
 [slider] {
   position: relative;
   height: 14px;

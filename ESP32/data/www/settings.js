@@ -79,6 +79,7 @@ function getUserSettings()
     toggleNonTCodev3Options(userSettings["TCodeVersion"] == 1);
     toggleDeviceOptions(userSettings["sr6Mode"]);
     toggleStaticIPSettings(userSettings["staticIP"]);
+    toggleDisplaySettings(userSettings["displayEnabled"]);
     $("#version").html(userSettings["esp32Version"]);
     var xMin = userSettings["xMin"];
     var xMax = userSettings["xMax"];
@@ -192,8 +193,7 @@ async function updateUserSettings()
                     var response = JSON.parse(xhr.responseText);
                     if (response["msg"] !== "done") 
                     {
-                        $("#errorMessage").attr("hidden", false);
-                        $("#errorMessage").text("Error saving: " + response["msg"]);
+                        showError("Error saving: " + response["msg"]);
                     } 
                     else 
                     {
@@ -220,7 +220,16 @@ async function updateUserSettings()
         }, 3000);
     }
 }
-
+function closeError() 
+{
+    $("#errorText").html("");
+    $("#errorMessage").attr("hidden", true);
+}
+function showError(message) 
+{
+    $("#errorText").html(message);
+    $("#errorMessage").attr("hidden", false);
+}
 function onMinInput(axis) 
 {
     var axisName = axis + "Min";
@@ -459,25 +468,102 @@ function updatePins()
 }
 function updateZeros() 
 {
-    userSettings["RightServo_ZERO"] = $('#RightServo_ZERO').val();
-    userSettings["LeftServo_ZERO"] = $('#LeftServo_ZERO').val();
-    userSettings["RightUpperServo_ZERO"] = $('#RightUpperServo_ZERO').val();
-    userSettings["LeftUpperServo_ZERO"] = $('#LeftUpperServo_ZERO').val();
-    userSettings["PitchLeftServo_ZERO"] = $('#PitchLeftServo_ZERO').val();
-    userSettings["PitchRightServo_ZERO"] = $('#PitchRightServo_ZERO').val();
-    userSettings["ValveServo_ZERO"] = $('#ValveServo_ZERO').val();
-    userSettings["TwistServo_ZERO"] = $('#TwistServo_ZERO').val();
-    updateUserSettings();
+    if(upDateTimeout !== null) 
+    {
+        clearTimeout(upDateTimeout);
+    }
+    upDateTimeout = setTimeout(() => 
+    {
+        var validValue = true;
+        var invalidValues = [];
+        var RightServo_ZERO = parseInt($('#RightServo_ZERO').val());
+        if(!RightServo_ZERO || RightServo_ZERO > 1750 || RightServo_ZERO < 1250)
+        {
+            validValue = false;
+            invalidValues.push("Right servo ZERO")
+        }
+        var LeftServo_ZERO = parseInt($('#LeftServo_ZERO').val());
+        if(!LeftServo_ZERO || LeftServo_ZERO > 1750 || LeftServo_ZERO < 1250)
+        {
+            validValue = false;
+            invalidValues.push("Left servo ZERO")
+        }
+        var RightUpperServo_ZERO = parseInt($('#RightUpperServo_ZERO').val());
+        if(!RightUpperServo_ZERO || RightUpperServo_ZERO > 1750 || RightUpperServo_ZERO < 1250)
+        {
+            validValue = false;
+            invalidValues.push("Right upper servo ZERO")
+        }
+        var LeftUpperServo_ZERO = parseInt($('#LeftUpperServo_ZERO').val());
+        if(!LeftUpperServo_ZERO || LeftUpperServo_ZERO > 1750 || LeftUpperServo_ZERO < 1250)
+        {
+            validValue = false;
+            invalidValues.push("Left upper servo ZERO")
+        }
+        var PitchLeftServo_ZERO = parseInt($('#PitchLeftServo_ZERO').val());
+        if(!PitchLeftServo_ZERO || PitchLeftServo_ZERO > 1750 || PitchLeftServo_ZERO < 1250)
+        {
+            validValue = false;
+            invalidValues.push("Pitch left servo ZERO")
+        }
+        var PitchRightServo_ZERO = parseInt($('#PitchRightServo_ZERO').val());
+        if(!PitchRightServo_ZERO || PitchRightServo_ZERO > 1750 || PitchRightServo_ZERO < 1250)
+        {
+            validValue = false;
+            invalidValues.push("Pitch right servo ZERO")
+        }
+        var ValveServo_ZERO = parseInt($('#ValveServo_ZERO').val());
+        if(!ValveServo_ZERO || ValveServo_ZERO > 1750 || ValveServo_ZERO < 1250)
+        {
+            validValue = false;
+            invalidValues.push("Valve servo ZERO")
+        }
+        var TwistServo_ZERO = parseInt($('#TwistServo_ZERO').val());
+        if(!TwistServo_ZERO || TwistServo_ZERO > 1750 || TwistServo_ZERO < 1250)
+        {
+            validValue = false;
+            invalidValues.push("Twist servo ZERO")
+        }
+
+        if(validValue)
+        {
+            closeError();
+            userSettings["RightServo_ZERO"] = $('#RightServo_ZERO').val();
+            userSettings["LeftServo_ZERO"] = $('#LeftServo_ZERO').val();
+            userSettings["RightUpperServo_ZERO"] = $('#RightUpperServo_ZERO').val();
+            userSettings["LeftUpperServo_ZERO"] = $('#LeftUpperServo_ZERO').val();
+            userSettings["PitchLeftServo_ZERO"] = $('#PitchLeftServo_ZERO').val();
+            userSettings["PitchRightServo_ZERO"] = $('#PitchRightServo_ZERO').val();
+            userSettings["ValveServo_ZERO"] = $('#ValveServo_ZERO').val();
+            userSettings["TwistServo_ZERO"] = $('#TwistServo_ZERO').val();
+            updateUserSettings();
+        }
+        else
+        {
+            showError("Settings NOT saved due to invalid servo ZERO input. The values should be between 1250 and 1750 for the following:<br>"+invalidValues.join("<br>"));
+        }
+    }, 2000);
 }
 function updateLubeAmount()
 {
     userSettings["lubeAmount"] = parseInt($('#lubeAmount').val());
     updateUserSettings();
 }
-
+function toggleDisplaySettings(enabled) 
+{
+    if(!enabled) 
+    {
+        $('#deviceSettingsDisplayTable').hide();
+    }
+    else
+    {
+        $('#deviceSettingsDisplayTable').show();
+    }
+}
 function setDisplaySettings()
 {
     userSettings["displayEnabled"] = $('#displayEnabled').prop('checked');
+    toggleDisplaySettings(userSettings["displayEnabled"]);
     userSettings["sleeveTempEnabled"] = $('#sleeveTempEnabled').prop('checked');
     userSettings["tempControlEnabled"] = $('#tempControlEnabled').prop('checked');
     userSettings["Temp_PIN"] = parseInt($('#Temp_PIN').val());
