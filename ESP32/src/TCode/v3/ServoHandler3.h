@@ -187,8 +187,12 @@ public:
 
     void read(String input) 
     {
-        // Read serial and send to tcode class
         tcode.StringInput(input);
+    }
+
+    void read(byte input) 
+    {
+        tcode.ByteInput(input);
     }
 
     // ----------------------------

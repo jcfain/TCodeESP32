@@ -39,6 +39,7 @@ class SettingsHandler
         const static char ESP32Version[14];
         const static char HandShakeChannel[4];
 		static bool bluetoothEnabled;
+        static bool isTcp;
         static char ssid[32];
         static char wifiPass[63];
         static int udpServerPort;
@@ -748,9 +749,10 @@ class SettingsHandler
 
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[14] = "ESP32 v0.21b";
+const char SettingsHandler::ESP32Version[14] = "ESP32 v0.211b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 bool SettingsHandler::bluetoothEnabled = true;
+bool SettingsHandler::isTcp = true;
 char SettingsHandler::ssid[32];
 char SettingsHandler::wifiPass[63];
 char SettingsHandler::hostname[63];
