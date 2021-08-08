@@ -31,12 +31,14 @@ SOFTWARE. */
 #include "TCode/v2/ServoHandler2.h"
 #include "TCode/v3/ServoHandler3.h"
 #include "UdpHandler.h"
+#include "TcpHandler.h"
 #include "WebHandler.h"
 //#include "OTAHandler.h"
 #include "BLEHandler.h"
 
 //BluetoothHandler btHandler;
 Udphandler udpHandler;
+//TcpHandler tcpHandler;
 ServoHandler2 servoHandler2;
 ServoHandler3 servoHandler3;
 WifiHandler wifi;
@@ -136,9 +138,12 @@ void setup()
 	// }
     //otaHandler.setup();
 	displayHandler->println("Setting up servos");
-	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) {
+	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
+	{
     	servoHandler2.setup(SettingsHandler::servoFrequency);
-	} else {
+	} 
+	else 
+	{
 		servoHandler3.setup(SettingsHandler::servoFrequency);
 	}
 	setupSucceeded = true;
@@ -159,7 +164,7 @@ void setup()
 	}
 	
 }
-
+String bufferString = "";
 void loop() 
 {
 	if(setupSucceeded)
@@ -168,20 +173,23 @@ void loop()
 		udpHandler.read(udpData);
 		if (!apMode && strlen(udpData) > 0) 
 		{
-			
+			Serial.print("udp writing: ");
+			Serial.println(udpData);
 			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
 			{
-					// Serial.print("udp writing: ");
-					// Serial.println(udpData);
-					for (char *c = udpData; *c; ++c) 
-					{
-						servoHandler2.read(*c);
-						servoHandler2.execute();
-					}
+				for (char *c = udpData; *c; ++c) 
+				{
+					servoHandler2.read(*c);
+					servoHandler2.execute();
+				}
 			} 
 			else 
 			{
-				servoHandler3.read(udpData);
+				for (char *c = udpData; *c; ++c) 
+				{
+					servoHandler3.read(*c);
+					servoHandler3.execute();
+				}
 			}
 		} 
 		else if (Serial.available() > 0) 
@@ -192,9 +200,7 @@ void loop()
 			} 
 			else
 			{
-				char line[255]; 
-				Serial.readBytesUntil(10, line, 255);
-				servoHandler3.read(line);
+				servoHandler3.read(Serial.read());
 			}
 		} 
 		// else if (SettingsHandler::bluetoothEnabled && btHandler.isConnected() && btHandler.available() > 0) 
@@ -204,8 +210,8 @@ void loop()
 		if (SettingsHandler::TCodeVersionEnum == TCodeVersion::v2 && strlen(udpData) == 0) // No wifi data
 		{
 			servoHandler2.execute();
-		} 
-		else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v3)
+		}
+		else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v3 && strlen(udpData) == 0)
 		{
 			servoHandler3.execute();
 		}
