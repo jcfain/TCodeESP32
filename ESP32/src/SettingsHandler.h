@@ -749,7 +749,7 @@ class SettingsHandler
 
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[14] = "ESP32 v0.211b";
+const char SettingsHandler::ESP32Version[14] = "ESP32 v0.22a";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 bool SettingsHandler::bluetoothEnabled = true;
 bool SettingsHandler::isTcp = true;
