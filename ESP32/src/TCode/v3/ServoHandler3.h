@@ -264,21 +264,21 @@ public:
 
         // OSR2 Kinematics
         if (!SettingsHandler::sr6Mode) {
-                // Calculate arm angles
-                // Linear scale inputs to servo appropriate numbers
-                int stroke,roll,pitch;
-                stroke = map(xLin,0,9999,-350,350);
-                roll   = map(yRot,0,9999,-180,180);
-                pitch  = map(zRot,0,9999,-350,350);
+            // Calculate arm angles
+            // Linear scale inputs to servo appropriate numbers
+            int stroke,roll,pitch;
+            stroke = map(xLin,0,9999,-350,350);
+            roll   = map(yRot,0,9999,-180,180);
+            pitch  = map(zRot,0,9999,-350,350);
             if(SettingsHandler::inverseStroke) 
             {
                 ledcWrite(LowerLeftServo_PWM, map(SettingsHandler::LeftServo_ZERO - stroke + roll,0,MainServo_Int,0,65535));
-                ledcWrite(LowerRightServo_PWM, map(SettingsHandler::RightUpperServo_ZERO + stroke + roll,0,MainServo_Int,0,65535));
+                ledcWrite(LowerRightServo_PWM, map(SettingsHandler::RightServo_ZERO + stroke + roll,0,MainServo_Int,0,65535));
             }
             else
             {
                 ledcWrite(LowerLeftServo_PWM, map(SettingsHandler::LeftServo_ZERO + stroke + roll,0,MainServo_Int,0,65535));
-                ledcWrite(LowerRightServo_PWM, map(SettingsHandler::RightUpperServo_ZERO - stroke + roll,0,MainServo_Int,0,65535));
+                ledcWrite(LowerRightServo_PWM, map(SettingsHandler::RightServo_ZERO - stroke + roll,0,MainServo_Int,0,65535));
             }
             
             if(SettingsHandler::inversePitch) 
