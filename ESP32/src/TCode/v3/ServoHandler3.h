@@ -117,9 +117,6 @@ public:
         // Set SR6 arms to startup positions
         if (SettingsHandler::sr6Mode) { tcode.StringInput("R2750"); }
 
-        // #ESP32# Enable EEPROM
-        //EEPROM.begin(320);
-
         // Register device axes
         tcode.RegisterAxis("L0", "Up");
         if (SettingsHandler::sr6Mode) {
@@ -193,6 +190,10 @@ public:
     void read(byte input) 
     {
         tcode.ByteInput(input);
+    }
+
+    String getDeviceSettings() {
+        return tcode.getDeviceSettings();
     }
 
     // ----------------------------
