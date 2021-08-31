@@ -38,6 +38,7 @@ class SettingsHandler
         static TCodeVersion TCodeVersionEnum;
         const static char ESP32Version[14];
         const static char HandShakeChannel[4];
+        const static char SettingsChannel[4];
 		static bool bluetoothEnabled;
         static bool isTcp;
         static char ssid[32];
@@ -58,12 +59,16 @@ class SettingsHandler
 		static int Vibe0_PIN;
 		static int Vibe1_PIN;
 		static int Lube_Pin;
-        static int xMin;
-        static int xMax;
-        static int yRollMin;
-        static int yRollMax;
-        static int xRollMin;
-        static int xRollMax;
+        static int StrokeMin;
+        static int StrokeMax;
+        static int RollMin;
+        static int RollMax;
+        static int PitchMin;
+        static int PitchMax;
+        static int SwayMin;
+        static int SwayMax;
+        static int SurgeMin;
+        static int SurgeMax;
         static int speed;
         static int servoFrequency;
 		static bool continousTwist;
@@ -167,12 +172,12 @@ class SettingsHandler
                     strcpy(friendlyName, friendlyNameTemp);
 					
 				bluetoothEnabled =  json["bluetoothEnabled"];
-                xMin = json["xMin"] | 1;
-                xMax = json["xMax"] | 1000;
-                yRollMin = json["yRollMin"] | 1;
-                yRollMax = json["yRollMax"] | 1000;
-                xRollMin = json["xRollMin"] | 1;
-                xRollMax = json["xRollMax"] | 1000;
+                StrokeMin = json["xMin"] | 1;
+                StrokeMax = json["xMax"] | 1000;
+                RollMin = json["yRollMin"] | 1;
+                RollMax = json["yRollMax"] | 1000;
+                PitchMin = json["xRollMin"] | 1;
+                PitchMax = json["xRollMax"] | 1000;
                 speed = json["speed"] | 1000;
                 servoFrequency = json["servoFrequency"] | 50;
 				continousTwist = json["continousTwist"];
@@ -359,12 +364,12 @@ class SettingsHandler
             doc["hostname"] =  hostname;
             doc["friendlyName"] = friendlyName;
             doc["bluetoothEnabled"] = bluetoothEnabled;
-            doc["xMin"] = xMin;
-            doc["xMax"] = xMax;
-            doc["yRollMin"] = yRollMin;
-            doc["yRollMax"] = yRollMax;
-            doc["xRollMin"] = xRollMin;
-            doc["xRollMax"] = xRollMax;
+            doc["xMin"] = StrokeMin;
+            doc["xMax"] = StrokeMax;
+            doc["yRollMin"] = RollMin;
+            doc["yRollMax"] = RollMax;
+            doc["xRollMin"] = PitchMin;
+            doc["xRollMax"] = PitchMax;
             doc["speed"] = speed;
             doc["servoFrequency"] = servoFrequency;
 			doc["continousTwist"] = continousTwist;
@@ -448,15 +453,15 @@ class SettingsHandler
         {
             if (strcmp(channel, "L0") == 0) 
             {
-                return xMin;
+                return StrokeMin;
             } 
             else if (strcmp(channel, "R1") == 0) 
             {
-                return yRollMin;
+                return RollMin;
             } 
             else if (strcmp(channel, "R2") == 0) 
             {
-                return xRollMin;
+                return PitchMin;
             }
             return 1;
         }
@@ -465,15 +470,15 @@ class SettingsHandler
         {
             if (strcmp(channel, "L0") == 0) 
             {
-                return xMax;
+                return StrokeMax;
             } 
             else if (strcmp(channel, "R1") == 0) 
             {
-                return yRollMax;
+                return RollMax;
             } 
             else if (strcmp(channel, "R2") == 0) 
             {
-                return xRollMax;
+                return PitchMax;
             }
             return 1000;
         }
@@ -637,15 +642,15 @@ class SettingsHandler
             Serial.print("update friendlyName ");
             Serial.println(friendlyName);
             Serial.print("update xMax ");
-            Serial.println(xMax);
+            Serial.println(StrokeMax);
             Serial.print("update yRollMin ");
-            Serial.println(yRollMin);
+            Serial.println(RollMin);
             Serial.print("update yRollMax ");
-            Serial.println(yRollMax);
+            Serial.println(RollMax);
             Serial.print("update xRollMin ");
-            Serial.println(xRollMin);
+            Serial.println(PitchMin);
             Serial.print("update xRollMax ");
-            Serial.println(xRollMax);
+            Serial.println(PitchMax);
             Serial.print("update speed ");
             Serial.println(speed);
             Serial.print("update servoFrequency ");
@@ -749,8 +754,9 @@ class SettingsHandler
 
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[14] = "ESP32 v0.22a";
+const char SettingsHandler::ESP32Version[14] = "ESP32 v0.22b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
+const char SettingsHandler::SettingsChannel[4] = "D2\n";
 bool SettingsHandler::bluetoothEnabled = true;
 bool SettingsHandler::isTcp = true;
 char SettingsHandler::ssid[32];
@@ -775,12 +781,14 @@ int SettingsHandler::Temp_PIN = 5;
 int SettingsHandler::Heater_PIN = 33;
 //int SettingsHandler::HeatLED_PIN = 32;
 // pin 25 cannot be servo. Throws error
-int SettingsHandler::xMin;
-int SettingsHandler::xMax;
-int SettingsHandler::yRollMin;
-int SettingsHandler::yRollMax;
-int SettingsHandler::xRollMin;
-int SettingsHandler::xRollMax;
+
+int SettingsHandler::StrokeMin;
+int SettingsHandler::StrokeMax;
+int SettingsHandler::RollMin;
+int SettingsHandler::RollMax;
+int SettingsHandler::PitchMin;
+int SettingsHandler::PitchMax;
+
 int SettingsHandler::speed;
 int SettingsHandler::servoFrequency;
 bool SettingsHandler::continousTwist;

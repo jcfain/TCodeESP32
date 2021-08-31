@@ -16,6 +16,9 @@ class TCode {
     firmwareID = firmware;
     tcodeID = tcode;
 
+    // #ESP32# Enable EEPROM
+    EEPROM.begin(320);
+
     // Vibe channels start at 0
     for (int i = 0; i < CHANNELS; i++) { Vibration[i].Set(0,' ',0); }
   }
@@ -101,6 +104,15 @@ class TCode {
       }
     }
     return t;
+  }
+
+  String getDeviceSettings() {
+    String deviceSettings = "";
+    for (int i = 0; i < 10; i++) { deviceSettings += axisRow("L" + String(i), 8*i, Linear[i].Name); }
+    for (int i = 0; i < 10; i++) { deviceSettings += axisRow("R" + String(i), 8*i+80, Rotation[i].Name); }
+    for (int i = 0; i < 10; i++) { deviceSettings += axisRow("V" + String(i), 8*i+160, Vibration[i].Name); }
+    for (int i = 0; i < 10; i++) { deviceSettings += axisRow("A" + String(i), 8*i+240, Auxiliary[i].Name); }     
+    return deviceSettings;
   }
 
   private:
@@ -235,15 +247,10 @@ class TCode {
         break;
   
         case 2:
-          for (i = 0; i < 10; i++) { axisRow("L" + String(i), 8*i, Linear[i].Name); }
-          for (i = 0; i < 10; i++) { axisRow("R" + String(i), 8*i+80, Rotation[i].Name); }
-          for (i = 0; i < 10; i++) { axisRow("V" + String(i), 8*i+160, Vibration[i].Name); }
-          for (i = 0; i < 10; i++) { axisRow("A" + String(i), 8*i+240, Auxiliary[i].Name); }             
+          getDeviceSettings();          
         break;
       }
     }
-
-    
   }
 
   // Function to modify axis preference values
@@ -315,13 +322,22 @@ class TCode {
   }
  
   // Function to print the details of an axis
-  void axisRow(String axisID, int memIndex, String axisName) {
+  String axisRow(String axisID, int memIndex, String axisName) {
     int low, high;
+    String line = "";
     if (axisName != "") {
       EEPROM.get(memIndex,low);
       low = constrain(low,-1,9998);
       EEPROM.get(memIndex + 4,high);
       high = constrain(high,-10000,-1);
+      line += axisID;
+      line += " ";
+      line += String(low + 1);
+      line += " ";
+      line += String(high + 10000);
+      line += " ";
+      line += axisName;
+      line += "\n";
       Serial.print(axisID);
       Serial.print(" ");
       Serial.print(low + 1);
@@ -330,6 +346,7 @@ class TCode {
       Serial.print(" ");
       Serial.println(axisName);
     }
+    return line;
   }
     
 };

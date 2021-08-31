@@ -92,7 +92,10 @@ void setup()
 			displayHandler->println(wifi.ip().toString());
 			displayHandler->setLocalIPAddress(wifi.ip());
 			displayHandler->println("Starting UDP");
-			udpHandler.setup(SettingsHandler::udpServerPort);
+			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v3)
+				udpHandler.setup(SettingsHandler::udpServerPort, &servoHandler3);
+			else
+				udpHandler.setup(SettingsHandler::udpServerPort);
 			displayHandler->println("Starting web server");
 			//displayHandler->println(SettingsHandler::webServerPort);
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName);
@@ -173,8 +176,8 @@ void loop()
 		udpHandler.read(udpData);
 		if (!apMode && strlen(udpData) > 0) 
 		{
-			Serial.print("udp writing: ");
-			Serial.println(udpData);
+			//Serial.print("udp writing: ");
+			//Serial.println(udpData);
 			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
 			{
 				for (char *c = udpData; *c; ++c) 

@@ -24,7 +24,6 @@ SOFTWARE. */
 
 
 #include <WiFiUdp.h>
-#include <string>
 #include <ArduinoJson.h>
 
 
@@ -33,10 +32,18 @@ class Udphandler
   public:
     void setup(int localPort) 
     {
-      wifiUdp.begin(localPort);
-      Serial.println("UDP Listening");
-      udpInitialized = true;
+		wifiUdp.begin(localPort);
+		Serial.println("UDP Listening");
+		udpInitialized = true;
     }
+    void setup(int localPort, ServoHandler3* servoHandler3) 
+    {
+		_servoHandler3 = servoHandler3;
+		wifiUdp.begin(localPort);
+		Serial.println("UDP Listening");
+		udpInitialized = true;
+    }
+
 
     void read(char* udpData) 
     {
@@ -75,6 +82,32 @@ class Udphandler
 				wifiUdp.write((uint8_t)SettingsHandler::TCodeVersionName[i++]);
 			wifiUdp.endPacket();
 			udpData = nullptr;
+			return;
+        } 
+		else if (SettingsHandler::TCodeVersionEnum == TCodeVersion::v3 && strcmp(packetBuffer, SettingsHandler::SettingsChannel) == 0) 
+        {
+			Serial.println("Settings get received");
+			wifiUdp.beginPacket(wifiUdp.remoteIP(), wifiUdp.remotePort());
+			int i = 0;
+			String setting = _servoHandler3->getDeviceSettings();
+			while (setting[i] != 0)
+				wifiUdp.write((uint8_t)setting[i++]);
+			wifiUdp.endPacket();
+			udpData = nullptr;
+			return;
+        } 
+		else if (SettingsHandler::TCodeVersionEnum == TCodeVersion::v3 && strpbrk(packetBuffer, "$") != nullptr) 
+        {
+			Serial.println("Settings save received: ");
+			Serial.println(udpData);
+			wifiUdp.beginPacket(wifiUdp.remoteIP(), wifiUdp.remotePort());
+			int i = 0;
+			String OK = "OK";
+			while (OK[i] != 0)
+				wifiUdp.write((uint8_t)OK[i++]);
+			wifiUdp.endPacket();
+			strcpy(udpData, packetBuffer);
+			Serial.println(udpData);
 			return;
         } 
         else if (strpbrk(packetBuffer, jsonIdentifier) != nullptr) 
@@ -182,6 +215,7 @@ class Udphandler
     } */
     
   private: 
+  	ServoHandler3* _servoHandler3;
     WiFiUDP wifiUdp;
     bool udpInitialized = false;
     char packetBuffer[255];; //buffer to hold incoming packet
