@@ -28,18 +28,14 @@
 #define ms_per_rad 637  // (μs/rad)
 
 // Servo operating frequencies
-#define TwistServo_Freq 50  // Twist Servo
-#define ValveServo_Freq 50  // Valve Servo
 #define VibePWM_Freq 8000   // Vibe motor control PWM frequency
 
 // Other functions
 #define VALVE_DEFAULT 5000        // Auto-valve default suction level (low-high, 0-9999) 
 #define VIBE_TIMEOUT 2000         // Timeout for vibration channels (milliseconds).
-#define LUBE_V1 false             // (true/false) Lube pump installed instead of vibration channel 1
 
 // T-Code Channels
 #define CHANNELS 10                // Number of channels of each type (LRVA)
-
 
 // ----------------------------
 //  Auto Settings
@@ -59,25 +55,21 @@
 #define Vibe0_PWM 9              // Vibration motor 1
 #define Vibe1_PWM 10             // Vibration motor 2
 
-// Servo Pulse intervals
-#define TwistServo_Int 1000000/TwistServo_Freq
-#define ValveServo_Int 1000000/ValveServo_Freq
-
-
 
 #include "TCode.h"
 #include "../Global.h"
 class ServoHandler3 {
 
 private:
-    int MainServo_Freq;
-    int PitchServo_Freq;
     int MainServo_Int;
     int PitchServo_Int;
-    // ----------------------------
-    //   SETUP
-    // ----------------------------
-    // This code runs once, on startup
+    int TwistServo_Int;
+    int ValveServo_Int;
+
+    int MainServo_Freq;
+    int PitchServo_Freq;
+    int TwistServo_Freq;
+    int ValveServo_Freq;
 
     // Declare classes
     // This uses the t-code object above
@@ -100,14 +92,21 @@ private:
     float twistServoAngPos = 0.5;
     int twistTurns = 0;
     float twistPos;
+
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup(int servoFrequency) {
+    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency) {
         MainServo_Freq = servoFrequency;
-        PitchServo_Freq = servoFrequency;
+        PitchServo_Freq = pitchFrequency;
+        TwistServo_Freq = twistFrequency;
+        ValveServo_Freq = valveFrequency;
+// Servo Pulse intervals
         MainServo_Int = 1000000/MainServo_Freq;
         PitchServo_Int = 1000000/PitchServo_Freq;
+        TwistServo_Int = 1000000/TwistServo_Freq;
+        ValveServo_Int = 1000000/ValveServo_Freq;
+
         tcode.setup(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName);
         // Start serial connection and report status
         Serial.begin(115200);
@@ -127,14 +126,14 @@ public:
         tcode.RegisterAxis("R1", "Roll");
         tcode.RegisterAxis("R2", "Pitch");
         tcode.RegisterAxis("V0", "Vibe1");
-        if (!LUBE_V1) { tcode.RegisterAxis("V1", "Vibe2"); }
+        if (!SettingsHandler::lubeEnabled) { tcode.RegisterAxis("V1", "Vibe2"); }
         tcode.RegisterAxis("A0", "Valve");
         tcode.RegisterAxis("A1", "Suck");
         tcode.AxisInput("A1",VALVE_DEFAULT,'I',3000);
-        if (LUBE_V1) {
+        if (SettingsHandler::lubeEnabled) {
             tcode.RegisterAxis("A2", "Lube");
             tcode.AxisInput("A2",0,' ',0);
-            pinMode(SettingsHandler::Lube_Pin,INPUT);
+            pinMode(SettingsHandler::LubeManual_PIN,INPUT);
         }
 
         // Setup Servo PWM channels
@@ -214,10 +213,10 @@ public:
         yRot = tcode.AxisRead("R1");
         zRot = tcode.AxisRead("R2");
         vibe0 = tcode.AxisRead("V0");
-        if (!LUBE_V1) { vibe1 = tcode.AxisRead("V1"); }
+        if (!SettingsHandler::lubeEnabled) { vibe1 = tcode.AxisRead("V1"); }
         valveCmd = tcode.AxisRead("A0");
         suckCmd = tcode.AxisRead("A1");
-        if (LUBE_V1) { lube = tcode.AxisRead("A2"); }
+        if (SettingsHandler::lubeEnabled) { lube = tcode.AxisRead("A2"); }
 
         // If you want to mix your servos differently, enter your code below:
 
@@ -369,29 +368,28 @@ public:
         } else {
             ledcWrite(Vibe0_PWM, 0);
         }
-        if (!LUBE_V1 && vibe1 > 0 && vibe1 <= 9999) {
+        if (!SettingsHandler::lubeEnabled && vibe1 > 0 && vibe1 <= 9999) {
             ledcWrite(Vibe1_PWM, map(vibe1,1,9999,31,255));
         } else {
             ledcWrite(Vibe1_PWM, 0);
         }
         // Vibe timeout functions - shuts the vibne channels down if not commanded for a specified interval
         if (millis() - tcode.AxisLast("V0") > VIBE_TIMEOUT) { tcode.AxisInput("V0",0,'I',500); }
-        if (!LUBE_V1 && millis() - tcode.AxisLast("V1") > VIBE_TIMEOUT) { tcode.AxisInput("V1",0,'I',500); }
+        if (!SettingsHandler::lubeEnabled && millis() - tcode.AxisLast("V1") > VIBE_TIMEOUT) { tcode.AxisInput("V1",0,'I',500); }
         
         // Done with vibration channels
 
         // Lube functions
-        if (LUBE_V1) {
+        if (SettingsHandler::lubeEnabled) {
             if (lube > 0 && lube <= 9999) {
-            ledcWrite(Vibe1_PWM, map(lube,1,9999,127,255));
-            } else if (digitalRead(SettingsHandler::Lube_Pin) == HIGH) {
-            ledcWrite(Vibe1_PWM,SettingsHandler::lubeAmount);
+                ledcWrite(Vibe1_PWM, map(lube,1,9999,127,255));
+            } else if (digitalRead(SettingsHandler::LubeManual_PIN) == HIGH) {
+                ledcWrite(Vibe1_PWM,SettingsHandler::lubeAmount);
             } else { 
-            ledcWrite(Vibe1_PWM,0);
+                ledcWrite(Vibe1_PWM,0);
             }
             if (millis() - tcode.AxisLast("A2") > 500) { tcode.AxisInput("A2",0,' ',0); } // Auto cutoff
         }
-
         // Done with lube
     }
 

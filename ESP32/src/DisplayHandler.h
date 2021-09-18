@@ -23,30 +23,15 @@ SOFTWARE. */
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include "../lib/Ext/Adafruit_SSD1306_RSB.h"
+#include "../lib/animationFrames.h"
 
 #pragma once
 
 class DisplayHandler
 {
-	public:
-	IPAddress _ipAddress;
-	int SCREEN_WIDTH = SettingsHandler::Display_Screen_Width; // OLED display width, in pixels
-	int SCREEN_HEIGHT = SettingsHandler::Display_Screen_Height; // OLED display height, in pixels
-	int I2C_ADDRESS = SettingsHandler::Display_I2C_Address; // Display address
-	int RST_PIN = SettingsHandler::Display_Rst_PIN; // Display RST_PIN if needed
-	bool displayConnected = false;
-	int currentPrintLine = 0;
-	int lastUpdate = 0;
-	const int nextUpdate = 1000;
-	bool _isRunning = false;
+public:
 
-	Adafruit_SSD1306_RSB display;
-
-	DisplayHandler() : 
-		display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, RST_PIN, 100000UL, 100000UL)
-	{
-
-	}
+	DisplayHandler() : display(SettingsHandler::Display_Screen_Width,  SettingsHandler::Display_Screen_Height, &Wire, SettingsHandler::Display_Rst_PIN, 100000UL, 100000UL) { }
 
 	void setup() 
 	{
@@ -58,16 +43,15 @@ class DisplayHandler
 		//Wire.begin();
 		//Wire.setClock(100000UL);
 
-
-		if (RST_PIN >= 0)
+		if (SettingsHandler::Display_Rst_PIN >= 0)
 		{
-			displayConnected = display.begin(SSD1306_SWITCHCAPVCC, I2C_ADDRESS, RST_PIN);
+			displayConnected = display.begin(SSD1306_SWITCHCAPVCC, SettingsHandler::Display_I2C_Address, SettingsHandler::Display_Rst_PIN);
 			if (!displayConnected)
     			Serial.println(F("SSD1306 RST_PIN allocation failed"));
 		}
 		else
 		{
-			displayConnected = display.begin(SSD1306_SWITCHCAPVCC, I2C_ADDRESS);
+			displayConnected = display.begin(SSD1306_SWITCHCAPVCC, SettingsHandler::Display_I2C_Address);
 			if (!displayConnected)
     			Serial.println(F("SSD1306 allocation failed"));
 		}
@@ -113,7 +97,7 @@ class DisplayHandler
 		_isRunning = true;
 		while(_isRunning) 
 		{
-			if(displayConnected && millis() >= lastUpdate + nextUpdate)
+			if(!m_animationPlaying && displayConnected && millis() >= lastUpdate + nextUpdate)
 			{
 				lastUpdate = millis();
 				// Serial.print("Display Core: ");
@@ -140,7 +124,7 @@ class DisplayHandler
 					}
 					for (int b=0; b <= bars; b++) 
 					{
-						display.fillRect((SCREEN_WIDTH - 17) + (b*3), 10 - (b*2),2,b*2,WHITE); 
+						display.fillRect((SettingsHandler::Display_Screen_Width - 17) + (b*3), 10 - (b*2),2,b*2,WHITE); 
 					}
 
 					display.print("IP: ");
@@ -179,14 +163,14 @@ class DisplayHandler
 					if (tempValue >= 0) 
 					{
 						display.setCursor(75,46);
-						display.fillRect(75, 46, SCREEN_WIDTH - 75, 10, BLACK);
+						display.fillRect(75, 46, SettingsHandler::Display_Screen_Width - 75, 10, BLACK);
 						display.print(tempValue, 1);
 						display.print((char)247);
 						display.print("C");
 					}
 				}
 				if(SettingsHandler::tempControlEnabled) {
-					display.fillRect(0, 56, SCREEN_WIDTH, 10, BLACK);
+					display.fillRect(0, 56, SettingsHandler::Display_Screen_Width, 10, BLACK);
 					display.setCursor(15,56);
 					String tempStatus = TemperatureHandler::getControlStatus();
 					display.println(tempStatus);
@@ -205,7 +189,7 @@ class DisplayHandler
 
 	void println(String value)
 	{
-		if(displayConnected)
+		if(displayConnected && !m_animationPlaying)
 		{
 			display.println(value);
 			display.display();	
@@ -216,7 +200,7 @@ class DisplayHandler
 
 	void println(int value)
 	{
-		if(displayConnected)
+		if(displayConnected && !m_animationPlaying)
 		{
 			display.println(value);
 			display.display();
@@ -263,4 +247,45 @@ class DisplayHandler
 		}
 		delay(5000);  
 	}
+
+	static void startAnimationDontPanic(void* displayHandlerRef) 
+	{
+		((DisplayHandler*)displayHandlerRef)->playBootAnimationDontPanic();
+	}
+
+	void playBootAnimationDontPanic() 
+	{
+		if(displayConnected)
+		{
+			display.clearDisplay();
+			m_animationPlaying = true;
+			int endTime = millis() + m_animationMilliSeconds;
+			int currentFrameIndex = 0;
+			while(millis() < endTime) 
+			{
+				display.drawBitmap(0, 0, dontPanicAnimationFrames[currentFrameIndex], SettingsHandler::Display_Screen_Width, SettingsHandler::Display_Screen_Height, 1);
+				display.display();
+				currentFrameIndex++;
+				if(currentFrameIndex == dontPanicAnimationFramesCount)
+					currentFrameIndex = 0;
+				vTaskDelay(30);
+				display.clearDisplay();
+			}
+			m_animationPlaying = false;
+		}
+  		vTaskDelete( NULL );
+	}
+
+private:
+	IPAddress _ipAddress;
+	bool displayConnected = false;
+	int currentPrintLine = 0;
+	int lastUpdate = 0;
+	const int nextUpdate = 1000;
+	bool _isRunning = false;
+
+	Adafruit_SSD1306_RSB display;
+	bool m_animationPlaying = false;
+	int m_animationMilliSeconds = 10000;
+	
 };

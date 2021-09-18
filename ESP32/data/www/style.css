@@ -10,6 +10,9 @@ h1{
 p{
   font-size: 1.5rem;
 }
+input:read-only, textarea:read-only {
+  background-color: #ccc;
+}
 .error {
   border-radius: 25px;
   background-color:firebrick;
@@ -23,6 +26,7 @@ p{
   box-shadow: 5px 5px #888888;
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
 }
 .errorHeader {
   font-weight: bolder;
@@ -38,11 +42,14 @@ p{
   height: 25px;
   align-self: flex-start;
   margin: 10px;
+  right: 5px;
+  position: absolute;
 }
 .errorText {
   font-weight: bolder;
   text-align: start;
   margin: 10px;
+  align-self: center;
 }
 .x {
   font-size: large;
@@ -95,6 +102,7 @@ body {
   align-content: center;
 }
 .formTable {
+  background-color: darkgray;
   border-collapse: separate; 
   border-spacing: 0 5px; 
   border: 1px solid black;
@@ -118,10 +126,10 @@ body {
   font-weight: bolder;
 }
 .servoHeader > td {
+  background-color: gainsboro;
   padding: 5px;
   border: 1px solid transparent;
   border-style: solid none;
-  background: darkgray;
 }
 .servoHeader > td:first-child:not(.other) {
   text-align: right;
@@ -319,4 +327,14 @@ div[slider] > input[type=range]::-ms-tooltip {
 
 [slider]:hover > div > [sign] {
   opacity: 1;
+}
+
+.pwmAvaliblePinRow > td:last-child {
+  padding-top: 25px;
+}
+.pwmAvaliblePinRow > td:last-child > span {
+  font-size: smaller;
+  right: 5px;
+  position: relative;
+  padding-left: 75px;
 }

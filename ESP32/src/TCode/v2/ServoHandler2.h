@@ -67,7 +67,7 @@ private:
     int TwistServo_PIN = SettingsHandler::TwistServo_PIN;
     int Vibe0_PIN = SettingsHandler::Vibe0_PIN;
     int Vibe1_PIN = SettingsHandler::Vibe1_PIN;
-    int Lube_PIN = SettingsHandler::Lube_Pin;
+    int LubeManual_PIN = SettingsHandler::LubeManual_PIN;
 
 	int rightServoConnected = 0;
 	int rightUpperServoConnected = 0;
@@ -109,7 +109,7 @@ private:
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup(int servoFrequency) 
+    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency) 
     {
 		toy.setup();
         toy.identifyTCode();
@@ -118,8 +118,10 @@ public:
         RightUpperServo.setPeriodHertz(servoFrequency);
         LeftServo.setPeriodHertz(servoFrequency);
         LeftUpperServo.setPeriodHertz(servoFrequency);
-        PitchLeftServo.setPeriodHertz(servoFrequency);
-        PitchRightServo.setPeriodHertz(servoFrequency);
+        PitchLeftServo.setPeriodHertz(pitchFrequency);
+        PitchRightServo.setPeriodHertz(pitchFrequency);
+		ValveServo.setPeriodHertz(valveFrequency);
+		TwistServo.setPeriodHertz(twistFrequency);
 
 		RightServo_PIN = SettingsHandler::RightServo_PIN;
 		LeftServo_PIN = SettingsHandler::LeftServo_PIN;
@@ -228,7 +230,7 @@ public:
         analogWrite(Vibe1_PIN,127);
         delay(300);
         analogWrite(Vibe1_PIN,0);
-  		pinMode(Lube_PIN,INPUT);
+  		pinMode(LubeManual_PIN,INPUT);
 
         // Set servo pulse interval
         tick = 1000/servoFrequency; //ms
@@ -475,7 +477,7 @@ public:
 
             if ((vibe1 > 1) && (vibe1 <= 1000)) 
                 analogWrite(Vibe1_PIN,map(vibe1,2,1000,31,255));
-			else if (digitalRead(Lube_PIN) == HIGH) 
+			else if (digitalRead(LubeManual_PIN) == HIGH) 
 				// For iLube - if no software action, check the manual button too
 				analogWrite(Vibe1_PIN, lubeAmount);
 			else 

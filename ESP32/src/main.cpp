@@ -47,6 +47,7 @@ BLEHandler* bleHandler = new BLEHandler();
 DisplayHandler* displayHandler;
 TaskHandle_t temperatureTask;
 TaskHandle_t displayTask;
+TaskHandle_t animationTask;
 // This has issues running with the webserver.
 //OTAHandler otaHandler;
 boolean apMode = false;
@@ -61,7 +62,13 @@ void setup()
 		setupSucceeded = false;
 		return;
 	}
-	SettingsHandler::load();
+	int sensorValue = analogRead(39);
+	float voltage = sensorValue * (5.0 / 1023.0);
+	Serial.print("AY value:");
+	Serial.println(sensorValue);
+	Serial.print("AY voltage:");
+	Serial.println(voltage);
+	SettingsHandler::load(voltage > 1.00f); // Safe value for now. Should be around 1.8v
 	Serial.println(SettingsHandler::ESP32Version);
 	if(SettingsHandler::sleeveTempEnabled)
 	{
@@ -79,6 +86,17 @@ void setup()
 	if(SettingsHandler::displayEnabled)
 	{
 		displayHandler->setup();
+		if(SettingsHandler::newtoungeHatExists)
+		{
+			xTaskCreatePinnedToCore(
+				DisplayHandler::startAnimationDontPanic,/* Function to implement the task */
+				"DisplayTask", /* Name of the task */
+				10000,  /* Stack size in words */
+				displayHandler,  /* Task input parameter */
+				1,  /* Priority of the task */
+				&animationTask,  /* Task handle. */
+				1); /* Core where the task should run */
+		}
 	}
 	
 	displayHandler->println("Setting up wifi...");
@@ -115,6 +133,7 @@ void setup()
 			{
 				displayHandler->println("APMode start failed");
 			}
+			// Causes crash loop for some reason.
 			// displayHandler->println("Starting BLE setup");
 			// bleHandler->setup();
 		}
@@ -143,17 +162,16 @@ void setup()
 	displayHandler->println("Setting up servos");
 	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
 	{
-    	servoHandler2.setup(SettingsHandler::servoFrequency);
+    	servoHandler2.setup(SettingsHandler::servoFrequency, SettingsHandler::pitchFrequency, SettingsHandler::valveFrequency, SettingsHandler::twistFrequency);
 	} 
 	else 
 	{
-		servoHandler3.setup(SettingsHandler::servoFrequency);
+		servoHandler3.setup(SettingsHandler::servoFrequency, SettingsHandler::pitchFrequency, SettingsHandler::valveFrequency, SettingsHandler::twistFrequency);
 	}
 	setupSucceeded = true;
 	displayHandler->clearDisplay();
 	displayHandler->println("Starting system...");
 	displayHandler->clearDisplay();
-	
 	if(SettingsHandler::displayEnabled)
 	{
 		xTaskCreatePinnedToCore(
@@ -168,8 +186,22 @@ void setup()
 	
 }
 String bufferString = "";
+// float lastVoltage = 0.00f;
+// int lastSensorValue = 0;
 void loop() 
 {
+/* 	int sensorValue = analogRead(39);
+	if(lastSensorValue != sensorValue) {
+		lastSensorValue = sensorValue;
+		float voltage = sensorValue * (5.0 / 1023.0);
+		Serial.print("AY value:");
+		Serial.println(sensorValue);
+		if(lastVoltage != voltage) {
+			lastVoltage=voltage;
+			Serial.print("AY voltage:");
+			Serial.println(voltage);
+		}
+	} */
 	if(setupSucceeded)
 	{
 		//otaHandler.handle();
