@@ -25,6 +25,7 @@ var userSettings = {};
 var upDateTimeout;
 var restartRequired = false;
 var documentLoaded = false;
+var newtoungeHatExists = false;
 $(document).ready( 
 	onDocumentLoad()
 );
@@ -34,8 +35,7 @@ async function onDocumentLoad()
 	fetch('/userSettings')
 	.then(function(response) {
 		if (!response.ok) {
-			$("#errorMessage").attr("hidden", false);
-			$("#errorMessage").text("Error loading user settings!");
+			showError("Error loading user settings!");
 		} else {
 			response.json().then(data => {
 				userSettings = data;
@@ -80,6 +80,7 @@ function getUserSettings()
     toggleDeviceOptions(userSettings["sr6Mode"]);
     toggleStaticIPSettings(userSettings["staticIP"]);
     toggleDisplaySettings(userSettings["displayEnabled"]);
+    togglePitchServoFrequency(userSettings["pitchFrequencyIsDifferent"]);
     $("#version").html(userSettings["esp32Version"]);
     var xMin = userSettings["xMin"];
     var xMax = userSettings["xMax"];
@@ -111,6 +112,9 @@ function getUserSettings()
     $("#hostname").val(userSettings["hostname"]);
     $("#friendlyName").val(userSettings["friendlyName"]);
 	$("#servoFrequency").val(userSettings["servoFrequency"]);
+	$("#pitchFrequency").val(userSettings["pitchFrequency"]);
+	$("#valveFrequency").val(userSettings["valveFrequency"]);
+	$("#twistFrequency").val(userSettings["twistFrequency"]);
 	
     $("#continousTwist").val(userSettings["continousTwist"]);
     $("#TwistFeedBack_PIN").val(userSettings["TwistFeedBack_PIN"]);
@@ -122,6 +126,9 @@ function getUserSettings()
     $("#PitchRightServo_PIN").val(userSettings["PitchRightServo_PIN"]);
     $("#ValveServo_PIN").val(userSettings["ValveServo_PIN"]);
 	$("#TwistServo_PIN").val(userSettings["TwistServo_PIN"]);
+    $("#Vibe0_PIN").val(userSettings["Vibe0_PIN"]);
+    $("#Vibe1_PIN").val(userSettings["Vibe1_PIN"]);
+	$("#LubeManual_PIN").val(userSettings["LubeManual_PIN"]);
 	
     $("#RightServo_ZERO").val(userSettings["RightServo_ZERO"]);
     $("#LeftServo_ZERO").val(userSettings["LeftServo_ZERO"]);
@@ -131,10 +138,7 @@ function getUserSettings()
     $("#PitchRightServo_ZERO").val(userSettings["PitchRightServo_ZERO"]);
     $("#ValveServo_ZERO").val(userSettings["ValveServo_ZERO"]);
 	$("#TwistServo_ZERO").val(userSettings["TwistServo_ZERO"]);
-	
-    $("#Vibe0_PIN").val(userSettings["Vibe0_PIN"]);
-    $("#Vibe1_PIN").val(userSettings["Vibe1_PIN"]);
-	$("#Lube_Pin").val(userSettings["Lube_Pin"]);
+	$("#lubeEnabled").prop('checked', userSettings["lubeEnabled"]);
 	$("#lubeAmount").val(userSettings["lubeAmount"]);
 	$("#sr6Mode").prop('checked', userSettings["sr6Mode"]);
 	$("#autoValve").prop('checked', userSettings["autoValve"]);
@@ -146,6 +150,7 @@ function getUserSettings()
 	$("#displayEnabled").prop('checked', userSettings["displayEnabled"]);
 	$("#sleeveTempEnabled").prop('checked', userSettings["sleeveTempEnabled"]);
 	$("#tempControlEnabled").prop('checked', userSettings["tempControlEnabled"]);
+	$("#pitchFrequencyIsDifferent").prop('checked', userSettings["pitchFrequencyIsDifferent"]);
 	$("#Display_Screen_Width").val(userSettings["Display_Screen_Width"]);
 	$("#Display_Screen_Height").val(userSettings["Display_Screen_Height"]);
 	$("#TargetTemp").val(userSettings["TargetTemp"]);
@@ -166,6 +171,28 @@ function getUserSettings()
     $("#subnet").val(userSettings["subnet"]);
     $("#dns1").val(userSettings["dns1"]);
     $("#dns2").val(userSettings["dns2"]);
+    
+    newtoungeHatExists = userSettings["newtoungeHatExists"]
+
+    $("#TwistFeedBack_PIN").prop('readonly', newtoungeHatExists);
+    $("#RightServo_PIN").prop('readonly', newtoungeHatExists);
+    $("#LeftServo_PIN").prop('readonly', newtoungeHatExists);
+    $("#RightUpperServo_PIN").prop('readonly', newtoungeHatExists);
+    $("#LeftUpperServo_PIN").prop('readonly', newtoungeHatExists);
+    $("#PitchLeftServo_PIN").prop('readonly', newtoungeHatExists);
+    $("#PitchRightServo_PIN").prop('readonly', newtoungeHatExists);
+    $("#ValveServo_PIN").prop('readonly', newtoungeHatExists);
+	$("#TwistServo_PIN").prop('readonly', newtoungeHatExists);
+    $("#Vibe0_PIN").prop('readonly', newtoungeHatExists);
+    $("#Vibe1_PIN").prop('readonly', newtoungeHatExists);
+    $("#LubeManual_PIN").prop('readonly', newtoungeHatExists);
+	$("#Temp_PIN").prop('readonly', newtoungeHatExists);
+	$("#Heater_PIN").prop('readonly', newtoungeHatExists);
+	$("#Display_Rst_PIN").prop('readonly', newtoungeHatExists);
+
+	$("#Display_Screen_Width").prop('readonly', true);
+	$("#Display_Screen_Height").prop('readonly', true);
+	$("#Display_Rst_PIN").prop('readonly', true);
 
     documentLoaded = true;
 }
@@ -179,21 +206,31 @@ async function updateUserSettings()
         }
         upDateTimeout = setTimeout(() => 
         {
-            $("#errorMessage").attr("hidden", true);
-            $("#errorMessage").text("");
+            closeError();
             $("#info").attr("hidden", false);
             $("#info").text("Saving...");
             $("#info").css("color", 'black');
             var xhr = new XMLHttpRequest();
+            var response = {};
             xhr.open("POST", "/settings", true);
             xhr.onreadystatechange = function() 
             {
                 if (xhr.readyState === 4) 
 				{
-                    var response = JSON.parse(xhr.responseText);
+                    if(xhr.responseText === '')
+                    {
+                        response["msg"] = xhr.status + ': ' + xhr.statusText;
+                    }
+                    else 
+                    {
+                        response = JSON.parse(xhr.responseText);
+                    }
                     if (response["msg"] !== "done") 
                     {
+                        $("#info").attr("hidden", true);
+                        $("#info").text("");
                         showError("Error saving: " + response["msg"]);
+                        onDocumentLoad();
                     } 
                     else 
                     {
@@ -362,9 +399,19 @@ function updateUdpPort()
     updateUserSettings();
 }
 
+function setPitchFrequencyIsDifferent() 
+{
+    var isChecked = $('#pitchFrequencyIsDifferent').prop('checked');
+    userSettings["pitchFrequencyIsDifferent"] = isChecked;
+    togglePitchServoFrequency(isChecked);
+}
+
 function updateServoFrequency() 
 {
     userSettings["servoFrequency"] = parseInt($('#servoFrequency').val());
+    userSettings["pitchFrequency"] = parseInt($('#pitchFrequency').val());
+    userSettings["valveFrequency"] = parseInt($('#valveFrequency').val());
+    userSettings["twistFrequency"] = parseInt($('#twistFrequency').val());
     showRestartRequired();
     updateUserSettings();
 }
@@ -451,20 +498,143 @@ function setInversePitch() {
 
 function updatePins() 
 {
-    userSettings["TwistFeedBack_PIN"] = $('#TwistFeedBack_PIN').val();
-    userSettings["RightServo_PIN"] = $('#RightServo_PIN').val();
-    userSettings["LeftServo_PIN"] = $('#LeftServo_PIN').val();
-    userSettings["RightUpperServo_PIN"] = $('#RightUpperServo_PIN').val();
-    userSettings["LeftUpperServo_PIN"] = $('#LeftUpperServo_PIN').val();
-    userSettings["PitchLeftServo_PIN"] = $('#PitchLeftServo_PIN').val();
-    userSettings["PitchRightServo_PIN"] = $('#PitchRightServo_PIN').val();
-    userSettings["ValveServo_PIN"] = $('#ValveServo_PIN').val();
-    userSettings["TwistServo_PIN"] = $('#TwistServo_PIN').val();
-    userSettings["Vibe0_PIN"] = $('#Vibe0_PIN').val();
-	userSettings["Vibe1_PIN"] = $('#Vibe1_PIN').val();
-	userSettings["Lube_Pin"] = $('#Lube_Pin').val();
-    showRestartRequired();
-    updateUserSettings();
+    if (!newtoungeHatExists) {
+        if(upDateTimeout !== null) 
+        {
+            clearTimeout(upDateTimeout);
+        }
+        upDateTimeout = setTimeout(() => 
+        {
+            //PWM availible on: 2,4,5,12-19,21-23,25-27,32-33
+            var validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,23,25,26,27,32,33];
+            var assignedPins = [];
+            var errors = [];
+            var pmwErrors = [];
+            var twistFeedBack = parseInt($('#TwistFeedBack_PIN').val());
+            assignedPins.push(twistFeedBack);
+
+            var twistServo = parseInt($('#TwistServo_PIN').val());
+            if(assignedPins.indexOf(twistServo) > -1)
+                errors.push("Twist servo pin");
+            if(validPWMpins.indexOf(twistServo) == -1)
+                pmwErrors.push("Twist servo pin: "+twistServo);
+            assignedPins.push(twistServo);
+
+            var rightPin = parseInt($('#RightServo_PIN').val());
+            if(assignedPins.indexOf(rightPin) > -1)
+                errors.push("Right servo pin");
+            if(validPWMpins.indexOf(rightPin) == -1)
+                pmwErrors.push("Right servo pin: "+rightPin);
+            assignedPins.push(rightPin);
+
+            var leftPin = parseInt($('#LeftServo_PIN').val());
+            if(assignedPins.indexOf(leftPin) > -1)
+                errors.push("Left servo pin");
+            if(validPWMpins.indexOf(leftPin) == -1)
+                pmwErrors.push("Left servo pin: "+leftPin);
+            assignedPins.push(leftPin);
+
+            var rightUpper = parseInt($('#RightUpperServo_PIN').val());
+            if(assignedPins.indexOf(rightUpper) > -1)
+                errors.push("Right upper servo pin");
+            if(validPWMpins.indexOf(rightUpper) == -1)
+                pmwErrors.push("Right upper servo pin: "+rightUpper);
+            assignedPins.push(rightUpper);
+
+            var leftUpper = parseInt($('#LeftUpperServo_PIN').val());
+            if(assignedPins.indexOf(leftUpper) > -1)
+                errors.push("Left upper servo pin");
+            if(validPWMpins.indexOf(leftUpper) == -1)
+                pmwErrors.push("Left upper servo pin: "+leftUpper);
+            assignedPins.push(leftUpper);
+
+            var pitchLeft = parseInt($('#PitchLeftServo_PIN').val());
+            if(assignedPins.indexOf(pitchLeft) > -1)
+                errors.push("Pitch left servo pin");
+            if(validPWMpins.indexOf(pitchLeft) == -1)
+                pmwErrors.push("Pitch left servo pin: "+pitchLeft);
+            assignedPins.push(pitchLeft);
+
+            var pitchRight = parseInt($('#PitchRightServo_PIN').val());
+            if(assignedPins.indexOf(pitchRight) > -1)
+                errors.push("Pitch right servo pin");
+            if(validPWMpins.indexOf(pitchRight) == -1)
+                pmwErrors.push("Pitch right servo pin: "+pitchRight);
+            assignedPins.push(pitchRight);
+
+            var valveServo = parseInt($('#ValveServo_PIN').val());
+            if(assignedPins.indexOf(valveServo) > -1)
+                errors.push("Valve servo pin");
+            if(validPWMpins.indexOf(valveServo) == -1)
+                pmwErrors.push("Valve servo pin: "+valveServo);
+            assignedPins.push(valveServo);
+
+            var vibe0 = parseInt($('#Vibe0_PIN').val());
+            if(assignedPins.indexOf(vibe0) > -1)
+                errors.push("Vibe 0 pin");
+            if(validPWMpins.indexOf(vibe0) == -1)
+                pmwErrors.push("Vibe 0 pin: "+vibe0);
+            assignedPins.push(vibe0);
+
+            var vibe1 = parseInt($('#Vibe1_PIN').val());
+            if(assignedPins.indexOf(vibe1) > -1)
+                errors.push("Lube/Vibe 1 pin");
+            if(validPWMpins.indexOf(vibe1) == -1)
+                pmwErrors.push("Lube/Vibe 1 pin: "+vibe1);
+            assignedPins.push(vibe1);
+
+            var temp = parseInt($('#Temp_PIN').val());
+            if(assignedPins.indexOf(temp) > -1)
+                errors.push("Temp pin");
+            if(validPWMpins.indexOf(temp) == -1)
+                pmwErrors.push("Temp pin: "+temp);
+            assignedPins.push(temp);
+
+            var heat = parseInt($('#Heater_PIN').val());
+            if(assignedPins.indexOf(heat) > -1)
+                errors.push("Heater pin");
+            if(validPWMpins.indexOf(heat) == -1)
+                pmwErrors.push("Heater pin: "+heat);
+            assignedPins.push(heat);
+
+            var lubeManual = parseInt($('#LubeManual_PIN').val());
+            if(assignedPins.indexOf(lubeManual) > -1)
+                errors.push("Lube manual pin");
+            if(validPWMpins.indexOf(lubeManual) == -1)
+                pmwErrors.push("Lube manual pin: "+lubeManual);
+
+            if (errors.length > 0 || pmwErrors.length > 0) {
+                var errorString = "Pins NOT saved due to invalid input.<br>";
+                if(errors.length > 0 )
+                    errorString += "<div style='margin-left: 25px;'>The following pins are duplicated:<br><div style='color: white; margin-left: 25px;'>"+errors.join("<br>")+"</div></div>";
+                if (pmwErrors.length > 0) {
+                    if(errors.length > 0) {
+                        errorString += "<br>";
+                    } 
+                    errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pmwErrors.join("<br>")+"</div></div>";
+                }
+                showError(errorString);
+            } else {
+                closeError();
+                userSettings["TwistFeedBack_PIN"] = twistFeedBack;
+                userSettings["TwistServo_PIN"] = twistServo
+                userSettings["RightServo_PIN"] = rightPin;
+                userSettings["LeftServo_PIN"] = leftPin;
+                userSettings["RightUpperServo_PIN"] = rightUpper;
+                userSettings["LeftUpperServo_PIN"] = leftUpper;
+                userSettings["PitchLeftServo_PIN"] = pitchLeft;
+                userSettings["PitchRightServo_PIN"] = pitchRight;
+                userSettings["ValveServo_PIN"] = valveServo;
+                userSettings["Vibe0_PIN"] = vibe0;
+                userSettings["Vibe1_PIN"] = vibe1;
+                userSettings["Temp_PIN"] = temp;
+                userSettings["Heater_PIN"] = heat;
+                userSettings["LubeManual_PIN"] = lubeManual;;
+                showRestartRequired();
+                updateUserSettings();
+            }
+        }, 2000);
+    }
 }
 function updateZeros() 
 {
@@ -540,7 +710,7 @@ function updateZeros()
         }
         else
         {
-            showError("Settings NOT saved due to invalid servo ZERO input. The values should be between 1250 and 1750 for the following:<br>"+invalidValues.join("<br>"));
+            showError("Zeros NOT saved due to invalid input.<br><div style='margin-left: 25px;'>The values should be between 1250 and 1750 for the following:<br><div style='color: white; margin-left: 25px;'>"+invalidValues.join("<br>")+"</div></div>");
         }
     }, 2000);
 }
@@ -564,12 +734,11 @@ function setDisplaySettings()
 {
     userSettings["displayEnabled"] = $('#displayEnabled').prop('checked');
     toggleDisplaySettings(userSettings["displayEnabled"]);
-    userSettings["sleeveTempEnabled"] = $('#sleeveTempEnabled').prop('checked');
-    userSettings["tempControlEnabled"] = $('#tempControlEnabled').prop('checked');
-    userSettings["Temp_PIN"] = parseInt($('#Temp_PIN').val());
-    userSettings["Heater_PIN"] = parseInt($('#Heater_PIN').val());
     userSettings["Display_Screen_Width"] = parseInt($('#Display_Screen_Width').val());
     userSettings["Display_Screen_Height"] = parseInt($('#Display_Screen_Height').val());
+
+    userSettings["sleeveTempEnabled"] = $('#sleeveTempEnabled').prop('checked');
+    userSettings["tempControlEnabled"] = $('#tempControlEnabled').prop('checked');
     userSettings["TargetTemp"] = parseInt($('#TargetTemp').val());
     userSettings["HeatPWM"] = parseInt($('#HeatPWM').val());
     userSettings["HoldPWM"] = parseInt($('#HoldPWM').val());
@@ -583,7 +752,7 @@ function setDisplaySettings()
 
 function connectWifi() {
     
-    var xhr = new XMLHttpRequest();
+  /*   var xhr = new XMLHttpRequest();
     xhr.open("POST", "/connectWifi", true);
     xhr.onreadystatechange = function() 
     {
@@ -603,7 +772,7 @@ function connectWifi() {
             }
         }
     }
-    xhr.send();
+    xhr.send(); */
 }
 
 function showWifiPassword() {
@@ -634,6 +803,17 @@ function updateWifiSettings() {
 	showRestartRequired();
 	updateUserSettings();
 	
+}
+function togglePitchServoFrequency(isChecked) 
+{
+    if(isChecked) 
+    {
+        $('#pitchFrequencyRow').show();
+    } 
+    else
+    {
+        $('#pitchFrequencyRow').hide();
+    }
 }
 function toggleStaticIPSettings(enabled)
 {
@@ -709,4 +889,9 @@ function showRestartRequired() {
     if (documentLoaded) {
         restartRequired = true;
     }
+}
+
+function updateLubeEnabled() {
+    userSettings["lubeEnabled"] = $('#lubeEnabled').prop('checked');
+	updateUserSettings();
 }

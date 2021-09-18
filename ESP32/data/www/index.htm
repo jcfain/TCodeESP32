@@ -51,13 +51,160 @@
 							<input id="sr6Mode" type="checkbox" onclick="setSR6Mode()"></input>
 						</td>
 					</tr>
-					<tr title="This sets the frequency of the main servos. L/R and Pitch">
+					<tr title="This sets the frequency of the main servos. L/R and Pitch\nif 'Pitch Frequency is different' is NOT checked">
 						<td>
 							<span>Servo Frequency</span> 
 						</td>
 						<td>
 							<input id="servoFrequency" type="text" oninput="updateServoFrequency()">
 						</td>
+					</tr>
+					<tr title="This sets the frequency of the main servos. L/R and Pitch">
+						<td>
+							<span>Pitch Frequency is different</span> 
+						</td>
+						<td>
+							<input id="pitchFrequencyIsDifferent" type="checkbox" onclick="setPitchFrequencyIsDifferent()"></input>
+						</td>
+					</tr>
+					<tr id="pitchFrequencyRow" title="This sets the frequency of the pitch servos.">
+						<td>
+							<span>Pitch Frequency</span> 
+						</td>
+						<td>
+							<input id="pitchFrequency" type="text" oninput="updateServoFrequency()">
+						</td>
+					</tr>
+					<tr title="This sets the frequency of the valve servo.">
+						<td>
+							<span>Valve Frequency</span> 
+						</td>
+						<td>
+							<input id="valveFrequency" type="text" oninput="updateServoFrequency()">
+						</td>
+					</tr>
+					<tr title="This sets the frequency of the twist servo.">
+						<td>
+							<span>Twist Frequency</span> 
+						</td>
+						<td>
+							<input id="twistFrequency" type="text" oninput="updateServoFrequency()">
+						</td>
+					</tr>
+					<tr class="servoHeader">
+						<td>
+							<span>Servo</span> 
+						</td>
+						<td>
+							<span>PIN</span> 
+						</td>
+						<td>
+							<span>ZERO</span> 
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Right</span> 
+						</td>
+						<td>
+							<input id="RightServo_PIN" type="text" oninput="updatePins()">
+						</td>
+						<td>
+							<input id="RightServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Left</span> 
+						</td>
+						<td>
+							<input id="LeftServo_PIN" type="text" oninput="updatePins()">
+						</td>
+						<td>
+							<input id="LeftServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Pitch</span> 
+						</td>
+						<td>
+							<input id="PitchLeftServo_PIN" type="text" oninput="updatePins()">
+						</td>
+						<td>
+							<input id="PitchLeftServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Valve</span> 
+						</td>
+						<td>
+							<input id="ValveServo_PIN" type="text" oninput="updatePins()">
+						</td>
+						<td>
+							<input id="ValveServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Twist</span> 
+						</td>
+						<td>
+							<input id="TwistServo_PIN" type="text" oninput="updatePins()">
+						</td>
+						<td>
+							<input id="TwistServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Twist feedback</span> 
+						</td>
+						<td>
+							<input id="TwistFeedBack_PIN" type="text" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Vibe 0</span> 
+						</td>
+						<td>
+							<input id="Vibe0_PIN" type="text" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Lube/Vibe 1</span> 
+						</td>
+						<td>
+							<input id="Vibe1_PIN" type="text"  oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Manual lube</span> 
+						</td>
+						<td>
+							<input id="LubeManual_PIN" type="text" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr class="pwmAvaliblePinRow">
+						<td></td>
+						<td colspan="2">
+							<span>
+								PWM availible on: 2,4,5,12-19,21-23,25-27,32,33
+							</span> 
+						</td>
+					</tr>
+				</tbody>
+				</table>
+				<table class="formTable">
+					<tbody>
+					<tr>
+						<th colspan="2">
+							<h3>Other</h3>
+						</th>
 					</tr>
 					<tr title="This will revert the T-Valve to the original behavior. (Depricated)" class="v2Only">
 						<td>
@@ -107,112 +254,13 @@
 							<input id="continuousTwist" type="checkbox" onchange="updateContinuousTwist()">
 						</td>
 					</tr>
-					<tr class="servoHeader">
+					<tr class="sr6Only" title="Enable this and the firmware will treat the second vibe channel like the lube channel.">
 						<td>
-							<span>Servo</span> 
+							<span>Lube enabled</span> 
 						</td>
 						<td>
-							<span>PIN</span> 
+							<input id="lubeEnabled" type="checkbox" onchange="updateLubeEnabled()">
 						</td>
-						<td>
-							<span>ZERO</span> 
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Right servo</span> 
-						</td>
-						<td>
-							<input id="RightServo_PIN" type="text" oninput="updatePins()">
-						</td>
-						<td>
-							<input id="RightServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Left servo</span> 
-						</td>
-						<td>
-							<input id="LeftServo_PIN" type="text" oninput="updatePins()">
-						</td>
-						<td>
-							<input id="LeftServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Pitch left servo</span> 
-						</td>
-						<td>
-							<input id="PitchLeftServo_PIN" type="text" oninput="updatePins()">
-						</td>
-						<td>
-							<input id="PitchLeftServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Valve servo</span> 
-						</td>
-						<td>
-							<input id="ValveServo_PIN" type="text" oninput="updatePins()">
-						</td>
-						<td>
-							<input id="ValveServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Twist servo</span> 
-						</td>
-						<td>
-							<input id="TwistServo_PIN" type="text" oninput="updatePins()">
-						</td>
-						<td>
-							<input id="TwistServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Twist feedBack</span> 
-						</td>
-						<td>
-							<input id="TwistFeedBack_PIN" type="text" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Vibe0</span> 
-						</td>
-						<td>
-							<input id="Vibe0_PIN" type="text" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Vibe1/Lube</span> 
-						</td>
-						<td>
-							<input id="Vibe1_PIN" type="text"  oninput="updatePins()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Manual lube</span> 
-						</td>
-						<td>
-							<input id="Lube_Pin" type="text" oninput="updatePins()">
-						</td>
-					</tr>
-				</tbody>
-				</table>
-				<table class="formTable">
-					<tbody>
-					<tr>
-						<th colspan="2">
-							<h3>Other</h3>
-						</th>
 					</tr>
 					<tr>
 						<td>
@@ -271,20 +319,20 @@
 							<input id="Display_I2C_Address" type="text" oninput="setDisplaySettings()">
 						</td>
 					</tr>
-					<tr>
+			<!-- 		<tr>
 						<td>
 							<span>Display rst PIN</span> 
 						</td>
 						<td>
 							<input id="Display_Rst_PIN" type="text" oninput="setDisplaySettings()">
 						</td>
-					</tr>
+					</tr> -->
 					<tr>
 						<td>
 							<span> Screen width</span> 
 						</td>
 						<td>
-							<input id="Display_Screen_Width" type="text" oninput="setDisplaySettings()">
+							<input id="Display_Screen_Width" type="text" oninput="setDisplaySettings()"> px
 						</td>
 					</tr>
 					<tr>
@@ -292,7 +340,7 @@
 							<span>Screen height</span> 
 						</td>
 						<td>
-							<input id="Display_Screen_Height" type="text" oninput="setDisplaySettings()">
+							<input id="Display_Screen_Height" type="text" oninput="setDisplaySettings()"> px
 						</td>
 					</tr>
 					<tr>
@@ -305,10 +353,10 @@
 					</tr>
 					<tr>
 						<td>
-							<span>Temp_PIN</span> 
+							<span>Temp PWM pin</span> 
 						</td>
 						<td>
-							<input id="Temp_PIN" type="text" oninput="setDisplaySettings()">
+							<input id="Temp_PIN" type="text" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -321,10 +369,10 @@
 					</tr>
 					<tr>
 						<td>
-							<span>Heater_PIN</span> 
+							<span>Heater PWM pin</span> 
 						</td>
 						<td>
-							<input id="Heater_PIN" type="text" oninput="setDisplaySettings()">
+							<input id="Heater_PIN" type="text" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -332,7 +380,7 @@
 							<span>Target Temperature</span> 
 						</td>
 						<td>
-							<input id="TargetTemp" type="text" oninput="setDisplaySettings()">
+							<input id="TargetTemp" type="text" oninput="setDisplaySettings()"> &#8451;
 						</td>
 					</tr>
 					<tr>
@@ -353,10 +401,10 @@
 					</tr>
 					<tr>
 						<td>
-							<span>Warm up time (millis)</span> 
+							<span>Warm up time</span> 
 						</td>
 						<td>
-							<input id="WarmUpTime" type="text"  oninput="setDisplaySettings()">
+							<input id="WarmUpTime" type="text"  oninput="setDisplaySettings()"> ms
 						</td>
 					</tr>
 				</table>
@@ -379,7 +427,7 @@
 					</tr>
 					<tr>
 						<td>
-							<span>Right upper servo</span> 
+							<span>Right upper</span> 
 						</td>
 						<td>
 							<input id="RightUpperServo_PIN" type="text" maxlength="3" oninput="updatePins()">
@@ -390,7 +438,7 @@
 					</tr>
 					<tr>
 						<td>
-							<span>Left upper servo</span> 
+							<span>Left upper</span> 
 						</td>
 						<td>
 							<input id="LeftUpperServo_PIN" type="text" maxlength="3" oninput="updatePins()">
@@ -401,13 +449,21 @@
 					</tr>
 					<tr>
 						<td>
-							<span>Pitch right servo</span> 
+							<span>Pitch right</span> 
 						</td>
 						<td>
 							<input id="PitchRightServo_PIN" type="text" maxlength="3" oninput="updatePins()">
 						</td>
 						<td>
 							<input id="PitchRightServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
+						</td>
+					</tr>
+					<tr class="pwmAvaliblePinRow">
+						<td></td>
+						<td colspan="2">
+							<span>
+								PWM availible on: 2,4,5,12-19,21-23,25-27,32,33
+							</span> 
 						</td>
 					</tr>
 				</table>

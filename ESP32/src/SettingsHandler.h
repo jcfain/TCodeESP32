@@ -58,7 +58,7 @@ class SettingsHandler
 		static int TwistServo_PIN;
 		static int Vibe0_PIN;
 		static int Vibe1_PIN;
-		static int Lube_Pin;
+        static int LubeManual_PIN;
         static int StrokeMin;
         static int StrokeMax;
         static int RollMin;
@@ -71,6 +71,10 @@ class SettingsHandler
         static int SurgeMax;
         static int speed;
         static int servoFrequency;
+        static int pitchFrequency;
+        static int valveFrequency;
+        static int twistFrequency;
+        static bool pitchFrequencyIsDifferent;
 		static bool continousTwist;
 		static bool staticIP;
 		static char localIP[15];
@@ -92,6 +96,7 @@ class SettingsHandler
 		static bool inverseStroke;
 		static bool inversePitch;
 		static bool valveServo90Degrees;
+        static bool lubeEnabled;
 		static int lubeAmount;
 		static bool displayEnabled;
 		static bool sleeveTempEnabled;
@@ -101,14 +106,15 @@ class SettingsHandler
 		static int Temp_PIN; 
 		static int Heater_PIN;
 		static int HeatLED_PIN;
-		static int TargetTemp;
-		static int HeatPWM;
-		static int HoldPWM;
+		static int TargetTemp;// Desired Temp in degC
+		static int HeatPWM;// Heating PWM setting 0-255
+		static int HoldPWM;// Hold heat PWM setting 0-255
 		static int Display_I2C_Address;
 		static int Display_Rst_PIN;
-		static int WarmUpTime;
+		static int WarmUpTime;// Time to hold heating on first boot
+        static bool newtoungeHatExists;
 
-        static void load() 
+        static void load(bool hatExists) 
         {
             const char* filename = "/userSettings.json";
             DynamicJsonDocument doc(deserialize);
@@ -128,10 +134,50 @@ class SettingsHandler
                 Serial.println(F("Failed to read settings file, using default configuration"));
             JsonObject jsonObj = doc.as<JsonObject>();
             const char* storedVersion = jsonObj["esp32Version"];
-            update(jsonObj);
 
-			if(loadingDefault || strcmp(storedVersion, ESP32Version) != 0)
-				save();
+            update(jsonObj);
+            bool hatExistsStorage = jsonObj["newtoungeHatExists"];
+            if(hatExists && !hatExistsStorage) 
+            {
+                newtoungeHatExists = hatExists;
+                RightServo_PIN = 13;
+                LeftServo_PIN = 2;
+                PitchLeftServo_PIN = 16;
+                ValveServo_PIN = 5;
+                TwistServo_PIN = 27;
+                TwistFeedBack_PIN = 26;
+                Vibe0_PIN = 25;
+                Vibe1_PIN = 19;
+                LubeManual_PIN = 15;
+                RightUpperServo_PIN = 12;
+                LeftUpperServo_PIN = 4;
+                PitchRightServo_PIN = 14;
+                Temp_PIN = 18; 
+                Heater_PIN = 23;
+            }
+            else if(!hatExists && hatExistsStorage)
+            {
+                PitchRightServo_PIN = 14;
+                RightUpperServo_PIN = 12;
+                RightServo_PIN = 13;
+                PitchLeftServo_PIN = 4;
+                LeftUpperServo_PIN = 2;
+                LeftServo_PIN = 15;
+                ValveServo_PIN = 28;
+                TwistServo_PIN = 27;
+                TwistFeedBack_PIN = 26;
+                Vibe0_PIN = 18;
+                Vibe1_PIN = 19;
+                LubeManual_PIN = 23;
+                Temp_PIN = 5; 
+                Heater_PIN = 33;
+            }
+
+			if(loadingDefault || 
+                strcmp(storedVersion, ESP32Version) != 0 || 
+                (hatExists && !hatExistsStorage) || 
+                (!hatExists && hatExistsStorage))
+				    save();
         }
 
         static void reset() 
@@ -179,7 +225,11 @@ class SettingsHandler
                 PitchMin = json["xRollMin"] | 1;
                 PitchMax = json["xRollMax"] | 1000;
                 speed = json["speed"] | 1000;
+                pitchFrequencyIsDifferent = json["pitchFrequencyIsDifferent"];
                 servoFrequency = json["servoFrequency"] | 50;
+                pitchFrequency = json[pitchFrequencyIsDifferent ? "pitchFrequency" : "servoFrequency"];
+                valveFrequency = json["valveFrequency"] | 50;
+                twistFrequency = json["twistFrequency"] | 50;
 				continousTwist = json["continousTwist"];
 				TwistFeedBack_PIN = json["TwistFeedBack_PIN"];
 				RightServo_PIN = json["RightServo_PIN"];
@@ -192,7 +242,7 @@ class SettingsHandler
 				TwistServo_PIN = json["TwistServo_PIN"];
 				Vibe0_PIN = json["Vibe0_PIN"];
 				Vibe1_PIN = json["Vibe1_PIN"];
-				Lube_Pin = json["Lube_Pin"];
+				LubeManual_PIN = json["LubeManual_PIN"];
 				staticIP = json["staticIP"];
                 const char* localIPTemp = json["localIP"];
                 if (localIPTemp != nullptr)
@@ -224,6 +274,7 @@ class SettingsHandler
 				valveServo90Degrees = json["valveServo90Degrees"];
 				inverseStroke = json["inverseStroke"];
 				inversePitch = json["inversePitch"];
+                lubeEnabled = json["lubeEnabled"];
 				lubeAmount = json["lubeAmount"] | 255;
 				displayEnabled = json["displayEnabled"];
 				sleeveTempEnabled = json["sleeveTempEnabled"];
@@ -240,8 +291,10 @@ class SettingsHandler
 					Display_I2C_Address = (int)strtol(Display_I2C_AddressTemp, NULL, 0);
 				Display_Rst_PIN = json["Display_Rst_PIN"] | -1;
 				WarmUpTime = json["WarmUpTime"] | 600000;
+                newtoungeHatExists = json["newtoungeHatExists"];
+                lubeEnabled = json["lubeEnabled"];
 
-                // LogUpdateDebug();
+                 LogUpdateDebug();
 
                 return true;
             } 
@@ -249,7 +302,7 @@ class SettingsHandler
         }
 
         //Untested
-        static bool parse(const String jsonInput) 
+     /*    static bool parse(const String jsonInput) 
         {
             DynamicJsonDocument doc(readCapacity);
             DeserializationError error = deserializeJson(doc, jsonInput);
@@ -261,7 +314,7 @@ class SettingsHandler
             update(doc.as<JsonObject>());
             save();
             return true;
-        }
+        } */
         
         static char* getJsonForBLE() 
         {
@@ -371,7 +424,11 @@ class SettingsHandler
             doc["xRollMin"] = PitchMin;
             doc["xRollMax"] = PitchMax;
             doc["speed"] = speed;
+            doc["pitchFrequencyIsDifferent"] = pitchFrequencyIsDifferent;
             doc["servoFrequency"] = servoFrequency;
+            doc["pitchFrequency"] = pitchFrequency;
+            doc["valveFrequency"] = valveFrequency;
+            doc["twistFrequency"] = twistFrequency;
 			doc["continousTwist"] = continousTwist;
 			doc["TwistFeedBack_PIN"] = TwistFeedBack_PIN;
 			doc["RightServo_PIN"] = RightServo_PIN;
@@ -384,7 +441,7 @@ class SettingsHandler
 			doc["TwistServo_PIN"] = TwistServo_PIN;
 			doc["Vibe0_PIN"] = Vibe0_PIN;
 			doc["Vibe1_PIN"] = Vibe1_PIN;
-			doc["Lube_Pin"] = Lube_Pin;
+			doc["LubeManual_PIN"] = LubeManual_PIN;
 			doc["staticIP"] = staticIP;
 			doc["localIP"] = localIP;
 			doc["gateway"] = gateway;
@@ -406,6 +463,7 @@ class SettingsHandler
 			doc["inverseStroke"] = inverseStroke;
 			doc["inversePitch"] = inversePitch;
 			doc["lubeAmount"] = lubeAmount;
+            doc["lubeEnabled"] = lubeEnabled;
 			doc["displayEnabled"] = displayEnabled;
 			doc["sleeveTempEnabled"] = sleeveTempEnabled;
 			doc["tempControlEnabled"] = tempControlEnabled;
@@ -421,9 +479,10 @@ class SettingsHandler
 			doc["Temp_PIN"] = Temp_PIN;
 			doc["Heater_PIN"] = Heater_PIN;
 			doc["WarmUpTime"] = WarmUpTime;
+			doc["newtoungeHatExists"] = newtoungeHatExists;
 			
 
-            // LogSaveDebug(doc);
+             LogSaveDebug(doc);
             if (serializeJson(doc, file) == 0) 
             {
                 Serial.println(F("Failed to write to file"));
@@ -442,9 +501,9 @@ class SettingsHandler
     private:
         //static char* filename = "/userSettings.json";
         // Use http://arduinojson.org/assistant to compute the capacity.
-        static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
-        static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
-		static const int deserialize = 2048;
+        // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
+        // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
+		static const int deserialize = 3072;
 		static const int serialize = 1536;
 
 
@@ -527,8 +586,16 @@ class SettingsHandler
             Serial.println((int)doc["xRollMax"]);
             Serial.print("save speed ");
             Serial.println((int)doc["speed"]);
+            Serial.print("save pitchFrequencyIsDifferent ");
+            Serial.println((bool)doc["pitchFrequencyIsDifferent"]);
             Serial.print("save servoFrequency ");
             Serial.println((int)doc["servoFrequency"]);
+            Serial.print("save  pitchFrequency ");
+            Serial.println((int)doc["pitchFrequency"]);
+            Serial.print("save valveFrequency ");
+            Serial.println((int)doc["valveFrequency"]);
+            Serial.print("save twistFrequency ");
+            Serial.println((int)doc["twistFrequency"]);
             Serial.print("save continousTwist ");
             Serial.println((bool)doc["continousTwist"]);
             Serial.print("save TwistFeedBack_PIN ");
@@ -555,6 +622,8 @@ class SettingsHandler
             Serial.println((int)doc["Vibe1_PIN"]);
             Serial.print("save Lube_Pin ");
             Serial.println((int)doc["Lube_Pin"]);
+            Serial.print("save LubeManual_Pin ");
+            Serial.println((int)doc["LubeManual_Pin"]);
             Serial.print("save staticIP ");
             Serial.println((bool)doc["staticIP"]);
             Serial.print("save localIP ");
@@ -595,6 +664,8 @@ class SettingsHandler
             Serial.println((bool)doc["inverseStroke"]);
             Serial.print("save inversePitch ");
             Serial.println((bool)doc["inversePitch"]);
+            Serial.print("save lubeEnabled ");
+            Serial.println((bool)doc["lubeEnabled"]);
             Serial.print("save lubeAmount ");
             Serial.println((int)doc["lubeAmount"]);
             Serial.print("save Temp_PIN ");
@@ -603,8 +674,8 @@ class SettingsHandler
             Serial.println((int)doc["Heater_PIN"]);
             Serial.print("save displayEnabled ");
             Serial.println((bool)doc["displayEnabled"]);
-            Serial.print("save tempControlEnabled ");
-            Serial.println((bool)doc["tempControlEnabled"]);
+            Serial.print("save sleeveTempEnabled ");
+            Serial.println((bool)doc["sleeveTempEnabled"]);
             Serial.print("save tempControlEnabled ");
             Serial.println((bool)doc["tempControlEnabled"]);
             Serial.print("save Display_Screen_Width ");
@@ -623,6 +694,8 @@ class SettingsHandler
             Serial.println((int)doc["Display_Rst_PIN"]);
             Serial.print("save WarmUpTime ");
             Serial.println((int)doc["WarmUpTime"]);
+            Serial.print("save newtoungeHatExists ");
+            Serial.println((bool)doc["newtoungeHatExists"]);
         }
 
         static void LogUpdateDebug() 
@@ -653,8 +726,16 @@ class SettingsHandler
             Serial.println(PitchMax);
             Serial.print("update speed ");
             Serial.println(speed);
+            Serial.print("update pitchFrequencyIsDifferent ");
+            Serial.println(pitchFrequencyIsDifferent);
             Serial.print("update servoFrequency ");
             Serial.println(servoFrequency);
+            Serial.print("update pitchFrequency ");
+            Serial.println(pitchFrequency);
+            Serial.print("update valveFrequency ");
+            Serial.println(valveFrequency);
+            Serial.print("update twistFrequency ");
+            Serial.println(twistFrequency);
             Serial.print("update continousTwist ");
             Serial.println(continousTwist);
             Serial.print("update TwistFeedBack_PIN ");
@@ -679,8 +760,8 @@ class SettingsHandler
             Serial.println(Vibe0_PIN);
             Serial.print("update Vibe1_PIN ");
             Serial.println(Vibe1_PIN);
-            Serial.print("update Lube_Pin ");
-            Serial.println(Lube_Pin);
+            Serial.print("update LubeManual_PIN ");
+            Serial.println(LubeManual_PIN);
             Serial.print("update staticIP ");
             Serial.println(staticIP);
             Serial.print("update localIP ");
@@ -721,13 +802,16 @@ class SettingsHandler
             Serial.println(inverseStroke);
             Serial.print("update inversePitch ");
             Serial.println(inversePitch);
+            Serial.print("update lubeEnabled ");
+            Serial.println(lubeEnabled);
             Serial.print("update lubeAmount ");
             Serial.println(lubeAmount);
-
             Serial.print("update displayEnabled ");
             Serial.println(displayEnabled);
             Serial.print("update sleeveTempEnabled ");
             Serial.println(sleeveTempEnabled);
+            Serial.print("update tempControlEnabled ");
+            Serial.println(tempControlEnabled);
             Serial.print("update Display_Screen_Width ");
             Serial.println(Display_Screen_Width);
             Serial.print("update Display_Screen_Height ");
@@ -749,12 +833,14 @@ class SettingsHandler
             Serial.println(Heater_PIN);
             Serial.print("update WarmUpTime ");
             Serial.println(WarmUpTime);
+            Serial.print("update newtoungeHatExists ");
+            Serial.println(newtoungeHatExists);
         }
 };
 
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[14] = "ESP32 v0.22b";
+const char SettingsHandler::ESP32Version[14] = "ESP32 v0.231a";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 bool SettingsHandler::bluetoothEnabled = true;
@@ -776,11 +862,12 @@ int SettingsHandler::TwistServo_PIN = 27;
 int SettingsHandler::TwistFeedBack_PIN = 26;
 int SettingsHandler::Vibe0_PIN = 18;
 int SettingsHandler::Vibe1_PIN = 19;
-int SettingsHandler::Lube_Pin = 23;
+int SettingsHandler::LubeManual_PIN = 23;
 int SettingsHandler::Temp_PIN = 5; 
 int SettingsHandler::Heater_PIN = 33;
 //int SettingsHandler::HeatLED_PIN = 32;
 // pin 25 cannot be servo. Throws error
+bool SettingsHandler::lubeEnabled = true;
 
 int SettingsHandler::StrokeMin;
 int SettingsHandler::StrokeMax;
@@ -790,7 +877,11 @@ int SettingsHandler::PitchMin;
 int SettingsHandler::PitchMax;
 
 int SettingsHandler::speed;
+bool SettingsHandler::pitchFrequencyIsDifferent;
 int SettingsHandler::servoFrequency;
+int SettingsHandler::pitchFrequency;
+int SettingsHandler::valveFrequency;
+int SettingsHandler::twistFrequency;
 bool SettingsHandler::continousTwist;
 bool SettingsHandler::staticIP;
 char SettingsHandler::localIP[15];
@@ -825,3 +916,4 @@ int SettingsHandler::HoldPWM = 110;
 int SettingsHandler::Display_I2C_Address = 0x3C;
 int SettingsHandler::Display_Rst_PIN = -1;
 int SettingsHandler::WarmUpTime = 600000;
+bool SettingsHandler::newtoungeHatExists = false;

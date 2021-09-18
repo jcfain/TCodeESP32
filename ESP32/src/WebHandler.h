@@ -189,8 +189,9 @@ class WebHandler {
 				SettingsHandler::reset();
             });
 
-            AsyncCallbackJsonWebHandler* handler = new AsyncCallbackJsonWebHandler("/settings", [](AsyncWebServerRequest *request, JsonVariant &json) 
+            AsyncCallbackJsonWebHandler* handler = new AsyncCallbackJsonWebHandler("/settings", [](AsyncWebServerRequest *request, JsonVariant &json)
 			{
+                Serial.println("Save settings...");
                 JsonObject jsonObj = json.as<JsonObject>();
                 if(SettingsHandler::update(jsonObj))
                 {
@@ -210,12 +211,13 @@ class WebHandler {
                     AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"msg\":\"Could not parse JSON\"}");
                     request->send(response);
                 }
-            });
+            }, 1500U );//Bad request? increase the size.
 
             server.addHandler(handler);
             
             server.onNotFound([](AsyncWebServerRequest *request) 
 			{
+                Serial.println("Not found...");
                 if (request->method() == HTTP_OPTIONS) {
                     request->send(200);
                 } else {
