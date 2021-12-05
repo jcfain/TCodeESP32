@@ -338,3 +338,15 @@ div[slider] > input[type=range]::-ms-tooltip {
   position: relative;
   padding-left: 75px;
 }
+
+
+
+@media only screen and (-webkit-min-device-pixel-ratio: 2.75)   {
+  body {
+    margin: 0;
+  }
+  .formTable {
+    max-width: 375px;
+    align-self: center;
+  }
+}

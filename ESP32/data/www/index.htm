@@ -8,7 +8,6 @@
   <!-- <link rel="icon" href="data:,"> -->
   <link rel="stylesheet" type="text/css" href="style.css">
   <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> -->
-  <script type="text/javascript" src="jquery"></script>
   <script type="text/javascript" src="settings.js"></script>
 </head>
 <body>
@@ -252,6 +251,14 @@
 						</td>
 						<td>
 							<input id="continuousTwist" type="checkbox" onchange="updateContinuousTwist()">
+						</td>
+					</tr>
+					<tr class="v3Only">
+						<td>
+							<span>Analog twist</span> 
+						</td>
+						<td>
+							<input id="analogTwist" type="checkbox" onchange="updateAnalogTwist()">
 						</td>
 					</tr>
 					<tr class="sr6Only" title="Enable this and the firmware will treat the second vibe channel like the lube channel.">
