@@ -1,5 +1,5 @@
 # TCodeESP32
-This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). It adds Network capabilities and bluetooth.
+This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). It adds Network Tcode capabilities and WiFi/BLE configuration.
 
 ## INSTALLATION:
   ### BINARIES
