@@ -76,6 +76,7 @@ class SettingsHandler
         static int twistFrequency;
         static bool pitchFrequencyIsDifferent;
 		static bool continousTwist;
+		static bool analogTwist;
 		static bool staticIP;
 		static char localIP[15];
 		static char gateway[15];
@@ -231,6 +232,7 @@ class SettingsHandler
                 valveFrequency = json["valveFrequency"] | 50;
                 twistFrequency = json["twistFrequency"] | 50;
 				continousTwist = json["continousTwist"];
+                analogTwist = json["analogTwist"];
 				TwistFeedBack_PIN = json["TwistFeedBack_PIN"];
 				RightServo_PIN = json["RightServo_PIN"];
 				LeftServo_PIN = json["LeftServo_PIN"];
@@ -430,6 +432,7 @@ class SettingsHandler
             doc["valveFrequency"] = valveFrequency;
             doc["twistFrequency"] = twistFrequency;
 			doc["continousTwist"] = continousTwist;
+			doc["analogTwist"] = analogTwist;
 			doc["TwistFeedBack_PIN"] = TwistFeedBack_PIN;
 			doc["RightServo_PIN"] = RightServo_PIN;
 			doc["LeftServo_PIN"] = LeftServo_PIN;
@@ -598,6 +601,8 @@ class SettingsHandler
             Serial.println((int)doc["twistFrequency"]);
             Serial.print("save continousTwist ");
             Serial.println((bool)doc["continousTwist"]);
+            Serial.print("save analogTwist ");
+            Serial.println((bool)doc["analogTwist"]);
             Serial.print("save TwistFeedBack_PIN ");
             Serial.println((int)doc["TwistFeedBack_PIN"]);
             Serial.print("save RightServo_PIN ");
@@ -738,6 +743,8 @@ class SettingsHandler
             Serial.println(twistFrequency);
             Serial.print("update continousTwist ");
             Serial.println(continousTwist);
+            Serial.print("update analogTwist ");
+            Serial.println(analogTwist);
             Serial.print("update TwistFeedBack_PIN ");
             Serial.println(TwistFeedBack_PIN);
             Serial.print("update RightServo_PIN ");
@@ -840,7 +847,7 @@ class SettingsHandler
 
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[14] = "ESP32 v0.23b";
+const char SettingsHandler::ESP32Version[14] = "ESP32 v0.231b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 bool SettingsHandler::bluetoothEnabled = true;
@@ -883,6 +890,7 @@ int SettingsHandler::pitchFrequency;
 int SettingsHandler::valveFrequency;
 int SettingsHandler::twistFrequency;
 bool SettingsHandler::continousTwist;
+bool SettingsHandler::analogTwist;
 bool SettingsHandler::staticIP;
 char SettingsHandler::localIP[15];
 char SettingsHandler::gateway[15];

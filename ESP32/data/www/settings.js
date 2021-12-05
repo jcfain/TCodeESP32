@@ -26,32 +26,41 @@ var upDateTimeout;
 var restartRequired = false;
 var documentLoaded = false;
 var newtoungeHatExists = false;
-$(document).ready( 
-	onDocumentLoad()
-);
+var infoNode;
 
-async function onDocumentLoad()
+document.addEventListener("DOMContentLoaded", function() {
+	loadPage()
+  });
+  
+function loadPage()
 {
-	fetch('/userSettings')
-	.then(function(response) {
-		if (!response.ok) {
+	infoNode = document.getElementById('info');
+    onDocumentLoad();
+}
+function onDocumentLoad()
+{
+	var xhr = new XMLHttpRequest();
+	xhr.open('GET', "/userSettings", true);
+	xhr.responseType = 'json';
+	xhr.onload = function() {
+        var status = xhr.status;
+        if (status !== 200) {
 			showError("Error loading user settings!");
 		} else {
-			response.json().then(data => {
-				userSettings = data;
-                getUserSettings()
-			});
+            userSettings = xhr.response;
+            getUserSettings()
 		}
-	});
+	};
+	xhr.send();
 }
 
 function onDefaultClick() 
 {		
 	if (confirm("WARNING! Are you sure you wish to reset ALL settings?")) 
 	{
-		$("#info").attr("hidden", false);
-		$("#info").text("Resetting...");
-		$("#info").css("color", 'black');
+		infoNode.hidden = true;
+		infoNode.innerText = "Resetting...";
+		infoNode.style.color = 'black';
 		var xhr = new XMLHttpRequest();
 		xhr.open("POST", "/default", true);
 		xhr.onreadystatechange = function() 
@@ -59,14 +68,14 @@ function onDefaultClick()
 			if (xhr.readyState === 4) 
 			{
 				onDocumentLoad();
-				$("#info").text("Settings reset!");
-				$("#info").css("color", 'green');
-				$('#requiresRestart').show();
-				$('#resetBtn').prop("disabled", false );
+				infoNode.innerText = "Settings reset!";
+                infoNode.style.color = 'green';
+				document.getElementById('requiresRestart').hidden = false;
+				document.getElementById('resetBtn').disabled = false ;
 				setTimeout(() => 
 				{
-					$("#info").attr("hidden", true);
-					$("#info").text("");
+                    infoNode.hidden = true;
+                    infoNode.innerText = "";
 				}, 5000)
 			}
 		}
@@ -81,123 +90,125 @@ function getUserSettings()
     toggleStaticIPSettings(userSettings["staticIP"]);
     toggleDisplaySettings(userSettings["displayEnabled"]);
     togglePitchServoFrequency(userSettings["pitchFrequencyIsDifferent"]);
-    $("#version").html(userSettings["esp32Version"]);
+    document.getElementById("version").innerHTML = userSettings["esp32Version"];
     var xMin = userSettings["xMin"];
     var xMax = userSettings["xMax"];
-    $("#xMin").val(xMin);
+    document.getElementById("xMin").value = xMin;
     calculateAndUpdateMinUI("x", xMin);
-    $("#xMax").val(xMax);
+    document.getElementById("xMax").value = xMax;
     calculateAndUpdateMaxUI("x", xMax);
     updateRangePercentageLabel("x", tcodeToPercentage(xMin), tcodeToPercentage(xMax));
 
     var yRollMin = userSettings["yRollMin"];
     var yRollMax = userSettings["yRollMax"];
-    $("#yRollMin").val(yRollMin);
+    document.getElementById("yRollMin").value = yRollMin;
     calculateAndUpdateMinUI("yRoll", yRollMin);
-    $("#yRollMax").val(yRollMax);
+    document.getElementById("yRollMax").value = yRollMax;
     calculateAndUpdateMaxUI("yRoll", yRollMax);
     updateRangePercentageLabel("yRoll", tcodeToPercentage(yRollMin), tcodeToPercentage(yRollMax));
 
     var xRollMin = userSettings["xRollMin"];
     var xRollMax = userSettings["xRollMax"];
-    $("#xRollMin").val(xRollMin);
+    document.getElementById("xRollMin").value =xRollMin;
     calculateAndUpdateMinUI("xRoll", xRollMin);
-    $("#xRollMax").val(xRollMax);
+    document.getElementById("xRollMax").value =xRollMax;
     calculateAndUpdateMaxUI("xRoll", xRollMax);
     updateRangePercentageLabel("xRoll", tcodeToPercentage(xRollMin), tcodeToPercentage(xRollMax));
 
     updateSpeedUI(userSettings["speed"]);
 
-    $("#udpServerPort").val(userSettings["udpServerPort"]);
-    $("#hostname").val(userSettings["hostname"]);
-    $("#friendlyName").val(userSettings["friendlyName"]);
-	$("#servoFrequency").val(userSettings["servoFrequency"]);
-	$("#pitchFrequency").val(userSettings["pitchFrequency"]);
-	$("#valveFrequency").val(userSettings["valveFrequency"]);
-	$("#twistFrequency").val(userSettings["twistFrequency"]);
+    document.getElementById("udpServerPort").value = userSettings["udpServerPort"];
+    document.getElementById("hostname").value = userSettings["hostname"];
+    document.getElementById("friendlyName").value = userSettings["friendlyName"];
+	document.getElementById("servoFrequency").value = userSettings["servoFrequency"];
+	document.getElementById("pitchFrequency").value = userSettings["pitchFrequency"];
+	document.getElementById("valveFrequency").value = userSettings["valveFrequency"];
+	document.getElementById("twistFrequency").value = userSettings["twistFrequency"];
 	
-    $("#continousTwist").val(userSettings["continousTwist"]);
-    $("#TwistFeedBack_PIN").val(userSettings["TwistFeedBack_PIN"]);
-    $("#RightServo_PIN").val(userSettings["RightServo_PIN"]);
-    $("#LeftServo_PIN").val(userSettings["LeftServo_PIN"]);
-    $("#RightUpperServo_PIN").val(userSettings["RightUpperServo_PIN"]);
-    $("#LeftUpperServo_PIN").val(userSettings["LeftUpperServo_PIN"]);
-    $("#PitchLeftServo_PIN").val(userSettings["PitchLeftServo_PIN"]);
-    $("#PitchRightServo_PIN").val(userSettings["PitchRightServo_PIN"]);
-    $("#ValveServo_PIN").val(userSettings["ValveServo_PIN"]);
-	$("#TwistServo_PIN").val(userSettings["TwistServo_PIN"]);
-    $("#Vibe0_PIN").val(userSettings["Vibe0_PIN"]);
-    $("#Vibe1_PIN").val(userSettings["Vibe1_PIN"]);
-	$("#LubeManual_PIN").val(userSettings["LubeManual_PIN"]);
+	document.getElementById("continuousTwist").checked = userSettings["continuousTwist"];
+	document.getElementById("analogTwist").checked = userSettings["analogTwist"];
+    
+    document.getElementById("TwistFeedBack_PIN").value = userSettings["TwistFeedBack_PIN"];
+    document.getElementById("RightServo_PIN").value = userSettings["RightServo_PIN"];
+    document.getElementById("LeftServo_PIN").value = userSettings["LeftServo_PIN"];
+    document.getElementById("RightUpperServo_PIN").value = userSettings["RightUpperServo_PIN"];
+    document.getElementById("LeftUpperServo_PIN").value = userSettings["LeftUpperServo_PIN"];
+    document.getElementById("PitchLeftServo_PIN").value = userSettings["PitchLeftServo_PIN"];
+    document.getElementById("PitchRightServo_PIN").value = userSettings["PitchRightServo_PIN"];
+    document.getElementById("ValveServo_PIN").value = userSettings["ValveServo_PIN"];
+	document.getElementById("TwistServo_PIN").value = userSettings["TwistServo_PIN"];
+    document.getElementById("Vibe0_PIN").value = userSettings["Vibe0_PIN"];
+    document.getElementById("Vibe1_PIN").value = userSettings["Vibe1_PIN"];
+	document.getElementById("LubeManual_PIN").value = userSettings["LubeManual_PIN"];
 	
-    $("#RightServo_ZERO").val(userSettings["RightServo_ZERO"]);
-    $("#LeftServo_ZERO").val(userSettings["LeftServo_ZERO"]);
-    $("#RightUpperServo_ZERO").val(userSettings["RightUpperServo_ZERO"]);
-    $("#LeftUpperServo_ZERO").val(userSettings["LeftUpperServo_ZERO"]);
-    $("#PitchLeftServo_ZERO").val(userSettings["PitchLeftServo_ZERO"]);
-    $("#PitchRightServo_ZERO").val(userSettings["PitchRightServo_ZERO"]);
-    $("#ValveServo_ZERO").val(userSettings["ValveServo_ZERO"]);
-	$("#TwistServo_ZERO").val(userSettings["TwistServo_ZERO"]);
-	$("#lubeEnabled").prop('checked', userSettings["lubeEnabled"]);
-	$("#lubeAmount").val(userSettings["lubeAmount"]);
-	$("#sr6Mode").prop('checked', userSettings["sr6Mode"]);
-	$("#autoValve").prop('checked', userSettings["autoValve"]);
-	$("#inverseValve").prop('checked', userSettings["inverseValve"]);
-	$("#valveServo90Degrees").prop('checked', userSettings["valveServo90Degrees"]);
-	$("#inverseStroke").prop('checked', userSettings["inverseStroke"]);
-	$("#inversePitch").prop('checked', userSettings["inversePitch"]);
+    document.getElementById("RightServo_ZERO").value = userSettings["RightServo_ZERO"];
+    document.getElementById("LeftServo_ZERO").value = userSettings["LeftServo_ZERO"];
+    document.getElementById("RightUpperServo_ZERO").value = userSettings["RightUpperServo_ZERO"];
+    document.getElementById("LeftUpperServo_ZERO").value = userSettings["LeftUpperServo_ZERO"];
+    document.getElementById("PitchLeftServo_ZERO").value = userSettings["PitchLeftServo_ZERO"];
+    document.getElementById("PitchRightServo_ZERO").value = userSettings["PitchRightServo_ZERO"];
+    document.getElementById("ValveServo_ZERO").value = userSettings["ValveServo_ZERO"];
+	document.getElementById("TwistServo_ZERO").value = userSettings["TwistServo_ZERO"];
+	document.getElementById("lubeEnabled").checked = userSettings["lubeEnabled"];
+	document.getElementById("lubeAmount").value = userSettings["lubeAmount"];
+	document.getElementById("sr6Mode").checked = userSettings["sr6Mode"];
+	document.getElementById("autoValve").checked = userSettings["autoValve"];
+	document.getElementById("inverseValve").checked = userSettings["inverseValve"];
+	document.getElementById("valveServo90Degrees").checked = userSettings["valveServo90Degrees"];
+	document.getElementById("inverseStroke").checked = userSettings["inverseStroke"];
+	document.getElementById("inversePitch").checked = userSettings["inversePitch"];
 
-	$("#displayEnabled").prop('checked', userSettings["displayEnabled"]);
-	$("#sleeveTempEnabled").prop('checked', userSettings["sleeveTempEnabled"]);
-	$("#tempControlEnabled").prop('checked', userSettings["tempControlEnabled"]);
-	$("#pitchFrequencyIsDifferent").prop('checked', userSettings["pitchFrequencyIsDifferent"]);
-	$("#Display_Screen_Width").val(userSettings["Display_Screen_Width"]);
-	$("#Display_Screen_Height").val(userSettings["Display_Screen_Height"]);
-	$("#TargetTemp").val(userSettings["TargetTemp"]);
-	$("#HeatPWM").val(userSettings["HeatPWM"]);
-	$("#HoldPWM").val(userSettings["HoldPWM"]);
-	$("#Display_I2C_Address").val(userSettings["Display_I2C_Address"]);
-	$("#Display_Rst_PIN").val(userSettings["Display_Rst_PIN"]);
-	$("#Temp_PIN").val(userSettings["Temp_PIN"]);
-	$("#Heater_PIN").val(userSettings["Heater_PIN"]);
-	$("#WarmUpTime").val(userSettings["WarmUpTime"]);
-    $('#TCodeVersion').val(userSettings["TCodeVersion"]).prop('selected', true);
+	document.getElementById("displayEnabled").checked = userSettings["displayEnabled"];
+	document.getElementById("sleeveTempEnabled").checked = userSettings["sleeveTempEnabled"];
+	document.getElementById("tempControlEnabled").checked = userSettings["tempControlEnabled"];
+	document.getElementById("pitchFrequencyIsDifferent").checked = userSettings["pitchFrequencyIsDifferent"];
+	document.getElementById("Display_Screen_Width").value = userSettings["Display_Screen_Width"];
+	document.getElementById("Display_Screen_Height").value = userSettings["Display_Screen_Height"];
+	document.getElementById("TargetTemp").value = userSettings["TargetTemp"];
+	document.getElementById("HeatPWM").value = userSettings["HeatPWM"];
+	document.getElementById("HoldPWM").value = userSettings["HoldPWM"];
+	document.getElementById("Display_I2C_Address").value = userSettings["Display_I2C_Address"];
+	// document.getElementById("Display_Rst_PIN").value = userSettings["Display_Rst_PIN"];
+	document.getElementById("Temp_PIN").value = userSettings["Temp_PIN"];
+	document.getElementById("Heater_PIN").value = userSettings["Heater_PIN"];
+	document.getElementById("WarmUpTime").value = userSettings["WarmUpTime"];
+    document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
 	
-    $("#ssid").val(userSettings["ssid"]);
-    $("#wifiPass").val(userSettings["wifiPass"]);
-    $("#staticIP").prop('checked', userSettings["staticIP"]);
-    $("#localIP").val(userSettings["localIP"]);
-    $("#gateway").val(userSettings["gateway"]);
-    $("#subnet").val(userSettings["subnet"]);
-    $("#dns1").val(userSettings["dns1"]);
-    $("#dns2").val(userSettings["dns2"]);
+    document.getElementById("ssid").value = userSettings["ssid"];
+    document.getElementById("wifiPass").value = userSettings["wifiPass"];
+    document.getElementById("staticIP").checked = userSettings["staticIP"];
+    document.getElementById("localIP").value = userSettings["localIP"];
+    document.getElementById("gateway").value = userSettings["gateway"];
+    document.getElementById("subnet").value = userSettings["subnet"];
+    document.getElementById("dns1").value = userSettings["dns1"];
+    document.getElementById("dns2").value = userSettings["dns2"];
     
     newtoungeHatExists = userSettings["newtoungeHatExists"]
 
-    $("#TwistFeedBack_PIN").prop('readonly', newtoungeHatExists);
-    $("#RightServo_PIN").prop('readonly', newtoungeHatExists);
-    $("#LeftServo_PIN").prop('readonly', newtoungeHatExists);
-    $("#RightUpperServo_PIN").prop('readonly', newtoungeHatExists);
-    $("#LeftUpperServo_PIN").prop('readonly', newtoungeHatExists);
-    $("#PitchLeftServo_PIN").prop('readonly', newtoungeHatExists);
-    $("#PitchRightServo_PIN").prop('readonly', newtoungeHatExists);
-    $("#ValveServo_PIN").prop('readonly', newtoungeHatExists);
-	$("#TwistServo_PIN").prop('readonly', newtoungeHatExists);
-    $("#Vibe0_PIN").prop('readonly', newtoungeHatExists);
-    $("#Vibe1_PIN").prop('readonly', newtoungeHatExists);
-    $("#LubeManual_PIN").prop('readonly', newtoungeHatExists);
-	$("#Temp_PIN").prop('readonly', newtoungeHatExists);
-	$("#Heater_PIN").prop('readonly', newtoungeHatExists);
-	$("#Display_Rst_PIN").prop('readonly', newtoungeHatExists);
+    document.getElementById("TwistFeedBack_PIN").readonly = newtoungeHatExists;
+    document.getElementById("RightServo_PIN").readonly = newtoungeHatExists;
+    document.getElementById("LeftServo_PIN").readonly = newtoungeHatExists;
+    document.getElementById("RightUpperServo_PIN").readonly = newtoungeHatExists;
+    document.getElementById("LeftUpperServo_PIN").readonly = newtoungeHatExists;
+    document.getElementById("PitchLeftServo_PIN").readonly = newtoungeHatExists;
+    document.getElementById("PitchRightServo_PIN").readonly = newtoungeHatExists;
+    document.getElementById("ValveServo_PIN").readonly = newtoungeHatExists;
+	document.getElementById("TwistServo_PIN").readonly = newtoungeHatExists;
+    document.getElementById("Vibe0_PIN").readonly = newtoungeHatExists;
+    document.getElementById("Vibe1_PIN").readonly = newtoungeHatExists;
+    document.getElementById("LubeManual_PIN").readonly = newtoungeHatExists;
+	document.getElementById("Temp_PIN").readonly = newtoungeHatExists;
+	document.getElementById("Heater_PIN").readonly = newtoungeHatExists;
+	// document.getElementById("Display_Rst_PIN").readonly = newtoungeHatExists;
 
-	$("#Display_Screen_Width").prop('readonly', true);
-	$("#Display_Screen_Height").prop('readonly', true);
-	$("#Display_Rst_PIN").prop('readonly', true);
+	document.getElementById("Display_Screen_Width").readonly = true;
+	document.getElementById("Display_Screen_Height").readonly = true;
+	// document.getElementById("Display_Rst_PIN").readonly = true;
 
     documentLoaded = true;
 }
 
-async function updateUserSettings() 
+function updateUserSettings() 
 {
     if (documentLoaded) {
         if(upDateTimeout !== null) 
@@ -207,9 +218,9 @@ async function updateUserSettings()
         upDateTimeout = setTimeout(() => 
         {
             closeError();
-            $("#info").attr("hidden", false);
-            $("#info").text("Saving...");
-            $("#info").css("color", 'black');
+            infoNode.hidden = false;
+            infoNode.innerText = "Saving...";
+            infoNode.style.color = 'black';
             var xhr = new XMLHttpRequest();
             var response = {};
             xhr.open("POST", "/settings", true);
@@ -227,25 +238,25 @@ async function updateUserSettings()
                     }
                     if (response["msg"] !== "done") 
                     {
-                        $("#info").attr("hidden", true);
-                        $("#info").text("");
+                        infoNode.hidden = true;
+                        infoNode.innerText = "";
                         showError("Error saving: " + response["msg"]);
                         onDocumentLoad();
                     } 
                     else 
                     {
-                        $("#info").attr("hidden", false);
-                        $("#info").text("Settings saved!");
-                        $("#info").css("color", 'green');
+                        infoNode.visibility = "visible";
+                        infoNode.innerText = "Settings saved!";
+                        infoNode.style.color = 'green';
                         if (restartRequired) 
                         {
-                            $('#requiresRestart').show();
-                            $('#resetBtn').prop("disabled", false );
+                            document.getElementById('requiresRestart').hidden = false;
+                            document.getElementById('resetBtn').disabled = false;
                         }
                         setTimeout(() => 
                         {
-                            $("#info").attr("hidden", true);
-                            $("#info").text("");
+                            infoNode.hidden = true;
+                            infoNode.innerText = "";
                         }, 5000)
                     }
                 }
@@ -259,13 +270,13 @@ async function updateUserSettings()
 }
 function closeError() 
 {
-    $("#errorText").html("");
-    $("#errorMessage").attr("hidden", true);
+    document.getElementById("errorText").innerHTML = "";
+    document.getElementById("errorMessage").hidden = true;
 }
 function showError(message) 
 {
-    $("#errorText").html(message);
-    $("#errorMessage").attr("hidden", false);
+    document.getElementById("errorText").innerHTML += message;
+    document.getElementById("errorMessage").hidden = false;
 }
 function onMinInput(axis) 
 {
@@ -277,7 +288,7 @@ function onMinInput(axis)
     var value=(100/(parseInt(inputAxisMin.max)-parseInt(inputAxisMin.min)))*parseInt(inputAxisMin.value)-(100/(parseInt(inputAxisMin.max)-parseInt(inputAxisMin.min)))*parseInt(inputAxisMin.min);
     updateMinUI(axis, value);
 
-    updateRangePercentageLabel(axis, inputAxisMin.value, $("#"+axis+"Max").val());
+    updateRangePercentageLabel(axis, inputAxisMin.value, document.getElementById(""+axis+"Max").value);
 
     var tcodeValue =  percentageToTcode(inputAxisMin.value);
     if (tcodeValue < 1) {
@@ -298,7 +309,7 @@ function onMaxInput(axis)
     var value=(100/(parseInt(inputAxisMax.max)-parseInt(inputAxisMax.min)))*parseInt(inputAxisMax.value)-(100/(parseInt(inputAxisMax.max)-parseInt(inputAxisMax.min)))*parseInt(inputAxisMax.min);
     updateMaxUI(axis, value);
 
-    updateRangePercentageLabel(axis, $("#"+axis+"Min").val(), inputAxisMax.value);
+    updateRangePercentageLabel(axis, document.getElementById(""+axis+"Min").value, inputAxisMax.value);
 
     var tcodeValue =  percentageToTcode(inputAxisMax.value);
     //console.log("Max tcode: " + tcodeValue);
@@ -318,49 +329,49 @@ function calculateAndUpdateMaxUI(axis, tcodeValue)
 
 function updateMinUI(axis, value) 
 {
-    $("#" + axis + "Min").val(value);
-    $("#" + axis + "InverseMin").css("width", value + "%");
-    $("#" + axis + "Range").css("left", value + "%");
-    $("#" + axis + "ThumbMin").css("left", value + "%");
-    $("#" + axis + "SignMin").css("left", value + "%");
-    $("#" + axis + "ValueMin").text(value + '%');
+    document.getElementById("" + axis + "Min").value =value;
+    document.getElementById("" + axis + "InverseMin").style.width = value + "%";
+    document.getElementById("" + axis + "Range").style.left = value + "%";
+    document.getElementById("" + axis + "ThumbMin").style.left = value + "%";
+    document.getElementById("" + axis + "SignMin").style.left = value + "%";
+    document.getElementById("" + axis + "ValueMin").innerText = value + '%';
 }
 
 function updateMaxUI(axis, value) 
 {
-    $("#" + axis + "Max").val(value);
-    $("#" + axis + "InverseMax").css("width", (100-value) + "%");
-    $("#" + axis + "Range").css("right", (100-value) + "%");
-    $("#" + axis + "ThumbMax").css("left", value + "%");
-    $("#" + axis + "SignMax").css("left", value + "%");
-    $("#" + axis + "ValueMax").text(value + '%');
+    document.getElementById("" + axis + "Max").value = value;
+    document.getElementById("" + axis + "InverseMax").style.width = (100-value) + "%";
+    document.getElementById("" + axis + "Range").style.right = (100-value) + "%";
+    document.getElementById("" + axis + "ThumbMax").style.left = value + "%";
+    document.getElementById("" + axis + "SignMax").style.left = value + "%";
+    document.getElementById("" + axis + "ValueMax").innerText = value + '%';
 }
 
 function updateSpeedUI(millisec) 
 {
     var value = speedToPercentage(millisec);
-    $("#speedSign").css("left", value + "%");
-    $("#speedThumb").css("left", value + "%");
-    $("#speedValue").css("left", value + "%");
-    //$("#speedInverseMin").css("width", (value) + "%");
-    $("#speedInverseMax").css("width", (100-value) + "%");
-    $("#speedRange").css("right", (100-value) + "%");
-    //$("#speedRange").css("left", value + "%");
+    document.getElementById("speedSign").style.left = value + "%";
+    document.getElementById("speedThumb").style.left = value + "%";
+    document.getElementById("speedValue").style.left = value + "%";
+    //document.getElementById("speedInverseMin").style.width = (value) + "%";
+    document.getElementById("speedInverseMax").style.width =  (100-value) + "%";
+    document.getElementById("speedRange").style.right = (100-value) + "%";
+    //document.getElementById("speedRange").style.left = value + "%";
     if (millisec > 999) 
     {
-        $("#speedValue").text(millisec);
-        $("#speedLabel").text(millisec + "ms");
+        document.getElementById("speedValue").innerText = millisec;
+        document.getElementById("speedLabel").innerText = millisec + "ms";
     } 
     else 
     {
-        $("#speedValue").text("off");
-        $("#speedLabel").text("off");
+        document.getElementById("speedValue").innerText = "off";
+        document.getElementById("speedLabel").innerText = "off";
     }
 }
 
 function updateRangePercentageLabel(axis, minValue, maxValue) 
 {
-    $("#" + axis + "RangeLabel").text(maxValue - minValue + "%");
+    document.getElementById("" + axis + "RangeLabel").innerText = maxValue - minValue + "%";
 }
 
 function tcodeToPercentage(tcodeValue) 
@@ -386,7 +397,7 @@ function convertRange(input_start, input_end, output_start, output_end, value)
 
 function onSpeedInput() 
 {
-    var speedInMillisecs = parseInt($("#speedInput").val())
+    var speedInMillisecs = parseInt(document.getElementById("speedInput").value);
     userSettings["speed"] = speedInMillisecs > 999 ? speedInMillisecs : 0;
     updateSpeedUI(speedInMillisecs);
     updateUserSettings();
@@ -394,81 +405,87 @@ function onSpeedInput()
 
 function updateUdpPort() 
 {
-    userSettings["udpServerPort"] = parseInt($('#udpServerPort').val());
+    userSettings["udpServerPort"] = parseInt(document.getElementById('udpServerPort').value);
     showRestartRequired();
     updateUserSettings();
 }
 
 function setPitchFrequencyIsDifferent() 
 {
-    var isChecked = $('#pitchFrequencyIsDifferent').prop('checked');
+    var isChecked = document.getElementById('pitchFrequencyIsDifferent').checked;
     userSettings["pitchFrequencyIsDifferent"] = isChecked;
     togglePitchServoFrequency(isChecked);
 }
 
 function updateServoFrequency() 
 {
-    userSettings["servoFrequency"] = parseInt($('#servoFrequency').val());
-    userSettings["pitchFrequency"] = parseInt($('#pitchFrequency').val());
-    userSettings["valveFrequency"] = parseInt($('#valveFrequency').val());
-    userSettings["twistFrequency"] = parseInt($('#twistFrequency').val());
+    userSettings["servoFrequency"] = parseInt(document.getElementById('servoFrequency').value);
+    userSettings["pitchFrequency"] = parseInt(document.getElementById('pitchFrequency').value);
+    userSettings["valveFrequency"] = parseInt(document.getElementById('valveFrequency').value);
+    userSettings["twistFrequency"] = parseInt(document.getElementById('twistFrequency').value);
     showRestartRequired();
     updateUserSettings();
 }
 
 function updateContinuousTwist()
 {
-	var checked = $('#continuousTwist').prop('checked');
+	var checked = document.getElementById('continuousTwist').checked;
 	if (checked) 
 	{
 		if (confirm("WARNING! If you enable continuous twist\nMAKE SURE THERE ARE NO WIRES CONNECTED TO YOUR FLESHLIGHT CASE!\nThis can twist the wires and possible injury can occur.\n CONFIRM THERE ARE NO WIRES CONNECTED?")) 
 		{
-			userSettings["continousTwist"] = checked;
+			userSettings["continuousTwist"] = checked;
 			updateUserSettings();
 		} 
 		else 
 		{
-			$('#continuousTwist').prop('checked', false);
+			document.getElementById('continuousTwist').checked = false;
 		} 
 	}
 	else
 	{
-		userSettings["continousTwist"] = false;
+		userSettings["continuousTwist"] = false;
 		updateUserSettings();
 	}
+}
+function updateAnalogTwist()
+{
+	var checked = document.getElementById('analogTwist').checked;
+    userSettings["analogTwist"] = checked;
+    updateUserSettings();
 }
 
 function updateHostName() 
 {
-    userSettings["hostname"] = $('#hostname').val();
+    userSettings["hostname"] = document.getElementById('hostname').value;
     showRestartRequired();
     updateUserSettings();
 }
 
 function updateFriendlyName() 
 {
-    userSettings["friendlyName"] = $('#friendlyName').val();
+    userSettings["friendlyName"] = document.getElementById('friendlyName').value;
     showRestartRequired();
     updateUserSettings();
 }
 
 function setSR6Mode() {
-    userSettings["sr6Mode"] = $('#sr6Mode').prop('checked');
+    userSettings["sr6Mode"] = document.getElementById('sr6Mode').checked;
     toggleDeviceOptions(userSettings["sr6Mode"]);
     showRestartRequired();
 	updateUserSettings();
 }
 
 function setAutoValve() {
-    userSettings["autoValve"] = $('#autoValve').prop('checked');
+    userSettings["autoValve"] = document.getElementById('autoValve').checked;
 	updateUserSettings();
 }
 function setInverseValve() {
-    userSettings["inverseValve"] = $('#inverseValve').prop('checked');
+    userSettings["inverseValve"] = document.getElementById('inverseValve').checked;
 	updateUserSettings();
 }
 function setValveServo90Degrees() {
-	var checked = $('#valveServo90Degrees').prop('checked');
+	var checked = document.getElementById('valveServo90Degrees').checked;
 	if (checked) 
 	{
 		if (confirm("WARNING! If you 90 degree servo\nMAKE SURE YOU ARE NOT USING THE T-Valve LID!\nThe servo will stall hitting the wall and burn out!")) 
@@ -478,7 +495,7 @@ function setValveServo90Degrees() {
 		} 
 		else 
 		{
-			$('#valveServo90Degrees').prop('checked', false);
+			document.getElementById('valveServo90Degrees').checked = false;
 		} 
 	}
 	else
@@ -488,11 +505,11 @@ function setValveServo90Degrees() {
 	}
 }
 function setInverseStroke() {
-    userSettings["inverseStroke"] = $('#inverseStroke').prop('checked');
+    userSettings["inverseStroke"] = document.getElementById('inverseStroke').checked;
 	updateUserSettings();
 }
 function setInversePitch() {
-    userSettings["inversePitch"] = $('#inversePitch').prop('checked');
+    userSettings["inversePitch"] = document.getElementById('inversePitch').checked;
 	updateUserSettings();
 }
 
@@ -510,94 +527,94 @@ function updatePins()
             var assignedPins = [];
             var errors = [];
             var pmwErrors = [];
-            var twistFeedBack = parseInt($('#TwistFeedBack_PIN').val());
+            var twistFeedBack = parseInt(document.getElementById('TwistFeedBack_PIN').value);
             assignedPins.push(twistFeedBack);
 
-            var twistServo = parseInt($('#TwistServo_PIN').val());
+            var twistServo = parseInt(document.getElementById('TwistServo_PIN').value);
             if(assignedPins.indexOf(twistServo) > -1)
                 errors.push("Twist servo pin");
             if(validPWMpins.indexOf(twistServo) == -1)
                 pmwErrors.push("Twist servo pin: "+twistServo);
             assignedPins.push(twistServo);
 
-            var rightPin = parseInt($('#RightServo_PIN').val());
+            var rightPin = parseInt(document.getElementById('RightServo_PIN').value);
             if(assignedPins.indexOf(rightPin) > -1)
                 errors.push("Right servo pin");
             if(validPWMpins.indexOf(rightPin) == -1)
                 pmwErrors.push("Right servo pin: "+rightPin);
             assignedPins.push(rightPin);
 
-            var leftPin = parseInt($('#LeftServo_PIN').val());
+            var leftPin = parseInt(document.getElementById('LeftServo_PIN').value);
             if(assignedPins.indexOf(leftPin) > -1)
                 errors.push("Left servo pin");
             if(validPWMpins.indexOf(leftPin) == -1)
                 pmwErrors.push("Left servo pin: "+leftPin);
             assignedPins.push(leftPin);
 
-            var rightUpper = parseInt($('#RightUpperServo_PIN').val());
+            var rightUpper = parseInt(document.getElementById('RightUpperServo_PIN').value);
             if(assignedPins.indexOf(rightUpper) > -1)
                 errors.push("Right upper servo pin");
             if(validPWMpins.indexOf(rightUpper) == -1)
                 pmwErrors.push("Right upper servo pin: "+rightUpper);
             assignedPins.push(rightUpper);
 
-            var leftUpper = parseInt($('#LeftUpperServo_PIN').val());
+            var leftUpper = parseInt(document.getElementById('LeftUpperServo_PIN').value);
             if(assignedPins.indexOf(leftUpper) > -1)
                 errors.push("Left upper servo pin");
             if(validPWMpins.indexOf(leftUpper) == -1)
                 pmwErrors.push("Left upper servo pin: "+leftUpper);
             assignedPins.push(leftUpper);
 
-            var pitchLeft = parseInt($('#PitchLeftServo_PIN').val());
+            var pitchLeft = parseInt(document.getElementById('PitchLeftServo_PIN').value);
             if(assignedPins.indexOf(pitchLeft) > -1)
                 errors.push("Pitch left servo pin");
             if(validPWMpins.indexOf(pitchLeft) == -1)
                 pmwErrors.push("Pitch left servo pin: "+pitchLeft);
             assignedPins.push(pitchLeft);
 
-            var pitchRight = parseInt($('#PitchRightServo_PIN').val());
+            var pitchRight = parseInt(document.getElementById('PitchRightServo_PIN').value);
             if(assignedPins.indexOf(pitchRight) > -1)
                 errors.push("Pitch right servo pin");
             if(validPWMpins.indexOf(pitchRight) == -1)
                 pmwErrors.push("Pitch right servo pin: "+pitchRight);
             assignedPins.push(pitchRight);
 
-            var valveServo = parseInt($('#ValveServo_PIN').val());
+            var valveServo = parseInt(document.getElementById('ValveServo_PIN').value);
             if(assignedPins.indexOf(valveServo) > -1)
                 errors.push("Valve servo pin");
             if(validPWMpins.indexOf(valveServo) == -1)
                 pmwErrors.push("Valve servo pin: "+valveServo);
             assignedPins.push(valveServo);
 
-            var vibe0 = parseInt($('#Vibe0_PIN').val());
+            var vibe0 = parseInt(document.getElementById('Vibe0_PIN').value);
             if(assignedPins.indexOf(vibe0) > -1)
                 errors.push("Vibe 0 pin");
             if(validPWMpins.indexOf(vibe0) == -1)
                 pmwErrors.push("Vibe 0 pin: "+vibe0);
             assignedPins.push(vibe0);
 
-            var vibe1 = parseInt($('#Vibe1_PIN').val());
+            var vibe1 = parseInt(document.getElementById('Vibe1_PIN').value);
             if(assignedPins.indexOf(vibe1) > -1)
                 errors.push("Lube/Vibe 1 pin");
             if(validPWMpins.indexOf(vibe1) == -1)
                 pmwErrors.push("Lube/Vibe 1 pin: "+vibe1);
             assignedPins.push(vibe1);
 
-            var temp = parseInt($('#Temp_PIN').val());
+            var temp = parseInt(document.getElementById('Temp_PIN').value);
             if(assignedPins.indexOf(temp) > -1)
                 errors.push("Temp pin");
             if(validPWMpins.indexOf(temp) == -1)
                 pmwErrors.push("Temp pin: "+temp);
             assignedPins.push(temp);
 
-            var heat = parseInt($('#Heater_PIN').val());
+            var heat = parseInt(document.getElementById('Heater_PIN').value);
             if(assignedPins.indexOf(heat) > -1)
                 errors.push("Heater pin");
             if(validPWMpins.indexOf(heat) == -1)
                 pmwErrors.push("Heater pin: "+heat);
             assignedPins.push(heat);
 
-            var lubeManual = parseInt($('#LubeManual_PIN').val());
+            var lubeManual = parseInt(document.getElementById('LubeManual_PIN').value);
             if(assignedPins.indexOf(lubeManual) > -1)
                 errors.push("Lube manual pin");
             if(validPWMpins.indexOf(lubeManual) == -1)
@@ -646,49 +663,49 @@ function updateZeros()
     {
         var validValue = true;
         var invalidValues = [];
-        var RightServo_ZERO = parseInt($('#RightServo_ZERO').val());
+        var RightServo_ZERO = parseInt(document.getElementById('RightServo_ZERO').value);
         if(!RightServo_ZERO || RightServo_ZERO > 1750 || RightServo_ZERO < 1250)
         {
             validValue = false;
             invalidValues.push("Right servo ZERO")
         }
-        var LeftServo_ZERO = parseInt($('#LeftServo_ZERO').val());
+        var LeftServo_ZERO = parseInt(document.getElementById('LeftServo_ZERO').value);
         if(!LeftServo_ZERO || LeftServo_ZERO > 1750 || LeftServo_ZERO < 1250)
         {
             validValue = false;
             invalidValues.push("Left servo ZERO")
         }
-        var RightUpperServo_ZERO = parseInt($('#RightUpperServo_ZERO').val());
+        var RightUpperServo_ZERO = parseInt(document.getElementById('RightUpperServo_ZERO').value);
         if(!RightUpperServo_ZERO || RightUpperServo_ZERO > 1750 || RightUpperServo_ZERO < 1250)
         {
             validValue = false;
             invalidValues.push("Right upper servo ZERO")
         }
-        var LeftUpperServo_ZERO = parseInt($('#LeftUpperServo_ZERO').val());
+        var LeftUpperServo_ZERO = parseInt(document.getElementById('LeftUpperServo_ZERO').value);
         if(!LeftUpperServo_ZERO || LeftUpperServo_ZERO > 1750 || LeftUpperServo_ZERO < 1250)
         {
             validValue = false;
             invalidValues.push("Left upper servo ZERO")
         }
-        var PitchLeftServo_ZERO = parseInt($('#PitchLeftServo_ZERO').val());
+        var PitchLeftServo_ZERO = parseInt(document.getElementById('PitchLeftServo_ZERO').value);
         if(!PitchLeftServo_ZERO || PitchLeftServo_ZERO > 1750 || PitchLeftServo_ZERO < 1250)
         {
             validValue = false;
             invalidValues.push("Pitch left servo ZERO")
         }
-        var PitchRightServo_ZERO = parseInt($('#PitchRightServo_ZERO').val());
+        var PitchRightServo_ZERO = parseInt(document.getElementById('PitchRightServo_ZERO').value);
         if(!PitchRightServo_ZERO || PitchRightServo_ZERO > 1750 || PitchRightServo_ZERO < 1250)
         {
             validValue = false;
             invalidValues.push("Pitch right servo ZERO")
         }
-        var ValveServo_ZERO = parseInt($('#ValveServo_ZERO').val());
+        var ValveServo_ZERO = parseInt(document.getElementById('ValveServo_ZERO').value);
         if(!ValveServo_ZERO || ValveServo_ZERO > 1750 || ValveServo_ZERO < 1250)
         {
             validValue = false;
             invalidValues.push("Valve servo ZERO")
         }
-        var TwistServo_ZERO = parseInt($('#TwistServo_ZERO').val());
+        var TwistServo_ZERO = parseInt(document.getElementById('TwistServo_ZERO').value);
         if(!TwistServo_ZERO || TwistServo_ZERO > 1750 || TwistServo_ZERO < 1250)
         {
             validValue = false;
@@ -698,14 +715,14 @@ function updateZeros()
         if(validValue)
         {
             closeError();
-            userSettings["RightServo_ZERO"] = $('#RightServo_ZERO').val();
-            userSettings["LeftServo_ZERO"] = $('#LeftServo_ZERO').val();
-            userSettings["RightUpperServo_ZERO"] = $('#RightUpperServo_ZERO').val();
-            userSettings["LeftUpperServo_ZERO"] = $('#LeftUpperServo_ZERO').val();
-            userSettings["PitchLeftServo_ZERO"] = $('#PitchLeftServo_ZERO').val();
-            userSettings["PitchRightServo_ZERO"] = $('#PitchRightServo_ZERO').val();
-            userSettings["ValveServo_ZERO"] = $('#ValveServo_ZERO').val();
-            userSettings["TwistServo_ZERO"] = $('#TwistServo_ZERO').val();
+            userSettings["RightServo_ZERO"] = document.getElementById('RightServo_ZERO').value;
+            userSettings["LeftServo_ZERO"] = document.getElementById('LeftServo_ZERO').value;
+            userSettings["RightUpperServo_ZERO"] = document.getElementById('RightUpperServo_ZERO').value;
+            userSettings["LeftUpperServo_ZERO"] = document.getElementById('LeftUpperServo_ZERO').value;
+            userSettings["PitchLeftServo_ZERO"] = document.getElementById('PitchLeftServo_ZERO').value;
+            userSettings["PitchRightServo_ZERO"] = document.getElementById('PitchRightServo_ZERO').value;
+            userSettings["ValveServo_ZERO"] = document.getElementById('ValveServo_ZERO').value;
+            userSettings["TwistServo_ZERO"] = document.getElementById('TwistServo_ZERO').value;
             updateUserSettings();
         }
         else
@@ -716,35 +733,35 @@ function updateZeros()
 }
 function updateLubeAmount()
 {
-    userSettings["lubeAmount"] = parseInt($('#lubeAmount').val());
+    userSettings["lubeAmount"] = parseInt(document.getElementById('lubeAmount').value);
     updateUserSettings();
 }
 function toggleDisplaySettings(enabled) 
 {
     if(!enabled) 
     {
-        $('#deviceSettingsDisplayTable').hide();
+        document.getElementById('deviceSettingsDisplayTable').hidden = true;
     }
     else
     {
-        $('#deviceSettingsDisplayTable').show();
+        document.getElementById('deviceSettingsDisplayTable').hidden = false;
     }
 }
 function setDisplaySettings()
 {
-    userSettings["displayEnabled"] = $('#displayEnabled').prop('checked');
+    userSettings["displayEnabled"] = document.getElementById('displayEnabled').checked;
     toggleDisplaySettings(userSettings["displayEnabled"]);
-    userSettings["Display_Screen_Width"] = parseInt($('#Display_Screen_Width').val());
-    userSettings["Display_Screen_Height"] = parseInt($('#Display_Screen_Height').val());
+    userSettings["Display_Screen_Width"] = parseInt(document.getElementById('Display_Screen_Width').value);
+    userSettings["Display_Screen_Height"] = parseInt(document.getElementById('Display_Screen_Height').value);
 
-    userSettings["sleeveTempEnabled"] = $('#sleeveTempEnabled').prop('checked');
-    userSettings["tempControlEnabled"] = $('#tempControlEnabled').prop('checked');
-    userSettings["TargetTemp"] = parseInt($('#TargetTemp').val());
-    userSettings["HeatPWM"] = parseInt($('#HeatPWM').val());
-    userSettings["HoldPWM"] = parseInt($('#HoldPWM').val());
-    userSettings["Display_Rst_PIN"] = parseInt($('#Display_Rst_PIN').val());
-    userSettings["Display_I2C_Address"] = $('#Display_I2C_Address').val();
-    userSettings["WarmUpTime"] = parseInt($('#WarmUpTime').val());
+    userSettings["sleeveTempEnabled"] = document.getElementById('sleeveTempEnabled').checked;
+    userSettings["tempControlEnabled"] = document.getElementById('tempControlEnabled').checked;
+    userSettings["TargetTemp"] = parseInt(document.getElementById('TargetTemp').value);
+    userSettings["HeatPWM"] = parseInt(document.getElementById('HeatPWM').value);
+    userSettings["HoldPWM"] = parseInt(document.getElementById('HoldPWM').value);
+    // userSettings["Display_Rst_PIN"] = parseInt(document.getElementById('Display_Rst_PIN').value);
+    userSettings["Display_I2C_Address"] = document.getElementById('Display_I2C_Address').value;
+    userSettings["WarmUpTime"] = parseInt(document.getElementById('WarmUpTime').value);
 	
     showRestartRequired();
     updateUserSettings();
@@ -766,9 +783,9 @@ function connectWifi() {
             } 
             else 
             {
-                $("#info").attr("hidden", false);
-                $("#info").text("Wifi Connected! IP Address: " + response["IPAddress"] + " Keep this IP address and restart the device. After rebooting enter the IP address into your browsers address bar.");
-                $("#info").css("color", 'green');
+                infoNode.visibility = "visible";
+                infoNode.innerText = "Wifi Connected! IP Address: " + response["IPAddress"] + " Keep this IP address and restart the device. After rebooting enter the IP address into your browsers address bar.");
+                infoNode.style.color", 'green');
             }
         }
     }
@@ -785,14 +802,14 @@ function showWifiPassword() {
 }
 
 function updateWifiSettings() {
-    userSettings["ssid"] = $('#ssid').val();
-    userSettings["wifiPass"] = $('#wifiPass').val();
-	var staticIP = $('#staticIP').prop('checked');
-	var localIP = $('#localIP').val();
-	var gateway = $('#gateway').val();
-	var subnet = $('#subnet').val();
-	var dns1 = $('#dns1').val();
-	var dns2 = $('#dns2').val();
+    userSettings["ssid"] = document.getElementById('ssid').value;
+    userSettings["wifiPass"] = document.getElementById('wifiPass').value;
+	var staticIP = document.getElementById('staticIP').checked;
+	var localIP = document.getElementById('localIP').value;
+	var gateway = document.getElementById('gateway').value;
+	var subnet = document.getElementById('subnet').value;
+	var dns1 = document.getElementById('dns1').value;
+	var dns2 = document.getElementById('dns2').value;
     userSettings["staticIP"] = staticIP;
     toggleStaticIPSettings(staticIP);
     userSettings["localIP"] = localIP;
@@ -808,78 +825,72 @@ function togglePitchServoFrequency(isChecked)
 {
     if(isChecked) 
     {
-        $('#pitchFrequencyRow').show();
+        document.getElementById('pitchFrequencyRow').hidden = false;
     } 
     else
     {
-        $('#pitchFrequencyRow').hide();
+        document.getElementById('pitchFrequencyRow').hidden = true;
     }
 }
 function toggleStaticIPSettings(enabled)
 {
     if(!enabled) 
     {
-        $('#localIPLabel').hide();
-        $('#gatewayLabel').hide();
-        $('#subnetLabel').hide();
-        $('#dns1Label').hide();
-        $('#dns2Label').hide();
-        $('#localIP').hide();
-        $('#gateway').hide();
-        $('#subnet').hide();
-        $('#dns1').hide();
-        $('#dns2').hide();
+        document.getElementById('localIPLabel').hidden = true;
+        document.getElementById('gatewayLabel').hidden = true;
+        document.getElementById('subnetLabel').hidden = true;
+        document.getElementById('dns1Label').hidden = true;
+        document.getElementById('dns2Label').hidden = true;
+        document.getElementById('localIP').hidden = true;
+        document.getElementById('gateway').hidden = true;
+        document.getElementById('subnet').hidden = true;
+        document.getElementById('dns1').hidden = true;
+        document.getElementById('dns2').hidden = true;
     } 
     else
     {
-        $('#localIPLabel').show();
-        $('#gatewayLabel').show();
-        $('#subnetLabel').show();
-        $('#dns1Label').show();
-        $('#dns2Label').show();
-        $('#localIP').show();
-        $('#gateway').show();
-        $('#subnet').show();
-        $('#dns1').show();
-        $('#dns2').show();
+        document.getElementById('localIPLabel').hidden = false;
+        document.getElementById('gatewayLabel').hidden = false;
+        document.getElementById('subnetLabel').hidden = false;
+        document.getElementById('dns1Label').hidden = false;
+        document.getElementById('dns2Label').hidden = false;
+        document.getElementById('localIP').hidden = false;
+        document.getElementById('gateway').hidden = false;
+        document.getElementById('subnet').hidden = false;
+        document.getElementById('dns1').hidden = false;
+        document.getElementById('dns2').hidden = false;
     }
 }
 function toggleDeviceOptions(sr6Mode)
 {
-    if(sr6Mode) 
-    {
-        $('.osrOnly').hide();
-        $('.sr6Only').show();
-    } 
-    else
-    {
-        $('.osrOnly').show();
-        $('.sr6Only').hide();
-    }
+    var osrOnly = document.getElementsByClassName('osrOnly');
+    var sr6Only = document.getElementsByClassName('sr6Only');
+    for(var i=0;i < sr6Only.length; i++)
+        sr6Only[i].style.display = sr6Mode ? "revert" : "none";
+    for(var i=0;i < osrOnly.length; i++)
+        osrOnly[i].style.display = sr6Mode ? "none" : "revert";
 }
 
 function toggleNonTCodev3Options(v3)
 {
-    if(v3) 
-    {
-        $('.v2Only').hide();
-    } 
-    else
-    {
-        $('.v2Only').show();
-    }
+    var v2Only = document.getElementsByClassName('v2Only');
+    var v3Only = document.getElementsByClassName('v3Only');
+    for(var i=0;i < v3Only.length; i++)
+        v3Only[i].style.display = v3 ? "revert" : "none";
+    for(var i=0;i < v2Only.length; i++)
+        v2Only[i].style.display = v3 ? "none" : "revert";
 }
 
 function updateBlueToothSettings()
 {
-    userSettings["bluetoothEnabled"] = $('#bluetoothEnabled').prop('checked');
+    userSettings["bluetoothEnabled"] = document.getElementById('bluetoothEnabled').checked;
 	showRestartRequired();
 	updateUserSettings();
 }
 
 function setTCodeVersion() 
 {
-    userSettings["TCodeVersion"] = parseInt($('#TCodeVersion').val());
+    userSettings["TCodeVersion"] = parseInt(document.getElementById('TCodeVersion').value);
     toggleNonTCodev3Options(userSettings["TCodeVersion"] == 1)
 	showRestartRequired();
 	updateUserSettings();
@@ -892,6 +903,6 @@ function showRestartRequired() {
 }
 
 function updateLubeEnabled() {
-    userSettings["lubeEnabled"] = $('#lubeEnabled').prop('checked');
+    userSettings["lubeEnabled"] = document.getElementById('lubeEnabled').checked;
 	updateUserSettings();
 }

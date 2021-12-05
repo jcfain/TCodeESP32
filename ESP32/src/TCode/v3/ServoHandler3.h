@@ -173,7 +173,8 @@ public:
         // Initiate position tracking for twist
         twistFeedBackPin = SettingsHandler::TwistFeedBack_PIN;
         pinMode(twistFeedBackPin,INPUT);
-		attachInterrupt(twistFeedBackPin, twistChange, CHANGE);
+        if(!SettingsHandler::analogTwist)
+            attachInterrupt(twistFeedBackPin, twistChange, CHANGE);
         
         // Signal done
         Serial.println("Ready!");
@@ -222,10 +223,16 @@ public:
 
         if (!SettingsHandler::continousTwist) 
         {
+            float angPos;
             // Calculate twist position
-            float dutyCycle = twistPulseLength;
-            dutyCycle = dutyCycle/twistPulseCycle;
-            float angPos = (dutyCycle - 0.029)/0.942;
+            if (!SettingsHandler::analogTwist)
+            {
+                float dutyCycle = twistPulseLength;
+                dutyCycle = dutyCycle/twistPulseCycle;
+                angPos = (dutyCycle - 0.029)/0.942;
+            }
+            else
+                angPos = analogRead(SettingsHandler::TwistFeedBack_PIN) / 675.0;
             angPos = constrain(angPos,0,1) - 0.5;
             if (angPos - twistServoAngPos < - 0.8) { twistTurns += 1; }
             if (angPos - twistServoAngPos > 0.8) { twistTurns -= 1; }
@@ -336,7 +343,15 @@ public:
         if (!SettingsHandler::continousTwist) 
         {
             twist  = (xRot - map(twistPos,-1500,1500,9999,0))/5;
-            twist  = constrain(twist, -750, 750);
+            if(!SettingsHandler::analogTwist)
+                twist  = constrain(twist, -750, 750);
+            else 
+            {
+                int jitter = 1;
+                twist += jitter;
+                jitter *= -1;
+                twist = -constrain(twist, -500, 500);
+            }
         } 
         else 
         {
