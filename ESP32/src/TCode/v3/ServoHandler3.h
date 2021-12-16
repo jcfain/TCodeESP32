@@ -20,41 +20,6 @@
 //   Settings
 // ----------------------------
 
-// Device IDs, for external reference
-
-// Servo microseconds per radian
-// (Standard: 637 μs/rad)
-// (LW-20: 700 μs/rad)
-#define ms_per_rad 637  // (μs/rad)
-
-// Servo operating frequencies
-#define VibePWM_Freq 8000   // Vibe motor control PWM frequency
-
-// Other functions
-#define VALVE_DEFAULT 5000        // Auto-valve default suction level (low-high, 0-9999) 
-#define VIBE_TIMEOUT 2000         // Timeout for vibration channels (milliseconds).
-
-// T-Code Channels
-#define CHANNELS 10                // Number of channels of each type (LRVA)
-
-// ----------------------------
-//  Auto Settings
-// ----------------------------
-// Do not change
-
-// Servo PWM channels
-#define LowerLeftServo_PWM 0     // Lower Left Servo
-#define UpperLeftServo_PWM 1     // Upper Left Servo
-#define LowerRightServo_PWM 2    // Lower Right Servo
-#define UpperRightServo_PWM 3    // Upper Right Servo
-#define LeftPitchServo_PWM 4     // Left Pitch Servo
-#define RightPitchServo_PWM 5    // Right Pitch Servo
-#define TwistServo_PWM 6         // Twist Servo
-#define ValveServo_PWM 7         // Valve Servo
-#define TwistFeedback_PWM 8      // Twist Servo
-#define Vibe0_PWM 9              // Vibration motor 1
-#define Vibe1_PWM 10             // Vibration motor 2
-
 
 #include "TCode.h"
 #include "../Global.h"
@@ -171,10 +136,21 @@ public:
         ledcAttachPin(SettingsHandler::Vibe1_PIN,Vibe1_PWM); 
 
         // Initiate position tracking for twist
-        twistFeedBackPin = SettingsHandler::TwistFeedBack_PIN;
-        pinMode(twistFeedBackPin,INPUT);
-        if(!SettingsHandler::analogTwist)
-            attachInterrupt(twistFeedBackPin, twistChange, CHANGE);
+        pinMode(SettingsHandler::TwistFeedBack_PIN,INPUT);
+        if(!SettingsHandler::analogTwist) 
+        {
+            attachInterrupt(SettingsHandler::TwistFeedBack_PIN, twistChange, CHANGE);
+            //Serial.print("Setting digital twist "); 
+            //Serial.println(SettingsHandler::TwistFeedBack_PIN);
+        } 
+        else
+        {
+            //Serial.print("Setting analog twist "); 
+            //Serial.println(SettingsHandler::TwistFeedBack_PIN);
+/*             adcAttachPin(SettingsHandler::TwistFeedBack_PIN);
+            analogReadResolution(11);
+            analogSetAttenuation(ADC_6db); */
+        }
         
         // Signal done
         Serial.println("Ready!");
@@ -196,11 +172,8 @@ public:
         return tcode.getDeviceSettings();
     }
 
-    // ----------------------------
-    //   MAIN
-    // ----------------------------
-    // This loop runs continuously
-
+// int testVar = -1;
+// int testVar2 = -1;
     void execute() {
         // Collect inputs
         // These functions query the t-code object for the position/level at a specified time
@@ -227,12 +200,26 @@ public:
             // Calculate twist position
             if (!SettingsHandler::analogTwist)
             {
+                noInterrupts();
                 float dutyCycle = twistPulseLength;
-                dutyCycle = dutyCycle/twistPulseCycle;
+                dutyCycle = dutyCycle/lastTwistPulseCycle;
+                interrupts();
                 angPos = (dutyCycle - 0.029)/0.942;
+                    //  Serial.print("angPos "); 
+                    //  Serial.println(angPos);
             }
-            else
-                angPos = analogRead(SettingsHandler::TwistFeedBack_PIN) / 675.0;
+            else 
+            {
+                int feedBackValue = analogRead(SettingsHandler::TwistFeedBack_PIN);
+                angPos = feedBackValue / 675.0;
+                // if(feedBackValue != testVar) {
+                //     testVar = feedBackValue;
+                //     Serial.print("feedBackValue: ");
+                //     Serial.println(feedBackValue);
+                //     Serial.print("angPos: ");
+                //     Serial.println(angPos);
+                // }
+            }
             angPos = constrain(angPos,0,1) - 0.5;
             if (angPos - twistServoAngPos < - 0.8) { twistTurns += 1; }
             if (angPos - twistServoAngPos > 0.8) { twistTurns -= 1; }
@@ -343,14 +330,25 @@ public:
         if (!SettingsHandler::continousTwist) 
         {
             twist  = (xRot - map(twistPos,-1500,1500,9999,0))/5;
-            if(!SettingsHandler::analogTwist)
+            if(!SettingsHandler::analogTwist) 
+            { 
                 twist  = constrain(twist, -750, 750);
+            }
             else 
             {
                 int jitter = 1;
                 twist += jitter;
                 jitter *= -1;
                 twist = -constrain(twist, -500, 500);
+                // if(twist != testVar2) {
+                //     testVar2 = twist;
+                //     Serial.print("twist: ");
+                //     Serial.println(1500 + twist);
+                //     Serial.print("map(twistPos,-1500,1500,9999,0) "); 
+                //     Serial.println(map(twistPos,-1500,1500,9999,0));
+                    // Serial.print("map "); 
+                    // Serial.println(map(SettingsHandler::TwistServo_ZERO + twist,0,TwistServo_Int,0,65535));
+                //}
             }
         } 
         else 

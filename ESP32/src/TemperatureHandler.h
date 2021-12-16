@@ -23,21 +23,27 @@ SOFTWARE. */
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <mutex>
+#include "TCode/Global.h"
 
 #pragma once
 
 class TemperatureHandler
 {
 	private: 
+
 	static OneWire oneWire;
 	static DallasTemperature sensors;
 	static float _currentTemp;
+	static float _lastTemp;
 	static String _currentStatus;
 	static bool _isRunning;
 	static bool bootTime;
-	static int bootTimer;
+	static int failsafeTimer;
+	static bool failsafeTrigger;
+	static String _warmUpTimeTaken;
 
 	public: 
+
 	static void setup()
 	{
 		Serial.print("Starting temp on pin: ");
@@ -45,8 +51,11 @@ class TemperatureHandler
 		oneWire.begin(SettingsHandler::Temp_PIN);
 		sensors.setOneWire(&oneWire);
 		bootTime = true;
-		bootTimer = millis() + SettingsHandler::WarmUpTime;
-		pinMode(SettingsHandler::Heater_PIN, OUTPUT);
+		failsafeTimer = millis() + SettingsHandler::heaterFailsafeTime;
+		Serial.print("Starting heat on pin: ");
+		Serial.println(SettingsHandler::Heater_PIN);
+  		ledcSetup(Heater_PWM, SettingsHandler::heaterFrequency, SettingsHandler::heaterResolution);
+		ledcAttachPin(SettingsHandler::Heater_PIN, Heater_PWM);
 		//sensors.setWaitForConversion(false);
 	}
 
@@ -60,11 +69,21 @@ class TemperatureHandler
 			sensors.requestTemperatures();
 			_currentTemp = sensors.getTempCByIndex(0);
         	vTaskDelay(1000/portTICK_PERIOD_MS);
-/* 			Serial.print("Temp task: "); // stack size used
-			Serial.println(uxTaskGetStackHighWaterMark( NULL )); // stack size used
-			Serial.print("Temp: "); // stack size used
-			Serial.println(_currentTemp); // stack size used
-			Serial.flush(); */
+			// Serial.print("Temp task: "); // stack size used
+			// Serial.println(uxTaskGetStackHighWaterMark( NULL )); // stack size used
+			Serial.print("Temp: "); 
+			Serial.println(_currentTemp); 
+			Serial.print("lastTemp: "); 
+			Serial.println(_lastTemp);
+			Serial.print("Status: "); 
+			Serial.println(_currentStatus);
+			Serial.print("failsafeTimer: "); 
+			Serial.println(failsafeTimer);
+			
+			if(failsafeTrigger) {
+				Serial.print("Fail safe triggered"); 
+			}
+			Serial.flush();
 		}
 		
 		Serial.print("Temp task exit");
@@ -79,28 +98,56 @@ class TemperatureHandler
 		{
 			if (_currentTemp < 0) 
 			{
-				ledcWrite(SettingsHandler::Heater_PIN, 0);
 				_currentStatus = "Error reading";
 			} 
+			else if(failsafeTrigger)
+			{
+				ledcWrite(Heater_PWM, 0);
+				_currentStatus = "Fail safe triggered";
+			}
 			else
 			{
-				if(millis() >= bootTimer)
+				if(_currentTemp >= SettingsHandler::TargetTemp)
 					bootTime = false;
-				if ((_currentTemp < SettingsHandler::TargetTemp && _currentTemp > 0) || (_currentTemp > 0 && bootTime)) 
+				if (_currentTemp < SettingsHandler::TargetTemp) 
 				{
-					ledcWrite(SettingsHandler::Heater_PIN, SettingsHandler::HeatPWM);
-					_currentStatus = "HEATING";
+					ledcWrite(Heater_PWM, SettingsHandler::HeatPWM);
+					_currentStatus = "HEAT";
+					if(bootTime) 
+					{
+						long time = millis();
+						int tseconds = time / 1000;
+						int tminutes = tseconds / 60;
+						int seconds = tseconds % 60;
+						_warmUpTimeTaken = String(tminutes) + ":" + (seconds < 10 ? "0" : "") + String(seconds);
+					}
 				} 
-				else if ((_currentTemp >= SettingsHandler::TargetTemp && _currentTemp <= SettingsHandler::TargetTemp) ) 
+				else if (_currentTemp <= (SettingsHandler::TargetTemp + SettingsHandler::heaterFailsafeThreshold)) 
 				{
-					ledcWrite(SettingsHandler::Heater_PIN, SettingsHandler::HoldPWM);
-					_currentStatus = "HOLDING";
+					ledcWrite(Heater_PWM, SettingsHandler::HoldPWM);
+					_currentStatus = "HOLD";
 				} 
 				else 
 				{
-					ledcWrite(SettingsHandler::Heater_PIN, 0);
-					_currentStatus = "COOLING";
+					ledcWrite(Heater_PWM, 0);
+					_currentStatus = "COOL";
 				}
+				_currentStatus += ": " + _warmUpTimeTaken;
+
+				//Prevent runaway heating.
+				if(millis() > failsafeTimer && (_currentTemp <= (_lastTemp + SettingsHandler::heaterFailsafeThreshold) || _currentTemp == _lastTemp) && _currentStatus.startsWith("HEAT")) 
+				{
+					failsafeTrigger = true;
+				} 
+				else if((_currentTemp > _lastTemp && _currentStatus.startsWith("HEAT")) 
+						|| _currentStatus.startsWith("COOL") 
+						|| _currentStatus.startsWith("HOLD")
+						) 
+				{
+					failsafeTimer = millis() + SettingsHandler::heaterFailsafeTime;
+				}
+				
+				_lastTemp = _currentTemp;
 			}
 		}
 		else
@@ -132,4 +179,8 @@ bool TemperatureHandler::_isRunning = false;
 OneWire TemperatureHandler::oneWire;
 DallasTemperature TemperatureHandler::sensors;
 bool TemperatureHandler::bootTime;
-int TemperatureHandler::bootTimer;
+float TemperatureHandler::_lastTemp = -130;
+int TemperatureHandler::failsafeTimer;
+bool TemperatureHandler::failsafeTrigger = false;
+String TemperatureHandler::_warmUpTimeTaken = "0:00";
+

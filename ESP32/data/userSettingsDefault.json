@@ -59,7 +59,7 @@
 	"lubeEnabled": true,
 	"lubeAmount": 255,
 	"displayEnabled": true,
-	"sleeveTempEnabled": false,
+	"sleeveTempDisplayed": false,
 	"tempControlEnabled": false,
 	"Display_Screen_Width": 128, 
 	"Display_Screen_Height": 64, 
@@ -68,6 +68,9 @@
 	"HoldPWM": 110,
 	"Display_I2C_Address": "0x3C",
 	"Display_Rst_PIN": -1,
-	"WarmUpTime": 600000,
+	"heaterFailsafeTime": "60000",
+	"heaterFailsafeThreshold": 5.0,
+	"heaterResolution": 8,
+	"heaterFrequency": 5000,
 	"newtoungeHatExists": false
 }

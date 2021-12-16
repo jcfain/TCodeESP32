@@ -5,10 +5,8 @@
 <head>
   <title>TCode ESP32</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- <link rel="icon" href="data:,"> -->
-  <link rel="stylesheet" type="text/css" href="style.css">
-  <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> -->
-  <script type="text/javascript" src="settings.js"></script>
+  <link rel="stylesheet" type="text/css" href="style-min.css">
+  <script type="text/javascript" src="settings-min.js"></script>
 </head>
 <body>
   	<div id="errorMessage" hidden="true">
@@ -261,7 +259,7 @@
 							<input id="analogTwist" type="checkbox" onchange="updateAnalogTwist()">
 						</td>
 					</tr>
-					<tr class="sr6Only" title="Enable this and the firmware will treat the second vibe channel like the lube channel.">
+					<tr class="v3Only" title="Enable this and the firmware will treat the second vibe channel like the lube channel.">
 						<td>
 							<span>Lube enabled</span> 
 						</td>
@@ -309,7 +307,95 @@
 							<input id="displayEnabled" type="checkbox" onclick="setDisplaySettings()">
 						</td>
 					</tr>
+					<tr>
+						<td>
+							<span>Temperature control enabled</span> 
+						</td>
+						<td>
+							<input id="tempControlEnabled" type="checkbox" onclick="setTempSettings()"></input>
+						</td>
+					</tr>
 				</tbody>
+				</table>
+				<table id="tempSettingsDisplayTable" class="formTable">
+					<tbody>
+					<tr>
+						<th colspan="2">
+							<h3>Temp Settings</h3>
+						</th>
+					</tr>
+					<tr>
+						<td>
+							<span>Temp pin</span> 
+						</td>
+						<td>
+							<input id="Temp_PIN" type="text" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Heater pin</span> 
+						</td>
+						<td>
+							<input id="Heater_PIN" type="text" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Target Temperature</span> 
+						</td>
+						<td>
+							<input id="TargetTemp" type="text" oninput="setTempSettings()"> &#8451;
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Heat PWM</span> 
+						</td>
+						<td>
+							<input id="HeatPWM" type="text" oninput="setTempSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Hold PWM</span> 
+						</td>
+						<td>
+							<input id="HoldPWM" type="text" oninput="setTempSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Heater fail safe time</span> 
+						</td>
+						<td>
+							<input id="heaterFailsafeTime" type="text"  oninput="setTempSettings()"> ms
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Heater fail safe threshold</span> 
+						</td>
+						<td>
+							<input id="heaterFailsafeThreshold" type="text"  oninput="setTempSettings()"> &#8451;
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Heater resolution</span> 
+						</td>
+						<td>
+							<input id="heaterResolution" type="text"  oninput="setTempSettings()"> bit
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Heater frequency</span> 
+						</td>
+						<td>
+							<input id="heaterFrequency" type="text"  oninput="setTempSettings()"> hz
+						</td>
+					</tr>
 				</table>
 				<table id="deviceSettingsDisplayTable" class="formTable">
 					<tbody>
@@ -352,66 +438,10 @@
 					</tr>
 					<tr>
 						<td>
-							<span>Sleeve temperature enabled</span> 
+							<span>Sleeve temperature displayed</span> 
 						</td>
 						<td>
-							<input id="sleeveTempEnabled" type="checkbox" onclick="setDisplaySettings()"></input>
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Temp PWM pin</span> 
-						</td>
-						<td>
-							<input id="Temp_PIN" type="text" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Temperature control enabled</span> 
-						</td>
-						<td>
-							<input id="tempControlEnabled" type="checkbox" onclick="setDisplaySettings()"></input>
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Heater PWM pin</span> 
-						</td>
-						<td>
-							<input id="Heater_PIN" type="text" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Target Temperature</span> 
-						</td>
-						<td>
-							<input id="TargetTemp" type="text" oninput="setDisplaySettings()"> &#8451;
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Heat PWM</span> 
-						</td>
-						<td>
-							<input id="HeatPWM" type="text" oninput="setDisplaySettings()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Hold PWM</span> 
-						</td>
-						<td>
-							<input id="HoldPWM" type="text" oninput="setDisplaySettings()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Warm up time</span> 
-						</td>
-						<td>
-							<input id="WarmUpTime" type="text"  oninput="setDisplaySettings()"> ms
+							<input id="sleeveTempDisplayed" type="checkbox" onclick="setDisplaySettings()"></input>
 						</td>
 					</tr>
 				</table>

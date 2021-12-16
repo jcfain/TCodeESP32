@@ -153,7 +153,7 @@ public:
 				}
 
 				
-				if(SettingsHandler::sleeveTempEnabled)
+				if(SettingsHandler::sleeveTempDisplayed)
 				{
 					float tempValue = TemperatureHandler::getTemp();
 					//Display Temperature

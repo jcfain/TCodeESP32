@@ -89,6 +89,7 @@ function getUserSettings()
     toggleDeviceOptions(userSettings["sr6Mode"]);
     toggleStaticIPSettings(userSettings["staticIP"]);
     toggleDisplaySettings(userSettings["displayEnabled"]);
+    toggleTempSettings(userSettings["tempControlEnabled"]);
     togglePitchServoFrequency(userSettings["pitchFrequencyIsDifferent"]);
     document.getElementById("version").innerHTML = userSettings["esp32Version"];
     var xMin = userSettings["xMin"];
@@ -159,7 +160,7 @@ function getUserSettings()
 	document.getElementById("inversePitch").checked = userSettings["inversePitch"];
 
 	document.getElementById("displayEnabled").checked = userSettings["displayEnabled"];
-	document.getElementById("sleeveTempEnabled").checked = userSettings["sleeveTempEnabled"];
+	document.getElementById("sleeveTempDisplayed").checked = userSettings["sleeveTempDisplayed"];
 	document.getElementById("tempControlEnabled").checked = userSettings["tempControlEnabled"];
 	document.getElementById("pitchFrequencyIsDifferent").checked = userSettings["pitchFrequencyIsDifferent"];
 	document.getElementById("Display_Screen_Width").value = userSettings["Display_Screen_Width"];
@@ -171,7 +172,11 @@ function getUserSettings()
 	// document.getElementById("Display_Rst_PIN").value = userSettings["Display_Rst_PIN"];
 	document.getElementById("Temp_PIN").value = userSettings["Temp_PIN"];
 	document.getElementById("Heater_PIN").value = userSettings["Heater_PIN"];
-	document.getElementById("WarmUpTime").value = userSettings["WarmUpTime"];
+	document.getElementById("heaterFailsafeTime").value = userSettings["heaterFailsafeTime"];
+	document.getElementById("heaterFailsafeThreshold").value = userSettings["heaterFailsafeThreshold"];
+	document.getElementById("heaterResolution").value = userSettings["heaterResolution"];
+	document.getElementById("heaterFrequency").value = userSettings["heaterFrequency"];
+    
     document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
 	
     document.getElementById("ssid").value = userSettings["ssid"];
@@ -452,6 +457,17 @@ function updateAnalogTwist()
 {
 	var checked = document.getElementById('analogTwist').checked;
     userSettings["analogTwist"] = checked;
+    
+    if(checked && !newtoungeHatExists) {
+        document.getElementById("TwistFeedBack_PIN").value = 32;
+        userSettings["TwistFeedBack_PIN"] = 32;
+        alert("Note, twist feedback pin has been changed to analog input pin 32.\nPlease adjust your hardware accordingly.");
+    } else {
+        document.getElementById("TwistFeedBack_PIN").value = 26;
+        userSettings["TwistFeedBack_PIN"] = 26;
+        alert("Note, twist feedback pin reset to 26.\nPlease adjust your hardware accordingly.");
+    }
+    showRestartRequired();
     updateUserSettings();
 }
 
@@ -646,13 +662,14 @@ function updatePins()
                 userSettings["Vibe1_PIN"] = vibe1;
                 userSettings["Temp_PIN"] = temp;
                 userSettings["Heater_PIN"] = heat;
-                userSettings["LubeManual_PIN"] = lubeManual;;
+                userSettings["LubeManual_PIN"] = lubeManual;
                 showRestartRequired();
                 updateUserSettings();
             }
         }, 2000);
     }
 }
+
 function updateZeros() 
 {
     if(upDateTimeout !== null) 
@@ -747,6 +764,17 @@ function toggleDisplaySettings(enabled)
         document.getElementById('deviceSettingsDisplayTable').hidden = false;
     }
 }
+function toggleTempSettings(enabled) 
+{
+    if(!enabled) 
+    {
+        document.getElementById('tempSettingsDisplayTable').hidden = true;
+    }
+    else
+    {
+        document.getElementById('tempSettingsDisplayTable').hidden = false;
+    }
+}
 function setDisplaySettings()
 {
     userSettings["displayEnabled"] = document.getElementById('displayEnabled').checked;
@@ -754,19 +782,26 @@ function setDisplaySettings()
     userSettings["Display_Screen_Width"] = parseInt(document.getElementById('Display_Screen_Width').value);
     userSettings["Display_Screen_Height"] = parseInt(document.getElementById('Display_Screen_Height').value);
 
-    userSettings["sleeveTempEnabled"] = document.getElementById('sleeveTempEnabled').checked;
-    userSettings["tempControlEnabled"] = document.getElementById('tempControlEnabled').checked;
-    userSettings["TargetTemp"] = parseInt(document.getElementById('TargetTemp').value);
-    userSettings["HeatPWM"] = parseInt(document.getElementById('HeatPWM').value);
-    userSettings["HoldPWM"] = parseInt(document.getElementById('HoldPWM').value);
     // userSettings["Display_Rst_PIN"] = parseInt(document.getElementById('Display_Rst_PIN').value);
     userSettings["Display_I2C_Address"] = document.getElementById('Display_I2C_Address').value;
-    userSettings["WarmUpTime"] = parseInt(document.getElementById('WarmUpTime').value);
+    userSettings["sleeveTempDisplayed"] = document.getElementById('sleeveTempDisplayed').checked;
 	
     showRestartRequired();
     updateUserSettings();
 }
-
+function setTempSettings() {
+    userSettings["tempControlEnabled"] = document.getElementById('tempControlEnabled').checked;
+    toggleTempSettings(userSettings["tempControlEnabled"]);
+    userSettings["TargetTemp"] = parseInt(document.getElementById('TargetTemp').value);
+    userSettings["HeatPWM"] = parseInt(document.getElementById('HeatPWM').value);
+    userSettings["HoldPWM"] = parseInt(document.getElementById('HoldPWM').value);
+    userSettings["heaterFailsafeTime"] = parseInt(document.getElementById('heaterFailsafeTime').value);
+    userSettings["heaterFailsafeThreshold"] = parseInt(document.getElementById('heaterFailsafeThreshold').value);
+    userSettings["heaterResolution"] = parseInt(document.getElementById('heaterResolution').value);
+    userSettings["heaterFrequency"] = parseInt(document.getElementById('heaterFrequency').value);
+    showRestartRequired();
+    updateUserSettings();
+}
 function connectWifi() {
     
   /*   var xhr = new XMLHttpRequest();

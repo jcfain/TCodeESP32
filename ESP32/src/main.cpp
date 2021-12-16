@@ -55,6 +55,10 @@ boolean setupSucceeded = false;
 char udpData[255];
 void setup() 
 {
+	// see if we can use the onboard led for status
+	//https://github.com/kriswiner/ESP32/blob/master/PWM/ledcWrite_demo_ESP32.ino
+  	//digitalWrite(5, LOW);// Turn off on-board blue led
+
 	Serial.begin(115200);
 	if(!SPIFFS.begin(true))
 	{
@@ -62,7 +66,7 @@ void setup()
 		setupSucceeded = false;
 		return;
 	}
-	int sensorValue = analogRead(39);
+	int sensorValue = analogRead(SettingsHandler::FIRMWARE_MODE_PIN);
 	float voltage = sensorValue * (5.0 / 1023.0);
 	Serial.print("AY value:");
 	Serial.println(sensorValue);
@@ -70,7 +74,7 @@ void setup()
 	Serial.println(voltage);
 	SettingsHandler::load(voltage > 1.00f); // Safe value for now. Should be around 1.8v
 	Serial.println(SettingsHandler::ESP32Version);
-	if(SettingsHandler::sleeveTempEnabled)
+	if(SettingsHandler::tempControlEnabled)
 	{
 		TemperatureHandler::setup();
 		xTaskCreatePinnedToCore(

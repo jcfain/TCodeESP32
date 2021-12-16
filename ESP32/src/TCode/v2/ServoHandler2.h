@@ -99,11 +99,6 @@ private:
 	int twistTurns = 0;
 	float twistPos;
 
-	// Servo microseconds per radian
-	// (Standard: 637 μs/rad)
-	// (LW-20: 700 μs/rad)
-	int ms_per_rad = 637;  // (μs/rad)
-
 	int lubeAmount = SettingsHandler::lubeAmount;;
 
 public:
@@ -133,7 +128,6 @@ public:
 		TwistServo_PIN = SettingsHandler::TwistServo_PIN;
 		Vibe0_PIN = SettingsHandler::Vibe0_PIN;
 		Vibe1_PIN = SettingsHandler::Vibe1_PIN;
-        twistFeedBackPin = SettingsHandler::TwistFeedBack_PIN;
 
         // Declare servos and set zero
         rightServoConnected = RightServo.attach(RightServo_PIN);
@@ -242,8 +236,8 @@ public:
         xValve = 0;
 
 		// Initiate position tracking for twist
-		pinMode(twistFeedBackPin, INPUT);
-		attachInterrupt(twistFeedBackPin, twistChange, CHANGE);
+		pinMode(SettingsHandler::TwistFeedBack_PIN, INPUT);
+		attachInterrupt(SettingsHandler::TwistFeedBack_PIN, twistChange, CHANGE);
 
         // Signal done
         Serial.println("Ready!");
@@ -332,8 +326,10 @@ public:
             if (!SettingsHandler::continousTwist) 
 			{
 				// Calculate twist position
-				float dutyCycle = twistPulseLength;
-				dutyCycle = dutyCycle/twistPulseCycle;
+                noInterrupts();
+                float dutyCycle = twistPulseLength;
+                dutyCycle = dutyCycle/lastTwistPulseCycle;
+                interrupts();
 				float angPos = (dutyCycle - 0.029)/0.942;
 				angPos = constrain(angPos,0,1) - 0.5;
 				if (angPos - twistServoAngPos < - 0.8) { twistTurns += 1; }
