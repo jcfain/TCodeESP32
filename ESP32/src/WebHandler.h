@@ -76,13 +76,6 @@ class WebHandler {
                 request->send(SPIFFS, "/userSettings.json");
             });   
 
-            server.on("/jquery", HTTP_GET, [](AsyncWebServerRequest* request) 
-			{
-                AsyncWebServerResponse* response = request->beginResponse(SPIFFS, "/www/js/jquery-3.5.1.min.js.gz", "text/javascript");
-                response->addHeader("Content-Encoding", "gzip");
-                request->send(response);
-            });
-
             server.on("/connectWifi", HTTP_POST, [](AsyncWebServerRequest *request) 
             {
                 WifiHandler wifi;
@@ -195,7 +188,7 @@ class WebHandler {
             });
 
             //server.rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
-            server.serveStatic("/", SPIFFS, "/www/");
+            server.serveStatic("/", SPIFFS, "/www/").setDefaultFile("index-min.html");;
             server.begin();
             initialized = true;
         }

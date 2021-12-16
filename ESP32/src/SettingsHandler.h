@@ -59,6 +59,7 @@ class SettingsHandler
 		static int Vibe0_PIN;
 		static int Vibe1_PIN;
         static int LubeManual_PIN;
+        static int FIRMWARE_MODE_PIN;
         static int StrokeMin;
         static int StrokeMax;
         static int RollMin;
@@ -100,7 +101,7 @@ class SettingsHandler
         static bool lubeEnabled;
 		static int lubeAmount;
 		static bool displayEnabled;
-		static bool sleeveTempEnabled;
+		static bool sleeveTempDisplayed;
 		static bool tempControlEnabled;
 		static int Display_Screen_Width; 
 		static int Display_Screen_Height; 
@@ -112,7 +113,10 @@ class SettingsHandler
 		static int HoldPWM;// Hold heat PWM setting 0-255
 		static int Display_I2C_Address;
 		static int Display_Rst_PIN;
-		static int WarmUpTime;// Time to hold heating on first boot
+        static long heaterFailsafeTime;
+        static float heaterFailsafeThreshold;
+        static int heaterResolution;
+        static int heaterFrequency;
         static bool newtoungeHatExists;
 
         static void load(bool hatExists) 
@@ -279,7 +283,7 @@ class SettingsHandler
                 lubeEnabled = json["lubeEnabled"];
 				lubeAmount = json["lubeAmount"] | 255;
 				displayEnabled = json["displayEnabled"];
-				sleeveTempEnabled = json["sleeveTempEnabled"];
+				sleeveTempDisplayed = json["sleeveTempDisplayed"];
 				tempControlEnabled = json["tempControlEnabled"];
 				Display_Screen_Width = json["Display_Screen_Width"] | 128;
 				Display_Screen_Height = json["Display_Screen_Height"] | 64;
@@ -292,11 +296,13 @@ class SettingsHandler
                 if (Display_I2C_AddressTemp != nullptr)
 					Display_I2C_Address = (int)strtol(Display_I2C_AddressTemp, NULL, 0);
 				Display_Rst_PIN = json["Display_Rst_PIN"] | -1;
-				WarmUpTime = json["WarmUpTime"] | 600000;
+                heaterFailsafeTime = json["heaterFailsafeTime"] | 60000;
+                heaterFailsafeThreshold = json["heaterFailsafeThreshold"] | 5.0;
+                heaterResolution = json["heaterResolution"] | 8;
+                heaterFrequency = json["heaterFrequency"] | 5000;
                 newtoungeHatExists = json["newtoungeHatExists"];
                 lubeEnabled = json["lubeEnabled"];
-
-                 LogUpdateDebug();
+                 //LogUpdateDebug();
 
                 return true;
             } 
@@ -468,7 +474,7 @@ class SettingsHandler
 			doc["lubeAmount"] = lubeAmount;
             doc["lubeEnabled"] = lubeEnabled;
 			doc["displayEnabled"] = displayEnabled;
-			doc["sleeveTempEnabled"] = sleeveTempEnabled;
+			doc["sleeveTempDisplayed"] = sleeveTempDisplayed;
 			doc["tempControlEnabled"] = tempControlEnabled;
 			doc["Display_Screen_Width"] = Display_Screen_Width;
 			doc["Display_Screen_Height"] = Display_Screen_Height;
@@ -481,11 +487,14 @@ class SettingsHandler
 			doc["Display_Rst_PIN"] = Display_Rst_PIN;
 			doc["Temp_PIN"] = Temp_PIN;
 			doc["Heater_PIN"] = Heater_PIN;
-			doc["WarmUpTime"] = WarmUpTime;
+            doc["heaterFailsafeTime"] = String(heaterFailsafeTime);
+            doc["heaterFailsafeThreshold"] = heaterFailsafeThreshold;
+            doc["heaterResolution"] = heaterResolution;
+            doc["heaterFrequency"] = heaterFrequency;
 			doc["newtoungeHatExists"] = newtoungeHatExists;
 			
+            //LogSaveDebug(doc);
 
-             LogSaveDebug(doc);
             if (serializeJson(doc, file) == 0) 
             {
                 Serial.println(F("Failed to write to file"));
@@ -679,8 +688,8 @@ class SettingsHandler
             Serial.println((int)doc["Heater_PIN"]);
             Serial.print("save displayEnabled ");
             Serial.println((bool)doc["displayEnabled"]);
-            Serial.print("save sleeveTempEnabled ");
-            Serial.println((bool)doc["sleeveTempEnabled"]);
+            Serial.print("save sleeveTempDisplayed ");
+            Serial.println((bool)doc["sleeveTempDisplayed"]);
             Serial.print("save tempControlEnabled ");
             Serial.println((bool)doc["tempControlEnabled"]);
             Serial.print("save Display_Screen_Width ");
@@ -699,6 +708,14 @@ class SettingsHandler
             Serial.println((int)doc["Display_Rst_PIN"]);
             Serial.print("save WarmUpTime ");
             Serial.println((int)doc["WarmUpTime"]);
+            Serial.print("save heaterFailsafeTime ");
+            Serial.println((int)doc["heaterFailsafeTime"]);
+            Serial.print("save heaterFailsafeThreshold ");
+            Serial.println((int)doc["heaterFailsafeThreshold"]);
+            Serial.print("save heaterResolution ");
+            Serial.println((int)doc["heaterResolution"]);
+            Serial.print("save heaterFrequency ");
+            Serial.println((int)doc["heaterFrequency"]);
             Serial.print("save newtoungeHatExists ");
             Serial.println((bool)doc["newtoungeHatExists"]);
         }
@@ -815,8 +832,8 @@ class SettingsHandler
             Serial.println(lubeAmount);
             Serial.print("update displayEnabled ");
             Serial.println(displayEnabled);
-            Serial.print("update sleeveTempEnabled ");
-            Serial.println(sleeveTempEnabled);
+            Serial.print("update sleeveTempDisplayed ");
+            Serial.println(sleeveTempDisplayed);
             Serial.print("update tempControlEnabled ");
             Serial.println(tempControlEnabled);
             Serial.print("update Display_Screen_Width ");
@@ -833,13 +850,18 @@ class SettingsHandler
             Serial.println(Display_I2C_Address);
             Serial.print("update Display_Rst_PIN ");
             Serial.println(Display_Rst_PIN);
-
             Serial.print("update Temp_PIN ");
             Serial.println(Temp_PIN);
             Serial.print("update Heater_PIN ");
             Serial.println(Heater_PIN);
-            Serial.print("update WarmUpTime ");
-            Serial.println(WarmUpTime);
+            Serial.print("update heaterFailsafeTime ");
+            Serial.println(heaterFailsafeTime);
+            Serial.print("update heaterFailsafeThreshold ");
+            Serial.println(heaterFailsafeThreshold);
+            Serial.print("update heaterResolution ");
+            Serial.println(heaterResolution);
+            Serial.print("update heaterFrequency ");
+            Serial.println(heaterFrequency);
             Serial.print("update newtoungeHatExists ");
             Serial.println(newtoungeHatExists);
         }
@@ -872,6 +894,8 @@ int SettingsHandler::Vibe1_PIN = 19;
 int SettingsHandler::LubeManual_PIN = 23;
 int SettingsHandler::Temp_PIN = 5; 
 int SettingsHandler::Heater_PIN = 33;
+int SettingsHandler::FIRMWARE_MODE_PIN = 39;
+
 //int SettingsHandler::HeatLED_PIN = 32;
 // pin 25 cannot be servo. Throws error
 bool SettingsHandler::lubeEnabled = true;
@@ -914,7 +938,7 @@ bool SettingsHandler::inversePitch = false;
 int SettingsHandler::lubeAmount = 255;
 
 bool SettingsHandler::displayEnabled = false;
-bool SettingsHandler::sleeveTempEnabled = false;
+bool SettingsHandler::sleeveTempDisplayed = false;
 bool SettingsHandler::tempControlEnabled = false;
 int SettingsHandler::Display_Screen_Width = 128; 
 int SettingsHandler::Display_Screen_Height = 64; 
@@ -923,5 +947,8 @@ int SettingsHandler::HeatPWM = 255;
 int SettingsHandler::HoldPWM = 110;
 int SettingsHandler::Display_I2C_Address = 0x3C;
 int SettingsHandler::Display_Rst_PIN = -1;
-int SettingsHandler::WarmUpTime = 600000;
+long SettingsHandler::heaterFailsafeTime = 60000;
+float SettingsHandler::heaterFailsafeThreshold = 5.0;
+int SettingsHandler::heaterResolution = 8;
+int SettingsHandler::heaterFrequency = 5000;
 bool SettingsHandler::newtoungeHatExists = false;
