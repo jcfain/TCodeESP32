@@ -29,6 +29,7 @@ SOFTWARE. */
 #include <AsyncJson.h>
 #include <ESPmDNS.h>
 #include "WifiHandler.h"
+#include <list>
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -47,6 +48,7 @@ class WebHandler {
                 Serial.printf("UploadEnd: %s, %u B\n", filename.c_str(), index+len);
             }
         }
+        std::list<AsyncWebSocketClient *> m_clients;
 
     public:
         bool initialized = false;
@@ -66,10 +68,10 @@ class WebHandler {
                 startMDNS(hostName, friendlyName);
             }
             // communicate via websocket.
-            // ws.onEvent([&](AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
-            //     onWsEvent(server, client, type, arg, data, len);
-            // });
-            // server.addHandler(&ws);
+            ws.onEvent([&](AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
+                onWsEvent(server, client, type, arg, data, len);
+            });
+            server.addHandler(&ws);
 
             server.on("/userSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
@@ -205,6 +207,26 @@ class WebHandler {
             }
         }
 
+        void sendCommand(String command, String message, AsyncWebSocketClient* client = 0)
+        {
+            Serial.print("Sending WS command: ");
+            Serial.print(command);
+            Serial.print(", Message: ");
+            Serial.println(message);
+            String commandJson;
+            if(message.isEmpty())
+                commandJson = "{ \"command\": \""+command+"\"}";
+            else if(message.startsWith("{"))
+                commandJson = "{ \"command\": \""+command+"\", \"message\": "+message+" }";
+            else
+                commandJson = "{ \"command\": \""+command+"\", \"message\": \""+message+"\"}";
+            if(client)
+                client->printf(commandJson.c_str());
+            else
+                for (AsyncWebSocketClient *pClient : m_clients)
+                    pClient->printf(commandJson.c_str());
+        }
+
         private:
             void startMDNS(char* hostName, char* friendlyName)
             {
@@ -224,6 +246,13 @@ class WebHandler {
                 MDNSInitialized = true;
             }
             
+            void processWebSocketTextMessage(String msg) 
+            {
+                if(msg.equals("tcode")) {
+
+                }
+            }
+
             void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len)
             {
                 if(type == WS_EVT_CONNECT)
@@ -231,10 +260,12 @@ class WebHandler {
                     Serial.printf("ws[%s][%u] connect\n", server->url(), client->id());
                     client->printf("Hello Client %u :)", client->id());
                     client->ping();
+                    m_clients.push_back(client);
                 } 
                 else if(type == WS_EVT_DISCONNECT)
                 {
                     Serial.printf("ws[%s][%u] disconnect\n", server->url(), client->id());
+                    m_clients.remove(client);
                 } 
                 else if(type == WS_EVT_ERROR)
                 {
@@ -268,11 +299,14 @@ class WebHandler {
                                 sprintf(buff, "%02x ", (uint8_t) data[i]);
                                 msg += buff ;
                             }
+                            if(msg.equals("tcode")) {
+
+                            }
                         }
                         Serial.printf("%s\n",msg.c_str());
 
                         if(info->opcode == WS_TEXT)
-                            client->text("I got your text message");
+                            processWebSocketTextMessage(msg);
                         else
                             client->binary("I got your binary message");
                     } 
@@ -313,7 +347,7 @@ class WebHandler {
                             {
                                 Serial.printf("ws[%s][%u] %s-message end\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
                                 if(info->message_opcode == WS_TEXT)
-                                    client->text("I got your text message");
+                                    processWebSocketTextMessage(msg);
                                 else
                                     client->binary("I got your binary message");
                             }
