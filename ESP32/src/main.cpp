@@ -66,6 +66,7 @@ void setup()
 		setupSucceeded = false;
 		return;
 	}
+
 	int sensorValue = analogRead(SettingsHandler::FIRMWARE_MODE_PIN);
 	float voltage = sensorValue * (5.0 / 1023.0);
 	Serial.print("AY value:");
@@ -254,7 +255,14 @@ void loop()
 		{
 			servoHandler3.execute();
 		}
-		if(SettingsHandler::tempControlEnabled)
+		if(SettingsHandler::tempControlEnabled && TemperatureHandler::isRunning()) 
+		{
 			TemperatureHandler::setControlStatus();
+			String* receive = new String();
+			if(xQueueReceive(TemperatureHandler::tempQueue, &receive, 0)) {
+				webHandler.sendCommand("tempStatus", receive->c_str());
+			}
+			delete receive;
+		}
 	}
 }

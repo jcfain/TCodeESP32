@@ -82,7 +82,10 @@ class WifiHandler
         sscanf(SettingsHandler::dns2, "%u.%u.%u.%u", &dns2[0], &dns2[1], &dns2[2], &dns2[3]);
         WiFi.config(IPAddress(ipAddress), IPAddress(gateway), IPAddress(subnet), IPAddress(dns1), IPAddress(dns2));
       }
-      Serial.println("Establishing connection to ");
+      Serial.println("Setting up wifi");
+      Serial.print("Mac: ");
+      Serial.println(mac());
+      Serial.print("Establishing connection to ");
       Serial.print(ssid);
       if(pass[0] == '\0')
           WiFi.begin(ssid);
@@ -156,6 +159,8 @@ class WifiHandler
       WiFi.mode(WIFI_AP);
       //WiFi.setHostname("TCodeESP32");
       WiFi.softAP(ssid);
+      Serial.print("Mac: ");
+      Serial.println(mac());
       delay(100);
       onApEventID = WiFi.onEvent([this](WiFiEvent_t event, system_event_info_t info) {
                     this->WiFiEvent(event, info);

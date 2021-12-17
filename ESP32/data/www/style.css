@@ -121,6 +121,11 @@ body {
 .formTable > tbody > tr:not(.servoHeader) > td:first-child {
 	text-align: right;
 }
+
+.formTable > tbody > tr:not(.servoHeader) > td:first-child span {
+  margin-right: 8px;
+}
+
 .servoHeader {
   text-align: left;
   font-weight: bolder;

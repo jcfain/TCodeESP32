@@ -27,18 +27,23 @@ var restartRequired = false;
 var documentLoaded = false;
 var newtoungeHatExists = false;
 var infoNode;
+var debugEnabled = true;
 
 document.addEventListener("DOMContentLoaded", function() {
-	loadPage()
-  });
-  
-function loadPage()
-{
-	infoNode = document.getElementById('info');
     onDocumentLoad();
+  });
+
+function logdebug(message) {
+    if(debugEnabled)
+        console.log(message);
 }
-function onDocumentLoad()
-{
+function onDocumentLoad() {
+	infoNode = document.getElementById('info');
+    getUserSettings();
+    initWebSocket();
+}
+
+function getUserSettings() {
 	var xhr = new XMLHttpRequest();
 	xhr.open('GET', "/userSettings", true);
 	xhr.responseType = 'json';
@@ -48,10 +53,60 @@ function onDocumentLoad()
 			showError("Error loading user settings!");
 		} else {
             userSettings = xhr.response;
-            getUserSettings()
+            setUserSettings()
 		}
 	};
 	xhr.send();
+}
+
+function initWebSocket() {
+	try {
+		var wsUri = "ws://" + window.location.host + "/ws";
+		if (typeof MozWebSocket == 'function')
+			WebSocket = MozWebSocket;
+		if ( websocket && websocket.readyState == 1 )
+			websocket.close();
+		var websocket = new WebSocket( wsUri );
+		websocket.onopen = function (evt) {
+			//xtpConnected = true;
+			logdebug("CONNECTED");
+			//updateSettingsUI();
+		};
+		websocket.onclose = function (evt) {
+			logdebug("DISCONNECTED");
+			//xtpConnected = false;
+		};
+		websocket.onmessage = function (evt) {
+			wsCallBackFunction(evt);
+			logdebug("MESSAGE RECIEVED: "+ evt.data);
+		};
+		websocket.onerror = function (evt) {
+			alert('ERROR: ' + evt.data + ", Address: "+wsUri);
+			//xtpConnected = false;
+		};
+	} catch (exception) {
+		alert('ERROR: ' + exception + ", Address: "+wsUri);
+		//xtpConnected = false;
+	}
+}
+
+function wsCallBackFunction(evt) {
+	try {
+		var data = JSON.parse(evt.data);
+		switch(data["command"]) {
+			case "tempStatus":
+				var status = data["message"];
+				var tempStatus = status["status"];
+				var temp = status["temp"];
+                document.getElementById("currentTempStatus").innerText = tempStatus;
+                document.getElementById("currentTemp").innerText = temp;
+				break;
+				
+		}
+	}
+	catch(e) {
+		console.error(e.toString());
+	}
 }
 
 function onDefaultClick() 
@@ -83,7 +138,7 @@ function onDefaultClick()
 	}
 }
 
-function getUserSettings() 
+function setUserSettings() 
 {
     toggleNonTCodev3Options(userSettings["TCodeVersion"] == 1);
     toggleDeviceOptions(userSettings["sr6Mode"]);
@@ -172,8 +227,9 @@ function getUserSettings()
 	// document.getElementById("Display_Rst_PIN").value = userSettings["Display_Rst_PIN"];
 	document.getElementById("Temp_PIN").value = userSettings["Temp_PIN"];
 	document.getElementById("Heater_PIN").value = userSettings["Heater_PIN"];
+    document.getElementById("WarmUpTime").value = userSettings["WarmUpTime"];
 	document.getElementById("heaterFailsafeTime").value = userSettings["heaterFailsafeTime"];
-	document.getElementById("heaterFailsafeThreshold").value = userSettings["heaterFailsafeThreshold"];
+	document.getElementById("heaterThreshold").value = userSettings["heaterThreshold"];
 	document.getElementById("heaterResolution").value = userSettings["heaterResolution"];
 	document.getElementById("heaterFrequency").value = userSettings["heaterFrequency"];
     
@@ -212,6 +268,7 @@ function getUserSettings()
 
     documentLoaded = true;
 }
+
 
 function updateUserSettings() 
 {
@@ -795,8 +852,9 @@ function setTempSettings() {
     userSettings["TargetTemp"] = parseInt(document.getElementById('TargetTemp').value);
     userSettings["HeatPWM"] = parseInt(document.getElementById('HeatPWM').value);
     userSettings["HoldPWM"] = parseInt(document.getElementById('HoldPWM').value);
+    userSettings["WarmUpTime"] = parseInt(document.getElementById('WarmUpTime').value);
     userSettings["heaterFailsafeTime"] = parseInt(document.getElementById('heaterFailsafeTime').value);
-    userSettings["heaterFailsafeThreshold"] = parseInt(document.getElementById('heaterFailsafeThreshold').value);
+    userSettings["heaterThreshold"] = parseInt(document.getElementById('heaterThreshold').value);
     userSettings["heaterResolution"] = parseInt(document.getElementById('heaterResolution').value);
     userSettings["heaterFrequency"] = parseInt(document.getElementById('heaterFrequency').value);
     showRestartRequired();

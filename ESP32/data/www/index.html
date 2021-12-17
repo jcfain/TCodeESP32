@@ -348,7 +348,7 @@
 							<input id="TargetTemp" type="text" oninput="setTempSettings()"> &#8451;
 						</td>
 					</tr>
-					<tr>
+					<tr title="This will be sent to the heater pin when the measured temp is below the 'Target Temperature'">
 						<td>
 							<span>Heat PWM</span> 
 						</td>
@@ -356,7 +356,7 @@
 							<input id="HeatPWM" type="text" oninput="setTempSettings()">
 						</td>
 					</tr>
-					<tr>
+					<tr title="This will be sent to the heater pin when the measured temp is above the 'Target Temperature' + 'Heater hold threshold'">
 						<td>
 							<span>Hold PWM</span> 
 						</td>
@@ -364,20 +364,28 @@
 							<input id="HoldPWM" type="text" oninput="setTempSettings()">
 						</td>
 					</tr>
-					<tr>
+					<tr title="The 'Hold PWM' specified above will be sent while the temp less than or equal to:'Target Temperature' + 'Heater hold threshold'">
 						<td>
-							<span>Heater fail safe time</span> 
+							<span>Heater hold threshold</span> 
+						</td>
+						<td>
+							<input id="heaterThreshold" type="text"  oninput="setTempSettings()"> &#8451;
+						</td>
+					</tr>
+					<tr title="When the device is first started, this timer will count down and send the Heat PWM specified above until either the target has been reached or the time runs out.">
+						<td>
+							<span>Warm up time</span> 
+						</td>
+						<td>
+							<input id="WarmUpTime" type="text"  oninput="setTempSettings()"> ms
+						</td>
+					</tr>
+					<tr title="If the measured temp is less than or equal to the laste measured temp for the given time, the failsafe will trigger and the heater is turned off.">
+						<td>
+							<span>Heater failsafe time out</span> 
 						</td>
 						<td>
 							<input id="heaterFailsafeTime" type="text"  oninput="setTempSettings()"> ms
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Heater fail safe threshold</span> 
-						</td>
-						<td>
-							<input id="heaterFailsafeThreshold" type="text"  oninput="setTempSettings()"> &#8451;
 						</td>
 					</tr>
 					<tr>
@@ -394,6 +402,22 @@
 						</td>
 						<td>
 							<input id="heaterFrequency" type="text"  oninput="setTempSettings()"> hz
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Current temp</span> 
+						</td>
+						<td>
+							<span id="currentTemp">0</span> &#8451;
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Current temp status</span> 
+						</td>
+						<td>
+							<span id="currentTempStatus">Unknown</span>
 						</td>
 					</tr>
 				</table>

@@ -113,8 +113,9 @@ class SettingsHandler
 		static int HoldPWM;// Hold heat PWM setting 0-255
 		static int Display_I2C_Address;
 		static int Display_Rst_PIN;
+        static long WarmUpTime;// Time to hold heating on first boot
         static long heaterFailsafeTime;
-        static float heaterFailsafeThreshold;
+        static float heaterThreshold;
         static int heaterResolution;
         static int heaterFrequency;
         static bool newtoungeHatExists;
@@ -296,8 +297,9 @@ class SettingsHandler
                 if (Display_I2C_AddressTemp != nullptr)
 					Display_I2C_Address = (int)strtol(Display_I2C_AddressTemp, NULL, 0);
 				Display_Rst_PIN = json["Display_Rst_PIN"] | -1;
+                WarmUpTime = json["WarmUpTime"] | 600000;
                 heaterFailsafeTime = json["heaterFailsafeTime"] | 60000;
-                heaterFailsafeThreshold = json["heaterFailsafeThreshold"] | 5.0;
+                heaterThreshold = json["heaterThreshold"] | 5.0;
                 heaterResolution = json["heaterResolution"] | 8;
                 heaterFrequency = json["heaterFrequency"] | 5000;
                 newtoungeHatExists = json["newtoungeHatExists"];
@@ -487,8 +489,9 @@ class SettingsHandler
 			doc["Display_Rst_PIN"] = Display_Rst_PIN;
 			doc["Temp_PIN"] = Temp_PIN;
 			doc["Heater_PIN"] = Heater_PIN;
+            doc["WarmUpTime"] = WarmUpTime;
             doc["heaterFailsafeTime"] = String(heaterFailsafeTime);
-            doc["heaterFailsafeThreshold"] = heaterFailsafeThreshold;
+            doc["heaterThreshold"] = heaterThreshold;
             doc["heaterResolution"] = heaterResolution;
             doc["heaterFrequency"] = heaterFrequency;
 			doc["newtoungeHatExists"] = newtoungeHatExists;
@@ -707,9 +710,9 @@ class SettingsHandler
             Serial.print("save Display_Rst_PIN ");
             Serial.println((int)doc["Display_Rst_PIN"]);
             Serial.print("save WarmUpTime ");
-            Serial.println((int)doc["WarmUpTime"]);
+            Serial.println((long)doc["WarmUpTime"]);
             Serial.print("save heaterFailsafeTime ");
-            Serial.println((int)doc["heaterFailsafeTime"]);
+            Serial.println((long)doc["heaterFailsafeTime"]);
             Serial.print("save heaterFailsafeThreshold ");
             Serial.println((int)doc["heaterFailsafeThreshold"]);
             Serial.print("save heaterResolution ");
@@ -853,11 +856,13 @@ class SettingsHandler
             Serial.print("update Temp_PIN ");
             Serial.println(Temp_PIN);
             Serial.print("update Heater_PIN ");
-            Serial.println(Heater_PIN);
+            Serial.println(Heater_PIN); 
+            Serial.print("update WarmUpTime ");
+            Serial.println(WarmUpTime);
             Serial.print("update heaterFailsafeTime ");
             Serial.println(heaterFailsafeTime);
-            Serial.print("update heaterFailsafeThreshold ");
-            Serial.println(heaterFailsafeThreshold);
+            Serial.print("update heaterThreshold ");
+            Serial.println(heaterThreshold);
             Serial.print("update heaterResolution ");
             Serial.println(heaterResolution);
             Serial.print("update heaterFrequency ");
@@ -869,7 +874,7 @@ class SettingsHandler
 
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[14] = "ESP32 v0.231b";
+const char SettingsHandler::ESP32Version[14] = "ESP32 v0.235b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 bool SettingsHandler::bluetoothEnabled = true;
@@ -947,8 +952,9 @@ int SettingsHandler::HeatPWM = 255;
 int SettingsHandler::HoldPWM = 110;
 int SettingsHandler::Display_I2C_Address = 0x3C;
 int SettingsHandler::Display_Rst_PIN = -1;
+long SettingsHandler::WarmUpTime = 600000;
 long SettingsHandler::heaterFailsafeTime = 60000;
-float SettingsHandler::heaterFailsafeThreshold = 5.0;
+float SettingsHandler::heaterThreshold = 5.0;
 int SettingsHandler::heaterResolution = 8;
 int SettingsHandler::heaterFrequency = 5000;
 bool SettingsHandler::newtoungeHatExists = false;
