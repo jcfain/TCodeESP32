@@ -515,7 +515,7 @@ function updateAnalogTwist()
 	var checked = document.getElementById('analogTwist').checked;
     userSettings["analogTwist"] = checked;
     
-    if(checked && !newtoungeHatExists) {
+    if(checked) {
         document.getElementById("TwistFeedBack_PIN").value = 32;
         userSettings["TwistFeedBack_PIN"] = 32;
         alert("Note, twist feedback pin has been changed to analog input pin 32.\nPlease adjust your hardware accordingly.");
