@@ -258,11 +258,15 @@ void loop()
 		if(SettingsHandler::tempControlEnabled && TemperatureHandler::isRunning()) 
 		{
 			TemperatureHandler::setControlStatus();
-			String* receive = new String();
+			String* receive = 0;
 			if(xQueueReceive(TemperatureHandler::tempQueue, &receive, 0)) {
-				webHandler.sendCommand("tempStatus", receive->c_str());
+				if(!receive->startsWith("{"))
+					webHandler.sendCommand(receive->c_str());
+				else
+					webHandler.sendCommand("tempStatus", receive->c_str());
 			}
-			delete receive;
+			if(receive)
+				delete receive;
 		}
 	}
 }
