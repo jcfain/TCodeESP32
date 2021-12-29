@@ -2,8 +2,6 @@
 	"TCodeVersion": 1,
 	"ssid": "YOUR SSID HERE",
 	"wifiPass": "YOUR PASSWORD HERE",
-	"ssid": "hex",
-	"wifiPass": "afffb10213!",
 	"hostname": "tcode",
 	"friendlyName": "ESP32 TCode",
 	"esp32Version": "ESP32 v0.24b",
