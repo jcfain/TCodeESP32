@@ -4,8 +4,9 @@ html {
   margin: 0px auto;
   text-align: center;
 }
-h1{
-  padding: 2vh;
+body {
+  background-color: lightgray;
+  color: black;
 }
 p{
   font-size: 1.5rem;
@@ -73,30 +74,16 @@ input:read-only, textarea:read-only {
   top: 12%;
   right: 5%;
 }
-body {
-  background-color: lightgray;
-  color: black;
-  margin: 100px 50px;
-}
 
 .sliderHeading {
   margin-top: 3rem;
 }
-.centerFlex {
-	display: flex;
-	align-content: center;
-	flex-direction: column;
-}
 .rootTable {
-	align-self: center;
   display: flex;
   flex-flow: row;
-  flex-basis: 100%;
   flex-wrap: wrap;
 }
 .rootTable > div {
-	vertical-align:top;
-	margin: 16px;
   display: flex;
   flex-direction: column;
   align-content: center;

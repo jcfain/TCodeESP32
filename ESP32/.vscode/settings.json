@@ -43,5 +43,6 @@
 		"regex": "cpp",
 		"utility": "cpp",
 		"typeinfo": "cpp"
-	}
+	},
+	"MinifyAll.openMinifiedDocument": false
 }

@@ -190,7 +190,7 @@ class WebHandler {
             });
 
             //server.rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
-            server.serveStatic("/", SPIFFS, "/www/").setDefaultFile("index-min.html");;
+            server.serveStatic("/", SPIFFS, "/www/").setDefaultFile("index.html");;
             server.begin();
             initialized = true;
         }
@@ -207,7 +207,7 @@ class WebHandler {
             }
         }
 
-        void sendCommand(String command, String message, AsyncWebSocketClient* client = 0)
+        void sendCommand(String command, String message = "", AsyncWebSocketClient* client = 0)
         {
             Serial.print("Sending WS command: ");
             Serial.print(command);
@@ -215,11 +215,11 @@ class WebHandler {
             Serial.println(message);
             String commandJson;
             if(message.isEmpty())
-                commandJson = "{ \"command\": \""+command+"\"}";
+                commandJson = "{ \"command\": \""+command+"\" }";
             else if(message.startsWith("{"))
                 commandJson = "{ \"command\": \""+command+"\", \"message\": "+message+" }";
             else
-                commandJson = "{ \"command\": \""+command+"\", \"message\": \""+message+"\"}";
+                commandJson = "{ \"command\": \""+command+"\", \"message\": \""+message+"\" }";
             if(client)
                 client->printf(commandJson.c_str());
             else
@@ -257,9 +257,9 @@ class WebHandler {
             {
                 if(type == WS_EVT_CONNECT)
                 {
-                    Serial.printf("ws[%s][%u] connect\n", server->url(), client->id());
-                    client->printf("Hello Client %u :)", client->id());
-                    client->ping();
+                    // Serial.printf("ws[%s][%u] connect\n", server->url(), client->id());
+                    // client->printf("Hello Client %u :)", client->id());
+                    // client->ping();
                     m_clients.push_back(client);
                 } 
                 else if(type == WS_EVT_DISCONNECT)
