@@ -165,8 +165,8 @@ class TemperatureHandler
 			// }
 
 	 		String* statusJson = new String("{\"temp\":" + String(_currentTemp) + ", \"status\":\""+getControlStatus()+"\"}");
-			// Serial.print("Adding to queue: "); 
-			// Serial.println(_statusJson->c_str());
+			Serial.print("Adding to queue: "); 
+			Serial.println(statusJson->c_str());
 			
 			xQueueSend(tempQueue, &statusJson, 0);
 			Serial.flush();
@@ -216,11 +216,14 @@ class TemperatureHandler
 							{
 								_currentStatus = "Heating";
 							}
+							if(targetTempReached && SettingsHandler::TargetTemp - currentTemp >= 5)
+								targetTempReached = false;
 						} 
 						else if (definitelyLessThanOREssentiallyEqual(currentTemp, (SettingsHandler::TargetTemp + SettingsHandler::heaterThreshold))) 
 						{
 							if(!targetTempReached)
 							{
+								targetTempReached = true;
 								// Serial.print("Adding to queue: "); 
 								// Serial.println(_statusJson->c_str());
 								String* command = new String("tempReached");

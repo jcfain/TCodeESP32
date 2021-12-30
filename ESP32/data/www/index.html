@@ -425,6 +425,8 @@
 					</td>
 					<td>
 						<input id="soundsEnabled" type="checkbox" onclick="toggleSounds()"></input>
+						<button type="button" hidden name="testSoundButton" onclick="playSuccess()">Test target reached</button>
+						<button type="button" hidden name="testSoundButton" onclick="playFail()">Test fail safe trigger</button>
 					</td>
 				</tr>
 			</table>
@@ -625,6 +627,9 @@
 	</div>
     <button type="submit" id="resetBtn" name="reset" disabled="true">Restart device</button>
   </form>
+
+  <button id="exportBtn" onclick="exportToJsonFile()">Export settings</button>
+  <button id="exportBtn" onclick="openImportSettingsFileDialog()">Import settings</button>
   <h1>TCode Settings</h1>
   <div style="font-size: small;">(only affects json input)</div>
   <div class="sliderHeading">Stroke Range</div>

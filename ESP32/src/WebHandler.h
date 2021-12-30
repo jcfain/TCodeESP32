@@ -209,10 +209,10 @@ class WebHandler {
 
         void sendCommand(String command, String message = "", AsyncWebSocketClient* client = 0)
         {
-            Serial.print("Sending WS command: ");
-            Serial.print(command);
-            Serial.print(", Message: ");
-            Serial.println(message);
+            // Serial.print("Sending WS command: ");
+            // Serial.print(command);
+            // Serial.print(", Message: ");
+            // Serial.println(message);
             String commandJson;
             if(message.isEmpty())
                 commandJson = "{ \"command\": \""+command+"\" }";
