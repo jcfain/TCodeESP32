@@ -119,6 +119,7 @@ class SettingsHandler
         static int heaterResolution;
         static int heaterFrequency;
         static bool newtoungeHatExists;
+        static bool disableNewtoungeHat;
 
         static void load(bool hatExists) 
         {
@@ -142,6 +143,8 @@ class SettingsHandler
             const char* storedVersion = jsonObj["esp32Version"];
 
             update(jsonObj);
+            if(disableNewtoungeHat)
+                hatExists = false;
             bool hatExistsStorage = jsonObj["newtoungeHatExists"];
             if(hatExists && !hatExistsStorage) 
             {
@@ -163,6 +166,7 @@ class SettingsHandler
             }
             else if(!hatExists && hatExistsStorage)
             {
+                newtoungeHatExists = hatExists;
                 PitchRightServo_PIN = 14;
                 RightUpperServo_PIN = 12;
                 RightServo_PIN = 13;
@@ -304,6 +308,7 @@ class SettingsHandler
                 heaterFrequency = json["heaterFrequency"] | 5000;
                 newtoungeHatExists = json["newtoungeHatExists"];
                 lubeEnabled = json["lubeEnabled"];
+                disableNewtoungeHat = json["disableNewtoungeHat"];
                  //LogUpdateDebug();
 
                 return true;
@@ -495,6 +500,7 @@ class SettingsHandler
             doc["heaterResolution"] = heaterResolution;
             doc["heaterFrequency"] = heaterFrequency;
 			doc["newtoungeHatExists"] = newtoungeHatExists;
+            doc["disableNewtoungeHat"] = disableNewtoungeHat;
 			
             //LogSaveDebug(doc);
 
@@ -721,6 +727,9 @@ class SettingsHandler
             Serial.println((int)doc["heaterFrequency"]);
             Serial.print("save newtoungeHatExists ");
             Serial.println((bool)doc["newtoungeHatExists"]);
+            Serial.print("save disableNewtoungeHat ");
+            Serial.println((bool)doc["disableNewtoungeHat"]);
+            
         }
 
         static void LogUpdateDebug() 
@@ -869,12 +878,15 @@ class SettingsHandler
             Serial.println(heaterFrequency);
             Serial.print("update newtoungeHatExists ");
             Serial.println(newtoungeHatExists);
+            Serial.print("update disableNewtoungeHat ");
+            Serial.println(disableNewtoungeHat);
+            
         }
 };
 
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[14] = "ESP32 v0.24b";
+const char SettingsHandler::ESP32Version[14] = "ESP32 v0.241b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 bool SettingsHandler::bluetoothEnabled = true;
@@ -958,3 +970,4 @@ float SettingsHandler::heaterThreshold = 5.0;
 int SettingsHandler::heaterResolution = 8;
 int SettingsHandler::heaterFrequency = 5000;
 bool SettingsHandler::newtoungeHatExists = false;
+bool SettingsHandler::disableNewtoungeHat = false;

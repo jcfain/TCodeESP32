@@ -267,7 +267,8 @@ function setUserSettings()
     document.getElementById("dns2").value = userSettings["dns2"];
     
     newtoungeHatExists = userSettings["newtoungeHatExists"]
-
+	document.getElementById("disableNewtoungeHat").checked = userSettings["disableNewtoungeHat"];
+    
     document.getElementById("TwistFeedBack_PIN").readonly = newtoungeHatExists;
     document.getElementById("RightServo_PIN").readonly = newtoungeHatExists;
     document.getElementById("LeftServo_PIN").readonly = newtoungeHatExists;
@@ -619,7 +620,7 @@ function updatePins()
         upDateTimeout = setTimeout(() => 
         {
             //PWM availible on: 2,4,5,12-19,21-23,25-27,32-33
-            var validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,23,25,26,27,32,33];
+            var validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33];
             var assignedPins = [];
             var errors = [];
             var pmwErrors = [];
@@ -712,9 +713,9 @@ function updatePins()
 
             var lubeManual = parseInt(document.getElementById('LubeManual_PIN').value);
             if(assignedPins.indexOf(lubeManual) > -1)
-                errors.push("Lube manual pin");
+                errors.push("Manual lube pin");
             if(validPWMpins.indexOf(lubeManual) == -1)
-                pmwErrors.push("Lube manual pin: "+lubeManual);
+                pmwErrors.push("Manual lube pin: "+lubeManual);
 
             if (errors.length > 0 || pmwErrors.length > 0) {
                 var errorString = "Pins NOT saved due to invalid input.<br>";
@@ -995,6 +996,12 @@ function toggleNonTCodev3Options(v3)
         v3Only[i].style.display = v3 ? "revert" : "none";
     for(var i=0;i < v2Only.length; i++)
         v2Only[i].style.display = v3 ? "none" : "revert";
+}
+
+function updateNewtoungeHatSettings() {
+    userSettings["disableNewtoungeHat"] = document.getElementById('disableNewtoungeHat').checked;
+	showRestartRequired();
+	updateUserSettings();
 }
 
 function updateBlueToothSettings()

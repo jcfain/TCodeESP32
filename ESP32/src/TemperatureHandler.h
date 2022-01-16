@@ -165,8 +165,8 @@ class TemperatureHandler
 			// }
 
 	 		String* statusJson = new String("{\"temp\":" + String(_currentTemp) + ", \"status\":\""+getControlStatus()+"\"}");
-			Serial.print("Adding to queue: "); 
-			Serial.println(statusJson->c_str());
+			// Serial.print("Adding to queue: "); 
+			// Serial.println(statusJson->c_str());
 			
 			xQueueSend(tempQueue, &statusJson, 0);
 			Serial.flush();
@@ -274,13 +274,16 @@ class TemperatureHandler
 			//Prevent runaway heating.
 			if(errorCount > 10 || (_currentTemp > 0 && _lastTemp > 0 && _currentStatus.startsWith("Heating") && millis() > failsafeTimer && definitelyLessThanORApproximatelyEqual(_currentTemp, _lastTemp))) 
 			{
-				String* command = new String("failSafeTriggered");
-				xQueueSend(tempQueue, &command, 0);
-				failsafeTrigger = true;
-				if(errorCount > 10)
-					_currentStatus = "Fail safe: read";
-				else 
-					_currentStatus = "Fail safe: heat";
+				if(!failsafeTrigger) 
+				{
+					failsafeTrigger = true;
+					String* command = new String("failSafeTriggered");
+					xQueueSend(tempQueue, &command, 0);
+					if(errorCount > 10)
+						_currentStatus = "Fail safe: read";
+					else 
+						_currentStatus = "Fail safe: heat";
+				}
 			} 
 			else if((_currentTemp > 0 && _lastTemp > 0 && _currentStatus.startsWith("Heating") && definitelyGreaterThan(_currentTemp, _lastTemp)) 
 					|| _currentStatus.startsWith("Cooling") 
@@ -317,6 +320,6 @@ xSemaphoreHandle TemperatureHandler::tempMutexBus;
 xSemaphoreHandle TemperatureHandler::statusMutexBus;
 xQueueHandle TemperatureHandler::tempQueue;
 long TemperatureHandler::failSafeFrequency;
-int TemperatureHandler::failSafeFrequencyLimiter = 3000;
+int TemperatureHandler::failSafeFrequencyLimiter = 10000;
 int TemperatureHandler::errorCount = 0;
 

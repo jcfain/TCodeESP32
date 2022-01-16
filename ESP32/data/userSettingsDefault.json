@@ -4,7 +4,7 @@
 	"wifiPass": "YOUR PASSWORD HERE",
 	"hostname": "tcode",
 	"friendlyName": "ESP32 TCode",
-	"esp32Version": "ESP32 v0.24b",
+	"esp32Version": "ESP32 v0.241b",
 	"bluetoothEnabled": false,
 	"udpServerPort": 8000,
 	"webServerPort": 80,
@@ -73,5 +73,6 @@
 	"heaterFailsafeThreshold": 5.0,
 	"heaterResolution": 8,
 	"heaterFrequency": 5000,
-	"newtoungeHatExists": false
+	"newtoungeHatExists": false,
+	"disableNewtoungeHat": false
 }
