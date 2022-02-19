@@ -105,21 +105,24 @@ public:
         // Lower Left Servo
         ledcSetup(LowerLeftServo_PWM,MainServo_Freq,16);
         ledcAttachPin(SettingsHandler::LeftServo_PIN,LowerLeftServo_PWM);
-        // Upper Left Servo
-        ledcSetup(UpperLeftServo_PWM,MainServo_Freq,16);
-        ledcAttachPin(SettingsHandler::LeftUpperServo_PIN,UpperLeftServo_PWM);
+        if(SettingsHandler::sr6Mode)
+        {
+            // Upper Left Servo
+            ledcSetup(UpperLeftServo_PWM,MainServo_Freq,16);
+            ledcAttachPin(SettingsHandler::LeftUpperServo_PIN,UpperLeftServo_PWM);
+            // Upper Right Servo
+            ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);
+            ledcAttachPin(SettingsHandler::RightUpperServo_PIN,UpperRightServo_PWM);
+            // Right Pitch Servo
+            ledcSetup(RightPitchServo_PWM,PitchServo_Freq,16);
+            ledcAttachPin(SettingsHandler::PitchRightServo_PIN,RightPitchServo_PWM);
+        }
         // Lower Right Servo
         ledcSetup(LowerRightServo_PWM,MainServo_Freq,16);
         ledcAttachPin(SettingsHandler::RightServo_PIN,LowerRightServo_PWM);
-        // Upper Right Servo
-        ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);
-        ledcAttachPin(SettingsHandler::RightUpperServo_PIN,UpperRightServo_PWM);
         // Left Pitch Servo
         ledcSetup(LeftPitchServo_PWM,PitchServo_Freq,16);
         ledcAttachPin(SettingsHandler::PitchLeftServo_PIN,LeftPitchServo_PWM);
-        // Right Pitch Servo
-        ledcSetup(RightPitchServo_PWM,PitchServo_Freq,16);
-        ledcAttachPin(SettingsHandler::PitchRightServo_PIN,RightPitchServo_PWM);
         // Twist Servo
         ledcSetup(TwistServo_PWM,TwistServo_Freq,16);
         ledcAttachPin(SettingsHandler::TwistServo_PIN,TwistServo_PWM);

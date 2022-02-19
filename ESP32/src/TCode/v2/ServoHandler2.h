@@ -136,35 +136,38 @@ public:
             Serial.print("Failure to connect to right pin: ");
             Serial.println(RightServo_PIN);
         }
-        rightUpperServoConnected = RightUpperServo.attach(RightUpperServo_PIN);
-        if (rightUpperServoConnected == 0) 
-        {
-            Serial.print("Failure to connect to right upper pin: ");
-            Serial.println(RightUpperServo_PIN);
-        }
+		if(SettingsHandler::sr6Mode)
+		{
+			rightUpperServoConnected = RightUpperServo.attach(RightUpperServo_PIN);
+			if (rightUpperServoConnected == 0) 
+			{
+				Serial.print("Failure to connect to right upper pin: ");
+				Serial.println(RightUpperServo_PIN);
+			}
+			leftUpperServoConnected = LeftUpperServo.attach(LeftUpperServo_PIN);
+			if (leftUpperServoConnected == 0) 
+			{
+				Serial.print("Failure to connect to left upper pin: ");
+				Serial.println(LeftUpperServo_PIN);
+			}
+			pitchRightServoConnected = PitchRightServo.attach(PitchRightServo_PIN);
+			if (pitchRightServoConnected == 0) 
+			{
+				Serial.print("Failure to connect to pitch right pin: ");
+				Serial.println(PitchRightServo_PIN);
+			}
+		}
         leftServoConnected = LeftServo.attach(LeftServo_PIN);
         if (leftServoConnected == 0) 
         {
             Serial.print("Failure to connect to left pin: ");
             Serial.println(LeftServo_PIN);
         }
-        leftUpperServoConnected = LeftUpperServo.attach(LeftUpperServo_PIN);
-        if (leftUpperServoConnected == 0) 
-        {
-            Serial.print("Failure to connect to left upper pin: ");
-            Serial.println(LeftUpperServo_PIN);
-        }
         pitchServoConnected = PitchLeftServo.attach(PitchLeftServo_PIN);
         if (pitchServoConnected == 0) 
         {
             Serial.print("Failure to connect to pitch left pin: ");
             Serial.println(PitchLeftServo_PIN);
-        }
-        pitchRightServoConnected = PitchRightServo.attach(PitchRightServo_PIN);
-        if (pitchRightServoConnected == 0) 
-        {
-            Serial.print("Failure to connect to pitch right pin: ");
-            Serial.println(PitchRightServo_PIN);
         }
         valveServoConnected = ValveServo.attach(ValveServo_PIN);
         if (valveServoConnected == 0) 
@@ -189,21 +192,24 @@ public:
 		{
         	LeftServo.writeMicroseconds(SettingsHandler::LeftServo_ZERO);
 		}
-        if (rightUpperServoConnected != 0) 
+		if(SettingsHandler::sr6Mode)
 		{
-        	RightUpperServo.writeMicroseconds(SettingsHandler::RightUpperServo_ZERO);
-		}
-        if (leftUpperServoConnected != 0) 
-		{
-        	LeftUpperServo.writeMicroseconds(SettingsHandler::LeftUpperServo_ZERO);
+			if (rightUpperServoConnected != 0) 
+			{
+				RightUpperServo.writeMicroseconds(SettingsHandler::RightUpperServo_ZERO);
+			}
+			if (pitchRightServoConnected != 0) 
+			{
+				PitchRightServo.writeMicroseconds(SettingsHandler::PitchRightServo_ZERO);
+			}
+			if (leftUpperServoConnected != 0) 
+			{
+				LeftUpperServo.writeMicroseconds(SettingsHandler::LeftUpperServo_ZERO);
+			}
 		}
         if (pitchServoConnected != 0) 
 		{
         	PitchLeftServo.writeMicroseconds(SettingsHandler::PitchLeftServo_ZERO);
-		}
-        if (pitchRightServoConnected != 0) 
-		{
-        	PitchRightServo.writeMicroseconds(SettingsHandler::PitchRightServo_ZERO);
 		}
         if (valveServoConnected != 0) 
 		{

@@ -30,6 +30,17 @@ var infoNode;
 var debugEnabled = true;
 var playSounds = false;
 var importSettingsInputElement;
+var websocket;
+var TCodeVersion = {
+    V2: 0,
+    V3: 1
+}
+
+var AvailibleChannelsV2;
+var AvailibleChannelsV3;
+var testDeviceUseIModifier = false;
+var testDeviceDisableModifier = false;
+var testDeviceModifierValue = "1000";
 
 document.addEventListener("DOMContentLoaded", function() {
     onDocumentLoad();
@@ -69,7 +80,7 @@ function initWebSocket() {
 			WebSocket = MozWebSocket;
 		if ( websocket && websocket.readyState == 1 )
 			websocket.close();
-		var websocket = new WebSocket( wsUri );
+		websocket = new WebSocket( wsUri );
 		websocket.onopen = function (evt) {
 			//xtpConnected = true;
 			logdebug("CONNECTED");
@@ -77,6 +88,7 @@ function initWebSocket() {
 		};
 		websocket.onclose = function (evt) {
 			logdebug("DISCONNECTED");
+            alert('Web socket disconnected: To use some features you need to make sure the device is on and connected and refresh the page.');
 			//xtpConnected = false;
 		};
 		websocket.onmessage = function (evt) {
@@ -162,40 +174,41 @@ function onDefaultClick()
 
 function setUserSettings() 
 {
-    toggleNonTCodev3Options(userSettings["TCodeVersion"] == 1);
+    toggleNonTCodev3Options();
     toggleDeviceOptions(userSettings["sr6Mode"]);
     toggleStaticIPSettings(userSettings["staticIP"]);
     toggleDisplaySettings(userSettings["displayEnabled"]);
     toggleTempSettings(userSettings["tempControlEnabled"]);
     togglePitchServoFrequency(userSettings["pitchFrequencyIsDifferent"]);
     document.getElementById("version").innerHTML = userSettings["esp32Version"];
-    var xMin = userSettings["xMin"];
-    var xMax = userSettings["xMax"];
-    document.getElementById("xMin").value = xMin;
-    calculateAndUpdateMinUI("x", xMin);
-    document.getElementById("xMax").value = xMax;
-    calculateAndUpdateMaxUI("x", xMax);
-    updateRangePercentageLabel("x", tcodeToPercentage(xMin), tcodeToPercentage(xMax));
+    // var xMin = userSettings["xMin"];
+    // var xMax = userSettings["xMax"];
+    //document.getElementById("xMin").value = xMin;
+    //calculateAndUpdateMinUI("x", xMin);
+    //document.getElementById("xMax").value = xMax;
+    //calculateAndUpdateMaxUI("x", xMax);
+    //updateRangePercentageLabel("x", tcodeToPercentage(xMin), tcodeToPercentage(xMax));
 
-    var yRollMin = userSettings["yRollMin"];
-    var yRollMax = userSettings["yRollMax"];
-    document.getElementById("yRollMin").value = yRollMin;
-    calculateAndUpdateMinUI("yRoll", yRollMin);
-    document.getElementById("yRollMax").value = yRollMax;
-    calculateAndUpdateMaxUI("yRoll", yRollMax);
-    updateRangePercentageLabel("yRoll", tcodeToPercentage(yRollMin), tcodeToPercentage(yRollMax));
+    // var yRollMin = userSettings["yRollMin"];
+    // var yRollMax = userSettings["yRollMax"];
+    // document.getElementById("yRollMin").value = yRollMin;
+    // calculateAndUpdateMinUI("yRoll", yRollMin);
+    // document.getElementById("yRollMax").value = yRollMax;
+    // calculateAndUpdateMaxUI("yRoll", yRollMax);
+    // updateRangePercentageLabel("yRoll", tcodeToPercentage(yRollMin), tcodeToPercentage(yRollMax));
 
-    var xRollMin = userSettings["xRollMin"];
-    var xRollMax = userSettings["xRollMax"];
-    document.getElementById("xRollMin").value =xRollMin;
-    calculateAndUpdateMinUI("xRoll", xRollMin);
-    document.getElementById("xRollMax").value =xRollMax;
-    calculateAndUpdateMaxUI("xRoll", xRollMax);
-    updateRangePercentageLabel("xRoll", tcodeToPercentage(xRollMin), tcodeToPercentage(xRollMax));
+    // var xRollMin = userSettings["xRollMin"];
+    // var xRollMax = userSettings["xRollMax"];
+    // document.getElementById("xRollMin").value =xRollMin;
+    // calculateAndUpdateMinUI("xRoll", xRollMin);
+    // document.getElementById("xRollMax").value =xRollMax;
+    // calculateAndUpdateMaxUI("xRoll", xRollMax);
+    // updateRangePercentageLabel("xRoll", tcodeToPercentage(xRollMin), tcodeToPercentage(xRollMax));
 
-    updateSpeedUI(userSettings["speed"]);
+    //updateSpeedUI(userSettings["speed"]);
 
     document.getElementById("udpServerPort").value = userSettings["udpServerPort"];
+    document.getElementById("webServerPort").value = userSettings["webServerPort"];
     document.getElementById("hostname").value = userSettings["hostname"];
     document.getElementById("friendlyName").value = userSettings["friendlyName"];
 	document.getElementById("servoFrequency").value = userSettings["servoFrequency"];
@@ -288,7 +301,32 @@ function setUserSettings()
 	document.getElementById("Display_Screen_Width").readonly = true;
 	document.getElementById("Display_Screen_Height").readonly = true;
 	// document.getElementById("Display_Rst_PIN").readonly = true;
-
+    
+    AvailibleChannelsV2 = [
+        {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
+        {channel: "L1", channelName: "Surge", switch: false, sr6Only: true},
+        {channel: "L2", channelName: "Sway", switch: false, sr6Only: true},
+        {channel: "L3", channelName: "Suck", switch: false, sr6Only: false},
+        {channel: "R0", channelName: "Twist", switch: false, sr6Only: false},
+        {channel: "R1", channelName: "Roll", switch: false, sr6Only: false},
+        {channel: "R2", channelName: "Pitch", switch: false, sr6Only: false},
+        {channel: "V0", channelName: "Vibe 0", switch: true, sr6Only: false},
+        {channel: "V1", channelName: "Vibe 1/Lube", switch: true, sr6Only: false}
+    ]
+    AvailibleChannelsV3 = [
+        {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
+        {channel: "L1", channelName: "Surge", switch: false, sr6Only: true},
+        {channel: "L2", channelName: "Sway", switch: false, sr6Only: true},
+        {channel: "R0", channelName: "Twist", switch: false, sr6Only: false},
+        {channel: "R1", channelName: "Roll", switch: false, sr6Only: false},
+        {channel: "R2", channelName: "Pitch", switch: false, sr6Only: false},
+        {channel: "V0", channelName: "Vibe 0", switch: true, sr6Only: false},
+        {channel: "V1", channelName: "Vibe 1", switch: true, sr6Only: false},
+        {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
+        {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
+        {channel: "A2", channelName: "Lube", switch: true, sr6Only: false},
+    ]
+    setupChannelSliders();
     documentLoaded = true;
 }
 
@@ -363,6 +401,124 @@ function showError(message)
     document.getElementById("errorText").innerHTML += message;
     document.getElementById("errorMessage").hidden = false;
 }
+function sendTCode(tcode) {
+    //websocket.send("{\"command\":\"tcode\", \"message\": \""+tcode+"\\n\"}")
+    websocket.send(tcode+"\\n")
+}
+function setupChannelSliders() 
+{
+
+    var channelTestsNode = document.getElementById("channelTestsTable");
+    while (channelTestsNode.firstChild) {
+        channelTestsNode.removeChild(channelTestsNode.firstChild);
+    }
+    var bodyNode = document.createElement("tbody");
+    channelTestsNode.appendChild(bodyNode);
+    
+    var headerRowNode = document.createElement("tr");
+    var headerCellNode = document.createElement("td");
+    headerCellNode.colSpan = "2";
+    headerCellNode.style.textAlign = "center";
+    var headerH3Node = document.createElement("h3");
+    headerH3Node.innerText = "Device test";
+    headerCellNode.appendChild(headerH3Node);
+    headerRowNode.appendChild(headerCellNode);
+    bodyNode.appendChild(headerRowNode);
+
+    var feedbackRowNode = document.createElement("tr");
+    var feedbackCellNode = document.createElement("td");
+    feedbackCellNode.innerText = "TCode input: awaiting user...";
+    feedbackCellNode.colSpan = "2";
+    feedbackCellNode.style.textAlign = "left";
+    feedbackRowNode.appendChild(feedbackCellNode);
+    bodyNode.appendChild(feedbackRowNode);
+
+
+    var availibleChannels = isTCodeV3() ? AvailibleChannelsV3 : AvailibleChannelsV2;
+    for(var i=0; i<availibleChannels.length;i++)
+    {
+        if(userSettings["sr6Mode"] && availibleChannels[i].sr6Only || !availibleChannels[i].sr6Only) {
+            var channel = availibleChannels[i].channel;
+            var channelName = availibleChannels[i].channelName;
+
+            var rowNode = document.createElement("tr");
+            var titleCellNode = document.createElement("td");
+            titleCellNode.innerText = channelName + " ("+channel+")";
+            var inputCellNode = document.createElement("td");
+            rowNode.appendChild(titleCellNode);
+            rowNode.appendChild(inputCellNode);
+            var sliderNode = document.createElement("input");
+            sliderNode.style.width = "100%";
+            sliderNode.type = "range";
+            sliderNode.id = channel + "TestSlider";
+            sliderNode.min = 0;
+            sliderNode.max = 99;
+            sliderNode.value = availibleChannels[i].switch ? 0 : 50;
+            sliderNode.addEventListener("input", function (sliderNode, channel, channelName, feedbackCellNode) {
+                var value = percentageToTcode(sliderNode.value);
+                var tcode = channel + value.toString().padStart(isTCodeV3() ? 4 : 3, "0");
+                if(!testDeviceDisableModifier) {
+                    tcode += testDeviceUseIModifier ? "I" : "S"
+                    tcode += testDeviceModifierValue
+                }
+                feedbackCellNode.innerText = "TCode input: " + tcode;
+                sendTCode(tcode);
+            }.bind(null, sliderNode, channel, channelName, feedbackCellNode));
+            inputCellNode.appendChild(sliderNode);
+            bodyNode.appendChild(rowNode);
+        }
+    }
+
+    var testDeviceModifierValueNode = document.createElement("input");
+    testDeviceModifierValueNode.value = testDeviceModifierValue;
+    testDeviceModifierValueNode.addEventListener("input", (event) => {
+        testDeviceModifierValue = event.target.value;
+    });
+    var testDeviceModifierValueRowNode = document.createElement("tr");
+    var testDeviceModifierValueCellNode = document.createElement("td");
+    testDeviceModifierValueCellNode.innerText = "Magnitude (I/S) value";
+    var testDeviceModifierValueInputCellNode = document.createElement("td");
+    testDeviceModifierValueInputCellNode.appendChild(testDeviceModifierValueNode);
+    testDeviceModifierValueRowNode.appendChild(testDeviceModifierValueCellNode);
+    testDeviceModifierValueRowNode.appendChild(testDeviceModifierValueInputCellNode);
+    bodyNode.appendChild(testDeviceModifierValueRowNode);
+
+    var testDeviceUseIModifierNode = document.createElement("input");
+    testDeviceUseIModifierNode.type = "checkbox"
+    testDeviceUseIModifierNode.checked = testDeviceUseIModifier;
+    testDeviceUseIModifierNode.addEventListener("click", (event) => {
+        testDeviceUseIModifier = event.target.checked;
+    });
+    var testDeviceUseIModifierRowNode = document.createElement("tr");
+    var testDeviceUseIModifierCellNode = document.createElement("td");
+    testDeviceUseIModifierCellNode.innerText = "Use Magnitude + Time Interval (I)";
+    var testDeviceUseIModifierInputCellNode = document.createElement("td");
+    testDeviceUseIModifierInputCellNode.appendChild(testDeviceUseIModifierNode);
+    testDeviceUseIModifierRowNode.appendChild(testDeviceUseIModifierCellNode);
+    testDeviceUseIModifierRowNode.appendChild(testDeviceUseIModifierInputCellNode);
+    bodyNode.appendChild(testDeviceUseIModifierRowNode);
+    
+    var testDeviceDisableModifierNode = document.createElement("input");
+    testDeviceDisableModifierNode.type = "checkbox"
+    testDeviceDisableModifierNode.checked = testDeviceDisableModifier;
+    testDeviceDisableModifierNode.addEventListener("click", (event) => {
+        testDeviceDisableModifier = event.target.checked;
+    });
+    var testDeviceDisableModifierRowNode = document.createElement("tr");
+    var testDeviceDisableModifierCellNode = document.createElement("td");
+    testDeviceDisableModifierCellNode.innerText = "Disable magnitude";
+    var testDeviceDisableModifierInputCellNode = document.createElement("td");
+    testDeviceDisableModifierInputCellNode.appendChild(testDeviceDisableModifierNode);
+    testDeviceDisableModifierRowNode.appendChild(testDeviceDisableModifierCellNode);
+    testDeviceDisableModifierRowNode.appendChild(testDeviceDisableModifierInputCellNode);
+    bodyNode.appendChild(testDeviceDisableModifierRowNode);
+}
+function isTCodeV3() {
+    return userSettings["TCodeVersion"] == TCodeVersion.V3;
+}
+function onChannelSliderInput(channel, value) {
+    sendTCode(channel+value.toString().padStart(userSettings["TCodeVersion"] == TCodeVersion.V3 ? 4 : 3, "0") + "S1000");
+}
 function onMinInput(axis) 
 {
     var axisName = axis + "Min";
@@ -381,6 +537,7 @@ function onMinInput(axis)
     }
     //console.log("Min tcode: " + tcodeValue);
     userSettings[axisName] = tcodeValue;
+    sendTCode("L0"+tcodeValue.toString().padStart(userSettings["TCodeVersion"] == TCodeVersion.V3 ? 4 : 3, "0") + "S1000");
     updateUserSettings();
 }
 
@@ -399,6 +556,7 @@ function onMaxInput(axis)
     var tcodeValue =  percentageToTcode(inputAxisMax.value);
     //console.log("Max tcode: " + tcodeValue);
     userSettings[axisName] = tcodeValue;
+    sendTCode("L0"+tcodeValue.toString().padStart(userSettings["TCodeVersion"] == TCodeVersion.V3 ? 4 : 3, "0") + "S1000");
     updateUserSettings();
 }
 
@@ -458,20 +616,22 @@ function updateRangePercentageLabel(axis, minValue, maxValue)
 {
     document.getElementById("" + axis + "RangeLabel").innerText = maxValue - minValue + "%";
 }
-
+function getTCodeMax() {
+    return isTCodeV3() ? 9999 : 999
+}
 function tcodeToPercentage(tcodeValue) 
 {
-    return convertRange(1, 1000, 1, 100, tcodeValue);
+    return convertRange(0, getTCodeMax(), 0, 99, tcodeValue);
 }
 
 function percentageToTcode(value) 
 {
-    return convertRange(1, 100, 1, 1000, value);
+    return convertRange(0, 99, 0, getTCodeMax(), value);
 }
 
 function speedToPercentage(tcodeValue) 
 {
-    return convertRange(999, 4000, 0, 100, tcodeValue);
+    return convertRange(999, 4000, 0, 99, tcodeValue);
 }
 
 function convertRange(input_start, input_end, output_start, output_end, value) 
@@ -491,6 +651,13 @@ function onSpeedInput()
 function updateUdpPort() 
 {
     userSettings["udpServerPort"] = parseInt(document.getElementById('udpServerPort').value);
+    showRestartRequired();
+    updateUserSettings();
+}
+
+function updateWebPort() 
+{
+    userSettings["webServerPort"] = parseInt(document.getElementById('webServerPort').value);
     showRestartRequired();
     updateUserSettings();
 }
@@ -569,6 +736,7 @@ function updateFriendlyName()
 function setSR6Mode() {
     userSettings["sr6Mode"] = document.getElementById('sr6Mode').checked;
     toggleDeviceOptions(userSettings["sr6Mode"]);
+    setupChannelSliders();
     showRestartRequired();
 	updateUserSettings();
 }
@@ -625,97 +793,118 @@ function updatePins()
             var errors = [];
             var pmwErrors = [];
             var twistFeedBack = parseInt(document.getElementById('TwistFeedBack_PIN').value);
-            assignedPins.push(twistFeedBack);
+            assignedPins.push({name:"Twist feed back", pin:twistFeedBack});
 
             var twistServo = parseInt(document.getElementById('TwistServo_PIN').value);
-            if(assignedPins.indexOf(twistServo) > -1)
+            var pinDupeIndex = assignedPins.findIndex(x => x.pin === twistServo);
+            if(pinDupeIndex > -1)
                 errors.push("Twist servo pin");
             if(validPWMpins.indexOf(twistServo) == -1)
                 pmwErrors.push("Twist servo pin: "+twistServo);
-            assignedPins.push(twistServo);
+            assignedPins.push({name:"Twist servo", pin:twistServo});
 
             var rightPin = parseInt(document.getElementById('RightServo_PIN').value);
-            if(assignedPins.indexOf(rightPin) > -1)
-                errors.push("Right servo pin");
+            pinDupeIndex = assignedPins.findIndex(x => x.pin === rightPin);
+            if(pinDupeIndex > -1)
+                errors.push("Right servo pin and "+assignedPins[pinDupeIndex].name);
             if(validPWMpins.indexOf(rightPin) == -1)
                 pmwErrors.push("Right servo pin: "+rightPin);
-            assignedPins.push(rightPin);
+            assignedPins.push({name:"Right servo", pin:rightPin});
 
             var leftPin = parseInt(document.getElementById('LeftServo_PIN').value);
-            if(assignedPins.indexOf(leftPin) > -1)
-                errors.push("Left servo pin");
+            pinDupeIndex = assignedPins.findIndex(x => x.pin === leftPin);
+            if(pinDupeIndex > -1)
+                errors.push("Left servo pin and "+assignedPins[pinDupeIndex].name);
             if(validPWMpins.indexOf(leftPin) == -1)
                 pmwErrors.push("Left servo pin: "+leftPin);
-            assignedPins.push(leftPin);
+            assignedPins.push({name:"Left servo", pin:leftPin});
 
             var rightUpper = parseInt(document.getElementById('RightUpperServo_PIN').value);
-            if(assignedPins.indexOf(rightUpper) > -1)
-                errors.push("Right upper servo pin");
-            if(validPWMpins.indexOf(rightUpper) == -1)
-                pmwErrors.push("Right upper servo pin: "+rightUpper);
-            assignedPins.push(rightUpper);
-
             var leftUpper = parseInt(document.getElementById('LeftUpperServo_PIN').value);
-            if(assignedPins.indexOf(leftUpper) > -1)
-                errors.push("Left upper servo pin");
-            if(validPWMpins.indexOf(leftUpper) == -1)
-                pmwErrors.push("Left upper servo pin: "+leftUpper);
-            assignedPins.push(leftUpper);
+            var pitchRight = parseInt(document.getElementById('PitchRightServo_PIN').value);
+            if(userSettings["sr6Mode"]) {
+                pinDupeIndex = assignedPins.findIndex(x => x.pin === rightUpper);
+                if(pinDupeIndex > -1)
+                    errors.push("Right upper servo pin and "+assignedPins[pinDupeIndex].name);
+                if(validPWMpins.indexOf(rightUpper) == -1)
+                    pmwErrors.push("Right upper servo pin: "+rightUpper);
+                assignedPins.push({name:"Right upper servo", pin:rightUpper});
+
+                pinDupeIndex = assignedPins.findIndex(x => x.pin === leftUpper);
+                if(pinDupeIndex > -1)
+                    errors.push("Left upper servo pin and "+assignedPins[pinDupeIndex].name);
+                if(validPWMpins.indexOf(leftUpper) == -1)
+                    pmwErrors.push("Left upper servo pin: "+leftUpper);
+                assignedPins.push({name:"Left upper servo", pin:leftUpper});
+
+                pinDupeIndex = assignedPins.findIndex(x => x.pin === pitchRight);
+                if(pinDupeIndex> -1)
+                    errors.push("Pitch right servo pin and "+assignedPins[pinDupeIndex].name);
+                if(validPWMpins.indexOf(pitchRight) == -1)
+                    pmwErrors.push("Pitch right servo pin: "+pitchRight);
+                assignedPins.push({name:"Pitch right servo", pin:pitchRight});
+            }
 
             var pitchLeft = parseInt(document.getElementById('PitchLeftServo_PIN').value);
-            if(assignedPins.indexOf(pitchLeft) > -1)
-                errors.push("Pitch left servo pin");
+            pinDupeIndex = assignedPins.findIndex(x => x.pin === pitchLeft);
+            if(pinDupeIndex > -1)
+                errors.push("Pitch left servo pin and "+assignedPins[pinDupeIndex].name);
             if(validPWMpins.indexOf(pitchLeft) == -1)
                 pmwErrors.push("Pitch left servo pin: "+pitchLeft);
             assignedPins.push(pitchLeft);
+            assignedPins.push({name:"Pitch left servo", pin:pitchLeft});
 
-            var pitchRight = parseInt(document.getElementById('PitchRightServo_PIN').value);
-            if(assignedPins.indexOf(pitchRight) > -1)
-                errors.push("Pitch right servo pin");
-            if(validPWMpins.indexOf(pitchRight) == -1)
-                pmwErrors.push("Pitch right servo pin: "+pitchRight);
-            assignedPins.push(pitchRight);
 
             var valveServo = parseInt(document.getElementById('ValveServo_PIN').value);
-            if(assignedPins.indexOf(valveServo) > -1)
-                errors.push("Valve servo pin");
+            pinDupeIndex = assignedPins.findIndex(x => x.pin === valveServo);
+            if(pinDupeIndex > -1)
+                errors.push("Valve servo pin and "+assignedPins[pinDupeIndex].name);
             if(validPWMpins.indexOf(valveServo) == -1)
                 pmwErrors.push("Valve servo pin: "+valveServo);
             assignedPins.push(valveServo);
+            assignedPins.push({name:"Valve servo", pin:valveServo});
 
             var vibe0 = parseInt(document.getElementById('Vibe0_PIN').value);
-            if(assignedPins.indexOf(vibe0) > -1)
-                errors.push("Vibe 0 pin");
+            pinDupeIndex = assignedPins.findIndex(x => x.pin === vibe0);
+            if(pinDupeIndex > -1)
+                errors.push("Vibe 0 pin and "+assignedPins[pinDupeIndex].name);
             if(validPWMpins.indexOf(vibe0) == -1)
                 pmwErrors.push("Vibe 0 pin: "+vibe0);
             assignedPins.push(vibe0);
+            assignedPins.push({name:"Vibe 0", pin:vibe0});
 
             var vibe1 = parseInt(document.getElementById('Vibe1_PIN').value);
-            if(assignedPins.indexOf(vibe1) > -1)
-                errors.push("Lube/Vibe 1 pin");
+            pinDupeIndex = assignedPins.findIndex(x => x.pin === vibe1);
+            if(pinDupeIndex > -1)
+                errors.push("Lube/Vibe 1 pin and "+assignedPins[pinDupeIndex].name);
             if(validPWMpins.indexOf(vibe1) == -1)
                 pmwErrors.push("Lube/Vibe 1 pin: "+vibe1);
-            assignedPins.push(vibe1);
+            assignedPins.push({name:"Lube/Vibe 1", pin:vibe1});
 
             var temp = parseInt(document.getElementById('Temp_PIN').value);
-            if(assignedPins.indexOf(temp) > -1)
-                errors.push("Temp pin");
+            pinDupeIndex = assignedPins.findIndex(x => x.pin === temp);
+            if(pinDupeIndex > -1)
+                errors.push("Temp pin and "+assignedPins[pinDupeIndex].name);
             if(validPWMpins.indexOf(temp) == -1)
                 pmwErrors.push("Temp pin: "+temp);
             assignedPins.push(temp);
+            assignedPins.push({name:"Temp", pin:temp});
 
             var heat = parseInt(document.getElementById('Heater_PIN').value);
-            if(assignedPins.indexOf(heat) > -1)
-                errors.push("Heater pin");
+            pinDupeIndex = assignedPins.findIndex(x => x.pin === heat);
+            if(pinDupeIndex > -1)
+                errors.push("Heater pin and "+assignedPins[pinDupeIndex].name);
             if(validPWMpins.indexOf(heat) == -1)
                 pmwErrors.push("Heater pin: "+heat);
-            assignedPins.push(heat);
+            assignedPins.push({name:"Heater", pin:heat});
 
             var lubeManual = parseInt(document.getElementById('LubeManual_PIN').value);
-            if(assignedPins.indexOf(lubeManual) > -1)
-                errors.push("Manual lube pin");
+            pinDupeIndex = assignedPins.findIndex(x => x.pin === lubeManual);
+            if(pinDupeIndex > -1)
+                errors.push("Manual lube pin and "+assignedPins[pinDupeIndex].name);
             if(validPWMpins.indexOf(lubeManual) == -1)
                 pmwErrors.push("Manual lube pin: "+lubeManual);
+            assignedPins.push({name:"Manual lube", pin:lubeManual});
 
             if (errors.length > 0 || pmwErrors.length > 0) {
                 var errorString = "Pins NOT saved due to invalid input.<br>";
@@ -988,14 +1177,14 @@ function toggleDeviceOptions(sr6Mode)
         osrOnly[i].style.display = sr6Mode ? "none" : "revert";
 }
 
-function toggleNonTCodev3Options(v3)
+function toggleNonTCodev3Options()
 {
     var v2Only = document.getElementsByClassName('v2Only');
     var v3Only = document.getElementsByClassName('v3Only');
     for(var i=0;i < v3Only.length; i++)
-        v3Only[i].style.display = v3 ? "revert" : "none";
+        v3Only[i].style.display = isTCodeV3() ? "revert" : "none";
     for(var i=0;i < v2Only.length; i++)
-        v2Only[i].style.display = v3 ? "none" : "revert";
+        v2Only[i].style.display = isTCodeV3() ? "none" : "revert";
 }
 
 function updateNewtoungeHatSettings() {
@@ -1014,7 +1203,8 @@ function updateBlueToothSettings()
 function setTCodeVersion() 
 {
     userSettings["TCodeVersion"] = parseInt(document.getElementById('TCodeVersion').value);
-    toggleNonTCodev3Options(userSettings["TCodeVersion"] == 1)
+    toggleNonTCodev3Options()
+    setupChannelSliders();
 	showRestartRequired();
 	updateUserSettings();
 }

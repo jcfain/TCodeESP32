@@ -35,6 +35,7 @@ SOFTWARE. */
 #include "WebHandler.h"
 //#include "OTAHandler.h"
 #include "BLEHandler.h"
+#include "WebSocketHandler.h"
 
 //BluetoothHandler btHandler;
 Udphandler udpHandler;
@@ -43,6 +44,7 @@ ServoHandler2 servoHandler2;
 ServoHandler3 servoHandler3;
 WifiHandler wifi;
 WebHandler webHandler;
+WebSocketHandler webSocketHandler;
 BLEHandler* bleHandler = new BLEHandler();
 DisplayHandler* displayHandler;
 TaskHandle_t temperatureTask;
@@ -122,6 +124,7 @@ void setup()
 			displayHandler->println("Starting web server");
 			//displayHandler->println(SettingsHandler::webServerPort);
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName);
+			webSocketHandler.setup(webHandler.getServer());
 		} 
 		else 
 		{
@@ -133,6 +136,7 @@ void setup()
 			{
 				displayHandler->println("APMode started");
 				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
+				webSocketHandler.setup(webHandler.getServer());
 			} 
 			else 
 			{
@@ -151,6 +155,7 @@ void setup()
 		{
 			displayHandler->println("APMode started");
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
+			webSocketHandler.setup(webHandler.getServer());
 		}
 		else 
 		{
@@ -210,8 +215,30 @@ void loop()
 	if(setupSucceeded)
 	{
 		//otaHandler.handle();
+		bufferString = webSocketHandler.getTCode();
 		udpHandler.read(udpData);
-		if (!apMode && strlen(udpData) > 0) 
+		if(!bufferString.isEmpty()) 
+		{
+			//Serial.println("!bufferString.isEmpty(): "+bufferString);
+			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
+			{
+				for(char& c : bufferString)
+				{
+					//Serial.println("c: "+String(c));
+					servoHandler2.read(c);
+					servoHandler2.execute();
+				}
+			} 
+			else 
+			{
+				for(char& c : bufferString)
+				{
+					servoHandler3.read(c);
+					servoHandler3.execute();
+				}
+			}
+		}
+		else if (!apMode && strlen(udpData) > 0) 
 		{
 			//Serial.print("udp writing: ");
 			//Serial.println(udpData);
@@ -261,9 +288,9 @@ void loop()
 			String* receive = 0;
 			if(xQueueReceive(TemperatureHandler::tempQueue, &receive, 0)) {
 				if(!receive->startsWith("{"))
-					webHandler.sendCommand(receive->c_str());
+					webSocketHandler.sendCommand(receive->c_str());
 				else
-					webHandler.sendCommand("tempStatus", receive->c_str());
+					webSocketHandler.sendCommand("tempStatus", receive->c_str());
 			}
 			if(receive)
 				delete receive;

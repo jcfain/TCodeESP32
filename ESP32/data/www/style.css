@@ -7,6 +7,10 @@ html {
 body {
   background-color: lightgray;
   color: black;
+  display: flex;
+  align-content: center;
+  flex-direction: column;
+  align-items: center;
 }
 p{
   font-size: 1.5rem;
