@@ -41,6 +41,10 @@ var AvailibleChannelsV3;
 var testDeviceUseIModifier = false;
 var testDeviceDisableModifier = false;
 var testDeviceModifierValue = "1000";
+var restartClicked = false;
+var serverPollingTimeOut = null;
+var websocketRetryCount = 0;
+var channelSliderList = [];
 
 document.addEventListener("DOMContentLoaded", function() {
     onDocumentLoad();
@@ -53,7 +57,7 @@ function logdebug(message) {
 function onDocumentLoad() {
 	infoNode = document.getElementById('info');
     getUserSettings();
-    initWebSocket();
+    //initWebSocket();
     createImportSettingsInputElement();
 }
 
@@ -84,11 +88,26 @@ function initWebSocket() {
 		websocket.onopen = function (evt) {
 			//xtpConnected = true;
 			logdebug("CONNECTED");
+            if(restartClicked) {
+                getUserSettings();
+                restartClicked = false;
+            }
+            hideLoading();
+            if(serverPollingTimeOut) {
+                clearTimeout(serverPollingTimeOut);
+                serverPollingTimeOut = null;
+            }
+            websocketRetryCount = 0;
 			//updateSettingsUI();
 		};
 		websocket.onclose = function (evt) {
 			logdebug("DISCONNECTED");
-            alert('Web socket disconnected: To use some features you need to make sure the device is on and connected and refresh the page.');
+            
+            if(!serverPollingTimeOut) {
+                //showLoading("Server disconnected, waiting for restart...");
+                checkForServer();
+            }
+            //alert('Web socket disconnected: To use some features you need to make sure the device is on and connected and refresh the page.');
 			//xtpConnected = false;
 		};
 		websocket.onmessage = function (evt) {
@@ -96,11 +115,19 @@ function initWebSocket() {
 			logdebug("MESSAGE RECIEVED: "+ evt.data);
 		};
 		websocket.onerror = function (evt) {
-			alert('ERROR: ' + evt.data + ", Address: "+wsUri);
+            if(!serverPollingTimeOut) {
+                //showLoading("Server error, waiting for restart...");
+                checkForServer();
+            }
+			//alert('ERROR: ' + evt.data + ", Address: "+wsUri);
 			//xtpConnected = false;
 		};
 	} catch (exception) {
-		alert('ERROR: ' + exception + ", Address: "+wsUri);
+        if(!serverPollingTimeOut) {
+            //showLoading("Server exception, waiting for restart...");
+            checkForServer();
+        }
+        //alert('ERROR: ' + exception + ", Address: "+wsUri);
 		//xtpConnected = false;
 	}
 }
@@ -156,7 +183,7 @@ function onDefaultClick()
 		{
 			if (xhr.readyState === 4) 
 			{
-				onDocumentLoad();
+                getUserSettings();
 				infoNode.innerText = "Settings reset!";
                 infoNode.style.color = 'green';
 				document.getElementById('requiresRestart').hidden = false;
@@ -170,6 +197,50 @@ function onDefaultClick()
 		}
 		xhr.send();
 	}
+}
+
+function onRestartClick() 
+{		
+    showLoading("Waiting for device restart...")
+    restartClicked = true;
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/restart", true);
+    xhr.onreadystatechange = function() 
+    {
+        if (xhr.readyState === 4) 
+        {
+			logdebug("Restart succeed!");
+            hideRestartRequired();
+        }
+    }
+    xhr.send();
+}
+function isWebSocketConnected() {
+    if(!websocket)
+        return false;
+    return websocket.readyState !== WebSocket.OPEN;
+}
+function checkForServer() {
+    // if(serverPollingTimeOut) {
+    //     clearTimeout(serverPollingTimeOut);
+    //     serverPollingTimeOut = null;
+    // }
+    // if(websocketRetryCount > 10) {
+    //     showLoading("Websocket timed out. Please refresh the page for full functionality.");
+    //     return;
+    // }
+    // if(isWebSocketConnected() && websocket.readyState !== WebSocket.CONNECTING) {
+    //     logdebug("Websocket closed retrying..");
+    //     initWebSocket();
+    //     websocketRetryCount++;
+    //     serverPollingTimeOut = setTimeout(checkForServer, 2000);
+    // } else if(isWebSocketConnected()) {
+    //     logdebug("Websocket open..");
+    //     if(serverPollingTimeOut) {
+    //         clearTimeout(serverPollingTimeOut);
+    //         serverPollingTimeOut = null;
+    //     }
+    // }
 }
 
 function setUserSettings() 
@@ -330,7 +401,6 @@ function setUserSettings()
     documentLoaded = true;
 }
 
-
 function updateUserSettings() 
 {
     if (documentLoaded) {
@@ -340,7 +410,6 @@ function updateUserSettings()
         }
         upDateTimeout = setTimeout(() => 
         {
-            closeError();
             infoNode.hidden = false;
             infoNode.innerText = "Saving...";
             infoNode.style.color = 'black';
@@ -364,7 +433,7 @@ function updateUserSettings()
                         infoNode.hidden = true;
                         infoNode.innerText = "";
                         showError("Error saving: " + response["msg"]);
-                        onDocumentLoad();
+                        getUserSettings();
                     } 
                     else 
                     {
@@ -373,8 +442,7 @@ function updateUserSettings()
                         infoNode.style.color = 'green';
                         if (restartRequired) 
                         {
-                            document.getElementById('requiresRestart').hidden = false;
-                            document.getElementById('resetBtn').disabled = false;
+                            showRestartRequired();
                         }
                         setTimeout(() => 
                         {
@@ -391,23 +459,85 @@ function updateUserSettings()
         }, 3000);
     }
 }
+
+function showRestartRequired() {
+    document.getElementById('requiresRestart').hidden = false;
+    document.getElementById('resetBtn').disabled = false;
+}
+
+function hideRestartRequired() {
+    document.getElementById('requiresRestart').hidden = true;
+    document.getElementById('resetBtn').disabled = true;
+}
+
+function showLoading(message) {
+    var loadingModal = document.getElementById("loadingModal");
+    var loadingStatus = document.getElementById("loadingStatus");
+    loadingStatus.innerHTML = message;
+    loadingModal.style.visibility = "visible";
+    loadingVisible = true;
+}
+
+function hideLoading() {
+    var loadingModal = document.getElementById("loadingModal");
+    loadingModal.style.visibility = "hidden";
+    loadingVisible = false;
+}
+
+function clearErrors(name) 
+{
+    var errorText = document.getElementById("errorText");
+    var errors = document.getElementsByName(name);
+    for(var i=0;i<errors.length;i++) {
+        errorText.removeChild(errors[i]);
+    }
+    if(errorText.innerText == "" && !errorText.firstChild) {
+        closeError();
+    }
+}
+
 function closeError() 
 {
     document.getElementById("errorText").innerHTML = "";
     document.getElementById("errorMessage").hidden = true;
 }
+
 function showError(message) 
 {
     document.getElementById("errorText").innerHTML += message;
     document.getElementById("errorMessage").hidden = false;
 }
-function sendTCode(tcode) {
-    //websocket.send("{\"command\":\"tcode\", \"message\": \""+tcode+"\\n\"}")
-    websocket.send(tcode+"\\n")
+
+function sendWebsocketCommand(command, message) {
+    websocket.send("{\"command\":\""+command+"\", \"message\": \""+message+"\"}")
 }
+
+function sendTCode(tcode) {
+    //websocket.send(tcode+String.fromCharCode(10))
+}
+
+function sendDeviceHome() {
+    channelSliderList.forEach(x => x.value = x.channelModel.switch ? 0 : 50);
+    var availibleChannels = isTCodeV3() ? AvailibleChannelsV3 : AvailibleChannelsV2;
+    var tcode = "";
+    availibleChannels.forEach(x => {
+        tcode += getSliderTCode(x.channel, x.switch ? 0 : 50, false, 1000, false);
+    });
+    sendTCode(tcode);
+}
+
+function getSliderTCode(channel, sliderValue, useIModifier, modifierValue, disableModifier) {
+    var value = percentageToTcode(sliderValue);
+    var tcode = channel + value.toString().padStart(isTCodeV3() ? 4 : 3, "0");
+    if(!disableModifier) {
+        tcode += useIModifier ? "I" : "S"
+        tcode += modifierValue
+    }
+    return tcode;
+}
+
 function setupChannelSliders() 
 {
-
     var channelTestsNode = document.getElementById("channelTestsTable");
     while (channelTestsNode.firstChild) {
         channelTestsNode.removeChild(channelTestsNode.firstChild);
@@ -420,7 +550,7 @@ function setupChannelSliders()
     headerCellNode.colSpan = "2";
     headerCellNode.style.textAlign = "center";
     var headerH3Node = document.createElement("h3");
-    headerH3Node.innerText = "Device test";
+    headerH3Node.innerText = "Test";
     headerCellNode.appendChild(headerH3Node);
     headerRowNode.appendChild(headerCellNode);
     bodyNode.appendChild(headerRowNode);
@@ -433,7 +563,7 @@ function setupChannelSliders()
     feedbackRowNode.appendChild(feedbackCellNode);
     bodyNode.appendChild(feedbackRowNode);
 
-
+    channelSliderList = [];
     var availibleChannels = isTCodeV3() ? AvailibleChannelsV3 : AvailibleChannelsV2;
     for(var i=0; i<availibleChannels.length;i++)
     {
@@ -453,17 +583,14 @@ function setupChannelSliders()
             sliderNode.id = channel + "TestSlider";
             sliderNode.min = 0;
             sliderNode.max = 99;
+            sliderNode.channelModel = availibleChannels[i];
             sliderNode.value = availibleChannels[i].switch ? 0 : 50;
             sliderNode.addEventListener("input", function (sliderNode, channel, channelName, feedbackCellNode) {
-                var value = percentageToTcode(sliderNode.value);
-                var tcode = channel + value.toString().padStart(isTCodeV3() ? 4 : 3, "0");
-                if(!testDeviceDisableModifier) {
-                    tcode += testDeviceUseIModifier ? "I" : "S"
-                    tcode += testDeviceModifierValue
-                }
-                feedbackCellNode.innerText = "TCode input: " + tcode;
+                var tcode = getSliderTCode(channel, sliderNode.value, testDeviceUseIModifier, testDeviceModifierValue, testDeviceDisableModifier);
                 sendTCode(tcode);
+                feedbackCellNode.innerText = "TCode input: " + tcode + " ("+channelName+")";
             }.bind(null, sliderNode, channel, channelName, feedbackCellNode));
+            channelSliderList.push(sliderNode);
             inputCellNode.appendChild(sliderNode);
             bodyNode.appendChild(rowNode);
         }
@@ -512,6 +639,20 @@ function setupChannelSliders()
     testDeviceDisableModifierRowNode.appendChild(testDeviceDisableModifierCellNode);
     testDeviceDisableModifierRowNode.appendChild(testDeviceDisableModifierInputCellNode);
     bodyNode.appendChild(testDeviceDisableModifierRowNode);
+
+    
+    var testDeviceHomeNode = document.createElement("button");
+    testDeviceHomeNode.addEventListener("click", (event) => {
+        sendDeviceHome();
+    });
+    testDeviceHomeNode.innerText = "All home"
+    var testDeviceHomeRowNode = document.createElement("tr");
+    var testDeviceHomeCellNode = document.createElement("td");
+    testDeviceHomeCellNode.style.textAlign = "center";
+    testDeviceHomeCellNode.colSpan = 2;
+    testDeviceHomeCellNode.appendChild(testDeviceHomeNode);
+    testDeviceHomeRowNode.appendChild(testDeviceHomeCellNode);
+    bodyNode.appendChild(testDeviceHomeRowNode);
 }
 function isTCodeV3() {
     return userSettings["TCodeVersion"] == TCodeVersion.V3;
@@ -651,14 +792,14 @@ function onSpeedInput()
 function updateUdpPort() 
 {
     userSettings["udpServerPort"] = parseInt(document.getElementById('udpServerPort').value);
-    showRestartRequired();
+    setRestartRequired();
     updateUserSettings();
 }
 
 function updateWebPort() 
 {
     userSettings["webServerPort"] = parseInt(document.getElementById('webServerPort').value);
-    showRestartRequired();
+    setRestartRequired();
     updateUserSettings();
 }
 
@@ -675,7 +816,7 @@ function updateServoFrequency()
     userSettings["pitchFrequency"] = parseInt(document.getElementById('pitchFrequency').value);
     userSettings["valveFrequency"] = parseInt(document.getElementById('valveFrequency').value);
     userSettings["twistFrequency"] = parseInt(document.getElementById('twistFrequency').value);
-    showRestartRequired();
+    setRestartRequired();
     updateUserSettings();
 }
 
@@ -715,21 +856,21 @@ function updateAnalogTwist()
         userSettings["TwistFeedBack_PIN"] = 26;
         alert("Note, twist feedback pin reset to 26.\nPlease adjust your hardware accordingly.");
     }
-    showRestartRequired();
+    setRestartRequired();
     updateUserSettings();
 }
 
 function updateHostName() 
 {
     userSettings["hostname"] = document.getElementById('hostname').value;
-    showRestartRequired();
+    setRestartRequired();
     updateUserSettings();
 }
 
 function updateFriendlyName() 
 {
     userSettings["friendlyName"] = document.getElementById('friendlyName').value;
-    showRestartRequired();
+    setRestartRequired();
     updateUserSettings();
 }
 
@@ -737,7 +878,7 @@ function setSR6Mode() {
     userSettings["sr6Mode"] = document.getElementById('sr6Mode').checked;
     toggleDeviceOptions(userSettings["sr6Mode"]);
     setupChannelSliders();
-    showRestartRequired();
+    setRestartRequired();
 	updateUserSettings();
 }
 
@@ -787,6 +928,7 @@ function updatePins()
         }
         upDateTimeout = setTimeout(() => 
         {
+            clearErrors("pinValidation"); 
             //PWM availible on: 2,4,5,12-19,21-23,25-27,32-33
             var validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33];
             var assignedPins = [];
@@ -798,7 +940,7 @@ function updatePins()
             var twistServo = parseInt(document.getElementById('TwistServo_PIN').value);
             var pinDupeIndex = assignedPins.findIndex(x => x.pin === twistServo);
             if(pinDupeIndex > -1)
-                errors.push("Twist servo pin");
+                errors.push("Twist servo pin and "+assignedPins[pinDupeIndex].name);
             if(validPWMpins.indexOf(twistServo) == -1)
                 pmwErrors.push("Twist servo pin: "+twistServo);
             assignedPins.push({name:"Twist servo", pin:twistServo});
@@ -907,7 +1049,7 @@ function updatePins()
             assignedPins.push({name:"Manual lube", pin:lubeManual});
 
             if (errors.length > 0 || pmwErrors.length > 0) {
-                var errorString = "Pins NOT saved due to invalid input.<br>";
+                var errorString = "<div name='pinValidation'>Pins NOT saved due to invalid input.<br>";
                 if(errors.length > 0 )
                     errorString += "<div style='margin-left: 25px;'>The following pins are duplicated:<br><div style='color: white; margin-left: 25px;'>"+errors.join("<br>")+"</div></div>";
                 if (pmwErrors.length > 0) {
@@ -916,9 +1058,10 @@ function updatePins()
                     } 
                     errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pmwErrors.join("<br>")+"</div></div>";
                 }
+                
+                errorString += "</div>";
                 showError(errorString);
             } else {
-                closeError();
                 userSettings["TwistFeedBack_PIN"] = twistFeedBack;
                 userSettings["TwistServo_PIN"] = twistServo
                 userSettings["RightServo_PIN"] = rightPin;
@@ -933,7 +1076,7 @@ function updatePins()
                 userSettings["Temp_PIN"] = temp;
                 userSettings["Heater_PIN"] = heat;
                 userSettings["LubeManual_PIN"] = lubeManual;
-                showRestartRequired();
+                setRestartRequired();
                 updateUserSettings();
             }
         }, 2000);
@@ -948,6 +1091,7 @@ function updateZeros()
     }
     upDateTimeout = setTimeout(() => 
     {
+        clearErrors("zeroValidation"); 
         var validValue = true;
         var invalidValues = [];
         var RightServo_ZERO = parseInt(document.getElementById('RightServo_ZERO').value);
@@ -1001,7 +1145,6 @@ function updateZeros()
 
         if(validValue)
         {
-            closeError();
             userSettings["RightServo_ZERO"] = document.getElementById('RightServo_ZERO').value;
             userSettings["LeftServo_ZERO"] = document.getElementById('LeftServo_ZERO').value;
             userSettings["RightUpperServo_ZERO"] = document.getElementById('RightUpperServo_ZERO').value;
@@ -1014,7 +1157,7 @@ function updateZeros()
         }
         else
         {
-            showError("Zeros NOT saved due to invalid input.<br><div style='margin-left: 25px;'>The values should be between 1250 and 1750 for the following:<br><div style='color: white; margin-left: 25px;'>"+invalidValues.join("<br>")+"</div></div>");
+            showError("<div name='zeroValidation'>Zeros NOT saved due to invalid input.<br><div style='margin-left: 25px;'>The values should be between 1250 and 1750 for the following:<br><div style='color: white; margin-left: 25px;'>"+invalidValues.join("<br>")+"</div></div></div>");
         }
     }, 2000);
 }
@@ -1056,7 +1199,7 @@ function setDisplaySettings()
     userSettings["Display_I2C_Address"] = document.getElementById('Display_I2C_Address').value;
     userSettings["sleeveTempDisplayed"] = document.getElementById('sleeveTempDisplayed').checked;
 	
-    showRestartRequired();
+    setRestartRequired();
     updateUserSettings();
 }
 function setTempSettings() {
@@ -1070,7 +1213,7 @@ function setTempSettings() {
     userSettings["heaterThreshold"] = parseInt(document.getElementById('heaterThreshold').value);
     userSettings["heaterResolution"] = parseInt(document.getElementById('heaterResolution').value);
     userSettings["heaterFrequency"] = parseInt(document.getElementById('heaterFrequency').value);
-    showRestartRequired();
+    setRestartRequired();
     updateUserSettings();
 }
 function connectWifi() {
@@ -1123,7 +1266,7 @@ function updateWifiSettings() {
     userSettings["subnet"] = subnet;
     userSettings["dns1"] = dns1;
     userSettings["dns2"] = dns2;
-	showRestartRequired();
+	setRestartRequired();
 	updateUserSettings();
 	
 }
@@ -1189,14 +1332,14 @@ function toggleNonTCodev3Options()
 
 function updateNewtoungeHatSettings() {
     userSettings["disableNewtoungeHat"] = document.getElementById('disableNewtoungeHat').checked;
-	showRestartRequired();
+	setRestartRequired();
 	updateUserSettings();
 }
 
 function updateBlueToothSettings()
 {
     userSettings["bluetoothEnabled"] = document.getElementById('bluetoothEnabled').checked;
-	showRestartRequired();
+	setRestartRequired();
 	updateUserSettings();
 }
 
@@ -1205,11 +1348,11 @@ function setTCodeVersion()
     userSettings["TCodeVersion"] = parseInt(document.getElementById('TCodeVersion').value);
     toggleNonTCodev3Options()
     setupChannelSliders();
-	showRestartRequired();
+	setRestartRequired();
 	updateUserSettings();
 }
 
-function showRestartRequired() {
+function setRestartRequired() {
     if (documentLoaded) {
         restartRequired = true;
     }
@@ -1266,7 +1409,7 @@ function importSettings() {
             });
             updateUserSettings();
             setUserSettings();
-            showRestartRequired();
+            setRestartRequired();
         }, false);
 
         reader.readAsText(json);
