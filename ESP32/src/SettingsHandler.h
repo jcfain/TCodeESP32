@@ -563,7 +563,7 @@ class SettingsHandler
             Serial.println(SPIFFS.usedBytes());
             Serial.print("SPIFFS total: ");
             Serial.println(SPIFFS.totalBytes());
-            file.close();
+            file.close(); // Task exception here could mean not enough space on SPIFFS.
             
             saving = false;
             return true;

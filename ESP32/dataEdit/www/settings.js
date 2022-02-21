@@ -45,6 +45,11 @@ var restartClicked = false;
 var serverPollingTimeOut = null;
 var websocketRetryCount = 0;
 var channelSliderList = [];
+var restartingAndChangingAddress = false;
+var startUpHostName;
+var startUpWebPort;
+var startUpStaticIP;
+var startUpLocalIP;
 
 document.addEventListener("DOMContentLoaded", function() {
     onDocumentLoad();
@@ -103,7 +108,7 @@ function initWebSocket() {
 		websocket.onclose = function (evt) {
 			logdebug("DISCONNECTED");
             
-            if(!serverPollingTimeOut) {
+            if(!serverPollingTimeOut && !restartingAndChangingAddress) {
                 showLoading("Server disconnected, waiting for restart...");
                 checkForServer();
             }
@@ -115,7 +120,7 @@ function initWebSocket() {
 			logdebug("MESSAGE RECIEVED: "+ evt.data);
 		};
 		websocket.onerror = function (evt) {
-            if(!serverPollingTimeOut) {
+            if(!serverPollingTimeOut && !restartingAndChangingAddress) {
                 showLoading("Server error, waiting for restart...");
                 checkForServer();
             }
@@ -123,7 +128,7 @@ function initWebSocket() {
 			//xtpConnected = false;
 		};
 	} catch (exception) {
-        if(!serverPollingTimeOut) {
+        if(!serverPollingTimeOut && !restartingAndChangingAddress) {
             showLoading("Server exception, waiting for restart...");
             checkForServer();
         }
@@ -149,7 +154,6 @@ function wsCallBackFunction(evt) {
             case "failSafeTriggered":
                 playFail();
                 break;
-				
 		}
 	}
 	catch(e) {
@@ -201,16 +205,44 @@ function onDefaultClick()
 
 function onRestartClick() 
 {		
-    showLoading("Waiting for device restart...")
+    showLoading("Device restarting...")
     restartClicked = true;
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "/restart", true);
+	xhr.responseType = 'json';
     xhr.onreadystatechange = function() 
     {
         if (xhr.readyState === 4) 
         {
-			logdebug("Restart succeed!");
-            hideRestartRequired();
+            if(xhr.status == 200) {
+                var response = xhr.response;
+                logdebug("Restart succeed!");
+                if(response.apMode && userSettings.ssid !== "YOUR SSID HERE" ) {
+                    restartingAndChangingAddress = true;
+                }
+                
+                if(restartingAndChangingAddress) {
+                    var isIPStatic = userSettings["staticIP"];
+                    var localIP = userSettings["localIP"];
+                    var webServerPort = userSettings["webServerPort"];
+                    var hostname = userSettings["hostname"];
+                    var url = "http://"+hostname+".local";
+                    url += webServerPort === 80 ? "" : ":"+webServerPort;
+                    var staticIPUrl = "http://"+localIP;
+                    staticIPUrl += webServerPort === 80 ? "" : ":"+webServerPort;
+                    var message = "Device restarting, the page will redirect to<br><a href='"+url+"'>"+url+"</a> in 15 seconds<br>";
+                    message += isIPStatic ? "If this doesnt work, you can try using this url<br><a href='"+staticIPUrl+"'>"+staticIPUrl+"</a> when the device reboots." 
+                        : "If this doesnt work, you will need<br>to find the dymanic ip address of the esp32."
+                    showLoading(message);
+                    setTimeout(() => {
+                        logdebug("Redirecting to: " + url)
+                        window.location.href = url;
+                    }, 15000);
+                }
+                hideRestartRequired();
+            } else {
+                logdebug("Restart api call fail!");
+            }
         }
     }
     xhr.send();
@@ -280,7 +312,9 @@ function setUserSettings()
 
     document.getElementById("udpServerPort").value = userSettings["udpServerPort"];
     document.getElementById("webServerPort").value = userSettings["webServerPort"];
+    startUpWebPort = userSettings["webServerPort"];
     document.getElementById("hostname").value = userSettings["hostname"];
+    startUpHostName = userSettings["hostname"];
     document.getElementById("friendlyName").value = userSettings["friendlyName"];
 	document.getElementById("servoFrequency").value = userSettings["servoFrequency"];
 	document.getElementById("pitchFrequency").value = userSettings["pitchFrequency"];
@@ -344,7 +378,9 @@ function setUserSettings()
     document.getElementById("ssid").value = userSettings["ssid"];
     document.getElementById("wifiPass").value = userSettings["wifiPass"];
     document.getElementById("staticIP").checked = userSettings["staticIP"];
+    startUpStaticIP = userSettings["staticIP"];
     document.getElementById("localIP").value = userSettings["localIP"];
+    startUpLocalIP = userSettings["localIP"];
     document.getElementById("gateway").value = userSettings["gateway"];
     document.getElementById("subnet").value = userSettings["subnet"];
     document.getElementById("dns1").value = userSettings["dns1"];
@@ -410,6 +446,13 @@ function updateUserSettings()
         }
         upDateTimeout = setTimeout(() => 
         {
+            if(startUpWebPort !== userSettings["webServerPort"] || 
+                startUpHostName !== userSettings["hostname"] || 
+                startUpStaticIP !== userSettings["staticIP"] ||
+                startUpLocalIP !== userSettings["localIP"]) {
+                restartingAndChangingAddress = true;
+            }
+            
             infoNode.hidden = false;
             infoNode.innerText = "Saving...";
             infoNode.style.color = 'black';

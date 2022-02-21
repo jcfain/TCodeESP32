@@ -44,5 +44,6 @@
 		"utility": "cpp",
 		"typeinfo": "cpp"
 	},
-	"MinifyAll.openMinifiedDocument": false
+	"MinifyAll.openMinifiedDocument": false,
+	"MinifyAll.minifyOnSaveToNewFile": true
 }

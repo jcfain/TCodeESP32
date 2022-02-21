@@ -117,10 +117,14 @@ class WebHandler {
             //     request->send(200);
             // }, handleUpload);server->on("/reset", HTTP_POST, [](AsyncWebServerRequest *request){
 
-            server->on("/restart", HTTP_POST, [webSocketHandler](AsyncWebServerRequest *request)
+            server->on("/restart", HTTP_POST, [webSocketHandler, apMode](AsyncWebServerRequest *request)
             {
-                //request->send(200, "text/plain",String("Restarting device, wait about 10-20 seconds and navigate to ") + (SettingsHandler::hostname) + ".local or the network IP address in your browser address bar.");
-                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"restarting\"}");
+                //if(apMode) {
+                    //request->send(200, "text/plain",String("Restarting device, wait about 10-20 seconds and navigate to ") + (SettingsHandler::hostname) + ".local or the network IP address in your browser address bar.");
+                //}
+                String message = "{\"msg\":\"restarting\",\"apMode\":";
+                message += apMode ? "true}" : "false}";
+                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", message);
                 request->send(response);
                 delay(2000);
                 webSocketHandler->closeAll();
