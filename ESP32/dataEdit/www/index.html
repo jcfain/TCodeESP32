@@ -5,8 +5,8 @@
 <head>
   <title>TCode ESP32</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" type="text/css" href="style.css">
-  <script type="text/javascript" src="settings.js"></script>
+  <link rel="stylesheet" type="text/css" href="style-min.css">
+  <script type="text/javascript" src="settings-min.js"></script>
 </head>
 <body>
   	<div id="errorMessage" hidden="true">
@@ -21,7 +21,6 @@
 	<div id="requiresRestart" hidden="true" class="restartRequired">Restart required!!</div>
 
   <h1>Device Settings</h1>
-  <form action="/restart" method="POST">
 	<div class="rootTable">
 		<div>
 			<table id="wirelessSettingsTable" class="formTable">
@@ -277,8 +276,7 @@
 						</td>
 					</tr>
 					<tr class="pwmAvaliblePinRow">
-						<td></td>
-						<td colspan="2">
+						<td colspan="3">
 							<span>
 								PWM availible on: 2,4,5,12-19,21-23,25-27,32,33
 							</span> 
@@ -338,8 +336,7 @@
 						</td>
 					</tr>
 					<tr class="pwmAvaliblePinRow">
-						<td></td>
-						<td colspan="2">
+						<td colspan="3">
 							<span>
 								PWM availible on: 2,4,5,12-19,21-23,25-27,32,33
 							</span> 
@@ -652,11 +649,23 @@
 			</table>
 		</div>
 	</div>
-    <button type="submit" id="resetBtn" name="reset" disabled="true">Restart device</button>
-  </form>
 
-  <button id="exportBtn" onclick="exportToJsonFile()">Export settings</button>
-  <button id="exportBtn" onclick="openImportSettingsFileDialog()">Import settings</button>
+  	<button id="resetBtn" class="formButton" name="reset" disabled="true" onclick="onRestartClick()">Restart device</button>
+	<button id="exportBtn" class="formButton" onclick="exportToJsonFile()">Export settings</button>
+	<button id="importBtn" class="formButton" onclick="openImportSettingsFileDialog()">Import settings</button>
+	</br>
+	</br>
+	</br>
+  	<button id="resetSettingsBtn" class="formButton" onclick="onDefaultClick()">Reset ALL settings</button>
+	  
+	<div id="loadingModal" class="loading-modal">
+		<div id="loadingContainer" class="loading-container">
+			<div class="loading-spinner"></div>
+			<div id="loadingStatus" class="loading-status">Loading...</div>
+		</div>
+	</div>
+</body>
+</html>
  <!--  <h1>TCode Settings</h1>
   <div style="font-size: small;">(only affects json input)</div>
   <div class="sliderHeading">Stroke Range</div>
@@ -738,9 +747,3 @@
       <option value="3500">
     </datalist>
   </div> -->
-</br>
-</br>
-</br>
-  <button id="resetSettingsBtn" onclick="onDefaultClick()">Reset ALL settings</button>
-</body>
-</html>

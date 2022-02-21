@@ -58,7 +58,7 @@ class WifiHandler
 	{
 		return _apMode;
 	}
-    bool connect(char ssid[100], char pass[100]) 
+    bool connect(char ssid[32], char pass[63]) 
     {
 	      _apMode = false;
         WiFi.disconnect(true, true);

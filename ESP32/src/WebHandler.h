@@ -29,7 +29,6 @@ SOFTWARE. */
 #include <AsyncJson.h>
 #include <ESPmDNS.h>
 #include "WifiHandler.h"
-#include <list>
 #include "WebSocketHandler.h"
 
 AsyncWebServer* server;
@@ -37,14 +36,14 @@ class WebHandler {
     public:
         bool initialized = false;
         bool MDNSInitialized = false;
-        void setup(int port, char* hostName, char* friendlyName, bool apMode = false) {
+        void setup(int port, char* hostName, char* friendlyName, WebSocketHandler* webSocketHandler, bool apMode = false) {
             stop();
-
             if (port < 1) 
                 port = 80;
             Serial.print("Setting up web server on port: ");
             Serial.println(port);
             server = new AsyncWebServer(port);
+            webSocketHandler->setup(server);
 
             if(!apMode)
             {
@@ -53,6 +52,7 @@ class WebHandler {
 
             server->on("/userSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
+                Serial.println("Get settings...");
                 request->send(SPIFFS, "/userSettings.json");
             });   
 
@@ -117,10 +117,13 @@ class WebHandler {
             //     request->send(200);
             // }, handleUpload);server->on("/reset", HTTP_POST, [](AsyncWebServerRequest *request){
 
-            server->on("/restart", HTTP_POST, [](AsyncWebServerRequest *request)
+            server->on("/restart", HTTP_POST, [webSocketHandler](AsyncWebServerRequest *request)
             {
-                request->send(200, "text/plain",String("Restarting device, wait about 10-20 seconds and navigate to ") + (SettingsHandler::hostname) + ".local or the network IP address in your browser address bar.");
+                //request->send(200, "text/plain",String("Restarting device, wait about 10-20 seconds and navigate to ") + (SettingsHandler::hostname) + ".local or the network IP address in your browser address bar.");
+                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"restarting\"}");
+                request->send(response);
                 delay(2000);
+                webSocketHandler->closeAll();
                 Serial.println("Device restarting...");
                 ESP.restart();
                 delay(5000);
@@ -131,9 +134,9 @@ class WebHandler {
 				SettingsHandler::reset();
             });
 
-            AsyncCallbackJsonWebHandler* handler = new AsyncCallbackJsonWebHandler("/settings", [](AsyncWebServerRequest *request, JsonVariant &json)
+            AsyncCallbackJsonWebHandler* settingsUpdateHandler = new AsyncCallbackJsonWebHandler("/settings", [](AsyncWebServerRequest *request, JsonVariant &json)
 			{
-                Serial.println("Save settings...");
+                Serial.println("API save settings...");
                 JsonObject jsonObj = json.as<JsonObject>();
                 if(SettingsHandler::update(jsonObj))
                 {
@@ -155,7 +158,7 @@ class WebHandler {
                 }
             }, 1500U );//Bad request? increase the size.
 
-            server->addHandler(handler);
+            server->addHandler(settingsUpdateHandler);
             
             server->onNotFound([](AsyncWebServerRequest *request) 
 			{
@@ -168,7 +171,7 @@ class WebHandler {
             });
 
             //server->rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
-            server->serveStatic("/", SPIFFS, "/www/").setDefaultFile("index.html");;
+            server->serveStatic("/", SPIFFS, "/www/").setDefaultFile("index-min.html");;
             server->begin();
             initialized = true;
         }
@@ -185,12 +188,7 @@ class WebHandler {
             }
         }
 
-        AsyncWebServer* getServer() {
-            return server;
-        }
-
     private:
-        WebSocketHandler m_webSocketHandler;
         void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
             if(!index){
                 Serial.printf("UploadStart: %s\n", filename.c_str());

@@ -44,7 +44,7 @@ ServoHandler2 servoHandler2;
 ServoHandler3 servoHandler3;
 WifiHandler wifi;
 WebHandler webHandler;
-WebSocketHandler webSocketHandler;
+WebSocketHandler* webSocketHandler = new WebSocketHandler();
 BLEHandler* bleHandler = new BLEHandler();
 DisplayHandler* displayHandler;
 TaskHandle_t temperatureTask;
@@ -55,6 +55,7 @@ TaskHandle_t animationTask;
 boolean apMode = false;
 boolean setupSucceeded = false;
 char udpData[255];
+char webSocketData[255];
 void setup() 
 {
 	// see if we can use the onboard led for status
@@ -123,8 +124,7 @@ void setup()
 				udpHandler.setup(SettingsHandler::udpServerPort);
 			displayHandler->println("Starting web server");
 			//displayHandler->println(SettingsHandler::webServerPort);
-			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName);
-			webSocketHandler.setup(webHandler.getServer());
+			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler);
 		} 
 		else 
 		{
@@ -135,8 +135,7 @@ void setup()
 			if (wifi.startAp(bleHandler)) 
 			{
 				displayHandler->println("APMode started");
-				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
-				webSocketHandler.setup(webHandler.getServer());
+				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, true);
 			} 
 			else 
 			{
@@ -154,8 +153,7 @@ void setup()
 		if (wifi.startAp(bleHandler)) 
 		{
 			displayHandler->println("APMode started");
-			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, true);
-			webSocketHandler.setup(webHandler.getServer());
+			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, true);
 		}
 		else 
 		{
@@ -195,7 +193,7 @@ void setup()
 	}
 	
 }
-String bufferString = "";
+//String* bufferString = "";
 // float lastVoltage = 0.00f;
 // int lastSensorValue = 0;
 void loop() 
@@ -212,28 +210,32 @@ void loop()
 			Serial.println(voltage);
 		}
 	} */
-	if(setupSucceeded)
+	if(setupSucceeded && !SettingsHandler::saving)
 	{
 		//otaHandler.handle();
-		bufferString = webSocketHandler.getTCode();
+		webSocketHandler->getTCode(webSocketData);
 		udpHandler.read(udpData);
-		if(!bufferString.isEmpty()) 
+		if (strlen(webSocketData) > 0) 
 		{
-			//Serial.println("!bufferString.isEmpty(): "+bufferString);
+			Serial.print("webSocket writing: ");
+			Serial.println(webSocketData);
 			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
 			{
-				for(char& c : bufferString)
+				for (char *c = webSocketData; *c; ++c) 
 				{
-					//Serial.println("c: "+String(c));
-					servoHandler2.read(c);
+					// Serial.print("c: ");
+					// Serial.println(*c);
+					servoHandler2.read(*c);
 					servoHandler2.execute();
 				}
 			} 
 			else 
 			{
-				for(char& c : bufferString)
+				for (char *c = webSocketData; *c; ++c) 
 				{
-					servoHandler3.read(c);
+					// Serial.print("c: ");
+					// Serial.println(*c);
+					servoHandler3.read(*c);
 					servoHandler3.execute();
 				}
 			}
@@ -246,6 +248,8 @@ void loop()
 			{
 				for (char *c = udpData; *c; ++c) 
 				{
+					// Serial.print("c: ");
+					// Serial.println(*c);
 					servoHandler2.read(*c);
 					servoHandler2.execute();
 				}
@@ -254,6 +258,8 @@ void loop()
 			{
 				for (char *c = udpData; *c; ++c) 
 				{
+					// Serial.print("c: ");
+					// Serial.println(*c);
 					servoHandler3.read(*c);
 					servoHandler3.execute();
 				}
@@ -274,26 +280,28 @@ void loop()
 		// {
 		// 	servoHandler.read(btHandler.read());
 		// }
-		if (SettingsHandler::TCodeVersionEnum == TCodeVersion::v2 && strlen(udpData) == 0) // No wifi data
+		if (SettingsHandler::TCodeVersionEnum == TCodeVersion::v2 && strlen(udpData) == 0 && strlen(webSocketData) == 0) // No wifi or websocket data
 		{
 			servoHandler2.execute();
 		}
-		else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v3 && strlen(udpData) == 0)
+		else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v3 && strlen(udpData) == 0 && strlen(webSocketData) == 0)
 		{
 			servoHandler3.execute();
 		}
 		if(SettingsHandler::tempControlEnabled && TemperatureHandler::isRunning()) 
 		{
-			TemperatureHandler::setControlStatus();
-			String* receive = 0;
-			if(xQueueReceive(TemperatureHandler::tempQueue, &receive, 0)) {
-				if(!receive->startsWith("{"))
-					webSocketHandler.sendCommand(receive->c_str());
-				else
-					webSocketHandler.sendCommand("tempStatus", receive->c_str());
+			if(TemperatureHandler::tempQueue != NULL) {
+				TemperatureHandler::setControlStatus();
+				String* receive = 0;
+				if(xQueueReceive(TemperatureHandler::tempQueue, &receive, 0)) {
+					if(!receive->startsWith("{"))
+						webSocketHandler->sendCommand(receive->c_str());
+					else
+						webSocketHandler->sendCommand("tempStatus", receive->c_str());
+				}
+				if(receive)
+					delete receive;
 			}
-			if(receive)
-				delete receive;
 		}
 	}
 }

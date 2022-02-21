@@ -34,6 +34,9 @@ enum TCodeVersion {
 class SettingsHandler 
 {
   public:
+
+        static bool saving;
+
         static String TCodeVersionName;
         static TCodeVersion TCodeVersionEnum;
         const static char ESP32Version[14];
@@ -129,16 +132,46 @@ class SettingsHandler
 			bool loadingDefault = false;
 			if(!SPIFFS.exists(filename)) 
 			{
+                Serial.println(F("Failed to read settings file, using default configuration"));
+                Serial.println(F("Read Settings: /userSettingsDefault.json"));
             	file = SPIFFS.open("/userSettingsDefault.json", "r");
 				loadingDefault = true;
 			} 
 			else 
 			{
+                Serial.print("Read Settings: ");
+                Serial.println(filename);
             	file = SPIFFS.open(filename, "r");
 			}
             DeserializationError error = deserializeJson(doc, file);
-            if (error)
-                Serial.println(F("Failed to read settings file, using default configuration"));
+            if (error) {
+                Serial.print(F("Error deserializing settings json: "));
+                Serial.println(F(file.name()));
+                Serial.print("Error: ");
+                switch(error.code()) {
+                    case DeserializationError::Code::Ok:
+                        Serial.println("Ox");
+                    break;
+                    case DeserializationError::Code::EmptyInput:
+                        Serial.println("EmptyInput");
+                    break;
+                    case DeserializationError::Code::IncompleteInput:
+                        Serial.println("IncompleteInput");
+                    break;
+                    case DeserializationError::Code::InvalidInput:
+                        Serial.println("InvalidInput");
+                    break;
+                    case DeserializationError::Code::NoMemory:
+                        Serial.println("NoMemory");
+                    break;
+                    case DeserializationError::Code::TooDeep:
+                        Serial.println("TooDeep");
+                    break;
+                }
+            	file = SPIFFS.open("/userSettingsDefault.json", "r");
+                deserializeJson(doc, file);
+                loadingDefault = true;
+            }
             JsonObject jsonObj = doc.as<JsonObject>();
             const char* storedVersion = jsonObj["esp32Version"];
 
@@ -206,6 +239,7 @@ class SettingsHandler
         {
             if(json.size() > 0) 
             {
+                Serial.println("Update settings");
                 const char* ssidConst = json["ssid"];
                 if( ssid != nullptr) 
                 {
@@ -309,8 +343,7 @@ class SettingsHandler
                 newtoungeHatExists = json["newtoungeHatExists"];
                 lubeEnabled = json["lubeEnabled"];
                 disableNewtoungeHat = json["disableNewtoungeHat"];
-                 //LogUpdateDebug();
-
+                //LogUpdateDebug();
                 return true;
             } 
             return false;
@@ -408,10 +441,16 @@ class SettingsHandler
 
         static bool save() 
         {
+            Serial.println("Save settings");
+            saving = true;
             const char* filename = "/userSettings.json";
             // Delete existing file, otherwise the configuration is appended to the file
-            SPIFFS.remove(filename);
-
+            // Serial.print("SPIFFS used: ");
+            // Serial.println(SPIFFS.usedBytes() + "/" + SPIFFS.totalBytes());
+            if(!SPIFFS.remove(filename)) 
+            {
+                Serial.println(F("Failed to remove file"));
+            }
             File file = SPIFFS.open(filename, FILE_WRITE);
             if (!file) 
             {
@@ -509,14 +548,76 @@ class SettingsHandler
                 Serial.println(F("Failed to write to file"));
                 return false;
             }
-
+            Serial.print("File contents: ");
+            Serial.println(file.readString());
+            
+            Serial.print("Free heap: ");
+            Serial.println(ESP.getFreeHeap());
+            Serial.print("Total heap: ");
+            Serial.println(ESP.getHeapSize());
+            Serial.print("Free psram: ");
+            Serial.println(ESP.getFreePsram());
+            Serial.print("Total Psram: ");
+            Serial.println(ESP.getPsramSize());
+            Serial.print("SPIFFS used: ");
+            Serial.println(SPIFFS.usedBytes());
+            Serial.print("SPIFFS total: ");
+            Serial.println(SPIFFS.totalBytes());
             file.close();
+            
+            saving = false;
             return true;
         }
 
-        static int calculateRange(const char* channel, int value) 
+        static void processTCodeJson(char* outbuf, char* tcodeJson) 
         {
-            return constrain(value, getchannelMin(channel), getchannelMax(channel));
+            const size_t readCapacity = JSON_ARRAY_SIZE(5) + 5*JSON_OBJECT_SIZE(2) + 100;
+
+            StaticJsonDocument<readCapacity> doc;
+            //DynamicJsonDocument doc(readCapacity);
+            DeserializationError error = deserializeJson(doc, tcodeJson);
+            if (error) {
+                Serial.println("Failed to read udp jsonobject, using default configuration");
+                outbuf[0] = {0};
+                return;
+            }
+            JsonArray arr = doc.as<JsonArray>();
+            char buffer[100] = "";
+            for(JsonObject repo: arr) 
+            { 
+                const char* channel = repo["Channel"];
+                int value = repo["Value"];
+                if(channel != nullptr && value != 0) 
+                {
+                if(buffer[0] == '\0') 
+                {
+                    //Serial.println("tcode empty");
+                    strcpy(buffer, channel);
+                } 
+                else 
+                {
+                    strcat(buffer, channel);
+                }
+                char integer_string[4];
+                sprintf(integer_string, "%03d", SettingsHandler::calculateRange(channel, value));
+                //pad(integer_string);
+                //sprintf(integer_string, "%d", SettingsHandler::calculateRange(channel, value));
+                //Serial.print("integer_string");
+                //Serial.println(integer_string);
+                strcat (buffer, integer_string);
+                if (SettingsHandler::speed > 0) {
+                    char speed_string[5];
+                    sprintf(speed_string, "%04d", SettingsHandler::speed);
+                    strcat (buffer, "S");
+                    strcat (buffer, speed_string);
+                }
+                strcat(buffer, " ");
+                // Serial.print("buffer");
+                // Serial.println(buffer);
+                }
+            }
+            strcat(buffer, "\n");
+            strcpy(outbuf, buffer);
         }
         
     private:
@@ -527,6 +628,10 @@ class SettingsHandler
 		static const int deserialize = 3072;
 		static const int serialize = 1536;
 
+        static int calculateRange(const char* channel, int value) 
+        {
+            return constrain(value, getchannelMin(channel), getchannelMax(channel));
+        }
 
         //TODO: Need to think this out better.
         static int getchannelMin(const char* channel) 
@@ -883,10 +988,11 @@ class SettingsHandler
             
         }
 };
+bool SettingsHandler::saving = false;
 
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[14] = "ESP32 v0.242b";
+const char SettingsHandler::ESP32Version[14] = "ESP32 v0.243b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 bool SettingsHandler::bluetoothEnabled = true;

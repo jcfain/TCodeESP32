@@ -116,7 +116,9 @@ input:read-only, textarea:read-only {
 .formTable > tbody > tr:not(.servoHeader) > td:first-child span {
   margin-right: 8px;
 }
-
+.formButton {
+  margin: 4px;;
+}
 .servoHeader {
   text-align: left;
   font-weight: bolder;
@@ -333,6 +335,51 @@ div[slider] > input[type=range]::-ms-tooltip {
   right: 5px;
   position: relative;
   padding-left: 75px;
+}
+
+.loading-modal {
+  visibility: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgb(0.5,0.5,0.5,0.5);
+}
+.loading-container {
+  text-align: center;
+  display: flex;
+  flex-flow: column;
+  justify-content: center;
+  align-items: center;
+  height: calc(100vh - 50px);
+}
+.loading-status {
+  color: #fff;
+}
+.loading-spinner {
+  display: inline-block;
+  width: 80px;
+  height: 80px;
+  margin-top: 10px;
+}
+.loading-spinner:after {
+  content: " ";
+  display: block;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 6px solid #fff;
+  border-color: #fff transparent #fff transparent;
+  animation: loading-spinner 1.2s linear infinite;
+}
+@keyframes loading-spinner {
+  0% {
+      transform: rotate(0deg);
+  }
+  100% {
+      transform: rotate(360deg);
+  }
 }
 
 
