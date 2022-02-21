@@ -6,8 +6,10 @@ This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). I
   See the pdf in the latest release zip https://github.com/jcfain/TCodeESP32/releases
   ### SOURCE
   First You need to install the dev environment for the ESP32 and arduino.
-  Some good placees to start https://docs.platformio.org/en/latest//integration/ide/vscode.html#quick-start
-  or https://github.com/espressif/arduino-esp32#installation-instructions
+  Some good placees to start 
+  - https://platformio.org/install/ide?install=vscode 
+  - https://docs.platformio.org/en/latest//integration/ide/vscode.html#quick-start
+  - https://github.com/espressif/arduino-esp32#installation-instructions
   #### LIBRARIES 
     You will need a few additional libraries to build this sketch. 
     If platformIO is installed, it should download these automatically on first build.
