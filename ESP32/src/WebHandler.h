@@ -29,7 +29,6 @@ SOFTWARE. */
 #include <AsyncJson.h>
 #include <ESPmDNS.h>
 #include "WifiHandler.h"
-#include <list>
 #include "WebSocketHandler.h"
 
 AsyncWebServer* server;
@@ -39,13 +38,12 @@ class WebHandler {
         bool MDNSInitialized = false;
         void setup(int port, char* hostName, char* friendlyName, WebSocketHandler* webSocketHandler, bool apMode = false) {
             stop();
-            m_webSocketHandler = webSocketHandler;
             if (port < 1) 
                 port = 80;
             Serial.print("Setting up web server on port: ");
             Serial.println(port);
             server = new AsyncWebServer(port);
-            m_webSocketHandler->setup(server);
+            webSocketHandler->setup(server);
 
             if(!apMode)
             {
@@ -119,13 +117,13 @@ class WebHandler {
             //     request->send(200);
             // }, handleUpload);server->on("/reset", HTTP_POST, [](AsyncWebServerRequest *request){
 
-            server->on("/restart", HTTP_POST, [this](AsyncWebServerRequest *request)
+            server->on("/restart", HTTP_POST, [webSocketHandler](AsyncWebServerRequest *request)
             {
                 //request->send(200, "text/plain",String("Restarting device, wait about 10-20 seconds and navigate to ") + (SettingsHandler::hostname) + ".local or the network IP address in your browser address bar.");
                 AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"restarting\"}");
                 request->send(response);
                 delay(2000);
-                m_webSocketHandler->closeAll();
+                webSocketHandler->closeAll();
                 Serial.println("Device restarting...");
                 ESP.restart();
                 delay(5000);
@@ -190,12 +188,7 @@ class WebHandler {
             }
         }
 
-        AsyncWebServer* getServer() {
-            return server;
-        }
-
     private:
-        WebSocketHandler* m_webSocketHandler;
         void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
             if(!index){
                 Serial.printf("UploadStart: %s\n", filename.c_str());

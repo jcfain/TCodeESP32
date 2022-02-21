@@ -145,7 +145,6 @@ class SettingsHandler
 			}
             DeserializationError error = deserializeJson(doc, file);
             if (error) {
-                loadingDefault = true;
                 Serial.print(F("Error deserializing settings json: "));
                 Serial.println(F(file.name()));
                 Serial.println(file.readString());
@@ -170,7 +169,9 @@ class SettingsHandler
                         Serial.println("TooDeep");
                     break;
                 }
-                
+            	file = SPIFFS.open("/userSettingsDefault.json", "r");
+                deserializeJson(doc, file);
+                loadingDefault = true;
             }
             JsonObject jsonObj = doc.as<JsonObject>();
             const char* storedVersion = jsonObj["esp32Version"];
@@ -343,7 +344,7 @@ class SettingsHandler
                 newtoungeHatExists = json["newtoungeHatExists"];
                 lubeEnabled = json["lubeEnabled"];
                 disableNewtoungeHat = json["disableNewtoungeHat"];
-                 //LogUpdateDebug();
+                //LogUpdateDebug();
                 return true;
             } 
             return false;
@@ -544,17 +545,26 @@ class SettingsHandler
 			
             //LogSaveDebug(doc);
 
-            Serial.println("Save settings3");
             if (serializeJson(doc, file) == 0) 
             {
                 Serial.println(F("Failed to write to file"));
                 return false;
             }
-
-            // Serial.print("SPIFFS used: ");
-            // Serial.println(SPIFFS.usedBytes());
-            // Serial.print("SPIFFS total: ");
-            // Serial.println(SPIFFS.totalBytes());
+            Serial.print("File contents: ");
+            Serial.println(file.readString());
+            
+            Serial.print("Free heap: ");
+            Serial.println(ESP.getFreeHeap());
+            Serial.print("Total heap: ");
+            Serial.println(ESP.getHeapSize());
+            Serial.print("Free psram: ");
+            Serial.println(ESP.getFreePsram());
+            Serial.print("Total Psram: ");
+            Serial.println(ESP.getPsramSize());
+            Serial.print("SPIFFS used: ");
+            Serial.println(SPIFFS.usedBytes());
+            Serial.print("SPIFFS total: ");
+            Serial.println(SPIFFS.totalBytes());
             Serial.println("Save settings4");
             file.close();
             Serial.println("Save settings5");
