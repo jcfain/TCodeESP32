@@ -147,7 +147,6 @@ class SettingsHandler
             if (error) {
                 Serial.print(F("Error deserializing settings json: "));
                 Serial.println(F(file.name()));
-                Serial.println(file.readString());
                 Serial.print("Error: ");
                 switch(error.code()) {
                     case DeserializationError::Code::Ok:
@@ -461,7 +460,6 @@ class SettingsHandler
 
             // Allocate a temporary JsonDocument
             DynamicJsonDocument doc(serialize);
-            Serial.println("Save settings2");
 
 
             doc["esp32Version"] = ESP32Version;
@@ -565,9 +563,7 @@ class SettingsHandler
             Serial.println(SPIFFS.usedBytes());
             Serial.print("SPIFFS total: ");
             Serial.println(SPIFFS.totalBytes());
-            Serial.println("Save settings4");
             file.close();
-            Serial.println("Save settings5");
             
             saving = false;
             return true;

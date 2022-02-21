@@ -171,7 +171,7 @@ class WebHandler {
             });
 
             //server->rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
-            server->serveStatic("/", SPIFFS, "/www/").setDefaultFile("index.html");;
+            server->serveStatic("/", SPIFFS, "/www/").setDefaultFile("index-min.html");;
             server->begin();
             initialized = true;
         }

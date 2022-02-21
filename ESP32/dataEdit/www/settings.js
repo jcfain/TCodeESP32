@@ -57,7 +57,7 @@ function logdebug(message) {
 function onDocumentLoad() {
 	infoNode = document.getElementById('info');
     getUserSettings();
-    //initWebSocket();
+    initWebSocket();
     createImportSettingsInputElement();
 }
 
@@ -104,7 +104,7 @@ function initWebSocket() {
 			logdebug("DISCONNECTED");
             
             if(!serverPollingTimeOut) {
-                //showLoading("Server disconnected, waiting for restart...");
+                showLoading("Server disconnected, waiting for restart...");
                 checkForServer();
             }
             //alert('Web socket disconnected: To use some features you need to make sure the device is on and connected and refresh the page.');
@@ -116,7 +116,7 @@ function initWebSocket() {
 		};
 		websocket.onerror = function (evt) {
             if(!serverPollingTimeOut) {
-                //showLoading("Server error, waiting for restart...");
+                showLoading("Server error, waiting for restart...");
                 checkForServer();
             }
 			//alert('ERROR: ' + evt.data + ", Address: "+wsUri);
@@ -124,7 +124,7 @@ function initWebSocket() {
 		};
 	} catch (exception) {
         if(!serverPollingTimeOut) {
-            //showLoading("Server exception, waiting for restart...");
+            showLoading("Server exception, waiting for restart...");
             checkForServer();
         }
         //alert('ERROR: ' + exception + ", Address: "+wsUri);
@@ -221,26 +221,26 @@ function isWebSocketConnected() {
     return websocket.readyState !== WebSocket.OPEN;
 }
 function checkForServer() {
-    // if(serverPollingTimeOut) {
-    //     clearTimeout(serverPollingTimeOut);
-    //     serverPollingTimeOut = null;
-    // }
-    // if(websocketRetryCount > 10) {
-    //     showLoading("Websocket timed out. Please refresh the page for full functionality.");
-    //     return;
-    // }
-    // if(isWebSocketConnected() && websocket.readyState !== WebSocket.CONNECTING) {
-    //     logdebug("Websocket closed retrying..");
-    //     initWebSocket();
-    //     websocketRetryCount++;
-    //     serverPollingTimeOut = setTimeout(checkForServer, 2000);
-    // } else if(isWebSocketConnected()) {
-    //     logdebug("Websocket open..");
-    //     if(serverPollingTimeOut) {
-    //         clearTimeout(serverPollingTimeOut);
-    //         serverPollingTimeOut = null;
-    //     }
-    // }
+    if(serverPollingTimeOut) {
+        clearTimeout(serverPollingTimeOut);
+        serverPollingTimeOut = null;
+    }
+    if(websocketRetryCount > 10) {
+        showLoading("Websocket timed out. Please refresh the page for full functionality.");
+        return;
+    }
+    if(isWebSocketConnected() && websocket.readyState !== WebSocket.CONNECTING) {
+        logdebug("Websocket closed retrying..");
+        initWebSocket();
+        websocketRetryCount++;
+        serverPollingTimeOut = setTimeout(checkForServer, 2000);
+    } else if(isWebSocketConnected()) {
+        logdebug("Websocket open..");
+        if(serverPollingTimeOut) {
+            clearTimeout(serverPollingTimeOut);
+            serverPollingTimeOut = null;
+        }
+    }
 }
 
 function setUserSettings() 
@@ -513,7 +513,7 @@ function sendWebsocketCommand(command, message) {
 }
 
 function sendTCode(tcode) {
-    //websocket.send(tcode+String.fromCharCode(10))
+    websocket.send(tcode+String.fromCharCode(10))
 }
 
 function sendDeviceHome() {
