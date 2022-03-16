@@ -79,7 +79,8 @@ class SettingsHandler
         static int valveFrequency;
         static int twistFrequency;
         static bool pitchFrequencyIsDifferent;
-		static bool continousTwist;
+        static bool feedbackTwist;
+		static bool continuousTwist;
 		static bool analogTwist;
 		static bool staticIP;
 		static char localIP[15];
@@ -150,7 +151,7 @@ class SettingsHandler
                 Serial.print("Error: ");
                 switch(error.code()) {
                     case DeserializationError::Code::Ok:
-                        Serial.println("Ox");
+                        Serial.println("Ok");
                     break;
                     case DeserializationError::Code::EmptyInput:
                         Serial.println("EmptyInput");
@@ -274,7 +275,8 @@ class SettingsHandler
                 pitchFrequency = json[pitchFrequencyIsDifferent ? "pitchFrequency" : "servoFrequency"];
                 valveFrequency = json["valveFrequency"] | 50;
                 twistFrequency = json["twistFrequency"] | 50;
-				continousTwist = json["continousTwist"];
+				continuousTwist = json["continuousTwist"];
+                feedbackTwist =  json["feedbackTwist"];
                 analogTwist = json["analogTwist"];
 				TwistFeedBack_PIN = json["TwistFeedBack_PIN"];
 				RightServo_PIN = json["RightServo_PIN"];
@@ -483,7 +485,8 @@ class SettingsHandler
             doc["pitchFrequency"] = pitchFrequency;
             doc["valveFrequency"] = valveFrequency;
             doc["twistFrequency"] = twistFrequency;
-			doc["continousTwist"] = continousTwist;
+			doc["continuousTwist"] = continuousTwist;
+            doc["feedbackTwist"] = feedbackTwist;
 			doc["analogTwist"] = analogTwist;
 			doc["TwistFeedBack_PIN"] = TwistFeedBack_PIN;
 			doc["RightServo_PIN"] = RightServo_PIN;
@@ -722,8 +725,10 @@ class SettingsHandler
             Serial.println((int)doc["valveFrequency"]);
             Serial.print("save twistFrequency ");
             Serial.println((int)doc["twistFrequency"]);
-            Serial.print("save continousTwist ");
-            Serial.println((bool)doc["continousTwist"]);
+            Serial.print("save continuousTwist ");
+            Serial.println((bool)doc["continuousTwist"]);
+            Serial.print("save feedbackTwist ");
+            Serial.println((bool)doc["feedbackTwist"]);
             Serial.print("save analogTwist ");
             Serial.println((bool)doc["analogTwist"]);
             Serial.print("save TwistFeedBack_PIN ");
@@ -875,8 +880,10 @@ class SettingsHandler
             Serial.println(valveFrequency);
             Serial.print("update twistFrequency ");
             Serial.println(twistFrequency);
-            Serial.print("update continousTwist ");
-            Serial.println(continousTwist);
+            Serial.print("update continuousTwist ");
+            Serial.println(continuousTwist);
+            Serial.print("update feedbackTwist ");
+            Serial.println(feedbackTwist);
             Serial.print("update analogTwist ");
             Serial.println(analogTwist);
             Serial.print("update TwistFeedBack_PIN ");
@@ -1036,7 +1043,8 @@ int SettingsHandler::servoFrequency;
 int SettingsHandler::pitchFrequency;
 int SettingsHandler::valveFrequency;
 int SettingsHandler::twistFrequency;
-bool SettingsHandler::continousTwist;
+bool SettingsHandler::feedbackTwist = false;
+bool SettingsHandler::continuousTwist;
 bool SettingsHandler::analogTwist;
 bool SettingsHandler::staticIP;
 char SettingsHandler::localIP[15];

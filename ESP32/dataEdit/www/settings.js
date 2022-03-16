@@ -283,6 +283,7 @@ function setUserSettings()
     toggleDisplaySettings(userSettings["displayEnabled"]);
     toggleTempSettings(userSettings["tempControlEnabled"]);
     togglePitchServoFrequency(userSettings["pitchFrequencyIsDifferent"]);
+    toggleFeedbackTwistSettings(userSettings["feedbackTwist"]);
     document.getElementById("version").innerHTML = userSettings["esp32Version"];
     // var xMin = userSettings["xMin"];
     // var xMax = userSettings["xMax"];
@@ -321,6 +322,7 @@ function setUserSettings()
 	document.getElementById("valveFrequency").value = userSettings["valveFrequency"];
 	document.getElementById("twistFrequency").value = userSettings["twistFrequency"];
 	
+	document.getElementById("feedbackTwist").checked = userSettings["feedbackTwist"];
 	document.getElementById("continuousTwist").checked = userSettings["continuousTwist"];
 	document.getElementById("analogTwist").checked = userSettings["analogTwist"];
     
@@ -563,8 +565,11 @@ function sendDeviceHome() {
     channelSliderList.forEach(x => x.value = x.channelModel.switch ? 0 : 50);
     var availibleChannels = isTCodeV3() ? AvailibleChannelsV3 : AvailibleChannelsV2;
     var tcode = "";
-    availibleChannels.forEach(x => {
-        tcode += getSliderTCode(x.channel, x.switch ? 0 : 50, false, 1000, false);
+    availibleChannels.forEach((element, index, array) => {
+        tcode += getSliderTCode(element.channel, element.switch ? 0 : 50, false, 1000, false);
+        if (index !== array.length - 1){ 
+            tcode += " ";
+        }
     });
     sendTCode(tcode);
 }
@@ -574,7 +579,7 @@ function getSliderTCode(channel, sliderValue, useIModifier, modifierValue, disab
     var tcode = channel + value.toString().padStart(isTCodeV3() ? 4 : 3, "0");
     if(!disableModifier) {
         tcode += useIModifier ? "I" : "S"
-        tcode += modifierValue
+        tcode += modifierValue;
     }
     return tcode;
 }
@@ -902,6 +907,24 @@ function updateAnalogTwist()
     setRestartRequired();
     updateUserSettings();
 }
+function updateFeedbackTwist()
+{
+    var checked = document.getElementById('feedbackTwist').checked;
+    userSettings["feedbackTwist"] = checked;
+    toggleFeedbackTwistSettings(checked);
+    setRestartRequired();
+    updateUserSettings();
+}
+
+function toggleFeedbackTwistSettings(feedbackChecked) {
+    var feedbackTwistOnly = document.getElementsByClassName('feedbackTwistOnly');
+    for(var i=0;i < feedbackTwistOnly.length; i++)
+        feedbackTwistOnly[i].style.display = feedbackChecked ? "revert" : "none";
+        
+    if(feedbackChecked && !isTCodeV3()) {
+        document.getElementById("analogTwistRow").style.display = 'none';
+    }
+}
 
 function updateHostName() 
 {
@@ -978,7 +1001,8 @@ function updatePins()
             var errors = [];
             var pmwErrors = [];
             var twistFeedBack = parseInt(document.getElementById('TwistFeedBack_PIN').value);
-            assignedPins.push({name:"Twist feed back", pin:twistFeedBack});
+            if(userSettings.feedbackTwist)
+                assignedPins.push({name:"Twist feed back", pin:twistFeedBack});
 
             var twistServo = parseInt(document.getElementById('TwistServo_PIN').value);
             var pinDupeIndex = assignedPins.findIndex(x => x.pin === twistServo);
@@ -1371,6 +1395,10 @@ function toggleNonTCodev3Options()
         v3Only[i].style.display = isTCodeV3() ? "revert" : "none";
     for(var i=0;i < v2Only.length; i++)
         v2Only[i].style.display = isTCodeV3() ? "none" : "revert";
+    toggleFeedbackTwistSettings(userSettings.feedbackTwist);
+    if(userSettings.feedbackTwist && !isTCodeV3()) {
+        document.getElementById("analogTwistRow").style.display = 'none';
+    }
 }
 
 function updateNewtoungeHatSettings() {

@@ -4,7 +4,7 @@
 	"wifiPass": "YOUR PASSWORD HERE",
 	"hostname": "tcode",
 	"friendlyName": "ESP32 TCode",
-	"esp32Version": "ESP32 v0.242b",
+	"esp32Version": "ESP32 v0.243b",
 	"bluetoothEnabled": false,
 	"udpServerPort": 8000,
 	"webServerPort": 80,
@@ -20,7 +20,8 @@
 	"pitchFrequency": 50,
 	"valveFrequency": 50,
 	"twistFrequency": 50,
-	"continousTwist": false,
+	"continuousTwist": false,
+	"feedbackTwist": false,
 	"analogTwist": false,
 	"sr6Mode": true,
 	"PitchRightServo_PIN": 14,
@@ -74,5 +75,5 @@
 	"heaterResolution": 8,
 	"heaterFrequency": 5000,
 	"newtoungeHatExists": false,
-	"disableNewtoungeHat": false
+	"disableNewtoungeHat": true
 }

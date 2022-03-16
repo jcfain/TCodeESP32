@@ -81,11 +81,11 @@ class WebHandler {
 
             server->on("/toggleContinousTwist", HTTP_POST, [](AsyncWebServerRequest *request) 
             {
-				SettingsHandler::continousTwist = !SettingsHandler::continousTwist;
+				SettingsHandler::continuousTwist = !SettingsHandler::continuousTwist;
 				if (SettingsHandler::save()) 
 				{
 					char returnJson[45];
-					sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", SettingsHandler::continousTwist ? "true" : "false");
+					sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", SettingsHandler::continuousTwist ? "true" : "false");
 					AsyncWebServerResponse *response = request->beginResponse(200, "application/json", returnJson);
 					request->send(response);
 				} 

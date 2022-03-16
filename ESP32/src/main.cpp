@@ -217,8 +217,8 @@ void loop()
 		udpHandler.read(udpData);
 		if (strlen(webSocketData) > 0) 
 		{
-			Serial.print("webSocket writing: ");
-			Serial.println(webSocketData);
+			// Serial.print("webSocket writing: ");
+			// Serial.println(webSocketData);
 			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
 			{
 				for (char *c = webSocketData; *c; ++c) 

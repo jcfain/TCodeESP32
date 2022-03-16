@@ -100,8 +100,8 @@ class WebSocketHandler {
                 } 
                 else 
                 {
-                    Serial.print("tcode NON JSON:");
-                    Serial.println(msg);
+                    // Serial.print("tcode NON JSON:");
+                    // Serial.println(msg);
 			        xQueueSend(tCodeInQueue, msg, 0);
                 }
                 if (strcmp(msg, SettingsHandler::HandShakeChannel) == 0) 
@@ -130,12 +130,12 @@ class WebSocketHandler {
                 } 
                 else 
                 {
-                    Serial.print("tcode JSON:");
-                    Serial.println(msg);
+                    // Serial.print("tcode JSON:");
+                    // Serial.println(msg);
                     char tcode[255];
                     SettingsHandler::processTCodeJson(tcode, msg);
-                    Serial.print("tcode JSON converted:");
-                    Serial.println(tcode);
+                    // Serial.print("tcode JSON converted:");
+                    // Serial.println(tcode);
 			        xQueueSend(tCodeInQueue, tcode, 0);
                 }
             }

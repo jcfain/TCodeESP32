@@ -243,7 +243,7 @@
 							<input id="TwistServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
 						</td>
 					</tr>
-					<tr>
+					<tr class="feedbackTwistOnly">
 						<td>
 							<span>Twist feedback</span> 
 						</td>
@@ -393,13 +393,21 @@
 					</tr>
 					<tr>
 						<td>
+							<span>Feedback twist</span> 
+						</td>
+						<td>
+							<input id="feedbackTwist" type="checkbox" onchange="updateFeedbackTwist()">
+						</td>
+					</tr>
+					<tr class="feedbackTwistOnly">
+						<td>
 							<span>Continuous twist</span> 
 						</td>
 						<td>
 							<input id="continuousTwist" type="checkbox" onchange="updateContinuousTwist()">
 						</td>
 					</tr>
-					<tr class="v3Only">
+					<tr id="analogTwistRow" class="v3Only feedbackTwistOnly">
 						<td>
 							<span>Analog twist</span> 
 						</td>

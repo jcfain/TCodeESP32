@@ -329,7 +329,7 @@ public:
 
             //Serial.print("xValve: ");
             //Serial.println(xValve);
-            if (!SettingsHandler::continousTwist) 
+            if (SettingsHandler::feedbackTwist && !SettingsHandler::continuousTwist) 
 			{
 				// Calculate twist position
                 noInterrupts();
@@ -455,12 +455,14 @@ public:
 				}
 			}
 
-			if (!SettingsHandler::continousTwist) 
+        	if (SettingsHandler::feedbackTwist && !SettingsHandler::continuousTwist) 
 			{
 				twist = 2*(xRot - map(twistPos,-1500,1500,1000,1));
 				twist = constrain(twist, -750, 750);
-			} else {
-				twist = map(xRot,1,1000,-750,750);
+			} 
+			else 
+			{
+    			twist  = map(xRot,0,1000,1000,-1000);
 			}
 
 			if (valveServoConnected != 0) 

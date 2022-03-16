@@ -138,21 +138,24 @@ public:
         ledcSetup(Vibe1_PWM,VibePWM_Freq,8);
         ledcAttachPin(SettingsHandler::Vibe1_PIN,Vibe1_PWM); 
 
-        // Initiate position tracking for twist
-        pinMode(SettingsHandler::TwistFeedBack_PIN,INPUT);
-        if(!SettingsHandler::analogTwist) 
+        if(SettingsHandler::feedbackTwist)
         {
-            attachInterrupt(SettingsHandler::TwistFeedBack_PIN, twistChange, CHANGE);
-            //Serial.print("Setting digital twist "); 
-            //Serial.println(SettingsHandler::TwistFeedBack_PIN);
-        } 
-        else
-        {
-            //Serial.print("Setting analog twist "); 
-            //Serial.println(SettingsHandler::TwistFeedBack_PIN);
-/*             adcAttachPin(SettingsHandler::TwistFeedBack_PIN);
-            analogReadResolution(11);
-            analogSetAttenuation(ADC_6db); */
+            // Initiate position tracking for twist
+            pinMode(SettingsHandler::TwistFeedBack_PIN,INPUT);
+            if(!SettingsHandler::analogTwist) 
+            {
+                attachInterrupt(SettingsHandler::TwistFeedBack_PIN, twistChange, CHANGE);
+                //Serial.print("Setting digital twist "); 
+                //Serial.println(SettingsHandler::TwistFeedBack_PIN);
+            } 
+            else
+            {
+                //Serial.print("Setting analog twist "); 
+                //Serial.println(SettingsHandler::TwistFeedBack_PIN);
+    /*             adcAttachPin(SettingsHandler::TwistFeedBack_PIN);
+                analogReadResolution(11);
+                analogSetAttenuation(ADC_6db); */
+            }
         }
         
         // Signal done
@@ -197,7 +200,7 @@ public:
 
         // If you want to mix your servos differently, enter your code below:
 
-        if (!SettingsHandler::continousTwist) 
+        if (SettingsHandler::feedbackTwist && !SettingsHandler::continuousTwist) 
         {
             float angPos;
             // Calculate twist position
@@ -330,7 +333,7 @@ public:
 
         // Twist and valve
         int twist,valve;
-        if (!SettingsHandler::continousTwist) 
+        if (SettingsHandler::feedbackTwist && !SettingsHandler::continuousTwist) 
         {
             twist  = (xRot - map(twistPos,-1500,1500,9999,0))/5;
             if(!SettingsHandler::analogTwist) 
@@ -356,7 +359,7 @@ public:
         } 
         else 
         {
-            twist = map(xRot,0,9999,-750,750);
+            twist  = map(xRot,0,9999,1000,-1000);
         }
         valve  = valvePos - 500;
         valve  = constrain(valve, -500, 500);
