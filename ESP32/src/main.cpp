@@ -20,18 +20,23 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
+#define FULL_BUILD 0
 
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include "SettingsHandler.h"
 #include "WifiHandler.h"
-#include "TemperatureHandler.h"
-#include "DisplayHandler.h"
-#include "BluetoothHandler.h"
+
+#if FULL_BUILD == 1
+	#include "TemperatureHandler.h"
+	#include "DisplayHandler.h"
+#endif
+
+//#include "BluetoothHandler.h"
 #include "TCode/v2/ServoHandler2.h"
 #include "TCode/v3/ServoHandler3.h"
 #include "UdpHandler.h"
-#include "TcpHandler.h"
+//#include "TcpHandler.h"
 #include "WebHandler.h"
 //#include "OTAHandler.h"
 #include "BLEHandler.h"
@@ -46,16 +51,26 @@ WifiHandler wifi;
 WebHandler webHandler;
 WebSocketHandler* webSocketHandler = new WebSocketHandler();
 BLEHandler* bleHandler = new BLEHandler();
-DisplayHandler* displayHandler;
-TaskHandle_t temperatureTask;
-TaskHandle_t displayTask;
-TaskHandle_t animationTask;
+
+#if FULL_BUILD == 1
+	DisplayHandler* displayHandler;
+	TaskHandle_t temperatureTask;
+	TaskHandle_t displayTask;
+	TaskHandle_t animationTask;
+#endif
 // This has issues running with the webserver.
 //OTAHandler otaHandler;
 boolean apMode = false;
 boolean setupSucceeded = false;
 char udpData[255];
 char webSocketData[255];
+
+void displayPrint(String text) {
+	#if FULL_BUILD == 1
+		displayHandler->println(text);
+	#endif
+}
+
 void setup() 
 {
 	// see if we can use the onboard led for status
@@ -78,6 +93,8 @@ void setup()
 	Serial.println(voltage);
 	SettingsHandler::load(voltage > 1.00f); // Safe value for now. Should be around 1.8v
 	Serial.println(SettingsHandler::ESP32Version);
+	
+#if FULL_BUILD == 1
 	if(SettingsHandler::tempControlEnabled)
 	{
 		TemperatureHandler::setup();
@@ -106,60 +123,65 @@ void setup()
 				1); /* Core where the task should run */
 		}
 	}
+#endif
 	
-	displayHandler->println("Setting up wifi...");
+	displayPrint("Setting up wifi...");
 	if (strcmp(SettingsHandler::ssid, "YOUR SSID HERE") != 0 && SettingsHandler::ssid != nullptr) 
 	{
-		displayHandler->println("Connecting to: ");
-		displayHandler->println(SettingsHandler::ssid);
+		displayPrint("Connecting to: ");
+		displayPrint(SettingsHandler::ssid);
 		if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) 
 		{ 
-			displayHandler->println("Connected: ");
-			displayHandler->println(wifi.ip().toString());
+			displayPrint("Connected: ");
+			displayPrint(wifi.ip().toString());
+#if FULL_BUILD == 1
 			displayHandler->setLocalIPAddress(wifi.ip());
-			displayHandler->println("Starting UDP");
+#endif
+			displayPrint("Starting UDP");
 			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v3)
 				udpHandler.setup(SettingsHandler::udpServerPort, &servoHandler3);
 			else
 				udpHandler.setup(SettingsHandler::udpServerPort);
-			displayHandler->println("Starting web server");
-			//displayHandler->println(SettingsHandler::webServerPort);
+			displayPrint("Starting web server");
+			//displayPrint(SettingsHandler::webServerPort);
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler);
 		} 
 		else 
 		{
+#if FULL_BUILD == 1
 			displayHandler->clearDisplay();
-			displayHandler->println("Connection failed");
-			displayHandler->println("Starting in APMode");
+#endif
+			displayPrint("Connection failed");
+			displayPrint("Starting in APMode");
 			apMode = true;
 			if (wifi.startAp(bleHandler)) 
 			{
-				displayHandler->println("APMode started");
+				displayPrint("APMode started");
 				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, true);
 			} 
 			else 
 			{
-				displayHandler->println("APMode start failed");
+				displayPrint("APMode start failed");
 			}
 			// Causes crash loop for some reason.
-			// displayHandler->println("Starting BLE setup");
+			// displayPrint("Starting BLE setup");
 			// bleHandler->setup();
 		}
 	} 
 	else 
 	{
 		apMode = true;
-		displayHandler->println("Starting in APMode");
+		displayPrint("Starting in APMode");
 		if (wifi.startAp(bleHandler)) 
 		{
-			displayHandler->println("APMode started");
+			displayPrint("APMode started");
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, true);
 		}
 		else 
 		{
-			displayHandler->println("APMode start failed");
+			displayPrint("APMode start failed");
 		}
-		displayHandler->println("Starting BLE setup");
+		displayPrint("Starting BLE setup");
 		bleHandler->setup();
 	}
 	// if(SettingsHandler::bluetoothEnabled)
@@ -167,7 +189,7 @@ void setup()
     // 	btHandler.setup();
 	// }
     //otaHandler.setup();
-	displayHandler->println("Setting up servos");
+	displayPrint("Setting up servos");
 	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
 	{
     	servoHandler2.setup(SettingsHandler::servoFrequency, SettingsHandler::pitchFrequency, SettingsHandler::valveFrequency, SettingsHandler::twistFrequency);
@@ -177,8 +199,9 @@ void setup()
 		servoHandler3.setup(SettingsHandler::servoFrequency, SettingsHandler::pitchFrequency, SettingsHandler::valveFrequency, SettingsHandler::twistFrequency);
 	}
 	setupSucceeded = true;
+#if FULL_BUILD == 1
 	displayHandler->clearDisplay();
-	displayHandler->println("Starting system...");
+	displayPrint("Starting system...");
 	displayHandler->clearDisplay();
 	if(SettingsHandler::displayEnabled)
 	{
@@ -191,6 +214,7 @@ void setup()
 			&displayTask,  /* Task handle. */
 			1); /* Core where the task should run */
 	}
+#endif
 	
 }
 //String* bufferString = "";
@@ -288,6 +312,7 @@ void loop()
 		{
 			servoHandler3.execute();
 		}
+#if FULL_BUILD == 1
 		if(SettingsHandler::tempControlEnabled && TemperatureHandler::isRunning()) 
 		{
 			if(TemperatureHandler::tempQueue != NULL) {
@@ -303,5 +328,6 @@ void loop()
 					delete receive;
 			}
 		}
+#endif
 	}
 }

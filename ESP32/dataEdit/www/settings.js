@@ -280,10 +280,11 @@ function setUserSettings()
     toggleNonTCodev3Options();
     toggleDeviceOptions(userSettings["sr6Mode"]);
     toggleStaticIPSettings(userSettings["staticIP"]);
-    toggleDisplaySettings(userSettings["displayEnabled"]);
-    toggleTempSettings(userSettings["tempControlEnabled"]);
     togglePitchServoFrequency(userSettings["pitchFrequencyIsDifferent"]);
     toggleFeedbackTwistSettings(userSettings["feedbackTwist"]);
+    toggleFullBuildOptions(userSettings["fullBuild"]);
+    toggleDisplaySettings(userSettings["displayEnabled"], userSettings["fullBuild"]);
+    toggleTempSettings(userSettings["tempControlEnabled"], userSettings["fullBuild"]);
     document.getElementById("version").innerHTML = userSettings["esp32Version"];
     // var xMin = userSettings["xMin"];
     // var xMax = userSettings["xMax"];
@@ -437,6 +438,12 @@ function setUserSettings()
     ]
     setupChannelSliders();
     documentLoaded = true;
+}
+
+function toggleFullBuildOptions(fullBuild) {
+    var fullBuildElements = document.getElementsByClassName('fullBuild');
+    for(var i=0;i < fullBuildElements.length; i++)
+        fullBuildElements[i].hidden = !fullBuild;
 }
 
 function updateUserSettings() 
@@ -1233,24 +1240,24 @@ function updateLubeAmount()
     userSettings["lubeAmount"] = parseInt(document.getElementById('lubeAmount').value);
     updateUserSettings();
 }
-function toggleDisplaySettings(enabled) 
+function toggleDisplaySettings(enabled, fullBuild) 
 {
     if(!enabled) 
     {
         document.getElementById('deviceSettingsDisplayTable').hidden = true;
     }
-    else
+    else if(fullBuild)
     {
         document.getElementById('deviceSettingsDisplayTable').hidden = false;
     }
 }
-function toggleTempSettings(enabled) 
+function toggleTempSettings(enabled, fullBuild) 
 {
     if(!enabled) 
     {
         document.getElementById('tempSettingsDisplayTable').hidden = true;
     }
-    else
+    else if(fullBuild)
     {
         document.getElementById('tempSettingsDisplayTable').hidden = false;
     }
@@ -1258,7 +1265,7 @@ function toggleTempSettings(enabled)
 function setDisplaySettings()
 {
     userSettings["displayEnabled"] = document.getElementById('displayEnabled').checked;
-    toggleDisplaySettings(userSettings["displayEnabled"]);
+    toggleDisplaySettings(userSettings["displayEnabled"], userSettings["fullBuild"]);
     userSettings["Display_Screen_Width"] = parseInt(document.getElementById('Display_Screen_Width').value);
     userSettings["Display_Screen_Height"] = parseInt(document.getElementById('Display_Screen_Height').value);
 
@@ -1271,7 +1278,7 @@ function setDisplaySettings()
 }
 function setTempSettings() {
     userSettings["tempControlEnabled"] = document.getElementById('tempControlEnabled').checked;
-    toggleTempSettings(userSettings["tempControlEnabled"]);
+    toggleTempSettings(userSettings["tempControlEnabled"], userSettings["fullBuild"]);
     userSettings["TargetTemp"] = parseInt(document.getElementById('TargetTemp').value);
     userSettings["HeatPWM"] = parseInt(document.getElementById('HeatPWM').value);
     userSettings["HoldPWM"] = parseInt(document.getElementById('HoldPWM').value);

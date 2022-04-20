@@ -36,6 +36,7 @@ class SettingsHandler
   public:
 
         static bool saving;
+        static bool fullBuild;
 
         static String TCodeVersionName;
         static TCodeVersion TCodeVersionEnum;
@@ -463,7 +464,7 @@ class SettingsHandler
             // Allocate a temporary JsonDocument
             DynamicJsonDocument doc(serialize);
 
-
+            doc["fullBuild"] = fullBuild;
             doc["esp32Version"] = ESP32Version;
             doc["TCodeVersion"] = TCodeVersionEnum;
             doc["ssid"] = ssid;
@@ -996,6 +997,11 @@ class SettingsHandler
         }
 };
 bool SettingsHandler::saving = false;
+#if FULL_BUILD == 1
+bool SettingsHandler::fullBuild = true;
+#else
+bool SettingsHandler::fullBuild = false;
+#endif
 
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
