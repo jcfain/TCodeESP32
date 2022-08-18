@@ -55,10 +55,9 @@ class WebSocketHandler {
             else
                 commandJson = "{ \"command\": \""+command+"\", \"message\": \""+message+"\" }";
             if(client)
-                client->printf(commandJson.c_str());
+                client->text(commandJson.c_str());
             else
-                for (AsyncWebSocketClient *pClient : m_clients)
-                    pClient->printf(commandJson.c_str());
+                ws.textAll(commandJson.c_str());
         }
 
         void getTCode(char* webSocketData) 
@@ -78,6 +77,7 @@ class WebSocketHandler {
             {
       	        webSocketData[0] = {0};
             }
+            ws.cleanupClients();
         }
 
         void closeAll() 
@@ -87,6 +87,7 @@ class WebSocketHandler {
         }
 
     private:
+// unsigned long lastCall;
         std::list<AsyncWebSocketClient *> m_clients;
         QueueHandle_t tCodeInQueue;
 
@@ -102,7 +103,12 @@ class WebSocketHandler {
                 {
                     // Serial.print("tcode NON JSON:");
                     // Serial.println(msg);
-			        xQueueSend(tCodeInQueue, msg, 0);
+                    xQueueSend(tCodeInQueue, msg, 0);
+	// Serial.print("Time between ws calls: ");
+	// Serial.println(millis() - lastCall);
+	// //Serial.println(msg);
+	// lastCall = millis();
+                    //executeTCode(msg);
                 }
                 if (strcmp(msg, SettingsHandler::HandShakeChannel) == 0) 
                 {
@@ -145,9 +151,10 @@ class WebSocketHandler {
         {
             if(type == WS_EVT_CONNECT)
             {
-                // Serial.printf("ws[%s][%u] connect\n", server->url(), client->id());
-                // client->printf("Hello Client %u :)", client->id());
+                Serial.printf("ws[%s][%u] connect\n", server->url(), client->id());
+                //client->printf("Hello Client %u :)", client->id());
                 // client->ping();
+                // client->client()->setNoDelay(true);
                 m_clients.push_back(client);
             } 
             else if(type == WS_EVT_DISCONNECT)
@@ -230,10 +237,10 @@ class WebSocketHandler {
 
                     if((info->index + len) == info->len)
                     {
-                        Serial.printf("ws[%s][%u] frame[%u] end[%llu]\n", server->url(), client->id(), info->num, info->len);
+                        //Serial.printf("ws[%s][%u] frame[%u] end[%llu]\n", server->url(), client->id(), info->num, info->len);
                         if(info->final)
                         {
-                            Serial.printf("ws[%s][%u] %s-message end\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
+                            //Serial.printf("ws[%s][%u] %s-message end\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
                             if(info->message_opcode == WS_TEXT) 
                             {
                                 data[len] = 0;

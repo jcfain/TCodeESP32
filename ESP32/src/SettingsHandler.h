@@ -123,10 +123,14 @@ class SettingsHandler
         static float heaterThreshold;
         static int heaterResolution;
         static int heaterFrequency;
-        static bool newtoungeHatExists;
-        static bool disableNewtoungeHat;
 
-        static void load(bool hatExists) 
+        static int strokerSamples;
+        static int strokerOffset;
+        static int strokerAmplitude;
+
+        static bool newtoungeHatExists;
+
+        static void load() 
         {
             const char* filename = "/userSettings.json";
             DynamicJsonDocument doc(deserialize);
@@ -178,12 +182,8 @@ class SettingsHandler
             const char* storedVersion = jsonObj["esp32Version"];
 
             update(jsonObj);
-            if(disableNewtoungeHat)
-                hatExists = false;
-            bool hatExistsStorage = jsonObj["newtoungeHatExists"];
-            if(hatExists && !hatExistsStorage) 
+            if(ISAAC_NEWTONGUE_BUILD) 
             {
-                newtoungeHatExists = hatExists;
                 RightServo_PIN = 13;
                 LeftServo_PIN = 2;
                 PitchLeftServo_PIN = 16;
@@ -199,9 +199,8 @@ class SettingsHandler
                 Temp_PIN = 18; 
                 Heater_PIN = 23;
             }
-            else if(!hatExists && hatExistsStorage)
+            else
             {
-                newtoungeHatExists = hatExists;
                 PitchRightServo_PIN = 14;
                 RightUpperServo_PIN = 12;
                 RightServo_PIN = 13;
@@ -218,10 +217,7 @@ class SettingsHandler
                 Heater_PIN = 33;
             }
 
-			if(loadingDefault || 
-                strcmp(storedVersion, ESP32Version) != 0 || 
-                (hatExists && !hatExistsStorage) || 
-                (!hatExists && hatExistsStorage))
+			if(loadingDefault || strcmp(storedVersion, ESP32Version) != 0)
 				    save();
         }
 
@@ -343,9 +339,7 @@ class SettingsHandler
                 heaterThreshold = json["heaterThreshold"] | 5.0;
                 heaterResolution = json["heaterResolution"] | 8;
                 heaterFrequency = json["heaterFrequency"] | 5000;
-                newtoungeHatExists = json["newtoungeHatExists"];
                 lubeEnabled = json["lubeEnabled"];
-                disableNewtoungeHat = json["disableNewtoungeHat"];
                 //LogUpdateDebug();
                 return true;
             } 
@@ -543,7 +537,6 @@ class SettingsHandler
             doc["heaterResolution"] = heaterResolution;
             doc["heaterFrequency"] = heaterFrequency;
 			doc["newtoungeHatExists"] = newtoungeHatExists;
-            doc["disableNewtoungeHat"] = disableNewtoungeHat;
 			
             //LogSaveDebug(doc);
 
@@ -838,8 +831,6 @@ class SettingsHandler
             Serial.println((int)doc["heaterFrequency"]);
             Serial.print("save newtoungeHatExists ");
             Serial.println((bool)doc["newtoungeHatExists"]);
-            Serial.print("save disableNewtoungeHat ");
-            Serial.println((bool)doc["disableNewtoungeHat"]);
             
         }
 
@@ -991,8 +982,6 @@ class SettingsHandler
             Serial.println(heaterFrequency);
             Serial.print("update newtoungeHatExists ");
             Serial.println(newtoungeHatExists);
-            Serial.print("update disableNewtoungeHat ");
-            Serial.println(disableNewtoungeHat);
             
         }
 };
@@ -1089,5 +1078,8 @@ long SettingsHandler::heaterFailsafeTime = 60000;
 float SettingsHandler::heaterThreshold = 5.0;
 int SettingsHandler::heaterResolution = 8;
 int SettingsHandler::heaterFrequency = 5000;
-bool SettingsHandler::newtoungeHatExists = false;
-bool SettingsHandler::disableNewtoungeHat = false;
+bool SettingsHandler::newtoungeHatExists = ISAAC_NEWTONGUE_BUILD;
+
+int SettingsHandler::strokerSamples = 100;
+int SettingsHandler::strokerOffset = 3276;
+int SettingsHandler::strokerAmplitude = 32767;

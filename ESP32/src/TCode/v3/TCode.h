@@ -311,6 +311,7 @@ class TCode {
       EEPROM.put(memIndex, minVal-1);
       minVal = constrain(maxVal,0,9999);
       EEPROM.put(memIndex+4, maxVal-10000);
+      EEPROM.commit();
       // Output that axis changed successfully
       switch (type) {
         case 'L': axisRow("L" + String(channel), memIndex, Linear[channel].Name); break;

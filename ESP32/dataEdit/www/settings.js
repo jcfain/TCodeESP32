@@ -390,7 +390,6 @@ function setUserSettings()
     document.getElementById("dns2").value = userSettings["dns2"];
     
     newtoungeHatExists = userSettings["newtoungeHatExists"]
-	document.getElementById("disableNewtoungeHat").checked = userSettings["disableNewtoungeHat"];
     
     document.getElementById("TwistFeedBack_PIN").readonly = newtoungeHatExists;
     document.getElementById("RightServo_PIN").readonly = newtoungeHatExists;
@@ -1406,12 +1405,6 @@ function toggleNonTCodev3Options()
     if(userSettings.feedbackTwist && !isTCodeV3()) {
         document.getElementById("analogTwistRow").style.display = 'none';
     }
-}
-
-function updateNewtoungeHatSettings() {
-    userSettings["disableNewtoungeHat"] = document.getElementById('disableNewtoungeHat').checked;
-	setRestartRequired();
-	updateUserSettings();
 }
 
 function updateBlueToothSettings()

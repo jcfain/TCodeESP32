@@ -19,8 +19,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
-
+#define CONFIG_ASYNC_TCP_RUNNING_CORE = 0;
 #define FULL_BUILD 1
+#define ISAAC_NEWTONGUE_BUILD 0
 
 #include <Arduino.h>
 #include <SPIFFS.h>
@@ -62,8 +63,29 @@ BLEHandler* bleHandler = new BLEHandler();
 //OTAHandler otaHandler;
 boolean apMode = false;
 boolean setupSucceeded = false;
+
 char udpData[255];
 char webSocketData[255];
+
+void executeTCode(char data[255]) {
+	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
+	{
+		for (char *c = data; *c; ++c) 
+		{
+			// Serial.print("c: ");
+			// Serial.println(*c);
+			servoHandler2.read(*c);
+			servoHandler2.execute();
+		}
+	} 
+	else 
+	{
+		// Serial.print("c: ");
+		// Serial.println(*c);
+		servoHandler3.read(data);
+		servoHandler3.execute();
+	}
+}
 
 void displayPrint(String text) {
 	#if FULL_BUILD == 1
@@ -85,13 +107,7 @@ void setup()
 		return;
 	}
 
-	int sensorValue = analogRead(SettingsHandler::FIRMWARE_MODE_PIN);
-	float voltage = sensorValue * (5.0 / 1023.0);
-	Serial.print("AY value:");
-	Serial.println(sensorValue);
-	Serial.print("AY voltage:");
-	Serial.println(voltage);
-	SettingsHandler::load(voltage > 1.00f); // Safe value for now. Should be around 1.8v
+	SettingsHandler::load();
 	Serial.println(SettingsHandler::ESP32Version);
 	
 #if FULL_BUILD == 1
@@ -243,51 +259,13 @@ void loop()
 		{
 			// Serial.print("webSocket writing: ");
 			// Serial.println(webSocketData);
-			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
-			{
-				for (char *c = webSocketData; *c; ++c) 
-				{
-					// Serial.print("c: ");
-					// Serial.println(*c);
-					servoHandler2.read(*c);
-					servoHandler2.execute();
-				}
-			} 
-			else 
-			{
-				for (char *c = webSocketData; *c; ++c) 
-				{
-					// Serial.print("c: ");
-					// Serial.println(*c);
-					servoHandler3.read(*c);
-					servoHandler3.execute();
-				}
-			}
+			executeTCode(webSocketData);
 		}
 		else if (!apMode && strlen(udpData) > 0) 
 		{
-			//Serial.print("udp writing: ");
-			//Serial.println(udpData);
-			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
-			{
-				for (char *c = udpData; *c; ++c) 
-				{
-					// Serial.print("c: ");
-					// Serial.println(*c);
-					servoHandler2.read(*c);
-					servoHandler2.execute();
-				}
-			} 
-			else 
-			{
-				for (char *c = udpData; *c; ++c) 
-				{
-					// Serial.print("c: ");
-					// Serial.println(*c);
-					servoHandler3.read(*c);
-					servoHandler3.execute();
-				}
-			}
+			// Serial.print("udp writing: ");
+			// Serial.println(udpData);
+			executeTCode(udpData);
 		} 
 		else if (Serial.available() > 0) 
 		{

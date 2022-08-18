@@ -74,6 +74,5 @@
 	"heaterFailsafeThreshold": 5.0,
 	"heaterResolution": 8,
 	"heaterFrequency": 5000,
-	"newtoungeHatExists": false,
-	"disableNewtoungeHat": true
+	"newtoungeHatExists": false
 }
