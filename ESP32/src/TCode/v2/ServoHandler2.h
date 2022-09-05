@@ -129,40 +129,44 @@ public:
 		Vibe0_PIN = SettingsHandler::Vibe0_PIN;
 		Vibe1_PIN = SettingsHandler::Vibe1_PIN;
 
-        // Declare servos and set zero
-        rightServoConnected = RightServo.attach(RightServo_PIN);
-        if (rightServoConnected == 0) 
-        {
-            Serial.print("Failure to connect to right pin: ");
-            Serial.println(RightServo_PIN);
-        }
+        if(DEBUG == 0) {
+			// Declare servos and set zero
+			rightServoConnected = RightServo.attach(RightServo_PIN);
+			if (rightServoConnected == 0) 
+			{
+				Serial.print("Failure to connect to right pin: ");
+				Serial.println(RightServo_PIN);
+			}
+			leftServoConnected = LeftServo.attach(LeftServo_PIN);
+			if (leftServoConnected == 0) 
+			{
+				Serial.print("Failure to connect to left pin: ");
+				Serial.println(LeftServo_PIN);
+			}
+		}
 		if(SettingsHandler::sr6Mode)
 		{
-			rightUpperServoConnected = RightUpperServo.attach(RightUpperServo_PIN);
-			if (rightUpperServoConnected == 0) 
-			{
-				Serial.print("Failure to connect to right upper pin: ");
-				Serial.println(RightUpperServo_PIN);
-			}
 			leftUpperServoConnected = LeftUpperServo.attach(LeftUpperServo_PIN);
 			if (leftUpperServoConnected == 0) 
 			{
 				Serial.print("Failure to connect to left upper pin: ");
 				Serial.println(LeftUpperServo_PIN);
 			}
-			pitchRightServoConnected = PitchRightServo.attach(PitchRightServo_PIN);
-			if (pitchRightServoConnected == 0) 
-			{
-				Serial.print("Failure to connect to pitch right pin: ");
-				Serial.println(PitchRightServo_PIN);
+			if(DEBUG == 0) {
+				rightUpperServoConnected = RightUpperServo.attach(RightUpperServo_PIN);
+				if (rightUpperServoConnected == 0) 
+				{
+					Serial.print("Failure to connect to right upper pin: ");
+					Serial.println(RightUpperServo_PIN);
+				}
+				pitchRightServoConnected = PitchRightServo.attach(PitchRightServo_PIN);
+				if (pitchRightServoConnected == 0) 
+				{
+					Serial.print("Failure to connect to pitch right pin: ");
+					Serial.println(PitchRightServo_PIN);
+				}
 			}
 		}
-        leftServoConnected = LeftServo.attach(LeftServo_PIN);
-        if (leftServoConnected == 0) 
-        {
-            Serial.print("Failure to connect to left pin: ");
-            Serial.println(LeftServo_PIN);
-        }
         pitchServoConnected = PitchLeftServo.attach(PitchLeftServo_PIN);
         if (pitchServoConnected == 0) 
         {

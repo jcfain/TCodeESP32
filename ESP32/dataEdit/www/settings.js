@@ -1443,6 +1443,8 @@ function toggleSounds() {
 }
 
 function exportToJsonFile() {
+    alert("Wifi password will NOT be exported!");
+    userSettings["wifiPass"] = "YOUR PASSWORD HERE";
     let dataStr = JSON.stringify(userSettings);
     let dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
 

@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2020 Jason C. Fain
+Copyright (c) 2022 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,9 +19,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
-#define CONFIG_ASYNC_TCP_RUNNING_CORE = 0;
+//#define CONFIG_ASYNC_TCP_RUNNING_CORE = 0;
 #define FULL_BUILD 1
 #define ISAAC_NEWTONGUE_BUILD 0
+#define DEBUG 0
 
 #include <Arduino.h>
 #include <SPIFFS.h>
@@ -66,26 +67,6 @@ boolean setupSucceeded = false;
 
 char udpData[255];
 char webSocketData[255];
-
-void executeTCode(char data[255]) {
-	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
-	{
-		for (char *c = data; *c; ++c) 
-		{
-			// Serial.print("c: ");
-			// Serial.println(*c);
-			servoHandler2.read(*c);
-			servoHandler2.execute();
-		}
-	} 
-	else 
-	{
-		// Serial.print("c: ");
-		// Serial.println(*c);
-		servoHandler3.read(data);
-		servoHandler3.execute();
-	}
-}
 
 void displayPrint(String text) {
 	#if FULL_BUILD == 1
@@ -142,7 +123,7 @@ void setup()
 #endif
 	
 	displayPrint("Setting up wifi...");
-	if (strcmp(SettingsHandler::ssid, "YOUR SSID HERE") != 0 && SettingsHandler::ssid != nullptr) 
+	if (strcmp(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass) != 0 && SettingsHandler::ssid != nullptr) 
 	{
 		displayPrint("Connecting to: ");
 		displayPrint(SettingsHandler::ssid);
@@ -236,6 +217,25 @@ void setup()
 //String* bufferString = "";
 // float lastVoltage = 0.00f;
 // int lastSensorValue = 0;
+void executeTCode(char data[255]) {
+	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
+	{
+		for (char *c = data; *c; ++c) 
+		{
+			// Serial.print("c: ");
+			// Serial.println(*c);
+			servoHandler2.read(*c);
+			servoHandler2.execute();
+		}
+	} 
+	else 
+	{
+		// Serial.print("c: ");
+		// Serial.println(*c);
+		servoHandler3.read(data);
+		servoHandler3.execute();
+	}
+}
 void loop() 
 {
 /* 	int sensorValue = analogRead(39);
@@ -275,7 +275,7 @@ void loop()
 			} 
 			else
 			{
-				servoHandler3.read(Serial.read());
+				servoHandler3.read(Serial.readStringUntil('\n'));
 			}
 		} 
 		// else if (SettingsHandler::bluetoothEnabled && btHandler.isConnected() && btHandler.available() > 0) 

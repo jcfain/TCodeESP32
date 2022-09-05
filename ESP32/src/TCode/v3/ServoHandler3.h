@@ -73,8 +73,7 @@ public:
         ValveServo_Int = 1000000/ValveServo_Freq;
 
         tcode.setup(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName);
-        // Start serial connection and report status
-        Serial.begin(115200);
+        // report status
         tcode.StringInput("D0");
         tcode.StringInput("D1");
 
@@ -100,26 +99,29 @@ public:
             tcode.AxisInput("A2",0,' ',0);
             pinMode(SettingsHandler::LubeManual_PIN,INPUT);
         }
-
         // Setup Servo PWM channels
         // Lower Left Servo
-        ledcSetup(LowerLeftServo_PWM,MainServo_Freq,16);
-        ledcAttachPin(SettingsHandler::LeftServo_PIN,LowerLeftServo_PWM);
+        if(DEBUG == 0) {
+            ledcSetup(LowerLeftServo_PWM,MainServo_Freq,16);
+            ledcAttachPin(SettingsHandler::LeftServo_PIN,LowerLeftServo_PWM);
+            // Lower Right Servo
+            ledcSetup(LowerRightServo_PWM,MainServo_Freq,16);
+            ledcAttachPin(SettingsHandler::RightServo_PIN,LowerRightServo_PWM);
+        }
         if(SettingsHandler::sr6Mode)
         {
             // Upper Left Servo
             ledcSetup(UpperLeftServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::LeftUpperServo_PIN,UpperLeftServo_PWM);
-            // Upper Right Servo
-            ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);
-            ledcAttachPin(SettingsHandler::RightUpperServo_PIN,UpperRightServo_PWM);
-            // Right Pitch Servo
-            ledcSetup(RightPitchServo_PWM,PitchServo_Freq,16);
-            ledcAttachPin(SettingsHandler::PitchRightServo_PIN,RightPitchServo_PWM);
+            if(DEBUG == 0) {
+                // Upper Right Servo
+                ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);
+                ledcAttachPin(SettingsHandler::RightUpperServo_PIN,UpperRightServo_PWM);
+                // Right Pitch Servo
+                ledcSetup(RightPitchServo_PWM,PitchServo_Freq,16);
+                ledcAttachPin(SettingsHandler::PitchRightServo_PIN,RightPitchServo_PWM);
+            }
         }
-        // Lower Right Servo
-        ledcSetup(LowerRightServo_PWM,MainServo_Freq,16);
-        ledcAttachPin(SettingsHandler::RightServo_PIN,LowerRightServo_PWM);
         // Left Pitch Servo
         ledcSetup(LeftPitchServo_PWM,PitchServo_Freq,16);
         ledcAttachPin(SettingsHandler::PitchLeftServo_PIN,LeftPitchServo_PWM);

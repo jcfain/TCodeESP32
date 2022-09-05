@@ -53,7 +53,23 @@ class WebHandler {
             server->on("/userSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 Serial.println("Get settings...");
-                request->send(SPIFFS, "/userSettings.json");
+                //request->send(SPIFFS, "/userSettings.json");
+                DynamicJsonDocument doc(SettingsHandler::deserialize);
+                File file = SPIFFS.open(SettingsHandler::userSettingsFilePath, "r");
+                DeserializationError error = deserializeJson(doc, file);
+                if (error) {
+                    Serial.print(F("Error deserializing settings json: "));
+                    Serial.println(F(file.name()));
+                    AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
+                    request->send(response);
+                    return;
+                }
+                if(strcmp(doc["wifiPass"], SettingsHandler::defaultWifiPass) != 0 )
+                    doc["wifiPass"] = "Too bad haxor!";// Do not send password if its not default
+                String output;
+                serializeJson(doc, output);
+                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", output);
+                request->send(response);
             });   
 
             server->on("/connectWifi", HTTP_POST, [](AsyncWebServerRequest *request) 

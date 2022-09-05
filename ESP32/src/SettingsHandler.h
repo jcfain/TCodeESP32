@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2020 Jason C. Fain
+Copyright (c) 2022 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -130,13 +130,18 @@ class SettingsHandler
 
         static bool newtoungeHatExists;
 
+        static const char* userSettingsFilePath;
+        static const char* defaultWifiPass;
+        static const char* decoyPass;
+		static const int deserialize = 3072;
+		static const int serialize = 1536;
+
         static void load() 
         {
-            const char* filename = "/userSettings.json";
             DynamicJsonDocument doc(deserialize);
 			File file;
 			bool loadingDefault = false;
-			if(!SPIFFS.exists(filename)) 
+			if(!SPIFFS.exists(userSettingsFilePath)) 
 			{
                 Serial.println(F("Failed to read settings file, using default configuration"));
                 Serial.println(F("Read Settings: /userSettingsDefault.json"));
@@ -146,8 +151,8 @@ class SettingsHandler
 			else 
 			{
                 Serial.print("Read Settings: ");
-                Serial.println(filename);
-            	file = SPIFFS.open(filename, "r");
+                Serial.println(userSettingsFilePath);
+            	file = SPIFFS.open(userSettingsFilePath, "r");
 			}
             DeserializationError error = deserializeJson(doc, file);
             if (error) {
@@ -244,7 +249,7 @@ class SettingsHandler
                     strcpy(ssid, ssidConst);
                 }
                 const char* wifiPassConst = json["wifiPass"];
-                if( wifiPass != nullptr) 
+                if( wifiPassConst != nullptr && strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0) 
                 {
                     strcpy(wifiPass, wifiPassConst);
                 }
@@ -378,7 +383,7 @@ class SettingsHandler
             DynamicJsonDocument doc(serialize);
             String output;
             doc["ssid"] = ssid;
-            doc["wifiPass"] = wifiPass;
+            doc["wifiPass"] = SettingsHandler::decoyPass;
 			doc["staticIP"] = staticIP;
 			doc["localIP"] = localIP;
 			doc["gateway"] = gateway;
@@ -411,7 +416,7 @@ class SettingsHandler
                 strcpy(ssid, ssidConst);
             }
             const char* wifiPassConst = doc["wifiPass"];
-            if( wifiPass != nullptr) 
+            if(wifiPassConst != nullptr && strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0) 
             {
                 strcpy(wifiPass, wifiPassConst);
             }
@@ -543,6 +548,7 @@ class SettingsHandler
             if (serializeJson(doc, file) == 0) 
             {
                 Serial.println(F("Failed to write to file"));
+                doc["wifiPass"] = "";
                 return false;
             }
             Serial.print("File contents: ");
@@ -562,6 +568,7 @@ class SettingsHandler
             Serial.println(SPIFFS.totalBytes());
             file.close(); // Task exception here could mean not enough space on SPIFFS.
             
+            doc["wifiPass"] = "";
             saving = false;
             return true;
         }
@@ -622,8 +629,6 @@ class SettingsHandler
         // Use http://arduinojson.org/assistant to compute the capacity.
         // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
         // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
-		static const int deserialize = 3072;
-		static const int serialize = 1536;
 
         static int calculateRange(const char* channel, int value) 
         {
@@ -994,9 +999,12 @@ bool SettingsHandler::fullBuild = false;
 
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[14] = "ESP32 v0.245b";
+const char SettingsHandler::ESP32Version[14] = "ESP32 v0.246b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
+const char* SettingsHandler::userSettingsFilePath = "/userSettings.json";
+const char* SettingsHandler::defaultWifiPass = "YOUR PASSWORD HERE";
+const char* SettingsHandler::decoyPass = "Too bad haxor!";
 bool SettingsHandler::bluetoothEnabled = true;
 bool SettingsHandler::isTcp = true;
 char SettingsHandler::ssid[32];
