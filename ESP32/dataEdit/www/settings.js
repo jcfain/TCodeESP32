@@ -388,6 +388,7 @@ function setUserSettings()
     document.getElementById("subnet").value = userSettings["subnet"];
     document.getElementById("dns1").value = userSettings["dns1"];
     document.getElementById("dns2").value = userSettings["dns2"];
+    document.getElementById('bluetoothEnabled').checked = userSettings["bluetoothEnabled"];
     
     newtoungeHatExists = userSettings["newtoungeHatExists"]
     
@@ -410,6 +411,9 @@ function setUserSettings()
 	document.getElementById("Display_Screen_Width").readonly = true;
 	document.getElementById("Display_Screen_Height").readonly = true;
 	// document.getElementById("Display_Rst_PIN").readonly = true;
+
+	document.getElementById("debug").checked = userSettings["debug"];
+    document.getElementById('debugLink').hidden = !userSettings["debug"];
     
     AvailibleChannelsV2 = [
         {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
@@ -1410,6 +1414,7 @@ function toggleNonTCodev3Options()
 function updateBlueToothSettings()
 {
     userSettings["bluetoothEnabled"] = document.getElementById('bluetoothEnabled').checked;
+    alert("This will disable Wifi connection and this configuration page! The BLE app will be required for future configuration changes.")
 	setRestartRequired();
 	updateUserSettings();
 }
@@ -1487,4 +1492,12 @@ function importSettings() {
 
         reader.readAsText(json);
     }
+}
+
+function setDebug() {
+    const isChecked = document.getElementById('debug').checked;
+    userSettings["debug"] = isChecked;
+    document.getElementById('debugLink').hidden = !isChecked;
+	setRestartRequired();
+	updateUserSettings();
 }

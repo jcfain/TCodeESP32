@@ -23,9 +23,9 @@ SOFTWARE. */
 #define FULL_BUILD 1
 #define ISAAC_NEWTONGUE_BUILD 0
 #define DEBUG 0
-
 #include <Arduino.h>
 #include <SPIFFS.h>
+#include "LogHandler.h"
 #include "SettingsHandler.h"
 #include "WifiHandler.h"
 
@@ -34,9 +34,11 @@ SOFTWARE. */
 	#include "DisplayHandler.h"
 #endif
 
-//#include "BluetoothHandler.h"
-#include "TCode/v2/ServoHandler2.h"
-#include "TCode/v3/ServoHandler3.h"
+#include "BluetoothHandler.h"
+#include "TCode/ServoHandler.h"
+#include "TCode/v0.2/ServoHandler0_2.h"
+#include "TCode/v0.3/ServoHandler0_3.h"
+//#include "TCode/v1.0/ServoHandler1_0.h"
 #include "UdpHandler.h"
 //#include "TcpHandler.h"
 #include "WebHandler.h"
@@ -44,11 +46,10 @@ SOFTWARE. */
 #include "BLEHandler.h"
 #include "WebSocketHandler.h"
 
-//BluetoothHandler btHandler;
 Udphandler udpHandler;
+BluetoothHandler* btHandler = 0;
 //TcpHandler tcpHandler;
-ServoHandler2 servoHandler2;
-ServoHandler3 servoHandler3;
+ServoHandler* servoHandler;
 WifiHandler wifi;
 WebHandler webHandler;
 WebSocketHandler* webSocketHandler = new WebSocketHandler();
@@ -62,8 +63,9 @@ BLEHandler* bleHandler = new BLEHandler();
 #endif
 // This has issues running with the webserver.
 //OTAHandler otaHandler;
-boolean apMode = false;
-boolean setupSucceeded = false;
+bool apMode = false;
+bool setupSucceeded = false;
+bool restarting = false;
 
 char udpData[255];
 char webSocketData[255];
@@ -72,6 +74,7 @@ void displayPrint(String text) {
 	#if FULL_BUILD == 1
 		displayHandler->println(text);
 	#endif
+	Serial.println(text);
 }
 
 void setup() 
@@ -90,6 +93,11 @@ void setup()
 
 	SettingsHandler::load();
 	Serial.println(SettingsHandler::ESP32Version);
+
+	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3)
+		servoHandler = new ServoHandler0_3();
+	else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2)
+		servoHandler = new ServoHandler0_2();
 	
 #if FULL_BUILD == 1
 	if(SettingsHandler::tempControlEnabled)
@@ -122,9 +130,9 @@ void setup()
 	}
 #endif
 	
-	displayPrint("Setting up wifi...");
-	if (strcmp(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass) != 0 && SettingsHandler::ssid != nullptr) 
+	if (!SettingsHandler::bluetoothEnabled && strcmp(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass) != 0 && SettingsHandler::ssid != nullptr) 
 	{
+		displayPrint("Setting up wifi...");
 		displayPrint("Connecting to: ");
 		displayPrint(SettingsHandler::ssid);
 		if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) 
@@ -135,9 +143,9 @@ void setup()
 			displayHandler->setLocalIPAddress(wifi.ip());
 #endif
 			displayPrint("Starting UDP");
-			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v3)
-				udpHandler.setup(SettingsHandler::udpServerPort, &servoHandler3);
-			else
+			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3)
+				udpHandler.setup(SettingsHandler::udpServerPort, (ServoHandler0_3*)servoHandler);
+			else 
 				udpHandler.setup(SettingsHandler::udpServerPort);
 			displayPrint("Starting web server");
 			//displayPrint(SettingsHandler::webServerPort);
@@ -168,33 +176,29 @@ void setup()
 	else 
 	{
 		apMode = true;
-		displayPrint("Starting in APMode");
-		if (wifi.startAp(bleHandler)) 
-		{
-			displayPrint("APMode started");
-			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, true);
-		}
-		else 
-		{
-			displayPrint("APMode start failed");
+		if(!SettingsHandler::bluetoothEnabled) {
+			displayPrint("Starting in APMode");
+			if (wifi.startAp(bleHandler)) 
+			{
+				displayPrint("APMode started");
+				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, true);
+			}
+			else 
+			{
+				displayPrint("APMode start failed");
+			}
+		} else {
+			displayPrint("Starting Bluetooth serial setup");
+			btHandler = new BluetoothHandler();
+			btHandler->setup();
 		}
 		displayPrint("Starting BLE setup");
 		bleHandler->setup();
 	}
-	// if(SettingsHandler::bluetoothEnabled)
-	// {
-    // 	btHandler.setup();
-	// }
+
     //otaHandler.setup();
 	displayPrint("Setting up servos");
-	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
-	{
-    	servoHandler2.setup(SettingsHandler::servoFrequency, SettingsHandler::pitchFrequency, SettingsHandler::valveFrequency, SettingsHandler::twistFrequency);
-	} 
-	else 
-	{
-		servoHandler3.setup(SettingsHandler::servoFrequency, SettingsHandler::pitchFrequency, SettingsHandler::valveFrequency, SettingsHandler::twistFrequency);
-	}
+    servoHandler->setup(SettingsHandler::servoFrequency, SettingsHandler::pitchFrequency, SettingsHandler::valveFrequency, SettingsHandler::twistFrequency);
 	setupSucceeded = true;
 #if FULL_BUILD == 1
 	displayHandler->clearDisplay();
@@ -214,81 +218,50 @@ void setup()
 #endif
 	
 }
-//String* bufferString = "";
-// float lastVoltage = 0.00f;
-// int lastSensorValue = 0;
-void executeTCode(char data[255]) {
-	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
-	{
-		for (char *c = data; *c; ++c) 
-		{
-			// Serial.print("c: ");
-			// Serial.println(*c);
-			servoHandler2.read(*c);
-			servoHandler2.execute();
-		}
-	} 
-	else 
-	{
-		// Serial.print("c: ");
-		// Serial.println(*c);
-		servoHandler3.read(data);
-		servoHandler3.execute();
-	}
-}
+
 void loop() 
 {
-/* 	int sensorValue = analogRead(39);
-	if(lastSensorValue != sensorValue) {
-		lastSensorValue = sensorValue;
-		float voltage = sensorValue * (5.0 / 1023.0);
-		Serial.print("AY value:");
-		Serial.println(sensorValue);
-		if(lastVoltage != voltage) {
-			lastVoltage=voltage;
-			Serial.print("AY voltage:");
-			Serial.println(voltage);
+	
+	if (SettingsHandler::restartRequired || restarting){  // check the flag here to determine if a restart is required
+		if(!restarting) {
+			Serial.printf("Restarting ESP\n\r");
+			ESP.restart();
+        	restarting = true;
 		}
-	} */
+		return;
+	}
 	if(setupSucceeded && !SettingsHandler::saving)
 	{
 		//otaHandler.handle();
 		webSocketHandler->getTCode(webSocketData);
 		udpHandler.read(udpData);
+		String serialData;
 		if (strlen(webSocketData) > 0) 
 		{
 			// Serial.print("webSocket writing: ");
 			// Serial.println(webSocketData);
-			executeTCode(webSocketData);
+			servoHandler->read(webSocketData);
 		}
 		else if (!apMode && strlen(udpData) > 0) 
 		{
 			// Serial.print("udp writing: ");
 			// Serial.println(udpData);
-			executeTCode(udpData);
+			servoHandler->read(udpData);
 		} 
 		else if (Serial.available() > 0) 
 		{
-			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v2) 
-			{
-				servoHandler2.read(Serial.read());
-			} 
-			else
-			{
-				servoHandler3.read(Serial.readStringUntil('\n'));
-			}
+			serialData = Serial.readStringUntil('\n');
+			servoHandler->read(serialData);
 		} 
-		// else if (SettingsHandler::bluetoothEnabled && btHandler.isConnected() && btHandler.available() > 0) 
-		// {
-		// 	servoHandler.read(btHandler.read());
-		// }
-		if (SettingsHandler::TCodeVersionEnum == TCodeVersion::v2 && strlen(udpData) == 0 && strlen(webSocketData) == 0) // No wifi or websocket data
+		else if (SettingsHandler::bluetoothEnabled && btHandler->isConnected() && btHandler->available() > 0) 
 		{
-			servoHandler2.execute();
+			serialData = btHandler->readStringUntil('\n');
+			servoHandler->read(serialData);
 		}
-		else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v3 && strlen(udpData) == 0 && strlen(webSocketData) == 0)
+
+		if (strlen(udpData) == 0 && strlen(webSocketData) == 0 && serialData.length() == 0) // No wifi or websocket data
 		{
-			servoHandler3.execute();
+			servoHandler->execute();
 		}
 #if FULL_BUILD == 1
 		if(SettingsHandler::tempControlEnabled && TemperatureHandler::isRunning()) 

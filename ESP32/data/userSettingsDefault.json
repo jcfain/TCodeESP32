@@ -1,5 +1,6 @@
 {
 	"TCodeVersion": 1,
+	"debug": false,
 	"ssid": "YOUR SSID HERE",
 	"wifiPass": "YOUR PASSWORD HERE",
 	"hostname": "tcode",

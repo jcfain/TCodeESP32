@@ -24,6 +24,7 @@ SOFTWARE. */
 
 #include <WiFi.h>
 #include "BLEHandler.h"
+#include "BluetoothHandler.h"
 
 class WifiHandler 
 {
@@ -140,6 +141,8 @@ class WifiHandler
           if(_apMode)
           {
             _bleHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
+            if(_btHandler)
+              _btHandler->stop();
           }
           break;
         case SYSTEM_EVENT_AP_STADISCONNECTED:
@@ -153,8 +156,9 @@ class WifiHandler
       }
     }
 
-    bool startAp(BLEHandler* bleHandler) {
+    bool startAp(BLEHandler* bleHandler, BluetoothHandler* btHandler = 0) {
       _bleHandler = bleHandler;
+      _btHandler = btHandler;
       WiFi.disconnect(true, true);
       WiFi.mode(WIFI_AP);
       //WiFi.setHostname("TCodeESP32");
@@ -182,14 +186,15 @@ class WifiHandler
       Serial.println(WiFi.softAPIP());
       return true;
     }
-    private: 
+private: 
     const char *ssid = "TCodeESP32Setup";
     const char *password = "12345678";
     int connectTimeOut = 10000;
     int onApEventID = 0;
     BLEHandler* _bleHandler;
-	static int8_t _rssi;
-	static bool _apMode;
+    BluetoothHandler* _btHandler;
+    static int8_t _rssi;
+    static bool _apMode;
   //  String translateEncryptionType(wifi_auth_mode_t encryptionType) {
   //    switch (encryptionType) {
   //      case (WIFI_AUTH_OPEN):

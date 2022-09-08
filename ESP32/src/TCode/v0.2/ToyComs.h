@@ -23,14 +23,13 @@
 // This is a t-code object that manages the serial comms from the computer
 // Leave this section of the code alone unless you know what you're doing
 
-//#include <BluetoothSerial.h>
-
 class ToyComms {
   public:
 	//String command;
   
     // Setup function
-    void setup() {
+    void setup(BluetoothHandler* btHandler) {
+      _btHandler = btHandler;
       // Centralise everything
       xL1[0] = 500;
       xL1[1] = 500;
@@ -480,13 +479,14 @@ class ToyComms {
     // Function to identify the current TCode type over serial
     void identifyTCode() {
       Serial.println("TCode v0.2");
-	//   if(SettingsHandler::bluetoothEnabled)
-	//   	SerialBT.println("TCode v0.2");
+      if(_btHandler)
+        _btHandler->println("TCode v0.2");
     }
 
   private:
 
-    //BluetoothSerial SerialBT;
+    BluetoothSerial SerialBT;
+	  BluetoothHandler* _btHandler = 0;
     // Input parameters
     boolean linear;
     boolean vibration;

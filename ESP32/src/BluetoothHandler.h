@@ -20,9 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
-
-
-/* 
+ 
 #pragma once
 
 #include <BluetoothSerial.h>
@@ -49,6 +47,16 @@ class BluetoothHandler
       return SerialBT.read();
     }
 
+    void stop() {
+      _isConnected = false;
+      SerialBT.disconnect();
+      SerialBT.end();
+    }
+
+    String readStringUntil(char terminator) {
+      return SerialBT.readStringUntil(terminator);
+    }
+
     void write(uint8_t message) {
       // Serial.print("BTWrite: ");
       // Serial.println(message);
@@ -72,4 +80,4 @@ class BluetoothHandler
   private:
   	bool _isConnected = false;
     BluetoothSerial SerialBT;
-}; */
+};

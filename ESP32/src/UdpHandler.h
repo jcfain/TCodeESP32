@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2020 Jason C. Fain
+Copyright (c) 2022 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ class Udphandler
 		Serial.println("UDP Listening");
 		udpInitialized = true;
     }
-    void setup(int localPort, ServoHandler3* servoHandler3) 
+    void setup(int localPort, ServoHandler0_3* servoHandler3) 
     {
 		_servoHandler3 = servoHandler3;
 		wifiUdp.begin(localPort);
@@ -84,7 +84,7 @@ class Udphandler
 				udpData = nullptr;
 				return;
 			} 
-			else if (SettingsHandler::TCodeVersionEnum == TCodeVersion::v3 && strcmp(packetBuffer, SettingsHandler::SettingsChannel) == 0) 
+			else if (SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3 && strcmp(packetBuffer, SettingsHandler::SettingsChannel) == 0) 
 			{
 				Serial.println("Settings get received");
 				wifiUdp.beginPacket(wifiUdp.remoteIP(), wifiUdp.remotePort());
@@ -96,7 +96,7 @@ class Udphandler
 				udpData = nullptr;
 				return;
 			} 
-			else if (SettingsHandler::TCodeVersionEnum == TCodeVersion::v3 && strpbrk(packetBuffer, "$") != nullptr) 
+			else if (SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3 && strpbrk(packetBuffer, "$") != nullptr) 
 			{
 				Serial.println("Settings save received: ");
 				Serial.println(udpData);
@@ -216,7 +216,7 @@ class Udphandler
     } */
     
   private: 
-  	ServoHandler3* _servoHandler3;
+  	ServoHandler0_3* _servoHandler3;
     WiFiUDP wifiUdp;
     bool udpInitialized = false;
     char packetBuffer[255];; //buffer to hold incoming packet

@@ -27,8 +27,9 @@ SOFTWARE. */
 #include <ArduinoJson.h>
 
 enum TCodeVersion {
-    v2,
-    v3
+    v0_2,
+    v0_3,
+    v1_0
 };
 
 class SettingsHandler 
@@ -37,6 +38,7 @@ class SettingsHandler
 
         static bool saving;
         static bool fullBuild;
+        static bool debug;
 
         static String TCodeVersionName;
         static TCodeVersion TCodeVersionEnum;
@@ -129,8 +131,10 @@ class SettingsHandler
         static int strokerAmplitude;
 
         static bool newtoungeHatExists;
+        static bool restartRequired;
 
         static const char* userSettingsFilePath;
+        static const char* logPath;
         static const char* defaultWifiPass;
         static const char* decoyPass;
 		static const int deserialize = 3072;
@@ -224,6 +228,8 @@ class SettingsHandler
 
 			if(loadingDefault || strcmp(storedVersion, ESP32Version) != 0)
 				    save();
+                    
+            log_last_reset_reason();
         }
 
         static void reset() 
@@ -243,6 +249,7 @@ class SettingsHandler
             if(json.size() > 0) 
             {
                 Serial.println("Update settings");
+                debug = json["debug"];
                 const char* ssidConst = json["ssid"];
                 if( ssid != nullptr) 
                 {
@@ -445,15 +452,14 @@ class SettingsHandler
         {
             Serial.println("Save settings");
             saving = true;
-            const char* filename = "/userSettings.json";
             // Delete existing file, otherwise the configuration is appended to the file
             // Serial.print("SPIFFS used: ");
             // Serial.println(SPIFFS.usedBytes() + "/" + SPIFFS.totalBytes());
-            if(!SPIFFS.remove(filename)) 
+            if(!SPIFFS.remove(userSettingsFilePath)) 
             {
                 Serial.println(F("Failed to remove file"));
             }
-            File file = SPIFFS.open(filename, FILE_WRITE);
+            File file = SPIFFS.open(userSettingsFilePath, FILE_WRITE);
             if (!file) 
             {
                 Serial.println(F("Failed to create file"));
@@ -464,6 +470,7 @@ class SettingsHandler
             DynamicJsonDocument doc(serialize);
 
             doc["fullBuild"] = fullBuild;
+            doc["debug"] = debug;
             doc["esp32Version"] = ESP32Version;
             doc["TCodeVersion"] = TCodeVersionEnum;
             doc["ssid"] = ssid;
@@ -625,7 +632,6 @@ class SettingsHandler
         }
         
     private:
-        //static char* filename = "/userSettings.json";
         // Use http://arduinojson.org/assistant to compute the capacity.
         // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
         // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
@@ -681,6 +687,118 @@ class SettingsHandler
             default:
                 return "TCode v0.3";
                 break;
+            }
+        }
+
+        static void log_last_reset_reason() {
+            //if(debug) {
+                Serial.println("enter log_last_reset_reason");
+                double spiffs90Percent = SPIFFS.totalBytes()/0.90;
+                Serial.print("SPIFFS used: ");
+                Serial.println(SPIFFS.usedBytes());
+                Serial.print("SPIFFS 90 of total: ");
+                Serial.println(spiffs90Percent);
+                if(SPIFFS.usedBytes() > spiffs90Percent) {
+                    Serial.println(F("Disk usage is over 90%, replacing log."));
+                    if(!SPIFFS.remove(logPath)) 
+                    {
+                        Serial.println(F("Failed to remove file log.json"));
+                    }
+                }
+                File file = SPIFFS.open(logPath, FILE_WRITE);
+                if (!file) 
+                {
+                    Serial.println(F("Failed to create file"));
+                    return;
+                }
+                DynamicJsonDocument docDeserialize(deserialize);
+                DeserializationError error = deserializeJson(docDeserialize, file);
+                // if(error) {
+                //     Serial.println(F("Deserialization Error: deleting log file"));
+                //     if(!SPIFFS.remove(logPath)) 
+                //     {
+                //         Serial.println(F("Failed to remove file log.json"));
+                //     }
+                //     file = SPIFFS.open(logPath, FILE_WRITE);
+                //     DeserializationError error = deserializeJson(docDeserialize, file);
+                //     if (!file) 
+                //     {
+                //         Serial.println(F("Failed to create file"));
+                //         return;
+                //     }
+                // }
+
+                //JsonObject jsonObj = docDeserialize.as<JsonObject>();
+                //JsonArray resetReasons = docDeserialize["resetReasons"].as<JsonArray>();
+                JsonArray resetReasons = docDeserialize.createNestedArray("resetReasons");
+                //JsonObject resonObj;
+                String resetCause = machine_reset_cause();
+                //resonObj["time"] = getTime();
+                //resonObj["reason"] = resetCause;
+                Serial.print(F("Last reset reason: "));
+                Serial.println(resetCause);
+                resetReasons.add(resetCause);
+                // DynamicJsonDocument docSerialize(JSON_ARRAY_SIZE(resetReasons.size()));
+                // docSerialize["resetReasons"] = resetReasons;
+                if (serializeJson(docDeserialize, file) == 0) 
+                {
+                    Serial.println(F("Failed to write to log file"));
+                    return;
+                }
+                file.close();
+            //}
+        }
+
+        // Function that gets current epoch time
+        static unsigned long getTime() {
+            time_t now;
+            struct tm timeinfo;
+            if (!getLocalTime(&timeinfo)) {
+                //Serial.println("Failed to obtain time");
+                return(0);
+            }
+            time(&now);
+            return now;
+        }
+
+        static String machine_reset_cause() {
+            switch (esp_reset_reason()) {
+                case ESP_RST_POWERON:
+                    return "Reset due to power-on event";
+                    break;
+                case ESP_RST_BROWNOUT:
+                    return "Brownout reset (software or hardware)";
+                    break;
+                case ESP_RST_INT_WDT:
+                    return "Reset (software or hardware) due to interrupt watchdog";
+                    break;
+                case ESP_RST_TASK_WDT:
+                    return "Reset due to task watchdog";
+                    break;
+                case ESP_RST_WDT:
+                    return "Reset due to other watchdogs";
+                    break;
+                case ESP_RST_DEEPSLEEP:
+                    return "Reset after exiting deep sleep mode";
+                    break;
+                case ESP_RST_SW:
+                    return "Software reset via esp_restart";
+                    break;
+                case ESP_RST_PANIC:
+                    return "Software reset due to exception/panic";
+                    break;
+                case ESP_RST_EXT: // Comment in ESP-IDF: "For ESP32, ESP_RST_EXT is never returned"
+                    return "Reset by external pin (not applicable for ESP32)";
+                    break;
+                case ESP_RST_SDIO:
+                    return "Reset over SDIO";
+                    break;
+                case ESP_RST_UNKNOWN:
+                    return "Reset reason can not be determined";
+                    break;
+                default:
+                    return "";
+                    break;
             }
         }
 
@@ -1003,9 +1121,12 @@ const char SettingsHandler::ESP32Version[14] = "ESP32 v0.246b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char* SettingsHandler::userSettingsFilePath = "/userSettings.json";
+const char* SettingsHandler::logPath = "/log.json";
 const char* SettingsHandler::defaultWifiPass = "YOUR PASSWORD HERE";
 const char* SettingsHandler::decoyPass = "Too bad haxor!";
 bool SettingsHandler::bluetoothEnabled = true;
+bool SettingsHandler::restartRequired = false;
+bool SettingsHandler::debug = false;
 bool SettingsHandler::isTcp = true;
 char SettingsHandler::ssid[32];
 char SettingsHandler::wifiPass[63];

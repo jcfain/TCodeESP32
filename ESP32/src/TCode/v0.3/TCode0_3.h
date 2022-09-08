@@ -6,15 +6,16 @@
 // -----------------------------
 // Class to manage Toy Comms
 // -----------------------------
-class TCode {
+class TCode0_3 {
   
   public:
   
   // Setup function
-  void setup(String firmware, String tcode) 
+  void setup(String firmware, String tcode, BluetoothHandler* btHandler) 
   {
     firmwareID = firmware;
     tcodeID = tcode;
+    _btHandler = btHandler;
 
     // #ESP32# Enable EEPROM
     EEPROM.begin(320);
@@ -115,7 +116,7 @@ class TCode {
     return deviceSettings;
   }
 
-  private:
+private:
   // Strings
   String firmwareID;
   String tcodeID;
@@ -128,6 +129,8 @@ class TCode {
   Axis Vibration[CHANNELS];
   Axis Auxiliary[CHANNELS];
 
+  BluetoothHandler* _btHandler;
+
   // Function to divide up and execute input string
   void executeString(String bufferString) {
     int index = bufferString.indexOf(' ');  // Look for spaces in string
@@ -139,7 +142,6 @@ class TCode {
     }
     readCmd(bufferString);  // Read off last command
   }
-
 
   // Function to process the individual commands
   void readCmd(String command) {
@@ -240,10 +242,14 @@ class TCode {
       switch( commandNumber ) {
         case 0:
           Serial.println(firmwareID);
+          if(_btHandler)
+            _btHandler->println(firmwareID.c_str());
         break;
   
         case 1:
           Serial.println(tcodeID);
+          if(_btHandler)
+            _btHandler->println(tcodeID.c_str());
         break;
   
         case 2:

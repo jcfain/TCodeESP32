@@ -72,6 +72,12 @@ class WebHandler {
                 request->send(response);
             });   
 
+            server->on("/log", HTTP_GET, [](AsyncWebServerRequest *request) 
+            {
+                Serial.println("Get log...");
+                request->send(SPIFFS, SettingsHandler::logPath);
+            });   
+
             server->on("/connectWifi", HTTP_POST, [](AsyncWebServerRequest *request) 
             {
                 WifiHandler wifi;
@@ -145,9 +151,11 @@ class WebHandler {
                 delay(2000);
                 webSocketHandler->closeAll();
                 Serial.println("Device restarting...");
-                ESP.restart();
+                //ESP.restart();
+                SettingsHandler::restartRequired = true;
                 delay(5000);
             });
+
             server->on("/default", HTTP_POST, [](AsyncWebServerRequest *request)
             {
                 Serial.println("Settings default");
@@ -177,6 +185,45 @@ class WebHandler {
                     request->send(response);
                 }
             }, 1500U );//Bad request? increase the size.
+
+            // //To upload through terminal you can use: curl -F "image=@firmware.bin" esp8266-webupdate.local/update
+            // server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request){
+            //         // the request handler is triggered after the upload has finished... 
+            //         // create the response, add header, and send response
+            //         AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", (Update.hasError())?"FAIL":"OK");
+            //         response->addHeader("Connection", "close");
+            //         response->addHeader("Access-Control-Allow-Origin", "*");
+            //         SettingsHandler::restartRequired = true;
+            //         request->send(response);
+            //     },[](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+            //         //Upload handler chunks in data
+                    
+            //         if(!index){ // if index == 0 then this is the first frame of data
+            //         Serial.printf("UploadStart: %s\n", filename.c_str());
+            //         Serial.setDebugOutput(true);
+                    
+            //         // calculate sketch space required for the update
+            //         uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+            //         if(!Update.begin(maxSketchSpace)){//start with max available size
+            //             Update.printError(Serial);
+            //         }
+            //             Update.runAsync(true); // tell the updaterClass to run in async mode
+            //     }
+
+            //     //Write chunked data to the free sketch space
+            //     if(Update.write(data, len) != len){
+            //         Update.printError(Serial);
+            //     }
+                
+            //     if(final){ // if the final flag is set then this is the last frame of data
+            //     if(Update.end(true)){ //true to set the size to the current progress
+            //         Serial.printf("Update Success: %u B\nRebooting...\n", index+len);
+            //         } else {
+            //         Update.printError(Serial);
+            //         }
+            //         Serial.setDebugOutput(false);
+            //     }
+            // });
 
             server->addHandler(settingsUpdateHandler);
             

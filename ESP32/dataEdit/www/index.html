@@ -101,14 +101,14 @@
 							<input id="dns2" type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
-					<!-- <tr>
+					<tr>
 						<td>
 							<span>Bluetooth enabled</span> 
 						</td>
 						<td>
 							<input id="bluetoothEnabled" type="checkbox" onclick="updateBlueToothSettings()"></input>
 						</td>
-					</tr> -->
+					</tr>
 				</tbody>
 			</table>
 			<table id="deviceSettingsTable" class="formTable">
@@ -124,8 +124,9 @@
 						</td>
 						<td>
 							<select name="TCodeVersion" id="TCodeVersion" onchange="setTCodeVersion()">
-								<option value="0">V2</option>
-								<option value="1">V3</option>
+								<option value="0">V0.2</option>
+								<option value="1">V0.3</option>
+								<option value="2">V1.0</option>
 							</select>
 						</td>
 					</tr>
@@ -280,6 +281,22 @@
 							<span>
 								PWM availible on: 2,4,5,12-19,21-23,25-27,32,33
 							</span> 
+						</td>
+					</tr>
+					<!-- <tr title="If checked, a log will be created in the filesystem and deleted when the file system is over 90% capacity">
+						<td>
+							<span>Debug</span> 
+						</td>
+						<td>
+							<input id="debug" type="checkbox" onclick="setDebug()"></input>
+						</td>
+					</tr> -->
+					<tr id="debugLink">
+						<td>
+							<span></span> 
+						</td>
+						<td>
+							<a href="/log" target="_blank">Open debug log</a>
 						</td>
 					</tr>
 				</tbody>

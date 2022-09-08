@@ -18,9 +18,12 @@
 // v2.7 - T-valve suction level control added to L3. 25-11-2020
 // v2.7b - T-valve suction level algorithm modified. 30-11-2020
 
+#pragma once
+
 #include <ESP32Servo.h>
 #include "ToyComs.h"
 #include "../Global.h"
+#include "../ServoHandler.h"
 
 /* volatile int twistFeedBackPin = SettingsHandler::TwistFeedBack_PIN;
 // Twist position monitor variables
@@ -41,7 +44,7 @@ void IRAM_ATTR twistChange()
 	}
 } */
 
-class ServoHandler2 
+class ServoHandler0_2 : public ServoHandler
 {
 
 private:
@@ -99,14 +102,46 @@ private:
 	int twistTurns = 0;
 	float twistPos;
 
-	int lubeAmount = SettingsHandler::lubeAmount;;
+	int lubeAmount = SettingsHandler::lubeAmount;
+
+	// Function to calculate the angle for the main arm servos
+	// Inputs are target x,y coords of receiver pivot in 1/100 of a mm
+	int SetMainServo(float x, float y) 
+	{
+		x /= 100; y /= 100;          // Convert to mm
+		float gamma = atan2(x,y);    // Angle of line from servo pivot to receiver pivot
+		float csq = sq(x) + sq(y);   // Square of distance between servo pivot and receiver pivot
+		float c = sqrt(csq);         // Distance between servo pivot and receiver pivot
+		float beta = acos((csq - 28125)/(100*c));  // Angle between c-line and servo arm
+		int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
+		return out;
+	}
+
+
+	// Function to calculate the angle for the pitcher arm servos
+	// Inputs are target x,y,z coords of receiver upper pivot in 1/100 of a mm
+	// Also pitch in 1/100 of a degree
+	int SetPitchServo(float x, float y, float z, float pitch) 
+	{
+		pitch *= 0.0001745; // Convert to radians
+		x += 5500*sin(0.2618 + pitch);
+		y -= 5500*cos(0.2618 + pitch);
+		x /= 100; y /= 100; z /= 100;   // Convert to mm
+		float bsq = 36250 - sq(75 + z); // Equivalent arm length
+		float gamma = atan2(x,y);       // Angle of line from servo pivot to receiver pivot
+		float csq = sq(x) + sq(y);      // Square of distance between servo pivot and receiver pivot
+		float c = sqrt(csq);            // Distance between servo pivot and receiver pivot
+		float beta = acos((csq + 5625 - bsq)/(150*c)); // Angle between c-line and servo arm
+		int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
+		return out;
+	}
 
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency) 
+    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency, BluetoothHandler* btHandler = 0) override 
     {
-		toy.setup();
+		toy.setup(btHandler);
         toy.identifyTCode();
 
         RightServo.setPeriodHertz(servoFrequency);
@@ -254,19 +289,22 @@ public:
 
     }
 
-    // ----------------------------
-    //   MAIN
-    // ----------------------------
-    // This loop runs continuously
+    void read(String input) override
+    {
+		for (int x = 0; x < sizeof(input.length() + 1); x++) { 
+			read(input[x]); 
+			execute();
+		} 
+    }
 
-    void read(byte inByte) 
+    void read(byte inByte) override 
     {
         // Send the serial bytes to the t-code object
         // This is the only required input for the object
         toy.serialRead(inByte);
     }
 
-    void execute() 
+    void execute() override 
     {
 
         // Pulse Servos based on time interval
@@ -495,36 +533,4 @@ public:
             
         }
     }
-
-	// Function to calculate the angle for the main arm servos
-	// Inputs are target x,y coords of receiver pivot in 1/100 of a mm
-	int SetMainServo(float x, float y) 
-	{
-		x /= 100; y /= 100;          // Convert to mm
-		float gamma = atan2(x,y);    // Angle of line from servo pivot to receiver pivot
-		float csq = sq(x) + sq(y);   // Square of distance between servo pivot and receiver pivot
-		float c = sqrt(csq);         // Distance between servo pivot and receiver pivot
-		float beta = acos((csq - 28125)/(100*c));  // Angle between c-line and servo arm
-		int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
-		return out;
-	}
-
-
-	// Function to calculate the angle for the pitcher arm servos
-	// Inputs are target x,y,z coords of receiver upper pivot in 1/100 of a mm
-	// Also pitch in 1/100 of a degree
-	int SetPitchServo(float x, float y, float z, float pitch) 
-	{
-		pitch *= 0.0001745; // Convert to radians
-		x += 5500*sin(0.2618 + pitch);
-		y -= 5500*cos(0.2618 + pitch);
-		x /= 100; y /= 100; z /= 100;   // Convert to mm
-		float bsq = 36250 - sq(75 + z); // Equivalent arm length
-		float gamma = atan2(x,y);       // Angle of line from servo pivot to receiver pivot
-		float csq = sq(x) + sq(y);      // Square of distance between servo pivot and receiver pivot
-		float c = sqrt(csq);            // Distance between servo pivot and receiver pivot
-		float beta = acos((csq + 5625 - bsq)/(150*c)); // Angle between c-line and servo arm
-		int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
-		return out;
-	}
 };
