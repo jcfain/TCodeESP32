@@ -24,11 +24,13 @@
 #include "TCode.h"
 #include "../Global.h"
 #include "../ServoHandler.h"
+#include "../../SettingsHandler.h"
 
 class ServoHandler1_0 : public ServoHandler {
 
 public:
-ServoHandler1_0() : tcode(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName) {}
+    ServoHandler1_0() : tcode(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName) {}
+
     // Setup function
     // This is run once, when the arduino starts
     void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency, BluetoothHandler* btHandler = 0) override {
@@ -52,21 +54,21 @@ ServoHandler1_0() : tcode(SettingsHandler::ESP32Version, SettingsHandler::TCodeV
         if (SettingsHandler::sr6Mode) { tcode.inputString("R2750"); }
 
         // Register device axes
-        tcode.axisRegister(TCode_Channel_Type::Linear, 0, "L0");
+        tcode.axisRegister(Stroke, "L0");
         if (SettingsHandler::sr6Mode) {
-            tcode.axisRegister(TCode_Channel_Type::Linear, 2, "L1");
-            tcode.axisRegister(TCode_Channel_Type::Linear, 3, "L2");
+            tcode.axisRegister(Sway, "L1");
+            tcode.axisRegister(Surge, "L2");
         }
-        tcode.axisRegister(TCode_Channel_Type::Rotation, 4, "R0");//, "Twist"
-        tcode.axisRegister(TCode_Channel_Type::Rotation, 5, "R1");//, "Roll"
-        tcode.axisRegister(TCode_Channel_Type::Rotation, 6, "R2");//, "Pitch"
-        tcode.axisRegister(TCode_Channel_Type::Vibration, 7, "V0");//, "Vibe1"
-        if (!SettingsHandler::lubeEnabled) { tcode.axisRegister(TCode_Channel_Type::Vibration, 8, "V1"); }//, "Vibe2")
-        tcode.axisRegister(TCode_Channel_Type::Auxiliary, 9, "A0");//, "Valve"
-        tcode.axisRegister(TCode_Channel_Type::Auxiliary, 10, "A1");//, "Suck"
+        tcode.axisRegister(Twist, "R0");//, "Twist"
+        tcode.axisRegister(Roll, "R1");//, "Roll"
+        tcode.axisRegister(Pitch, "R2");//, "Pitch"
+        tcode.axisRegister(Vibe1, "V0");//, "Vibe1"
+        if (!SettingsHandler::lubeEnabled) { tcode.axisRegister(Vibe2, "V1"); }//, "Vibe2")
+        tcode.axisRegister(Valve, "A0");//, "Valve"
+        tcode.axisRegister(Suck, "A1");//, "Suck"
         //tcode.axisRead("A1",VALVE_DEFAULT,'I',3000);
         if (SettingsHandler::lubeEnabled) {
-            tcode.axisRegister(TCode_Channel_Type::Auxiliary, "A2");//, "Lube"
+            tcode.axisRegister(Lube, "A2");//, "Lube"
             //tcode.axisRead("A2",0,' ',0);
             pinMode(SettingsHandler::LubeManual_PIN,INPUT);
         }
@@ -157,19 +159,21 @@ ServoHandler1_0() : tcode(SettingsHandler::ESP32Version, SettingsHandler::TCodeV
         // Collect inputs
         // These functions query the t-code object for the position/level at a specified time
         // Number recieved will be an integer, 0-9999
-        xLin = tcode.axisRead("L0");
+        xLin = tcode.axisRead(Stroke);
         if (SettingsHandler::sr6Mode) {
-            yLin = tcode.axisRead("L1");
-            zLin = tcode.axisRead("L2");
+            yLin = tcode.axisRead(Sway);
+            zLin = tcode.axisRead(Surge);
         }
-        xRot = tcode.axisRead("R0");
-        yRot = tcode.axisRead("R1");
-        zRot = tcode.axisRead("R2");
-        vibe0 = tcode.axisRead("V0");
-        if (!SettingsHandler::lubeEnabled) { vibe1 = tcode.axisRead("V1"); }
-        valveCmd = tcode.axisRead("A0");
-        suckCmd = tcode.axisRead("A1");
-        if (SettingsHandler::lubeEnabled) { lube = tcode.axisRead("A2"); }
+        xRot = tcode.axisRead(Twist);
+        yRot = tcode.axisRead(Roll);
+        zRot = tcode.axisRead(Pitch);
+        vibe0 = tcode.axisRead(Vibe1);
+        if (!SettingsHandler::lubeEnabled) { vibe1 = tcode.axisRead(Vibe2); }
+        valveCmd = tcode.axisRead(Valve);
+        suckCmd = tcode.axisRead(Suck);
+        if (SettingsHandler::lubeEnabled) { lube = tcode.axisRead(Lube); }
+        Serial.print("xLin: ");
+        Serial.println(xLin);
 
         // If you want to mix your servos differently, enter your code below:
 
@@ -219,7 +223,7 @@ ServoHandler1_0() : tcode(SettingsHandler::ESP32Version, SettingsHandler::TCodeV
         xLast = xLin;
         // Use suck command if most recent
         bool suck;
-        if (tcode.axisLastT("A1") >= tcode.axisLastT("A0")) {
+        if (tcode.axisLastT(Suck) >= tcode.axisLastT(Valve)) {
             suck = true;
             valveCmd = suckCmd;
         } else {
@@ -243,6 +247,8 @@ ServoHandler1_0() : tcode(SettingsHandler::ESP32Version, SettingsHandler::TCodeV
             stroke = map(xLin,0,9999,-350,350);
             roll   = map(yRot,0,9999,-180,180);
             pitch  = map(zRot,0,9999,-350,350);
+        Serial.print("stroke: ");
+        Serial.println(stroke);
             if(SettingsHandler::inverseStroke) 
             {
                 ledcWrite(LowerLeftServo_PWM, map(SettingsHandler::LeftServo_ZERO - stroke + roll,0,MainServo_Int,0,65535));
@@ -366,8 +372,8 @@ ServoHandler1_0() : tcode(SettingsHandler::ESP32Version, SettingsHandler::TCodeV
             ledcWrite(Vibe1_PWM, 0);
         }
         // Vibe timeout functions - shuts the vibne channels down if not commanded for a specified interval
-        if (millis() - tcode.axisLastT("V0") > VIBE_TIMEOUT) { tcode.axisRead("V0",0,'I',500); }
-        if (!SettingsHandler::lubeEnabled && millis() - tcode.axisLastT("V1") > VIBE_TIMEOUT) { tcode.axisRead("V1",0,'I',500); }
+        if (millis() - tcode.axisLastT(Vibe1) > VIBE_TIMEOUT) { tcode.axisRead(Vibe1); }
+        if (!SettingsHandler::lubeEnabled && millis() - tcode.axisLastT(Vibe2) > VIBE_TIMEOUT) { tcode.axisRead(Vibe2); }
         
         // Done with vibration channels
 
@@ -380,7 +386,7 @@ ServoHandler1_0() : tcode(SettingsHandler::ESP32Version, SettingsHandler::TCodeV
             } else { 
                 ledcWrite(Vibe1_PWM,0);
             }
-            if (millis() - tcode.axisLastT("A2") > 500) { tcode.axisRead("A2",0,' ',0); } // Auto cutoff
+            if (millis() - tcode.axisLastT(Lube) > 500) { tcode.axisRead(Lube); } // Auto cutoff
         }
         // Done with lube
     }
@@ -398,7 +404,35 @@ private:
 
     // Declare classes
     // This uses the t-code object above
-    TCode<1> tcode;
+    TCode<10> tcode;
+
+    TCode_ChannelID Stroke = {TCode_Channel_Type::Linear, 0, true};
+    TCode_ChannelID Sway = {TCode_Channel_Type::Linear, 1, true};
+    TCode_ChannelID Surge = {TCode_Channel_Type::Linear, 2, true};
+    TCode_ChannelID Pitch = {TCode_Channel_Type::Rotation, 0, true};
+    TCode_ChannelID Roll = {TCode_Channel_Type::Rotation, 1, true};
+    TCode_ChannelID Twist = {TCode_Channel_Type::Rotation, 2, true};
+    TCode_ChannelID Vibe1 = {TCode_Channel_Type::Vibration, 0, true};
+    TCode_ChannelID Vibe2 = {TCode_Channel_Type::Vibration, 1, true};
+    TCode_ChannelID Valve = {TCode_Channel_Type::Auxiliary, 0, true};
+    TCode_ChannelID Suck = {TCode_Channel_Type::Auxiliary, 1, true};
+    TCode_ChannelID Lube = {TCode_Channel_Type::Auxiliary, 2, true};
+
+    TCode_ChannelID tcodeChannels[11] = {
+        Stroke,
+        Sway,
+        Surge,
+        Pitch,
+        Roll,
+        Twist,
+        Vibe1,
+        Vibe2,
+        Valve,
+        Suck,
+        Lube
+    };
+    
+
     // Declare operating variables
     // Position variables
     int xLin,yLin,zLin;

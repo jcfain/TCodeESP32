@@ -1,66 +1,62 @@
-// #pragma once
+#pragma once
 
-// #include "esp_log.h"
+#include "esp_log.h"
 
-// enum class LogLevel {
-//     Error,
-//     Warning,
-//     Info,
-//     Verbose
-// };
+enum class LogLevel {
+    ERROR,
+    WARNING,
+    INFO,
+    VERBOSE
+};
 
-// class LogHandler {
-// public:
-//     static void SetLogLevel(LogLevel logLevel) {
-//         switch(logLevel) {
-//             case LogLevel::Warning:
-//                 esp_log_level_set("*", ESP_LOG_WARN);
-//             break;
-//             case LogLevel::Info:
-//                 esp_log_level_set("*", ESP_LOG_INFO);
-//             break;
-//             case LogLevel::Verbose:
-//                 esp_log_level_set("*", ESP_LOG_VERBOSE);
-//             break;
-//             default:
-//                 esp_log_level_set("*", ESP_LOG_ERROR);
-//         }
-//     }
-//     static void Verbose(const char *tag, const char *format, ... ) {
-//         ESP_LOGV(tag, format, ...);
-//     }
-//     static void Info(const char *tag, const char *format, ... ) {
-//         ESP_LOGI(tag, format, ...);
-//     }
-//     static void Warning(const char *tag, const char *format, ... ) {
-//         ESP_LOGW(tag, format, ...);
-//     }
-//     static void Error(const char *tag, const char *format, ... ) {
-//         ESP_LOGE(tag, format, var ...);
-//     }
-// };
+class LogHandler {
+public:
+    static void setLogLevel(LogLevel logLevel, const String tag = "*") {
+        switch(logLevel) {
+            case LogLevel::WARNING:
+                esp_log_level_set(tag.c_str(), ESP_LOG_WARN);
+            break;
+            case LogLevel::INFO:
+                esp_log_level_set(tag.c_str(), ESP_LOG_INFO);
+            break;
+            case LogLevel::VERBOSE:
+                esp_log_level_set(tag.c_str(), ESP_LOG_VERBOSE);
+            break;
+            default:
+                esp_log_level_set(tag.c_str(), ESP_LOG_ERROR);
+        }
+    }
+    template<class... Ts>
+    static void verbose(const char *tag, const char *format, Ts... args) {
+        ESP_LOGV(tag, "%s", getFormatted(format, args...));
+    }
+    template<class... Ts>
+    static void info(const char *tag, const char *format, Ts... args) {
+        ESP_LOGI(tag, "%s", getFormatted(format, args...));
+    }
+    template<class... Ts>
+    static void warning(const char *tag, const char *format, Ts... args) {
+        ESP_LOGW(tag, "%s", getFormatted(format, args...));
+    }
+    template<class... Ts>
+    static void error(const char *tag, const char *format, Ts... args) {
+        ESP_LOGE(tag, "%s", getFormatted(format, args...));
+    }
 
-// #include <functional>
-
-// template<typename Func, typename... Args>
-// struct nest {
-//     std::function<void()> callBack;
-
-//     void setup(Func func1, Args... args) {
-//         callBack = [func1, args...]()
-//         {
-//             (func1)(args...);
-//         };
-//     }
-
-//     unsigned process() {
-//         callBack();
-//         return 0;
-//     }
-// };
-
-// template<typename Func, typename... Args>
-// void handleFunc(Func func, Args&&... args) {
-//     nest<Func, Args...> myNest;
-//     myNest.setup(func, args...);
-// }
+private:
+    static char* getFormatted(const char *format, ...) {
+        va_list vArgs;
+        va_start(vArgs, format);
+        char* temp = "";
+        int len = vsnprintf(temp, sizeof(temp) - 1, format, vArgs);
+        temp[sizeof(temp) - 1] = 0;
+        // for (int i = len - 1; i >= 0; --i) {
+        //     if (temp != '\n' && temp != '\r' && temp != ' ') {
+        //         break;
+        //     }
+        //     temp = 0;
+        // }
+        va_end(vArgs);
+        return temp;
+    }
+};

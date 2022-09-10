@@ -191,7 +191,7 @@ class SettingsHandler
             const char* storedVersion = jsonObj["esp32Version"];
 
             update(jsonObj);
-            if(ISAAC_NEWTONGUE_BUILD) 
+            if(newtoungeHatExists) 
             {
                 RightServo_PIN = 13;
                 LeftServo_PIN = 2;
@@ -632,6 +632,7 @@ class SettingsHandler
         }
         
     private:
+        static const char* _TAG;
         // Use http://arduinojson.org/assistant to compute the capacity.
         // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
         // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
@@ -683,32 +684,36 @@ class SettingsHandler
             case 0:
                 return "TCode v0.2";
                 break;
-            
-            default:
+            case 1:
                 return "TCode v0.3";
+                break;
+            case 2:
+                return "TCode v1.0";
+                break;
+            default:
+                return "TCode v?";
                 break;
             }
         }
 
         static void log_last_reset_reason() {
             //if(debug) {
-                Serial.println("enter log_last_reset_reason");
+                //Serial.println("enter log_last_reset_reason");
                 double spiffs90Percent = SPIFFS.totalBytes()/0.90;
-                Serial.print("SPIFFS used: ");
-                Serial.println(SPIFFS.usedBytes());
-                Serial.print("SPIFFS 90 of total: ");
-                Serial.println(spiffs90Percent);
+                LogHandler::verbose(_TAG, "SPIFFS used: %.1f%%", SPIFFS.usedBytes());
+                LogHandler::verbose(_TAG, "SPIFFS 90 of total: %.1f%%", spiffs90Percent);
                 if(SPIFFS.usedBytes() > spiffs90Percent) {
-                    Serial.println(F("Disk usage is over 90%, replacing log."));
+                    LogHandler::warning(_TAG, "Disk usage is over 90%, replacing log.");
                     if(!SPIFFS.remove(logPath)) 
                     {
-                        Serial.println(F("Failed to remove file log.json"));
+                        LogHandler::error(_TAG, "Failed to remove file log.json");
+                        return;
                     }
                 }
                 File file = SPIFFS.open(logPath, FILE_WRITE);
                 if (!file) 
                 {
-                    Serial.println(F("Failed to create file"));
+                    LogHandler::error(_TAG, "Failed to create file");
                     return;
                 }
                 DynamicJsonDocument docDeserialize(deserialize);
@@ -735,17 +740,17 @@ class SettingsHandler
                 String resetCause = machine_reset_cause();
                 //resonObj["time"] = getTime();
                 //resonObj["reason"] = resetCause;
-                Serial.print(F("Last reset reason: "));
-                Serial.println(resetCause);
+                LogHandler::info(_TAG, "Last reset reason: ", resetCause);
+                //Serial.println(resetCause);
                 resetReasons.add(resetCause);
                 // DynamicJsonDocument docSerialize(JSON_ARRAY_SIZE(resetReasons.size()));
                 // docSerialize["resetReasons"] = resetReasons;
                 if (serializeJson(docDeserialize, file) == 0) 
                 {
-                    Serial.println(F("Failed to write to log file"));
+                    LogHandler::error(_TAG, "Failed to write to log file");
                     return;
                 }
-                file.close();
+                file.close(); 
             //}
         }
 
@@ -1109,12 +1114,9 @@ class SettingsHandler
         }
 };
 bool SettingsHandler::saving = false;
-#if FULL_BUILD == 1
-bool SettingsHandler::fullBuild = true;
-#else
 bool SettingsHandler::fullBuild = false;
-#endif
 
+const char* SettingsHandler::_TAG = "_SETTINGS_HANDLER";
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
 const char SettingsHandler::ESP32Version[14] = "ESP32 v0.246b";
@@ -1207,7 +1209,7 @@ long SettingsHandler::heaterFailsafeTime = 60000;
 float SettingsHandler::heaterThreshold = 5.0;
 int SettingsHandler::heaterResolution = 8;
 int SettingsHandler::heaterFrequency = 5000;
-bool SettingsHandler::newtoungeHatExists = ISAAC_NEWTONGUE_BUILD;
+bool SettingsHandler::newtoungeHatExists = false;
 
 int SettingsHandler::strokerSamples = 100;
 int SettingsHandler::strokerOffset = 3276;

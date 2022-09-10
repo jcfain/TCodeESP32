@@ -20,9 +20,24 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 //#define CONFIG_ASYNC_TCP_RUNNING_CORE = 0;
-#define FULL_BUILD 1
-#define ISAAC_NEWTONGUE_BUILD 0
-#define DEBUG 0
+//#define FULL_BUILD 1
+//#define ISAAC_NEWTONGUE_BUILD 0
+//#define DEBUG 0
+#define ST(A) #A
+#define STR(A) ST(A)
+#ifdef DEBUG
+#pragma message STR(DEBUG)
+#endif
+#ifdef ISAAC_NEWTONGUE_BUILD
+#pragma message STR(ISAAC_NEWTONGUE_BUILD)
+#endif
+#ifdef FULL_BUILD
+#pragma message STR(FULL_BUILD)
+#endif
+#ifdef FW_VERSION
+#pragma message STR(FW_VERSION)
+#endif
+
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include "LogHandler.h"
@@ -38,7 +53,7 @@ SOFTWARE. */
 #include "TCode/ServoHandler.h"
 #include "TCode/v0.2/ServoHandler0_2.h"
 #include "TCode/v0.3/ServoHandler0_3.h"
-//#include "TCode/v1.0/ServoHandler1_0.h"
+#include "TCode/v1.0/ServoHandler1_0.h"
 #include "UdpHandler.h"
 //#include "TcpHandler.h"
 #include "WebHandler.h"
@@ -84,6 +99,21 @@ void setup()
   	//digitalWrite(5, LOW);// Turn off on-board blue led
 
 	Serial.begin(115200);
+	
+	#if DEBUG == 1
+		Serial.println("Debug build");
+		LogHandler::setLogLevel(LogLevel::VERBOSE);
+		SettingsHandler::debug = true;
+	#endif
+	#if ISAAC_NEWTONGUE_BUILD == 1
+		Serial.println("ISAAC_NEWTONGUE_BUILD");
+		SettingsHandler::newtoungeHatExists = true;
+	#endif
+	#if FULL_BUILD == 1
+		Serial.println("FULL_BUILD");
+		SettingsHandler::fullBuild = true;
+	#endif
+
 	if(!SPIFFS.begin(true))
 	{
 		Serial.println("An Error has occurred while mounting SPIFFS");
@@ -98,6 +128,8 @@ void setup()
 		servoHandler = new ServoHandler0_3();
 	else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2)
 		servoHandler = new ServoHandler0_2();
+	else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v1_0)
+		servoHandler = new ServoHandler1_0();
 	
 #if FULL_BUILD == 1
 	if(SettingsHandler::tempControlEnabled)
