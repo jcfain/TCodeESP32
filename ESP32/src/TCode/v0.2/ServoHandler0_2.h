@@ -48,6 +48,7 @@ class ServoHandler0_2 : public ServoHandler
 {
 
 private:
+	const char* _TAG = "ServoHandler0_2";
     ToyComms toy; 
     // Declare servos
     Servo RightServo;
@@ -136,12 +137,13 @@ private:
 		return out;
 	}
 
+
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency, BluetoothHandler* btHandler = 0) override 
+    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency) override 
     {
-		toy.setup(btHandler);
+		toy.setup();
         toy.identifyTCode();
 
         RightServo.setPeriodHertz(servoFrequency);
@@ -164,19 +166,21 @@ public:
 		Vibe0_PIN = SettingsHandler::Vibe0_PIN;
 		Vibe1_PIN = SettingsHandler::Vibe1_PIN;
 
-        if(DEBUG == 0) {
+        if(DEBUG_BUILD == 0) {
 			// Declare servos and set zero
 			rightServoConnected = RightServo.attach(RightServo_PIN);
 			if (rightServoConnected == 0) 
 			{
-				Serial.print("Failure to connect to right pin: ");
-				Serial.println(RightServo_PIN);
+				// Serial.print("Failure to connect to right pin: ");
+				// Serial.println(RightServo_PIN);
+				LogHandler::error(_TAG, "Failure to connect to right pin: %i", RightServo_PIN);
 			}
 			leftServoConnected = LeftServo.attach(LeftServo_PIN);
 			if (leftServoConnected == 0) 
 			{
-				Serial.print("Failure to connect to left pin: ");
-				Serial.println(LeftServo_PIN);
+				// Serial.print("Failure to connect to left pin: ");
+				// Serial.println(LeftServo_PIN);
+				LogHandler::error(_TAG, "Failure to connect to left pin: %i", LeftServo_PIN);
 			}
 		}
 		if(SettingsHandler::sr6Mode)
@@ -184,41 +188,47 @@ public:
 			leftUpperServoConnected = LeftUpperServo.attach(LeftUpperServo_PIN);
 			if (leftUpperServoConnected == 0) 
 			{
-				Serial.print("Failure to connect to left upper pin: ");
-				Serial.println(LeftUpperServo_PIN);
+				// Serial.print("Failure to connect to left upper pin: ");
+				// Serial.println(LeftUpperServo_PIN);
+				LogHandler::error(_TAG, "Failure to connect to left upper pin: %i", LeftUpperServo_PIN);
 			}
-			if(DEBUG == 0) {
+			if(DEBUG_BUILD == 0) {
 				rightUpperServoConnected = RightUpperServo.attach(RightUpperServo_PIN);
 				if (rightUpperServoConnected == 0) 
 				{
-					Serial.print("Failure to connect to right upper pin: ");
-					Serial.println(RightUpperServo_PIN);
+					// Serial.print("Failure to connect to right upper pin: ");
+					// Serial.println(RightUpperServo_PIN);
+					LogHandler::error(_TAG, "Failure to connect to right upper pin: %i", RightUpperServo_PIN);
 				}
 				pitchRightServoConnected = PitchRightServo.attach(PitchRightServo_PIN);
 				if (pitchRightServoConnected == 0) 
 				{
-					Serial.print("Failure to connect to pitch right pin: ");
-					Serial.println(PitchRightServo_PIN);
+					// Serial.print("Failure to connect to pitch right pin: ");
+					// Serial.println(PitchRightServo_PIN);
+					LogHandler::error(_TAG, "Failure to connect to pitch right pin: %i", PitchRightServo_PIN);
 				}
 			}
 		}
         pitchServoConnected = PitchLeftServo.attach(PitchLeftServo_PIN);
         if (pitchServoConnected == 0) 
         {
-            Serial.print("Failure to connect to pitch left pin: ");
-            Serial.println(PitchLeftServo_PIN);
+            // Serial.print("Failure to connect to pitch left pin: ");
+            // Serial.println(PitchLeftServo_PIN);
+			LogHandler::error(_TAG, "Failure to connect to pitch left pin: %i", PitchLeftServo_PIN);
         }
         valveServoConnected = ValveServo.attach(ValveServo_PIN);
         if (valveServoConnected == 0) 
         {
-            Serial.print("Failure to connect to valve pin: ");
-            Serial.println(ValveServo_PIN);
+            // Serial.print("Failure to connect to valve pin: ");
+            // Serial.println(ValveServo_PIN);
+			LogHandler::error(_TAG, "Failure to connect to valve pin: %i", ValveServo_PIN);
         }
         twistServoConnected = TwistServo.attach(TwistServo_PIN); 
         if (twistServoConnected == 0) 
         {
-            Serial.print("Failure to connect to twist pin: ");
-            Serial.println(TwistServo_PIN);
+            // Serial.print("Failure to connect to twist pin: ");
+            // Serial.println(TwistServo_PIN);
+			LogHandler::error(_TAG, "Failure to connect to twist pin: %i", TwistServo_PIN);
         }
 
         delay(500);
@@ -285,8 +295,12 @@ public:
 		attachInterrupt(SettingsHandler::TwistFeedBack_PIN, twistChange, CHANGE);
 
         // Signal done
-        Serial.println("Ready!");
+        toy.sendMessage("Ready!");
 
+    }
+
+    void setMessageCallback(TCODE_FUNCTION_PTR_T function) override {
+        toy.setMessageCallback(function);
     }
 
     void read(String input) override

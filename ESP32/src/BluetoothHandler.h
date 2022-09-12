@@ -57,6 +57,11 @@ class BluetoothHandler
       return SerialBT.readStringUntil(terminator);
     }
 
+    void CommandCallback(const String& in){ //This overwrites the callback for message return
+      if(_isConnected)
+          SerialBT.print(in);
+    }
+
     void write(uint8_t message) {
       // Serial.print("BTWrite: ");
       // Serial.println(message);

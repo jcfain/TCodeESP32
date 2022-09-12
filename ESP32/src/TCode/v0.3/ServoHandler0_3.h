@@ -30,7 +30,7 @@ class ServoHandler0_3 : public ServoHandler {
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency, BluetoothHandler* btHandler = 0) override {
+    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency) override {
         MainServo_Freq = servoFrequency;
         PitchServo_Freq = pitchFrequency;
         TwistServo_Freq = twistFrequency;
@@ -41,7 +41,7 @@ public:
         TwistServo_Int = 1000000/TwistServo_Freq;
         ValveServo_Int = 1000000/ValveServo_Freq;
 
-        tcode.setup(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName, btHandler);
+        tcode.setup(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName);
         // report status
         tcode.StringInput("D0");
         tcode.StringInput("D1");
@@ -70,7 +70,7 @@ public:
         }
         // Setup Servo PWM channels
         // Lower Left Servo
-        if(DEBUG == 0) {
+        if(DEBUG_BUILD == 0) {
             ledcSetup(LowerLeftServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::LeftServo_PIN,LowerLeftServo_PWM);
             // Lower Right Servo
@@ -82,7 +82,7 @@ public:
             // Upper Left Servo
             ledcSetup(UpperLeftServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::LeftUpperServo_PIN,UpperLeftServo_PWM);
-            if(DEBUG == 0) {
+            if(DEBUG_BUILD == 0) {
                 // Upper Right Servo
                 ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);
                 ledcAttachPin(SettingsHandler::RightUpperServo_PIN,UpperRightServo_PWM);
@@ -130,10 +130,12 @@ public:
         }
         
         // Signal done
-        Serial.println("Ready!");
+        tcode.sendMessage("Ready!");
     }
 
-
+    void setMessageCallback(TCODE_FUNCTION_PTR_T function) override {
+        tcode.setMessageCallback(function);
+    }
 
     void read(String input) override
     {
@@ -145,9 +147,9 @@ public:
         tcode.ByteInput(input);
     }
 
-    String getDeviceSettings() {
-        return tcode.getDeviceSettings();
-    }
+    // String getDeviceSettings() {
+    //     return tcode.getDeviceSettings();
+    // }
 
 // int testVar = -1;
 // int testVar2 = -1;
@@ -384,6 +386,7 @@ public:
     }
 
 private:
+	const char* _TAG = "ServoHandler0_3";
     int MainServo_Int;
     int PitchServo_Int;
     int TwistServo_Int;

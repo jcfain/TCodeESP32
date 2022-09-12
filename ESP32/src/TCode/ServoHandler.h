@@ -23,12 +23,13 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
-#include "../BluetoothHandler.h"
+#include "../3rdParty/ParsingLibrary/TCode.h"
 
 class ServoHandler {
 public:
-    virtual void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency, BluetoothHandler* btHandler = 0) = 0;
+    virtual void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency) = 0;
     virtual void read(byte inByte) = 0;
     virtual void read(String inString) = 0;
     virtual void execute() = 0;
+    virtual void setMessageCallback(TCODE_FUNCTION_PTR_T function);
 };

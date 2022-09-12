@@ -64,6 +64,9 @@ function onDocumentLoad() {
     getUserSettings();
     initWebSocket();
     createImportSettingsInputElement();
+    
+    debugTextElement = document.getElementById("debugText");
+    debugTextElement.scrollTop = debugTextElement.scrollHeight;
 }
 
 function getUserSettings() {
@@ -154,11 +157,22 @@ function wsCallBackFunction(evt) {
             case "failSafeTriggered":
                 playFail();
                 break;
+            case "debug":
+				var message = data["message"];
+                debug(message);
+                break;
 		}
 	}
 	catch(e) {
 		console.error(e.toString());
 	}
+}
+dubugMessages = [];
+function debug(message) {
+    if(dubugMessages.length > 150)
+        dubugMessages.pop();
+    dubugMessages.push(message);
+    debugTextElement.value = dubugMessages.join("\n");
 }
 //https://base64.guru/converter/encode/audio
 //http://freesoundeffect.net/tags/alert?page=40
@@ -412,8 +426,8 @@ function setUserSettings()
 	document.getElementById("Display_Screen_Height").readonly = true;
 	// document.getElementById("Display_Rst_PIN").readonly = true;
 
-	document.getElementById("debug").checked = userSettings["debug"];
-    document.getElementById('debugLink').hidden = !userSettings["debug"];
+    document.getElementById('debug').value = userSettings["logLevel"];
+    //document.getElementById('debugLink').hidden = !userSettings["debug"];
     
     AvailibleChannelsV2 = [
         {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
@@ -713,7 +727,7 @@ function setupChannelSliders()
     bodyNode.appendChild(testDeviceHomeRowNode);
 }
 function isTCodeV3() {
-    return userSettings["TCodeVersion"] == TCodeVersion.V3;
+    return userSettings["TCodeVersion"] >= TCodeVersion.V3;
 }
 function onChannelSliderInput(channel, value) {
     sendTCode(channel+value.toString().padStart(userSettings["TCodeVersion"] == TCodeVersion.V3 ? 4 : 3, "0") + "S1000");
@@ -1495,9 +1509,8 @@ function importSettings() {
 }
 
 function setDebug() {
-    const isChecked = document.getElementById('debug').checked;
-    userSettings["debug"] = isChecked;
-    document.getElementById('debugLink').hidden = !isChecked;
-	setRestartRequired();
+    userSettings["logLevel"] = parseInt(document.getElementById('debug').value);
+    //document.getElementById('debugLink').hidden = !isChecked;
+	//setRestartRequired();
 	updateUserSettings();
 }

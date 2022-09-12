@@ -288,15 +288,19 @@
 							<span>Debug</span> 
 						</td>
 						<td>
-							<input id="debug" type="checkbox" onclick="setDebug()"></input>
+							<select name="debug" id="debug" onchange="setDebug()">
+								<option value="0">ERROR</option>
+								<option value="1">WARNING</option>
+								<option value="2">INFO</option>
+								<option value="3">DEBUG</option>
+								<option value="4">VERBOSE</option>
+							</select>
 						</td>
 					</tr>
 					<tr id="debugLink">
-						<td>
-							<span></span> 
-						</td>
-						<td>
-							<a href="/log" target="_blank">Open debug log</a>
+						<td colspan="3">
+							<textarea id="debugText" class="log-reader" readonly></textarea>
+							<div><a href="/log" target="_blank">See last boot reason</a></div>
 						</td>
 					</tr>
 				</tbody>

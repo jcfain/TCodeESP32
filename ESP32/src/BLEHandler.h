@@ -16,29 +16,33 @@ For now this is only for first configs */
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) 
     {
-        Serial.println("*********");
-        Serial.print("Device connected");
+        LogHandler::debug(_TAG, "*********");
+        LogHandler::debug(_TAG, "Device connected");
     };
     void onDisconnect(BLEServer* pServer) 
     {
-        Serial.println("*********");
-        Serial.print("Device disconnected");
+        LogHandler::debug(_TAG, "*********");
+        LogHandler::debug(_TAG, "Device disconnected");
         BLEDevice::startAdvertising();
     }
+private:
+    const char* _TAG = "BLE";
 };
 
 class DescriptorCallbacks: public BLEDescriptorCallbacks 
 {
     void onWrite(BLEDescriptor *pDescriptor) 
     {
-        Serial.println("*********");
-        Serial.print("Descriptor onWrite: ");
+        LogHandler::debug(_TAG, "*********");
+        LogHandler::debug(_TAG, "Descriptor onWrite: ");
     }
     void onRead(BLEDescriptor *pDescriptor) 
     {
-        Serial.println("*********");
-        Serial.print("Descriptor onRead: ");
+        LogHandler::debug(_TAG, "*********");
+        LogHandler::debug(_TAG, "Descriptor onRead: ");
     }
+private:
+    const char* _TAG = "BLE";
 };
 class CharacteristicCallbacks: public BLECharacteristicCallbacks 
 {
@@ -49,8 +53,8 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
 
         if (rxValue.length() > 0) 
         {
-            Serial.println("*********");
-            Serial.print("Characteristic Received Value: ");
+            LogHandler::debug(_TAG, "*********");
+            LogHandler::debug(_TAG, "Characteristic Received Value: ");
 
             for (int i = 0; i < rxValue.length(); i++) {
                 Serial.print(rxValue[i]);
@@ -61,33 +65,33 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
             // Do stuff based on the command received from the app
             if (rxValue.find(">>r<<") == 0) // Restart
             {
-                Serial.print("*** Restarting");
+                LogHandler::debug(_TAG, "*** Restarting");
                 ESP.restart();
             }
             else if (rxValue.find(">>t<<") == -1) 
             {
                 pCharacteristic->setValue(">"); // More please (Doesnt really matter as the que is client side)
                 pCharacteristic->notify();
-                Serial.print("*** Characteristic Sent Value: ");
-                Serial.print("Ok");
-                Serial.println(" ***");
+                LogHandler::debug(_TAG, "*** Characteristic Sent Value: ");
+                LogHandler::debug(_TAG, "Ok");
+                LogHandler::debug(_TAG, " ***");
                 recievedJsonConfiguration += rxValue.data();
             }
             else 
             {
                 // Save json
-                Serial.println("Done: ");
+                LogHandler::debug(_TAG, "Done: ");
                 Serial.print(recievedJsonConfiguration);
                 if(SettingsHandler::derializeWifiSettings(recievedJsonConfiguration)) 
                 {
                     pCharacteristic->setValue(">>f<<"); // Finish saving
                     pCharacteristic->notify();
-                    Serial.print("*** Finish saving");
+                    LogHandler::debug(_TAG, "*** Finish saving");
                 }
                 else
                 {
                     pCharacteristic->setValue(">>e<<"); // Error
-                    Serial.print("*** Error saving");
+                    LogHandler::debug(_TAG, "*** Error saving");
                     pCharacteristic->notify();
                 }
                 recievedJsonConfiguration = "";
@@ -101,13 +105,14 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
     {
         // char* sentValue = SettingsHandler::getJsonForBLE();
         String wifiSetting = SettingsHandler::serializeWifiSettings();
-        Serial.print("*** Sent Value: ");
-        Serial.print(wifiSetting);
+        LogHandler::debug(_TAG, "*** Sent Value: %s", wifiSetting);
         pCharacteristic->setValue(wifiSetting.c_str());
         pCharacteristic->notify(); // Send the value to the app!
-        Serial.print("Characteristic Onread Ok");
-        Serial.println(" ***");
+        LogHandler::debug(_TAG, "Characteristic Onread Ok");
+        LogHandler::debug(_TAG, " ***");
     }
+private:
+    const char* _TAG = "BLE";
 };
 class BLEHandler 
 {
@@ -156,7 +161,7 @@ class BLEHandler
         pAdvertising->setScanResponse(true);
         pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
         BLEDevice::startAdvertising();
-        Serial.println("BLE waiting a client connection to notify...");
+        LogHandler::info(_TAG, "BLE waiting a client connection to notify...");
         isInitailized = true;
     }
 
@@ -164,9 +169,9 @@ class BLEHandler
     {
         if(isInitailized) 
         {
-            Serial.println("BLE Stop");
+            LogHandler::info(_TAG, "BLE Stop");
             BLEDevice::deinit(true);
-            Serial.println("BLE deinit");
+            LogHandler::info(_TAG, "BLE deinit");
             isInitailized = false;
             if(pServer != nullptr) 
                 delete(pServer);
@@ -178,4 +183,6 @@ class BLEHandler
                 delete(pAdvertising);
         }
     }
+private:
+    const char* _TAG = "BLE";
 };

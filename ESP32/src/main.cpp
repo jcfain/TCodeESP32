@@ -19,24 +19,21 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
-//#define CONFIG_ASYNC_TCP_RUNNING_CORE = 0;
-//#define FULL_BUILD 1
-//#define ISAAC_NEWTONGUE_BUILD 0
-//#define DEBUG 0
-#define ST(A) #A
-#define STR(A) ST(A)
-#ifdef DEBUG
-#pragma message STR(DEBUG)
-#endif
-#ifdef ISAAC_NEWTONGUE_BUILD
-#pragma message STR(ISAAC_NEWTONGUE_BUILD)
-#endif
-#ifdef FULL_BUILD
-#pragma message STR(FULL_BUILD)
-#endif
-#ifdef FW_VERSION
-#pragma message STR(FW_VERSION)
-#endif
+
+// #define ST(A) #A
+// #define STR(A) ST(A)
+// #ifdef DEBUG
+// #pragma message STR(DEBUG)
+// #endif
+// #ifdef ISAAC_NEWTONGUE_BUILD
+// #pragma message STR(ISAAC_NEWTONGUE_BUILD)
+// #endif
+// #ifdef FULL_BUILD
+// #pragma message STR(FULL_BUILD)
+// #endif
+// #ifdef FW_VERSION
+// #pragma message STR(FW_VERSION)
+// #endif
 
 #include <Arduino.h>
 #include <SPIFFS.h>
@@ -51,7 +48,10 @@ SOFTWARE. */
 
 #include "BluetoothHandler.h"
 #include "TCode/ServoHandler.h"
-#include "TCode/v0.2/ServoHandler0_2.h"
+
+#if DEBUG_BUILD == 0//Too much memory needed with debug
+	#include "TCode/v0.2/ServoHandler0_2.h"
+#endif
 #include "TCode/v0.3/ServoHandler0_3.h"
 #include "TCode/v1.0/ServoHandler1_0.h"
 #include "UdpHandler.h"
@@ -61,13 +61,13 @@ SOFTWARE. */
 #include "BLEHandler.h"
 #include "WebSocketHandler.h"
 
-Udphandler udpHandler;
+Udphandler* udpHandler = 0;
 BluetoothHandler* btHandler = 0;
 //TcpHandler tcpHandler;
 ServoHandler* servoHandler;
 WifiHandler wifi;
 WebHandler webHandler;
-WebSocketHandler* webSocketHandler = new WebSocketHandler();
+WebSocketHandler* webSocketHandler = 0;
 BLEHandler* bleHandler = new BLEHandler();
 
 #if FULL_BUILD == 1
@@ -89,7 +89,23 @@ void displayPrint(String text) {
 	#if FULL_BUILD == 1
 		displayHandler->println(text);
 	#endif
-	Serial.println(text);
+}
+
+void CommandCallback(const String& in) {
+	log_d("main", "Enter TCode Command callback");
+	if (SettingsHandler::bluetoothEnabled && btHandler->isConnected())
+		btHandler->CommandCallback(in);
+	if(webSocketHandler)
+		webSocketHandler->CommandCallback(in);
+	if(udpHandler)
+		udpHandler->CommandCallback(in);
+	if(Serial)
+		Serial.println(in);
+}
+
+void logCallBack(const char* in) {
+	if(webSocketHandler)
+		webSocketHandler->sendDebug(in);
 }
 
 void setup() 
@@ -100,36 +116,52 @@ void setup()
 
 	Serial.begin(115200);
 	
-	#if DEBUG == 1
-		Serial.println("Debug build");
-		LogHandler::setLogLevel(LogLevel::VERBOSE);
-		SettingsHandler::debug = true;
-	#endif
+    LogHandler::setLogLevel(LogLevel::INFO);
+	LogHandler::setMessageCallback(logCallBack);
+
 	#if ISAAC_NEWTONGUE_BUILD == 1
-		Serial.println("ISAAC_NEWTONGUE_BUILD");
+		LogHandler::debug("main", "ISAAC_NEWTONGUE_BUILD");
 		SettingsHandler::newtoungeHatExists = true;
 	#endif
 	#if FULL_BUILD == 1
-		Serial.println("FULL_BUILD");
+		LogHandler::debug("main", "FULL_BUILD");
 		SettingsHandler::fullBuild = true;
 	#endif
+	#if DEBUG_BUILD == 1
+		LogHandler::debug("main", "DEBUG_BUILD");
+        LogHandler::setLogLevel(LogLevel::DEBUG);
+		SettingsHandler::debug = true;
+	#endif
+
+
+    // esp_log_level_set("*", ESP_LOG_VERBOSE);
+	// LogHandler::debug("main", "this is verbose");
+	// LogHandler::debug("main", "this is debug");
+	// LogHandler::info("main", "this is info");
+	// LogHandler::warning("main", "this is warning");
+	// LogHandler::error("main", "this is error");
 
 	if(!SPIFFS.begin(true))
 	{
-		Serial.println("An Error has occurred while mounting SPIFFS");
+		LogHandler::error("main-setup", "An Error has occurred while mounting SPIFFS");
 		setupSucceeded = false;
 		return;
 	}
 
 	SettingsHandler::load();
-	Serial.println(SettingsHandler::ESP32Version);
+	LogHandler::info("main-setup", "Version: %s", SettingsHandler::ESP32Version);
 
 	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3)
 		servoHandler = new ServoHandler0_3();
+#if DEBUG_BUILD == 0
 	else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2)
 		servoHandler = new ServoHandler0_2();
-	else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v1_0)
+#endif
+	else {
 		servoHandler = new ServoHandler1_0();
+	}
+
+	servoHandler->setMessageCallback(CommandCallback);
 	
 #if FULL_BUILD == 1
 	if(SettingsHandler::tempControlEnabled)
@@ -169,18 +201,16 @@ void setup()
 		displayPrint(SettingsHandler::ssid);
 		if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) 
 		{ 
-			displayPrint("Connected: ");
-			displayPrint(wifi.ip().toString());
+			displayPrint("Connected IP: " + wifi.ip().toString());
 #if FULL_BUILD == 1
 			displayHandler->setLocalIPAddress(wifi.ip());
 #endif
 			displayPrint("Starting UDP");
-			if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3)
-				udpHandler.setup(SettingsHandler::udpServerPort, (ServoHandler0_3*)servoHandler);
-			else 
-				udpHandler.setup(SettingsHandler::udpServerPort);
+			udpHandler = new Udphandler();
+			udpHandler->setup(SettingsHandler::udpServerPort);
 			displayPrint("Starting web server");
 			//displayPrint(SettingsHandler::webServerPort);
+			webSocketHandler = new WebSocketHandler();
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler);
 		} 
 		else 
@@ -194,6 +224,7 @@ void setup()
 			if (wifi.startAp(bleHandler)) 
 			{
 				displayPrint("APMode started");
+				webSocketHandler = new WebSocketHandler();
 				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, true);
 			} 
 			else 
@@ -213,6 +244,7 @@ void setup()
 			if (wifi.startAp(bleHandler)) 
 			{
 				displayPrint("APMode started");
+				webSocketHandler = new WebSocketHandler();
 				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, true);
 			}
 			else 
@@ -234,8 +266,6 @@ void setup()
 	setupSucceeded = true;
 #if FULL_BUILD == 1
 	displayHandler->clearDisplay();
-	displayPrint("Starting system...");
-	displayHandler->clearDisplay();
 	if(SettingsHandler::displayEnabled)
 	{
 		xTaskCreatePinnedToCore(
@@ -248,7 +278,6 @@ void setup()
 			1); /* Core where the task should run */
 	}
 #endif
-	
 }
 
 void loop() 
@@ -265,19 +294,19 @@ void loop()
 	if(setupSucceeded && !SettingsHandler::saving)
 	{
 		//otaHandler.handle();
-		webSocketHandler->getTCode(webSocketData);
-		udpHandler.read(udpData);
+		if(webSocketHandler)
+			webSocketHandler->getTCode(webSocketData);
+		if(udpHandler)
+			udpHandler->read(udpData);
 		String serialData;
 		if (strlen(webSocketData) > 0) 
 		{
-			// Serial.print("webSocket writing: ");
-			// Serial.println(webSocketData);
+			//LogHandler::debug("main-loop", "webSocket writing: %s", webSocketData);
 			servoHandler->read(webSocketData);
 		}
 		else if (!apMode && strlen(udpData) > 0) 
 		{
-			// Serial.print("udp writing: ");
-			// Serial.println(udpData);
+			//LogHandler::debug("main-loop", "udp writing: %s", udpData);
 			servoHandler->read(udpData);
 		} 
 		else if (Serial.available() > 0) 
@@ -302,9 +331,9 @@ void loop()
 				TemperatureHandler::setControlStatus();
 				String* receive = 0;
 				if(xQueueReceive(TemperatureHandler::tempQueue, &receive, 0)) {
-					if(!receive->startsWith("{"))
+					if(webSocketHandler && !receive->startsWith("{"))
 						webSocketHandler->sendCommand(receive->c_str());
-					else
+					else if(webSocketHandler)
 						webSocketHandler->sendCommand("tempStatus", receive->c_str());
 				}
 				if(receive)

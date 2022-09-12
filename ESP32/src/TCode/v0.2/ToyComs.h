@@ -22,14 +22,16 @@
 // ----------------------------
 // This is a t-code object that manages the serial comms from the computer
 // Leave this section of the code alone unless you know what you're doing
+#pragma once
 
-class ToyComms {
+#include "../TCodeBase.h"
+
+class ToyComms : public TCodeBase {
   public:
 	//String command;
   
     // Setup function
-    void setup(BluetoothHandler* btHandler) {
-      _btHandler = btHandler;
+    void setup() {
       // Centralise everything
       xL1[0] = 500;
       xL1[1] = 500;
@@ -478,15 +480,13 @@ class ToyComms {
 
     // Function to identify the current TCode type over serial
     void identifyTCode() {
-      Serial.println("TCode v0.2");
-      if(_btHandler)
-        _btHandler->println("TCode v0.2");
+      sendMessage("TCode v0.2");
+      //Serial.println("TCode v0.2");
     }
+
 
   private:
 
-    BluetoothSerial SerialBT;
-	  BluetoothHandler* _btHandler = 0;
     // Input parameters
     boolean linear;
     boolean vibration;

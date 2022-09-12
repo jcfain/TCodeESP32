@@ -61,6 +61,7 @@ class WifiHandler
 	}
     bool connect(char ssid[32], char pass[63]) 
     {
+      LogHandler::info(_TAG, "Setting up wifi");
 	      _apMode = false;
         WiFi.disconnect(true, true);
         //Serial.println("Setting mode");
@@ -69,8 +70,7 @@ class WifiHandler
         WiFi.setHostname("TCodeESP32");
       if (SettingsHandler::staticIP) 
       {
-            Serial.println("Setting static IP settings: ");
-            Serial.print(SettingsHandler::localIP);
+        LogHandler::info(_TAG, "Setting static IP settings: %s", SettingsHandler::localIP);
         uint8_t ipAddress[4];
         sscanf(SettingsHandler::localIP, "%u.%u.%u.%u", &ipAddress[0], &ipAddress[1], &ipAddress[2], &ipAddress[3]);
         uint8_t gateway[4];
@@ -83,11 +83,8 @@ class WifiHandler
         sscanf(SettingsHandler::dns2, "%u.%u.%u.%u", &dns2[0], &dns2[1], &dns2[2], &dns2[3]);
         WiFi.config(IPAddress(ipAddress), IPAddress(gateway), IPAddress(subnet), IPAddress(dns1), IPAddress(dns2));
       }
-      Serial.println("Setting up wifi");
-      Serial.print("Mac: ");
-      Serial.println(mac());
-      Serial.print("Establishing connection to ");
-      Serial.print(ssid);
+      LogHandler::info(_TAG, "Mac: %s", mac().c_str());//TODO: fix this..
+      LogHandler::info(_TAG, "Establishing connection to %s", ssid);
       if(pass[0] == '\0')
           WiFi.begin(ssid);
       else
@@ -100,40 +97,40 @@ class WifiHandler
       }
       if (millis() >= connectStartTimeout) 
       {
-        Serial.println("Wifi timed out connection to AP");
+        LogHandler::error(_TAG, "Wifi timed out connection to AP");
         WiFi.disconnect(true, true);
         return false;
       }
       IPAddress ipAddress = ip();
-      Serial.println();
-      Serial.print("Connected: IP: ");
-      Serial.println(ipAddress);
-        _apMode = false;
+	    LogHandler::info(_TAG, "Connected IP: %s", ip().toString().c_str());
+      _apMode = false;
       return true;
     }
 
     void WiFiEvent(WiFiEvent_t event, system_event_info_t info){
       switch(event){
         case SYSTEM_EVENT_STA_START:
-          Serial.println("Station Mode Started");
+          LogHandler::info(_TAG, "Station Mode Started");
           break;
         case SYSTEM_EVENT_STA_GOT_IP:
-          Serial.println("Connected to :" + String(WiFi.SSID()));
-          Serial.println(WiFi.localIP());
+          LogHandler::info(_TAG, "Connected to: %s", WiFi.SSID().c_str());
+          LogHandler::info(_TAG, "IP Address: %s", WiFi.localIP().toString().c_str());
           break;
         case SYSTEM_EVENT_STA_DISCONNECTED:
-          Serial.println("Disconnected from station, attempting reconnection");
+          LogHandler::warning(_TAG, "Disconnected from station, attempting reconnection");
           WiFi.reconnect();
           break;
         case SYSTEM_EVENT_STA_WPS_ER_SUCCESS:
-          Serial.println("WPS Successfull, stopping WPS and connecting to: " + String(WiFi.SSID()));
+          LogHandler::info(_TAG, "WPS Successfull, stopping WPS and connecting to: %s", WiFi.SSID().c_str());
           WiFi.begin();
           break;
         case SYSTEM_EVENT_STA_WPS_ER_FAILED:
-          Serial.println("WPS Failed, retrying");
+          LogHandler::error(_TAG, "WPS Failed, retrying");
+          WiFi.reconnect();
           break;
         case SYSTEM_EVENT_STA_WPS_ER_TIMEOUT:
-          Serial.println("WPS Timedout, retrying");
+          LogHandler::error(_TAG, "WPS Timedout, retrying");
+          WiFi.reconnect();
           break;
         case SYSTEM_EVENT_STA_WPS_ER_PIN:
           break;
@@ -163,8 +160,7 @@ class WifiHandler
       WiFi.mode(WIFI_AP);
       //WiFi.setHostname("TCodeESP32");
       WiFi.softAP(ssid);
-      Serial.print("Mac: ");
-      Serial.println(mac());
+      LogHandler::info(_TAG, "Mac: ", mac().c_str());
       delay(100);
       onApEventID = WiFi.onEvent([this](WiFiEvent_t event, system_event_info_t info) {
                     this->WiFiEvent(event, info);
@@ -178,15 +174,15 @@ class WifiHandler
       IPAddress gateway(192, 168, 1, 254);
       if (!WiFi.softAPConfig(local_IP, gateway, subnet)) 
 	    {
-        Serial.println("AP Failed to configure");
+        LogHandler::error(_TAG, "AP Failed to configure");
         return false;
       }
 	    _apMode = true;
-      Serial.print("Wifi APMode IP: ");
-      Serial.println(WiFi.softAPIP());
+      LogHandler::info(_TAG, "Wifi APMode IP: %s", WiFi.softAPIP().toString().c_str());//TODO: fix this.. 
       return true;
     }
 private: 
+    const char* _TAG = "WIFI";
     const char *ssid = "TCodeESP32Setup";
     const char *password = "12345678";
     int connectTimeOut = 10000;

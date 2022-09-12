@@ -3,19 +3,19 @@
 
 #include <EEPROM.h>
 #include "Axis.h"
+#include "../TCodeBase.h"
 // -----------------------------
 // Class to manage Toy Comms
 // -----------------------------
-class TCode0_3 {
+class TCode0_3 : public TCodeBase {
   
   public:
   
   // Setup function
-  void setup(String firmware, String tcode, BluetoothHandler* btHandler) 
+  void setup(String firmware, String tcode) 
   {
     firmwareID = firmware;
     tcodeID = tcode;
-    _btHandler = btHandler;
 
     // #ESP32# Enable EEPROM
     EEPROM.begin(320);
@@ -129,8 +129,6 @@ private:
   Axis Vibration[CHANNELS];
   Axis Auxiliary[CHANNELS];
 
-  BluetoothHandler* _btHandler;
-
   // Function to divide up and execute input string
   void executeString(String bufferString) {
     int index = bufferString.indexOf(' ');  // Look for spaces in string
@@ -241,19 +239,15 @@ private:
       if (commandNumber==0 && command.charAt(0)!='0' ) { command = -1; }
       switch( commandNumber ) {
         case 0:
-          Serial.println(firmwareID);
-          if(_btHandler)
-            _btHandler->println(firmwareID.c_str());
+          sendMessage(firmwareID);
         break;
   
         case 1:
-          Serial.println(tcodeID);
-          if(_btHandler)
-            _btHandler->println(tcodeID.c_str());
+          sendMessage(tcodeID);
         break;
   
         case 2:
-          getDeviceSettings();          
+          sendMessage(getDeviceSettings());          
         break;
       }
     }
@@ -345,16 +339,16 @@ private:
       line += " ";
       line += axisName;
       line += "\n";
-      Serial.print(axisID);
-      Serial.print(" ");
-      Serial.print(low + 1);
-      Serial.print(" ");
-      Serial.print(high + 10000);
-      Serial.print(" ");
-      Serial.println(axisName);
+      sendMessage(line);
+      // Serial.print(axisID);
+      // Serial.print(" ");
+      // Serial.print(low + 1);
+      // Serial.print(" ");
+      // Serial.print(high + 10000);
+      // Serial.print(" ");
+      // Serial.println(axisName);
     }
     return line;
   }
-    
 };
 

@@ -21,11 +21,9 @@
 
 #pragma once
 
-#include "TCode.h"
 #include "../Global.h"
 #include "../ServoHandler.h"
 #include "../../SettingsHandler.h"
-
 class ServoHandler1_0 : public ServoHandler {
 
 public:
@@ -33,7 +31,7 @@ public:
 
     // Setup function
     // This is run once, when the arduino starts
-    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency, BluetoothHandler* btHandler = 0) override {
+    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency) override {
         //tcode = new TCode(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName, btHandler);
         MainServo_Freq = servoFrequency;
         PitchServo_Freq = pitchFrequency;
@@ -74,7 +72,7 @@ public:
         }
         // Setup Servo PWM channels
         // Lower Left Servo
-        if(DEBUG == 0) {
+        if(DEBUG_BUILD == 0) {
             ledcSetup(LowerLeftServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::LeftServo_PIN,LowerLeftServo_PWM);
             // Lower Right Servo
@@ -86,7 +84,7 @@ public:
             // Upper Left Servo
             ledcSetup(UpperLeftServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::LeftUpperServo_PIN,UpperLeftServo_PWM);
-            if(DEBUG == 0) {
+            if(DEBUG_BUILD == 0) {
                 // Upper Right Servo
                 ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);
                 ledcAttachPin(SettingsHandler::RightUpperServo_PIN,UpperRightServo_PWM);
@@ -134,7 +132,7 @@ public:
         }
         
         // Signal done
-        Serial.println("Ready!");
+        tcode.sendMessage("Ready!");
     }
 
 
@@ -149,8 +147,8 @@ public:
         tcode.inputByte(input);
     }
 
-    String getDeviceSettings() {
-        //return tcode.getDeviceSettings();
+    void setMessageCallback(TCODE_FUNCTION_PTR_T function) override {
+        tcode.setMessageCallback(function);
     }
 
 // int testVar = -1;
@@ -172,8 +170,6 @@ public:
         valveCmd = tcode.axisRead(Valve);
         suckCmd = tcode.axisRead(Suck);
         if (SettingsHandler::lubeEnabled) { lube = tcode.axisRead(Lube); }
-        Serial.print("xLin: ");
-        Serial.println(xLin);
 
         // If you want to mix your servos differently, enter your code below:
 
@@ -247,8 +243,6 @@ public:
             stroke = map(xLin,0,9999,-350,350);
             roll   = map(yRot,0,9999,-180,180);
             pitch  = map(zRot,0,9999,-350,350);
-        Serial.print("stroke: ");
-        Serial.println(stroke);
             if(SettingsHandler::inverseStroke) 
             {
                 ledcWrite(LowerLeftServo_PWM, map(SettingsHandler::LeftServo_ZERO - stroke + roll,0,MainServo_Int,0,65535));
@@ -407,31 +401,16 @@ private:
     TCode<10> tcode;
 
     TCode_ChannelID Stroke = {TCode_Channel_Type::Linear, 0, true};
-    TCode_ChannelID Sway = {TCode_Channel_Type::Linear, 1, true};
-    TCode_ChannelID Surge = {TCode_Channel_Type::Linear, 2, true};
-    TCode_ChannelID Pitch = {TCode_Channel_Type::Rotation, 0, true};
+    TCode_ChannelID Surge = {TCode_Channel_Type::Linear, 1, true};
+    TCode_ChannelID Sway = {TCode_Channel_Type::Linear, 2, true};
+    TCode_ChannelID Twist = {TCode_Channel_Type::Rotation, 0, true};
     TCode_ChannelID Roll = {TCode_Channel_Type::Rotation, 1, true};
-    TCode_ChannelID Twist = {TCode_Channel_Type::Rotation, 2, true};
+    TCode_ChannelID Pitch = {TCode_Channel_Type::Rotation, 2, true};
     TCode_ChannelID Vibe1 = {TCode_Channel_Type::Vibration, 0, true};
     TCode_ChannelID Vibe2 = {TCode_Channel_Type::Vibration, 1, true};
     TCode_ChannelID Valve = {TCode_Channel_Type::Auxiliary, 0, true};
     TCode_ChannelID Suck = {TCode_Channel_Type::Auxiliary, 1, true};
     TCode_ChannelID Lube = {TCode_Channel_Type::Auxiliary, 2, true};
-
-    TCode_ChannelID tcodeChannels[11] = {
-        Stroke,
-        Sway,
-        Surge,
-        Pitch,
-        Roll,
-        Twist,
-        Vibe1,
-        Vibe2,
-        Valve,
-        Suck,
-        Lube
-    };
-    
 
     // Declare operating variables
     // Position variables
