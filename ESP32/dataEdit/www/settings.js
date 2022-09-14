@@ -449,6 +449,9 @@ function setUserSettings()
 	// document.getElementById("Display_Rst_PIN").readonly = true;
 
     document.getElementById('debug').value = userSettings["logLevel"];
+    document.getElementById('lastRebootReason').innerText = userSettings["lastRebootReason"];
+    
+    
     //document.getElementById('debugLink').hidden = !userSettings["debug"];
     
     AvailibleChannelsV2 = [
@@ -1450,7 +1453,8 @@ function toggleNonTCodev3Options()
 function updateBlueToothSettings()
 {
     userSettings["bluetoothEnabled"] = document.getElementById('bluetoothEnabled').checked;
-    alert("This will disable Wifi connection and this configuration page! The BLE app will be required for future configuration changes.")
+    if(userSettings["bluetoothEnabled"])
+        alert("This will disable Wifi connection and this configuration page! The BLE app will be required for future configuration changes.")
 	setRestartRequired();
 	updateUserSettings();
 }

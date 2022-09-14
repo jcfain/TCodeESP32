@@ -133,6 +133,7 @@ class SettingsHandler
 
         static bool newtoungeHatExists;
         static bool restartRequired;
+        static const char* lastRebootReason;
 
         static const char* userSettingsFilePath;
         static const char* logPath;
@@ -230,7 +231,6 @@ class SettingsHandler
 			if(loadingDefault || strcmp(storedVersion, ESP32Version) != 0)
 				    save();
                     
-            log_last_reset_reason();
         }
 
         static void reset() 
@@ -355,6 +355,8 @@ class SettingsHandler
                 heaterResolution = json["heaterResolution"] | 8;
                 heaterFrequency = json["heaterFrequency"] | 5000;
                 lubeEnabled = json["lubeEnabled"];
+                lastRebootReason = machine_reset_cause();
+                LogHandler::info(_TAG, "Last reset reason: %s", SettingsHandler::lastRebootReason);
                 LogUpdateDebug();
                 return true;
             } 
@@ -687,7 +689,7 @@ class SettingsHandler
                 return "TCode v0.3";
                 break;
             case 2:
-                return "TCode v1.0";
+                return "TCode v0.4";
                 break;
             default:
                 return "TCode v?";
@@ -696,60 +698,58 @@ class SettingsHandler
         }
 
         static void log_last_reset_reason() {
-            //if(debug) {
-                //Serial.println("enter log_last_reset_reason");
-                double spiffs90Percent = SPIFFS.totalBytes()/0.90;
-                LogHandler::debug(_TAG, "SPIFFS used: %.1f%%", SPIFFS.usedBytes());
-                LogHandler::debug(_TAG, "SPIFFS 90 of total: %.1f%%", spiffs90Percent);
-                if(SPIFFS.usedBytes() > spiffs90Percent) {
-                    LogHandler::warning(_TAG, "Disk usage is over 90%, replacing log.");
-                    if(!SPIFFS.remove(logPath)) 
-                    {
-                        LogHandler::error(_TAG, "Failed to remove file log.json");
-                        return;
-                    }
-                }
-                File file = SPIFFS.open(logPath, FILE_WRITE);
-                if (!file) 
-                {
-                    LogHandler::error(_TAG, "Failed to create file");
-                    return;
-                }
-                DynamicJsonDocument docDeserialize(deserialize);
-                deserializeJson(docDeserialize, file);
-                // if(error) {
-                //     Serial.println(F("Deserialization Error: deleting log file"));
-                //     if(!SPIFFS.remove(logPath)) 
-                //     {
-                //         Serial.println(F("Failed to remove file log.json"));
-                //     }
-                //     file = SPIFFS.open(logPath, FILE_WRITE);
-                //     DeserializationError error = deserializeJson(docDeserialize, file);
-                //     if (!file) 
-                //     {
-                //         Serial.println(F("Failed to create file"));
-                //         return;
-                //     }
-                // }
+            // //if(debug) {
+            //     //Serial.println("enter log_last_reset_reason");
+            //     double spiffs90Percent = SPIFFS.totalBytes()/0.90;
+            //     LogHandler::debug(_TAG, "SPIFFS used: %.1f%%", SPIFFS.usedBytes());
+            //     LogHandler::debug(_TAG, "SPIFFS 90 of total: %.1f%%", spiffs90Percent);
+            //     if(SPIFFS.usedBytes() > spiffs90Percent) {
+            //         LogHandler::warning(_TAG, "Disk usage is over 90%, replacing log.");
+            //         if(!SPIFFS.remove(logPath)) 
+            //         {
+            //             LogHandler::error(_TAG, "Failed to remove file log.json");
+            //             return;
+            //         }
+            //     }
+            //     File file = SPIFFS.open(logPath, FILE_WRITE);
+            //     if (!file) 
+            //     {
+            //         LogHandler::error(_TAG, "Failed to create file");
+            //         return;
+            //     }
+            //     DynamicJsonDocument docDeserialize(deserialize);
+            //     deserializeJson(docDeserialize, file);
+            //     // if(error) {
+            //     //     Serial.println(F("Deserialization Error: deleting log file"));
+            //     //     if(!SPIFFS.remove(logPath)) 
+            //     //     {
+            //     //         Serial.println(F("Failed to remove file log.json"));
+            //     //     }
+            //     //     file = SPIFFS.open(logPath, FILE_WRITE);
+            //     //     DeserializationError error = deserializeJson(docDeserialize, file);
+            //     //     if (!file) 
+            //     //     {
+            //     //         Serial.println(F("Failed to create file"));
+            //     //         return;
+            //     //     }
+            //     // }
 
-                //JsonObject jsonObj = docDeserialize.as<JsonObject>();
-                //JsonArray resetReasons = docDeserialize["resetReasons"].as<JsonArray>();
-                JsonArray resetReasons = docDeserialize.createNestedArray("resetReasons");
+            //      //JsonObject jsonObj = docDeserialize.as<JsonObject>();
+            //      //JsonArray resetReasons = docDeserialize["resetReasons"].as<JsonArray>();
+            //      JsonArray resetReasons = docDeserialize.createNestedArray("resetReasons");
                 //JsonObject resonObj;
-                String resetCause = machine_reset_cause();
                 //resonObj["time"] = getTime();
                 //resonObj["reason"] = resetCause;
-                LogHandler::info(_TAG, "Last reset reason: ", resetCause);
-                //Serial.println(resetCause);
-                resetReasons.add(resetCause);
-                // DynamicJsonDocument docSerialize(JSON_ARRAY_SIZE(resetReasons.size()));
-                // docSerialize["resetReasons"] = resetReasons;
-                if (serializeJson(docDeserialize, file) == 0) 
-                {
-                    LogHandler::error(_TAG, "Failed to write to log file");
-                    return;
-                }
-                file.close(); 
+                // //Serial.println(resetCause);
+                // resetReasons.add(resetCause);
+                // // DynamicJsonDocument docSerialize(JSON_ARRAY_SIZE(resetReasons.size()));
+                // // docSerialize["resetReasons"] = resetReasons;
+                // if (serializeJson(docDeserialize, file) == 0) 
+                // {
+                //     LogHandler::error(_TAG, "Failed to write to log file");
+                //     return;
+                // }
+                // file.close(); 
             //}
         }
 
@@ -765,7 +765,7 @@ class SettingsHandler
             return now;
         }
 
-        static String machine_reset_cause() {
+        static const char* machine_reset_cause() {
             switch (esp_reset_reason()) {
                 case ESP_RST_POWERON:
                     return "Reset due to power-on event";
@@ -1064,6 +1064,7 @@ float SettingsHandler::heaterThreshold = 5.0;
 int SettingsHandler::heaterResolution = 8;
 int SettingsHandler::heaterFrequency = 5000;
 bool SettingsHandler::newtoungeHatExists = false;
+const char* SettingsHandler::lastRebootReason;
 
 int SettingsHandler::strokerSamples = 100;
 int SettingsHandler::strokerOffset = 3276;

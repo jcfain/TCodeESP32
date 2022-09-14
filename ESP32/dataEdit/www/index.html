@@ -283,7 +283,7 @@
 							</span> 
 						</td>
 					</tr>
-					<tr title="If checked, a log will be created in the filesystem and deleted when the file system is over 90% capacity">
+					<tr title="Set to show output in the text area.\nNote: Verbose level will NOT show.\nSee the serial for that message level">
 						<td>
 							<span>Debug</span> 
 						</td>
@@ -301,7 +301,14 @@
 					<tr id="debugLink">
 						<td colspan="3">
 							<textarea id="debugText" class="log-reader" readonly></textarea>
-							<div><a href="/log" target="_blank">See last boot reason</a></div>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Last reboot reason</span> 
+						</td>
+						<td colspan="2">
+							<div id="lastRebootReason"></div>
 						</td>
 					</tr>
 				</tbody>

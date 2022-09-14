@@ -66,6 +66,8 @@ class WebHandler {
                 }
                 if(strcmp(doc["wifiPass"], SettingsHandler::defaultWifiPass) != 0 )
                     doc["wifiPass"] = "Too bad haxor!";// Do not send password if its not default
+                    
+                doc["lastRebootReason"] = SettingsHandler::lastRebootReason;
                 String output;
                 serializeJson(doc, output);
                 AsyncWebServerResponse *response = request->beginResponse(200, "application/json", output);
