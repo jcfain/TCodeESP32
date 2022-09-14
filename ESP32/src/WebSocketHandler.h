@@ -41,12 +41,12 @@ class WebSocketHandler {
             if(tCodeInQueue == NULL) {
                 LogHandler::error(_TAG, "Error creating the tcode queue");
             }
-            debugInQueue = xQueueCreate(50, sizeof(char[255]));
+            debugInQueue = xQueueCreate(10, sizeof(char[255]));
             if(debugInQueue == NULL) {
                 LogHandler::error(_TAG, "Error creating the debug queue");
             }
+            xTaskCreate(this->emptyQueue, "emptyDebugQueue", 2042, this, tskIDLE_PRIORITY, emptyQueueHandle);
             isInitialized = true;
-            xTaskCreate(this->emptyQueue, "emptyDebugQueue", 4096, this, tskIDLE_PRIORITY, emptyQueueHandle);
         }
         
         void CommandCallback(const String& in){ //This overwrites the callback for message return
@@ -54,8 +54,8 @@ class WebSocketHandler {
                 sendCommand(in.c_str());
         }
 
-        void sendDebug(const String message) {
-            if (isInitialized && serial_mtx.try_lock()) {
+        void sendDebug(const String message, LogLevel level) {
+            if (level != LogLevel::VERBOSE && isInitialized && debugInQueue != NULL && serial_mtx.try_lock()) {
                 std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
                     // Serial.print("insert to q: ");
                     // Serial.println(message);
@@ -127,14 +127,14 @@ class WebSocketHandler {
 
         static void emptyQueue(void *webSocketHandler) {
             while (true) {
-                if(ws.count() > 0 && millis() - m_lastSend > 30 && uxQueueMessagesWaiting(debugInQueue)) {
+                if(ws.count() > 0 && millis() - m_lastSend > 50 && uxQueueMessagesWaiting(debugInQueue)) {
 				    char lastMessage[255];
                     if(xQueueReceive(debugInQueue, lastMessage, 0)) {
                         // Serial.printf("read from q: %s\n", lastMessage);
                         ((WebSocketHandler*)webSocketHandler)->sendCommand("debug", lastMessage);
                     }
                 }
-        	    vTaskDelay(30/portTICK_PERIOD_MS);
+        	    vTaskDelay(50/portTICK_PERIOD_MS);
             }
             vTaskDelete(NULL);
         }

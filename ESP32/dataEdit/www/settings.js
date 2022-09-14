@@ -35,6 +35,14 @@ var TCodeVersion = {
     V2: 0,
     V3: 1
 }
+var LogLevel = {
+    ERROR: 0,
+    WARNING: 1,
+    INFO: 2,
+    DEBUG: 3,
+    VERBOSE: 4
+};
+dubugMessages = [];
 
 var AvailibleChannelsV2;
 var AvailibleChannelsV3;
@@ -167,13 +175,27 @@ function wsCallBackFunction(evt) {
 		console.error(e.toString());
 	}
 }
-dubugMessages = [];
+
 function debug(message) {
-    if(dubugMessages.length > 150)
-        dubugMessages.pop();
+    if(dubugMessages.length > 1000)
+        dubugMessages.shift();
     dubugMessages.push(message);
     debugTextElement.value = dubugMessages.join("\n");
+    debugTextElement.scrollTop = debugTextElement.scrollHeight;
 }
+
+function setDebug() {
+    userSettings["logLevel"] = parseInt(document.getElementById('debug').value);
+    if(userSettings["logLevel"] == LogLevel.VERBOSE)
+        alert("There are not enough resources to send VERBOSE messages to the site.\nUse serial to view them.")
+	updateUserSettings();
+}
+
+function clearLog() {
+    dubugMessages = [];
+    debugTextElement.value = "";
+}
+
 //https://base64.guru/converter/encode/audio
 //http://freesoundeffect.net/tags/alert?page=40
 function playSuccess() {
@@ -1506,11 +1528,4 @@ function importSettings() {
 
         reader.readAsText(json);
     }
-}
-
-function setDebug() {
-    userSettings["logLevel"] = parseInt(document.getElementById('debug').value);
-    //document.getElementById('debugLink').hidden = !isChecked;
-	//setRestartRequired();
-	updateUserSettings();
 }

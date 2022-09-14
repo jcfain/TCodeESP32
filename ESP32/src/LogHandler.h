@@ -16,7 +16,7 @@ enum class LogLevel {
     VERBOSE
 };
 
-using LOG_FUNCTION_PTR_T = void (*)(const char* input);
+using LOG_FUNCTION_PTR_T = void (*)(const char* input, LogLevel level);
 class LogHandler {
 public:
     // Need to port to espidf framework instead of arduino to be able to change this at runtime.
@@ -64,7 +64,7 @@ public:
                 }
                 va_end(vArgs);
                 if(message_callback)
-                    message_callback(temp);
+                    message_callback(temp, LogLevel::VERBOSE);
             }
         }
     }
@@ -93,7 +93,7 @@ public:
                 }
                 va_end(vArgs);
                 if(message_callback)
-                    message_callback(temp);
+                    message_callback(temp, LogLevel::DEBUG);
             }
         }
     }
@@ -122,7 +122,7 @@ public:
                 }
                 va_end(vArgs);
                 if(message_callback)
-                    message_callback(temp);
+                    message_callback(temp, LogLevel::INFO);
             }
         }
     }
@@ -152,7 +152,7 @@ public:
                 }
                 va_end(vArgs);
                 if(message_callback)
-                    message_callback(temp);
+                    message_callback(temp,LogLevel::WARNING);
             }
         }
     }
@@ -181,7 +181,7 @@ public:
                 }
                 va_end(vArgs);
                 if(message_callback)
-                    message_callback(temp);
+                    message_callback(temp, LogLevel::ERROR);
             }
         }
     }

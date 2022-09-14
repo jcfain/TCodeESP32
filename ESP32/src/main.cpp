@@ -103,9 +103,9 @@ void CommandCallback(const String& in) {
 		Serial.println(in);
 }
 
-void logCallBack(const char* in) {
+void logCallBack(const char* in, LogLevel level) {
 	if(webSocketHandler)
-		webSocketHandler->sendDebug(in);
+		webSocketHandler->sendDebug(in, level);
 }
 
 void setup() 

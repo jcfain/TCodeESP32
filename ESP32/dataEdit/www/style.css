@@ -115,7 +115,8 @@ input:read-only, textarea:read-only {
 .formTable > tbody > tr:not(.servoHeader) > td:first-child span {
   margin-right: 8px;
 }
-.formTable input[type=text] {
+.formTable input[type=text],
+.formTable input[type=password] {
   width: 100%;
   border-radius: 5px;
 }
