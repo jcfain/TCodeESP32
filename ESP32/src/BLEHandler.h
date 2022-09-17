@@ -47,6 +47,10 @@ private:
 class CharacteristicCallbacks: public BLECharacteristicCallbacks 
 {
     String recievedJsonConfiguration = "";
+    std::string sendJsonConfiguration = "";
+    unsigned sendChunkIndex = 0;
+    int sendMaxLen = 499;
+
     void onWrite(BLECharacteristic *pCharacteristic) 
     {
         std::string rxValue = pCharacteristic->getValue();
@@ -80,9 +84,8 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
             else 
             {
                 // Save json
-                LogHandler::debug(_TAG, "Done: ");
-                Serial.print(recievedJsonConfiguration);
-                if(SettingsHandler::derializeWifiSettings(recievedJsonConfiguration)) 
+                LogHandler::debug(_TAG, "Done: %s", recievedJsonConfiguration);
+                if(SettingsHandler::save(recievedJsonConfiguration)) 
                 {
                     pCharacteristic->setValue(">>f<<"); // Finish saving
                     pCharacteristic->notify();
@@ -91,7 +94,7 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
                 else
                 {
                     pCharacteristic->setValue(">>e<<"); // Error
-                    LogHandler::debug(_TAG, "*** Error saving");
+                    LogHandler::error(_TAG, "*** Error saving");
                     pCharacteristic->notify();
                 }
                 recievedJsonConfiguration = "";
@@ -104,15 +107,73 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
     void onRead(BLECharacteristic *pCharacteristic) 
     {
         // char* sentValue = SettingsHandler::getJsonForBLE();
-        String wifiSetting = SettingsHandler::serializeWifiSettings();
-        LogHandler::debug(_TAG, "*** Sent Value: %s", wifiSetting);
-        pCharacteristic->setValue(wifiSetting.c_str());
-        pCharacteristic->notify(); // Send the value to the app!
+        const char* wifiSetting = SettingsHandler::serialize();
+        if(!wifiSetting) {
+            LogHandler::error(_TAG, "*** BLE onRead empty");
+            return;
+        }
+        //LogHandler::info(_TAG, "*** Sent Value: %s", wifiSetting);
+        //const int len = strlen(wifiSetting);
+        //LogHandler::info(_TAG, "*** strlen: %i", strlen(wifiSetting));
+        sendJsonConfiguration = std::string(wifiSetting);
+
+        // size_t chunksize = wifiSettingsString.size()/19+1;
+        // for(size_t i=0; i<wifiSettingsString.size(); i+=chunksize)
+        // {  
+        //     std::string value = wifiSettingsString.substr(i,chunksize);
+        //     printf("loop %d, i*maxLen: %i : %s\n", i, chunksize, value.c_str());
+        //     pCharacteristic->setValue(value);
+        //     pCharacteristic->notify(); 
+        // }
+        if(sendChunkIndex < sendJsonConfiguration.length()) {
+            if(sendJsonConfiguration.length() > sendMaxLen) {
+                std::string value = sendJsonConfiguration.substr(sendChunkIndex,sendMaxLen);
+                printf("index %d, %s\n", sendChunkIndex, value.c_str());
+                pCharacteristic->setValue(value);
+                pCharacteristic->notify(); 
+                // printf("ESP.getFreeHeap() %i\n", ESP.getFreeHeap());
+                // printf("ESP.getHeapSize() %i\n", ESP.getHeapSize());
+                sendChunkIndex += sendMaxLen;
+                
+                //delay(3);
+            } else {
+                pCharacteristic->setValue(sendJsonConfiguration);
+                pCharacteristic->notify(); 
+            }
+        } else {
+            LogHandler::debug(_TAG, ">>f<<");
+            pCharacteristic->setValue(">>f<<");
+            pCharacteristic->notify(); 
+            sendJsonConfiguration = "";
+            sendChunkIndex = 0;
+        }
+        // int i = 0;
+        // int maxLen = 19;
+        // if(len > maxLen) {
+        //     while (i*maxLen < len) {
+        //         char chunk[maxLen + 1];
+        //         memset(chunk, '\0', sizeof(chunk));
+        //         memcpy(chunk, wifiSetting+(i*maxLen), maxLen);
+        //         pCharacteristic->setValue((uint8_t*)chunk, maxLen);
+        //         pCharacteristic->notify(); 
+
+        //         printf("loop %d, i*maxLen: %i : %s\n", i, i*maxLen, chunk);
+        //         delay(3);
+        //         i++;
+        //     }
+        // } else {
+        //     pCharacteristic->setValue(wifiSetting);
+        //     pCharacteristic->notify(); 
+        // }
         LogHandler::debug(_TAG, "Characteristic Onread Ok");
         LogHandler::debug(_TAG, " ***");
     }
 private:
     const char* _TAG = "BLE";
+    // QueueHandle_t debugInQueue;
+    // int m_lastSend;
+    // TaskHandle_t* emptyQueueHandle;
+    // bool emptyQueueRunning;
 };
 class BLEHandler 
 {
@@ -129,7 +190,7 @@ class BLEHandler
     {
         // Create the BLE Device
         BLEDevice::init("TCodeConfigurator"); // Give it a name
-
+        //BLEDevice::setMTU(23);
         // Create the BLE Server
         pServer = BLEDevice::createServer();
         pServer->setCallbacks(new MyServerCallbacks());
@@ -162,6 +223,7 @@ class BLEHandler
         pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
         BLEDevice::startAdvertising();
         LogHandler::info(_TAG, "BLE waiting a client connection to notify...");
+        
         isInitailized = true;
     }
 

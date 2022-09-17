@@ -55,7 +55,7 @@ class WebSocketHandler {
         }
 
         void sendDebug(const String message, LogLevel level) {
-            if (level != LogLevel::VERBOSE && isInitialized && debugInQueue != NULL && serial_mtx.try_lock()) {
+            if (level != LogLevel::VERBOSE && isInitialized && debugInQueue != NULL && uxQueueMessagesWaiting(debugInQueue) < 10 && serial_mtx.try_lock()) {
                 std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
                     // Serial.print("insert to q: ");
                     // Serial.println(message);

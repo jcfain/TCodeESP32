@@ -218,6 +218,7 @@ void setup()
 #if FULL_BUILD == 1
 			displayHandler->clearDisplay();
 #endif
+			LogHandler::warning("main-setup", "Connection failed: Starting in APMode");
 			displayPrint("Connection failed");
 			displayPrint("Starting in APMode");
 			apMode = true;
@@ -229,6 +230,7 @@ void setup()
 			} 
 			else 
 			{
+				LogHandler::error("main-setup", "APMode start failed");
 				displayPrint("APMode start failed");
 			}
 			// Causes crash loop for some reason.
@@ -240,23 +242,28 @@ void setup()
 	{
 		apMode = true;
 		if(!SettingsHandler::bluetoothEnabled) {
+			LogHandler::info("main-setup", "Starting in APMode");
 			displayPrint("Starting in APMode");
 			if (wifi.startAp(bleHandler)) 
 			{
+				LogHandler::info("main-setup", "APMode started");
 				displayPrint("APMode started");
 				webSocketHandler = new WebSocketHandler();
 				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, true);
 			}
 			else 
 			{
+				LogHandler::error("main-setup", "APMode start failed");
 				displayPrint("APMode start failed");
 			}
 		} else {
-			displayPrint("Starting Bluetooth serial setup");
+			LogHandler::info("main-setup", "Starting Bluetooth serial");
+			displayPrint("Starting Bluetooth serial");
 			btHandler = new BluetoothHandler();
 			btHandler->setup();
 		}
-		displayPrint("Starting BLE setup");
+		LogHandler::info("main-setup", "Starting BLE");
+		displayPrint("Starting BLE");
 		bleHandler->setup();
 	}
 
@@ -314,7 +321,7 @@ void loop()
 			serialData = Serial.readStringUntil('\n');
 			servoHandler->read(serialData);
 		} 
-		else if (SettingsHandler::bluetoothEnabled && btHandler->isConnected() && btHandler->available() > 0) 
+		else if (SettingsHandler::bluetoothEnabled && btHandler && btHandler->isConnected() && btHandler->available() > 0) 
 		{
 			serialData = btHandler->readStringUntil('\n');
 			servoHandler->read(serialData);

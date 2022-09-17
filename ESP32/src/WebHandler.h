@@ -53,24 +53,23 @@ class WebHandler {
             server->on("/userSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 Serial.println("Get settings...");
-                //request->send(SPIFFS, "/userSettings.json");
-                DynamicJsonDocument doc(SettingsHandler::deserialize);
-                File file = SPIFFS.open(SettingsHandler::userSettingsFilePath, "r");
-                DeserializationError error = deserializeJson(doc, file);
-                if (error) {
-                    Serial.print(F("Error deserializing settings json: "));
-                    Serial.println(F(file.name()));
+                ////request->send(SPIFFS, "/userSettings.json");
+                // DynamicJsonDocument doc(SettingsHandler::deserialize);
+                // File file = SPIFFS.open(SettingsHandler::userSettingsFilePath, "r");
+                // DeserializationError error = deserializeJson(doc, file);
+                const char* json = SettingsHandler::serialize();
+                if (strlen(json) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
                     request->send(response);
                     return;
                 }
-                if(strcmp(doc["wifiPass"], SettingsHandler::defaultWifiPass) != 0 )
-                    doc["wifiPass"] = "Too bad haxor!";// Do not send password if its not default
+                // if(strcmp(doc["wifiPass"], SettingsHandler::defaultWifiPass) != 0 )
+                //     doc["wifiPass"] = "Too bad haxor!";// Do not send password if its not default
                     
-                doc["lastRebootReason"] = SettingsHandler::lastRebootReason;
-                String output;
-                serializeJson(doc, output);
-                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", output);
+                // doc["lastRebootReason"] = SettingsHandler::lastRebootReason;
+                // String output;
+                // serializeJson(doc, output);
+                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
                 request->send(response);
             });   
 

@@ -449,7 +449,7 @@ function setUserSettings()
 	// document.getElementById("Display_Rst_PIN").readonly = true;
 
     document.getElementById('debug').value = userSettings["logLevel"];
-    document.getElementById('lastRebootReason').innerText = userSettings["lastRebootReason"];
+    document.getElementById('lastRebootReason').value = userSettings["lastRebootReason"];
     
     
     //document.getElementById('debugLink').hidden = !userSettings["debug"];
@@ -1401,11 +1401,6 @@ function toggleStaticIPSettings(enabled)
 {
     if(!enabled) 
     {
-        document.getElementById('localIPLabel').hidden = true;
-        document.getElementById('gatewayLabel').hidden = true;
-        document.getElementById('subnetLabel').hidden = true;
-        document.getElementById('dns1Label').hidden = true;
-        document.getElementById('dns2Label').hidden = true;
         document.getElementById('localIP').hidden = true;
         document.getElementById('gateway').hidden = true;
         document.getElementById('subnet').hidden = true;
@@ -1414,11 +1409,6 @@ function toggleStaticIPSettings(enabled)
     } 
     else
     {
-        document.getElementById('localIPLabel').hidden = false;
-        document.getElementById('gatewayLabel').hidden = false;
-        document.getElementById('subnetLabel').hidden = false;
-        document.getElementById('dns1Label').hidden = false;
-        document.getElementById('dns2Label').hidden = false;
         document.getElementById('localIP').hidden = false;
         document.getElementById('gateway').hidden = false;
         document.getElementById('subnet').hidden = false;
@@ -1454,7 +1444,7 @@ function updateBlueToothSettings()
 {
     userSettings["bluetoothEnabled"] = document.getElementById('bluetoothEnabled').checked;
     if(userSettings["bluetoothEnabled"])
-        alert("This will disable Wifi connection and this configuration page! The BLE app will be required for future configuration changes.")
+        alert("EXPEREMENTAL! this is a bit slow and will not work will with fast input!\nThis will DISABLE Wifi connection and this configuration web page upon device reboot!\nThe BLE app will be REQUIRED for future configuration changes.")
 	setRestartRequired();
 	updateUserSettings();
 }

@@ -139,50 +139,46 @@ class SettingsHandler
         static const char* logPath;
         static const char* defaultWifiPass;
         static const char* decoyPass;
-		static const int deserialize = 3072;
-		static const int serialize = 1536;
 
         static void load() 
         {
-            DynamicJsonDocument doc(deserialize);
+            DynamicJsonDocument doc(deserializeSize);
 			File file;
 			bool loadingDefault = false;
 			if(!SPIFFS.exists(userSettingsFilePath)) 
 			{
-                Serial.println(F("Failed to read settings file, using default configuration"));
-                Serial.println(F("Read Settings: /userSettingsDefault.json"));
+                LogHandler::info(_TAG, "Failed to read settings file, using default configuration");
+                LogHandler::info(_TAG, "Read Settings: /userSettingsDefault.json");
             	file = SPIFFS.open("/userSettingsDefault.json", "r");
 				loadingDefault = true;
 			} 
 			else 
 			{
-                Serial.print("Read Settings: ");
-                Serial.println(userSettingsFilePath);
+                LogHandler::info(_TAG, "Read Settings: %s", userSettingsFilePath);
             	file = SPIFFS.open(userSettingsFilePath, "r");
 			}
             DeserializationError error = deserializeJson(doc, file);
             if (error) {
-                Serial.print(F("Error deserializing settings json: "));
-                Serial.println(F(file.name()));
-                Serial.print("Error: ");
+                LogHandler::error(_TAG, "Error deserializing settings json: %s", file.name());
+                LogHandler::error(_TAG, "Code: ");
                 switch(error.code()) {
                     case DeserializationError::Code::Ok:
-                        Serial.println("Ok");
+                        LogHandler::error(_TAG, "Ok");
                     break;
                     case DeserializationError::Code::EmptyInput:
-                        Serial.println("EmptyInput");
+                        LogHandler::error(_TAG, "EmptyInput");
                     break;
                     case DeserializationError::Code::IncompleteInput:
-                        Serial.println("IncompleteInput");
+                        LogHandler::error(_TAG, "IncompleteInput");
                     break;
                     case DeserializationError::Code::InvalidInput:
-                        Serial.println("InvalidInput");
+                        LogHandler::error(_TAG, "InvalidInput");
                     break;
                     case DeserializationError::Code::NoMemory:
-                        Serial.println("NoMemory");
+                        LogHandler::error(_TAG, "NoMemory");
                     break;
                     case DeserializationError::Code::TooDeep:
-                        Serial.println("TooDeep");
+                        LogHandler::error(_TAG, "TooDeep");
                     break;
                 }
             	file = SPIFFS.open("/userSettingsDefault.json", "r");
@@ -236,11 +232,11 @@ class SettingsHandler
         static void reset() 
         {
             const char* filename = "/userSettingsDefault.json";
-            DynamicJsonDocument doc(deserialize);
+            DynamicJsonDocument doc(deserializeSize);
             File file = SPIFFS.open(filename, "r");
             DeserializationError error = deserializeJson(doc, file);
             if (error)
-                Serial.println(F("Failed to read default settings file, using default configuration"));
+                LogHandler::error(_TAG, "Failed to read default settings file, using default configuration");
             update(doc.as<JsonObject>());
 			save();
         }
@@ -249,7 +245,7 @@ class SettingsHandler
         {
             if(json.size() > 0) 
             {
-                logLevel = (LogLevel)(json["logLevel"] | 0);
+                logLevel = (LogLevel)(json["logLevel"] | 1);
                 LogHandler::setLogLevel(logLevel);
 
                 LogHandler::debug(_TAG, "Update settings");
@@ -263,7 +259,7 @@ class SettingsHandler
                 {
                     strcpy(wifiPass, wifiPassConst);
                 }
-                TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 1);
+                TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 2);
                 TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
                 udpServerPort = json["udpServerPort"] | 8000;
                 webServerPort = json["webServerPort"] | 80;
@@ -377,82 +373,82 @@ class SettingsHandler
             save();
             return true;
         } */
-        
-        static char* getJsonForBLE() 
-        {
-            //DynamicJsonDocument doc(readCapacity);
-            //DeserializationError error = deserializeJson(doc, jsonInput, sizeof(jsonInput));
-            const char* filename = "/userSettings.json";
-            File file = SPIFFS.open(filename, "r");
-            size_t size = file.size();
-            char* bytes = new char[size];
-            file.readBytes(bytes, size);
-            return bytes;
-        }
 
-        static String serializeWifiSettings()
+        // static char* getJsonForBLE() 
+        // {
+        //     //DynamicJsonDocument doc(readCapacity);
+        //     //DeserializationError error = deserializeJson(doc, jsonInput, sizeof(jsonInput));
+        //     const char* filename = "/userSettings.json";
+        //     File file = SPIFFS.open(filename, "r");
+        //     size_t size = file.size();
+        //     char* bytes = new char[size];
+        //     file.readBytes(bytes, size);
+        //     return bytes;
+        // }
+
+        static const char* serialize()
         {
-            DynamicJsonDocument doc(serialize);
-            String output;
-            doc["ssid"] = ssid;
-            doc["wifiPass"] = SettingsHandler::decoyPass;
-			doc["staticIP"] = staticIP;
-			doc["localIP"] = localIP;
-			doc["gateway"] = gateway;
-			doc["subnet"] = subnet;
-			doc["dns1"] = dns1;
-			doc["dns2"] = dns2;
-            doc["servoFrequency"] = servoFrequency;
-			doc["sr6Mode"] = sr6Mode;
-			doc["bluetoothEnabled"] = bluetoothEnabled;
-            if (serializeJson(doc, output) == 0) 
-            {
-                LogHandler::error(_TAG, "Failed to create settings json string");
-                return "{}";
+            Serial.println("Get settings...");
+            //request->send(SPIFFS, "/userSettings.json");
+            File file = SPIFFS.open(userSettingsFilePath, "r");
+            DynamicJsonDocument doc(deserializeSize);
+            DeserializationError error = deserializeJson(doc, file);
+            if (error) {
+                LogHandler::error("toJson: Error deserializing settings json: %s", file.name());
+                return 0;
             }
-            return output;
+            if(strcmp(doc["wifiPass"], defaultWifiPass) != 0 )
+                doc["wifiPass"] = "Too bad haxor!";// Do not send password if its not default
+                
+            doc["lastRebootReason"] = lastRebootReason;
+            String output;
+            serializeJson(doc, output);
+            return output.c_str();
+            //return "{'ssid':'FUCK'}";
         }
 
-        static bool derializeWifiSettings(String data)
+        static bool save(String data)
         {
             String output;
-            DynamicJsonDocument doc(deserialize);
+            DynamicJsonDocument doc(deserializeSize);
             DeserializationError error = deserializeJson(doc, data);
             if (error) 
             {
                 LogHandler::error(_TAG, "Failed to read settings file, using default configuration");
                 return false;
             }
-            const char* ssidConst = doc["ssid"];
-            if( ssid != nullptr) 
-            {
-                strcpy(ssid, ssidConst);
-            }
-            const char* wifiPassConst = doc["wifiPass"];
-            if(wifiPassConst != nullptr && strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0) 
-            {
-                strcpy(wifiPass, wifiPassConst);
-            }
-            staticIP = doc["staticIP"];
-            servoFrequency = doc["servoFrequency"] | 50;
-            const char* localIPTemp = doc["localIP"];
-            if (localIPTemp != nullptr)
-                strcpy(localIP, localIPTemp);
-            const char* gatewayTemp = doc["gateway"];
-            if (gatewayTemp != nullptr)
-                strcpy(gateway, gatewayTemp);
-            const char* subnetTemp = doc["subnet"];
-            if (subnetTemp != nullptr)
-                strcpy(subnet, subnetTemp);
-            const char* dns1Temp = doc["dns1"];
-            if (dns1Temp != nullptr)
-                strcpy(dns1, dns1Temp);
-            const char* dns2Temp = doc["dns2"];
-            if (dns2Temp != nullptr)
-                strcpy(dns2, dns2Temp);
-            sr6Mode = doc["sr6Mode"];
-			bluetoothEnabled =  doc["bluetoothEnabled"];
-            return save();
+            // const char* ssidConst = doc["ssid"];
+            // if( ssid != nullptr) 
+            // {
+            //     strcpy(ssid, ssidConst);
+            // }
+            // const char* wifiPassConst = doc["wifiPass"];
+            // if(wifiPassConst != nullptr && strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0) 
+            // {
+            //     strcpy(wifiPass, wifiPassConst);
+            // }
+            // staticIP = doc["staticIP"];
+            // servoFrequency = doc["servoFrequency"] | 50;
+            // const char* localIPTemp = doc["localIP"];
+            // if (localIPTemp != nullptr)
+            //     strcpy(localIP, localIPTemp);
+            // const char* gatewayTemp = doc["gateway"];
+            // if (gatewayTemp != nullptr)
+            //     strcpy(gateway, gatewayTemp);
+            // const char* subnetTemp = doc["subnet"];
+            // if (subnetTemp != nullptr)
+            //     strcpy(subnet, subnetTemp);
+            // const char* dns1Temp = doc["dns1"];
+            // if (dns1Temp != nullptr)
+            //     strcpy(dns1, dns1Temp);
+            // const char* dns2Temp = doc["dns2"];
+            // if (dns2Temp != nullptr)
+            //     strcpy(dns2, dns2Temp);
+            // sr6Mode = doc["sr6Mode"];
+			// bluetoothEnabled =  doc["bluetoothEnabled"];
+            // return save();
+            update(doc.as<JsonObject>());
+			return save();
         }
 
         static bool save() 
@@ -473,7 +469,7 @@ class SettingsHandler
             }
 
             // Allocate a temporary JsonDocument
-            DynamicJsonDocument doc(serialize);
+            DynamicJsonDocument doc(serializeSize);
 
             doc["logLevel"] = (int)logLevel;
             LogHandler::setLogLevel(logLevel);
@@ -563,11 +559,11 @@ class SettingsHandler
 
             if (serializeJson(doc, file) == 0) 
             {
-                Serial.println(F("Failed to write to file"));
+                LogHandler::error(_TAG, "Failed to write to file");
                 doc["wifiPass"] = "";
                 return false;
             }
-            LogHandler::debug(_TAG, "File contents: %s", file.readString());
+            LogHandler::debug(_TAG, "File contents: %s", file.readString().c_str());
             LogHandler::debug(_TAG, "Free heap: %u", ESP.getFreeHeap());
             LogHandler::debug(_TAG, "Total heap: %u", ESP.getHeapSize());
             LogHandler::debug(_TAG, "Free psram: %u", ESP.getFreePsram());
@@ -589,7 +585,7 @@ class SettingsHandler
             //DynamicJsonDocument doc(readCapacity);
             DeserializationError error = deserializeJson(doc, tcodeJson);
             if (error) {
-                Serial.println("Failed to read udp jsonobject, using default configuration");
+                LogHandler::error(_TAG, "Failed to read udp jsonobject, using default configuration");
                 outbuf[0] = {0};
                 return;
             }
@@ -637,6 +633,8 @@ class SettingsHandler
         // Use http://arduinojson.org/assistant to compute the capacity.
         // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
         // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
+		static const int deserializeSize = 3072;
+		static const int serializeSize = 1536;
 
         static int calculateRange(const char* channel, int value) 
         {
@@ -884,6 +882,7 @@ class SettingsHandler
             LogHandler::verbose(_TAG, "save heaterFrequency: %i", (int)doc["heaterFrequency"]);
             LogHandler::verbose(_TAG, "save newtoungeHatExists: %i", (bool)doc["newtoungeHatExists"]);
             LogHandler::verbose(_TAG, "save logLevel: %i", (int)doc["logLevel"]);
+            LogHandler::verbose(_TAG, "save bluetoothEnabled: %i", (int)doc["bluetoothEnabled"]);
             
         }
 
@@ -963,6 +962,7 @@ class SettingsHandler
             LogHandler::verbose(_TAG, "update heaterFrequency: %i", heaterFrequency);
             LogHandler::verbose(_TAG, "update newtoungeHatExists: %i", newtoungeHatExists);
             LogHandler::verbose(_TAG, "update logLevel: %i", (int)logLevel);
+            LogHandler::verbose(_TAG, "update bluetoothEnabled: %i", (int)bluetoothEnabled);
             
         }
 };
@@ -982,7 +982,7 @@ const char* SettingsHandler::decoyPass = "Too bad haxor!";
 bool SettingsHandler::bluetoothEnabled = true;
 bool SettingsHandler::restartRequired = false;
 bool SettingsHandler::debug = false;
-LogLevel SettingsHandler::logLevel = LogLevel::ERROR;
+LogLevel SettingsHandler::logLevel = LogLevel::INFO;
 bool SettingsHandler::isTcp = true;
 char SettingsHandler::ssid[32];
 char SettingsHandler::wifiPass[63];

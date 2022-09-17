@@ -22,6 +22,7 @@ public:
     // Need to port to espidf framework instead of arduino to be able to change this at runtime.
     static void setLogLevel(LogLevel logLevel, const String tag = "*") {
         _currentLogLevel = logLevel;
+        // // Chant change this at runtime...
         // switch(logLevel) {
         //     case LogLevel::WARNING:
         //         esp_log_level_set(tag.c_str(), ESP_LOG_WARN);

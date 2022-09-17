@@ -61,44 +61,44 @@
 							<input id="staticIP" type="checkbox" onclick="updateWifiSettings()"></input>
 						</td>
 					</tr>
-					<tr>
+					<tr id="localIP">
 						<td>
 							<span id="localIPLabel">IP</span> 
 						</td>
 						<td>
-							<input id="localIP" type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
-					<tr>
+					<tr id="gateway" >
 						<td>
 							<span id="gatewayLabel">Gateway</span> 
 						</td>
 						<td>
-							<input id="gateway" type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
-					<tr>
+					<tr id="subnet">
 						<td>
 							<span id="subnetLabel">Subnet</span> 
 						</td>
 						<td>
-							<input id="subnet" type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
-					<tr>
+					<tr id="dns1">
 						<td>
 							<span id="dns1Label">DNS 1</span> 
 						</td>
 						<td>
-							<input id="dns1" type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
-					<tr>
+					<tr id="dns2">
 						<td>
 							<span id="dns2Label">DNS 2</span> 
 						</td>
 						<td>
-							<input id="dns2" type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
 					<tr>
@@ -283,7 +283,7 @@
 							</span> 
 						</td>
 					</tr>
-					<tr title="Set to show output in the text area.\nNote: Verbose level will NOT show.\nSee the serial for that message level">
+					<tr title="Set to show output in the text area. Note: Verbose level will NOT show. See the serial for that message level">
 						<td>
 							<span>Debug</span> 
 						</td>
@@ -308,7 +308,7 @@
 							<span>Last reboot reason</span> 
 						</td>
 						<td colspan="2">
-							<div id="lastRebootReason"></div>
+							<input id="lastRebootReason" type="text" readonly>
 						</td>
 					</tr>
 				</tbody>
