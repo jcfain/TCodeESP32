@@ -54,12 +54,23 @@ class WebSocketHandler {
                 sendCommand(in.c_str());
         }
 
-        void sendDebug(const String message, LogLevel level) {
+        void sendDebug(const char* message, LogLevel level) {
             if (level != LogLevel::VERBOSE && isInitialized && debugInQueue != NULL && uxQueueMessagesWaiting(debugInQueue) < 10 && serial_mtx.try_lock()) {
                 std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
-                    // Serial.print("insert to q: ");
-                    // Serial.println(message);
-                    xQueueSend(debugInQueue, message.c_str(), 0);
+                    // char messageToSend[255];
+                    // if(sizeof(message) > 253) {
+                    //     strncpy(messageToSend, message, 253);
+                    //     messageToSend[254] = '\0';
+                    //     Serial.println("truncated");
+                    // } else {
+                    //     strcpy(messageToSend, message);
+                    //     messageToSend[strlen(message)] = '\0';
+                    // }
+                    // if(level >= LogLevel::DEBUG) {
+                    //     Serial.print("insert to q: ");
+                    //     Serial.println(message);
+                    // }
+                    //xQueueSend(debugInQueue, message, 0);
             }
         }
 
@@ -68,10 +79,13 @@ class WebSocketHandler {
             if(isInitialized && command_mtx.try_lock()) {
                 std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
                 m_lastSend = millis();
-                // if(message)
-                //     Serial.printf("Sending WS command: %s, Message: %s", command, message);
-                // else
-                //     Serial.printf("Sending WS command: %s", command);
+                
+                        if(LogHandler::getLogLevel() == LogLevel::VERBOSE) {
+                            if(message)
+                                Serial.printf("Sending WS command: %s, Message: %s", command, message);
+                            else
+                                Serial.printf("Sending WS command: %s", command);
+                        }
                 char commandJson[255];
                 if(!message)
                     sprintf(commandJson, "{ \"command\": \"%s\" }", command);
@@ -130,11 +144,12 @@ class WebSocketHandler {
                 if(ws.count() > 0 && millis() - m_lastSend > 50 && uxQueueMessagesWaiting(debugInQueue)) {
 				    char lastMessage[255];
                     if(xQueueReceive(debugInQueue, lastMessage, 0)) {
-                        // Serial.printf("read from q: %s\n", lastMessage);
+                        if(LogHandler::getLogLevel() == LogLevel::VERBOSE)
+                            Serial.printf("read from q: %s\n", lastMessage);
                         ((WebSocketHandler*)webSocketHandler)->sendCommand("debug", lastMessage);
                     }
                 }
-        	    vTaskDelay(50/portTICK_PERIOD_MS);
+        	    vTaskDelay(100/portTICK_PERIOD_MS);
             }
             vTaskDelete(NULL);
         }

@@ -52,7 +52,6 @@ class WebHandler {
 
             server->on("/userSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                Serial.println("Get settings...");
                 ////request->send(SPIFFS, "/userSettings.json");
                 // DynamicJsonDocument doc(SettingsHandler::deserialize);
                 // File file = SPIFFS.open(SettingsHandler::userSettingsFilePath, "r");

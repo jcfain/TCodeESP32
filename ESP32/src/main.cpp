@@ -104,8 +104,9 @@ void CommandCallback(const String& in) {
 }
 
 void logCallBack(const char* in, LogLevel level) {
-	if(webSocketHandler)
+	if(webSocketHandler) {
 		webSocketHandler->sendDebug(in, level);
+	}
 }
 
 void setup() 
@@ -129,7 +130,7 @@ void setup()
 	#endif
 	#if DEBUG_BUILD == 1
 		LogHandler::debug("main", "DEBUG_BUILD");
-        LogHandler::setLogLevel(LogLevel::DEBUG);
+        LogHandler::setLogLevel(LogLevel::VERBOSE);
 		SettingsHandler::debug = true;
 	#endif
 
@@ -172,7 +173,7 @@ void setup()
 			"TempTask", /* Name of the task */
 			10000,  /* Stack size in words */
 			NULL,  /* Task input parameter */
-			1,  /* Priority of the task */
+			25,  /* Priority of the task */
 			&temperatureTask,  /* Task handle. */
 			0); /* Core where the task should run */
 	}
@@ -187,7 +188,7 @@ void setup()
 				"DisplayTask", /* Name of the task */
 				10000,  /* Stack size in words */
 				displayHandler,  /* Task input parameter */
-				1,  /* Priority of the task */
+				25,  /* Priority of the task */
 				&animationTask,  /* Task handle. */
 				1); /* Core where the task should run */
 		}
@@ -280,7 +281,7 @@ void setup()
 			"DisplayTask", /* Name of the task */
 			10000,  /* Stack size in words */
 			displayHandler,  /* Task input parameter */
-			1,  /* Priority of the task */
+			25,  /* Priority of the task */
 			&displayTask,  /* Task handle. */
 			1); /* Core where the task should run */
 	}

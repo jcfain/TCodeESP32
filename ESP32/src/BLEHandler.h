@@ -53,12 +53,14 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
 
     void onWrite(BLECharacteristic *pCharacteristic) 
     {
+        SettingsHandler::printMemory();
+        LogHandler::verbose(_TAG, "*** BLE onWrite");
         std::string rxValue = pCharacteristic->getValue();
 
         if (rxValue.length() > 0) 
         {
             LogHandler::debug(_TAG, "*********");
-            LogHandler::debug(_TAG, "Characteristic Received Value: ");
+            LogHandler::debug(_TAG, "BLE Characteristic Received Value: ");
 
             for (int i = 0; i < rxValue.length(); i++) {
                 Serial.print(rxValue[i]);
@@ -69,14 +71,14 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
             // Do stuff based on the command received from the app
             if (rxValue.find(">>r<<") == 0) // Restart
             {
-                LogHandler::debug(_TAG, "*** Restarting");
+                LogHandler::debug(_TAG, "*** BLE Restarting");
                 ESP.restart();
             }
             else if (rxValue.find(">>t<<") == -1) 
             {
                 pCharacteristic->setValue(">"); // More please (Doesnt really matter as the que is client side)
                 pCharacteristic->notify();
-                LogHandler::debug(_TAG, "*** Characteristic Sent Value: ");
+                LogHandler::debug(_TAG, "*** BLECharacteristic Sent Value: ");
                 LogHandler::debug(_TAG, "Ok");
                 LogHandler::debug(_TAG, " ***");
                 recievedJsonConfiguration += rxValue.data();
@@ -89,33 +91,38 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
                 {
                     pCharacteristic->setValue(">>f<<"); // Finish saving
                     pCharacteristic->notify();
-                    LogHandler::debug(_TAG, "*** Finish saving");
+                    LogHandler::debug(_TAG, "*** BLEFinish saving");
                 }
                 else
                 {
                     pCharacteristic->setValue(">>e<<"); // Error
-                    LogHandler::error(_TAG, "*** Error saving");
+                    LogHandler::error(_TAG, "*** BLE Error saving");
                     pCharacteristic->notify();
                 }
                 recievedJsonConfiguration = "";
             }
 
             Serial.println();
-            Serial.println("*********");
+            LogHandler::verbose(_TAG, "BLE onWrite ***");
         }
     }
     void onRead(BLECharacteristic *pCharacteristic) 
     {
+        LogHandler::verbose(_TAG, "*** BLE onRead");
         // char* sentValue = SettingsHandler::getJsonForBLE();
-        const char* wifiSetting = SettingsHandler::serialize();
-        if(!wifiSetting) {
-            LogHandler::error(_TAG, "*** BLE onRead empty");
-            return;
+        if(sendJsonConfiguration.empty()) {
+            const char* wifiSetting = SettingsHandler::serialize();
+            LogHandler::debug(_TAG, "BLE Get wifi settings: %s", wifiSetting);
+            if (strlen(wifiSetting) == 0) {
+                LogHandler::error(_TAG, "*** BLE onRead empty");
+                return;
+            }
+            //LogHandler::info(_TAG, "*** Sent Value: %s", wifiSetting);
+            //const int len = strlen(wifiSetting);
+            //LogHandler::info(_TAG, "*** strlen: %i", strlen(wifiSetting));
+            sendJsonConfiguration = std::string(wifiSetting);
+            LogHandler::debug(_TAG, "BLE Get wifi string: %s", sendJsonConfiguration.c_str());
         }
-        //LogHandler::info(_TAG, "*** Sent Value: %s", wifiSetting);
-        //const int len = strlen(wifiSetting);
-        //LogHandler::info(_TAG, "*** strlen: %i", strlen(wifiSetting));
-        sendJsonConfiguration = std::string(wifiSetting);
 
         // size_t chunksize = wifiSettingsString.size()/19+1;
         // for(size_t i=0; i<wifiSettingsString.size(); i+=chunksize)
@@ -128,7 +135,7 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
         if(sendChunkIndex < sendJsonConfiguration.length()) {
             if(sendJsonConfiguration.length() > sendMaxLen) {
                 std::string value = sendJsonConfiguration.substr(sendChunkIndex,sendMaxLen);
-                printf("index %d, %s\n", sendChunkIndex, value.c_str());
+                printf("index %d, length: %i, %s\n", sendChunkIndex, sendJsonConfiguration.length(), value.c_str());
                 pCharacteristic->setValue(value);
                 pCharacteristic->notify(); 
                 // printf("ESP.getFreeHeap() %i\n", ESP.getFreeHeap());
@@ -165,8 +172,8 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
         //     pCharacteristic->setValue(wifiSetting);
         //     pCharacteristic->notify(); 
         // }
-        LogHandler::debug(_TAG, "Characteristic Onread Ok");
-        LogHandler::debug(_TAG, " ***");
+        Serial.println();
+        LogHandler::debug(_TAG, "BLE Onread Ok ***");
     }
 private:
     const char* _TAG = "BLE";
@@ -188,6 +195,7 @@ class BLEHandler
     public:
     void setup() 
     {
+        LogHandler::verbose(_TAG, "*** BLE setup");
         // Create the BLE Device
         BLEDevice::init("TCodeConfigurator"); // Give it a name
         //BLEDevice::setMTU(23);
@@ -225,13 +233,15 @@ class BLEHandler
         LogHandler::info(_TAG, "BLE waiting a client connection to notify...");
         
         isInitailized = true;
+        
+        LogHandler::verbose(_TAG, "BLE setup ***");
     }
 
     void stop() 
     {
         if(isInitailized) 
         {
-            LogHandler::info(_TAG, "BLE Stop");
+            LogHandler::info(_TAG, "*** BLE Stop");
             BLEDevice::deinit(true);
             LogHandler::info(_TAG, "BLE deinit");
             isInitailized = false;

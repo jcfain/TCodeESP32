@@ -246,7 +246,8 @@ class SettingsHandler
             if(json.size() > 0) 
             {
                 logLevel = (LogLevel)(json["logLevel"] | 1);
-                LogHandler::setLogLevel(logLevel);
+                if(LogHandler::getLogLevel() < logLevel)
+                    LogHandler::setLogLevel(logLevel);
 
                 LogHandler::debug(_TAG, "Update settings");
                 const char* ssidConst = json["ssid"];
@@ -388,33 +389,36 @@ class SettingsHandler
 
         static const char* serialize()
         {
-            Serial.println("Get settings...");
+            LogHandler::debug(_TAG, "Get settings...");
             //request->send(SPIFFS, "/userSettings.json");
             File file = SPIFFS.open(userSettingsFilePath, "r");
             DynamicJsonDocument doc(deserializeSize);
             DeserializationError error = deserializeJson(doc, file);
             if (error) {
                 LogHandler::error("toJson: Error deserializing settings json: %s", file.name());
-                return 0;
+                return '\0';
             }
+            file.close();
             if(strcmp(doc["wifiPass"], defaultWifiPass) != 0 )
                 doc["wifiPass"] = "Too bad haxor!";// Do not send password if its not default
                 
             doc["lastRebootReason"] = lastRebootReason;
             String output;
             serializeJson(doc, output);
+            LogHandler::debug(_TAG, "Output: %s", output.c_str());
             return output.c_str();
-            //return "{'ssid':'FUCK'}";
         }
 
         static bool save(String data)
         {
-            String output;
+            
+            printMemory();
             DynamicJsonDocument doc(deserializeSize);
+            
             DeserializationError error = deserializeJson(doc, data);
             if (error) 
             {
-                LogHandler::error(_TAG, "Failed to read settings file, using default configuration");
+                LogHandler::error(_TAG, "Settings save: Deserialize error: %s", error.c_str());
                 return false;
             }
             // const char* ssidConst = doc["ssid"];
@@ -447,8 +451,15 @@ class SettingsHandler
             // sr6Mode = doc["sr6Mode"];
 			// bluetoothEnabled =  doc["bluetoothEnabled"];
             // return save();
-            update(doc.as<JsonObject>());
-			return save();
+            if(!update(doc.as<JsonObject>())) {
+                LogHandler::error(_TAG, "Settings save: update error");
+                return false;
+            }
+            if(!save()) {
+                LogHandler::error(_TAG, "Settings save: save error");
+                return false;
+            }
+			return true;
         }
 
         static bool save() 
@@ -472,7 +483,8 @@ class SettingsHandler
             DynamicJsonDocument doc(serializeSize);
 
             doc["logLevel"] = (int)logLevel;
-            LogHandler::setLogLevel(logLevel);
+            if(LogHandler::getLogLevel() < logLevel)
+                LogHandler::setLogLevel(logLevel);
 
             LogHandler::debug(_TAG, "Save settings");
             doc["fullBuild"] = fullBuild;
@@ -564,17 +576,21 @@ class SettingsHandler
                 return false;
             }
             LogHandler::debug(_TAG, "File contents: %s", file.readString().c_str());
+            printMemory();
+            file.close(); // Task exception here could mean not enough space on SPIFFS.
+            
+            doc["wifiPass"] = "";
+            saving = false;
+            return true;
+        }
+
+        static void printMemory() {
             LogHandler::debug(_TAG, "Free heap: %u", ESP.getFreeHeap());
             LogHandler::debug(_TAG, "Total heap: %u", ESP.getHeapSize());
             LogHandler::debug(_TAG, "Free psram: %u", ESP.getFreePsram());
             LogHandler::debug(_TAG, "Total Psram: %u", ESP.getPsramSize());
             LogHandler::debug(_TAG, "SPIFFS used: %i", SPIFFS.usedBytes());
             LogHandler::debug(_TAG, "SPIFFS total: %i",SPIFFS.totalBytes());
-            file.close(); // Task exception here could mean not enough space on SPIFFS.
-            
-            doc["wifiPass"] = "";
-            saving = false;
-            return true;
         }
 
         static void processTCodeJson(char* outbuf, char* tcodeJson) 

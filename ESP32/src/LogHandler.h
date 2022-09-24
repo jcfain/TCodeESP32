@@ -40,6 +40,9 @@ public:
         //         esp_log_level_set(tag.c_str(), ESP_LOG_ERROR);
         // }
     }
+    static LogLevel getLogLevel() {
+        return _currentLogLevel;
+    }
 
     static void verbose(const char *tag, const char *format, ...) {
         if(_currentLogLevel == LogLevel::VERBOSE) {
@@ -60,8 +63,7 @@ public:
                 }
                 if(i > 0) {
                     //ESP_LOGV(tag, "%s", temp);
-                    Serial.printf("%s", temp);
-                    Serial.printf("\n");
+                    Serial.printf("%s: %s%s", "VERBOSE", temp, "\n");
                 }
                 va_end(vArgs);
                 if(message_callback)
@@ -89,8 +91,7 @@ public:
                 }
                 if(i > 0) {
                     //ESP_LOGV(tag, "%s", temp);
-                    Serial.printf("%s", temp);
-                    Serial.printf("\n");
+                    Serial.printf("%s: %s%s", "DEBUG", temp, "\n");
                 }
                 va_end(vArgs);
                 if(message_callback)
@@ -118,8 +119,7 @@ public:
                 }
                 if(i > 0) {
                     //ESP_LOGI(tag, "%s", temp);
-                    Serial.printf("%s", temp);
-                    Serial.printf("\n");
+                    Serial.printf("%s: %s%s", "INFO", temp, "\n");
                 }
                 va_end(vArgs);
                 if(message_callback)
@@ -148,8 +148,7 @@ public:
                 }
                 if(i > 0) {
                     //ESP_LOGW(tag, "%s", temp);
-                    Serial.printf("%s", temp);
-                    Serial.printf("\n");
+                    Serial.printf("%s: %s%s", "WARNING", temp, "\n");
                 }
                 va_end(vArgs);
                 if(message_callback)
@@ -177,8 +176,7 @@ public:
                 }
                 if(i > 0) {
                     //ESP_LOGE(tag, "%s", temp);
-                    Serial.printf("%s", temp);
-                    Serial.printf("\n");
+                    Serial.printf("%s: %s%s", "ERROR", temp, "\n");
                 }
                 va_end(vArgs);
                 if(message_callback)

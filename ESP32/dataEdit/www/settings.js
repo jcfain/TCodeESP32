@@ -227,7 +227,7 @@ function onDefaultClick()
 				infoNode.innerText = "Settings reset!";
                 infoNode.style.color = 'green';
 				document.getElementById('requiresRestart').hidden = false;
-				document.getElementById('resetBtn').disabled = false ;
+				//document.getElementById('resetBtn').disabled = false ;
 				setTimeout(() => 
 				{
                     infoNode.hidden = true;
@@ -556,12 +556,12 @@ function updateUserSettings()
 
 function showRestartRequired() {
     document.getElementById('requiresRestart').hidden = false;
-    document.getElementById('resetBtn').disabled = false;
+    //document.getElementById('resetBtn').disabled = false;
 }
 
 function hideRestartRequired() {
     document.getElementById('requiresRestart').hidden = true;
-    document.getElementById('resetBtn').disabled = true;
+    //document.getElementById('resetBtn').disabled = true;
 }
 
 function showLoading(message) {
