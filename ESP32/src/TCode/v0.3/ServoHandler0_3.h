@@ -71,41 +71,51 @@ public:
         // Setup Servo PWM channels
         // Lower Left Servo
         if(DEBUG_BUILD == 0) {
+            LogHandler::verbose(_TAG, "Connecting left servo to pin: %u", SettingsHandler::LeftServo_PIN);
             ledcSetup(LowerLeftServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::LeftServo_PIN,LowerLeftServo_PWM);
             // Lower Right Servo
+            LogHandler::verbose(_TAG, "Connecting right servo to pin: %u", SettingsHandler::RightServo_PIN);
             ledcSetup(LowerRightServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::RightServo_PIN,LowerRightServo_PWM);
         }
         if(SettingsHandler::sr6Mode)
         {
             // Upper Left Servo
+            LogHandler::verbose(_TAG, "Connecting left upper servo to pin: %u", SettingsHandler::LeftUpperServo_PIN);
             ledcSetup(UpperLeftServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::LeftUpperServo_PIN,UpperLeftServo_PWM);
             if(DEBUG_BUILD == 0) {
                 // Upper Right Servo
+            LogHandler::verbose(_TAG, "Connecting right upper servo to pin: %u", SettingsHandler::RightUpperServo_PIN);
                 ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);
                 ledcAttachPin(SettingsHandler::RightUpperServo_PIN,UpperRightServo_PWM);
                 // Right Pitch Servo
+                LogHandler::verbose(_TAG, "Connecting right pitch servo to pin: %u", SettingsHandler::PitchRightServo_PIN);
                 ledcSetup(RightPitchServo_PWM,PitchServo_Freq,16);
                 ledcAttachPin(SettingsHandler::PitchRightServo_PIN,RightPitchServo_PWM);
             }
         }
         // Left Pitch Servo
+        LogHandler::verbose(_TAG, "Connecting pitch servo to pin: %u", SettingsHandler::PitchLeftServo_PIN);
         ledcSetup(LeftPitchServo_PWM,PitchServo_Freq,16);
         ledcAttachPin(SettingsHandler::PitchLeftServo_PIN,LeftPitchServo_PWM);
         // Twist Servo
+        LogHandler::verbose(_TAG, "Connecting twist servo to pin: %u", SettingsHandler::TwistServo_PIN);
         ledcSetup(TwistServo_PWM,TwistServo_Freq,16);
         ledcAttachPin(SettingsHandler::TwistServo_PIN,TwistServo_PWM);
         // Valve Servo
+        LogHandler::verbose(_TAG, "Connecting valve servo to pin: %u", SettingsHandler::ValveServo_PIN);
         ledcSetup(ValveServo_PWM,ValveServo_Freq,16);
         ledcAttachPin(SettingsHandler::ValveServo_PIN,ValveServo_PWM);
 
         // Set vibration PWM pins
         // Vibe0 Pin
+        LogHandler::verbose(_TAG, "Connecting vib 1 to pin: %u", SettingsHandler::Vibe0_PIN);
         ledcSetup(Vibe0_PWM,VibePWM_Freq,8);
         ledcAttachPin(SettingsHandler::Vibe0_PIN,Vibe0_PWM);
         // Vibe1 Pin
+        LogHandler::verbose(_TAG, "Connecting vib 2 to pin: %u", SettingsHandler::Vibe1_PIN);
         ledcSetup(Vibe1_PWM,VibePWM_Freq,8);
         ledcAttachPin(SettingsHandler::Vibe1_PIN,Vibe1_PWM); 
 
@@ -115,6 +125,7 @@ public:
             pinMode(SettingsHandler::TwistFeedBack_PIN,INPUT);
             if(!SettingsHandler::analogTwist) 
             {
+                LogHandler::verbose(_TAG, "Attaching interrupt for twist feedback to pin: %u", SettingsHandler::TwistFeedBack_PIN);
                 attachInterrupt(SettingsHandler::TwistFeedBack_PIN, twistChange, CHANGE);
                 //Serial.print("Setting digital twist "); 
                 //Serial.println(SettingsHandler::TwistFeedBack_PIN);

@@ -56,8 +56,9 @@ class WebHandler {
                 // DynamicJsonDocument doc(SettingsHandler::deserialize);
                 // File file = SPIFFS.open(SettingsHandler::userSettingsFilePath, "r");
                 // DeserializationError error = deserializeJson(doc, file);
-                const char* json = SettingsHandler::serialize();
-                if (strlen(json) == 0) {
+                char settings[2048];
+                SettingsHandler::serialize(settings);
+                if (strlen(settings) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
                     request->send(response);
                     return;
@@ -68,7 +69,7 @@ class WebHandler {
                 // doc["lastRebootReason"] = SettingsHandler::lastRebootReason;
                 // String output;
                 // serializeJson(doc, output);
-                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", settings);
                 request->send(response);
             });   
 

@@ -78,7 +78,7 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
             {
                 pCharacteristic->setValue(">"); // More please (Doesnt really matter as the que is client side)
                 pCharacteristic->notify();
-                LogHandler::debug(_TAG, "*** BLECharacteristic Sent Value: ");
+                LogHandler::debug(_TAG, "*** BLE Characteristic Sent Value: ");
                 LogHandler::debug(_TAG, "Ok");
                 LogHandler::debug(_TAG, " ***");
                 recievedJsonConfiguration += rxValue.data();
@@ -91,7 +91,7 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
                 {
                     pCharacteristic->setValue(">>f<<"); // Finish saving
                     pCharacteristic->notify();
-                    LogHandler::debug(_TAG, "*** BLEFinish saving");
+                    LogHandler::debug(_TAG, "*** BLE Finish saving");
                 }
                 else
                 {
@@ -111,16 +111,17 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
         LogHandler::verbose(_TAG, "*** BLE onRead");
         // char* sentValue = SettingsHandler::getJsonForBLE();
         if(sendJsonConfiguration.empty()) {
-            const char* wifiSetting = SettingsHandler::serialize();
-            LogHandler::debug(_TAG, "BLE Get wifi settings: %s", wifiSetting);
-            if (strlen(wifiSetting) == 0) {
+            char settings[2048];
+            SettingsHandler::serialize(settings);
+            LogHandler::debug(_TAG, "BLE Get wifi settings: %s", settings);
+            if (strlen(settings) == 0) {
                 LogHandler::error(_TAG, "*** BLE onRead empty");
                 return;
             }
             //LogHandler::info(_TAG, "*** Sent Value: %s", wifiSetting);
             //const int len = strlen(wifiSetting);
             //LogHandler::info(_TAG, "*** strlen: %i", strlen(wifiSetting));
-            sendJsonConfiguration = std::string(wifiSetting);
+            sendJsonConfiguration = std::string(settings);
             LogHandler::debug(_TAG, "BLE Get wifi string: %s", sendJsonConfiguration.c_str());
         }
 

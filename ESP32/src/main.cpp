@@ -181,7 +181,7 @@ void setup()
 	if(SettingsHandler::displayEnabled)
 	{
 		displayHandler->setup();
-		if(SettingsHandler::newtoungeHatExists)
+		if(ISAAC_NEWTONGUE_BUILD == 1)
 		{
 			xTaskCreatePinnedToCore(
 				DisplayHandler::startAnimationDontPanic,/* Function to implement the task */

@@ -107,34 +107,34 @@ class WifiHandler
       return true;
     }
 
-    void WiFiEvent(WiFiEvent_t event, system_event_info_t info){
+    void WiFiEvent(arduino_event_id_t event, arduino_event_info_t info){
       switch(event){
-        case SYSTEM_EVENT_STA_START:
+        case ARDUINO_EVENT_WIFI_STA_START:
           LogHandler::info(_TAG, "Station Mode Started");
           break;
-        case SYSTEM_EVENT_STA_GOT_IP:
+        case ARDUINO_EVENT_WIFI_STA_GOT_IP:
           LogHandler::info(_TAG, "Connected to: %s", WiFi.SSID().c_str());
           LogHandler::info(_TAG, "IP Address: %s", WiFi.localIP().toString().c_str());
           break;
-        case SYSTEM_EVENT_STA_DISCONNECTED:
+        case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
           LogHandler::warning(_TAG, "Disconnected from station, attempting reconnection");
           WiFi.reconnect();
           break;
-        case SYSTEM_EVENT_STA_WPS_ER_SUCCESS:
+        case ARDUINO_EVENT_WPS_ER_SUCCESS:
           LogHandler::info(_TAG, "WPS Successfull, stopping WPS and connecting to: %s", WiFi.SSID().c_str());
           WiFi.begin();
           break;
-        case SYSTEM_EVENT_STA_WPS_ER_FAILED:
+        case ARDUINO_EVENT_WPS_ER_FAILED:
           LogHandler::error(_TAG, "WPS Failed, retrying");
           WiFi.reconnect();
           break;
-        case SYSTEM_EVENT_STA_WPS_ER_TIMEOUT:
+        case ARDUINO_EVENT_WPS_ER_TIMEOUT:
           LogHandler::error(_TAG, "WPS Timedout, retrying");
           WiFi.reconnect();
           break;
-        case SYSTEM_EVENT_STA_WPS_ER_PIN:
+        case ARDUINO_EVENT_WPS_ER_PIN:
           break;
-        case SYSTEM_EVENT_AP_STACONNECTED:
+        case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
           if(_apMode)
           {
             _bleHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
@@ -142,7 +142,7 @@ class WifiHandler
               _btHandler->stop();
           }
           break;
-        case SYSTEM_EVENT_AP_STADISCONNECTED:
+        case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
           if(_apMode)
           {
             // _bleHandler->setup(); //Didnt get called for some reason. No time to debug. Just restart the esp.
@@ -162,7 +162,7 @@ class WifiHandler
       WiFi.softAP(ssid);
       LogHandler::info(_TAG, "Mac: ", mac().c_str());
       delay(100);
-      onApEventID = WiFi.onEvent([this](WiFiEvent_t event, system_event_info_t info) {
+      onApEventID = WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info) {
                     this->WiFiEvent(event, info);
                   });
 

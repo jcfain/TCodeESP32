@@ -531,12 +531,12 @@ public:
             // Output vibration channels
             // These should drive PWM pins connected to vibration motors via MOSFETs or H-bridges.
             if ((vibe0 > 1) && (vibe0 <= 1000)) 
-                analogWrite(Vibe0_PIN,map(vibe0,2,1000,31,255));
+                analogWrite(Vibe0_PIN, (uint16_t)map(vibe0,2,1000,31,255));
 			else 
                 analogWrite(Vibe0_PIN,0);
 
             if ((vibe1 > 1) && (vibe1 <= 1000)) 
-                analogWrite(Vibe1_PIN,map(vibe1,2,1000,31,255));
+                analogWrite(Vibe1_PIN, (uint16_t)map(vibe1,2,1000,31,255));
 			else if (digitalRead(LubeManual_PIN) == HIGH) 
 				// For iLube - if no software action, check the manual button too
 				analogWrite(Vibe1_PIN, lubeAmount);

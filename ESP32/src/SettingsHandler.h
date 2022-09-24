@@ -148,8 +148,8 @@ class SettingsHandler
 			if(!SPIFFS.exists(userSettingsFilePath)) 
 			{
                 LogHandler::info(_TAG, "Failed to read settings file, using default configuration");
-                LogHandler::info(_TAG, "Read Settings: /userSettingsDefault.json");
-            	file = SPIFFS.open("/userSettingsDefault.json", "r");
+                LogHandler::info(_TAG, "Read Settings: %s", userSettingsDefaultFilePath);
+            	file = SPIFFS.open(userSettingsDefaultFilePath, "r");
 				loadingDefault = true;
 			} 
 			else 
@@ -181,7 +181,7 @@ class SettingsHandler
                         LogHandler::error(_TAG, "TooDeep");
                     break;
                 }
-            	file = SPIFFS.open("/userSettingsDefault.json", "r");
+            	file = SPIFFS.open(userSettingsDefaultFilePath, "r");
                 deserializeJson(doc, file);
                 loadingDefault = true;
             }
@@ -189,7 +189,7 @@ class SettingsHandler
             const char* storedVersion = jsonObj["esp32Version"];
 
             update(jsonObj);
-            if(newtoungeHatExists) 
+            if(ISAAC_NEWTONGUE_BUILD == 1) 
             {
                 RightServo_PIN = 13;
                 LeftServo_PIN = 2;
@@ -214,7 +214,7 @@ class SettingsHandler
                 PitchLeftServo_PIN = 4;
                 LeftUpperServo_PIN = 2;
                 LeftServo_PIN = 15;
-                ValveServo_PIN = 28;
+                ValveServo_PIN = 25;
                 TwistServo_PIN = 27;
                 TwistFeedBack_PIN = 26;
                 Vibe0_PIN = 18;
@@ -231,9 +231,8 @@ class SettingsHandler
 
         static void reset() 
         {
-            const char* filename = "/userSettingsDefault.json";
             DynamicJsonDocument doc(deserializeSize);
-            File file = SPIFFS.open(filename, "r");
+            File file = SPIFFS.open(userSettingsDefaultFilePath, "r");
             DeserializationError error = deserializeJson(doc, file);
             if (error)
                 LogHandler::error(_TAG, "Failed to read default settings file, using default configuration");
@@ -379,7 +378,6 @@ class SettingsHandler
         // {
         //     //DynamicJsonDocument doc(readCapacity);
         //     //DeserializationError error = deserializeJson(doc, jsonInput, sizeof(jsonInput));
-        //     const char* filename = "/userSettings.json";
         //     File file = SPIFFS.open(filename, "r");
         //     size_t size = file.size();
         //     char* bytes = new char[size];
@@ -387,16 +385,16 @@ class SettingsHandler
         //     return bytes;
         // }
 
-        static const char* serialize()
+        static void serialize(char buf[2048])
         {
             LogHandler::debug(_TAG, "Get settings...");
-            //request->send(SPIFFS, "/userSettings.json");
             File file = SPIFFS.open(userSettingsFilePath, "r");
             DynamicJsonDocument doc(deserializeSize);
             DeserializationError error = deserializeJson(doc, file);
             if (error) {
                 LogHandler::error("toJson: Error deserializing settings json: %s", file.name());
-                return '\0';
+                buf[0] = {0};
+                return;
             }
             file.close();
             if(strcmp(doc["wifiPass"], defaultWifiPass) != 0 )
@@ -405,8 +403,11 @@ class SettingsHandler
             doc["lastRebootReason"] = lastRebootReason;
             String output;
             serializeJson(doc, output);
-            LogHandler::debug(_TAG, "Output: %s", output.c_str());
-            return output.c_str();
+            //serializeJson(doc, Serial);
+            Serial.printf("\nOutput: %s\n", output.c_str());
+            //LogHandler::debug(_TAG, "Output: %s", output.c_str());
+            buf[0]  = {0};
+            strcpy(buf, output.c_str());
         }
 
         static bool save(String data)
@@ -646,6 +647,7 @@ class SettingsHandler
         
     private:
         static const char* _TAG;
+        static const char* userSettingsDefaultFilePath;
         // Use http://arduinojson.org/assistant to compute the capacity.
         // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
         // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
@@ -991,6 +993,7 @@ TCodeVersion SettingsHandler::TCodeVersionEnum;
 const char SettingsHandler::ESP32Version[14] = "ESP32 v0.246b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
+const char* SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
 const char* SettingsHandler::userSettingsFilePath = "/userSettings.json";
 const char* SettingsHandler::logPath = "/log.json";
 const char* SettingsHandler::defaultWifiPass = "YOUR PASSWORD HERE";

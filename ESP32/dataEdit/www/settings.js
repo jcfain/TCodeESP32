@@ -313,6 +313,8 @@ function checkForServer() {
 
 function setUserSettings() 
 {
+    if(!userSettings)
+        showError("Error getting user settings!");
     toggleNonTCodev3Options();
     toggleDeviceOptions(userSettings["sr6Mode"]);
     toggleStaticIPSettings(userSettings["staticIP"]);
