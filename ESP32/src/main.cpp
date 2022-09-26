@@ -214,30 +214,6 @@ void setup()
 			webSocketHandler = new WebSocketHandler();
 			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler);
 		} 
-		else 
-		{
-#if FULL_BUILD == 1
-			displayHandler->clearDisplay();
-#endif
-			LogHandler::warning("main-setup", "Connection failed: Starting in APMode");
-			displayPrint("Connection failed");
-			displayPrint("Starting in APMode");
-			apMode = true;
-			if (wifi.startAp(bleHandler)) 
-			{
-				displayPrint("APMode started");
-				webSocketHandler = new WebSocketHandler();
-				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, true);
-			} 
-			else 
-			{
-				LogHandler::error("main-setup", "APMode start failed");
-				displayPrint("APMode start failed");
-			}
-			// Causes crash loop for some reason.
-			// displayPrint("Starting BLE setup");
-			// bleHandler->setup();
-		}
 	} 
 	else 
 	{

@@ -13,43 +13,14 @@ For now this is only for first configs */
 #define SERVICE_UUID "ff1b451d-3070-4276-9c81-5dc5ea1043bc" // UART service UUID
 #define CHARACTERISTIC_UUID "c5f1543e-338d-47a0-8525-01e3c621359d"
 
-class MyServerCallbacks: public BLEServerCallbacks {
-    void onConnect(BLEServer* pServer) 
-    {
-        LogHandler::debug(_TAG, "*********");
-        LogHandler::debug(_TAG, "Device connected");
-    };
-    void onDisconnect(BLEServer* pServer) 
-    {
-        LogHandler::debug(_TAG, "*********");
-        LogHandler::debug(_TAG, "Device disconnected");
-        BLEDevice::startAdvertising();
-    }
-private:
-    const char* _TAG = "BLE";
-};
-
-class DescriptorCallbacks: public BLEDescriptorCallbacks 
-{
-    void onWrite(BLEDescriptor *pDescriptor) 
-    {
-        LogHandler::debug(_TAG, "*********");
-        LogHandler::debug(_TAG, "Descriptor onWrite: ");
-    }
-    void onRead(BLEDescriptor *pDescriptor) 
-    {
-        LogHandler::debug(_TAG, "*********");
-        LogHandler::debug(_TAG, "Descriptor onRead: ");
-    }
-private:
-    const char* _TAG = "BLE";
-};
 class CharacteristicCallbacks: public BLECharacteristicCallbacks 
 {
     String recievedJsonConfiguration = "";
     std::string sendJsonConfiguration = "";
     unsigned sendChunkIndex = 0;
+    bool sentLength = false;
     int sendMaxLen = 499;
+
 
     void onWrite(BLECharacteristic *pCharacteristic) 
     {
@@ -116,6 +87,8 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
             LogHandler::debug(_TAG, "BLE Get wifi settings: %s", settings);
             if (strlen(settings) == 0) {
                 LogHandler::error(_TAG, "*** BLE onRead empty");
+                pCharacteristic->setValue(">>e<<");
+                pCharacteristic->notify(); 
                 return;
             }
             //LogHandler::info(_TAG, "*** Sent Value: %s", wifiSetting);
@@ -133,7 +106,14 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
         //     pCharacteristic->setValue(value);
         //     pCharacteristic->notify(); 
         // }
-        if(sendChunkIndex < sendJsonConfiguration.length()) {
+        if(!sentLength) {
+            sentLength = true;
+            char lengthNotify[10];
+            sprintf(lengthNotify, ">>l<<:%zu", sendJsonConfiguration.length());
+            pCharacteristic->setValue(lengthNotify);
+            pCharacteristic->notify(); 
+
+        } else if(sendChunkIndex < sendJsonConfiguration.length()) {
             if(sendJsonConfiguration.length() > sendMaxLen) {
                 std::string value = sendJsonConfiguration.substr(sendChunkIndex,sendMaxLen);
                 printf("index %d, length: %i, %s\n", sendChunkIndex, sendJsonConfiguration.length(), value.c_str());
@@ -153,6 +133,7 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
             pCharacteristic->setValue(">>f<<");
             pCharacteristic->notify(); 
             sendJsonConfiguration = "";
+            sentLength = false;
             sendChunkIndex = 0;
         }
         // int i = 0;
@@ -176,6 +157,13 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
         Serial.println();
         LogHandler::debug(_TAG, "BLE Onread Ok ***");
     }
+public:
+    void resetState() {
+        recievedJsonConfiguration = "";
+        sendJsonConfiguration = "";
+        sentLength = false;
+        sendChunkIndex = 0;
+    }
 private:
     const char* _TAG = "BLE";
     // QueueHandle_t debugInQueue;
@@ -183,6 +171,42 @@ private:
     // TaskHandle_t* emptyQueueHandle;
     // bool emptyQueueRunning;
 };
+CharacteristicCallbacks *characteristicCallbacks = new CharacteristicCallbacks();
+
+class MyServerCallbacks: public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) 
+    {
+        LogHandler::debug(_TAG, "*********");
+        LogHandler::debug(_TAG, "Device connected");
+        characteristicCallbacks->resetState();
+    };
+    void onDisconnect(BLEServer* pServer) 
+    {
+        LogHandler::debug(_TAG, "*********");
+        LogHandler::debug(_TAG, "Device disconnected");
+        characteristicCallbacks->resetState();
+        BLEDevice::startAdvertising();
+    }
+private:
+    const char* _TAG = "BLE";
+};
+
+class DescriptorCallbacks: public BLEDescriptorCallbacks 
+{
+    void onWrite(BLEDescriptor *pDescriptor) 
+    {
+        LogHandler::debug(_TAG, "*********");
+        LogHandler::debug(_TAG, "Descriptor onWrite: ");
+    }
+    void onRead(BLEDescriptor *pDescriptor) 
+    {
+        LogHandler::debug(_TAG, "*********");
+        LogHandler::debug(_TAG, "Descriptor onRead: ");
+    }
+private:
+    const char* _TAG = "BLE";
+};
+
 class BLEHandler 
 {
     private:
@@ -219,7 +243,7 @@ class BLEHandler
         BLEDescriptor* p2902Descriptor = new BLEDescriptor(CHARACTERISTIC_UUID);
         p2902Descriptor->setCallbacks(new DescriptorCallbacks());
         pCharacteristic->addDescriptor(p2902Descriptor);
-        pCharacteristic->setCallbacks(new CharacteristicCallbacks());
+        pCharacteristic->setCallbacks(characteristicCallbacks);
 
         // Start the service
         pService->start();
