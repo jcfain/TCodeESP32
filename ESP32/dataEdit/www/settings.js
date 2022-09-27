@@ -73,8 +73,8 @@ function onDocumentLoad() {
     initWebSocket();
     createImportSettingsInputElement();
     
-    debugTextElement = document.getElementById("debugText");
-    debugTextElement.scrollTop = debugTextElement.scrollHeight;
+    // debugTextElement = document.getElementById("debugText");
+    // debugTextElement.scrollTop = debugTextElement.scrollHeight;
 }
 
 function getUserSettings() {
@@ -177,23 +177,27 @@ function wsCallBackFunction(evt) {
 }
 
 function debug(message) {
-    if(dubugMessages.length > 1000)
-        dubugMessages.shift();
-    dubugMessages.push(message);
-    debugTextElement.value = dubugMessages.join("\n");
-    debugTextElement.scrollTop = debugTextElement.scrollHeight;
+    if(debugTextElement) {
+        if(dubugMessages.length > 1000)
+            dubugMessages.shift();
+        dubugMessages.push(message);
+        debugTextElement.value = dubugMessages.join("\n");
+        debugTextElement.scrollTop = debugTextElement.scrollHeight;
+    }
 }
 
 function setDebug() {
     userSettings["logLevel"] = parseInt(document.getElementById('debug').value);
-    if(userSettings["logLevel"] == LogLevel.VERBOSE)
-        alert("There are not enough resources to send VERBOSE messages to the site.\nUse serial to view them.")
+    // if(userSettings["logLevel"] == LogLevel.VERBOSE)
+    //     alert("There are not enough resources to send VERBOSE messages to the site.\nUse serial to view them.")
 	updateUserSettings();
 }
 
 function clearLog() {
-    dubugMessages = [];
-    debugTextElement.value = "";
+    if(debugTextElement) {
+        dubugMessages = [];
+        debugTextElement.value = "";
+    }
 }
 
 //https://base64.guru/converter/encode/audio

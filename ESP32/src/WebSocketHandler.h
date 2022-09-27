@@ -41,11 +41,11 @@ class WebSocketHandler {
             if(tCodeInQueue == NULL) {
                 LogHandler::error(_TAG, "Error creating the tcode queue");
             }
-            debugInQueue = xQueueCreate(10, sizeof(char[255]));
-            if(debugInQueue == NULL) {
-                LogHandler::error(_TAG, "Error creating the debug queue");
-            }
-            xTaskCreate(this->emptyQueue, "emptyDebugQueue", 2042, this, tskIDLE_PRIORITY, emptyQueueHandle);
+            // debugInQueue = xQueueCreate(10, sizeof(char[255]));
+            // if(debugInQueue == NULL) {
+            //     LogHandler::error(_TAG, "Error creating the debug queue");
+            // }
+            // xTaskCreate(this->emptyQueue, "emptyDebugQueue", 2042, this, tskIDLE_PRIORITY, emptyQueueHandle);
             isInitialized = true;
         }
         
@@ -55,23 +55,23 @@ class WebSocketHandler {
         }
 
         void sendDebug(const char* message, LogLevel level) {
-            if (level != LogLevel::VERBOSE && isInitialized && debugInQueue != NULL && uxQueueMessagesWaiting(debugInQueue) < 10 && serial_mtx.try_lock()) {
-                std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
-                    // char messageToSend[255];
-                    // if(sizeof(message) > 253) {
-                    //     strncpy(messageToSend, message, 253);
-                    //     messageToSend[254] = '\0';
-                    //     Serial.println("truncated");
-                    // } else {
-                    //     strcpy(messageToSend, message);
-                    //     messageToSend[strlen(message)] = '\0';
-                    // }
-                    // if(level >= LogLevel::DEBUG) {
-                    //     Serial.print("insert to q: ");
-                    //     Serial.println(message);
-                    // }
-                    //xQueueSend(debugInQueue, message, 0);
-            }
+            // if (level != LogLevel::VERBOSE && isInitialized && debugInQueue != NULL && uxQueueMessagesWaiting(debugInQueue) < 10 && serial_mtx.try_lock()) {
+            //     std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
+            //         // char messageToSend[255];
+            //         // if(sizeof(message) > 253) {
+            //         //     strncpy(messageToSend, message, 253);
+            //         //     messageToSend[254] = '\0';
+            //         //     Serial.println("truncated");
+            //         // } else {
+            //         //     strcpy(messageToSend, message);
+            //         //     messageToSend[strlen(message)] = '\0';
+            //         // }
+            //         // if(level >= LogLevel::DEBUG) {
+            //         //     Serial.print("insert to q: ");
+            //         //     Serial.println(message);
+            //         // }
+            //         xQueueSend(debugInQueue, message, 0);
+            // }
         }
 
         void sendCommand(const char* command, const char* message = 0, AsyncWebSocketClient* client = 0)
