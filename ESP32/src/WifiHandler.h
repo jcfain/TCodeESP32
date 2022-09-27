@@ -23,9 +23,17 @@ SOFTWARE. */
 #pragma once
 #include <WiFi.h>
 #include <esp_wifi.h>
-#include "BLEHandler.h"
-#include "BluetoothHandler.h"
-
+enum class WiFiStatus {
+  CONNECTED,
+  DISCONNECTED
+};
+enum class WiFiReason {
+  UNKNOWN,
+  AUTH,
+  NO_AP,
+  AP_MODE
+};
+using WIFI_STATUS_FUNCTION_PTR_T = void (*)(WiFiStatus status, WiFiReason reason);
 class WifiHandler 
 {
   public:
@@ -132,29 +140,37 @@ class WifiHandler
         case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: 
         {
           LogHandler::warning(_TAG, "Disconnected from station, attempting reconnection");
+          LogHandler::info(_TAG, "Reason: %u", lastReason);
           uint8_t reason = info.wifi_sta_disconnected.reason;
-          LogHandler::info(_TAG, "Reason: %u", reason);
           if(reason == WIFI_REASON_NO_AP_FOUND) {
             LogHandler::info(_TAG, "WIFI_REASON_NO_AP_FOUND");
-            //_bleHandler->setup();
-            startAp(_bleHandler, _btHandler);
+            lastReason = reason;
           } else if(reason == WIFI_REASON_AUTH_FAIL || reason == WIFI_REASON_CONNECTION_FAIL) {
-            LogHandler::warning("main-setup", "Connection auth failed: Resetting wifi password and restarting");
-            strcpy(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass);
-            SettingsHandler::save();
-            ESP.restart();
-          } 
-          else if(reason == WIFI_REASON_BEACON_TIMEOUT || reason == WIFI_REASON_HANDSHAKE_TIMEOUT) {
+            lastReason = reason;
+          } else if(reason == WIFI_REASON_BEACON_TIMEOUT || reason == WIFI_REASON_HANDSHAKE_TIMEOUT) {
             LogHandler::info(_TAG, "WIFI_REASON_BEACON_TIMEOUT or WIFI_REASON_HANDSHAKE_TIMEOUT");
           } else if(reason == WIFI_REASON_AUTH_EXPIRE) {
             LogHandler::info(_TAG, "WIFI_REASON_AUTH_EXPIRE");
           } else {
-            WiFi.reconnect();
+            LogHandler::info(_TAG, "Unknown reason %u", lastReason);
           }
+          WiFi.reconnect();
           break;
         }
         case ARDUINO_EVENT_WIFI_STA_STOP:
           LogHandler::error(_TAG, "Station Mode Stopped: %u", info.wifi_sta_disconnected.reason);
+          if(lastReason == WIFI_REASON_NO_AP_FOUND) {
+            LogHandler::info(_TAG, "WIFI_REASON_NO_AP_FOUND");
+            if(wifiStatus_callback)
+              wifiStatus_callback(WiFiStatus::DISCONNECTED, WiFiReason::NO_AP);
+          } else if(lastReason == WIFI_REASON_AUTH_FAIL || lastReason == WIFI_REASON_CONNECTION_FAIL) {
+            if(wifiStatus_callback)
+              wifiStatus_callback(WiFiStatus::DISCONNECTED, WiFiReason::AUTH);
+          } else {
+            if(wifiStatus_callback)
+              wifiStatus_callback(WiFiStatus::DISCONNECTED, WiFiReason::UNKNOWN);
+          }
+            lastReason = 0;
           break;
         case ARDUINO_EVENT_WPS_ER_SUCCESS:
           LogHandler::info(_TAG, "WPS Successfull, stopping WPS and connecting to: %s", WiFi.SSID().c_str());
@@ -173,15 +189,20 @@ class WifiHandler
           break;
         case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
           LogHandler::debug(_TAG, "ARDUINO_EVENT_WIFI_AP_STACONNECTED");
-          if(_apMode)
-          {
-            _bleHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
-            if(_btHandler)
-              _btHandler->stop();
-          }
+            if(wifiStatus_callback)
+              wifiStatus_callback(WiFiStatus::CONNECTED, WiFiReason::AP_MODE);
+          // if(_apMode)
+          // {
+          //   if(_bleHandler)
+          //     _bleHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
+          //   if(_btHandler)
+          //     _btHandler->stop();
+          // }
           break;
         case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
           LogHandler::debug(_TAG, "ARDUINO_EVENT_WIFI_AP_STADISCONNECTED");
+            if(wifiStatus_callback)
+              wifiStatus_callback(WiFiStatus::DISCONNECTED, WiFiReason::AP_MODE);
           if(_apMode)
           {
             // _bleHandler->setup(); //Didnt get called for some reason. No time to debug. Just restart the esp.
@@ -192,9 +213,7 @@ class WifiHandler
       }
     }
 
-    bool startAp(BLEHandler* bleHandler, BluetoothHandler* btHandler = 0) {
-      _bleHandler = bleHandler;
-      _btHandler = btHandler;
+    bool startAp() {
       WiFi.disconnect(true, true);
       WiFi.mode(WIFI_AP);
       //WiFi.setHostname("TCodeESP32");
@@ -222,16 +241,20 @@ class WifiHandler
       LogHandler::info(_TAG, "Wifi APMode IP: %s", WiFi.softAPIP().toString().c_str());//TODO: fix this.. 
       return true;
     }
+	void setWiFiStatusCallback(WIFI_STATUS_FUNCTION_PTR_T f)
+	{
+		wifiStatus_callback = f == nullptr ? 0 : f;
+	}
 private: 
+    WIFI_STATUS_FUNCTION_PTR_T wifiStatus_callback;
     const char* _TAG = "WIFI";
     const char *ssid = "TCodeESP32Setup";
     const char *password = "12345678";
     int connectTimeOut = 10000;
     int onApEventID = 0;
-    BLEHandler* _bleHandler;
-    BluetoothHandler* _btHandler;
     static int8_t _rssi;
     static bool _apMode;
+    uint8_t lastReason;
   //  String translateEncryptionType(wifi_auth_mode_t encryptionType) {
   //    switch (encryptionType) {
   //      case (WIFI_AUTH_OPEN):

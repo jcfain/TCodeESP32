@@ -185,7 +185,7 @@ public:
         }
     }
 
-	static void setMessageCallback(LOG_FUNCTION_PTR_T f) // Sets the callback function used by TCode
+	static void setMessageCallback(LOG_FUNCTION_PTR_T f)
 	{
 		message_callback = f == nullptr ? 0 : f;
 	}

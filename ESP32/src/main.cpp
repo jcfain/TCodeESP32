@@ -68,7 +68,7 @@ ServoHandler* servoHandler;
 WifiHandler wifi;
 WebHandler webHandler;
 WebSocketHandler* webSocketHandler = 0;
-BLEHandler* bleHandler = new BLEHandler();
+BLEHandler* bleHandler = 0;
 
 #if FULL_BUILD == 1
 	DisplayHandler* displayHandler;
@@ -109,16 +109,110 @@ void logCallBack(const char* in, LogLevel level) {
 	}
 }
 
+void startWeb(bool apMode) {
+	if(!webHandler.initialized) {
+		LogHandler::info("main-setup", "Starting web server");
+		displayPrint("Starting web server");
+		webSocketHandler = new WebSocketHandler();
+		webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, apMode);
+	}
+}
+
+void startBLE() {
+	if(!bleHandler) {
+		LogHandler::info("main-setup", "Starting BLE");
+		displayPrint("Starting BLE");
+		bleHandler = new BLEHandler();
+		bleHandler->setup();
+	}
+}
+
+void startBlueTooth() {
+	if(!btHandler) {
+		LogHandler::info("main-setup", "Starting Bluetooth serial");
+		displayPrint("Starting Bluetooth serial");
+		btHandler = new BluetoothHandler();
+		btHandler->setup();
+	}
+	startBLE();
+}
+
+void startUDP() {
+	if(!udpHandler) {
+		LogHandler::info("main-setup", "Starting UDP");
+		displayPrint("Starting UDP");
+		udpHandler = new Udphandler();
+		udpHandler->setup(SettingsHandler::udpServerPort);
+	}
+}
+
+void startConfigMode(bool withBlueTooth = true) {
+	apMode = true;
+	LogHandler::info("main-setup", "Starting in APMode");
+	displayPrint("Starting in APMode");
+	if (wifi.startAp()) 
+	{
+		LogHandler::info("main-setup", "APMode started");
+		displayPrint("APMode started");
+		startWeb(true);
+	}
+	else 
+	{
+		LogHandler::error("main-setup", "APMode start failed");
+		displayPrint("APMode start failed");
+	}
+
+// After attempting to connect wifi, ble cause crash
+	if(withBlueTooth) { 
+		startBLE();
+	}
+}
+
+
+
+void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
+	if(status == WiFiStatus::CONNECTED) {
+		if(reason == WiFiReason::AP_MODE) {
+            if(bleHandler)
+              bleHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
+            if(btHandler)
+              btHandler->stop();
+		}
+	} else {
+		// wifi.dispose();
+		// startApMode();
+		if(reason == WiFiReason::NO_AP || reason == WiFiReason::UNKNOWN) {
+			startConfigMode(false);
+		} else if(reason == WiFiReason::AUTH) {
+            LogHandler::warning("main-setup", "Connection auth failed: Resetting wifi password and restarting");
+            strcpy(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass);
+            SettingsHandler::save();
+            ESP.restart();
+		} 
+	}
+}
+
 void setup() 
 {
 	// see if we can use the onboard led for status
 	//https://github.com/kriswiner/ESP32/blob/master/PWM/ledcWrite_demo_ESP32.ino
   	//digitalWrite(5, LOW);// Turn off on-board blue led
 
+
 	Serial.begin(115200);
 	
     LogHandler::setLogLevel(LogLevel::INFO);
 	LogHandler::setMessageCallback(logCallBack);
+	wifi.setWiFiStatusCallback(wifiStatusCallBack);
+
+	uint32_t chipId = 0;
+	for(int i=0; i<17; i=i+8) {
+	  chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
+	}
+	Serial.println();
+	LogHandler::info("main-setup", "ESP32 Chip model = %s Rev %d\n", ESP.getChipModel(), ESP.getChipRevision());
+	LogHandler::info("main-setup", "This chip has %d cores\n", ESP.getChipCores());
+ 	LogHandler::info("main-setup", "Chip ID: %u\n", chipId);
 
 	#if ISAAC_NEWTONGUE_BUILD == 1
 		LogHandler::debug("main", "ISAAC_NEWTONGUE_BUILD");
@@ -194,56 +288,23 @@ void setup()
 		}
 	}
 #endif
-	
-	if (!SettingsHandler::bluetoothEnabled && strcmp(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass) != 0 && SettingsHandler::ssid != nullptr) 
-	{
+	if(SettingsHandler::bluetoothEnabled) {
+		startBlueTooth();
+	} else if (strcmp(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass) != 0 && SettingsHandler::ssid != nullptr) {
 		displayPrint("Setting up wifi...");
 		displayPrint("Connecting to: ");
 		displayPrint(SettingsHandler::ssid);
-		if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) 
-		{ 
+		if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) { 
 			displayPrint("Connected IP: " + wifi.ip().toString());
 #if FULL_BUILD == 1
 			displayHandler->setLocalIPAddress(wifi.ip());
 #endif
-			displayPrint("Starting UDP");
-			udpHandler = new Udphandler();
-			udpHandler->setup(SettingsHandler::udpServerPort);
-			displayPrint("Starting web server");
-			//displayPrint(SettingsHandler::webServerPort);
-			webSocketHandler = new WebSocketHandler();
-			webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler);
+			startUDP();
+			startWeb(false);
 		} 
-	} 
-	else 
-	{
-		apMode = true;
-		if(!SettingsHandler::bluetoothEnabled) {
-			LogHandler::info("main-setup", "Starting in APMode");
-			displayPrint("Starting in APMode");
-			if (wifi.startAp(bleHandler)) 
-			{
-				LogHandler::info("main-setup", "APMode started");
-				displayPrint("APMode started");
-				webSocketHandler = new WebSocketHandler();
-				webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, true);
-			}
-			else 
-			{
-				LogHandler::error("main-setup", "APMode start failed");
-				displayPrint("APMode start failed");
-			}
-		} else {
-			LogHandler::info("main-setup", "Starting Bluetooth serial");
-			displayPrint("Starting Bluetooth serial");
-			btHandler = new BluetoothHandler();
-			btHandler->setup();
-		}
-		LogHandler::info("main-setup", "Starting BLE");
-		displayPrint("Starting BLE");
-		bleHandler->setup();
+	} else {
+		startConfigMode();
 	}
-
     //otaHandler.setup();
 	displayPrint("Setting up servos");
     servoHandler->setup(SettingsHandler::servoFrequency, SettingsHandler::pitchFrequency, SettingsHandler::valveFrequency, SettingsHandler::twistFrequency);
