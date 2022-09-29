@@ -29,7 +29,7 @@ SOFTWARE. */
 enum TCodeVersion {
     v0_2,
     v0_3,
-    v1_0
+    v0_5a
 };
 
 class SettingsHandler 

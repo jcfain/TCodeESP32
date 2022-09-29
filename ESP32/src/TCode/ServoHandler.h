@@ -23,7 +23,7 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
-#include "../3rdParty/ParsingLibrary/TCode.h"
+#include "Global.h"
 
 class ServoHandler {
 public:

@@ -220,7 +220,7 @@ class BLEHandler
     public:
     void setup() 
     {
-        LogHandler::verbose(_TAG, "*** BLE setup");
+        LogHandler::debug(_TAG, "*** BLE enter setup");
         // Create the BLE Device
         BLEDevice::init("TCodeConfigurator"); // Give it a name
         //BLEDevice::setMTU(23);
@@ -259,7 +259,7 @@ class BLEHandler
         
         isInitailized = true;
         
-        LogHandler::verbose(_TAG, "BLE setup ***");
+        LogHandler::debug(_TAG, "BLE exit setup ***");
     }
 
     void stop() 
@@ -278,6 +278,8 @@ class BLEHandler
                 delete(pCharacteristic);
             if(pAdvertising != nullptr) 
                 delete(pAdvertising);
+            if(characteristicCallbacks != nullptr)
+                delete(characteristicCallbacks);
         }
     }
 private:

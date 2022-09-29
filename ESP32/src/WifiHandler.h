@@ -123,8 +123,11 @@ class WifiHandler
     void dispose() {
       //WiFi.disconnect(true, true);
       //esp_http_client_cleanup( WiFi ); // dismiss the TCP stack
-      esp_wifi_disconnect();            // break connection to AP
-      esp_wifi_stop();                 // shut down the wifi radio
+      //esp_wifi_disconnect();            // break connection to AP   
+      WiFi.disconnect(true, true);
+      WiFi.mode(WIFI_OFF); 
+      
+      //esp_wifi_stop();              // shut down the wifi radio
       //esp_wifi_deinit();              // release wifi resources
     }
 

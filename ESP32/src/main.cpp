@@ -39,42 +39,67 @@ SOFTWARE. */
 #include <SPIFFS.h>
 #include "LogHandler.h"
 #include "SettingsHandler.h"
-#include "WifiHandler.h"
-
-#if FULL_BUILD == 1
-	#include "TemperatureHandler.h"
-	#include "DisplayHandler.h"
+#if WIFI_TCODE == 1
+	#include "WifiHandler.h"
 #endif
 
-#include "BluetoothHandler.h"
+#if TEMP_ENABLED == 1
+	#include "TemperatureHandler.h"
+#endif
+#if DISPLAY_ENABLED == 1
+	#include "DisplayHandler.h"
+#endif
+#if BLUETOOTH_TCODE == 1
+	#include "BluetoothHandler.h"
+#endif
 #include "TCode/ServoHandler.h"
 
 #if DEBUG_BUILD == 0//Too much memory needed with debug
 	#include "TCode/v0.2/ServoHandler0_2.h"
 #endif
 #include "TCode/v0.3/ServoHandler0_3.h"
-#include "TCode/v1.0/ServoHandler1_0.h"
+//#include "TCode/v1.0/ServoHandler1_0.h"
+
+#if WIFI_TCODE == 1
 #include "UdpHandler.h"
 //#include "TcpHandler.h"
 #include "WebHandler.h"
+#endif
 //#include "OTAHandler.h"
 #include "BLEHandler.h"
-#include "WebSocketHandler.h"
 
+#if WIFI_TCODE == 1
+#include "WebSocketHandler.h"
+#endif
+
+#if WIFI_TCODE == 1
 Udphandler* udpHandler = 0;
-BluetoothHandler* btHandler = 0;
+#endif
+
+#if BLUETOOTH_TCODE == 1
+	BluetoothHandler* btHandler = 0;
+#endif
+
 //TcpHandler tcpHandler;
 ServoHandler* servoHandler;
+
+#if WIFI_TCODE == 1
 WifiHandler wifi;
 WebHandler webHandler;
 WebSocketHandler* webSocketHandler = 0;
+#endif
+
 BLEHandler* bleHandler = 0;
 
-#if FULL_BUILD == 1
+#if DISPLAY_ENABLED == 1
 	DisplayHandler* displayHandler;
-	TaskHandle_t temperatureTask;
 	TaskHandle_t displayTask;
-	TaskHandle_t animationTask;
+	#if ISAAC_NEWTONGUE_BUILD == 1
+		TaskHandle_t animationTask;
+	#endif
+#endif
+#if TEMP_ENABLED == 1
+	TaskHandle_t temperatureTask;
 #endif
 // This has issues running with the webserver.
 //OTAHandler otaHandler;
@@ -86,36 +111,44 @@ char udpData[255];
 char webSocketData[255];
 
 void displayPrint(String text) {
-	#if FULL_BUILD == 1
+	#if DISPLAY_ENABLED == 1
 		displayHandler->println(text);
 	#endif
 }
 
 void CommandCallback(const String& in) {
 	log_d("main", "Enter TCode Command callback");
+#if BLUETOOTH_TCODE == 1
 	if (SettingsHandler::bluetoothEnabled && btHandler->isConnected())
 		btHandler->CommandCallback(in);
+#endif
+#if WIFI_TCODE == 1
 	if(webSocketHandler)
 		webSocketHandler->CommandCallback(in);
 	if(udpHandler)
 		udpHandler->CommandCallback(in);
+#endif
 	if(Serial)
 		Serial.println(in);
 }
 
 void logCallBack(const char* in, LogLevel level) {
+#if WIFI_TCODE == 1
 	if(webSocketHandler) {
 		webSocketHandler->sendDebug(in, level);
 	}
+#endif
 }
 
 void startWeb(bool apMode) {
+#if WIFI_TCODE == 1
 	if(!webHandler.initialized) {
 		LogHandler::info("main-setup", "Starting web server");
 		displayPrint("Starting web server");
 		webSocketHandler = new WebSocketHandler();
 		webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, apMode);
 	}
+#endif
 }
 
 void startBLE() {
@@ -128,25 +161,30 @@ void startBLE() {
 }
 
 void startBlueTooth() {
+#if BLUETOOTH_TCODE == 1
 	if(!btHandler) {
 		LogHandler::info("main-setup", "Starting Bluetooth serial");
 		displayPrint("Starting Bluetooth serial");
 		btHandler = new BluetoothHandler();
 		btHandler->setup();
 	}
+#endif
 	startBLE();
 }
 
 void startUDP() {
+#if WIFI_TCODE == 1
 	if(!udpHandler) {
 		LogHandler::info("main-setup", "Starting UDP");
 		displayPrint("Starting UDP");
 		udpHandler = new Udphandler();
 		udpHandler->setup(SettingsHandler::udpServerPort);
 	}
+#endif
 }
 
-void startConfigMode(bool withBlueTooth = true) {
+void startConfigMode(bool withBle= true) {
+#if WIFI_TCODE == 1
 	apMode = true;
 	LogHandler::info("main-setup", "Starting in APMode");
 	displayPrint("Starting in APMode");
@@ -161,22 +199,25 @@ void startConfigMode(bool withBlueTooth = true) {
 		LogHandler::error("main-setup", "APMode start failed");
 		displayPrint("APMode start failed");
 	}
+#endif
 
 // After attempting to connect wifi, ble cause crash
-	if(withBlueTooth) { 
+	if(withBle) { 
 		startBLE();
 	}
 }
 
 
-
+#if WIFI_TCODE == 1
 void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
 	if(status == WiFiStatus::CONNECTED) {
 		if(reason == WiFiReason::AP_MODE) {
             if(bleHandler)
               bleHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
-            if(btHandler)
-              btHandler->stop();
+			#if BLUETOOTH_TCODE == 1
+				if(btHandler)
+					btHandler->stop();
+			#endif
 		}
 	} else {
 		// wifi.dispose();
@@ -188,9 +229,17 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
             strcpy(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass);
             SettingsHandler::save();
             ESP.restart();
-		} 
+		}  else if(reason == WiFiReason::AP_MODE) {
+            if(bleHandler)
+				bleHandler->setup();
+			#if BLUETOOTH_TCODE == 1
+				if(btHandler)
+					btHandler->setup();
+			#endif
+		}
 	}
 }
+#endif
 
 void setup() 
 {
@@ -203,7 +252,9 @@ void setup()
 	
     LogHandler::setLogLevel(LogLevel::INFO);
 	LogHandler::setMessageCallback(logCallBack);
-	wifi.setWiFiStatusCallback(wifiStatusCallBack);
+	#if WIFI_TCODE == 1
+		wifi.setWiFiStatusCallback(wifiStatusCallBack);
+	#endif
 
 	uint32_t chipId = 0;
 	for(int i=0; i<17; i=i+8) {
@@ -218,8 +269,12 @@ void setup()
 		LogHandler::debug("main", "ISAAC_NEWTONGUE_BUILD");
 		SettingsHandler::newtoungeHatExists = true;
 	#endif
-	#if FULL_BUILD == 1
-		LogHandler::debug("main", "FULL_BUILD");
+	#if TEMP_ENABLED == 1
+		LogHandler::debug("main", "TEMP_ENABLED");
+		SettingsHandler::fullBuild = true;
+	#endif
+	#if DISPLAY_ENABLED == 1
+		LogHandler::debug("main", "DISPLAY_ENABLED");
 		SettingsHandler::fullBuild = true;
 	#endif
 	#if DEBUG_BUILD == 1
@@ -246,19 +301,21 @@ void setup()
 	SettingsHandler::load();
 	LogHandler::info("main-setup", "Version: %s", SettingsHandler::ESP32Version);
 
-	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3)
+	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3) {
 		servoHandler = new ServoHandler0_3();
+	}
 #if DEBUG_BUILD == 0
 	else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2)
 		servoHandler = new ServoHandler0_2();
 #endif
 	else {
-		servoHandler = new ServoHandler1_0();
+		return;
+		//servoHandler = new ServoHandler1_0();
 	}
 
 	servoHandler->setMessageCallback(CommandCallback);
-	
-#if FULL_BUILD == 1
+
+#if TEMP_ENABLED == 1
 	if(SettingsHandler::tempControlEnabled)
 	{
 		TemperatureHandler::setup();
@@ -271,12 +328,13 @@ void setup()
 			&temperatureTask,  /* Task handle. */
 			0); /* Core where the task should run */
 	}
+#endif
+#if DISPLAY_ENABLED == 1
 	displayHandler = new DisplayHandler();
 	if(SettingsHandler::displayEnabled)
 	{
 		displayHandler->setup();
-		if(ISAAC_NEWTONGUE_BUILD == 1)
-		{
+		#if ISAAC_NEWTONGUE_BUILD == 1
 			xTaskCreatePinnedToCore(
 				DisplayHandler::startAnimationDontPanic,/* Function to implement the task */
 				"DisplayTask", /* Name of the task */
@@ -285,31 +343,38 @@ void setup()
 				25,  /* Priority of the task */
 				&animationTask,  /* Task handle. */
 				1); /* Core where the task should run */
-		}
+		#endif
 	}
 #endif
-	if(SettingsHandler::bluetoothEnabled) {
-		startBlueTooth();
-	} else if (strcmp(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass) != 0 && SettingsHandler::ssid != nullptr) {
-		displayPrint("Setting up wifi...");
-		displayPrint("Connecting to: ");
-		displayPrint(SettingsHandler::ssid);
-		if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) { 
-			displayPrint("Connected IP: " + wifi.ip().toString());
-#if FULL_BUILD == 1
+
+	#if BLUETOOTH_TCODE == 1
+		if(SettingsHandler::bluetoothEnabled) {
+			startBlueTooth();
+		} else 
+	#endif
+	
+	#if WIFI_TCODE == 1
+		if (strcmp(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass) != 0 && SettingsHandler::ssid != nullptr) {
+			displayPrint("Setting up wifi...");
+			displayPrint("Connecting to: ");
+			displayPrint(SettingsHandler::ssid);
+			if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) { 
+				displayPrint("Connected IP: " + wifi.ip().toString());
+		#if DISPLAY_ENABLED == 1
 			displayHandler->setLocalIPAddress(wifi.ip());
-#endif
-			startUDP();
-			startWeb(false);
-		} 
-	} else {
-		startConfigMode();
-	}
+		#endif
+				startUDP();
+				startWeb(false);
+			} 
+		} else {
+			startConfigMode();
+		}
+	#endif
     //otaHandler.setup();
 	displayPrint("Setting up servos");
     servoHandler->setup(SettingsHandler::servoFrequency, SettingsHandler::pitchFrequency, SettingsHandler::valveFrequency, SettingsHandler::twistFrequency);
 	setupSucceeded = true;
-#if FULL_BUILD == 1
+#if DISPLAY_ENABLED == 1
 	displayHandler->clearDisplay();
 	if(SettingsHandler::displayEnabled)
 	{
@@ -328,7 +393,7 @@ void setup()
 void loop() 
 {
 	
-	if (SettingsHandler::restartRequired || restarting){  // check the flag here to determine if a restart is required
+	if (SettingsHandler::restartRequired || restarting) {  // check the flag here to determine if a restart is required
 		if(!restarting) {
 			Serial.printf("Restarting ESP\n\r");
 			ESP.restart();
@@ -339,11 +404,12 @@ void loop()
 	if(setupSucceeded && !SettingsHandler::saving)
 	{
 		//otaHandler.handle();
-		if(webSocketHandler)
-			webSocketHandler->getTCode(webSocketData);
-		if(udpHandler)
-			udpHandler->read(udpData);
 		String serialData;
+		#if WIFI_TCODE == 1
+			if(webSocketHandler)
+				webSocketHandler->getTCode(webSocketData);
+			if(udpHandler)
+				udpHandler->read(udpData);
 		if (strlen(webSocketData) > 0) 
 		{
 			//LogHandler::debug("main-loop", "webSocket writing: %s", webSocketData);
@@ -354,22 +420,26 @@ void loop()
 			//LogHandler::debug("main-loop", "udp writing: %s", udpData);
 			servoHandler->read(udpData);
 		} 
-		else if (Serial.available() > 0) 
+		else 
+		#endif
+		if (Serial.available() > 0) 
 		{
 			serialData = Serial.readStringUntil('\n');
 			servoHandler->read(serialData);
 		} 
-		else if (SettingsHandler::bluetoothEnabled && btHandler && btHandler->isConnected() && btHandler->available() > 0) 
-		{
-			serialData = btHandler->readStringUntil('\n');
-			servoHandler->read(serialData);
-		}
+		#if BLUETOOTH_TCODE == 1
+			else if (SettingsHandler::bluetoothEnabled && btHandler && btHandler->isConnected() && btHandler->available() > 0) 
+			{
+				serialData = btHandler->readStringUntil('\n');
+				servoHandler->read(serialData);
+			}
+		#endif
 
 		if (strlen(udpData) == 0 && strlen(webSocketData) == 0 && serialData.length() == 0) // No wifi or websocket data
 		{
 			servoHandler->execute();
 		}
-#if FULL_BUILD == 1
+#if TEMP_ENABLED == 1
 		if(SettingsHandler::tempControlEnabled && TemperatureHandler::isRunning()) 
 		{
 			if(TemperatureHandler::tempQueue != NULL) {
