@@ -33,7 +33,7 @@ class Udphandler
   public:
     void setup(int localPort) 
     {
-		LogHandler::info("main-setup", "Starting UDP");
+		LogHandler::info("UDP-setup", "Starting UDP");
 		wifiUdp.begin(localPort);
         LogHandler::info(_TAG, "UDP Listening");
 		udpInitialized = true;

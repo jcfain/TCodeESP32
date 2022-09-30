@@ -222,7 +222,8 @@ class BLEHandler
     {
         LogHandler::debug(_TAG, "*** BLE enter setup");
         // Create the BLE Device
-        BLEDevice::init("TCodeConfigurator"); // Give it a name
+        LogHandler::info("BLE-setup", "Starting BLE: %s", "TCodeConfig");
+        BLEDevice::init("TCodeConfig"); // Give it a name
         //BLEDevice::setMTU(23);
         // Create the BLE Server
         pServer = BLEDevice::createServer();

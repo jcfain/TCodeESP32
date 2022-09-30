@@ -143,7 +143,6 @@ void logCallBack(const char* in, LogLevel level) {
 void startWeb(bool apMode) {
 #if WIFI_TCODE == 1
 	if(!webHandler.initialized) {
-		LogHandler::info("main-setup", "Starting web server");
 		displayPrint("Starting web server");
 		webSocketHandler = new WebSocketHandler();
 		webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, apMode);
@@ -153,7 +152,6 @@ void startWeb(bool apMode) {
 
 void startBLE() {
 	if(!bleHandler) {
-		LogHandler::info("main-setup", "Starting BLE");
 		displayPrint("Starting BLE");
 		bleHandler = new BLEHandler();
 		bleHandler->setup();
@@ -163,19 +161,17 @@ void startBLE() {
 void startBlueTooth() {
 #if BLUETOOTH_TCODE == 1
 	if(!btHandler) {
-		LogHandler::info("main-setup", "Starting Bluetooth serial");
 		displayPrint("Starting Bluetooth serial");
 		btHandler = new BluetoothHandler();
 		btHandler->setup();
 	}
-#endif
 	startBLE();
+#endif
 }
 
 void startUDP() {
 #if WIFI_TCODE == 1
 	if(!udpHandler) {
-		LogHandler::info("main-setup", "Starting UDP");
 		displayPrint("Starting UDP");
 		udpHandler = new Udphandler();
 		udpHandler->setup(SettingsHandler::udpServerPort);
@@ -214,10 +210,6 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
 		if(reason == WiFiReason::AP_MODE) {
             if(bleHandler)
               bleHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
-			#if BLUETOOTH_TCODE == 1
-				if(btHandler)
-					btHandler->stop();
-			#endif
 		}
 	} else {
 		// wifi.dispose();
@@ -230,12 +222,8 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
             SettingsHandler::save();
             ESP.restart();
 		}  else if(reason == WiFiReason::AP_MODE) {
-            if(bleHandler)
+			if(bleHandler)
 				bleHandler->setup();
-			#if BLUETOOTH_TCODE == 1
-				if(btHandler)
-					btHandler->setup();
-			#endif
 		}
 	}
 }

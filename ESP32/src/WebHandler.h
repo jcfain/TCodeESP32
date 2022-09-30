@@ -40,8 +40,7 @@ class WebHandler {
             stop();
             if (port < 1) 
                 port = 80;
-            Serial.print("Setting up web server on port: ");
-            Serial.println(port);
+		    LogHandler::info("WEB-setup", "Starting web server on port: %i", port);
             server = new AsyncWebServer(port);
             webSocketHandler->setup(server);
 

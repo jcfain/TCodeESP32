@@ -430,7 +430,7 @@ function setUserSettings()
     document.getElementById("subnet").value = userSettings["subnet"];
     document.getElementById("dns1").value = userSettings["dns1"];
     document.getElementById("dns2").value = userSettings["dns2"];
-    document.getElementById('bluetoothEnabled').checked = userSettings["bluetoothEnabled"];
+    //document.getElementById('bluetoothEnabled').checked = userSettings["bluetoothEnabled"];
     
     newtoungeHatExists = userSettings["newtoungeHatExists"]
     
