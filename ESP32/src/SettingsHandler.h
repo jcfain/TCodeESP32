@@ -404,7 +404,7 @@ class SettingsHandler
             String output;
             serializeJson(doc, output);
             //serializeJson(doc, Serial);
-            Serial.printf("\nOutput: %s\n", output.c_str());
+            //Serial.printf("\nOutput: %s\n", output.c_str());
             //LogHandler::debug(_TAG, "Output: %s", output.c_str());
             buf[0]  = {0};
             strcpy(buf, output.c_str());
