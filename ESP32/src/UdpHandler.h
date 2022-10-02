@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2020 Jason C. Fain
+Copyright (c) 2022 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@ SOFTWARE. */
 #pragma once
 
 
+#include <Arduino.h>
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
 
@@ -32,17 +33,21 @@ class Udphandler
   public:
     void setup(int localPort) 
     {
+		LogHandler::info("UDP-setup", "Starting UDP");
 		wifiUdp.begin(localPort);
-		Serial.println("UDP Listening");
+        LogHandler::info(_TAG, "UDP Listening");
 		udpInitialized = true;
     }
-    void setup(int localPort, ServoHandler3* servoHandler3) 
-    {
-		_servoHandler3 = servoHandler3;
-		wifiUdp.begin(localPort);
-		Serial.println("UDP Listening");
-		udpInitialized = true;
-    }
+
+	void CommandCallback(const String& in){ //This overwrites the callback for message return
+		if(udpInitialized) {
+			wifiUdp.beginPacket(wifiUdp.remoteIP(), wifiUdp.remotePort());
+			int i = 0;
+			while (in[i] != 0)
+				wifiUdp.write((uint8_t)in[i++]);
+			wifiUdp.endPacket();
+		}
+	}
 
 
     void read(char* udpData) 
@@ -73,33 +78,33 @@ class Udphandler
 			//Serial.println("packetBuffer");
 			//Serial.println(packetBuffer);
 			//send a reply, to the IP address and port that sent us the packet we received
-			if (strcmp(packetBuffer, SettingsHandler::HandShakeChannel) == 0) 
+			// if (strcmp(packetBuffer, SettingsHandler::HandShakeChannel) == 0) 
+			// {
+			// 	Serial.println("Handshake received");
+			// 	// wifiUdp.beginPacket(wifiUdp.remoteIP(), wifiUdp.remotePort());
+			// 	// int i = 0;
+			// 	// while (SettingsHandler::TCodeVersionName[i] != 0)
+			// 	// 	wifiUdp.write((uint8_t)SettingsHandler::TCodeVersionName[i++]);
+			// 	// wifiUdp.endPacket();
+			// 	udpData = nullptr;
+			// 	return;
+			// } 
+			// else 
+			// if (SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3 && strcmp(packetBuffer, SettingsHandler::SettingsChannel) == 0) 
+			// {
+			// 	Serial.println("Settings get received");
+			// 	wifiUdp.beginPacket(wifiUdp.remoteIP(), wifiUdp.remotePort());
+			// 	int i = 0;
+			// 	String setting = _servoHandler3->getDeviceSettings();
+			// 	while (setting[i] != 0)
+			// 		wifiUdp.write((uint8_t)setting[i++]);
+			// 	wifiUdp.endPacket();
+			// 	udpData = nullptr;
+			// 	return;
+			// } 
+			// else 
+			if (SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 && strpbrk(packetBuffer, "$") != nullptr) 
 			{
-				Serial.println("Handshake received");
-				wifiUdp.beginPacket(wifiUdp.remoteIP(), wifiUdp.remotePort());
-				int i = 0;
-				while (SettingsHandler::TCodeVersionName[i] != 0)
-					wifiUdp.write((uint8_t)SettingsHandler::TCodeVersionName[i++]);
-				wifiUdp.endPacket();
-				udpData = nullptr;
-				return;
-			} 
-			else if (SettingsHandler::TCodeVersionEnum == TCodeVersion::v3 && strcmp(packetBuffer, SettingsHandler::SettingsChannel) == 0) 
-			{
-				Serial.println("Settings get received");
-				wifiUdp.beginPacket(wifiUdp.remoteIP(), wifiUdp.remotePort());
-				int i = 0;
-				String setting = _servoHandler3->getDeviceSettings();
-				while (setting[i] != 0)
-					wifiUdp.write((uint8_t)setting[i++]);
-				wifiUdp.endPacket();
-				udpData = nullptr;
-				return;
-			} 
-			else if (SettingsHandler::TCodeVersionEnum == TCodeVersion::v3 && strpbrk(packetBuffer, "$") != nullptr) 
-			{
-				Serial.println("Settings save received: ");
-				Serial.println(udpData);
 				wifiUdp.beginPacket(wifiUdp.remoteIP(), wifiUdp.remotePort());
 				int i = 0;
 				String OK = "OK";
@@ -107,13 +112,13 @@ class Udphandler
 					wifiUdp.write((uint8_t)OK[i++]);
 				wifiUdp.endPacket();
 				strcpy(udpData, packetBuffer);
-				Serial.println(udpData);
+				LogHandler::info(_TAG, "Settings save received: %s", udpData);
 				return;
 			} 
 			else if (strpbrk(packetBuffer, jsonIdentifier) != nullptr) 
 			{
+				LogHandler::verbose(_TAG, "json recieved: %s", udpData);
 				SettingsHandler::processTCodeJson(udpData, packetBuffer);
-				//Serial.println("json");
 
 				// const size_t readCapacity = JSON_ARRAY_SIZE(5) + 5*JSON_OBJECT_SIZE(2) + 100;
 
@@ -168,6 +173,7 @@ class Udphandler
 			} 
 			//udpData[strlen(packetBuffer) + 1];
 			strcpy(udpData, packetBuffer);
+            LogHandler::verbose(_TAG, "Udp tcode in: %s", udpData);
 			// Serial.print("tcode: ");
 			// Serial.println(udpData);
 			return;
@@ -216,7 +222,7 @@ class Udphandler
     } */
     
   private: 
-  	ServoHandler3* _servoHandler3;
+    const char* _TAG = "UDP";
     WiFiUDP wifiUdp;
     bool udpInitialized = false;
     char packetBuffer[255];; //buffer to hold incoming packet

@@ -35,6 +35,14 @@ var TCodeVersion = {
     V2: 0,
     V3: 1
 }
+var LogLevel = {
+    ERROR: 0,
+    WARNING: 1,
+    INFO: 2,
+    DEBUG: 3,
+    VERBOSE: 4
+};
+dubugMessages = [];
 
 var AvailibleChannelsV2;
 var AvailibleChannelsV3;
@@ -64,6 +72,9 @@ function onDocumentLoad() {
     getUserSettings();
     initWebSocket();
     createImportSettingsInputElement();
+    
+    // debugTextElement = document.getElementById("debugText");
+    // debugTextElement.scrollTop = debugTextElement.scrollHeight;
 }
 
 function getUserSettings() {
@@ -154,12 +165,41 @@ function wsCallBackFunction(evt) {
             case "failSafeTriggered":
                 playFail();
                 break;
+            case "debug":
+				var message = data["message"];
+                debug(message);
+                break;
 		}
 	}
 	catch(e) {
 		console.error(e.toString());
 	}
 }
+
+function debug(message) {
+    if(debugTextElement) {
+        if(dubugMessages.length > 1000)
+            dubugMessages.shift();
+        dubugMessages.push(message);
+        debugTextElement.value = dubugMessages.join("\n");
+        debugTextElement.scrollTop = debugTextElement.scrollHeight;
+    }
+}
+
+function setDebug() {
+    userSettings["logLevel"] = parseInt(document.getElementById('debug').value);
+    // if(userSettings["logLevel"] == LogLevel.VERBOSE)
+    //     alert("There are not enough resources to send VERBOSE messages to the site.\nUse serial to view them.")
+	updateUserSettings();
+}
+
+function clearLog() {
+    if(debugTextElement) {
+        dubugMessages = [];
+        debugTextElement.value = "";
+    }
+}
+
 //https://base64.guru/converter/encode/audio
 //http://freesoundeffect.net/tags/alert?page=40
 function playSuccess() {
@@ -191,7 +231,7 @@ function onDefaultClick()
 				infoNode.innerText = "Settings reset!";
                 infoNode.style.color = 'green';
 				document.getElementById('requiresRestart').hidden = false;
-				document.getElementById('resetBtn').disabled = false ;
+				//document.getElementById('resetBtn').disabled = false ;
 				setTimeout(() => 
 				{
                     infoNode.hidden = true;
@@ -277,6 +317,8 @@ function checkForServer() {
 
 function setUserSettings() 
 {
+    if(!userSettings)
+        showError("Error getting user settings!");
     toggleNonTCodev3Options();
     toggleDeviceOptions(userSettings["sr6Mode"]);
     toggleStaticIPSettings(userSettings["staticIP"]);
@@ -388,6 +430,7 @@ function setUserSettings()
     document.getElementById("subnet").value = userSettings["subnet"];
     document.getElementById("dns1").value = userSettings["dns1"];
     document.getElementById("dns2").value = userSettings["dns2"];
+    //document.getElementById('bluetoothEnabled').checked = userSettings["bluetoothEnabled"];
     
     newtoungeHatExists = userSettings["newtoungeHatExists"]
     
@@ -410,6 +453,12 @@ function setUserSettings()
 	document.getElementById("Display_Screen_Width").readonly = true;
 	document.getElementById("Display_Screen_Height").readonly = true;
 	// document.getElementById("Display_Rst_PIN").readonly = true;
+
+    document.getElementById('debug').value = userSettings["logLevel"];
+    document.getElementById('lastRebootReason').value = userSettings["lastRebootReason"];
+    
+    
+    //document.getElementById('debugLink').hidden = !userSettings["debug"];
     
     AvailibleChannelsV2 = [
         {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
@@ -513,12 +562,12 @@ function updateUserSettings()
 
 function showRestartRequired() {
     document.getElementById('requiresRestart').hidden = false;
-    document.getElementById('resetBtn').disabled = false;
+    //document.getElementById('resetBtn').disabled = false;
 }
 
 function hideRestartRequired() {
     document.getElementById('requiresRestart').hidden = true;
-    document.getElementById('resetBtn').disabled = true;
+    //document.getElementById('resetBtn').disabled = true;
 }
 
 function showLoading(message) {
@@ -709,7 +758,7 @@ function setupChannelSliders()
     bodyNode.appendChild(testDeviceHomeRowNode);
 }
 function isTCodeV3() {
-    return userSettings["TCodeVersion"] == TCodeVersion.V3;
+    return userSettings["TCodeVersion"] >= TCodeVersion.V3;
 }
 function onChannelSliderInput(channel, value) {
     sendTCode(channel+value.toString().padStart(userSettings["TCodeVersion"] == TCodeVersion.V3 ? 4 : 3, "0") + "S1000");
@@ -1358,11 +1407,6 @@ function toggleStaticIPSettings(enabled)
 {
     if(!enabled) 
     {
-        document.getElementById('localIPLabel').hidden = true;
-        document.getElementById('gatewayLabel').hidden = true;
-        document.getElementById('subnetLabel').hidden = true;
-        document.getElementById('dns1Label').hidden = true;
-        document.getElementById('dns2Label').hidden = true;
         document.getElementById('localIP').hidden = true;
         document.getElementById('gateway').hidden = true;
         document.getElementById('subnet').hidden = true;
@@ -1371,11 +1415,6 @@ function toggleStaticIPSettings(enabled)
     } 
     else
     {
-        document.getElementById('localIPLabel').hidden = false;
-        document.getElementById('gatewayLabel').hidden = false;
-        document.getElementById('subnetLabel').hidden = false;
-        document.getElementById('dns1Label').hidden = false;
-        document.getElementById('dns2Label').hidden = false;
         document.getElementById('localIP').hidden = false;
         document.getElementById('gateway').hidden = false;
         document.getElementById('subnet').hidden = false;
@@ -1410,6 +1449,8 @@ function toggleNonTCodev3Options()
 function updateBlueToothSettings()
 {
     userSettings["bluetoothEnabled"] = document.getElementById('bluetoothEnabled').checked;
+    if(userSettings["bluetoothEnabled"])
+        alert("EXPEREMENTAL! this is a bit slow and will not work will with fast input!\nThis will DISABLE Wifi connection and this configuration web page upon device reboot!\nThe BLE app will be REQUIRED for future configuration changes.")
 	setRestartRequired();
 	updateUserSettings();
 }

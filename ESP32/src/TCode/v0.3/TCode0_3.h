@@ -3,10 +3,11 @@
 
 #include <EEPROM.h>
 #include "Axis.h"
+#include "../TCodeBase.h"
 // -----------------------------
 // Class to manage Toy Comms
 // -----------------------------
-class TCode {
+class TCode0_3 : public TCodeBase {
   
   public:
   
@@ -115,7 +116,7 @@ class TCode {
     return deviceSettings;
   }
 
-  private:
+private:
   // Strings
   String firmwareID;
   String tcodeID;
@@ -139,7 +140,6 @@ class TCode {
     }
     readCmd(bufferString);  // Read off last command
   }
-
 
   // Function to process the individual commands
   void readCmd(String command) {
@@ -239,15 +239,15 @@ class TCode {
       if (commandNumber==0 && command.charAt(0)!='0' ) { command = -1; }
       switch( commandNumber ) {
         case 0:
-          Serial.println(firmwareID);
+          sendMessage(firmwareID);
         break;
   
         case 1:
-          Serial.println(tcodeID);
+          sendMessage(tcodeID);
         break;
   
         case 2:
-          getDeviceSettings();          
+          sendMessage(getDeviceSettings());          
         break;
       }
     }
@@ -339,16 +339,16 @@ class TCode {
       line += " ";
       line += axisName;
       line += "\n";
-      Serial.print(axisID);
-      Serial.print(" ");
-      Serial.print(low + 1);
-      Serial.print(" ");
-      Serial.print(high + 10000);
-      Serial.print(" ");
-      Serial.println(axisName);
+      sendMessage(line);
+      // Serial.print(axisID);
+      // Serial.print(" ");
+      // Serial.print(low + 1);
+      // Serial.print(" ");
+      // Serial.print(high + 10000);
+      // Serial.print(" ");
+      // Serial.println(axisName);
     }
     return line;
   }
-    
 };
 

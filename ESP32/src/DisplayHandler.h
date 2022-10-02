@@ -20,12 +20,20 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
+#pragma once
+
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include "../lib/Ext/Adafruit_SSD1306_RSB.h"
-#include "../lib/animationFrames.h"
+#include "SettingsHandler.h"
+#include "WifiHandler.h"
+#if TEMP_ENABLED == 1
+#include "TemperatureHandler.h"
+#endif
 
-#pragma once
+#if ISAAC_NEWTONGUE_BUILD == 1
+#include "../lib/animationFrames.h"
+#endif
 
 class DisplayHandler
 {
@@ -153,6 +161,7 @@ public:
 				}
 
 				
+#if TEMP_ENABLED == 1
 				if(SettingsHandler::sleeveTempDisplayed)
 				{
 					float tempValue = TemperatureHandler::getTemp();
@@ -175,6 +184,7 @@ public:
 					String tempStatus = TemperatureHandler::getControlStatus();
 					display.println(tempStatus);
 				}
+#endif
 				display.display();
 			}
         	vTaskDelay(1000/portTICK_PERIOD_MS);
@@ -255,6 +265,7 @@ public:
 
 	void playBootAnimationDontPanic() 
 	{
+#if ISAAC_NEWTONGUE_BUILD == 1
 		if(displayConnected)
 		{
 			display.clearDisplay();
@@ -273,6 +284,7 @@ public:
 			}
 			m_animationPlaying = false;
 		}
+#endif
   		vTaskDelete( NULL );
 	}
 

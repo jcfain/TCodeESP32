@@ -61,47 +61,47 @@
 							<input id="staticIP" type="checkbox" onclick="updateWifiSettings()"></input>
 						</td>
 					</tr>
-					<tr>
+					<tr id="localIP">
 						<td>
 							<span id="localIPLabel">IP</span> 
 						</td>
 						<td>
-							<input id="localIP" type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
-					<tr>
+					<tr id="gateway" >
 						<td>
 							<span id="gatewayLabel">Gateway</span> 
 						</td>
 						<td>
-							<input id="gateway" type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
-					<tr>
+					<tr id="subnet">
 						<td>
 							<span id="subnetLabel">Subnet</span> 
 						</td>
 						<td>
-							<input id="subnet" type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
-					<tr>
+					<tr id="dns1">
 						<td>
 							<span id="dns1Label">DNS 1</span> 
 						</td>
 						<td>
-							<input id="dns1" type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
-					<tr>
+					<tr id="dns2">
 						<td>
 							<span id="dns2Label">DNS 2</span> 
 						</td>
 						<td>
-							<input id="dns2" type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
-					<!-- <tr>
+					<!-- <tr> Bluetooth serial just has too many issues. Leaving out for now.
 						<td>
 							<span>Bluetooth enabled</span> 
 						</td>
@@ -124,8 +124,9 @@
 						</td>
 						<td>
 							<select name="TCodeVersion" id="TCodeVersion" onchange="setTCodeVersion()">
-								<option value="0">V2</option>
-								<option value="1">V3</option>
+								<option value="0">V0.2</option>
+								<option value="1">V0.3</option>
+								<!-- <option value="2">V1.0</option> -->
 							</select>
 						</td>
 					</tr>
@@ -280,6 +281,34 @@
 							<span>
 								PWM availible on: 2,4,5,12-19,21-23,25-27,32,33
 							</span> 
+						</td>
+					</tr>
+					<tr title="Set to show output in the text area. Note: Verbose level will NOT show. See the serial for that message level">
+						<td>
+							<span>Debug</span> 
+						</td>
+						<td>
+							<select name="debug" id="debug" onchange="setDebug()">
+								<option value="0">ERROR</option>
+								<option value="1">WARNING</option>
+								<option value="2">INFO</option>
+								<option value="3">DEBUG</option>
+								<option value="4">VERBOSE</option>
+							</select>
+							<!-- <button onclick="clearLog()">Clear</button> -->
+						</td>
+					</tr>
+					<!-- <tr id="debugLink">
+						<td colspan="3">
+							<textarea id="debugText" class="log-reader" readonly></textarea>
+						</td>
+					</tr> -->
+					<tr>
+						<td>
+							<span>Last reboot reason</span> 
+						</td>
+						<td colspan="2">
+							<input id="lastRebootReason" type="text" readonly>
 						</td>
 					</tr>
 				</tbody>
@@ -650,7 +679,7 @@
 		</div>
 	</div>
 
-  	<button id="resetBtn" class="formButton" name="reset" disabled="true" onclick="onRestartClick()">Restart device</button>
+  	<button id="resetBtn" class="formButton" name="reset" onclick="onRestartClick()">Restart device</button>
 	<button id="exportBtn" class="formButton" onclick="exportToJsonFile()">Export settings</button>
 	<button id="importBtn" class="formButton" onclick="openImportSettingsFileDialog()">Import settings</button>
 	</br>

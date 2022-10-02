@@ -27,8 +27,9 @@ SOFTWARE. */
 #include <ArduinoJson.h>
 
 enum TCodeVersion {
-    v2,
-    v3
+    v0_2,
+    v0_3,
+    v0_5a
 };
 
 class SettingsHandler 
@@ -37,6 +38,8 @@ class SettingsHandler
 
         static bool saving;
         static bool fullBuild;
+        static bool debug;
+        static LogLevel logLevel;
 
         static String TCodeVersionName;
         static TCodeVersion TCodeVersionEnum;
@@ -129,57 +132,56 @@ class SettingsHandler
         static int strokerAmplitude;
 
         static bool newtoungeHatExists;
+        static bool restartRequired;
+        static const char* lastRebootReason;
 
         static const char* userSettingsFilePath;
+        static const char* logPath;
         static const char* defaultWifiPass;
         static const char* decoyPass;
-		static const int deserialize = 3072;
-		static const int serialize = 1536;
 
         static void load() 
         {
-            DynamicJsonDocument doc(deserialize);
+            DynamicJsonDocument doc(deserializeSize);
 			File file;
 			bool loadingDefault = false;
 			if(!SPIFFS.exists(userSettingsFilePath)) 
 			{
-                Serial.println(F("Failed to read settings file, using default configuration"));
-                Serial.println(F("Read Settings: /userSettingsDefault.json"));
-            	file = SPIFFS.open("/userSettingsDefault.json", "r");
+                LogHandler::info(_TAG, "Failed to read settings file, using default configuration");
+                LogHandler::info(_TAG, "Read Settings: %s", userSettingsDefaultFilePath);
+            	file = SPIFFS.open(userSettingsDefaultFilePath, "r");
 				loadingDefault = true;
 			} 
 			else 
 			{
-                Serial.print("Read Settings: ");
-                Serial.println(userSettingsFilePath);
+                LogHandler::info(_TAG, "Read Settings: %s", userSettingsFilePath);
             	file = SPIFFS.open(userSettingsFilePath, "r");
 			}
             DeserializationError error = deserializeJson(doc, file);
             if (error) {
-                Serial.print(F("Error deserializing settings json: "));
-                Serial.println(F(file.name()));
-                Serial.print("Error: ");
+                LogHandler::error(_TAG, "Error deserializing settings json: %s", file.name());
+                LogHandler::error(_TAG, "Code: ");
                 switch(error.code()) {
                     case DeserializationError::Code::Ok:
-                        Serial.println("Ok");
+                        LogHandler::error(_TAG, "Ok");
                     break;
                     case DeserializationError::Code::EmptyInput:
-                        Serial.println("EmptyInput");
+                        LogHandler::error(_TAG, "EmptyInput");
                     break;
                     case DeserializationError::Code::IncompleteInput:
-                        Serial.println("IncompleteInput");
+                        LogHandler::error(_TAG, "IncompleteInput");
                     break;
                     case DeserializationError::Code::InvalidInput:
-                        Serial.println("InvalidInput");
+                        LogHandler::error(_TAG, "InvalidInput");
                     break;
                     case DeserializationError::Code::NoMemory:
-                        Serial.println("NoMemory");
+                        LogHandler::error(_TAG, "NoMemory");
                     break;
                     case DeserializationError::Code::TooDeep:
-                        Serial.println("TooDeep");
+                        LogHandler::error(_TAG, "TooDeep");
                     break;
                 }
-            	file = SPIFFS.open("/userSettingsDefault.json", "r");
+            	file = SPIFFS.open(userSettingsDefaultFilePath, "r");
                 deserializeJson(doc, file);
                 loadingDefault = true;
             }
@@ -187,7 +189,7 @@ class SettingsHandler
             const char* storedVersion = jsonObj["esp32Version"];
 
             update(jsonObj);
-            if(ISAAC_NEWTONGUE_BUILD) 
+            if(ISAAC_NEWTONGUE_BUILD == 1) 
             {
                 RightServo_PIN = 13;
                 LeftServo_PIN = 2;
@@ -212,7 +214,7 @@ class SettingsHandler
                 PitchLeftServo_PIN = 4;
                 LeftUpperServo_PIN = 2;
                 LeftServo_PIN = 15;
-                ValveServo_PIN = 28;
+                ValveServo_PIN = 25;
                 TwistServo_PIN = 27;
                 TwistFeedBack_PIN = 26;
                 Vibe0_PIN = 18;
@@ -224,16 +226,16 @@ class SettingsHandler
 
 			if(loadingDefault || strcmp(storedVersion, ESP32Version) != 0)
 				    save();
+                    
         }
 
         static void reset() 
         {
-            const char* filename = "/userSettingsDefault.json";
-            DynamicJsonDocument doc(deserialize);
-            File file = SPIFFS.open(filename, "r");
+            DynamicJsonDocument doc(deserializeSize);
+            File file = SPIFFS.open(userSettingsDefaultFilePath, "r");
             DeserializationError error = deserializeJson(doc, file);
             if (error)
-                Serial.println(F("Failed to read default settings file, using default configuration"));
+                LogHandler::error(_TAG, "Failed to read default settings file, using default configuration");
             update(doc.as<JsonObject>());
 			save();
         }
@@ -242,7 +244,11 @@ class SettingsHandler
         {
             if(json.size() > 0) 
             {
-                Serial.println("Update settings");
+                logLevel = (LogLevel)(json["logLevel"] | 1);
+                if(LogHandler::getLogLevel() < logLevel)
+                    LogHandler::setLogLevel(logLevel);
+
+                LogHandler::debug(_TAG, "Update settings");
                 const char* ssidConst = json["ssid"];
                 if( ssid != nullptr) 
                 {
@@ -253,7 +259,7 @@ class SettingsHandler
                 {
                     strcpy(wifiPass, wifiPassConst);
                 }
-                TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 1);
+                TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 2);
                 TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
                 udpServerPort = json["udpServerPort"] | 8000;
                 webServerPort = json["webServerPort"] | 80;
@@ -345,7 +351,9 @@ class SettingsHandler
                 heaterResolution = json["heaterResolution"] | 8;
                 heaterFrequency = json["heaterFrequency"] | 5000;
                 lubeEnabled = json["lubeEnabled"];
-                //LogUpdateDebug();
+                lastRebootReason = machine_reset_cause();
+                LogHandler::info(_TAG, "Last reset reason: %s", SettingsHandler::lastRebootReason);
+                LogUpdateDebug();
                 return true;
             } 
             return false;
@@ -365,104 +373,121 @@ class SettingsHandler
             save();
             return true;
         } */
-        
-        static char* getJsonForBLE() 
-        {
-            //DynamicJsonDocument doc(readCapacity);
-            //DeserializationError error = deserializeJson(doc, jsonInput, sizeof(jsonInput));
-            const char* filename = "/userSettings.json";
-            File file = SPIFFS.open(filename, "r");
-            size_t size = file.size();
-            char* bytes = new char[size];
-            file.readBytes(bytes, size);
-            return bytes;
-        }
 
-        static String serializeWifiSettings()
+        // static char* getJsonForBLE() 
+        // {
+        //     //DynamicJsonDocument doc(readCapacity);
+        //     //DeserializationError error = deserializeJson(doc, jsonInput, sizeof(jsonInput));
+        //     File file = SPIFFS.open(filename, "r");
+        //     size_t size = file.size();
+        //     char* bytes = new char[size];
+        //     file.readBytes(bytes, size);
+        //     return bytes;
+        // }
+
+        static void serialize(char buf[2048])
         {
-            DynamicJsonDocument doc(serialize);
-            String output;
-            doc["ssid"] = ssid;
-            doc["wifiPass"] = SettingsHandler::decoyPass;
-			doc["staticIP"] = staticIP;
-			doc["localIP"] = localIP;
-			doc["gateway"] = gateway;
-			doc["subnet"] = subnet;
-			doc["dns1"] = dns1;
-			doc["dns2"] = dns2;
-            doc["servoFrequency"] = servoFrequency;
-			doc["sr6Mode"] = sr6Mode;
-            if (serializeJson(doc, output) == 0) 
-            {
-                Serial.println(F("Failed to write to file"));
-                return "{}";
+            LogHandler::debug(_TAG, "Get settings...");
+            File file = SPIFFS.open(userSettingsFilePath, "r");
+            DynamicJsonDocument doc(deserializeSize);
+            DeserializationError error = deserializeJson(doc, file);
+            if (error) {
+                LogHandler::error("toJson: Error deserializing settings json: %s", file.name());
+                buf[0] = {0};
+                return;
             }
-            return output;
+            file.close();
+            if(strcmp(doc["wifiPass"], defaultWifiPass) != 0 )
+                doc["wifiPass"] = "Too bad haxor!";// Do not send password if its not default
+                
+            doc["lastRebootReason"] = lastRebootReason;
+            String output;
+            serializeJson(doc, output);
+            //serializeJson(doc, Serial);
+            //Serial.printf("\nOutput: %s\n", output.c_str());
+            //LogHandler::debug(_TAG, "Output: %s", output.c_str());
+            buf[0]  = {0};
+            strcpy(buf, output.c_str());
         }
 
-        static bool derializeWifiSettings(String data)
+        static bool save(String data)
         {
-            String output;
-            DynamicJsonDocument doc(deserialize);
+            
+            printMemory();
+            DynamicJsonDocument doc(deserializeSize);
+            
             DeserializationError error = deserializeJson(doc, data);
             if (error) 
             {
-                Serial.println(F("Failed to read settings file, using default configuration"));
+                LogHandler::error(_TAG, "Settings save: Deserialize error: %s", error.c_str());
                 return false;
             }
-            const char* ssidConst = doc["ssid"];
-            if( ssid != nullptr) 
-            {
-                strcpy(ssid, ssidConst);
+            // const char* ssidConst = doc["ssid"];
+            // if( ssid != nullptr) 
+            // {
+            //     strcpy(ssid, ssidConst);
+            // }
+            // const char* wifiPassConst = doc["wifiPass"];
+            // if(wifiPassConst != nullptr && strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0) 
+            // {
+            //     strcpy(wifiPass, wifiPassConst);
+            // }
+            // staticIP = doc["staticIP"];
+            // servoFrequency = doc["servoFrequency"] | 50;
+            // const char* localIPTemp = doc["localIP"];
+            // if (localIPTemp != nullptr)
+            //     strcpy(localIP, localIPTemp);
+            // const char* gatewayTemp = doc["gateway"];
+            // if (gatewayTemp != nullptr)
+            //     strcpy(gateway, gatewayTemp);
+            // const char* subnetTemp = doc["subnet"];
+            // if (subnetTemp != nullptr)
+            //     strcpy(subnet, subnetTemp);
+            // const char* dns1Temp = doc["dns1"];
+            // if (dns1Temp != nullptr)
+            //     strcpy(dns1, dns1Temp);
+            // const char* dns2Temp = doc["dns2"];
+            // if (dns2Temp != nullptr)
+            //     strcpy(dns2, dns2Temp);
+            // sr6Mode = doc["sr6Mode"];
+			// bluetoothEnabled =  doc["bluetoothEnabled"];
+            // return save();
+            if(!update(doc.as<JsonObject>())) {
+                LogHandler::error(_TAG, "Settings save: update error");
+                return false;
             }
-            const char* wifiPassConst = doc["wifiPass"];
-            if(wifiPassConst != nullptr && strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0) 
-            {
-                strcpy(wifiPass, wifiPassConst);
+            if(!save()) {
+                LogHandler::error(_TAG, "Settings save: save error");
+                return false;
             }
-            staticIP = doc["staticIP"];
-            servoFrequency = doc["servoFrequency"] | 50;
-            const char* localIPTemp = doc["localIP"];
-            if (localIPTemp != nullptr)
-                strcpy(localIP, localIPTemp);
-            const char* gatewayTemp = doc["gateway"];
-            if (gatewayTemp != nullptr)
-                strcpy(gateway, gatewayTemp);
-            const char* subnetTemp = doc["subnet"];
-            if (subnetTemp != nullptr)
-                strcpy(subnet, subnetTemp);
-            const char* dns1Temp = doc["dns1"];
-            if (dns1Temp != nullptr)
-                strcpy(dns1, dns1Temp);
-            const char* dns2Temp = doc["dns2"];
-            if (dns2Temp != nullptr)
-                strcpy(dns2, dns2Temp);
-            sr6Mode = doc["sr6Mode"];
-            return save();
+			return true;
         }
 
         static bool save() 
         {
-            Serial.println("Save settings");
             saving = true;
-            const char* filename = "/userSettings.json";
             // Delete existing file, otherwise the configuration is appended to the file
             // Serial.print("SPIFFS used: ");
             // Serial.println(SPIFFS.usedBytes() + "/" + SPIFFS.totalBytes());
-            if(!SPIFFS.remove(filename)) 
+            if(!SPIFFS.remove(userSettingsFilePath)) 
             {
-                Serial.println(F("Failed to remove file"));
+                LogHandler::error(_TAG, "Failed to remove settings file: %s", userSettingsFilePath);
             }
-            File file = SPIFFS.open(filename, FILE_WRITE);
+            File file = SPIFFS.open(userSettingsFilePath, FILE_WRITE);
             if (!file) 
             {
-                Serial.println(F("Failed to create file"));
+                LogHandler::error(_TAG, "Failed to create settings file: %s", userSettingsFilePath);
                 return false;
             }
 
             // Allocate a temporary JsonDocument
-            DynamicJsonDocument doc(serialize);
+            DynamicJsonDocument doc(serializeSize);
 
+            doc["logLevel"] = (int)logLevel;
+            if(LogHandler::getLogLevel() < logLevel)
+                LogHandler::setLogLevel(logLevel);
+
+            LogHandler::debug(_TAG, "Save settings");
             doc["fullBuild"] = fullBuild;
             doc["esp32Version"] = ESP32Version;
             doc["TCodeVersion"] = TCodeVersionEnum;
@@ -543,34 +568,30 @@ class SettingsHandler
             doc["heaterFrequency"] = heaterFrequency;
 			doc["newtoungeHatExists"] = newtoungeHatExists;
 			
-            //LogSaveDebug(doc);
+            LogSaveDebug(doc);
 
             if (serializeJson(doc, file) == 0) 
             {
-                Serial.println(F("Failed to write to file"));
+                LogHandler::error(_TAG, "Failed to write to file");
                 doc["wifiPass"] = "";
                 return false;
             }
-            Serial.print("File contents: ");
-            Serial.println(file.readString());
-            
-            Serial.print("Free heap: ");
-            Serial.println(ESP.getFreeHeap());
-            Serial.print("Total heap: ");
-            Serial.println(ESP.getHeapSize());
-            Serial.print("Free psram: ");
-            Serial.println(ESP.getFreePsram());
-            Serial.print("Total Psram: ");
-            Serial.println(ESP.getPsramSize());
-            Serial.print("SPIFFS used: ");
-            Serial.println(SPIFFS.usedBytes());
-            Serial.print("SPIFFS total: ");
-            Serial.println(SPIFFS.totalBytes());
+            LogHandler::debug(_TAG, "File contents: %s", file.readString().c_str());
+            printMemory();
             file.close(); // Task exception here could mean not enough space on SPIFFS.
             
             doc["wifiPass"] = "";
             saving = false;
             return true;
+        }
+
+        static void printMemory() {
+            LogHandler::debug(_TAG, "Free heap: %u", ESP.getFreeHeap());
+            LogHandler::debug(_TAG, "Total heap: %u", ESP.getHeapSize());
+            LogHandler::debug(_TAG, "Free psram: %u", ESP.getFreePsram());
+            LogHandler::debug(_TAG, "Total Psram: %u", ESP.getPsramSize());
+            LogHandler::debug(_TAG, "SPIFFS used: %i", SPIFFS.usedBytes());
+            LogHandler::debug(_TAG, "SPIFFS total: %i",SPIFFS.totalBytes());
         }
 
         static void processTCodeJson(char* outbuf, char* tcodeJson) 
@@ -581,7 +602,7 @@ class SettingsHandler
             //DynamicJsonDocument doc(readCapacity);
             DeserializationError error = deserializeJson(doc, tcodeJson);
             if (error) {
-                Serial.println("Failed to read udp jsonobject, using default configuration");
+                LogHandler::error(_TAG, "Failed to read udp jsonobject, using default configuration");
                 outbuf[0] = {0};
                 return;
             }
@@ -625,10 +646,13 @@ class SettingsHandler
         }
         
     private:
-        //static char* filename = "/userSettings.json";
+        static const char* _TAG;
+        static const char* userSettingsDefaultFilePath;
         // Use http://arduinojson.org/assistant to compute the capacity.
         // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
         // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
+		static const int deserializeSize = 3072;
+		static const int serializeSize = 1536;
 
         static int calculateRange(const char* channel, int value) 
         {
@@ -677,335 +701,307 @@ class SettingsHandler
             case 0:
                 return "TCode v0.2";
                 break;
-            
-            default:
+            case 1:
                 return "TCode v0.3";
                 break;
+            case 2:
+                return "TCode v0.4";
+                break;
+            default:
+                return "TCode v?";
+                break;
+            }
+        }
+
+        static void log_last_reset_reason() {
+            // //if(debug) {
+            //     //Serial.println("enter log_last_reset_reason");
+            //     double spiffs90Percent = SPIFFS.totalBytes()/0.90;
+            //     LogHandler::debug(_TAG, "SPIFFS used: %.1f%%", SPIFFS.usedBytes());
+            //     LogHandler::debug(_TAG, "SPIFFS 90 of total: %.1f%%", spiffs90Percent);
+            //     if(SPIFFS.usedBytes() > spiffs90Percent) {
+            //         LogHandler::warning(_TAG, "Disk usage is over 90%, replacing log.");
+            //         if(!SPIFFS.remove(logPath)) 
+            //         {
+            //             LogHandler::error(_TAG, "Failed to remove file log.json");
+            //             return;
+            //         }
+            //     }
+            //     File file = SPIFFS.open(logPath, FILE_WRITE);
+            //     if (!file) 
+            //     {
+            //         LogHandler::error(_TAG, "Failed to create file");
+            //         return;
+            //     }
+            //     DynamicJsonDocument docDeserialize(deserialize);
+            //     deserializeJson(docDeserialize, file);
+            //     // if(error) {
+            //     //     Serial.println(F("Deserialization Error: deleting log file"));
+            //     //     if(!SPIFFS.remove(logPath)) 
+            //     //     {
+            //     //         Serial.println(F("Failed to remove file log.json"));
+            //     //     }
+            //     //     file = SPIFFS.open(logPath, FILE_WRITE);
+            //     //     DeserializationError error = deserializeJson(docDeserialize, file);
+            //     //     if (!file) 
+            //     //     {
+            //     //         Serial.println(F("Failed to create file"));
+            //     //         return;
+            //     //     }
+            //     // }
+
+            //      //JsonObject jsonObj = docDeserialize.as<JsonObject>();
+            //      //JsonArray resetReasons = docDeserialize["resetReasons"].as<JsonArray>();
+            //      JsonArray resetReasons = docDeserialize.createNestedArray("resetReasons");
+                //JsonObject resonObj;
+                //resonObj["time"] = getTime();
+                //resonObj["reason"] = resetCause;
+                // //Serial.println(resetCause);
+                // resetReasons.add(resetCause);
+                // // DynamicJsonDocument docSerialize(JSON_ARRAY_SIZE(resetReasons.size()));
+                // // docSerialize["resetReasons"] = resetReasons;
+                // if (serializeJson(docDeserialize, file) == 0) 
+                // {
+                //     LogHandler::error(_TAG, "Failed to write to log file");
+                //     return;
+                // }
+                // file.close(); 
+            //}
+        }
+
+        // Function that gets current epoch time
+        static unsigned long getTime() {
+            time_t now;
+            struct tm timeinfo;
+            if (!getLocalTime(&timeinfo)) {
+                //Serial.println("Failed to obtain time");
+                return(0);
+            }
+            time(&now);
+            return now;
+        }
+
+        static const char* machine_reset_cause() {
+            switch (esp_reset_reason()) {
+                case ESP_RST_POWERON:
+                    return "Reset due to power-on event";
+                    break;
+                case ESP_RST_BROWNOUT:
+                    return "Brownout reset (software or hardware)";
+                    break;
+                case ESP_RST_INT_WDT:
+                    return "Reset (software or hardware) due to interrupt watchdog";
+                    break;
+                case ESP_RST_TASK_WDT:
+                    return "Reset due to task watchdog";
+                    break;
+                case ESP_RST_WDT:
+                    return "Reset due to other watchdogs";
+                    break;
+                case ESP_RST_DEEPSLEEP:
+                    return "Reset after exiting deep sleep mode";
+                    break;
+                case ESP_RST_SW:
+                    return "Software reset via esp_restart";
+                    break;
+                case ESP_RST_PANIC:
+                    return "Software reset due to exception/panic";
+                    break;
+                case ESP_RST_EXT: // Comment in ESP-IDF: "For ESP32, ESP_RST_EXT is never returned"
+                    return "Reset by external pin (not applicable for ESP32)";
+                    break;
+                case ESP_RST_SDIO:
+                    return "Reset over SDIO";
+                    break;
+                case ESP_RST_UNKNOWN:
+                    return "Reset reason can not be determined";
+                    break;
+                default:
+                    return "";
+                    break;
             }
         }
 
         static void LogSaveDebug(DynamicJsonDocument doc) 
         {
-            Serial.print("save TCodeVersionEnum ");
-            Serial.println((int)doc["TCodeVersion"]);
-            Serial.print("save ssid ");
-            Serial.println((const char*) doc["ssid"]);
-            Serial.print("save wifiPass ");
-            Serial.println((const char*) doc["wifiPass"]);
-            Serial.print("save udpServerPort ");
-            Serial.println((int)doc["udpServerPort"]);
-            Serial.print("save webServerPort ");
-            Serial.println((int)doc["webServerPort"]);
-            Serial.print("save hostname ");
-            Serial.println((const char*) doc["hostname"]);
-            Serial.print("save friendlyName ");
-            Serial.println((const char*) doc["friendlyName"]);
-            Serial.print("save xMin ");
-            Serial.println((int)doc["xMin"]);
-            Serial.print("save xMax ");
-            Serial.println((int)doc["xMax"]);
-            Serial.print("save yRollMin ");
-            Serial.println((int)doc["yRollMin"]);
-            Serial.print("save yRollMax ");
-            Serial.println((int)doc["yRollMax"]);
-            Serial.print("save xRollMin ");
-            Serial.println((int)doc["xRollMin"]);
-            Serial.print("save xRollMax ");
-            Serial.println((int)doc["xRollMax"]);
-            Serial.print("save speed ");
-            Serial.println((int)doc["speed"]);
-            Serial.print("save pitchFrequencyIsDifferent ");
-            Serial.println((bool)doc["pitchFrequencyIsDifferent"]);
-            Serial.print("save servoFrequency ");
-            Serial.println((int)doc["servoFrequency"]);
-            Serial.print("save  pitchFrequency ");
-            Serial.println((int)doc["pitchFrequency"]);
-            Serial.print("save valveFrequency ");
-            Serial.println((int)doc["valveFrequency"]);
-            Serial.print("save twistFrequency ");
-            Serial.println((int)doc["twistFrequency"]);
-            Serial.print("save continuousTwist ");
-            Serial.println((bool)doc["continuousTwist"]);
-            Serial.print("save feedbackTwist ");
-            Serial.println((bool)doc["feedbackTwist"]);
-            Serial.print("save analogTwist ");
-            Serial.println((bool)doc["analogTwist"]);
-            Serial.print("save TwistFeedBack_PIN ");
-            Serial.println((int)doc["TwistFeedBack_PIN"]);
-            Serial.print("save RightServo_PIN ");
-            Serial.println((int)doc["RightServo_PIN"]);
-            Serial.print("save LeftServo_PIN ");
-            Serial.println((int)doc["LeftServo_PIN"]);
-            Serial.print("save RightUpperServo_PIN ");
-            Serial.println((int)doc["RightUpperServo_PIN"]);
-            Serial.print("save LeftUpperServo_PIN ");
-            Serial.println((int)doc["LeftUpperServo_PIN"]);
-            Serial.print("save PitchLeftServo_PIN ");
-            Serial.println((int)doc["PitchLeftServo_PIN"]);
-            Serial.print("save PitchRightServo_PIN ");
-            Serial.println((int)doc["PitchRightServo_PIN"]);
-            Serial.print("save ValveServo_PIN ");
-            Serial.println((int)doc["ValveServo_PIN"]);
-            Serial.print("save TwistServo_PIN ");
-            Serial.println((int)doc["TwistServo_PIN"]);
-            Serial.print("save Vibe0_PIN ");
-            Serial.println((int)doc["Vibe0_PIN"]);
-            Serial.print("save Vibe1_PIN ");
-            Serial.println((int)doc["Vibe1_PIN"]);
-            Serial.print("save Lube_Pin ");
-            Serial.println((int)doc["Lube_Pin"]);
-            Serial.print("save LubeManual_Pin ");
-            Serial.println((int)doc["LubeManual_Pin"]);
-            Serial.print("save staticIP ");
-            Serial.println((bool)doc["staticIP"]);
-            Serial.print("save localIP ");
-            Serial.println((const char*) doc["localIP"]);
-            Serial.print("save gateway ");
-            Serial.println((const char*) doc["gateway"]);
-            Serial.print("save subnet ");
-            Serial.println((const char*) doc["subnet"]);
-            Serial.print("save dns1 ");
-            Serial.println((const char*) doc["dns1"]);
-            Serial.print("save dns2 ");
-            Serial.println((const char*) doc["dns2"]);
-            Serial.print("save sr6Mode ");
-            Serial.println((bool)doc["sr6Mode"]);
-            Serial.print("save RightServo_ZERO ");
-            Serial.println((int)doc["RightServo_ZERO"]);
-            Serial.print("save LeftServo_ZERO ");
-            Serial.println((int)doc["LeftServo_ZERO"]);
-            Serial.print("save RightUpperServo_ZERO ");
-            Serial.println((int)doc["RightUpperServo_ZERO"]);
-            Serial.print("save LeftUpperServo_ZERO ");
-            Serial.println((int)doc["LeftUpperServo_ZERO"]);
-            Serial.print("save PitchLeftServo_ZERO ");
-            Serial.println((int)doc["PitchLeftServo_ZERO"]);
-            Serial.print("save PitchRightServo_ZERO ");
-            Serial.println((int)doc["PitchRightServo_ZERO"]);
-            Serial.print("save TwistServo_ZERO ");
-            Serial.println((int)doc["TwistServo_ZERO"]);
-            Serial.print("save ValveServo_ZERO ");
-            Serial.println((int)doc["ValveServo_ZERO"]);
-            Serial.print("save autoValve ");
-            Serial.println((bool)doc["autoValve"]);
-            Serial.print("save inverseValve ");
-            Serial.println((bool)doc["inverseValve"]);
-            Serial.print("save valveServo90Degrees ");
-            Serial.println((bool)doc["valveServo90Degrees"]);
-            Serial.print("save inverseStroke ");
-            Serial.println((bool)doc["inverseStroke"]);
-            Serial.print("save inversePitch ");
-            Serial.println((bool)doc["inversePitch"]);
-            Serial.print("save lubeEnabled ");
-            Serial.println((bool)doc["lubeEnabled"]);
-            Serial.print("save lubeAmount ");
-            Serial.println((int)doc["lubeAmount"]);
-            Serial.print("save Temp_PIN ");
-            Serial.println((int)doc["Temp_PIN"]);
-            Serial.print("save Heater_PIN ");
-            Serial.println((int)doc["Heater_PIN"]);
-            Serial.print("save displayEnabled ");
-            Serial.println((bool)doc["displayEnabled"]);
-            Serial.print("save sleeveTempDisplayed ");
-            Serial.println((bool)doc["sleeveTempDisplayed"]);
-            Serial.print("save tempControlEnabled ");
-            Serial.println((bool)doc["tempControlEnabled"]);
-            Serial.print("save Display_Screen_Width ");
-            Serial.println((int)doc["Display_Screen_Width"]);
-            Serial.print("save Display_Screen_Height ");
-            Serial.println((int)doc["Display_Screen_Height"]);
-            Serial.print("save TargetTemp ");
-            Serial.println((int)doc["TargetTemp"]);
-            Serial.print("save HeatPWM ");
-            Serial.println((int)doc["HeatPWM"]);
-            Serial.print("save HoldPWM ");
-            Serial.println((int)doc["HoldPWM"]);
-            Serial.print("save Display_I2C_Address ");
-            Serial.println((int)doc["Display_I2C_Address"]);
-            Serial.print("save Display_Rst_PIN ");
-            Serial.println((int)doc["Display_Rst_PIN"]);
-            Serial.print("save WarmUpTime ");
-            Serial.println((long)doc["WarmUpTime"]);
-            Serial.print("save heaterFailsafeTime ");
-            Serial.println((long)doc["heaterFailsafeTime"]);
-            Serial.print("save heaterFailsafeThreshold ");
-            Serial.println((int)doc["heaterFailsafeThreshold"]);
-            Serial.print("save heaterResolution ");
-            Serial.println((int)doc["heaterResolution"]);
-            Serial.print("save heaterFrequency ");
-            Serial.println((int)doc["heaterFrequency"]);
-            Serial.print("save newtoungeHatExists ");
-            Serial.println((bool)doc["newtoungeHatExists"]);
+            LogHandler::verbose(_TAG, "save TCodeVersionEnum: %i", (int)doc["TCodeVersion"]);
+            LogHandler::verbose(_TAG, "save ssid: %s", (const char*) doc["ssid"]);
+            // LogHandler::verbose(_TAG, "save wifiPass: %s", (const char*) doc["wifiPass"]);
+            LogHandler::verbose(_TAG, "save udpServerPort: %i", (int)doc["udpServerPort"]);
+            LogHandler::verbose(_TAG, "save webServerPort: %i", (int)doc["webServerPort"]);
+            LogHandler::verbose(_TAG, "save hostname: %s", (const char*) doc["hostname"]);
+            LogHandler::verbose(_TAG, "save friendlyName: %s", (const char*) doc["friendlyName"]);
+            // LogHandler::verbose(_TAG, "save xMin: %i", (int)doc["xMin"]);
+            // LogHandler::verbose(_TAG, "save xMax: %i", (int)doc["xMax"]);
+            // LogHandler::verbose(_TAG, "save yRollMin: %i", (int)doc["yRollMin"]);
+            // LogHandler::verbose(_TAG, "save yRollMax: %i", (int)doc["yRollMax"]);
+            // LogHandler::verbose(_TAG, "save xRollMin: %i", (int)doc["xRollMin"]);
+            // LogHandler::verbose(_TAG, "save xRollMax: %i", (int)doc["xRollMax"]);
+            // LogHandler::verbose(_TAG, "save speed: %i", (int)doc["speed"]);
+            LogHandler::verbose(_TAG, "save pitchFrequencyIsDifferent ", (bool)doc["pitchFrequencyIsDifferent"]);
+            LogHandler::verbose(_TAG, "save servoFrequency: %i", (int)doc["servoFrequency"]);
+            LogHandler::verbose(_TAG, "save  pitchFrequency: %i", (int)doc["pitchFrequency"]);
+            LogHandler::verbose(_TAG, "save valveFrequency: %i",(int)doc["valveFrequency"]);
+            LogHandler::verbose(_TAG, "save twistFrequency: %i", (int)doc["twistFrequency"]);
+            LogHandler::verbose(_TAG, "save continuousTwist: %i", (bool)doc["continuousTwist"]);
+            LogHandler::verbose(_TAG, "save feedbackTwist: %i", (bool)doc["feedbackTwist"]);
+            LogHandler::verbose(_TAG, "save analogTwist: %i", (bool)doc["analogTwist"]);
+            LogHandler::verbose(_TAG, "save TwistFeedBack_PIN: %i", (int)doc["TwistFeedBack_PIN"]);
+            LogHandler::verbose(_TAG, "save RightServo_PIN: %i", (int)doc["RightServo_PIN"]);
+            LogHandler::verbose(_TAG, "save LeftServo_PIN: %i", (int)doc["LeftServo_PIN"]);
+            LogHandler::verbose(_TAG, "save RightUpperServo_PIN: %i",(int)doc["RightUpperServo_PIN"]);
+            LogHandler::verbose(_TAG, "save LeftUpperServo_PIN: %i", (int)doc["LeftUpperServo_PIN"]);
+            LogHandler::verbose(_TAG, "save PitchLeftServo_PIN: %i", (int)doc["PitchLeftServo_PIN"]);
+            LogHandler::verbose(_TAG, "save PitchRightServo_PIN: %i", (int)doc["PitchRightServo_PIN"]);
+            LogHandler::verbose(_TAG, "save ValveServo_PIN: %i", (int)doc["ValveServo_PIN"]);
+            LogHandler::verbose(_TAG, "save TwistServo_PIN: %i", (int)doc["TwistServo_PIN"]);
+            LogHandler::verbose(_TAG, "save Vibe0_PIN: %i", (int)doc["Vibe0_PIN"]);
+            LogHandler::verbose(_TAG, "save Vibe1_PIN: %i", (int)doc["Vibe1_PIN"]);
+            LogHandler::verbose(_TAG, "save Lube_Pin: %i", (int)doc["Lube_Pin"]);
+            LogHandler::verbose(_TAG, "save LubeManual_Pin: %i", (int)doc["LubeManual_Pin"]);
+            LogHandler::verbose(_TAG, "save staticIP: %i", (bool)doc["staticIP"]);
+            LogHandler::verbose(_TAG, "save localIP: %s", (const char*) doc["localIP"]);
+            LogHandler::verbose(_TAG, "save gateway: %s", (const char*) doc["gateway"]);
+            LogHandler::verbose(_TAG, "save subnet: %s", (const char*) doc["subnet"]);
+            LogHandler::verbose(_TAG, "save dns1: %s", (const char*) doc["dns1"]);
+            LogHandler::verbose(_TAG, "save dns2: %s", (const char*) doc["dns2"]);
+            LogHandler::verbose(_TAG, "save sr6Mode: %i", (bool)doc["sr6Mode"]);
+            LogHandler::verbose(_TAG, "save RightServo_ZERO: %i", (int)doc["RightServo_ZERO"]);
+            LogHandler::verbose(_TAG, "save LeftServo_ZERO: %i", (int)doc["LeftServo_ZERO"]);
+            LogHandler::verbose(_TAG, "save RightUpperServo_ZERO: %i", (int)doc["RightUpperServo_ZERO"]);
+            LogHandler::verbose(_TAG, "save LeftUpperServo_ZERO: %i", (int)doc["LeftUpperServo_ZERO"]);
+            LogHandler::verbose(_TAG, "save PitchLeftServo_ZERO: %i", (int)doc["PitchLeftServo_ZERO"]);
+            LogHandler::verbose(_TAG, "save PitchRightServo_ZERO: %i", (int)doc["PitchRightServo_ZERO"]);
+            LogHandler::verbose(_TAG, "save TwistServo_ZERO: %i", (int)doc["TwistServo_ZERO"]);
+            LogHandler::verbose(_TAG, "save ValveServo_ZERO: %i", (int)doc["ValveServo_ZERO"]);
+            LogHandler::verbose(_TAG, "save autoValve: %i", (bool)doc["autoValve"]);
+            LogHandler::verbose(_TAG, "save inverseValve: %i", (bool)doc["inverseValve"]);
+            LogHandler::verbose(_TAG, "save valveServo90Degrees: %i", (bool)doc["valveServo90Degrees"]);
+            LogHandler::verbose(_TAG, "save inverseStroke: %i", (bool)doc["inverseStroke"]);
+            LogHandler::verbose(_TAG, "save inversePitch: %i", (bool)doc["inversePitch"]);
+            LogHandler::verbose(_TAG, "save lubeEnabled: %i", (bool)doc["lubeEnabled"]);
+            LogHandler::verbose(_TAG, "save lubeAmount: %i", (int)doc["lubeAmount"]);
+            LogHandler::verbose(_TAG, "save Temp_PIN: %i", (int)doc["Temp_PIN"]);
+            LogHandler::verbose(_TAG, "save Heater_PIN: %i", (int)doc["Heater_PIN"]);
+            LogHandler::verbose(_TAG, "save displayEnabled: %i", (bool)doc["displayEnabled"]);
+            LogHandler::verbose(_TAG, "save sleeveTempDisplayed: %i", (bool)doc["sleeveTempDisplayed"]);
+            LogHandler::verbose(_TAG, "save tempControlEnabled: %i", (bool)doc["tempControlEnabled"]);
+            LogHandler::verbose(_TAG, "save Display_Screen_Width: %i", (int)doc["Display_Screen_Width"]);
+            LogHandler::verbose(_TAG, "save Display_Screen_Height: %i", (int)doc["Display_Screen_Height"]);
+            LogHandler::verbose(_TAG, "save TargetTemp: %i", (int)doc["TargetTemp"]);
+            LogHandler::verbose(_TAG, "save HeatPWM: %i", (int)doc["HeatPWM"]);
+            LogHandler::verbose(_TAG, "save HoldPWM: %i", (int)doc["HoldPWM"]);
+            LogHandler::verbose(_TAG, "save Display_I2C_Address: %i", (int)doc["Display_I2C_Address"]);
+            LogHandler::verbose(_TAG, "save Display_Rst_PIN: %i", (int)doc["Display_Rst_PIN"]);
+            LogHandler::verbose(_TAG, "save WarmUpTime: %ld", (long)doc["WarmUpTime"]);
+            LogHandler::verbose(_TAG, "save heaterFailsafeTime: %ld", (long)doc["heaterFailsafeTime"]);
+            LogHandler::verbose(_TAG, "save heaterFailsafeThreshold: %i", (int)doc["heaterFailsafeThreshold"]);
+            LogHandler::verbose(_TAG, "save heaterResolution: %i", (int)doc["heaterResolution"]);
+            LogHandler::verbose(_TAG, "save heaterFrequency: %i", (int)doc["heaterFrequency"]);
+            LogHandler::verbose(_TAG, "save newtoungeHatExists: %i", (bool)doc["newtoungeHatExists"]);
+            LogHandler::verbose(_TAG, "save logLevel: %i", (int)doc["logLevel"]);
+            LogHandler::verbose(_TAG, "save bluetoothEnabled: %i", (int)doc["bluetoothEnabled"]);
             
         }
 
         static void LogUpdateDebug() 
         {
-            Serial.print("update TCodeVersionEnum ");
-            Serial.println(TCodeVersionEnum);
-            Serial.print("update ssid ");
-            Serial.println(ssid);
-            Serial.print("update wifiPass ");
-            Serial.println(wifiPass);
-            Serial.print("update udpServerPort ");
-            Serial.println(udpServerPort);
-            Serial.print("update webServerPort ");
-            Serial.println(webServerPort);
-            Serial.print("update hostname ");
-            Serial.println(hostname);
-            Serial.print("update friendlyName ");
-            Serial.println(friendlyName);
-            Serial.print("update xMax ");
-            Serial.println(StrokeMax);
-            Serial.print("update yRollMin ");
-            Serial.println(RollMin);
-            Serial.print("update yRollMax ");
-            Serial.println(RollMax);
-            Serial.print("update xRollMin ");
-            Serial.println(PitchMin);
-            Serial.print("update xRollMax ");
-            Serial.println(PitchMax);
-            Serial.print("update speed ");
-            Serial.println(speed);
-            Serial.print("update pitchFrequencyIsDifferent ");
-            Serial.println(pitchFrequencyIsDifferent);
-            Serial.print("update servoFrequency ");
-            Serial.println(servoFrequency);
-            Serial.print("update pitchFrequency ");
-            Serial.println(pitchFrequency);
-            Serial.print("update valveFrequency ");
-            Serial.println(valveFrequency);
-            Serial.print("update twistFrequency ");
-            Serial.println(twistFrequency);
-            Serial.print("update continuousTwist ");
-            Serial.println(continuousTwist);
-            Serial.print("update feedbackTwist ");
-            Serial.println(feedbackTwist);
-            Serial.print("update analogTwist ");
-            Serial.println(analogTwist);
-            Serial.print("update TwistFeedBack_PIN ");
-            Serial.println(TwistFeedBack_PIN);
-            Serial.print("update RightServo_PIN ");
-            Serial.println(RightServo_PIN);
-            Serial.print("update LeftServo_PIN ");
-            Serial.println(LeftServo_PIN);
-            Serial.print("update RightUpperServo_PIN ");
-            Serial.println(RightUpperServo_PIN);
-            Serial.print("update LeftUpperServo_PIN ");
-            Serial.println(LeftUpperServo_PIN);
-            Serial.print("update PitchLeftServo_PIN ");
-            Serial.println(PitchLeftServo_PIN);
-            Serial.print("update PitchRightServo_PIN ");
-            Serial.println(PitchRightServo_PIN);
-            Serial.print("update ValveServo_PIN ");
-            Serial.println(ValveServo_PIN);
-            Serial.print("update TwistServo_PIN ");
-            Serial.println(TwistServo_PIN);
-            Serial.print("update Vibe0_PIN ");
-            Serial.println(Vibe0_PIN);
-            Serial.print("update Vibe1_PIN ");
-            Serial.println(Vibe1_PIN);
-            Serial.print("update LubeManual_PIN ");
-            Serial.println(LubeManual_PIN);
-            Serial.print("update staticIP ");
-            Serial.println(staticIP);
-            Serial.print("update localIP ");
-            Serial.println(localIP);
-            Serial.print("update gateway ");
-            Serial.println(gateway);
-            Serial.print("update subnet ");
-            Serial.println(subnet);
-            Serial.print("update dns1 ");
-            Serial.println(dns1);
-            Serial.print("update dns2 ");
-            Serial.println(dns2);
-            Serial.print("update sr6Mode ");
-            Serial.println(sr6Mode);
-            Serial.print("update RightServo_ZERO ");
-            Serial.println(RightServo_ZERO);
-            Serial.print("update LeftServo_ZERO ");
-            Serial.println(LeftServo_ZERO);
-            Serial.print("update RightUpperServo_ZERO ");
-            Serial.println(RightUpperServo_ZERO);
-            Serial.print("update LeftUpperServo_ZERO ");
-            Serial.println(LeftUpperServo_ZERO);
-            Serial.print("update PitchLeftServo_ZERO ");
-            Serial.println(PitchLeftServo_ZERO);
-            Serial.print("update PitchRightServo_ZERO ");
-            Serial.println(PitchRightServo_ZERO);
-            Serial.print("update TwistServo_ZERO ");
-            Serial.println(TwistServo_ZERO);
-            Serial.print("update ValveServo_ZERO ");
-            Serial.println(ValveServo_ZERO);
-            Serial.print("update autoValve ");
-            Serial.println(autoValve);
-            Serial.print("update inverseValve ");
-            Serial.println(inverseValve);
-            Serial.print("update valveServo90Degrees ");
-            Serial.println(valveServo90Degrees);
-            Serial.print("update inverseStroke ");
-            Serial.println(inverseStroke);
-            Serial.print("update inversePitch ");
-            Serial.println(inversePitch);
-            Serial.print("update lubeEnabled ");
-            Serial.println(lubeEnabled);
-            Serial.print("update lubeAmount ");
-            Serial.println(lubeAmount);
-            Serial.print("update displayEnabled ");
-            Serial.println(displayEnabled);
-            Serial.print("update sleeveTempDisplayed ");
-            Serial.println(sleeveTempDisplayed);
-            Serial.print("update tempControlEnabled ");
-            Serial.println(tempControlEnabled);
-            Serial.print("update Display_Screen_Width ");
-            Serial.println(Display_Screen_Width);
-            Serial.print("update Display_Screen_Height ");
-            Serial.println(Display_Screen_Height);
-            Serial.print("update TargetTemp ");
-            Serial.println(TargetTemp);
-            Serial.print("update HeatPWM ");
-            Serial.println(HeatPWM);
-            Serial.print("update HoldPWM ");
-            Serial.println(HoldPWM);
-            Serial.print("update Display_I2C_Address ");
-            Serial.println(Display_I2C_Address);
-            Serial.print("update Display_Rst_PIN ");
-            Serial.println(Display_Rst_PIN);
-            Serial.print("update Temp_PIN ");
-            Serial.println(Temp_PIN);
-            Serial.print("update Heater_PIN ");
-            Serial.println(Heater_PIN); 
-            Serial.print("update WarmUpTime ");
-            Serial.println(WarmUpTime);
-            Serial.print("update heaterFailsafeTime ");
-            Serial.println(heaterFailsafeTime);
-            Serial.print("update heaterThreshold ");
-            Serial.println(heaterThreshold);
-            Serial.print("update heaterResolution ");
-            Serial.println(heaterResolution);
-            Serial.print("update heaterFrequency ");
-            Serial.println(heaterFrequency);
-            Serial.print("update newtoungeHatExists ");
-            Serial.println(newtoungeHatExists);
+            LogHandler::verbose(_TAG, "update TCodeVersionEnum: %i", TCodeVersionEnum);
+            LogHandler::verbose(_TAG, "update ssid: %s", ssid);
+            //LogHandler::verbose(_TAG, "update wifiPass: %s", wifiPass);
+            LogHandler::verbose(_TAG, "update udpServerPort: %i", udpServerPort);
+            LogHandler::verbose(_TAG, "update webServerPort: %i", webServerPort);
+            LogHandler::verbose(_TAG, "update hostname: %s", hostname);
+            LogHandler::verbose(_TAG, "update friendlyName: %s", friendlyName);
+            // LogHandler::verbose(_TAG, "update xMax: %i", StrokeMax);
+            // LogHandler::verbose(_TAG, "update yRollMin: %i", RollMin);
+            // LogHandler::verbose(_TAG, "update yRollMax: %i", RollMax);
+            // LogHandler::verbose(_TAG, "update xRollMin: %i", PitchMin);
+            // LogHandler::verbose(_TAG, "update xRollMax: %i", PitchMax);
+            // LogHandler::verbose(_TAG, "update speed: %i", speed);
+            LogHandler::verbose(_TAG, "update pitchFrequencyIsDifferent: %i", pitchFrequencyIsDifferent);
+            LogHandler::verbose(_TAG, "update servoFrequency: %i", servoFrequency);
+            LogHandler::verbose(_TAG, "update pitchFrequency: %i", pitchFrequency);
+            LogHandler::verbose(_TAG, "update valveFrequency: %i", valveFrequency);
+            LogHandler::verbose(_TAG, "update twistFrequency: %i", twistFrequency);
+            LogHandler::verbose(_TAG, "update continuousTwist: %i", continuousTwist);
+            LogHandler::verbose(_TAG, "update feedbackTwist: %i", feedbackTwist);
+            LogHandler::verbose(_TAG, "update analogTwist: %i", analogTwist);
+            LogHandler::verbose(_TAG, "update TwistFeedBack_PIN: %i", TwistFeedBack_PIN);
+            LogHandler::verbose(_TAG, "update RightServo_PIN: %i", RightServo_PIN);
+            LogHandler::verbose(_TAG, "update LeftServo_PIN: %i", LeftServo_PIN);
+            LogHandler::verbose(_TAG, "update RightUpperServo_PIN: %i", RightUpperServo_PIN);
+            LogHandler::verbose(_TAG, "update LeftUpperServo_PIN: %i", LeftUpperServo_PIN);
+            LogHandler::verbose(_TAG, "update PitchLeftServo_PIN: %i", PitchLeftServo_PIN);
+            LogHandler::verbose(_TAG, "update PitchRightServo_PIN: %i", PitchRightServo_PIN);
+            LogHandler::verbose(_TAG, "update ValveServo_PIN: %i", ValveServo_PIN);
+            LogHandler::verbose(_TAG, "update TwistServo_PIN: %i", TwistServo_PIN);
+            LogHandler::verbose(_TAG, "update Vibe0_PIN: %i", Vibe0_PIN);
+            LogHandler::verbose(_TAG, "update Vibe1_PIN: %i", Vibe1_PIN);
+            LogHandler::verbose(_TAG, "update LubeManual_PIN: %i", LubeManual_PIN);
+            LogHandler::verbose(_TAG, "update staticIP: %i", staticIP);
+            LogHandler::verbose(_TAG, "update localIP: %s", localIP);
+            LogHandler::verbose(_TAG, "update gateway: %s", gateway);
+            LogHandler::verbose(_TAG, "update subnet: %s", subnet);
+            LogHandler::verbose(_TAG, "update dns1: %s", dns1);
+            LogHandler::verbose(_TAG, "update dns2: %s", dns2);
+            LogHandler::verbose(_TAG, "update sr6Mode: %i", sr6Mode);
+            LogHandler::verbose(_TAG, "update RightServo_ZERO: %i", RightServo_ZERO);
+            LogHandler::verbose(_TAG, "update LeftServo_ZERO: %i", LeftServo_ZERO);
+            LogHandler::verbose(_TAG, "update RightUpperServo_ZERO: %i", RightUpperServo_ZERO);
+            LogHandler::verbose(_TAG, "update LeftUpperServo_ZERO: %i", LeftUpperServo_ZERO);
+            LogHandler::verbose(_TAG, "update PitchLeftServo_ZERO: %i", PitchLeftServo_ZERO);
+            LogHandler::verbose(_TAG, "update PitchRightServo_ZERO: %i", PitchRightServo_ZERO);
+            LogHandler::verbose(_TAG, "update TwistServo_ZERO: %i", TwistServo_ZERO);
+            LogHandler::verbose(_TAG, "update ValveServo_ZERO: %i", ValveServo_ZERO);
+            LogHandler::verbose(_TAG, "update autoValve: %i", autoValve);
+            LogHandler::verbose(_TAG, "update inverseValve: %i", inverseValve);
+            LogHandler::verbose(_TAG, "update valveServo90Degrees: %i", valveServo90Degrees);
+            LogHandler::verbose(_TAG, "update inverseStroke: %i", inverseStroke);
+            LogHandler::verbose(_TAG, "update inversePitch: %i", inversePitch);
+            LogHandler::verbose(_TAG, "update lubeEnabled: %i", lubeEnabled);
+            LogHandler::verbose(_TAG, "update lubeAmount: %i", lubeAmount);
+            LogHandler::verbose(_TAG, "update displayEnabled: %i", displayEnabled);
+            LogHandler::verbose(_TAG, "update sleeveTempDisplayed: %i", sleeveTempDisplayed);
+            LogHandler::verbose(_TAG, "update tempControlEnabled: %i", tempControlEnabled);
+            LogHandler::verbose(_TAG, "update Display_Screen_Width: %i", Display_Screen_Width);
+            LogHandler::verbose(_TAG, "update Display_Screen_Height: %i", Display_Screen_Height);
+            LogHandler::verbose(_TAG, "update TargetTemp: %i", TargetTemp);
+            LogHandler::verbose(_TAG, "update HeatPWM: %i", HeatPWM);
+            LogHandler::verbose(_TAG, "update HoldPWM: %i", HoldPWM);
+            LogHandler::verbose(_TAG, "update Display_I2C_Address: %i", Display_I2C_Address);
+            LogHandler::verbose(_TAG, "update Display_Rst_PIN: %i", Display_Rst_PIN);
+            LogHandler::verbose(_TAG, "update Temp_PIN: %i", Temp_PIN);
+            LogHandler::verbose(_TAG, "update Heater_PIN: %i", Heater_PIN); 
+            LogHandler::verbose(_TAG, "update WarmUpTime: %ld", WarmUpTime);
+            LogHandler::verbose(_TAG, "update heaterFailsafeTime: %ld", heaterFailsafeTime);
+            LogHandler::verbose(_TAG, "update heaterThreshold: %d", heaterThreshold);
+            LogHandler::verbose(_TAG, "update heaterResolution: %i", heaterResolution);
+            LogHandler::verbose(_TAG, "update heaterFrequency: %i", heaterFrequency);
+            LogHandler::verbose(_TAG, "update newtoungeHatExists: %i", newtoungeHatExists);
+            LogHandler::verbose(_TAG, "update logLevel: %i", (int)logLevel);
+            LogHandler::verbose(_TAG, "update bluetoothEnabled: %i", (int)bluetoothEnabled);
             
         }
 };
 bool SettingsHandler::saving = false;
-#if FULL_BUILD == 1
-bool SettingsHandler::fullBuild = true;
-#else
 bool SettingsHandler::fullBuild = false;
-#endif
 
+const char* SettingsHandler::_TAG = "_SETTINGS_HANDLER";
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
 const char SettingsHandler::ESP32Version[14] = "ESP32 v0.246b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
+const char* SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
 const char* SettingsHandler::userSettingsFilePath = "/userSettings.json";
+const char* SettingsHandler::logPath = "/log.json";
 const char* SettingsHandler::defaultWifiPass = "YOUR PASSWORD HERE";
 const char* SettingsHandler::decoyPass = "Too bad haxor!";
 bool SettingsHandler::bluetoothEnabled = true;
+bool SettingsHandler::restartRequired = false;
+bool SettingsHandler::debug = false;
+LogLevel SettingsHandler::logLevel = LogLevel::INFO;
 bool SettingsHandler::isTcp = true;
 char SettingsHandler::ssid[32];
 char SettingsHandler::wifiPass[63];
@@ -1086,7 +1082,8 @@ long SettingsHandler::heaterFailsafeTime = 60000;
 float SettingsHandler::heaterThreshold = 5.0;
 int SettingsHandler::heaterResolution = 8;
 int SettingsHandler::heaterFrequency = 5000;
-bool SettingsHandler::newtoungeHatExists = ISAAC_NEWTONGUE_BUILD;
+bool SettingsHandler::newtoungeHatExists = false;
+const char* SettingsHandler::lastRebootReason;
 
 int SettingsHandler::strokerSamples = 100;
 int SettingsHandler::strokerOffset = 3276;

@@ -1,5 +1,4 @@
 
-#pragma once
 // OSR-Alpha3_ESP32
 // by TempestMAx 9-7-21
 // Please copy, share, learn, innovate, give attribution.
@@ -20,48 +19,18 @@
 //   Settings
 // ----------------------------
 
+#pragma once
 
-#include "TCode.h"
+#include "TCode0_3.h"
 #include "../Global.h"
-class ServoHandler3 {
+#include "../ServoHandler.h"
 
-private:
-    int MainServo_Int;
-    int PitchServo_Int;
-    int TwistServo_Int;
-    int ValveServo_Int;
-
-    int MainServo_Freq;
-    int PitchServo_Freq;
-    int TwistServo_Freq;
-    int ValveServo_Freq;
-
-    // Declare classes
-    // This uses the t-code object above
-    TCode tcode;
-    // Declare operating variables
-    // Position variables
-    int xLin,yLin,zLin;
-    // Rotation variables
-    int xRot,yRot,zRot;
-    // Vibration variables
-    int vibe0,vibe1;
-    // Lube variables
-    int lube;
-    // Valve variables
-    int valveCmd,suckCmd;
-    // Velocity tracker variables, for valve
-    int xLast;
-    unsigned long tLast;
-    float upVel,valvePos;
-    float twistServoAngPos = 0.5;
-    int twistTurns = 0;
-    float twistPos;
+class ServoHandler0_3 : public ServoHandler {
 
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency) {
+    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency) override {
         MainServo_Freq = servoFrequency;
         PitchServo_Freq = pitchFrequency;
         TwistServo_Freq = twistFrequency;
@@ -101,42 +70,52 @@ public:
         }
         // Setup Servo PWM channels
         // Lower Left Servo
-        if(DEBUG == 0) {
+        if(DEBUG_BUILD == 0) {
+            LogHandler::verbose(_TAG, "Connecting left servo to pin: %u", SettingsHandler::LeftServo_PIN);
             ledcSetup(LowerLeftServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::LeftServo_PIN,LowerLeftServo_PWM);
             // Lower Right Servo
+            LogHandler::verbose(_TAG, "Connecting right servo to pin: %u", SettingsHandler::RightServo_PIN);
             ledcSetup(LowerRightServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::RightServo_PIN,LowerRightServo_PWM);
         }
         if(SettingsHandler::sr6Mode)
         {
             // Upper Left Servo
+            LogHandler::verbose(_TAG, "Connecting left upper servo to pin: %u", SettingsHandler::LeftUpperServo_PIN);
             ledcSetup(UpperLeftServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::LeftUpperServo_PIN,UpperLeftServo_PWM);
-            if(DEBUG == 0) {
+            if(DEBUG_BUILD == 0) {
                 // Upper Right Servo
+            LogHandler::verbose(_TAG, "Connecting right upper servo to pin: %u", SettingsHandler::RightUpperServo_PIN);
                 ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);
                 ledcAttachPin(SettingsHandler::RightUpperServo_PIN,UpperRightServo_PWM);
                 // Right Pitch Servo
+                LogHandler::verbose(_TAG, "Connecting right pitch servo to pin: %u", SettingsHandler::PitchRightServo_PIN);
                 ledcSetup(RightPitchServo_PWM,PitchServo_Freq,16);
                 ledcAttachPin(SettingsHandler::PitchRightServo_PIN,RightPitchServo_PWM);
             }
         }
         // Left Pitch Servo
+        LogHandler::verbose(_TAG, "Connecting pitch servo to pin: %u", SettingsHandler::PitchLeftServo_PIN);
         ledcSetup(LeftPitchServo_PWM,PitchServo_Freq,16);
         ledcAttachPin(SettingsHandler::PitchLeftServo_PIN,LeftPitchServo_PWM);
         // Twist Servo
+        LogHandler::verbose(_TAG, "Connecting twist servo to pin: %u", SettingsHandler::TwistServo_PIN);
         ledcSetup(TwistServo_PWM,TwistServo_Freq,16);
         ledcAttachPin(SettingsHandler::TwistServo_PIN,TwistServo_PWM);
         // Valve Servo
+        LogHandler::verbose(_TAG, "Connecting valve servo to pin: %u", SettingsHandler::ValveServo_PIN);
         ledcSetup(ValveServo_PWM,ValveServo_Freq,16);
         ledcAttachPin(SettingsHandler::ValveServo_PIN,ValveServo_PWM);
 
         // Set vibration PWM pins
         // Vibe0 Pin
+        LogHandler::verbose(_TAG, "Connecting vib 1 to pin: %u", SettingsHandler::Vibe0_PIN);
         ledcSetup(Vibe0_PWM,VibePWM_Freq,8);
         ledcAttachPin(SettingsHandler::Vibe0_PIN,Vibe0_PWM);
         // Vibe1 Pin
+        LogHandler::verbose(_TAG, "Connecting vib 2 to pin: %u", SettingsHandler::Vibe1_PIN);
         ledcSetup(Vibe1_PWM,VibePWM_Freq,8);
         ledcAttachPin(SettingsHandler::Vibe1_PIN,Vibe1_PWM); 
 
@@ -146,6 +125,7 @@ public:
             pinMode(SettingsHandler::TwistFeedBack_PIN,INPUT);
             if(!SettingsHandler::analogTwist) 
             {
+                LogHandler::verbose(_TAG, "Attaching interrupt for twist feedback to pin: %u", SettingsHandler::TwistFeedBack_PIN);
                 attachInterrupt(SettingsHandler::TwistFeedBack_PIN, twistChange, CHANGE);
                 //Serial.print("Setting digital twist "); 
                 //Serial.println(SettingsHandler::TwistFeedBack_PIN);
@@ -161,28 +141,30 @@ public:
         }
         
         // Signal done
-        Serial.println("Ready!");
+        tcode.sendMessage("Ready!");
     }
 
+    void setMessageCallback(TCODE_FUNCTION_PTR_T function) override {
+        tcode.setMessageCallback(function);
+    }
 
-
-    void read(String input) 
+    void read(String input) override
     {
         tcode.StringInput(input);
     }
 
-    void read(byte input) 
+    void read(byte input) override 
     {
         tcode.ByteInput(input);
     }
 
-    String getDeviceSettings() {
-        return tcode.getDeviceSettings();
-    }
+    // String getDeviceSettings() {
+    //     return tcode.getDeviceSettings();
+    // }
 
 // int testVar = -1;
 // int testVar2 = -1;
-    void execute() {
+    void execute() override {
         // Collect inputs
         // These functions query the t-code object for the position/level at a specified time
         // Number recieved will be an integer, 0-9999
@@ -414,6 +396,39 @@ public:
         // Done with lube
     }
 
+private:
+	const char* _TAG = "ServoHandler0_3";
+    int MainServo_Int;
+    int PitchServo_Int;
+    int TwistServo_Int;
+    int ValveServo_Int;
+
+    int MainServo_Freq;
+    int PitchServo_Freq;
+    int TwistServo_Freq;
+    int ValveServo_Freq;
+
+    // Declare classes
+    // This uses the t-code object above
+    TCode0_3 tcode;
+    // Declare operating variables
+    // Position variables
+    int xLin,yLin,zLin;
+    // Rotation variables
+    int xRot,yRot,zRot;
+    // Vibration variables
+    int vibe0,vibe1;
+    // Lube variables
+    int lube;
+    // Valve variables
+    int valveCmd,suckCmd;
+    // Velocity tracker variables, for valve
+    int xLast;
+    unsigned long tLast;
+    float upVel,valvePos;
+    float twistServoAngPos = 0.5;
+    int twistTurns = 0;
+    float twistPos;
 
     // Function to calculate the angle for the main arm servos
     // Inputs are target x,y coords of receiver pivot in 1/100 of a mm
@@ -444,6 +459,4 @@ public:
         int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
         return out;
     }
-
-
 };

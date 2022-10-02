@@ -21,10 +21,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 #pragma once
-
 #include <WiFi.h>
-#include "BLEHandler.h"
-
+#include <esp_wifi.h>
+enum class WiFiStatus {
+  CONNECTED,
+  DISCONNECTED
+};
+enum class WiFiReason {
+  UNKNOWN,
+  AUTH,
+  NO_AP,
+  AP_MODE
+};
+using WIFI_STATUS_FUNCTION_PTR_T = void (*)(WiFiStatus status, WiFiReason reason);
 class WifiHandler 
 {
   public:
@@ -60,16 +69,21 @@ class WifiHandler
 	}
     bool connect(char ssid[32], char pass[63]) 
     {
+      LogHandler::info(_TAG, "Setting up wifi");
 	      _apMode = false;
         WiFi.disconnect(true, true);
         //Serial.println("Setting mode");
+        if(onApEventID != 0)
+          WiFi.removeEvent(onApEventID);
+        onApEventID = WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info) {
+                      this->WiFiEvent(event, info);
+                    });
         WiFi.mode(WIFI_STA);
         WiFi.setSleep(false);
         WiFi.setHostname("TCodeESP32");
       if (SettingsHandler::staticIP) 
       {
-            Serial.println("Setting static IP settings: ");
-            Serial.print(SettingsHandler::localIP);
+        LogHandler::info(_TAG, "Setting static IP settings: %s", SettingsHandler::localIP);
         uint8_t ipAddress[4];
         sscanf(SettingsHandler::localIP, "%u.%u.%u.%u", &ipAddress[0], &ipAddress[1], &ipAddress[2], &ipAddress[3]);
         uint8_t gateway[4];
@@ -82,11 +96,8 @@ class WifiHandler
         sscanf(SettingsHandler::dns2, "%u.%u.%u.%u", &dns2[0], &dns2[1], &dns2[2], &dns2[3]);
         WiFi.config(IPAddress(ipAddress), IPAddress(gateway), IPAddress(subnet), IPAddress(dns1), IPAddress(dns2));
       }
-      Serial.println("Setting up wifi");
-      Serial.print("Mac: ");
-      Serial.println(mac());
-      Serial.print("Establishing connection to ");
-      Serial.print(ssid);
+      LogHandler::info(_TAG, "Mac: %s", mac().c_str());
+      LogHandler::info(_TAG, "Establishing connection to %s", ssid);
       if(pass[0] == '\0')
           WiFi.begin(ssid);
       else
@@ -99,50 +110,102 @@ class WifiHandler
       }
       if (millis() >= connectStartTimeout) 
       {
-        Serial.println("Wifi timed out connection to AP");
+        LogHandler::error(_TAG, "Wifi timed out connection to AP");
         WiFi.disconnect(true, true);
         return false;
       }
       IPAddress ipAddress = ip();
-      Serial.println();
-      Serial.print("Connected: IP: ");
-      Serial.println(ipAddress);
-        _apMode = false;
+	    LogHandler::info(_TAG, "Connected IP: %s", ip().toString().c_str());
+      _apMode = false;
       return true;
     }
 
-    void WiFiEvent(WiFiEvent_t event, system_event_info_t info){
+    void dispose() {
+      //WiFi.disconnect(true, true);
+      //esp_http_client_cleanup( WiFi ); // dismiss the TCP stack
+      //esp_wifi_disconnect();            // break connection to AP   
+      WiFi.disconnect(true, true);
+      WiFi.mode(WIFI_OFF); 
+      
+      //esp_wifi_stop();              // shut down the wifi radio
+      //esp_wifi_deinit();              // release wifi resources
+    }
+
+    void WiFiEvent(arduino_event_id_t event, arduino_event_info_t info){
       switch(event){
-        case SYSTEM_EVENT_STA_START:
-          Serial.println("Station Mode Started");
+        case ARDUINO_EVENT_WIFI_STA_START:
+          LogHandler::info(_TAG, "Station Mode Started");
           break;
-        case SYSTEM_EVENT_STA_GOT_IP:
-          Serial.println("Connected to :" + String(WiFi.SSID()));
-          Serial.println(WiFi.localIP());
+        case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+          LogHandler::info(_TAG, "Connected to: %s", WiFi.SSID().c_str());
+          LogHandler::info(_TAG, "IP Address: %s", WiFi.localIP().toString().c_str());
           break;
-        case SYSTEM_EVENT_STA_DISCONNECTED:
-          Serial.println("Disconnected from station, attempting reconnection");
+        case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: 
+        {
+          LogHandler::warning(_TAG, "Disconnected from station, attempting reconnection");
+          LogHandler::info(_TAG, "Reason: %u", lastReason);
+          uint8_t reason = info.wifi_sta_disconnected.reason;
+          if(reason == WIFI_REASON_NO_AP_FOUND) {
+            LogHandler::info(_TAG, "WIFI_REASON_NO_AP_FOUND");
+            lastReason = reason;
+          } else if(reason == WIFI_REASON_AUTH_FAIL || reason == WIFI_REASON_CONNECTION_FAIL) {
+            lastReason = reason;
+          } else if(reason == WIFI_REASON_BEACON_TIMEOUT || reason == WIFI_REASON_HANDSHAKE_TIMEOUT) {
+            LogHandler::info(_TAG, "WIFI_REASON_BEACON_TIMEOUT or WIFI_REASON_HANDSHAKE_TIMEOUT");
+          } else if(reason == WIFI_REASON_AUTH_EXPIRE) {
+            LogHandler::info(_TAG, "WIFI_REASON_AUTH_EXPIRE");
+          } else {
+            LogHandler::info(_TAG, "Unknown reason %u", lastReason);
+          }
           WiFi.reconnect();
           break;
-        case SYSTEM_EVENT_STA_WPS_ER_SUCCESS:
-          Serial.println("WPS Successfull, stopping WPS and connecting to: " + String(WiFi.SSID()));
+        }
+        case ARDUINO_EVENT_WIFI_STA_STOP:
+          LogHandler::error(_TAG, "Station Mode Stopped: %u", info.wifi_sta_disconnected.reason);
+          if(lastReason == WIFI_REASON_NO_AP_FOUND) {
+            LogHandler::info(_TAG, "WIFI_REASON_NO_AP_FOUND");
+            if(wifiStatus_callback)
+              wifiStatus_callback(WiFiStatus::DISCONNECTED, WiFiReason::NO_AP);
+          } else if(lastReason == WIFI_REASON_AUTH_FAIL || lastReason == WIFI_REASON_CONNECTION_FAIL) {
+            if(wifiStatus_callback)
+              wifiStatus_callback(WiFiStatus::DISCONNECTED, WiFiReason::AUTH);
+          } else {
+            if(wifiStatus_callback)
+              wifiStatus_callback(WiFiStatus::DISCONNECTED, WiFiReason::UNKNOWN);
+          }
+            lastReason = 0;
+          break;
+        case ARDUINO_EVENT_WPS_ER_SUCCESS:
+          LogHandler::info(_TAG, "WPS Successfull, stopping WPS and connecting to: %s", WiFi.SSID().c_str());
           WiFi.begin();
           break;
-        case SYSTEM_EVENT_STA_WPS_ER_FAILED:
-          Serial.println("WPS Failed, retrying");
+        case ARDUINO_EVENT_WPS_ER_FAILED:
+          LogHandler::error(_TAG, "WPS Failed, retrying");
+          WiFi.reconnect();
           break;
-        case SYSTEM_EVENT_STA_WPS_ER_TIMEOUT:
-          Serial.println("WPS Timedout, retrying");
+        case ARDUINO_EVENT_WPS_ER_TIMEOUT:
+          LogHandler::error(_TAG, "WPS Timedout, retrying");
+          WiFi.reconnect();
           break;
-        case SYSTEM_EVENT_STA_WPS_ER_PIN:
+        case ARDUINO_EVENT_WPS_ER_PIN:
+          LogHandler::debug(_TAG, "ARDUINO_EVENT_WPS_ER_PIN");
           break;
-        case SYSTEM_EVENT_AP_STACONNECTED:
-          if(_apMode)
-          {
-            _bleHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
-          }
+        case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+          LogHandler::debug(_TAG, "ARDUINO_EVENT_WIFI_AP_STACONNECTED");
+            if(wifiStatus_callback)
+              wifiStatus_callback(WiFiStatus::CONNECTED, WiFiReason::AP_MODE);
+          // if(_apMode)
+          // {
+          //   if(_bleHandler)
+          //     _bleHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
+          //   if(_btHandler)
+          //     _btHandler->stop();
+          // }
           break;
-        case SYSTEM_EVENT_AP_STADISCONNECTED:
+        case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+          LogHandler::debug(_TAG, "ARDUINO_EVENT_WIFI_AP_STADISCONNECTED");
+            if(wifiStatus_callback)
+              wifiStatus_callback(WiFiStatus::DISCONNECTED, WiFiReason::AP_MODE);
           if(_apMode)
           {
             // _bleHandler->setup(); //Didnt get called for some reason. No time to debug. Just restart the esp.
@@ -153,16 +216,16 @@ class WifiHandler
       }
     }
 
-    bool startAp(BLEHandler* bleHandler) {
-      _bleHandler = bleHandler;
+    bool startAp() {
       WiFi.disconnect(true, true);
       WiFi.mode(WIFI_AP);
       //WiFi.setHostname("TCodeESP32");
       WiFi.softAP(ssid);
-      Serial.print("Mac: ");
-      Serial.println(mac());
+      LogHandler::info(_TAG, "Mac: %s", mac().c_str());
       delay(100);
-      onApEventID = WiFi.onEvent([this](WiFiEvent_t event, system_event_info_t info) {
+      if(onApEventID != 0)
+        WiFi.removeEvent(onApEventID);
+      onApEventID = WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info) {
                     this->WiFiEvent(event, info);
                   });
 
@@ -174,22 +237,27 @@ class WifiHandler
       IPAddress gateway(192, 168, 1, 254);
       if (!WiFi.softAPConfig(local_IP, gateway, subnet)) 
 	    {
-        Serial.println("AP Failed to configure");
+        LogHandler::error(_TAG, "AP Failed to configure");
         return false;
       }
 	    _apMode = true;
-      Serial.print("Wifi APMode IP: ");
-      Serial.println(WiFi.softAPIP());
+      LogHandler::info(_TAG, "Wifi APMode IP: %s", WiFi.softAPIP().toString().c_str());//TODO: fix this.. 
       return true;
     }
-    private: 
+	void setWiFiStatusCallback(WIFI_STATUS_FUNCTION_PTR_T f)
+	{
+		wifiStatus_callback = f == nullptr ? 0 : f;
+	}
+private: 
+    WIFI_STATUS_FUNCTION_PTR_T wifiStatus_callback;
+    const char* _TAG = "WIFI";
     const char *ssid = "TCodeESP32Setup";
     const char *password = "12345678";
     int connectTimeOut = 10000;
     int onApEventID = 0;
-    BLEHandler* _bleHandler;
-	static int8_t _rssi;
-	static bool _apMode;
+    static int8_t _rssi;
+    static bool _apMode;
+    uint8_t lastReason;
   //  String translateEncryptionType(wifi_auth_mode_t encryptionType) {
   //    switch (encryptionType) {
   //      case (WIFI_AUTH_OPEN):

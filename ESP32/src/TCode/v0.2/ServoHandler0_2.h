@@ -18,9 +18,12 @@
 // v2.7 - T-valve suction level control added to L3. 25-11-2020
 // v2.7b - T-valve suction level algorithm modified. 30-11-2020
 
+#pragma once
+
 #include <ESP32Servo.h>
 #include "ToyComs.h"
 #include "../Global.h"
+#include "../ServoHandler.h"
 
 /* volatile int twistFeedBackPin = SettingsHandler::TwistFeedBack_PIN;
 // Twist position monitor variables
@@ -41,10 +44,11 @@ void IRAM_ATTR twistChange()
 	}
 } */
 
-class ServoHandler2 
+class ServoHandler0_2 : public ServoHandler
 {
 
 private:
+	const char* _TAG = "ServoHandler0_2";
     ToyComms toy; 
     // Declare servos
     Servo RightServo;
@@ -99,12 +103,45 @@ private:
 	int twistTurns = 0;
 	float twistPos;
 
-	int lubeAmount = SettingsHandler::lubeAmount;;
+	int lubeAmount = SettingsHandler::lubeAmount;
+
+	// Function to calculate the angle for the main arm servos
+	// Inputs are target x,y coords of receiver pivot in 1/100 of a mm
+	int SetMainServo(float x, float y) 
+	{
+		x /= 100; y /= 100;          // Convert to mm
+		float gamma = atan2(x,y);    // Angle of line from servo pivot to receiver pivot
+		float csq = sq(x) + sq(y);   // Square of distance between servo pivot and receiver pivot
+		float c = sqrt(csq);         // Distance between servo pivot and receiver pivot
+		float beta = acos((csq - 28125)/(100*c));  // Angle between c-line and servo arm
+		int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
+		return out;
+	}
+
+
+	// Function to calculate the angle for the pitcher arm servos
+	// Inputs are target x,y,z coords of receiver upper pivot in 1/100 of a mm
+	// Also pitch in 1/100 of a degree
+	int SetPitchServo(float x, float y, float z, float pitch) 
+	{
+		pitch *= 0.0001745; // Convert to radians
+		x += 5500*sin(0.2618 + pitch);
+		y -= 5500*cos(0.2618 + pitch);
+		x /= 100; y /= 100; z /= 100;   // Convert to mm
+		float bsq = 36250 - sq(75 + z); // Equivalent arm length
+		float gamma = atan2(x,y);       // Angle of line from servo pivot to receiver pivot
+		float csq = sq(x) + sq(y);      // Square of distance between servo pivot and receiver pivot
+		float c = sqrt(csq);            // Distance between servo pivot and receiver pivot
+		float beta = acos((csq + 5625 - bsq)/(150*c)); // Angle between c-line and servo arm
+		int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
+		return out;
+	}
+
 
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency) 
+    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency) override 
     {
 		toy.setup();
         toy.identifyTCode();
@@ -129,19 +166,21 @@ public:
 		Vibe0_PIN = SettingsHandler::Vibe0_PIN;
 		Vibe1_PIN = SettingsHandler::Vibe1_PIN;
 
-        if(DEBUG == 0) {
+        if(DEBUG_BUILD == 0) {
 			// Declare servos and set zero
 			rightServoConnected = RightServo.attach(RightServo_PIN);
 			if (rightServoConnected == 0) 
 			{
-				Serial.print("Failure to connect to right pin: ");
-				Serial.println(RightServo_PIN);
+				// Serial.print("Failure to connect to right pin: ");
+				// Serial.println(RightServo_PIN);
+				LogHandler::error(_TAG, "Failure to connect to right pin: %i", RightServo_PIN);
 			}
 			leftServoConnected = LeftServo.attach(LeftServo_PIN);
 			if (leftServoConnected == 0) 
 			{
-				Serial.print("Failure to connect to left pin: ");
-				Serial.println(LeftServo_PIN);
+				// Serial.print("Failure to connect to left pin: ");
+				// Serial.println(LeftServo_PIN);
+				LogHandler::error(_TAG, "Failure to connect to left pin: %i", LeftServo_PIN);
 			}
 		}
 		if(SettingsHandler::sr6Mode)
@@ -149,41 +188,47 @@ public:
 			leftUpperServoConnected = LeftUpperServo.attach(LeftUpperServo_PIN);
 			if (leftUpperServoConnected == 0) 
 			{
-				Serial.print("Failure to connect to left upper pin: ");
-				Serial.println(LeftUpperServo_PIN);
+				// Serial.print("Failure to connect to left upper pin: ");
+				// Serial.println(LeftUpperServo_PIN);
+				LogHandler::error(_TAG, "Failure to connect to left upper pin: %i", LeftUpperServo_PIN);
 			}
-			if(DEBUG == 0) {
+			if(DEBUG_BUILD == 0) {
 				rightUpperServoConnected = RightUpperServo.attach(RightUpperServo_PIN);
 				if (rightUpperServoConnected == 0) 
 				{
-					Serial.print("Failure to connect to right upper pin: ");
-					Serial.println(RightUpperServo_PIN);
+					// Serial.print("Failure to connect to right upper pin: ");
+					// Serial.println(RightUpperServo_PIN);
+					LogHandler::error(_TAG, "Failure to connect to right upper pin: %i", RightUpperServo_PIN);
 				}
 				pitchRightServoConnected = PitchRightServo.attach(PitchRightServo_PIN);
 				if (pitchRightServoConnected == 0) 
 				{
-					Serial.print("Failure to connect to pitch right pin: ");
-					Serial.println(PitchRightServo_PIN);
+					// Serial.print("Failure to connect to pitch right pin: ");
+					// Serial.println(PitchRightServo_PIN);
+					LogHandler::error(_TAG, "Failure to connect to pitch right pin: %i", PitchRightServo_PIN);
 				}
 			}
 		}
         pitchServoConnected = PitchLeftServo.attach(PitchLeftServo_PIN);
         if (pitchServoConnected == 0) 
         {
-            Serial.print("Failure to connect to pitch left pin: ");
-            Serial.println(PitchLeftServo_PIN);
+            // Serial.print("Failure to connect to pitch left pin: ");
+            // Serial.println(PitchLeftServo_PIN);
+			LogHandler::error(_TAG, "Failure to connect to pitch left pin: %i", PitchLeftServo_PIN);
         }
         valveServoConnected = ValveServo.attach(ValveServo_PIN);
         if (valveServoConnected == 0) 
         {
-            Serial.print("Failure to connect to valve pin: ");
-            Serial.println(ValveServo_PIN);
+            // Serial.print("Failure to connect to valve pin: ");
+            // Serial.println(ValveServo_PIN);
+			LogHandler::error(_TAG, "Failure to connect to valve pin: %i", ValveServo_PIN);
         }
         twistServoConnected = TwistServo.attach(TwistServo_PIN); 
         if (twistServoConnected == 0) 
         {
-            Serial.print("Failure to connect to twist pin: ");
-            Serial.println(TwistServo_PIN);
+            // Serial.print("Failure to connect to twist pin: ");
+            // Serial.println(TwistServo_PIN);
+			LogHandler::error(_TAG, "Failure to connect to twist pin: %i", TwistServo_PIN);
         }
 
         delay(500);
@@ -250,23 +295,30 @@ public:
 		attachInterrupt(SettingsHandler::TwistFeedBack_PIN, twistChange, CHANGE);
 
         // Signal done
-        Serial.println("Ready!");
+        toy.sendMessage("Ready!");
 
     }
 
-    // ----------------------------
-    //   MAIN
-    // ----------------------------
-    // This loop runs continuously
+    void setMessageCallback(TCODE_FUNCTION_PTR_T function) override {
+        toy.setMessageCallback(function);
+    }
 
-    void read(byte inByte) 
+    void read(String input) override
+    {
+		for (int x = 0; x < sizeof(input.length() + 1); x++) { 
+			read(input[x]); 
+			execute();
+		} 
+    }
+
+    void read(byte inByte) override 
     {
         // Send the serial bytes to the t-code object
         // This is the only required input for the object
         toy.serialRead(inByte);
     }
 
-    void execute() 
+    void execute() override 
     {
 
         // Pulse Servos based on time interval
@@ -479,12 +531,12 @@ public:
             // Output vibration channels
             // These should drive PWM pins connected to vibration motors via MOSFETs or H-bridges.
             if ((vibe0 > 1) && (vibe0 <= 1000)) 
-                analogWrite(Vibe0_PIN,map(vibe0,2,1000,31,255));
+                analogWrite(Vibe0_PIN, (uint16_t)map(vibe0,2,1000,31,255));
 			else 
                 analogWrite(Vibe0_PIN,0);
 
             if ((vibe1 > 1) && (vibe1 <= 1000)) 
-                analogWrite(Vibe1_PIN,map(vibe1,2,1000,31,255));
+                analogWrite(Vibe1_PIN, (uint16_t)map(vibe1,2,1000,31,255));
 			else if (digitalRead(LubeManual_PIN) == HIGH) 
 				// For iLube - if no software action, check the manual button too
 				analogWrite(Vibe1_PIN, lubeAmount);
@@ -495,36 +547,4 @@ public:
             
         }
     }
-
-	// Function to calculate the angle for the main arm servos
-	// Inputs are target x,y coords of receiver pivot in 1/100 of a mm
-	int SetMainServo(float x, float y) 
-	{
-		x /= 100; y /= 100;          // Convert to mm
-		float gamma = atan2(x,y);    // Angle of line from servo pivot to receiver pivot
-		float csq = sq(x) + sq(y);   // Square of distance between servo pivot and receiver pivot
-		float c = sqrt(csq);         // Distance between servo pivot and receiver pivot
-		float beta = acos((csq - 28125)/(100*c));  // Angle between c-line and servo arm
-		int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
-		return out;
-	}
-
-
-	// Function to calculate the angle for the pitcher arm servos
-	// Inputs are target x,y,z coords of receiver upper pivot in 1/100 of a mm
-	// Also pitch in 1/100 of a degree
-	int SetPitchServo(float x, float y, float z, float pitch) 
-	{
-		pitch *= 0.0001745; // Convert to radians
-		x += 5500*sin(0.2618 + pitch);
-		y -= 5500*cos(0.2618 + pitch);
-		x /= 100; y /= 100; z /= 100;   // Convert to mm
-		float bsq = 36250 - sq(75 + z); // Equivalent arm length
-		float gamma = atan2(x,y);       // Angle of line from servo pivot to receiver pivot
-		float csq = sq(x) + sq(y);      // Square of distance between servo pivot and receiver pivot
-		float c = sqrt(csq);            // Distance between servo pivot and receiver pivot
-		float beta = acos((csq + 5625 - bsq)/(150*c)); // Angle between c-line and servo arm
-		int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
-		return out;
-	}
 };
