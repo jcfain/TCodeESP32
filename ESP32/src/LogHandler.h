@@ -50,24 +50,8 @@ public:
                 std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
                 va_list vArgs;
                 va_start(vArgs, format);
-                char temp[1024];
-                int len = vsnprintf(temp, sizeof(temp) - 1, format, vArgs);
-                temp[sizeof(temp) - 1] = 0;
-                int i;
-
-                for (i = len - 1; i >= 0; --i) {
-                    if (temp[i] != '\n' && temp[i] != '\r' && temp[i] != ' ') {
-                        break;
-                    }
-                    temp[i] = 0;
-                }
-                if(i > 0) {
-                    //ESP_LOGV(tag, "%s", temp);
-                    Serial.printf("%s: %s%s", "VERBOSE", temp, "\n");
-                }
+                parseMessage(format, "VERBOSE", LogLevel::VERBOSE, vArgs);
                 va_end(vArgs);
-                if(message_callback)
-                    message_callback(temp, LogLevel::VERBOSE);
             }
         }
     }
@@ -78,24 +62,8 @@ public:
                 std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
                 va_list vArgs;
                 va_start(vArgs, format);
-                char temp[1024];
-                int len = vsnprintf(temp, sizeof(temp) - 1, format, vArgs);
-                temp[sizeof(temp) - 1] = 0;
-                int i;
-
-                for (i = len - 1; i >= 0; --i) {
-                    if (temp[i] != '\n' && temp[i] != '\r' && temp[i] != ' ') {
-                        break;
-                    }
-                    temp[i] = 0;
-                }
-                if(i > 0) {
-                    //ESP_LOGV(tag, "%s", temp);
-                    Serial.printf("%s: %s%s", "DEBUG", temp, "\n");
-                }
+                parseMessage(format, "DEBUG", LogLevel::DEBUG, vArgs);
                 va_end(vArgs);
-                if(message_callback)
-                    message_callback(temp, LogLevel::DEBUG);
             }
         }
     }
@@ -106,24 +74,8 @@ public:
                 std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
                 va_list vArgs;
                 va_start(vArgs, format);
-                char temp[1024];
-                int len = vsnprintf(temp, sizeof(temp) - 1, format, vArgs);
-                temp[sizeof(temp) - 1] = 0;
-                int i;
-
-                for (i = len - 1; i >= 0; --i) {
-                    if (temp[i] != '\n' && temp[i] != '\r' && temp[i] != ' ') {
-                        break;
-                    }
-                    temp[i] = 0;
-                }
-                if(i > 0) {
-                    //ESP_LOGI(tag, "%s", temp);
-                    Serial.printf("%s: %s%s", "INFO", temp, "\n");
-                }
+                parseMessage(format, "INFO", LogLevel::INFO, vArgs);
                 va_end(vArgs);
-                if(message_callback)
-                    message_callback(temp, LogLevel::INFO);
             }
         }
     }
@@ -134,25 +86,8 @@ public:
                 std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
                 va_list vArgs;
                 va_start(vArgs, format);
-                char temp[1024];
-                int len = vsnprintf(temp, sizeof(temp) - 1, format, vArgs);
-                temp[sizeof(temp) - 1] = 0;
-
-                int i;
-
-                for (i = len - 1; i >= 0; --i) {
-                    if (temp[i] != '\n' && temp[i] != '\r' && temp[i] != ' ') {
-                        break;
-                    }
-                    temp[i] = 0;
-                }
-                if(i > 0) {
-                    //ESP_LOGW(tag, "%s", temp);
-                    Serial.printf("%s: %s%s", "WARNING", temp, "\n");
-                }
+                parseMessage(format, "WARNING", LogLevel::WARNING, vArgs);
                 va_end(vArgs);
-                if(message_callback)
-                    message_callback(temp,LogLevel::WARNING);
             }
         }
     }
@@ -163,24 +98,8 @@ public:
                 std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
                 va_list vArgs;
                 va_start(vArgs, format);
-                char temp[1024];
-                int len = vsnprintf(temp, sizeof(temp) - 1, format, vArgs);
-                temp[sizeof(temp) - 1] = 0;
-                int i;
-
-                for (i = len - 1; i >= 0; --i) {
-                    if (temp[i] != '\n' && temp[i] != '\r' && temp[i] != ' ') {
-                        break;
-                    }
-                    temp[i] = 0;
-                }
-                if(i > 0) {
-                    //ESP_LOGE(tag, "%s", temp);
-                    Serial.printf("%s: %s%s", "ERROR", temp, "\n");
-                }
+                parseMessage(format, "ERROR", LogLevel::ERROR, vArgs);
                 va_end(vArgs);
-                if(message_callback)
-                    message_callback(temp, LogLevel::ERROR);
             }
         }
     }
@@ -193,6 +112,25 @@ private:
     static LOG_FUNCTION_PTR_T message_callback;
     static LogLevel _currentLogLevel;
     static std::mutex serial_mtx;
+
+    static void parseMessage(const char* format, const char* level, LogLevel logLevel, va_list vArgs) {
+        char temp[1024];
+        int len = vsnprintf(temp, sizeof(temp) - 1, format, vArgs);
+        temp[sizeof(temp) - 1] = 0;
+        int i;
+
+        for (i = len - 1; i >= 0; --i) {
+            if (temp[i] != '\n' && temp[i] != '\r' && temp[i] != ' ') {
+                break;
+            }
+            temp[i] = 0;
+        }
+        if(i > 0) {
+            Serial.printf("%s: %s%s", level, temp, "\n");
+            if(message_callback)
+                message_callback(temp, logLevel);
+        }
+    }
 };
 std::mutex  LogHandler::serial_mtx;
 LogLevel LogHandler::_currentLogLevel = LogLevel::INFO;

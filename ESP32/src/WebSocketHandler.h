@@ -54,7 +54,7 @@ class WebSocketHandler {
                 sendCommand(in.c_str());
         }
 
-        void sendDebug(const char* message, LogLevel level) {
+        // void sendDebug(const char* message, LogLevel level) {
             // if (level != LogLevel::VERBOSE && isInitialized && debugInQueue != NULL && uxQueueMessagesWaiting(debugInQueue) < 10 && serial_mtx.try_lock()) {
             //     std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
             //         // char messageToSend[255];
@@ -72,7 +72,7 @@ class WebSocketHandler {
             //         // }
             //         xQueueSend(debugInQueue, message, 0);
             // }
-        }
+        // }
 
         void sendCommand(const char* command, const char* message = 0, AsyncWebSocketClient* client = 0)
         {
@@ -139,20 +139,20 @@ class WebSocketHandler {
         static TaskHandle_t* emptyQueueHandle;
         static bool emptyQueueRunning;
 
-        static void emptyQueue(void *webSocketHandler) {
-            while (true) {
-                if(ws.count() > 0 && millis() - m_lastSend > 50 && uxQueueMessagesWaiting(debugInQueue)) {
-				    char lastMessage[255];
-                    if(xQueueReceive(debugInQueue, lastMessage, 0)) {
-                        if(LogHandler::getLogLevel() == LogLevel::VERBOSE)
-                            Serial.printf("read from q: %s\n", lastMessage);
-                        ((WebSocketHandler*)webSocketHandler)->sendCommand("debug", lastMessage);
-                    }
-                }
-        	    vTaskDelay(100/portTICK_PERIOD_MS);
-            }
-            vTaskDelete(NULL);
-        }
+        // static void emptyQueue(void *webSocketHandler) {
+        //     while (true) {
+        //         if(ws.count() > 0 && millis() - m_lastSend > 50 && uxQueueMessagesWaiting(debugInQueue)) {
+		// 		    char lastMessage[255];
+        //             if(xQueueReceive(debugInQueue, lastMessage, 0)) {
+        //                 if(LogHandler::getLogLevel() == LogLevel::VERBOSE)
+        //                     Serial.printf("read from q: %s\n", lastMessage);
+        //                 ((WebSocketHandler*)webSocketHandler)->sendCommand("debug", lastMessage);
+        //             }
+        //         }
+        // 	    vTaskDelay(100/portTICK_PERIOD_MS);
+        //     }
+        //     vTaskDelete(NULL);
+        // }
 
         void processWebSocketTextMessage(char* msg) 
         {

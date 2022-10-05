@@ -134,9 +134,9 @@ void CommandCallback(const String& in) {
 
 void logCallBack(const char* in, LogLevel level) {
 #if WIFI_TCODE == 1
-	if(webSocketHandler) {
-		webSocketHandler->sendDebug(in, level);
-	}
+	// if(webSocketHandler) {
+	// 	webSocketHandler->sendDebug(in, level);
+	// }
 #endif
 }
 

@@ -5,7 +5,7 @@
 	"wifiPass": "YOUR PASSWORD HERE",
 	"hostname": "tcode",
 	"friendlyName": "ESP32 TCode",
-	"esp32Version": "ESP32 v0.246b",
+	"esp32Version": "ESP32 v0.251b",
 	"bluetoothEnabled": false,
 	"udpServerPort": 8000,
 	"webServerPort": 80,
