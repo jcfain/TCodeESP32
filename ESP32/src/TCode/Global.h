@@ -1,10 +1,5 @@
 #pragma once
 
-// Servo microseconds per radian
-// (Standard: 637 μs/rad)
-// (LW-20: 700 μs/rad)
-#define ms_per_rad 637  // (μs/rad)
-
 // Servo operating frequencies
 #define VibePWM_Freq 8000   // Vibe motor control PWM frequency
 

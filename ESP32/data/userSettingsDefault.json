@@ -17,6 +17,7 @@
 	"xRollMax": 1000,
 	"speed": 1000,
 	"pitchFrequencyIsDifferent": false,
+	"msPerRad": 637,
 	"servoFrequency": 50,
 	"pitchFrequency": 50,
 	"valveFrequency": 50,

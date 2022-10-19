@@ -364,6 +364,7 @@ function setUserSettings()
 	document.getElementById("pitchFrequency").value = userSettings["pitchFrequency"];
 	document.getElementById("valveFrequency").value = userSettings["valveFrequency"];
 	document.getElementById("twistFrequency").value = userSettings["twistFrequency"];
+	document.getElementById("msPerRad").value = userSettings["msPerRad"];
 	
 	document.getElementById("feedbackTwist").checked = userSettings["feedbackTwist"];
 	document.getElementById("continuousTwist").checked = userSettings["continuousTwist"];
@@ -424,12 +425,12 @@ function setUserSettings()
     document.getElementById("wifiPass").value = userSettings["wifiPass"];
     document.getElementById("staticIP").checked = userSettings["staticIP"];
     startUpStaticIP = userSettings["staticIP"];
-    document.getElementById("localIP").value = userSettings["localIP"];
+    document.getElementById("localIPInput").value = userSettings["localIP"];
     startUpLocalIP = userSettings["localIP"];
-    document.getElementById("gateway").value = userSettings["gateway"];
-    document.getElementById("subnet").value = userSettings["subnet"];
-    document.getElementById("dns1").value = userSettings["dns1"];
-    document.getElementById("dns2").value = userSettings["dns2"];
+    document.getElementById("gatewayInput").value = userSettings["gateway"];
+    document.getElementById("subnetInput").value = userSettings["subnet"];
+    document.getElementById("dns1Input").value = userSettings["dns1"];
+    document.getElementById("dns2Input").value = userSettings["dns2"];
     //document.getElementById('bluetoothEnabled').checked = userSettings["bluetoothEnabled"];
     
     newtoungeHatExists = userSettings["newtoungeHatExists"]
@@ -915,10 +916,40 @@ function setPitchFrequencyIsDifferent()
 
 function updateServoFrequency() 
 {
-    userSettings["servoFrequency"] = parseInt(document.getElementById('servoFrequency').value);
-    userSettings["pitchFrequency"] = parseInt(document.getElementById('pitchFrequency').value);
-    userSettings["valveFrequency"] = parseInt(document.getElementById('valveFrequency').value);
-    userSettings["twistFrequency"] = parseInt(document.getElementById('twistFrequency').value);
+    var servoFrequencyControl = document.getElementById('servoFrequency');
+    if(!servoFrequencyControl.checkValidity()) {
+        showError(servoFrequencyControl.validationMessage);
+    } else
+        userSettings["servoFrequency"] = parseInt(servoFrequencyControl.value);
+        
+    var pitchFrequencyControl = document.getElementById('pitchFrequency');
+    if(!pitchFrequencyControl.checkValidity()) {
+        showError(pitchFrequencyControl.validationMessage);
+    } else
+        userSettings["pitchFrequency"] = parseInt(pitchFrequencyControl.value);
+
+    var valveFrequencyControl = document.getElementById('valveFrequency');
+    if(!valveFrequencyControl.checkValidity()) {
+        showError(valveFrequencyControl.validationMessage);
+    } else
+        userSettings["valveFrequency"] = parseInt(valveFrequencyControl.value);
+
+    var twistFrequencyControl = document.getElementById('twistFrequency');
+    if(!twistFrequencyControl.checkValidity()) {
+        showError(twistFrequencyControl.validationMessage);
+    } else
+        userSettings["twistFrequency"] = parseInt(twistFrequencyControl.value);
+    setRestartRequired();
+    updateUserSettings();
+}
+function updateMSPerRad() 
+{
+    var control = document.getElementById('msPerRad');
+    if(!control.checkValidity()) {
+        showError(control.validationMessage);
+        return;
+    }
+    userSettings["msPerRad"] = parseInt(control.value);
     setRestartRequired();
     updateUserSettings();
 }
@@ -1376,11 +1407,11 @@ function updateWifiSettings() {
     userSettings["ssid"] = document.getElementById('ssid').value;
     userSettings["wifiPass"] = document.getElementById('wifiPass').value;
 	var staticIP = document.getElementById('staticIP').checked;
-	var localIP = document.getElementById('localIP').value;
-	var gateway = document.getElementById('gateway').value;
-	var subnet = document.getElementById('subnet').value;
-	var dns1 = document.getElementById('dns1').value;
-	var dns2 = document.getElementById('dns2').value;
+	var localIP = document.getElementById('localIPInput').value;
+	var gateway = document.getElementById('gatewayInput').value;
+	var subnet = document.getElementById('subnetInput').value;
+	var dns1 = document.getElementById('dns1Input').value;
+	var dns2 = document.getElementById('dns2Input').value;
     userSettings["staticIP"] = staticIP;
     toggleStaticIPSettings(staticIP);
     userSettings["localIP"] = localIP;

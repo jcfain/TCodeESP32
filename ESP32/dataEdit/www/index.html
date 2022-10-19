@@ -66,7 +66,7 @@
 							<span id="localIPLabel">IP</span> 
 						</td>
 						<td>
-							<input type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input id="localIPInput" type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
 					<tr id="gateway" >
@@ -74,7 +74,7 @@
 							<span id="gatewayLabel">Gateway</span> 
 						</td>
 						<td>
-							<input type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input id="gatewayInput" type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
 					<tr id="subnet">
@@ -82,7 +82,7 @@
 							<span id="subnetLabel">Subnet</span> 
 						</td>
 						<td>
-							<input type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input id="subnetInput" type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
 					<tr id="dns1">
@@ -90,7 +90,7 @@
 							<span id="dns1Label">DNS 1</span> 
 						</td>
 						<td>
-							<input type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input id="dns1Input" type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
 					<tr id="dns2">
@@ -98,7 +98,7 @@
 							<span id="dns2Label">DNS 2</span> 
 						</td>
 						<td>
-							<input type="text" maxlength="15" oninput="updateWifiSettings()">
+							<input id="dns2Input" type="text" maxlength="15" oninput="updateWifiSettings()">
 						</td>
 					</tr>
 					<!-- <tr> Bluetooth serial just has too many issues. Leaving out for now.
@@ -130,6 +130,7 @@
 							</select>
 						</td>
 					</tr>
+					
 					<tr title="Uncheck this if you are building an OSR">
 						<td>
 							<span>SR6 mode</span> 
@@ -143,7 +144,7 @@
 							<span>Servo Frequency</span> 
 						</td>
 						<td>
-							<input id="servoFrequency" type="text" oninput="updateServoFrequency()">
+							<input id="servoFrequency" type="number" min="1" oninput="updateServoFrequency()">
 						</td>
 					</tr>
 					<tr title="This sets the frequency of the main servos. L/R and Pitch">
@@ -159,7 +160,7 @@
 							<span>Pitch Frequency</span> 
 						</td>
 						<td>
-							<input id="pitchFrequency" type="text" oninput="updateServoFrequency()">
+							<input id="pitchFrequency" type="number" min="1" oninput="updateServoFrequency()">
 						</td>
 					</tr>
 					<tr title="This sets the frequency of the valve servo.">
@@ -167,7 +168,7 @@
 							<span>Valve Frequency</span> 
 						</td>
 						<td>
-							<input id="valveFrequency" type="text" oninput="updateServoFrequency()">
+							<input id="valveFrequency" type="number" min="1" oninput="updateServoFrequency()">
 						</td>
 					</tr>
 					<tr title="This sets the frequency of the twist servo.">
@@ -175,7 +176,15 @@
 							<span>Twist Frequency</span> 
 						</td>
 						<td>
-							<input id="twistFrequency" type="text" oninput="updateServoFrequency()">
+							<input id="twistFrequency" type="number" min="1" oninput="updateServoFrequency()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Micro seconds per radian</span> 
+						</td>
+						<td>
+							<input id="msPerRad" type="number" min="1" oninput="updateMSPerRad()">
 						</td>
 					</tr>
 					<tr class="servoHeader">
@@ -194,10 +203,10 @@
 							<span>Right</span> 
 						</td>
 						<td>
-							<input id="RightServo_PIN" type="text" oninput="updatePins()">
+							<input id="RightServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="RightServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
+							<input id="RightServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -205,10 +214,10 @@
 							<span>Left</span> 
 						</td>
 						<td>
-							<input id="LeftServo_PIN" type="text" oninput="updatePins()">
+							<input id="LeftServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="LeftServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
+							<input id="LeftServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -216,10 +225,10 @@
 							<span>Pitch</span> 
 						</td>
 						<td>
-							<input id="PitchLeftServo_PIN" type="text" oninput="updatePins()">
+							<input id="PitchLeftServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="PitchLeftServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
+							<input id="PitchLeftServo_ZERO" type="number" max="9999" min="1"  oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -227,10 +236,10 @@
 							<span>Valve</span> 
 						</td>
 						<td>
-							<input id="ValveServo_PIN" type="text" oninput="updatePins()">
+							<input id="ValveServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="ValveServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
+							<input id="ValveServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -238,10 +247,10 @@
 							<span>Twist</span> 
 						</td>
 						<td>
-							<input id="TwistServo_PIN" type="text" oninput="updatePins()">
+							<input id="TwistServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="TwistServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
+							<input id="TwistServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr class="feedbackTwistOnly">
@@ -249,7 +258,7 @@
 							<span>Twist feedback</span> 
 						</td>
 						<td>
-							<input id="TwistFeedBack_PIN" type="text" oninput="updatePins()">
+							<input id="TwistFeedBack_PIN" type="number" max="99" min="1" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -257,7 +266,7 @@
 							<span>Vibe 0</span> 
 						</td>
 						<td>
-							<input id="Vibe0_PIN" type="text" oninput="updatePins()">
+							<input id="Vibe0_PIN" type="number" max="99" min="1" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -265,7 +274,7 @@
 							<span>Lube/Vibe 1</span> 
 						</td>
 						<td>
-							<input id="Vibe1_PIN" type="text"  oninput="updatePins()">
+							<input id="Vibe1_PIN" type="number" max="99" min="1" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -273,7 +282,7 @@
 							<span>Manual lube</span> 
 						</td>
 						<td>
-							<input id="LubeManual_PIN" type="text" oninput="updatePins()">
+							<input id="LubeManual_PIN" type="number" max="99" min="1" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr class="pwmAvaliblePinRow">
@@ -336,10 +345,10 @@
 							<span>Right upper</span> 
 						</td>
 						<td>
-							<input id="RightUpperServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+							<input id="RightUpperServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="RightUpperServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
+							<input id="RightUpperServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -347,10 +356,10 @@
 							<span>Left upper</span> 
 						</td>
 						<td>
-							<input id="LeftUpperServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+							<input id="LeftUpperServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="LeftUpperServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
+							<input id="LeftUpperServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -358,10 +367,10 @@
 							<span>Pitch right</span> 
 						</td>
 						<td>
-							<input id="PitchRightServo_PIN" type="text" maxlength="3" oninput="updatePins()">
+							<input id="PitchRightServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="PitchRightServo_ZERO" type="text" maxlength="4" oninput="updateZeros()">
+							<input id="PitchRightServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr class="pwmAvaliblePinRow">
@@ -457,7 +466,7 @@
 							<span>Manual lube speed (1-255)</span> 
 						</td>
 						<td>
-							<input id="lubeAmount" type="text" maxlength="3" oninput="updateLubeAmount()">
+							<input id="lubeAmount" type="number" max="255" oninput="updateLubeAmount()">
 						</td>
 					</tr>
 					<tr title="The UDP port on which TCode is sent over the network on. Change this if you have a conflict on your local network.\nOtherwise, just leave it be.">
@@ -465,7 +474,7 @@
 							<span>Udp port</span> 
 						</td>
 						<td>
-							<input id="udpServerPort" type="text" maxlength="5" oninput="updateUdpPort()">
+							<input id="udpServerPort" type="number" max="65,535" min="1" oninput="updateUdpPort()">
 						</td>
 					</tr>
 					<tr title="Web server port used to access this page and websocket input. Change this if you have a conflict on your local network.\nOtherwise, just leave it be.">
@@ -473,7 +482,7 @@
 							<span>Web port</span> 
 						</td>
 						<td>
-							<input id="webServerPort" type="text" maxlength="5" oninput="updateWebPort()">
+							<input id="webServerPort" type="text" max="65,535" oninput="updateWebPort()">
 						</td>
 					</tr>
 					<tr title="This is the name of the device you will use to access this page after WiFi connection. default(tcode.local)\nSome routers DO NOT support mDNS so you may need to use the IP address anyways.\n\nYou may also use this address in some apps (XTP) to send TCode over the network.">
@@ -522,7 +531,7 @@
 							<span>Temp pin</span> 
 						</td>
 						<td>
-							<input id="Temp_PIN" type="text" oninput="updatePins()">
+							<input id="Temp_PIN" type="number" min="1" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -530,7 +539,7 @@
 							<span>Heater pin</span> 
 						</td>
 						<td>
-							<input id="Heater_PIN" type="text" oninput="updatePins()">
+							<input id="Heater_PIN" type="number" min="1" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>

@@ -360,7 +360,7 @@ void setup()
 	#endif
     //otaHandler.setup();
 	displayPrint("Setting up servos");
-    servoHandler->setup(SettingsHandler::servoFrequency, SettingsHandler::pitchFrequency, SettingsHandler::valveFrequency, SettingsHandler::twistFrequency);
+    servoHandler->setup(SettingsHandler::servoFrequency, SettingsHandler::pitchFrequency, SettingsHandler::valveFrequency, SettingsHandler::twistFrequency, SettingsHandler::msPerRad);
 	setupSucceeded = true;
 #if DISPLAY_ENABLED == 1
 	displayHandler->clearDisplay();

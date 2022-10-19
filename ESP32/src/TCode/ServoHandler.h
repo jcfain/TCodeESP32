@@ -27,9 +27,15 @@ SOFTWARE. */
 
 class ServoHandler {
 public:
-    virtual void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency) = 0;
+    virtual void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency, int msPerRad) = 0;
     virtual void read(byte inByte) = 0;
     virtual void read(String inString) = 0;
     virtual void execute() = 0;
     virtual void setMessageCallback(TCODE_FUNCTION_PTR_T function);
+protected:
+    // Servo microseconds per radian
+    // (Standard: 637 μs/rad)
+    // (LW-20: 700 μs/rad)
+    // 270 2/3 of 637 = 424.666666667
+    int ms_per_rad;  // (μs/rad)
 };

@@ -116,9 +116,16 @@ input:read-only, textarea:read-only {
   margin-right: 8px;
 }
 .formTable input[type=text],
+.formTable input[type=number],
 .formTable input[type=password] {
   width: 100%;
   border-radius: 5px;
+}
+.formTable input[type=text]:invalid,
+.formTable input[type=number]:invalid,
+.formTable input[type=password]:invalid {
+  border-color: red;
+  color: red;
 }
 .formButton {
   margin: 4px;;

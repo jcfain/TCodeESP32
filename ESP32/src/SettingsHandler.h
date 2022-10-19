@@ -78,6 +78,7 @@ class SettingsHandler
         static int SurgeMin;
         static int SurgeMax;
         static int speed;
+        static int msPerRad;
         static int servoFrequency;
         static int pitchFrequency;
         static int valveFrequency;
@@ -261,6 +262,7 @@ class SettingsHandler
                 PitchMax = json["xRollMax"] | 1000;
                 speed = json["speed"] | 1000;
                 pitchFrequencyIsDifferent = json["pitchFrequencyIsDifferent"];
+                msPerRad =  json["msPerRad"] | 637;
                 servoFrequency = json["servoFrequency"] | 50;
                 pitchFrequency = json[pitchFrequencyIsDifferent ? "pitchFrequency" : "servoFrequency"];
                 valveFrequency = json["valveFrequency"] | 50;
@@ -388,8 +390,9 @@ class SettingsHandler
             String output;
             serializeJson(doc, output);
             //serializeJson(doc, Serial);
-            //Serial.printf("\nOutput: %s\n", output.c_str());
-            //LogHandler::debug(_TAG, "Output: %s", output.c_str());
+            if(LogHandler::getLogLevel() == LogLevel::VERBOSE)
+                Serial.printf("\nOutput: %s\n", output.c_str());
+            //LogHandler::verbose(_TAG, "Output: %s", output.c_str());
             buf[0]  = {0};
             strcpy(buf, output.c_str());
         }
@@ -490,6 +493,7 @@ class SettingsHandler
             doc["xRollMax"] = PitchMax;
             doc["speed"] = speed;
             doc["pitchFrequencyIsDifferent"] = pitchFrequencyIsDifferent;
+            doc["msPerRad"] = msPerRad;
             doc["servoFrequency"] = servoFrequency;
             doc["pitchFrequency"] = pitchFrequency;
             doc["valveFrequency"] = valveFrequency;
@@ -760,6 +764,7 @@ class SettingsHandler
             // LogHandler::verbose(_TAG, "save hostname: %s", (const char*) doc["hostname"]);
             // LogHandler::verbose(_TAG, "save friendlyName: %s", (const char*) doc["friendlyName"]);
             // LogHandler::verbose(_TAG, "save pitchFrequencyIsDifferent ", (bool)doc["pitchFrequencyIsDifferent"]);
+            // LogHandler::verbose(_TAG, "save msPerRad: %i", (int)doc["msPerRad"]);
             // LogHandler::verbose(_TAG, "save servoFrequency: %i", (int)doc["servoFrequency"]);
             // LogHandler::verbose(_TAG, "save  pitchFrequency: %i", (int)doc["pitchFrequency"]);
             // LogHandler::verbose(_TAG, "save valveFrequency: %i",(int)doc["valveFrequency"]);
@@ -835,6 +840,7 @@ class SettingsHandler
             // LogHandler::verbose(_TAG, "update hostname: %s", hostname);
             // LogHandler::verbose(_TAG, "update friendlyName: %s", friendlyName);
             // LogHandler::verbose(_TAG, "update pitchFrequencyIsDifferent: %i", pitchFrequencyIsDifferent);
+            // LogHandler::verbose(_TAG, "update msPerRad: %i", msPerRad);
             // LogHandler::verbose(_TAG, "update servoFrequency: %i", servoFrequency);
             // LogHandler::verbose(_TAG, "update pitchFrequency: %i", pitchFrequency);
             // LogHandler::verbose(_TAG, "update valveFrequency: %i", valveFrequency);
@@ -905,7 +911,7 @@ bool SettingsHandler::fullBuild = false;
 const char* SettingsHandler::_TAG = "_SETTINGS_HANDLER";
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[14] = "ESP32 v0.251b";
+const char SettingsHandler::ESP32Version[14] = "ESP32 v0.252b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char* SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
@@ -952,7 +958,9 @@ int SettingsHandler::PitchMin;
 int SettingsHandler::PitchMax;
 
 int SettingsHandler::speed;
+
 bool SettingsHandler::pitchFrequencyIsDifferent;
+int SettingsHandler::msPerRad;
 int SettingsHandler::servoFrequency;
 int SettingsHandler::pitchFrequency;
 int SettingsHandler::valveFrequency;

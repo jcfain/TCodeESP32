@@ -30,7 +30,8 @@ class ServoHandler0_3 : public ServoHandler {
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency) override {
+    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency, int msPerRad) override {
+        ms_per_rad = msPerRad;
         MainServo_Freq = servoFrequency;
         PitchServo_Freq = pitchFrequency;
         TwistServo_Freq = twistFrequency;

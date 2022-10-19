@@ -141,8 +141,9 @@ private:
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency) override 
+    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency, int msPerRad) override 
     {
+        ms_per_rad = msPerRad;
 		toy.setup();
         toy.identifyTCode();
 
