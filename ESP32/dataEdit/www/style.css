@@ -72,6 +72,12 @@ input:read-only, textarea:read-only {
   top: 5%;
   right: 5%;
 }
+.systemInfo tr > td:first-child {
+  text-align: right;
+}
+.systemInfo tr > td:last-child {
+  text-align: left;
+}
 .restartRequired {
   color: red;
   position: fixed;

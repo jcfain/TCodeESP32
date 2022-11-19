@@ -4,7 +4,7 @@
 
 #include <Arduino.h>
 
-void defaultCallback(const String &input) // Default callback used by TCode uses serial communication
+void defaultCallback(const char* input) // Default callback used by TCode uses serial communication
 {
     if (Serial)
     {
@@ -25,7 +25,7 @@ public:
 			message_callback = f;
 		}
 	}
-    void sendMessage(const String &input) {
+    void sendMessage(const char* input) {
         message_callback(input);
     }
 protected: 

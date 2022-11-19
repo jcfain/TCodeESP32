@@ -42,7 +42,7 @@ public:
         TwistServo_Int = 1000000/TwistServo_Freq;
         ValveServo_Int = 1000000/ValveServo_Freq;
 
-        tcode.setup(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName);
+        tcode.setup(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName.c_str());
         // report status
         tcode.StringInput("D0");
         tcode.StringInput("D1");

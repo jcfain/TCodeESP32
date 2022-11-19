@@ -49,9 +49,9 @@ class WebSocketHandler {
             isInitialized = true;
         }
         
-        void CommandCallback(const String& in){ //This overwrites the callback for message return
+        void CommandCallback(const char* in){ //This overwrites the callback for message return
             if(isInitialized && ws.count() > 0)
-                sendCommand(in.c_str());
+                sendCommand(in);
         }
 
         // void sendDebug(const char* message, LogLevel level) {

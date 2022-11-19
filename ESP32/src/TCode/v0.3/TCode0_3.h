@@ -12,7 +12,7 @@ class TCode0_3 : public TCodeBase {
   public:
   
   // Setup function
-  void setup(String firmware, String tcode) 
+  void setup(const char* firmware, const char* tcode) 
   {
     firmwareID = firmware;
     tcodeID = tcode;
@@ -107,19 +107,19 @@ class TCode0_3 : public TCodeBase {
     return t;
   }
 
-  String getDeviceSettings() {
+  void getDeviceSettings(char* settings) {
     String deviceSettings = "";
     for (int i = 0; i < 10; i++) { deviceSettings += axisRow("L" + String(i), 8*i, Linear[i].Name); }
     for (int i = 0; i < 10; i++) { deviceSettings += axisRow("R" + String(i), 8*i+80, Rotation[i].Name); }
     for (int i = 0; i < 10; i++) { deviceSettings += axisRow("V" + String(i), 8*i+160, Vibration[i].Name); }
-    for (int i = 0; i < 10; i++) { deviceSettings += axisRow("A" + String(i), 8*i+240, Auxiliary[i].Name); }     
-    return deviceSettings;
+    for (int i = 0; i < 10; i++) { deviceSettings += axisRow("A" + String(i), 8*i+240, Auxiliary[i].Name); }
+    strcpy(settings, deviceSettings.c_str());
   }
 
 private:
   // Strings
-  String firmwareID;
-  String tcodeID;
+  const char* firmwareID;
+  const char* tcodeID;
   String bufferString; // String to hold incomming commands
 
 
@@ -247,7 +247,9 @@ private:
         break;
   
         case 2:
-          sendMessage(getDeviceSettings());          
+          char returnVal[255];
+          getDeviceSettings(returnVal);
+          sendMessage(returnVal);          
         break;
       }
     }
@@ -339,7 +341,7 @@ private:
       line += " ";
       line += axisName;
       line += "\n";
-      sendMessage(line);
+      //sendMessage(line.c_str());
       // Serial.print(axisID);
       // Serial.print(" ");
       // Serial.print(low + 1);

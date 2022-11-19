@@ -26,10 +26,27 @@ SOFTWARE. */
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
 
-enum TCodeVersion {
+#define featureCount 6
+
+enum class TCodeVersion {
     v0_2,
     v0_3,
     v0_5
+};
+
+enum class BuildFeature {
+    DEBUG,
+    WIFI,
+    BLUETOOTH,
+    DA,
+    DISPLAY_,
+    TEMP
+};
+
+enum class BoardType {
+    DEVKIT,
+    CRIMZZON,
+    ISAAC
 };
 
 class SettingsHandler 
@@ -41,6 +58,8 @@ class SettingsHandler
         static bool debug;
         static LogLevel logLevel;
 
+        static BoardType boardType;
+        static BuildFeature buildFeatures[featureCount];
         static String TCodeVersionName;
         static TCodeVersion TCodeVersionEnum;
         const static char ESP32Version[14];
@@ -123,7 +142,7 @@ class SettingsHandler
 		static int Display_I2C_Address;
 		static int Display_Rst_PIN;
         static long WarmUpTime;// Time to hold heating on first boot
-        static long heaterFailsafeTime;
+        //static long heaterFailsafeTime;
         static float heaterThreshold;
         static int heaterResolution;
         static int heaterFrequency;
@@ -132,7 +151,6 @@ class SettingsHandler
         static int strokerOffset;
         static int strokerAmplitude;
 
-        static bool newtoungeHatExists;
         static bool restartRequired;
         static const char* lastRebootReason;
 
@@ -143,6 +161,8 @@ class SettingsHandler
 
         static void load() 
         {
+            setBoardType();
+            setBuildFeatures();
             DynamicJsonDocument doc(deserializeSize);
 			File file;
 			bool loadingDefault = false;
@@ -191,6 +211,21 @@ class SettingsHandler
 
             update(jsonObj);
 	        #if ISAAC_NEWTONGUE_BUILD == 1
+                RightServo_PIN = 13;
+                LeftServo_PIN = 2;
+                PitchLeftServo_PIN = 16;
+                ValveServo_PIN = 5;
+                TwistServo_PIN = 27;
+                TwistFeedBack_PIN = 26;
+                Vibe0_PIN = 25;
+                Vibe1_PIN = 19;
+                LubeManual_PIN = 15;
+                RightUpperServo_PIN = 12;
+                LeftUpperServo_PIN = 4;
+                PitchRightServo_PIN = 14;
+                Temp_PIN = 18; 
+                Heater_PIN = 23;
+            #elif CRIMZZON_BUILD == 1
                 RightServo_PIN = 13;
                 LeftServo_PIN = 2;
                 PitchLeftServo_PIN = 16;
@@ -332,7 +367,7 @@ class SettingsHandler
 					Display_I2C_Address = (int)strtol(Display_I2C_AddressTemp, NULL, 0);
 				Display_Rst_PIN = json["Display_Rst_PIN"] | -1;
                 WarmUpTime = json["WarmUpTime"] | 600000;
-                heaterFailsafeTime = json["heaterFailsafeTime"] | 60000;
+                //heaterFailsafeTime = json["heaterFailsafeTime"] | 60000;
                 heaterThreshold = json["heaterThreshold"] | 5.0;
                 heaterResolution = json["heaterResolution"] | 8;
                 heaterFrequency = json["heaterFrequency"] | 5000;
@@ -386,13 +421,35 @@ class SettingsHandler
             if(strcmp(doc["wifiPass"], defaultWifiPass) != 0 )
                 doc["wifiPass"] = "Too bad haxor!";// Do not send password if its not default
                 
-            doc["lastRebootReason"] = lastRebootReason;
             String output;
             serializeJson(doc, output);
             //serializeJson(doc, Serial);
             if(LogHandler::getLogLevel() == LogLevel::VERBOSE)
                 Serial.printf("\nOutput: %s\n", output.c_str());
             //LogHandler::verbose(_TAG, "Output: %s", output.c_str());
+            buf[0]  = {0};
+            strcpy(buf, output.c_str());
+        }
+
+        static void getSystemInfo(char buf[255]) {
+            DynamicJsonDocument doc(512);
+            
+            doc["esp32Version"] = ESP32Version;
+            doc["TCodeVersion"] = (int)TCodeVersionEnum;
+            doc["lastRebootReason"] = lastRebootReason;
+            doc["boardType"] = (int)boardType;
+            JsonArray buildFeaturesJsonArray = doc.createNestedArray("buildFeatures");
+            for (BuildFeature value : buildFeatures) {
+                buildFeaturesJsonArray.add((int)value);
+            }
+            doc["localIP"] = localIP;
+            doc["gateway"] = gateway;
+            doc["subnet"] = subnet;
+            doc["dns1"] = dns1;
+            doc["dns2"] = dns2;
+
+            String output;
+            serializeJson(doc, output);
             buf[0]  = {0};
             strcpy(buf, output.c_str());
         }
@@ -477,7 +534,7 @@ class SettingsHandler
             LogHandler::debug(_TAG, "Save settings");
             doc["fullBuild"] = fullBuild;
             doc["esp32Version"] = ESP32Version;
-            doc["TCodeVersion"] = TCodeVersionEnum;
+            doc["TCodeVersion"] = (int)TCodeVersionEnum;
             doc["ssid"] = ssid;
             doc["wifiPass"] = wifiPass;
             doc["udpServerPort"] = udpServerPort;
@@ -550,11 +607,10 @@ class SettingsHandler
 			doc["Temp_PIN"] = Temp_PIN;
 			doc["Heater_PIN"] = Heater_PIN;
             doc["WarmUpTime"] = WarmUpTime;
-            doc["heaterFailsafeTime"] = String(heaterFailsafeTime);
+            //doc["heaterFailsafeTime"] = String(heaterFailsafeTime);
             doc["heaterThreshold"] = heaterThreshold;
             doc["heaterResolution"] = heaterResolution;
             doc["heaterFrequency"] = heaterFrequency;
-			doc["newtoungeHatExists"] = newtoungeHatExists;
 			
             LogSaveDebug(doc);
 
@@ -580,6 +636,56 @@ class SettingsHandler
             LogHandler::debug(_TAG, "Total Psram: %u", ESP.getPsramSize());
             LogHandler::debug(_TAG, "SPIFFS used: %i", SPIFFS.usedBytes());
             LogHandler::debug(_TAG, "SPIFFS total: %i",SPIFFS.totalBytes());
+        }
+
+        static void setBuildFeatures() {
+            int index = 0;
+            #if WIFI_TCODE == 1
+                LogHandler::debug("setBuildFeatures", "WIFI_TCODE");
+                buildFeatures[index] = BuildFeature::WIFI;
+                index++;
+            #endif
+            #if BLUETOOTH_TCODE == 1
+                LogHandler::debug("setBuildFeatures", "BLUETOOTH_TCODE");
+                buildFeatures[index] = BuildFeature::BLUETOOTH;
+                index++;
+            #endif
+            #if DEBUG_BUILD == 1
+                LogHandler::debug("setBuildFeatures", "DEBUG_BUILD");
+                buildFeatures[index] = BuildFeature::DEBUG;
+                LogHandler::setLogLevel(LogLevel::VERBOSE);
+		        debug = true;
+                index++;
+            #endif
+            #if ESP32_DA == 1
+                LogHandler::debug("setBuildFeatures", "ESP32_DA");
+                buildFeatures[index] = BuildFeature::DA;
+                index++;
+            #endif
+            #if TEMP_ENABLED == 1
+                LogHandler::debug("setBuildFeatures", "TEMP_ENABLED");
+                buildFeatures[index] = BuildFeature::TEMP;
+                index++;
+            #endif
+            #if DISPLAY_ENABLED == 1
+                LogHandler::debug("setBuildFeatures", "DISPLAY_ENABLED");
+                buildFeatures[index] = BuildFeature::DISPLAY_;
+                index++;
+            #endif
+            buildFeatures[featureCount] = {};
+        }
+
+        static void setBoardType() {
+            #if ISAAC_NEWTONGUE_BUILD == 1
+                LogHandler::debug("setBoardType", "ISAAC_NEWTONGUE_BUILD");
+                boardType = BoardType::ISAAC;
+            #elif CRIMZZON_BUILD == 1
+                LogHandler::debug("setBoardType", "CRIMZZON_BUILD");
+                boardType = BoardType::CRIMZZON;
+            #else
+                LogHandler::debug("setBoardType", "DEVKIT_BUILD");
+                boardType = BoardType::DEVKIT;
+            #endif
         }
 
         static void processTCodeJson(char* outbuf, char* tcodeJson) 
@@ -686,14 +792,14 @@ class SettingsHandler
         {
             switch (version)
             {
-            case 0:
+            case TCodeVersion::v0_2:
                 return "TCode v0.2";
                 break;
-            case 1:
+            case TCodeVersion::v0_3:
                 return "TCode v0.3";
                 break;
-            case 2:
-                return "TCode v0.4";
+            case TCodeVersion::v0_5:
+                return "TCode v0.5";
                 break;
             default:
                 return "TCode v?";
@@ -821,7 +927,7 @@ class SettingsHandler
             // LogHandler::verbose(_TAG, "save Display_Rst_PIN: %i", (int)doc["Display_Rst_PIN"]);
             // LogHandler::verbose(_TAG, "save WarmUpTime: %ld", (long)doc["WarmUpTime"]);
             // LogHandler::verbose(_TAG, "save heaterFailsafeTime: %ld", (long)doc["heaterFailsafeTime"]);
-            // LogHandler::verbose(_TAG, "save heaterFailsafeThreshold: %i", (int)doc["heaterFailsafeThreshold"]);
+            // LogHandler::verbose(_TAG, "save heaterThreshold: %i", (int)doc["heaterThreshold"]);
             // LogHandler::verbose(_TAG, "save heaterResolution: %i", (int)doc["heaterResolution"]);
             // LogHandler::verbose(_TAG, "save heaterFrequency: %i", (int)doc["heaterFrequency"]);
             // LogHandler::verbose(_TAG, "save newtoungeHatExists: %i", (bool)doc["newtoungeHatExists"]);
@@ -908,10 +1014,12 @@ class SettingsHandler
 bool SettingsHandler::saving = false;
 bool SettingsHandler::fullBuild = false;
 
+BoardType SettingsHandler::boardType = BoardType::DEVKIT;
+BuildFeature SettingsHandler::buildFeatures[featureCount];
 const char* SettingsHandler::_TAG = "_SETTINGS_HANDLER";
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[14] = "ESP32 v0.253b";
+const char SettingsHandler::ESP32Version[14] = "ESP32 v0.255b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char* SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
@@ -1001,11 +1109,10 @@ int SettingsHandler::HoldPWM = 110;
 int SettingsHandler::Display_I2C_Address = 0x3C;
 int SettingsHandler::Display_Rst_PIN = -1;
 long SettingsHandler::WarmUpTime = 600000;
-long SettingsHandler::heaterFailsafeTime = 60000;
+//long SettingsHandler::heaterFailsafeTime = 60000;
 float SettingsHandler::heaterThreshold = 5.0;
 int SettingsHandler::heaterResolution = 8;
 int SettingsHandler::heaterFrequency = 5000;
-bool SettingsHandler::newtoungeHatExists = false;
 const char* SettingsHandler::lastRebootReason;
 
 int SettingsHandler::strokerSamples = 100;

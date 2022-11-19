@@ -60,4 +60,4 @@ void IRAM_ATTR twistChange()
 }
 
 
-using TCODE_FUNCTION_PTR_T = void (*)(const String &input);
+using TCODE_FUNCTION_PTR_T = void (*)(const char* input);

@@ -116,7 +116,7 @@ void displayPrint(String text) {
 	#endif
 }
 
-void CommandCallback(const String& in) {
+void CommandCallback(const char* in) {
 	log_d("main", "Enter TCode Command callback");
 #if BLUETOOTH_TCODE == 1
 	if (SettingsHandler::bluetoothEnabled && btHandler->isConnected())
@@ -208,8 +208,10 @@ void startConfigMode(bool withBle= true) {
 void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
 	if(status == WiFiStatus::CONNECTED) {
 		if(reason == WiFiReason::AP_MODE) {
+			#if ESP32_DA == 0
             if(bleHandler)
               bleHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
+			#endif
 		}
 	} else {
 		// wifi.dispose();
@@ -222,8 +224,10 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
             SettingsHandler::save();
             ESP.restart();
 		}  else if(reason == WiFiReason::AP_MODE) {
+			#if ESP32_DA == 0
 			if(bleHandler)
 				bleHandler->setup();
+			#endif
 		}
 	}
 }
@@ -252,25 +256,6 @@ void setup()
 	LogHandler::info("main-setup", "ESP32 Chip model = %s Rev %d\n", ESP.getChipModel(), ESP.getChipRevision());
 	LogHandler::info("main-setup", "This chip has %d cores\n", ESP.getChipCores());
  	LogHandler::info("main-setup", "Chip ID: %u\n", chipId);
-
-	#if ISAAC_NEWTONGUE_BUILD == 1
-		LogHandler::debug("main", "ISAAC_NEWTONGUE_BUILD");
-		SettingsHandler::newtoungeHatExists = true;
-	#endif
-	#if TEMP_ENABLED == 1
-		LogHandler::debug("main", "TEMP_ENABLED");
-		SettingsHandler::fullBuild = true;
-	#endif
-	#if DISPLAY_ENABLED == 1
-		LogHandler::debug("main", "DISPLAY_ENABLED");
-		SettingsHandler::fullBuild = true;
-	#endif
-	#if DEBUG_BUILD == 1
-		LogHandler::debug("main", "DEBUG_BUILD");
-        LogHandler::setLogLevel(LogLevel::VERBOSE);
-		SettingsHandler::debug = true;
-	#endif
-
 
     // esp_log_level_set("*", ESP_LOG_VERBOSE);
 	// LogHandler::debug("main", "this is verbose");
@@ -322,16 +307,16 @@ void setup()
 	if(SettingsHandler::displayEnabled)
 	{
 		displayHandler->setup();
-		#if ISAAC_NEWTONGUE_BUILD == 1
-			xTaskCreatePinnedToCore(
-				DisplayHandler::startAnimationDontPanic,/* Function to implement the task */
-				"DisplayTask", /* Name of the task */
-				10000,  /* Stack size in words */
-				displayHandler,  /* Task input parameter */
-				25,  /* Priority of the task */
-				&animationTask,  /* Task handle. */
-				1); /* Core where the task should run */
-		#endif
+		// #if ISAAC_NEWTONGUE_BUILD == 1
+		// 	xTaskCreatePinnedToCore(
+		// 		DisplayHandler::startAnimationDontPanic,/* Function to implement the task */
+		// 		"DisplayTask", /* Name of the task */
+		// 		10000,  /* Stack size in words */
+		// 		displayHandler,  /* Task input parameter */
+		// 		25,  /* Priority of the task */
+		// 		&animationTask,  /* Task handle. */
+		// 		1); /* Core where the task should run */
+		// #endif
 	}
 #endif
 

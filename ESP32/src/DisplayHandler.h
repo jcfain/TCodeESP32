@@ -31,9 +31,9 @@ SOFTWARE. */
 #include "TemperatureHandler.h"
 #endif
 
-#if ISAAC_NEWTONGUE_BUILD == 1
-#include "../lib/animationFrames.h"
-#endif
+// #if ISAAC_NEWTONGUE_BUILD == 1
+// #include "../lib/animationFrames.h"
+// #endif
 
 class DisplayHandler
 {
@@ -258,35 +258,35 @@ public:
 		delay(5000);  
 	}
 
-	static void startAnimationDontPanic(void* displayHandlerRef) 
-	{
-		((DisplayHandler*)displayHandlerRef)->playBootAnimationDontPanic();
-	}
+	// static void startAnimationDontPanic(void* displayHandlerRef) 
+	// {
+	// 	((DisplayHandler*)displayHandlerRef)->playBootAnimationDontPanic();
+	// }
 
-	void playBootAnimationDontPanic() 
-	{
-#if ISAAC_NEWTONGUE_BUILD == 1
-		if(displayConnected)
-		{
-			display.clearDisplay();
-			m_animationPlaying = true;
-			int endTime = millis() + m_animationMilliSeconds;
-			int currentFrameIndex = 0;
-			while(millis() < endTime) 
-			{
-				display.drawBitmap(0, 0, dontPanicAnimationFrames[currentFrameIndex], SettingsHandler::Display_Screen_Width, SettingsHandler::Display_Screen_Height, 1);
-				display.display();
-				currentFrameIndex++;
-				if(currentFrameIndex == dontPanicAnimationFramesCount)
-					currentFrameIndex = 0;
-				vTaskDelay(30);
-				display.clearDisplay();
-			}
-			m_animationPlaying = false;
-		}
-#endif
-  		vTaskDelete( NULL );
-	}
+	// void playBootAnimationDontPanic() 
+	// {
+// #if ISAAC_NEWTONGUE_BUILD == 1
+// 		if(displayConnected)
+// 		{
+// 			display.clearDisplay();
+// 			m_animationPlaying = true;
+// 			int endTime = millis() + m_animationMilliSeconds;
+// 			int currentFrameIndex = 0;
+// 			while(millis() < endTime) 
+// 			{
+// 				display.drawBitmap(0, 0, dontPanicAnimationFrames[currentFrameIndex], SettingsHandler::Display_Screen_Width, SettingsHandler::Display_Screen_Height, 1);
+// 				display.display();
+// 				currentFrameIndex++;
+// 				if(currentFrameIndex == dontPanicAnimationFramesCount)
+// 					currentFrameIndex = 0;
+// 				vTaskDelay(30);
+// 				display.clearDisplay();
+// 			}
+// 			m_animationPlaying = false;
+// 		}
+// #endif
+  	// 	vTaskDelete( NULL );
+	// }
 
 private:
 	IPAddress _ipAddress;

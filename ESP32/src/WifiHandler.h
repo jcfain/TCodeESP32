@@ -55,22 +55,22 @@ class WifiHandler
     {
       return WiFi.macAddress();
     }
-	int8_t RSSI()
-	{
-		return WiFi.RSSI();
-	}
-	static int8_t getRSSI()
-	{
-		return WiFi.RSSI();
-	}
-	static bool apMode()
-	{
-		return _apMode;
-	}
+    int8_t RSSI()
+    {
+      return WiFi.RSSI();
+    }
+    static int8_t getRSSI()
+    {
+      return WiFi.RSSI();
+    }
+    static bool apMode()
+    {
+      return _apMode;
+    }
     bool connect(char ssid[32], char pass[63]) 
     {
       LogHandler::info(_TAG, "Setting up wifi");
-	      _apMode = false;
+        _apMode = false;
         WiFi.disconnect(true, true);
         //Serial.println("Setting mode");
         if(onApEventID != 0)
@@ -115,7 +115,7 @@ class WifiHandler
         return false;
       }
       IPAddress ipAddress = ip();
-	    LogHandler::info(_TAG, "Connected IP: %s", ip().toString().c_str());
+      LogHandler::info(_TAG, "Connected IP: %s", ip().toString().c_str());
       _apMode = false;
       return true;
     }
@@ -137,8 +137,12 @@ class WifiHandler
           LogHandler::info(_TAG, "Station Mode Started");
           break;
         case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+          strcpy(SettingsHandler::localIP, WiFi.localIP().toString().c_str());
+          strcpy(SettingsHandler::subnet, WiFi.subnetMask().toString().c_str());
+          strcpy(SettingsHandler::gateway, WiFi.gatewayIP().toString().c_str());
+          strcpy(SettingsHandler::dns1, WiFi.dnsIP().toString().c_str());
           LogHandler::info(_TAG, "Connected to: %s", WiFi.SSID().c_str());
-          LogHandler::info(_TAG, "IP Address: %s", WiFi.localIP().toString().c_str());
+          LogHandler::info(_TAG, "IP Address: %s", SettingsHandler::localIP);
           break;
         case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: 
         {

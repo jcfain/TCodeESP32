@@ -16,7 +16,6 @@
 			<button class="errorButton" onclick="closeError()"><span class="x">X</span></button>
 		</div>
 	</div>
-	<div id="version" class="version"></div>
 	<div id="info" class="info" hidden="true"></div>
 	<div id="requiresRestart" hidden="true" class="restartRequired">Restart required!!</div>
 
@@ -292,34 +291,6 @@
 							</span> 
 						</td>
 					</tr>
-					<tr title="Set to show output in the text area. Note: Verbose level will NOT show. See the serial for that message level">
-						<td>
-							<span>Debug</span> 
-						</td>
-						<td>
-							<select name="debug" id="debug" onchange="setDebug()">
-								<option value="0">ERROR</option>
-								<option value="1">WARNING</option>
-								<option value="2">INFO</option>
-								<option value="3">DEBUG</option>
-								<option value="4">VERBOSE</option>
-							</select>
-							<!-- <button onclick="clearLog()">Clear</button> -->
-						</td>
-					</tr>
-					<!-- <tr id="debugLink">
-						<td colspan="3">
-							<textarea id="debugText" class="log-reader" readonly></textarea>
-						</td>
-					</tr> -->
-					<tr>
-						<td>
-							<span>Last reboot reason</span> 
-						</td>
-						<td colspan="2">
-							<input id="lastRebootReason" type="text" readonly>
-						</td>
-					</tr>
 				</tbody>
 			</table>
 			<table id="deviceSR6SettingsTable" class="formTable sr6Only">
@@ -501,7 +472,7 @@
 							<input id="friendlyName" type="text" maxlength="100" oninput="updateFriendlyName()">
 						</td>
 					</tr>
-					<tr class="fullBuild">
+					<tr class="build_display">
 						<td>
 							<span>Display enabled</span> 
 						</td>
@@ -509,7 +480,7 @@
 							<input id="displayEnabled" type="checkbox" onclick="setDisplaySettings()">
 						</td>
 					</tr>
-					<tr class="fullBuild">
+					<tr class="build_temprature">
 						<td>
 							<span>Temperature control enabled</span> 
 						</td>
@@ -523,12 +494,12 @@
 				<tbody>
 					<tr>
 						<th colspan="2">
-							<h3>Temp</h3>
+							<h3>Temperature</h3>
 						</th>
 					</tr>
 					<tr>
 						<td>
-							<span>Temp pin</span> 
+							<span>Temp. sensor pin</span> 
 						</td>
 						<td>
 							<input id="Temp_PIN" type="number" min="1" oninput="updatePins()">
@@ -582,14 +553,14 @@
 							<input id="WarmUpTime" type="text"  oninput="setTempSettings()"> ms
 						</td>
 					</tr>
-					<tr title="If the measured temp is less than or equal to the laste measured temp for the given time, the failsafe will trigger and the heater is turned off.">
+					<!-- <tr title="If the measured temp is less than or equal to the laste measured temp for the given time, the failsafe will trigger and the heater is turned off.">
 						<td>
 							<span>Heater failsafe time out</span> 
 						</td>
 						<td>
 							<input id="heaterFailsafeTime" type="text"  oninput="setTempSettings()"> ms
 						</td>
-					</tr>
+					</tr> -->
 					<tr>
 						<td>
 							<span>Heater resolution</span> 
@@ -629,7 +600,7 @@
 						<td>
 							<input id="soundsEnabled" type="checkbox" onclick="toggleSounds()"></input>
 							<button type="button" hidden name="testSoundButton" onclick="playSuccess()">Test target reached</button>
-							<button type="button" hidden name="testSoundButton" onclick="playFail()">Test fail safe trigger</button>
+							<!-- <button type="button" hidden name="testSoundButton" onclick="playFail()">Test fail safe trigger</button> -->
 						</td>
 					</tr>
 				</tbody>
@@ -684,6 +655,71 @@
 				</tbody>
 			</table>
 			<table id="channelTestsTable" class="formTable">
+			</table>
+			<table id="systemInfoTable" class="formTable">
+				<tr>
+					<th colspan="2">
+						<h3>System information</h3>
+					</th>
+				</tr>
+				<tr>
+					<td>Version</td>
+					<td>
+						<input id="version" type="text" readonly>
+					</td>
+				</tr>
+				<tr>
+					<td>IP</td>
+					<td>
+						<input id="ipAddress" type="text" readonly>
+					</td>
+				</tr>
+				<tr>
+					<td>Gateway</td>
+					<td>
+						<input id="gateway" type="text" readonly>
+					</td>
+				</tr>
+				<tr>
+					<td>Subnet</td>
+					<td>
+						<input id="subnet" type="text" readonly>
+					</td>
+				</tr>
+				<tr>
+					<td>DNS</td>
+					<td>
+						<input id="dns" type="text" readonly>
+					</td>
+				</tr>
+				<tr title="Set to show output in the text area. Note: Verbose level will NOT show. See the serial for that message level">
+					<td>
+						<span>Debug</span> 
+					</td>
+					<td>
+						<select name="debug" id="debug" onchange="setDebug()">
+							<option value="0">ERROR</option>
+							<option value="1">WARNING</option>
+							<option value="2">INFO</option>
+							<option value="3">DEBUG</option>
+							<option value="4">VERBOSE</option>
+						</select>
+						<!-- <button onclick="clearLog()">Clear</button> -->
+					</td>
+				</tr>
+				<!-- <tr id="debugLink">
+					<td colspan="3">
+						<textarea id="debugText" class="log-reader" readonly></textarea>
+					</td>
+				</tr> -->
+				<tr>
+					<td>
+						<span>Last reboot reason</span> 
+					</td>
+					<td>
+						<input id="lastRebootReason" type="text" readonly>
+					</td>
+				</tr>
 			</table>
 		</div>
 	</div>

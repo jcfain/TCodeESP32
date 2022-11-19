@@ -39,9 +39,9 @@ class TemperatureHandler
 	static bool _isRunning;
 	static bool bootTime;
 	static bool targetTempReached;
-	static int failsafeTimer;
+	// static int failsafeTimer;
 	static bool failsafeTrigger;
-	static bool failsafeTriggerLogged;
+	// static bool failsafeTriggerLogged;
 	static long bootTimer;
 	static xSemaphoreHandle tempMutexBus;
 	static xSemaphoreHandle statusMutexBus;
@@ -92,8 +92,8 @@ class TemperatureHandler
 		sensors.setOneWire(&oneWire);
 		bootTime = true;
 		bootTimer = millis() + SettingsHandler::WarmUpTime;
-		failsafeTimer = millis() + SettingsHandler::heaterFailsafeTime;
-		failSafeFrequency = millis() + failSafeFrequencyLimiter; 
+		// failsafeTimer = millis() + SettingsHandler::heaterFailsafeTime;
+		// failSafeFrequency = millis() + failSafeFrequencyLimiter; 
 		Serial.print("Starting heat on pin: ");
 		Serial.println(SettingsHandler::Heater_PIN);
   		ledcSetup(Heater_PWM, SettingsHandler::heaterFrequency, SettingsHandler::heaterResolution);
@@ -121,36 +121,36 @@ class TemperatureHandler
 
 			// Serial.print("Temp task: "); // stack size used
 			// Serial.println(uxTaskGetStackHighWaterMark( NULL )); // stack size used
-			if(failsafeTrigger && !failsafeTriggerLogged)
-			{
-				failsafeTriggerLogged = true;
-				Serial.print("Temp: "); 
-				Serial.println(_currentTemp); 
-				Serial.print("lastTemp: "); 
-				Serial.println(_lastTemp);
-				Serial.print("getTemp: "); 
-				Serial.println(getTemp()); 
-				Serial.print("Status: "); 
-				Serial.println(getControlStatus());
-				Serial.print("failsafeTimer: "); 
-				Serial.println(failsafeTimer);
-				Serial.print("_currentStatus.startsWith(Heatin: "); 
-				Serial.println(_currentStatus.startsWith("Heating"));
-				Serial.print("_currentStatus.startsWith(Error) "); 
-				Serial.println(_currentStatus.startsWith("Error"));
-				Serial.print("millis() > failsafeTimer: "); 
-				Serial.println(millis() > failsafeTimer);
-				Serial.print("_currentTemp <= _lastTemp "); 
-				Serial.println(_currentTemp <= _lastTemp);
-				Serial.print("definitelyLessThanORApproximatelyEqual(_currentTemp, _lastTemp) "); 
-				Serial.println(definitelyLessThanORApproximatelyEqual(_currentTemp, _lastTemp));
-				Serial.print("definitelyLessThanOREssentiallyEqual(_currentTemp, (SettingsHandler::TargetTemp + SettingsHandler::heaterThreshold)) "); 
-				Serial.println(definitelyLessThanOREssentiallyEqual(_currentTemp, (SettingsHandler::TargetTemp + SettingsHandler::heaterThreshold)));
-				Serial.print("SettingsHandler::TargetTemp + SettingsHandler::heaterThreshold "); 
-				Serial.println((SettingsHandler::TargetTemp + SettingsHandler::heaterThreshold));
-				Serial.print("errorCount "); 
-				Serial.println(errorCount);
-			}
+			// if(failsafeTrigger && !failsafeTriggerLogged)
+			// {
+			// 	failsafeTriggerLogged = true;
+			// 	Serial.print("Temp: "); 
+			// 	Serial.println(_currentTemp); 
+			// 	Serial.print("lastTemp: "); 
+			// 	Serial.println(_lastTemp);
+			// 	Serial.print("getTemp: "); 
+			// 	Serial.println(getTemp()); 
+			// 	Serial.print("Status: "); 
+			// 	Serial.println(getControlStatus());
+			// 	Serial.print("failsafeTimer: "); 
+			// 	Serial.println(failsafeTimer);
+			// 	Serial.print("_currentStatus.startsWith(Heatin: "); 
+			// 	Serial.println(_currentStatus.startsWith("Heating"));
+			// 	Serial.print("_currentStatus.startsWith(Error) "); 
+			// 	Serial.println(_currentStatus.startsWith("Error"));
+			// 	Serial.print("millis() > failsafeTimer: "); 
+			// 	Serial.println(millis() > failsafeTimer);
+			// 	Serial.print("_currentTemp <= _lastTemp "); 
+			// 	Serial.println(_currentTemp <= _lastTemp);
+			// 	Serial.print("definitelyLessThanORApproximatelyEqual(_currentTemp, _lastTemp) "); 
+			// 	Serial.println(definitelyLessThanORApproximatelyEqual(_currentTemp, _lastTemp));
+			// 	Serial.print("definitelyLessThanOREssentiallyEqual(_currentTemp, (SettingsHandler::TargetTemp + SettingsHandler::heaterThreshold)) "); 
+			// 	Serial.println(definitelyLessThanOREssentiallyEqual(_currentTemp, (SettingsHandler::TargetTemp + SettingsHandler::heaterThreshold)));
+			// 	Serial.print("SettingsHandler::TargetTemp + SettingsHandler::heaterThreshold "); 
+			// 	Serial.println((SettingsHandler::TargetTemp + SettingsHandler::heaterThreshold));
+			// 	Serial.print("errorCount "); 
+			// 	Serial.println(errorCount);
+			// }
 
 			// if(!failsafeTrigger)
 			// {
@@ -273,7 +273,9 @@ class TemperatureHandler
 		{
 			failSafeFrequency = millis() + failSafeFrequencyLimiter;
 			//Prevent runaway heating.
-			if(errorCount > 10 || (_currentTemp > 0 && _lastTemp > 0 && _currentStatus.startsWith("Heating") && millis() > failsafeTimer && definitelyLessThanORApproximatelyEqual(_currentTemp, _lastTemp))) 
+			if(errorCount > 10 
+			//|| (_currentTemp > 0 && _lastTemp > 0 && _currentStatus.startsWith("Heating") && millis() > failsafeTimer && definitelyLessThanORApproximatelyEqual(_currentTemp, _lastTemp))
+			) 
 			{
 				if(!failsafeTrigger) 
 				{
@@ -286,15 +288,15 @@ class TemperatureHandler
 						_currentStatus = "Fail safe: heat";
 				}
 			} 
-			else if((_currentTemp > 0 && _lastTemp > 0 && _currentStatus.startsWith("Heating") && definitelyGreaterThan(_currentTemp, _lastTemp)) 
-					|| _currentStatus.startsWith("Cooling") 
-					|| _currentStatus.startsWith("Holding")
-					|| _currentStatus.startsWith("Warm up time")
-					) 
-			{
-				errorCount = 0;
-				failsafeTimer = millis() + SettingsHandler::heaterFailsafeTime;
-			}
+			// else if((_currentTemp > 0 && _lastTemp > 0 && _currentStatus.startsWith("Heating") && definitelyGreaterThan(_currentTemp, _lastTemp)) 
+			// 		|| _currentStatus.startsWith("Cooling") 
+			// 		|| _currentStatus.startsWith("Holding")
+			// 		|| _currentStatus.startsWith("Warm up time")
+			// 		) 
+			// {
+			// 	errorCount = 0;
+			// 	failsafeTimer = millis() + SettingsHandler::heaterFailsafeTime;
+			// }
 			else if(_currentStatus.startsWith("Error")) 
 			{
 				errorCount++;
@@ -314,9 +316,9 @@ bool TemperatureHandler::bootTime;
 long TemperatureHandler::bootTimer;
 float TemperatureHandler::_lastTemp = -127.0;
 bool TemperatureHandler::targetTempReached = false;
-int TemperatureHandler::failsafeTimer;
+// int TemperatureHandler::failsafeTimer;
 bool TemperatureHandler::failsafeTrigger = false;
-bool TemperatureHandler::failsafeTriggerLogged = false;
+// bool TemperatureHandler::failsafeTriggerLogged = false;
 xSemaphoreHandle TemperatureHandler::tempMutexBus;
 xSemaphoreHandle TemperatureHandler::statusMutexBus;
 xQueueHandle TemperatureHandler::tempQueue;

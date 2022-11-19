@@ -71,6 +71,19 @@ class WebHandler {
                 AsyncWebServerResponse *response = request->beginResponse(200, "application/json", settings);
                 request->send(response);
             });   
+            server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
+            {
+                char systemInfo[255];
+                SettingsHandler::getSystemInfo(systemInfo);
+                if (strlen(systemInfo) == 0) {
+                    AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
+                    request->send(response);
+                    return;
+                }
+                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", systemInfo);
+                request->send(response);
+            });   
+            
 
             server->on("/log", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
@@ -116,17 +129,6 @@ class WebHandler {
 					AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"Error saving settings\"}");
 					request->send(response);
 				}
-            });
-
-            server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
-            {
-                // AsyncResponseStream *response = request->beginResponseStream("application/json");
-                // DynamicJsonBuffer jsonBuffer;
-                // JsonObject &root = jsonBuffer.createObject();
-                // root["ssid"] = WiFi.SSID();
-                // root["freeHeap"] = String(ESP.getFreeHeap())
-                // root.printTo(*response);
-                // request->send(response);
             });
 
             server->on("^\\/sensor\\/([0-9]+)$", HTTP_GET, [] (AsyncWebServerRequest *request) 
