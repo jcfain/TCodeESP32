@@ -29,6 +29,11 @@
 #define Vibe1_PWM 10             // Vibration motor 2
 #define Heater_PWM 11             // Heatting pad
 
+#define Vibe2_PWM 12
+#define Vibe3_PWM 13
+#define SqueezeServo_PWM 14
+#define CaseFan_PWM 15
+
 
 // Twist position monitor variables
 volatile int twistPulseLength = 0;

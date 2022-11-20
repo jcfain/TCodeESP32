@@ -73,7 +73,7 @@ class WebHandler {
             });   
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                char systemInfo[255];
+                char systemInfo[512];
                 SettingsHandler::getSystemInfo(systemInfo);
                 if (strlen(systemInfo) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");

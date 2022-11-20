@@ -224,10 +224,10 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
             SettingsHandler::save();
             ESP.restart();
 		}  else if(reason == WiFiReason::AP_MODE) {
-			#if ESP32_DA == 0
-			if(bleHandler)
-				bleHandler->setup();
-			#endif
+			// #if ESP32_DA == 0
+			// if(bleHandler)
+			// 	bleHandler->setup();
+			// #endif
 		}
 	}
 }
@@ -289,9 +289,14 @@ void setup()
 	servoHandler->setMessageCallback(CommandCallback);
 
 #if TEMP_ENABLED == 1
-	if(SettingsHandler::tempControlEnabled)
+	if(SettingsHandler::tempControlInternalEnabled) {
+		TemperatureHandler::setupInternalTemp();
+	}
+	if(SettingsHandler::tempControlSleeveEnabled)
 	{
 		TemperatureHandler::setup();
+	}
+	if(SettingsHandler::tempControlSleeveEnabled || SettingsHandler::tempControlInternalEnabled) {
 		xTaskCreatePinnedToCore(
 			TemperatureHandler::startLoop,/* Function to implement the task */
 			"TempTask", /* Name of the task */
@@ -413,16 +418,30 @@ void loop()
 			servoHandler->execute();
 		}
 #if TEMP_ENABLED == 1
-		if(SettingsHandler::tempControlEnabled && TemperatureHandler::isRunning()) 
+		if(SettingsHandler::tempControlSleeveEnabled && TemperatureHandler::isRunning()) 
 		{
-			if(TemperatureHandler::tempQueue != NULL) {
-				TemperatureHandler::setControlStatus();
+			if(TemperatureHandler::sleeveTempQueue != NULL) {
+				TemperatureHandler::setSleeveControlStatus();
 				String* receive = 0;
-				if(xQueueReceive(TemperatureHandler::tempQueue, &receive, 0)) {
+				if(xQueueReceive(TemperatureHandler::sleeveTempQueue, &receive, 0)) {
 					if(webSocketHandler && !receive->startsWith("{"))
 						webSocketHandler->sendCommand(receive->c_str());
 					else if(webSocketHandler)
-						webSocketHandler->sendCommand("tempStatus", receive->c_str());
+						webSocketHandler->sendCommand("sleeveTempStatus", receive->c_str());
+				}
+				if(receive)
+					delete receive;
+			}
+		}
+		if(SettingsHandler::tempControlInternalEnabled && TemperatureHandler::isRunning()) {
+			if(TemperatureHandler::internalTempQueue != NULL) {
+				TemperatureHandler::setInternalControlStatus();
+				String* receive = 0;
+				if(xQueueReceive(TemperatureHandler::internalTempQueue, &receive, 0)) {
+					if(webSocketHandler && !receive->startsWith("{"))
+						webSocketHandler->sendCommand(receive->c_str());
+					else if(webSocketHandler)
+						webSocketHandler->sendCommand("internalTempStatus", receive->c_str());
 				}
 				if(receive)
 					delete receive;

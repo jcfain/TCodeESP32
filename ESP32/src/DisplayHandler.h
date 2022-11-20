@@ -164,7 +164,7 @@ public:
 #if TEMP_ENABLED == 1
 				if(SettingsHandler::sleeveTempDisplayed)
 				{
-					float tempValue = TemperatureHandler::getTemp();
+					float tempValue = TemperatureHandler::getSleeveTemp();
 					//Display Temperature
 					//Serial.println(tempValue);
 					display.setCursor(0,46);
@@ -178,10 +178,10 @@ public:
 						display.print("C");
 					}
 				}
-				if(SettingsHandler::tempControlEnabled) {
+				if(SettingsHandler::tempControlSleeveEnabled) {
 					display.fillRect(0, 56, SettingsHandler::Display_Screen_Width, 10, BLACK);
 					display.setCursor(15,56);
-					String tempStatus = TemperatureHandler::getControlStatus();
+					String tempStatus = TemperatureHandler::getSleeveControlStatus();
 					display.println(tempStatus);
 				}
 #endif

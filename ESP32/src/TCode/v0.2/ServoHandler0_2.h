@@ -71,7 +71,7 @@ private:
     int TwistServo_PIN = SettingsHandler::TwistServo_PIN;
     int Vibe0_PIN = SettingsHandler::Vibe0_PIN;
     int Vibe1_PIN = SettingsHandler::Vibe1_PIN;
-    int LubeManual_PIN = SettingsHandler::LubeManual_PIN;
+    int LubeManual_PIN = SettingsHandler::LubeButton_PIN;
 
 	int rightServoConnected = 0;
 	int rightUpperServoConnected = 0;

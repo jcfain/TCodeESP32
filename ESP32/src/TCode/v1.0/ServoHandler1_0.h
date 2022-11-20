@@ -68,7 +68,7 @@ public:
         if (SettingsHandler::lubeEnabled) {
             tcode.axisRegister(Lube, "A2");//, "Lube"
             //tcode.axisRead("A2",0,' ',0);
-            pinMode(SettingsHandler::LubeManual_PIN,INPUT);
+            pinMode(SettingsHandler::LubeButton_PIN,INPUT);
         }
         // Setup Servo PWM channels
         // Lower Left Servo
@@ -375,7 +375,7 @@ public:
         if (SettingsHandler::lubeEnabled) {
             if (lube > 0 && lube <= 9999) {
                 ledcWrite(Vibe1_PWM, map(lube,1,9999,127,255));
-            } else if (digitalRead(SettingsHandler::LubeManual_PIN) == HIGH) {
+            } else if (digitalRead(SettingsHandler::LubeButton_PIN) == HIGH) {
                 ledcWrite(Vibe1_PWM,SettingsHandler::lubeAmount);
             } else { 
                 ledcWrite(Vibe1_PWM,0);

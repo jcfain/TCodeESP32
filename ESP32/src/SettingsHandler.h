@@ -73,7 +73,7 @@ class SettingsHandler
         static int webServerPort;
         static char hostname[63];
         static char friendlyName[100];
-		static int TwistFeedBack_PIN;
+		static int TwistFeedBack_PIN;// Vibe 4?
 		static int RightServo_PIN;
 		static int LeftServo_PIN;
 		static int RightUpperServo_PIN;
@@ -84,8 +84,10 @@ class SettingsHandler
 		static int TwistServo_PIN;
 		static int Vibe0_PIN;
 		static int Vibe1_PIN;
-        static int LubeManual_PIN;
-        static int FIRMWARE_MODE_PIN;
+        static int Vibe3_PIN;
+        static int Vibe4_PIN;
+        static int LubeButton_PIN;
+        static int Squeeze_PIN;
         static int StrokeMin;
         static int StrokeMax;
         static int RollMin;
@@ -102,6 +104,7 @@ class SettingsHandler
         static int pitchFrequency;
         static int valveFrequency;
         static int twistFrequency;
+        static int squeezeFrequency;
         static bool pitchFrequencyIsDifferent;
         static bool feedbackTwist;
 		static bool continuousTwist;
@@ -121,6 +124,7 @@ class SettingsHandler
     	static int PitchRightServo_ZERO;
     	static int TwistServo_ZERO;
     	static int ValveServo_ZERO;
+    	static int SqueezeServo_ZERO;
 		static bool autoValve;
 		static bool inverseValve;
 		static bool inverseStroke;
@@ -130,10 +134,16 @@ class SettingsHandler
 		static int lubeAmount;
 		static bool displayEnabled;
 		static bool sleeveTempDisplayed;
-		static bool tempControlEnabled;
+		static bool tempControlSleeveEnabled;
+		static bool tempControlInternalEnabled;
+        static bool fanControlEnabled;
 		static int Display_Screen_Width; 
 		static int Display_Screen_Height; 
-		static int Temp_PIN; 
+        static int Internal_Temp_PIN;
+        static int Case_Fan_PIN;
+		static int Sleeve_Temp_PIN; 
+		static int caseFanPWM;// setting 0-255
+        static int internalTempForFan; // C
 		static int Heater_PIN;
 		static int HeatLED_PIN;
 		static int TargetTemp;// Desired Temp in degC
@@ -161,8 +171,6 @@ class SettingsHandler
 
         static void load() 
         {
-            setBoardType();
-            setBuildFeatures();
             DynamicJsonDocument doc(deserializeSize);
 			File file;
 			bool loadingDefault = false;
@@ -207,9 +215,12 @@ class SettingsHandler
                 loadingDefault = true;
             }
             JsonObject jsonObj = doc.as<JsonObject>();
-            const char* storedVersion = jsonObj["esp32Version"];
 
             update(jsonObj);
+            
+            setBoardType();
+            setBuildFeatures();
+
 	        #if ISAAC_NEWTONGUE_BUILD == 1
                 RightServo_PIN = 13;
                 LeftServo_PIN = 2;
@@ -219,31 +230,46 @@ class SettingsHandler
                 TwistFeedBack_PIN = 26;
                 Vibe0_PIN = 25;
                 Vibe1_PIN = 19;
-                LubeManual_PIN = 15;
+                LubeButton_PIN = 15;
                 RightUpperServo_PIN = 12;
                 LeftUpperServo_PIN = 4;
                 PitchRightServo_PIN = 14;
-                Temp_PIN = 18; 
+                Sleeve_Temp_PIN = 18; 
                 Heater_PIN = 23;
             #elif CRIMZZON_BUILD == 1
+                TCodeVersionEnum = TCodeVersion::v0_3;
+                TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
+                tempControlInternalEnabled = true;
                 RightServo_PIN = 13;
                 LeftServo_PIN = 2;
-                PitchLeftServo_PIN = 16;
-                ValveServo_PIN = 5;
+                PitchLeftServo_PIN = 4;
+                ValveServo_PIN = 25;
                 TwistServo_PIN = 27;
-                TwistFeedBack_PIN = 26;
-                Vibe0_PIN = 25;
+                Vibe0_PIN = 18;
                 Vibe1_PIN = 19;
-                LubeManual_PIN = 15;
                 RightUpperServo_PIN = 12;
-                LeftUpperServo_PIN = 4;
+                LeftUpperServo_PIN = 2;
                 PitchRightServo_PIN = 14;
-                Temp_PIN = 18; 
-                Heater_PIN = 23;
+                Sleeve_Temp_PIN = 5; 
+                Heater_PIN = 33;
+
+                Internal_Temp_PIN = 32;
+                Case_Fan_PIN = 16;
+                Squeeze_PIN = 17;
+                Vibe3_PIN = 23;
+                Vibe4_PIN = 26;
+
+                TwistFeedBack_PIN = 0;// Boot pin
+
+                //EXT
+                LubeButton_PIN = 35;// EXT_Input1_PIN
+                // EXT_Input2_PIN = 34;
+		        // EXT_Input3_PIN = 39;
+		        // EXT_Input4_PIN = 36;
 	        #endif
 
-			if(loadingDefault || strcmp(storedVersion, ESP32Version) != 0)
-				    save();
+			if(loadingDefault)
+				save();
                     
         }
 
@@ -277,8 +303,10 @@ class SettingsHandler
                 {
                     strcpy(wifiPass, wifiPassConst);
                 }
-                TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 2);
-                TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
+	            #if CRIMZZON_BUILD == 0
+                    TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 2);
+                    TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
+	            #endif
                 udpServerPort = json["udpServerPort"] | 8000;
                 webServerPort = json["webServerPort"] | 80;
                 const char* hostnameTemp = json["hostname"];
@@ -302,10 +330,12 @@ class SettingsHandler
                 pitchFrequency = json[pitchFrequencyIsDifferent ? "pitchFrequency" : "servoFrequency"];
                 valveFrequency = json["valveFrequency"] | 50;
                 twistFrequency = json["twistFrequency"] | 50;
+                squeezeFrequency = json["squeezeFrequency"] | 50;
 				continuousTwist = json["continuousTwist"];
                 feedbackTwist =  json["feedbackTwist"];
                 analogTwist = json["analogTwist"];
-	        #if ISAAC_NEWTONGUE_BUILD == 0
+
+	        #if ISAAC_NEWTONGUE_BUILD == 0 && CRIMZZON_BUILD == 0
 				TwistFeedBack_PIN = json["TwistFeedBack_PIN"];
 				RightServo_PIN = json["RightServo_PIN"];
 				LeftServo_PIN = json["LeftServo_PIN"];
@@ -317,8 +347,15 @@ class SettingsHandler
 				TwistServo_PIN = json["TwistServo_PIN"];
 				Vibe0_PIN = json["Vibe0_PIN"];
 				Vibe1_PIN = json["Vibe1_PIN"];
-				LubeManual_PIN = json["LubeManual_PIN"];
+				LubeButton_PIN = json["LubeButton_PIN"];
+                Internal_Temp_PIN = json["Internal_Temp_PIN"];
+                Case_Fan_PIN = json["Case_Fan_PIN"];
+                Squeeze_PIN  = json["Squeeze_PIN"];
+                Vibe3_PIN = json["Vibe3_PIN"];
+                Vibe4_PIN = json["Vibe4_PIN"];
+                Squeeze_PIN = json["Squeeze_PIN"];
 	        #endif
+
 				staticIP = json["staticIP"];
                 const char* localIPTemp = json["localIP"];
                 if (localIPTemp != nullptr)
@@ -345,6 +382,7 @@ class SettingsHandler
     			PitchRightServo_ZERO = json["PitchRightServo_ZERO"];
     			TwistServo_ZERO = json["TwistServo_ZERO"];
     			ValveServo_ZERO = json["ValveServo_ZERO"];
+    			SqueezeServo_ZERO = json["Squeeze_ZERO"];
 				autoValve = json["autoValve"];
 				inverseValve = json["inverseValve"];
 				valveServo90Degrees = json["valveServo90Degrees"];
@@ -354,10 +392,12 @@ class SettingsHandler
 				lubeAmount = json["lubeAmount"] | 255;
 				displayEnabled = json["displayEnabled"];
 				sleeveTempDisplayed = json["sleeveTempDisplayed"];
-				tempControlEnabled = json["tempControlEnabled"];
+				tempControlSleeveEnabled = json["tempControlEnabled"];
+                internalTempForFan = json["internalTempForFan"];
+                tempControlInternalEnabled = json["tempControlInternalEnabled"];
 				Display_Screen_Width = json["Display_Screen_Width"] | 128;
 				Display_Screen_Height = json["Display_Screen_Height"] | 64;
-				Temp_PIN = json["Temp_PIN"] | 5;
+				Sleeve_Temp_PIN = json["Temp_PIN"] | 5;
 				Heater_PIN = json["Heater_PIN"] | 33;
 				TargetTemp = json["TargetTemp"] | 40;
 				HeatPWM = json["HeatPWM"] | 255;
@@ -425,18 +465,20 @@ class SettingsHandler
             serializeJson(doc, output);
             //serializeJson(doc, Serial);
             if(LogHandler::getLogLevel() == LogLevel::VERBOSE)
-                Serial.printf("\nOutput: %s\n", output.c_str());
+                Serial.printf("Settings: %s\n", output.c_str());
             //LogHandler::verbose(_TAG, "Output: %s", output.c_str());
             buf[0]  = {0};
             strcpy(buf, output.c_str());
         }
 
-        static void getSystemInfo(char buf[255]) {
+        static void getSystemInfo(char buf[512]) {
             DynamicJsonDocument doc(512);
             
             doc["esp32Version"] = ESP32Version;
             doc["TCodeVersion"] = (int)TCodeVersionEnum;
             doc["lastRebootReason"] = lastRebootReason;
+            Serial.print("boardType: ");
+            Serial.println((int)boardType);
             doc["boardType"] = (int)boardType;
             JsonArray buildFeaturesJsonArray = doc.createNestedArray("buildFeatures");
             for (BuildFeature value : buildFeatures) {
@@ -448,8 +490,19 @@ class SettingsHandler
             doc["dns1"] = dns1;
             doc["dns2"] = dns2;
 
+            doc["chipModel"] = ESP.getChipModel();
+            doc["chipRevision"] = ESP.getChipRevision();
+            doc["chipCores"] = ESP.getChipCores();
+            uint32_t chipId = 0;
+            for(int i=0; i<17; i=i+8) {
+                chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
+            }
+            doc["chipID"] = chipId;
+
             String output;
             serializeJson(doc, output);
+            if(LogHandler::getLogLevel() == LogLevel::VERBOSE)
+                Serial.printf("SystemInfo: %s\n", output.c_str());
             buf[0]  = {0};
             strcpy(buf, output.c_str());
         }
@@ -567,9 +620,11 @@ class SettingsHandler
 			doc["PitchRightServo_PIN"] = PitchRightServo_PIN;
 			doc["ValveServo_PIN"] = ValveServo_PIN;
 			doc["TwistServo_PIN"] = TwistServo_PIN;
+			doc["Squeeze_PIN"] = Squeeze_PIN;
 			doc["Vibe0_PIN"] = Vibe0_PIN;
 			doc["Vibe1_PIN"] = Vibe1_PIN;
-			doc["LubeManual_PIN"] = LubeManual_PIN;
+			doc["Case_Fan_PIN"] = Case_Fan_PIN;
+			doc["LubeButton_PIN"] = LubeButton_PIN;
 			doc["staticIP"] = staticIP;
 			doc["localIP"] = localIP;
 			doc["gateway"] = gateway;
@@ -585,6 +640,7 @@ class SettingsHandler
 			doc["PitchRightServo_ZERO"] = PitchRightServo_ZERO;
 			doc["TwistServo_ZERO"] = TwistServo_ZERO;
 			doc["ValveServo_ZERO"] = ValveServo_ZERO;
+			doc["Squeeze_ZERO"] = SqueezeServo_ZERO;
 			doc["autoValve"] = autoValve;
 			doc["inverseValve"] = inverseValve;
 			doc["valveServo90Degrees"] = valveServo90Degrees;
@@ -594,7 +650,7 @@ class SettingsHandler
             doc["lubeEnabled"] = lubeEnabled;
 			doc["displayEnabled"] = displayEnabled;
 			doc["sleeveTempDisplayed"] = sleeveTempDisplayed;
-			doc["tempControlEnabled"] = tempControlEnabled;
+			doc["tempControlEnabled"] = tempControlSleeveEnabled;
 			doc["Display_Screen_Width"] = Display_Screen_Width;
 			doc["Display_Screen_Height"] = Display_Screen_Height;
 			doc["TargetTemp"] = TargetTemp;
@@ -604,13 +660,15 @@ class SettingsHandler
 			Display_I2C_Address_String << "0x" << std::hex << Display_I2C_Address;
 			doc["Display_I2C_Address"] = Display_I2C_Address_String.str();
 			doc["Display_Rst_PIN"] = Display_Rst_PIN;
-			doc["Temp_PIN"] = Temp_PIN;
+			doc["Temp_PIN"] = Sleeve_Temp_PIN;
 			doc["Heater_PIN"] = Heater_PIN;
             doc["WarmUpTime"] = WarmUpTime;
             //doc["heaterFailsafeTime"] = String(heaterFailsafeTime);
             doc["heaterThreshold"] = heaterThreshold;
             doc["heaterResolution"] = heaterResolution;
             doc["heaterFrequency"] = heaterFrequency;
+            doc["internalTempForFan"] = internalTempForFan;
+            doc["tempControlInternalEnabled"] = tempControlInternalEnabled;
 			
             LogSaveDebug(doc);
 
@@ -890,7 +948,7 @@ class SettingsHandler
             // LogHandler::verbose(_TAG, "save Vibe0_PIN: %i", (int)doc["Vibe0_PIN"]);
             // LogHandler::verbose(_TAG, "save Vibe1_PIN: %i", (int)doc["Vibe1_PIN"]);
             // LogHandler::verbose(_TAG, "save Lube_Pin: %i", (int)doc["Lube_Pin"]);
-            // LogHandler::verbose(_TAG, "save LubeManual_Pin: %i", (int)doc["LubeManual_Pin"]);
+            // LogHandler::verbose(_TAG, "save LubeButton_PIN: %i", (int)doc["LubeButton_PIN"]);
             // LogHandler::verbose(_TAG, "save staticIP: %i", (bool)doc["staticIP"]);
             // LogHandler::verbose(_TAG, "save localIP: %s", (const char*) doc["localIP"]);
             // LogHandler::verbose(_TAG, "save gateway: %s", (const char*) doc["gateway"]);
@@ -965,7 +1023,7 @@ class SettingsHandler
             // LogHandler::verbose(_TAG, "update TwistServo_PIN: %i", TwistServo_PIN);
             // LogHandler::verbose(_TAG, "update Vibe0_PIN: %i", Vibe0_PIN);
             // LogHandler::verbose(_TAG, "update Vibe1_PIN: %i", Vibe1_PIN);
-            // LogHandler::verbose(_TAG, "update LubeManual_PIN: %i", LubeManual_PIN);
+            // LogHandler::verbose(_TAG, "update LubeButton_PIN: %i", LubeButton_PIN);
             // LogHandler::verbose(_TAG, "update staticIP: %i", staticIP);
             // LogHandler::verbose(_TAG, "update localIP: %s", localIP);
             // LogHandler::verbose(_TAG, "update gateway: %s", gateway);
@@ -1038,21 +1096,26 @@ char SettingsHandler::hostname[63];
 char SettingsHandler::friendlyName[100];
 int SettingsHandler::udpServerPort;
 int SettingsHandler::webServerPort;
-int SettingsHandler::PitchRightServo_PIN = 14;
-int SettingsHandler::RightUpperServo_PIN = 12;
-int SettingsHandler::RightServo_PIN = 13;
-int SettingsHandler::PitchLeftServo_PIN = 4;
-int SettingsHandler::LeftUpperServo_PIN = 2;
-int SettingsHandler::LeftServo_PIN = 15;
-int SettingsHandler::ValveServo_PIN = 28;
-int SettingsHandler::TwistServo_PIN = 27;
-int SettingsHandler::TwistFeedBack_PIN = 26;
-int SettingsHandler::Vibe0_PIN = 18;
-int SettingsHandler::Vibe1_PIN = 19;
-int SettingsHandler::LubeManual_PIN = 23;
-int SettingsHandler::Temp_PIN = 5; 
-int SettingsHandler::Heater_PIN = 33;
-int SettingsHandler::FIRMWARE_MODE_PIN = 39;
+int SettingsHandler::PitchRightServo_PIN;
+int SettingsHandler::RightUpperServo_PIN;
+int SettingsHandler::RightServo_PIN;
+int SettingsHandler::PitchLeftServo_PIN;
+int SettingsHandler::LeftUpperServo_PIN;
+int SettingsHandler::LeftServo_PIN;
+int SettingsHandler::ValveServo_PIN;
+int SettingsHandler::TwistServo_PIN;
+int SettingsHandler::TwistFeedBack_PIN;
+int SettingsHandler::Vibe0_PIN;
+int SettingsHandler::Vibe1_PIN;
+int SettingsHandler::LubeButton_PIN;
+int SettingsHandler::Sleeve_Temp_PIN; 
+int SettingsHandler::Heater_PIN;
+
+int SettingsHandler::Internal_Temp_PIN;
+int SettingsHandler::Case_Fan_PIN;
+int SettingsHandler::Squeeze_PIN;
+int SettingsHandler::Vibe3_PIN;
+int SettingsHandler::Vibe4_PIN;
 
 //int SettingsHandler::HeatLED_PIN = 32;
 // pin 25 cannot be servo. Throws error
@@ -1073,6 +1136,7 @@ int SettingsHandler::servoFrequency;
 int SettingsHandler::pitchFrequency;
 int SettingsHandler::valveFrequency;
 int SettingsHandler::twistFrequency;
+int SettingsHandler::squeezeFrequency;
 bool SettingsHandler::feedbackTwist = false;
 bool SettingsHandler::continuousTwist;
 bool SettingsHandler::analogTwist;
@@ -1091,6 +1155,7 @@ int SettingsHandler::PitchLeftServo_ZERO = 1500;
 int SettingsHandler::PitchRightServo_ZERO = 1500;
 int SettingsHandler::TwistServo_ZERO = 1500;
 int SettingsHandler::ValveServo_ZERO = 1500; 
+int SettingsHandler::SqueezeServo_ZERO = 1500;
 bool SettingsHandler::autoValve = false;
 bool SettingsHandler::inverseValve = false;
 bool SettingsHandler::valveServo90Degrees = false;
@@ -1100,9 +1165,13 @@ int SettingsHandler::lubeAmount = 255;
 
 bool SettingsHandler::displayEnabled = false;
 bool SettingsHandler::sleeveTempDisplayed = false;
-bool SettingsHandler::tempControlEnabled = false;
+bool SettingsHandler::tempControlSleeveEnabled = false;
+bool SettingsHandler::tempControlInternalEnabled = false;
+bool SettingsHandler::fanControlEnabled = false;
 int SettingsHandler::Display_Screen_Width = 128; 
 int SettingsHandler::Display_Screen_Height = 64; 
+int SettingsHandler::caseFanPWM = 255;
+int SettingsHandler::internalTempForFan = 20;
 int SettingsHandler::TargetTemp = 40;
 int SettingsHandler::HeatPWM = 255;
 int SettingsHandler::HoldPWM = 110;

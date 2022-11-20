@@ -36,11 +36,13 @@ public:
         PitchServo_Freq = pitchFrequency;
         TwistServo_Freq = twistFrequency;
         ValveServo_Freq = valveFrequency;
+        SqueezeServo_Freq = SettingsHandler::squeezeFrequency;
 // Servo Pulse intervals
         MainServo_Int = 1000000/MainServo_Freq;
         PitchServo_Int = 1000000/PitchServo_Freq;
         TwistServo_Int = 1000000/TwistServo_Freq;
         ValveServo_Int = 1000000/ValveServo_Freq;
+        SqueezeServo_Int = 1000000/SqueezeServo_Freq;
 
         tcode.setup(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName.c_str());
         // report status
@@ -61,14 +63,17 @@ public:
         tcode.RegisterAxis("R2", "Pitch");
         tcode.RegisterAxis("V0", "Vibe1");
         if (!SettingsHandler::lubeEnabled) { tcode.RegisterAxis("V1", "Vibe2"); }
+        tcode.RegisterAxis("V2", "Vibe3");
+        tcode.RegisterAxis("V3", "Vibe4");
         tcode.RegisterAxis("A0", "Valve");
         tcode.RegisterAxis("A1", "Suck");
         tcode.AxisInput("A1",VALVE_DEFAULT,'I',3000);
         if (SettingsHandler::lubeEnabled) {
             tcode.RegisterAxis("A2", "Lube");
             tcode.AxisInput("A2",0,' ',0);
-            pinMode(SettingsHandler::LubeManual_PIN,INPUT);
+            pinMode(SettingsHandler::LubeButton_PIN,INPUT);
         }
+        tcode.RegisterAxis("A3", "Squeeze");
         // Setup Servo PWM channels
         // Lower Left Servo
         if(DEBUG_BUILD == 0) {
@@ -116,9 +121,13 @@ public:
         ledcSetup(Vibe0_PWM,VibePWM_Freq,8);
         ledcAttachPin(SettingsHandler::Vibe0_PIN,Vibe0_PWM);
         // Vibe1 Pin
-        LogHandler::verbose(_TAG, "Connecting vib 2 to pin: %u", SettingsHandler::Vibe1_PIN);
+        LogHandler::verbose(_TAG, "Connecting lube/vib 2 to pin: %u", SettingsHandler::Vibe1_PIN);
         ledcSetup(Vibe1_PWM,VibePWM_Freq,8);
         ledcAttachPin(SettingsHandler::Vibe1_PIN,Vibe1_PWM); 
+
+        LogHandler::verbose(_TAG, "Connecting vib 3 to pin: %u", SettingsHandler::Vibe3_PIN);
+        ledcSetup(Vibe2_PWM,VibePWM_Freq,8);
+        ledcAttachPin(SettingsHandler::Vibe3_PIN,Vibe2_PWM); 
 
         if(SettingsHandler::feedbackTwist)
         {
@@ -139,6 +148,10 @@ public:
                 analogReadResolution(11);
                 analogSetAttenuation(ADC_6db); */
             }
+        } else {
+            LogHandler::verbose(_TAG, "Connecting vib 4 to pin: %u", SettingsHandler::Vibe4_PIN);
+            ledcSetup(Vibe3_PWM,VibePWM_Freq,8);
+            ledcAttachPin(SettingsHandler::Vibe4_PIN,Vibe3_PWM); 
         }
         
         // Signal done
@@ -179,9 +192,12 @@ public:
         zRot = tcode.AxisRead("R2");
         vibe0 = tcode.AxisRead("V0");
         if (!SettingsHandler::lubeEnabled) { vibe1 = tcode.AxisRead("V1"); }
+        vibe2 = tcode.AxisRead("V2");
+        vibe3 = tcode.AxisRead("V3");
         valveCmd = tcode.AxisRead("A0");
         suckCmd = tcode.AxisRead("A1");
         if (SettingsHandler::lubeEnabled) { lube = tcode.AxisRead("A2"); }
+        squeezeCmd = tcode.AxisRead("A3");
 
         // If you want to mix your servos differently, enter your code below:
 
@@ -317,7 +333,7 @@ public:
         }
 
         // Twist and valve
-        int twist,valve;
+        int twist,valve,squeeze;
         if (SettingsHandler::feedbackTwist && !SettingsHandler::continuousTwist) 
         {
             twist  = (xRot - map(twistPos,-1500,1500,9999,0))/5;
@@ -346,6 +362,7 @@ public:
         {
             twist  = map(xRot,0,9999,1000,-1000);
         }
+        squeeze = map(squeezeCmd,0,9999,1000,-1000);
         valve  = valvePos - 500;
         valve  = constrain(valve, -500, 500);
         if (SettingsHandler::inverseValve) { valve = -valve; }
@@ -361,7 +378,8 @@ public:
         }
         // Set Servos
         ledcWrite(TwistServo_PWM, map(SettingsHandler::TwistServo_ZERO + twist,0,TwistServo_Int,0,65535));
-        ledcWrite(ValveServo_PWM, map(SettingsHandler::ValveServo_ZERO + valve,0,TwistServo_Int,0,65535));
+        ledcWrite(ValveServo_PWM, map(SettingsHandler::ValveServo_ZERO + valve,0,ValveServo_Int,0,65535));
+        ledcWrite(SqueezeServo_PWM, map(SettingsHandler::SqueezeServo_ZERO + squeeze,0,SqueezeServo_Int,0,65535));
 
         // Done with servo channels
 
@@ -387,7 +405,7 @@ public:
         if (SettingsHandler::lubeEnabled) {
             if (lube > 0 && lube <= 9999) {
                 ledcWrite(Vibe1_PWM, map(lube,1,9999,127,255));
-            } else if (digitalRead(SettingsHandler::LubeManual_PIN) == HIGH) {
+            } else if (digitalRead(SettingsHandler::LubeButton_PIN) == HIGH) {
                 ledcWrite(Vibe1_PWM,SettingsHandler::lubeAmount);
             } else { 
                 ledcWrite(Vibe1_PWM,0);
@@ -403,11 +421,13 @@ private:
     int PitchServo_Int;
     int TwistServo_Int;
     int ValveServo_Int;
+    int SqueezeServo_Int;
 
     int MainServo_Freq;
     int PitchServo_Freq;
     int TwistServo_Freq;
     int ValveServo_Freq;
+    int SqueezeServo_Freq;
 
     // Declare classes
     // This uses the t-code object above
@@ -418,11 +438,11 @@ private:
     // Rotation variables
     int xRot,yRot,zRot;
     // Vibration variables
-    int vibe0,vibe1;
+    int vibe0,vibe1,vibe2,vibe3;
     // Lube variables
     int lube;
     // Valve variables
-    int valveCmd,suckCmd;
+    int valveCmd,suckCmd,squeezeCmd;
     // Velocity tracker variables, for valve
     int xLast;
     unsigned long tLast;

@@ -241,6 +241,17 @@
 							<input id="ValveServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
 						</td>
 					</tr>
+					<tr class="v3Only">
+						<td>
+							<span>Squeeze</span> 
+						</td>
+						<td>
+							<input id="Squeeze_PIN" type="number" max="99" min="1" oninput="updatePins()">
+						</td>
+						<td>
+							<input id="Squeeze_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
+						</td>
+					</tr>
 					<tr>
 						<td>
 							<span>Twist</span> 
@@ -278,10 +289,10 @@
 					</tr>
 					<tr>
 						<td>
-							<span>Manual lube</span> 
+							<span>Lube button</span> 
 						</td>
 						<td>
-							<input id="LubeManual_PIN" type="number" max="99" min="1" oninput="updatePins()">
+							<input id="LubeButton_PIN" type="number" max="99" min="1" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr class="pwmAvaliblePinRow">
@@ -482,24 +493,32 @@
 					</tr>
 					<tr class="build_temprature">
 						<td>
-							<span>Temperature control enabled</span> 
+							<span>Sleeve temperature control enabled</span> 
 						</td>
 						<td>
 							<input id="tempControlEnabled" type="checkbox" onclick="setTempSettings()"></input>
 						</td>
 					</tr>
+					<tr class="build_temprature">
+						<td>
+							<span>Internal temperature control enabled</span> 
+						</td>
+						<td>
+							<input id="tempControlInternalEnabled" type="checkbox" onclick="setInternalTempSettings()"></input>
+						</td>
+					</tr>
 				</tbody>
 			</table>
-			<table id="tempSettingsDisplayTable" class="formTable fullBuild">
+			<table id="tempSettingsDisplayTable" class="formTable">
 				<tbody>
 					<tr>
 						<th colspan="2">
-							<h3>Temperature</h3>
+							<h3>Sleeve temperature</h3>
 						</th>
 					</tr>
 					<tr>
 						<td>
-							<span>Temp. sensor pin</span> 
+							<span>Sleeve temp sensor pin</span> 
 						</td>
 						<td>
 							<input id="Temp_PIN" type="number" min="1" oninput="updatePins()">
@@ -579,7 +598,7 @@
 					</tr>
 					<tr>
 						<td>
-							<span>Current temp</span> 
+							<span>Current sleeve temp</span> 
 						</td>
 						<td>
 							<span id="currentTemp">0</span> &#8451;
@@ -587,7 +606,7 @@
 					</tr>
 					<tr>
 						<td>
-							<span>Current temp status</span> 
+							<span>Current sleeve temp status</span> 
 						</td>
 						<td>
 							<span id="currentTempStatus">Unknown</span>
@@ -601,6 +620,39 @@
 							<input id="soundsEnabled" type="checkbox" onclick="toggleSounds()"></input>
 							<button type="button" hidden name="testSoundButton" onclick="playSuccess()">Test target reached</button>
 							<!-- <button type="button" hidden name="testSoundButton" onclick="playFail()">Test fail safe trigger</button> -->
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<table id="internalTempTable" class="formTable">
+				<tbody>
+					<tr>
+						<th colspan="2">
+							<h3>Internal temperature</h3>
+						</th>
+					</tr>
+					<tr>
+						<td>Internal temp</td>
+						<td>
+							<input id="internalTemp" type="text" readonly>
+						</td>
+					</tr>
+					<tr>
+						<td>Fan status</td>
+						<td>
+							<input id="internalTempStatus" type="text" readonly>
+						</td>
+					</tr>
+					<tr>
+						<td>Fan on temp</td>
+						<td>
+							<input id="internalTempForFan" type="number" min="0" oninput="setFanOnTemp()">
+						</td>
+					</tr>
+					<tr>
+						<td>Fan PWM PIN</td>
+						<td>
+							<input id="Case_Fan_PIN" type="number" min="0" oninput="setInternalTempSettings()">
 						</td>
 					</tr>
 				</tbody>
@@ -671,25 +723,49 @@
 				<tr>
 					<td>IP</td>
 					<td>
-						<input id="ipAddress" type="text" readonly>
+						<input id="ipAddressSystemInfo" type="text" readonly>
 					</td>
 				</tr>
 				<tr>
 					<td>Gateway</td>
 					<td>
-						<input id="gateway" type="text" readonly>
+						<input id="gatewaySystemInfo" type="text" readonly>
 					</td>
 				</tr>
 				<tr>
 					<td>Subnet</td>
 					<td>
-						<input id="subnet" type="text" readonly>
+						<input id="subnetSystemInfo" type="text" readonly>
 					</td>
 				</tr>
 				<tr>
 					<td>DNS</td>
 					<td>
-						<input id="dns" type="text" readonly>
+						<input id="dnsSystemInfo" type="text" readonly>
+					</td>
+				</tr>
+				<tr>
+					<td>Chip model</td>
+					<td>
+						<input id="chipModel" type="text" readonly>
+					</td>
+				</tr>
+				<tr>
+					<td>Chip revision</td>
+					<td>
+						<input id="chipRevision" type="text" readonly>
+					</td>
+				</tr>
+				<tr>
+					<td>Chip cores</td>
+					<td>
+						<input id="chipCores" type="text" readonly>
+					</td>
+				</tr>
+				<tr>
+					<td>Chip ID</td>
+					<td>
+						<input id="chipID" type="text" readonly>
 					</td>
 				</tr>
 				<tr title="Set to show output in the text area. Note: Verbose level will NOT show. See the serial for that message level">
@@ -712,6 +788,7 @@
 						<textarea id="debugText" class="log-reader" readonly></textarea>
 					</td>
 				</tr> -->
+				
 				<tr>
 					<td>
 						<span>Last reboot reason</span> 
