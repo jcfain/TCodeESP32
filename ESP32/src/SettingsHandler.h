@@ -35,6 +35,7 @@ enum class TCodeVersion {
 };
 
 enum class BuildFeature {
+    NONE,
     DEBUG,
     WIFI,
     BLUETOOTH,
@@ -62,7 +63,7 @@ class SettingsHandler
         static BuildFeature buildFeatures[featureCount];
         static String TCodeVersionName;
         static TCodeVersion TCodeVersionEnum;
-        const static char ESP32Version[14];
+        const static char ESP32Version[8];
         const static char HandShakeChannel[4];
         const static char SettingsChannel[4];
 		static bool bluetoothEnabled;
@@ -134,8 +135,8 @@ class SettingsHandler
 		static int lubeAmount;
 		static bool displayEnabled;
 		static bool sleeveTempDisplayed;
-		static bool tempControlSleeveEnabled;
-		static bool tempControlInternalEnabled;
+		static bool tempSleeveEnabled;
+		static bool tempInternalEnabled;
         static bool fanControlEnabled;
 		static int Display_Screen_Width; 
 		static int Display_Screen_Height; 
@@ -156,6 +157,8 @@ class SettingsHandler
         static float heaterThreshold;
         static int heaterResolution;
         static int heaterFrequency;
+        static int caseFanFrequency;
+        static int caseFanResolution;
 
         static int strokerSamples;
         static int strokerOffset;
@@ -239,7 +242,7 @@ class SettingsHandler
             #elif CRIMZZON_BUILD == 1
                 TCodeVersionEnum = TCodeVersion::v0_3;
                 TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
-                tempControlInternalEnabled = true;
+                tempInternalEnabled = true;
                 RightServo_PIN = 13;
                 LeftServo_PIN = 2;
                 PitchLeftServo_PIN = 4;
@@ -266,11 +269,13 @@ class SettingsHandler
                 // EXT_Input2_PIN = 34;
 		        // EXT_Input3_PIN = 39;
 		        // EXT_Input4_PIN = 36;
-	        #endif
 
+                heaterResolution = 8;
+                caseFanResolution = 10;
+                caseFanFrequency = 25;
+	        #endif
 			if(loadingDefault)
 				save();
-                    
         }
 
         static void reset() 
@@ -289,8 +294,7 @@ class SettingsHandler
             if(json.size() > 0) 
             {
                 logLevel = (LogLevel)(json["logLevel"] | 1);
-                if(LogHandler::getLogLevel() < logLevel)
-                    LogHandler::setLogLevel(logLevel);
+                LogHandler::setLogLevel(logLevel);
 
                 LogHandler::debug(_TAG, "Update settings");
                 const char* ssidConst = json["ssid"];
@@ -354,6 +358,8 @@ class SettingsHandler
                 Vibe3_PIN = json["Vibe3_PIN"];
                 Vibe4_PIN = json["Vibe4_PIN"];
                 Squeeze_PIN = json["Squeeze_PIN"];
+				Sleeve_Temp_PIN = json["Temp_PIN"] | 5;
+				Heater_PIN = json["Heater_PIN"] | 33;
 	        #endif
 
 				staticIP = json["staticIP"];
@@ -392,25 +398,28 @@ class SettingsHandler
 				lubeAmount = json["lubeAmount"] | 255;
 				displayEnabled = json["displayEnabled"];
 				sleeveTempDisplayed = json["sleeveTempDisplayed"];
-				tempControlSleeveEnabled = json["tempControlEnabled"];
-                internalTempForFan = json["internalTempForFan"];
-                tempControlInternalEnabled = json["tempControlInternalEnabled"];
 				Display_Screen_Width = json["Display_Screen_Width"] | 128;
 				Display_Screen_Height = json["Display_Screen_Height"] | 64;
-				Sleeve_Temp_PIN = json["Temp_PIN"] | 5;
-				Heater_PIN = json["Heater_PIN"] | 33;
-				TargetTemp = json["TargetTemp"] | 40;
-				HeatPWM = json["HeatPWM"] | 255;
-				HoldPWM = json["HoldPWM"] | 110;
                 const char* Display_I2C_AddressTemp = json["Display_I2C_Address"];
                 if (Display_I2C_AddressTemp != nullptr)
 					Display_I2C_Address = (int)strtol(Display_I2C_AddressTemp, NULL, 0);
 				Display_Rst_PIN = json["Display_Rst_PIN"] | -1;
-                WarmUpTime = json["WarmUpTime"] | 600000;
-                //heaterFailsafeTime = json["heaterFailsafeTime"] | 60000;
+                
+				tempSleeveEnabled = json["tempSleeveEnabled"];
                 heaterThreshold = json["heaterThreshold"] | 5.0;
-                heaterResolution = json["heaterResolution"] | 8;
                 heaterFrequency = json["heaterFrequency"] | 5000;
+                heaterResolution = json["heaterResolution"] | 8;
+				TargetTemp = json["TargetTemp"] | 40;
+				HeatPWM = json["HeatPWM"] | 255;
+				HoldPWM = json["HoldPWM"] | 110;
+                WarmUpTime = json["WarmUpTime"] | 600000;
+
+                tempInternalEnabled = json["tempInternalEnabled"];
+                fanControlEnabled = json["fanControlEnabled"];
+                internalTempForFan = json["internalTempForFan"] | 30;
+                caseFanFrequency = json["caseFanFrequency"] | 25;
+                caseFanResolution = json["caseFanResolution"] | 10;
+
                 lubeEnabled = json["lubeEnabled"];
                 lastRebootReason = machine_reset_cause();
                 LogHandler::info(_TAG, "Last reset reason: %s", SettingsHandler::lastRebootReason);
@@ -477,8 +486,6 @@ class SettingsHandler
             doc["esp32Version"] = ESP32Version;
             doc["TCodeVersion"] = (int)TCodeVersionEnum;
             doc["lastRebootReason"] = lastRebootReason;
-            Serial.print("boardType: ");
-            Serial.println((int)boardType);
             doc["boardType"] = (int)boardType;
             JsonArray buildFeaturesJsonArray = doc.createNestedArray("buildFeatures");
             for (BuildFeature value : buildFeatures) {
@@ -581,8 +588,7 @@ class SettingsHandler
             DynamicJsonDocument doc(serializeSize);
 
             doc["logLevel"] = (int)logLevel;
-            if(LogHandler::getLogLevel() < logLevel)
-                LogHandler::setLogLevel(logLevel);
+            LogHandler::setLogLevel(logLevel);
 
             LogHandler::debug(_TAG, "Save settings");
             doc["fullBuild"] = fullBuild;
@@ -608,6 +614,7 @@ class SettingsHandler
             doc["pitchFrequency"] = pitchFrequency;
             doc["valveFrequency"] = valveFrequency;
             doc["twistFrequency"] = twistFrequency;
+            doc["squeezeFrequency"] = squeezeFrequency;
 			doc["continuousTwist"] = continuousTwist;
             doc["feedbackTwist"] = feedbackTwist;
 			doc["analogTwist"] = analogTwist;
@@ -625,6 +632,7 @@ class SettingsHandler
 			doc["Vibe1_PIN"] = Vibe1_PIN;
 			doc["Case_Fan_PIN"] = Case_Fan_PIN;
 			doc["LubeButton_PIN"] = LubeButton_PIN;
+            doc["Internal_Temp_PIN"] = Internal_Temp_PIN;
 			doc["staticIP"] = staticIP;
 			doc["localIP"] = localIP;
 			doc["gateway"] = gateway;
@@ -650,7 +658,7 @@ class SettingsHandler
             doc["lubeEnabled"] = lubeEnabled;
 			doc["displayEnabled"] = displayEnabled;
 			doc["sleeveTempDisplayed"] = sleeveTempDisplayed;
-			doc["tempControlEnabled"] = tempControlSleeveEnabled;
+			doc["tempSleeveEnabled"] = tempSleeveEnabled;
 			doc["Display_Screen_Width"] = Display_Screen_Width;
 			doc["Display_Screen_Height"] = Display_Screen_Height;
 			doc["TargetTemp"] = TargetTemp;
@@ -667,8 +675,11 @@ class SettingsHandler
             doc["heaterThreshold"] = heaterThreshold;
             doc["heaterResolution"] = heaterResolution;
             doc["heaterFrequency"] = heaterFrequency;
+            doc["fanControlEnabled"] = fanControlEnabled;
+            doc["caseFanFrequency"] = caseFanFrequency;
+            doc["caseFanResolution"] = caseFanResolution;
             doc["internalTempForFan"] = internalTempForFan;
-            doc["tempControlInternalEnabled"] = tempControlInternalEnabled;
+            doc["tempInternalEnabled"] = tempInternalEnabled;
 			
             LogSaveDebug(doc);
 
@@ -730,7 +741,7 @@ class SettingsHandler
                 buildFeatures[index] = BuildFeature::DISPLAY_;
                 index++;
             #endif
-            buildFeatures[featureCount] = {};
+            buildFeatures[featureCount - 1] = {};
         }
 
         static void setBoardType() {
@@ -975,7 +986,7 @@ class SettingsHandler
             // LogHandler::verbose(_TAG, "save Heater_PIN: %i", (int)doc["Heater_PIN"]);
             // LogHandler::verbose(_TAG, "save displayEnabled: %i", (bool)doc["displayEnabled"]);
             // LogHandler::verbose(_TAG, "save sleeveTempDisplayed: %i", (bool)doc["sleeveTempDisplayed"]);
-            // LogHandler::verbose(_TAG, "save tempControlEnabled: %i", (bool)doc["tempControlEnabled"]);
+            // LogHandler::verbose(_TAG, "save tempSleeveEnabled: %i", (bool)doc["tempSleeveEnabled"]);
             // LogHandler::verbose(_TAG, "save Display_Screen_Width: %i", (int)doc["Display_Screen_Width"]);
             // LogHandler::verbose(_TAG, "save Display_Screen_Height: %i", (int)doc["Display_Screen_Height"]);
             // LogHandler::verbose(_TAG, "save TargetTemp: %i", (int)doc["TargetTemp"]);
@@ -1048,7 +1059,7 @@ class SettingsHandler
             // LogHandler::verbose(_TAG, "update lubeAmount: %i", lubeAmount);
             // LogHandler::verbose(_TAG, "update displayEnabled: %i", displayEnabled);
             // LogHandler::verbose(_TAG, "update sleeveTempDisplayed: %i", sleeveTempDisplayed);
-            // LogHandler::verbose(_TAG, "update tempControlEnabled: %i", tempControlEnabled);
+            // LogHandler::verbose(_TAG, "update tempSleeveEnabled: %i", tempSleeveEnabled);
             // LogHandler::verbose(_TAG, "update Display_Screen_Width: %i", Display_Screen_Width);
             // LogHandler::verbose(_TAG, "update Display_Screen_Height: %i", Display_Screen_Height);
             // LogHandler::verbose(_TAG, "update TargetTemp: %i", TargetTemp);
@@ -1077,7 +1088,7 @@ BuildFeature SettingsHandler::buildFeatures[featureCount];
 const char* SettingsHandler::_TAG = "_SETTINGS_HANDLER";
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[14] = "ESP32 v0.255b";
+const char SettingsHandler::ESP32Version[8] = "v0.255b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char* SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
@@ -1165,8 +1176,8 @@ int SettingsHandler::lubeAmount = 255;
 
 bool SettingsHandler::displayEnabled = false;
 bool SettingsHandler::sleeveTempDisplayed = false;
-bool SettingsHandler::tempControlSleeveEnabled = false;
-bool SettingsHandler::tempControlInternalEnabled = false;
+bool SettingsHandler::tempSleeveEnabled = false;
+bool SettingsHandler::tempInternalEnabled = false;
 bool SettingsHandler::fanControlEnabled = false;
 int SettingsHandler::Display_Screen_Width = 128; 
 int SettingsHandler::Display_Screen_Height = 64; 
@@ -1182,6 +1193,8 @@ long SettingsHandler::WarmUpTime = 600000;
 float SettingsHandler::heaterThreshold = 5.0;
 int SettingsHandler::heaterResolution = 8;
 int SettingsHandler::heaterFrequency = 5000;
+int SettingsHandler::caseFanFrequency = 25;
+int SettingsHandler::caseFanResolution = 10;
 const char* SettingsHandler::lastRebootReason;
 
 int SettingsHandler::strokerSamples = 100;

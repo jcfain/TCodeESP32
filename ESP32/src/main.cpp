@@ -289,14 +289,14 @@ void setup()
 	servoHandler->setMessageCallback(CommandCallback);
 
 #if TEMP_ENABLED == 1
-	if(SettingsHandler::tempControlInternalEnabled) {
+	if(SettingsHandler::tempInternalEnabled) {
 		TemperatureHandler::setupInternalTemp();
 	}
-	if(SettingsHandler::tempControlSleeveEnabled)
+	if(SettingsHandler::tempSleeveEnabled)
 	{
 		TemperatureHandler::setup();
 	}
-	if(SettingsHandler::tempControlSleeveEnabled || SettingsHandler::tempControlInternalEnabled) {
+	if(SettingsHandler::tempSleeveEnabled || SettingsHandler::tempInternalEnabled) {
 		xTaskCreatePinnedToCore(
 			TemperatureHandler::startLoop,/* Function to implement the task */
 			"TempTask", /* Name of the task */
@@ -353,7 +353,6 @@ void setup()
     servoHandler->setup(SettingsHandler::servoFrequency, SettingsHandler::pitchFrequency, SettingsHandler::valveFrequency, SettingsHandler::twistFrequency, SettingsHandler::msPerRad);
 	setupSucceeded = true;
 #if DISPLAY_ENABLED == 1
-	displayHandler->clearDisplay();
 	if(SettingsHandler::displayEnabled)
 	{
 		xTaskCreatePinnedToCore(
@@ -418,7 +417,7 @@ void loop()
 			servoHandler->execute();
 		}
 #if TEMP_ENABLED == 1
-		if(SettingsHandler::tempControlSleeveEnabled && TemperatureHandler::isRunning()) 
+		if(SettingsHandler::tempSleeveEnabled && TemperatureHandler::isRunning()) 
 		{
 			if(TemperatureHandler::sleeveTempQueue != NULL) {
 				TemperatureHandler::setSleeveControlStatus();
@@ -433,7 +432,7 @@ void loop()
 					delete receive;
 			}
 		}
-		if(SettingsHandler::tempControlInternalEnabled && TemperatureHandler::isRunning()) {
+		if(SettingsHandler::tempInternalEnabled && TemperatureHandler::isRunning()) {
 			if(TemperatureHandler::internalTempQueue != NULL) {
 				TemperatureHandler::setInternalControlStatus();
 				String* receive = 0;

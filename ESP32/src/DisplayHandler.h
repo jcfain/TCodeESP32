@@ -43,7 +43,7 @@ public:
 
 	void setup() 
 	{
-    	Serial.println(F("Setting up display"));
+    	LogHandler::info("displayHandler", "Setting up display");
 
 		// Serial.begin(115200);
 		// delay(1000);
@@ -55,13 +55,13 @@ public:
 		{
 			displayConnected = display.begin(SSD1306_SWITCHCAPVCC, SettingsHandler::Display_I2C_Address, SettingsHandler::Display_Rst_PIN);
 			if (!displayConnected)
-    			Serial.println(F("SSD1306 RST_PIN allocation failed"));
+    			LogHandler::error("displayHandler", "SSD1306 RST_PIN allocation failed");
 		}
 		else
 		{
 			displayConnected = display.begin(SSD1306_SWITCHCAPVCC, SettingsHandler::Display_I2C_Address);
 			if (!displayConnected)
-    			Serial.println(F("SSD1306 allocation failed"));
+    			LogHandler::error("displayHandler", "SSD1306 allocation failed");
 		}
 		delay(2000);
 		if(displayConnected)
@@ -103,14 +103,16 @@ public:
 	void loop()
 	{
 		_isRunning = true;
+		clearDisplay();
 		while(_isRunning) 
 		{
 			if(!m_animationPlaying && displayConnected && millis() >= lastUpdate + nextUpdate)
 			{
 				lastUpdate = millis();
+				startLine();
 				// Serial.print("Display Core: ");
 				// Serial.println(xPortGetCoreID());
-					display.setCursor(0,3);
+				display.setCursor(0,currentLine);
 				if(WifiHandler::isConnected())
 				{
 					int bars;
@@ -137,22 +139,20 @@ public:
 
 					display.print("IP: ");
 					display.println(_ipAddress);
-					display.setCursor(0,16);
+					display.setCursor(0,nextLine(is32() ? 0 : 3));
 					display.print(SettingsHandler::TCodeVersionName);
-					display.println(" Ready");
-					display.setCursor(0,26);
+					display.setCursor(SettingsHandler::Display_Screen_Width - (sizeof(SettingsHandler::ESP32Version) - 1) *6, currentLine);
 					display.println(SettingsHandler::ESP32Version);
 					
 				} 
 				else if(WifiHandler::apMode)
 				{
 					display.println("AP mode: 192.168.1.1");
-					display.setCursor(0,16);
+					display.setCursor(0,nextLine(is32() ? 0 : 3));
 					display.println("SSID: TCodeESP32Setup");
-					display.setCursor(0,26);
+					display.setCursor(0,nextLine());
 					display.print(SettingsHandler::TCodeVersionName);
-					display.println(" Ready");
-					display.setCursor(0,36);
+					display.setCursor(SettingsHandler::Display_Screen_Width - (sizeof(SettingsHandler::ESP32Version) - 1) *6, currentLine);
 					display.println(SettingsHandler::ESP32Version);
 				}
 				else
@@ -162,27 +162,9 @@ public:
 
 				
 #if TEMP_ENABLED == 1
-				if(SettingsHandler::sleeveTempDisplayed)
+				if(SettingsHandler::sleeveTempDisplayed || SettingsHandler::tempInternalEnabled)
 				{
-					float tempValue = TemperatureHandler::getSleeveTemp();
-					//Display Temperature
-					//Serial.println(tempValue);
-					display.setCursor(0,46);
-					display.print("Sleeve temp: ");
-					if (tempValue >= 0) 
-					{
-						display.setCursor(75,46);
-						display.fillRect(75, 46, SettingsHandler::Display_Screen_Width - 75, 10, BLACK);
-						display.print(tempValue, 1);
-						display.print((char)247);
-						display.print("C");
-					}
-				}
-				if(SettingsHandler::tempControlSleeveEnabled) {
-					display.fillRect(0, 56, SettingsHandler::Display_Screen_Width, 10, BLACK);
-					display.setCursor(15,56);
-					String tempStatus = TemperatureHandler::getSleeveControlStatus();
-					display.println(tempStatus);
+					is32() ? draw32Temp() : draw64Temp();
 				}
 #endif
 				display.display();
@@ -291,13 +273,179 @@ public:
 private:
 	IPAddress _ipAddress;
 	bool displayConnected = false;
-	int currentPrintLine = 0;
 	int lastUpdate = 0;
 	const int nextUpdate = 1000;
 	bool _isRunning = false;
+
+	int currentLine = 3;
+	int lineHeight = 10;
+	int charWidth = 6;
 
 	Adafruit_SSD1306_RSB display;
 	bool m_animationPlaying = false;
 	int m_animationMilliSeconds = 10000;
 	
+	int nextLine(int additional = 0) {
+		currentLine += (lineHeight + additional);
+		return currentLine;
+	}
+	void newLine() {
+		display.setCursor(0, nextLine());
+	}
+	void startLine() {
+		if(is32()) {
+			currentLine = 0;
+		} else {
+			currentLine = 3;
+		}
+	}
+	void clearCurrentLine() {
+		display.fillRect(0, currentLine, SettingsHandler::Display_Screen_Width, 10, BLACK);
+	}
+	bool is32() {
+		return SettingsHandler::Display_Screen_Height == 32;
+	}
+
+	void draw64Temp() {
+		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::tempInternalEnabled)
+		{
+			float tempValue = TemperatureHandler::getSleeveTemp();
+			display.setCursor(0,nextLine());
+			char sleeveTemp[14] = "Sleeve temp: ";
+			display.print(sleeveTemp);
+			int width = sizeof(sleeveTemp) * charWidth;
+			display.setCursor(width, currentLine);
+			display.fillRect(width, currentLine, SettingsHandler::Display_Screen_Width - width, 10, BLACK);
+			display.print(tempValue, 1);
+			display.print((char)247);
+			display.print("C");
+			if(SettingsHandler::tempSleeveEnabled) {
+				display.fillRect(0, nextLine(), SettingsHandler::Display_Screen_Width, 10, BLACK);
+				display.setCursor(15,currentLine);
+				String tempStatus = TemperatureHandler::getSleeveControlStatus();
+				display.println(tempStatus);
+			}
+		}
+		else if(!SettingsHandler::sleeveTempDisplayed && SettingsHandler::tempInternalEnabled)
+		{
+			float tempValue = TemperatureHandler::getInternalTemp();
+			display.setCursor(0,nextLine());
+			char sleeveTemp[16] = "Internal temp: ";
+			display.print(sleeveTemp);
+			int width = sizeof(sleeveTemp) * charWidth;
+			display.setCursor(width, currentLine);
+			display.fillRect(width, currentLine, SettingsHandler::Display_Screen_Width - width, 10, BLACK);
+			display.print(tempValue, 1);
+			display.print((char)247);
+			display.print("C");
+		}
+		else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::tempInternalEnabled)
+		{
+			float sleeveTemp = TemperatureHandler::getSleeveTemp();
+			int cursurPos = 0;
+			display.setCursor(cursurPos,nextLine());
+			char sleeveTempText[7] = "Sleeve";
+			display.print(sleeveTempText);
+			
+			float internalTemp = TemperatureHandler::getInternalTemp();
+			char internalTempText[9] = "Internal";
+			cursurPos = SettingsHandler::Display_Screen_Width - ((sizeof(internalTempText) - 1) * charWidth);
+			display.setCursor(cursurPos, currentLine);
+			display.print(internalTempText);
+
+			newLine();
+			clearCurrentLine();
+			display.print(sleeveTemp, 1);
+			display.print((char)247);
+			display.print("C");//Max Length 7
+
+			cursurPos = SettingsHandler::Display_Screen_Width - 7 * charWidth;
+			display.setCursor(cursurPos, currentLine);
+			display.print(internalTemp, 1);
+			display.print((char)247);
+			display.print("C");//Max Length 7
+
+			if(SettingsHandler::tempSleeveEnabled) {
+				newLine();
+				clearCurrentLine();
+				String tempStatus = TemperatureHandler::getSleeveControlStatus() + " ";
+				display.print(tempStatus);
+			}
+		}
+	}
+	void draw32Temp() {
+		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::tempInternalEnabled)
+		{
+			float sleeveTemp = TemperatureHandler::getSleeveTemp();
+			int cursurPos = 0;
+			display.setCursor(cursurPos, nextLine());
+			clearCurrentLine();
+			char sleeveTempText[9] = "Sleeve: ";
+			display.print(sleeveTempText);
+			cursurPos = (sizeof(sleeveTempText) - 1) * charWidth;
+			display.setCursor(cursurPos, currentLine);
+
+			display.print(sleeveTemp, 1);
+			display.print((char)247);
+			display.print("C");//Max Length 6
+			cursurPos += 8 * charWidth;
+			
+			if(SettingsHandler::tempSleeveEnabled) {
+				display.setCursor(cursurPos, currentLine);
+				String tempStatus = TemperatureHandler::getShortSleeveControlStatus() + " ";
+				display.print(tempStatus);
+			}
+		}
+		else if(!SettingsHandler::sleeveTempDisplayed && SettingsHandler::tempInternalEnabled)
+		{
+			float internalTemp = TemperatureHandler::getInternalTemp();
+			//Display Temperature
+			//Serial.println(tempValue);
+			int cursurPos = 0;
+			display.setCursor(cursurPos, nextLine());
+			clearCurrentLine();
+			char sleeveTempText[11] = "Internal: ";
+			display.print(sleeveTempText);
+			cursurPos = (sizeof(sleeveTempText) - 1) * charWidth;
+			display.setCursor(cursurPos, currentLine);
+			display.print(internalTemp, 1);
+			display.print((char)247);
+			display.print("C");
+		}
+		else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::tempInternalEnabled)
+		{
+			float sleeveTemp = TemperatureHandler::getSleeveTemp();
+			//Display Temperature
+			//Serial.println(tempValue);
+			int cursurPos = 0;
+			display.setCursor(cursurPos, nextLine());
+			char sleeveTempText[2] = "S";
+			display.print(sleeveTempText);
+			cursurPos = (sizeof(sleeveTempText) - 1) * charWidth;
+			display.setCursor(cursurPos, currentLine);
+			clearCurrentLine();
+			display.print(sleeveTemp, 1);
+			display.print((char)247);
+			display.print("C");//Max Length 6
+			cursurPos += 8 * charWidth;
+			
+			if(SettingsHandler::tempSleeveEnabled) {
+				display.setCursor(cursurPos, currentLine);
+				String tempStatus = TemperatureHandler::getShortSleeveControlStatus() + " ";
+				display.print(tempStatus);
+			}
+			
+			cursurPos += 3 * charWidth;
+			float internalTemp = TemperatureHandler::getInternalTemp();
+			char internalTempText[2] = "I";
+			display.setCursor(cursurPos, currentLine);
+			display.print(internalTempText);
+
+			cursurPos += ((sizeof(internalTempText) - 1) * charWidth);
+			display.setCursor(cursurPos, currentLine);
+			display.print(internalTemp, 1);
+			display.print((char)247);
+			display.print("C");//Max Length 6
+		}
+	}
 };

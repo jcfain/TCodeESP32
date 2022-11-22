@@ -140,7 +140,7 @@
 					</tr>
 					<tr title="This sets the frequency of the main servos. L/R and Pitch\nif 'Pitch Frequency is different' is NOT checked">
 						<td>
-							<span>Servo Frequency</span> 
+							<span>Servo Frequency (hz)</span> 
 						</td>
 						<td>
 							<input id="servoFrequency" type="number" min="1" oninput="updateServoFrequency()">
@@ -156,7 +156,7 @@
 					</tr>
 					<tr id="pitchFrequencyRow" title="This sets the frequency of the pitch servos.">
 						<td>
-							<span>Pitch Frequency</span> 
+							<span>Pitch Frequency (hz)</span> 
 						</td>
 						<td>
 							<input id="pitchFrequency" type="number" min="1" oninput="updateServoFrequency()">
@@ -164,7 +164,7 @@
 					</tr>
 					<tr title="This sets the frequency of the valve servo.">
 						<td>
-							<span>Valve Frequency</span> 
+							<span>Valve Frequency (hz)</span> 
 						</td>
 						<td>
 							<input id="valveFrequency" type="number" min="1" oninput="updateServoFrequency()">
@@ -172,15 +172,23 @@
 					</tr>
 					<tr title="This sets the frequency of the twist servo.">
 						<td>
-							<span>Twist Frequency</span> 
+							<span>Twist Frequency (hz)</span> 
 						</td>
 						<td>
 							<input id="twistFrequency" type="number" min="1" oninput="updateServoFrequency()">
 						</td>
 					</tr>
+					<tr title="This sets the frequency of the squeeze servo.">
+						<td>
+							<span>Squeeze Frequency (hz)</span> 
+						</td>
+						<td>
+							<input id="squeezeFrequency" type="number" min="1" oninput="updateServoFrequency()">
+						</td>
+					</tr>
 					<tr>
 						<td>
-							<span>Micro seconds per radian</span> 
+							<span>Micro seconds per radian (&#181;)</span> 
 						</td>
 						<td>
 							<input id="msPerRad" type="number" min="1" oninput="updateMSPerRad()">
@@ -194,7 +202,7 @@
 							<span>PIN</span> 
 						</td>
 						<td>
-							<span>ZERO</span> 
+							<span>ZERO (&#181;)</span> 
 						</td>
 					</tr>
 					<tr>
@@ -319,7 +327,7 @@
 							<span>PIN</span> 
 						</td>
 						<td>
-							<span>ZERO</span> 
+							<span>ZERO (&#181;)</span> 
 						</td>
 					</tr>
 					<tr>
@@ -496,15 +504,15 @@
 							<span>Sleeve temperature control enabled</span> 
 						</td>
 						<td>
-							<input id="tempControlEnabled" type="checkbox" onclick="setTempSettings()"></input>
+							<input id="tempSleeveEnabled" type="checkbox" onclick="setTempSettings()"></input>
 						</td>
 					</tr>
 					<tr class="build_temprature">
 						<td>
-							<span>Internal temperature control enabled</span> 
+							<span>Internal temperature enabled</span> 
 						</td>
 						<td>
-							<input id="tempControlInternalEnabled" type="checkbox" onclick="setInternalTempSettings()"></input>
+							<input id="tempInternalEnabled" type="checkbox" onclick="setInternalTempSettings()"></input>
 						</td>
 					</tr>
 				</tbody>
@@ -534,10 +542,10 @@
 					</tr>
 					<tr>
 						<td>
-							<span>Target Temperature</span> 
+							<span>Target Temperature (&#8451;)</span> 
 						</td>
 						<td>
-							<input id="TargetTemp" type="text" oninput="setTempSettings()"> &#8451;
+							<input id="TargetTemp" type="text" oninput="setTempSettings()">
 						</td>
 					</tr>
 					<tr title="This will be sent to the heater pin when the measured temp is below the 'Target Temperature'">
@@ -558,18 +566,18 @@
 					</tr>
 					<tr title="The 'Hold PWM' specified above will be sent while the temp less than or equal to:'Target Temperature' + 'Heater hold threshold'">
 						<td>
-							<span>Heater hold threshold</span> 
+							<span>Heater hold threshold (&#8451;)</span> 
 						</td>
 						<td>
-							<input id="heaterThreshold" type="text"  oninput="setTempSettings()"> &#8451;
+							<input id="heaterThreshold" type="text"  oninput="setTempSettings()">
 						</td>
 					</tr>
 					<tr title="When the device is first started, this timer will count down and send the Heat PWM specified above until either the target has been reached or the time runs out.">
 						<td>
-							<span>Warm up time</span> 
+							<span>Warm up time (ms)</span> 
 						</td>
 						<td>
-							<input id="WarmUpTime" type="text"  oninput="setTempSettings()"> ms
+							<input id="WarmUpTime" type="text"  oninput="setTempSettings()">
 						</td>
 					</tr>
 					<!-- <tr title="If the measured temp is less than or equal to the laste measured temp for the given time, the failsafe will trigger and the heater is turned off.">
@@ -582,26 +590,26 @@
 					</tr> -->
 					<tr>
 						<td>
-							<span>Heater resolution</span> 
+							<span>Heater resolution (bit)</span> 
 						</td>
 						<td>
-							<input id="heaterResolution" type="text"  oninput="setTempSettings()"> bit
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Heater frequency</span> 
-						</td>
-						<td>
-							<input id="heaterFrequency" type="text"  oninput="setTempSettings()"> hz
+							<input id="heaterResolution" type="text"  oninput="setTempSettings()">
 						</td>
 					</tr>
 					<tr>
 						<td>
-							<span>Current sleeve temp</span> 
+							<span>Heater frequency (hz)</span> 
 						</td>
 						<td>
-							<span id="currentTemp">0</span> &#8451;
+							<input id="heaterFrequency" type="text"  oninput="setTempSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Current sleeve temp (&#8451;)</span> 
+						</td>
+						<td>
+							<span id="currentTemp">0</span> 
 						</td>
 					</tr>
 					<tr>
@@ -632,27 +640,51 @@
 						</th>
 					</tr>
 					<tr>
-						<td>Internal temp</td>
+						<td><span>Internal temp PIN</span></td>
+						<td>
+							<input id="Internal_Temp_PIN" type="number" min="0" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td><span>Internal temp (&#8451;)</span></td>
 						<td>
 							<input id="internalTemp" type="text" readonly>
 						</td>
 					</tr>
 					<tr>
-						<td>Fan status</td>
+						<td><span>Fan control enabled</span></td>
+						<td>
+							<input id="fanControlEnabled" type="checkbox" onclick="setFanControl()">
+						</td>
+					</tr>
+					<tr class="fan-control">
+						<td><span>Fan status</span></td>
 						<td>
 							<input id="internalTempStatus" type="text" readonly>
 						</td>
 					</tr>
-					<tr>
-						<td>Fan on temp</td>
+					<tr class="fan-control">
+						<td><span>Fan on temp (&#8451;)</span></td>
 						<td>
 							<input id="internalTempForFan" type="number" min="0" oninput="setFanOnTemp()">
 						</td>
 					</tr>
-					<tr>
-						<td>Fan PWM PIN</td>
+					<tr class="fan-control">
+						<td><span>Fan PWM PIN</span></td>
 						<td>
-							<input id="Case_Fan_PIN" type="number" min="0" oninput="setInternalTempSettings()">
+							<input id="Case_Fan_PIN" type="number" min="0" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr class="fan-control">
+						<td><span>Fan frequency (hz)</span></td>
+						<td>
+							<input id="caseFanFrequency" type="number" min="0" oninput="setInternalTempSettings()">
+						</td>
+					</tr>
+					<tr class="fan-control">
+						<td><span>Fan resolution (bit)</span></td>
+						<td>
+							<input id="caseFanResolution" type="number" min="0" oninput="setInternalTempSettings()">
 						</td>
 					</tr>
 				</tbody>
@@ -681,22 +713,28 @@
 						</td>
 					</tr> -->
 					<tr>
+						<td><span>Display is 32px</span></td>
 						<td>
-							<span> Screen width</span> 
-						</td>
-						<td>
-							<input id="Display_Screen_Width" type="text" oninput="setDisplaySettings()"> px
+							<input id="displayIs32Px" type="checkbox" onclick="setDiplayIs32Px()">
 						</td>
 					</tr>
 					<tr>
 						<td>
-							<span>Screen height</span> 
+							<span> Screen width (px)</span> 
 						</td>
 						<td>
-							<input id="Display_Screen_Height" type="text" oninput="setDisplaySettings()"> px
+							<input id="Display_Screen_Width" type="text" oninput="setDisplaySettings()">
 						</td>
 					</tr>
 					<tr>
+						<td>
+							<span>Screen height (px)</span> 
+						</td>
+						<td>
+							<input id="Display_Screen_Height" type="text" oninput="setDisplaySettings()">
+						</td>
+					</tr>
+					<tr id="sleeveTempDisplayedRow">
 						<td>
 							<span>Sleeve temperature displayed</span> 
 						</td>
@@ -715,55 +753,55 @@
 					</th>
 				</tr>
 				<tr>
-					<td>Version</td>
+					<td><span>Version</span></td>
 					<td>
 						<input id="version" type="text" readonly>
 					</td>
 				</tr>
 				<tr>
-					<td>IP</td>
+					<td><span>IP</span></td>
 					<td>
 						<input id="ipAddressSystemInfo" type="text" readonly>
 					</td>
 				</tr>
 				<tr>
-					<td>Gateway</td>
+					<td><span>Gateway</span></td>
 					<td>
 						<input id="gatewaySystemInfo" type="text" readonly>
 					</td>
 				</tr>
 				<tr>
-					<td>Subnet</td>
+					<td><span>Subnet</span></td>
 					<td>
 						<input id="subnetSystemInfo" type="text" readonly>
 					</td>
 				</tr>
 				<tr>
-					<td>DNS</td>
+					<td><span>DNS</span></td>
 					<td>
 						<input id="dnsSystemInfo" type="text" readonly>
 					</td>
 				</tr>
 				<tr>
-					<td>Chip model</td>
+					<td><span>Chip model</span></td>
 					<td>
 						<input id="chipModel" type="text" readonly>
 					</td>
 				</tr>
 				<tr>
-					<td>Chip revision</td>
+					<td><span>Chip revision</span></td>
 					<td>
 						<input id="chipRevision" type="text" readonly>
 					</td>
 				</tr>
 				<tr>
-					<td>Chip cores</td>
+					<td><span>Chip cores</span></td>
 					<td>
 						<input id="chipCores" type="text" readonly>
 					</td>
 				</tr>
 				<tr>
-					<td>Chip ID</td>
+					<td><span>Chip ID</span></td>
 					<td>
 						<input id="chipID" type="text" readonly>
 					</td>

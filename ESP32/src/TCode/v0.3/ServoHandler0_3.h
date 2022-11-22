@@ -115,6 +115,10 @@ public:
         ledcSetup(ValveServo_PWM,ValveServo_Freq,16);
         ledcAttachPin(SettingsHandler::ValveServo_PIN,ValveServo_PWM);
 
+        LogHandler::verbose(_TAG, "Connecting squeeze servo to pin: %u", SettingsHandler::Squeeze_PIN);
+        ledcSetup(SqueezeServo_PWM,SqueezeServo_Freq,16);
+        ledcAttachPin(SettingsHandler::Squeeze_PIN,SqueezeServo_PWM);
+
         // Set vibration PWM pins
         // Vibe0 Pin
         LogHandler::verbose(_TAG, "Connecting vib 1 to pin: %u", SettingsHandler::Vibe0_PIN);

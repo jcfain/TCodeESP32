@@ -49,14 +49,15 @@ class TemperatureHandler
 	static bool failsafeTriggerInternal;
 	// static bool failsafeTriggerLogged;
 	static long bootTimer;
-	static xSemaphoreHandle tempMutexBus;
-	static xSemaphoreHandle statusMutexBus;
+	static xSemaphoreHandle sleeveTempMutexBus;
+	static xSemaphoreHandle sleeveStatusMutexBus;
 	static long failSafeFrequency;
 	static int failSafeFrequencyLimiter;
 	static int errorCountSleeve;
 	static int errorCountInternal;
 	static bool sleeveTempInitialized;
 	static bool internalTempInitialized;
+	static bool fanControlInitialized;
 
 
 	static bool definitelyGreaterThan(float a, float b)
@@ -106,8 +107,8 @@ class TemperatureHandler
 		Serial.print("Starting heat on pin: ");
 		Serial.println(SettingsHandler::Heater_PIN);
   		ledcSetup(Heater_PWM, SettingsHandler::heaterFrequency, SettingsHandler::heaterResolution);
-  		tempMutexBus = xSemaphoreCreateMutex();
-  		statusMutexBus = xSemaphoreCreateMutex();
+  		sleeveTempMutexBus = xSemaphoreCreateMutex();
+  		sleeveStatusMutexBus = xSemaphoreCreateMutex();
 		ledcAttachPin(SettingsHandler::Heater_PIN, Heater_PWM);
 		//sensors.setWaitForConversion(false);
 		sleeveTempInitialized = true;
@@ -119,8 +120,11 @@ class TemperatureHandler
 		internalTempQueue = xQueueCreate(1, sizeof(std::string *));
 		oneWireInternal.begin(SettingsHandler::Internal_Temp_PIN);
 		sensorsInternal.setOneWire(&oneWireInternal);
-		if(SettingsHandler::fanControlEnabled)
+		if(SettingsHandler::fanControlEnabled) {
+  			ledcSetup(CaseFan_PWM, SettingsHandler::caseFanFrequency, SettingsHandler::caseFanResolution);
 			ledcAttachPin(SettingsHandler::Case_Fan_PIN, CaseFan_PWM);
+			fanControlInitialized = true;
+		}
 		internalTempInitialized = true;
 	}
 
@@ -131,69 +135,20 @@ class TemperatureHandler
 		Serial.println(xPortGetCoreID());
 		while(_isRunning)
 		{
-			if(SettingsHandler::tempControlSleeveEnabled && sleeveTempInitialized) {
+			if(SettingsHandler::tempSleeveEnabled && sleeveTempInitialized) {
 				sensorsSleeve.requestTemperatures();
-				if (xSemaphoreTake(tempMutexBus, 1000 / portTICK_PERIOD_MS))
+				if (xSemaphoreTake(sleeveTempMutexBus, 1000 / portTICK_PERIOD_MS))
 				{
 					_currentSleeveTemp = sensorsSleeve.getTempCByIndex(0);
-					xSemaphoreGive(tempMutexBus);
+					xSemaphoreGive(sleeveTempMutexBus);
 				}
 				else
 					Serial.println("writing temperature timed out \n");
-
-				// Serial.print("Temp task: "); // stack size used
-				// Serial.println(uxTaskGetStackHighWaterMark( NULL )); // stack size used
-				// if(failsafeTrigger && !failsafeTriggerLogged)
-				// {
-				// 	failsafeTriggerLogged = true;
-				// 	Serial.print("Temp: "); 
-				// 	Serial.println(_currentTemp); 
-				// 	Serial.print("lastTemp: "); 
-				// 	Serial.println(_lastTemp);
-				// 	Serial.print("getTemp: "); 
-				// 	Serial.println(getTemp()); 
-				// 	Serial.print("Status: "); 
-				// 	Serial.println(getControlStatus());
-				// 	Serial.print("failsafeTimer: "); 
-				// 	Serial.println(failsafeTimer);
-				// 	Serial.print("_currentStatus.startsWith(Heatin: "); 
-				// 	Serial.println(_currentStatus.startsWith("Heating"));
-				// 	Serial.print("_currentStatus.startsWith(Error) "); 
-				// 	Serial.println(_currentStatus.startsWith("Error"));
-				// 	Serial.print("millis() > failsafeTimer: "); 
-				// 	Serial.println(millis() > failsafeTimer);
-				// 	Serial.print("_currentTemp <= _lastTemp "); 
-				// 	Serial.println(_currentTemp <= _lastTemp);
-				// 	Serial.print("definitelyLessThanORApproximatelyEqual(_currentTemp, _lastTemp) "); 
-				// 	Serial.println(definitelyLessThanORApproximatelyEqual(_currentTemp, _lastTemp));
-				// 	Serial.print("definitelyLessThanOREssentiallyEqual(_currentTemp, (SettingsHandler::TargetTemp + SettingsHandler::heaterThreshold)) "); 
-				// 	Serial.println(definitelyLessThanOREssentiallyEqual(_currentTemp, (SettingsHandler::TargetTemp + SettingsHandler::heaterThreshold)));
-				// 	Serial.print("SettingsHandler::TargetTemp + SettingsHandler::heaterThreshold "); 
-				// 	Serial.println((SettingsHandler::TargetTemp + SettingsHandler::heaterThreshold));
-				// 	Serial.print("errorCount "); 
-				// 	Serial.println(errorCount);
-				// }
-
-				// if(!failsafeTrigger)
-				// {
-				// 	Serial.print("Temp: "); 
-				// 	Serial.println(_currentTemp); 
-				// 	Serial.print("lastTemp: "); 
-				// 	Serial.println(_lastTemp);
-				// 	long time = failsafeTimer - millis();
-				// 	int tseconds = time / 1000;
-				// 	int tminutes = tseconds / 60;
-				// 	int seconds = tseconds % 60;
-				// 	Serial.println("failsafeTimer: " + String(tminutes) + ":" + (seconds < 10 ? "0" : "") + String(seconds));
-				// }
-
 				String* statusJson = new String("{\"temp\":" + String(_currentSleeveTemp) + ", \"status\":\""+getSleeveControlStatus()+"\"}");
-				// Serial.print("Adding to queue: "); 
-				// Serial.println(statusJson->c_str());
 				xQueueSend(sleeveTempQueue, &statusJson, 0);
 			}
 
-			if(SettingsHandler::tempControlInternalEnabled && internalTempInitialized) {
+			if(SettingsHandler::tempInternalEnabled && internalTempInitialized) {
 				sensorsInternal.requestTemperatures();
 				_currentInternalTemp = sensorsInternal.getTempCByIndex(0);
 	 			String* statusJson = new String("{\"temp\":" + String(_currentInternalTemp) + ", \"status\":\""+getInternalControlStatus()+"\"}");
@@ -209,11 +164,11 @@ class TemperatureHandler
   		vTaskDelete( NULL );
 	}
 
-	static String setInternalControlStatus()
+	static void setInternalControlStatus()
 	{		
 		if (_isRunning) 
 		{
-			if(SettingsHandler::tempControlInternalEnabled)
+			if(SettingsHandler::fanControlEnabled && fanControlInitialized)
 			{
 				if(failsafeTriggerInternal)
 				{
@@ -222,7 +177,7 @@ class TemperatureHandler
 				else
 				{
 					float currentTemp = _currentInternalTemp;
-					if (currentTemp < 0) 
+					if (currentTemp == -127) 
 					{
 						_currentInternalStatus = "Error reading";
 					} 
@@ -238,16 +193,22 @@ class TemperatureHandler
 					}
 				}
 			}
+			else
+			{
+				if(SettingsHandler::fanControlEnabled && !fanControlInitialized)
+					_currentInternalStatus = "Restart required";
+				else
+					_currentInternalStatus = "Disabled";
+			}
 		}
-		return _currentInternalStatus;
 	}
 
-	static String setSleeveControlStatus()
+	static void setSleeveControlStatus()
 	{		
 		//Serial.println(_currentTemp);
 		if (_isRunning) 
 		{
-			if(SettingsHandler::tempControlSleeveEnabled)
+			if(SettingsHandler::tempSleeveEnabled)
 			{
 				if(failsafeTriggerSleeve)
 				{
@@ -256,7 +217,7 @@ class TemperatureHandler
 				else
 				{
 					float currentTemp = _currentSleeveTemp;
-					if (currentTemp < 0) 
+					if (currentTemp == -127) 
 					{
 						_currentSleeveStatus = "Error reading";
 					} 
@@ -309,7 +270,6 @@ class TemperatureHandler
 				_currentSleeveStatus = "Disabled";
 			}
 		}
-		return _currentSleeveStatus;
 	}
 
 	static float getSleeveTemp()
@@ -320,6 +280,22 @@ class TemperatureHandler
 	static String getSleeveControlStatus()
 	{
 		return _currentSleeveStatus;
+	}
+	static String getShortSleeveControlStatus()
+	{
+		if(_currentSleeveStatus == "Fail safe: read") {
+			return "F";
+		} else if(_currentSleeveStatus.startsWith("Error")) {
+			return "E";
+		} else if(_currentSleeveStatus.startsWith("Warm up")) {
+			return "W";
+		} else if(_currentSleeveStatus == "Holding") {
+			return "S";
+		} else if(_currentSleeveStatus == "Heating") {
+			return "H";
+		} else {
+			return "C";
+		}
 	}
 	static float getInternalTemp()
 	{
@@ -344,7 +320,7 @@ class TemperatureHandler
 		if(millis() >= failSafeFrequency)
 		{
 			failSafeFrequency = millis() + failSafeFrequencyLimiter;
-			if(SettingsHandler::tempControlSleeveEnabled) {
+			if(SettingsHandler::tempSleeveEnabled) {
 				if(errorCountSleeve > 10) 
 				{
 					if(!failsafeTriggerSleeve) 
@@ -361,7 +337,7 @@ class TemperatureHandler
 				}
 			}
 
-			if(SettingsHandler::tempControlInternalEnabled) {
+			if(SettingsHandler::tempInternalEnabled) {
 				if(errorCountInternal > 10) 
 				{
 					if(!failsafeTriggerInternal) 
@@ -399,8 +375,8 @@ bool TemperatureHandler::targetSleeveTempReached = false;
 bool TemperatureHandler::failsafeTriggerSleeve = false;
 bool TemperatureHandler::failsafeTriggerInternal = false;
 // bool TemperatureHandler::failsafeTriggerLogged = false;
-xSemaphoreHandle TemperatureHandler::tempMutexBus;
-xSemaphoreHandle TemperatureHandler::statusMutexBus;
+xSemaphoreHandle TemperatureHandler::sleeveTempMutexBus;
+xSemaphoreHandle TemperatureHandler::sleeveStatusMutexBus;
 xQueueHandle TemperatureHandler::sleeveTempQueue;
 xQueueHandle TemperatureHandler::internalTempQueue;
 long TemperatureHandler::failSafeFrequency;
@@ -410,4 +386,5 @@ int TemperatureHandler::errorCountInternal = 0;
 
 bool TemperatureHandler::internalTempInitialized = false;
 bool TemperatureHandler::sleeveTempInitialized = false;
+bool TemperatureHandler::fanControlInitialized = false;
 

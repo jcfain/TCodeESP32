@@ -69,8 +69,8 @@
 	"lubeAmount": 255,
 	"displayEnabled": true,
 	"sleeveTempDisplayed": false,
-	"tempControlEnabled": false,
-	"tempControlInternalEnabled": false,
+	"tempSleeveEnabled": false,
+	"tempInternalEnabled": false,
 	"Display_Screen_Width": 128, 
 	"Display_Screen_Height": 64, 
 	"TargetTemp": 40,
@@ -82,5 +82,8 @@
 	"WarmUpTime": 600000,
 	"heaterThreshold": 5.0,
 	"heaterResolution": 8,
-	"heaterFrequency": 5000
+	"heaterFrequency": 5000,
+	"fanControlEnabled": false,
+	"caseFanFrequency": 25,
+	"caseFanResolution": 10
 }

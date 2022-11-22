@@ -48,12 +48,13 @@ const BoardType = {
     ISAAC: 2
 }
 const BuildFeature = {
-    DEBUG: 0,
-    WIFI: 1,
-    BLUETOOTH: 2,
-    DA: 3,
-    DISPLAY_: 4,
-    TEMP: 5
+    NONE: 0,
+    DEBUG: 1,
+    WIFI: 2,
+    BLUETOOTH: 3,
+    DA: 4,
+    DISPLAY_: 5,
+    TEMP: 6
 }
 dubugMessages = [];
 
@@ -367,25 +368,26 @@ function setSystemInfo() {
     toggleBuildOptions();
 
 
-    document.getElementById('TCodeVersion').readonly = systemInfo.boardType === BoardType.CRIMZZON;
+    document.getElementById('TCodeVersion').readOnly = systemInfo.boardType === BoardType.CRIMZZON;
     
     const pinsAreEditable = isPinsEditable();
-    document.getElementById("TwistFeedBack_PIN").readonly = !pinsAreEditable;
-    document.getElementById("RightServo_PIN").readonly = !pinsAreEditable;
-    document.getElementById("LeftServo_PIN").readonly = !pinsAreEditable;
-    document.getElementById("RightUpperServo_PIN").readonly = !pinsAreEditable
-    document.getElementById("LeftUpperServo_PIN").readonly = !pinsAreEditable;
-    document.getElementById("PitchLeftServo_PIN").readonly = !pinsAreEditable;
-    document.getElementById("PitchRightServo_PIN").readonly = !pinsAreEditable;
-    document.getElementById("ValveServo_PIN").readonly = !pinsAreEditable;
-	document.getElementById("TwistServo_PIN").readonly = !pinsAreEditable;
-    document.getElementById("Vibe0_PIN").readonly = !pinsAreEditable;
-    document.getElementById("Vibe1_PIN").readonly = !pinsAreEditable;
-    document.getElementById("LubeButton_PIN").readonly = !pinsAreEditable;
-	document.getElementById("Temp_PIN").readonly = !pinsAreEditable;
-	document.getElementById("Heater_PIN").readonly = !pinsAreEditable;
-	document.getElementById("Case_Fan_PIN").readonly = !pinsAreEditable;
-	document.getElementById("Squeeze_PIN").readonly = !pinsAreEditable;
+    document.getElementById("TwistFeedBack_PIN").readOnly = !pinsAreEditable;
+    document.getElementById("RightServo_PIN").readOnly = !pinsAreEditable;
+    document.getElementById("LeftServo_PIN").readOnly = !pinsAreEditable;
+    document.getElementById("RightUpperServo_PIN").readOnly = !pinsAreEditable
+    document.getElementById("LeftUpperServo_PIN").readOnly = !pinsAreEditable;
+    document.getElementById("PitchLeftServo_PIN").readOnly = !pinsAreEditable;
+    document.getElementById("PitchRightServo_PIN").readOnly = !pinsAreEditable;
+    document.getElementById("ValveServo_PIN").readOnly = !pinsAreEditable;
+	document.getElementById("TwistServo_PIN").readOnly = !pinsAreEditable;
+    document.getElementById("Vibe0_PIN").readOnly = !pinsAreEditable;
+    document.getElementById("Vibe1_PIN").readOnly = !pinsAreEditable;
+    document.getElementById("LubeButton_PIN").readOnly = !pinsAreEditable;
+	document.getElementById("Temp_PIN").readOnly = !pinsAreEditable;
+	document.getElementById("Heater_PIN").readOnly = !pinsAreEditable;
+	document.getElementById("Case_Fan_PIN").readOnly = !pinsAreEditable;
+	document.getElementById("Squeeze_PIN").readOnly = !pinsAreEditable;
+	document.getElementById("Internal_Temp_PIN").readOnly = !pinsAreEditable;
 
     document.getElementById('lastRebootReason').value = systemInfo.lastRebootReason;
 }
@@ -400,8 +402,9 @@ function setUserSettings()
     togglePitchServoFrequency(userSettings["pitchFrequencyIsDifferent"]);
     toggleFeedbackTwistSettings(userSettings["feedbackTwist"]);
     toggleDisplaySettings(userSettings["displayEnabled"]);
-    toggleTempSettings(userSettings["tempControlEnabled"]);
-    toggleInternalTempSettings(userSettings["tempControlInternalEnabled"]);
+    toggleTempSettings(userSettings["tempSleeveEnabled"]);
+    toggleInternalTempSettings(userSettings["tempInternalEnabled"]);
+    toggleFanControlSettings(userSettings["fanControlEnabled"]);
     // var xMin = userSettings["xMin"];
     // var xMax = userSettings["xMax"];
     //document.getElementById("xMin").value = xMin;
@@ -439,6 +442,7 @@ function setUserSettings()
 	document.getElementById("pitchFrequency").value = userSettings["pitchFrequency"];
 	document.getElementById("valveFrequency").value = userSettings["valveFrequency"];
 	document.getElementById("twistFrequency").value = userSettings["twistFrequency"];
+    document.getElementById("squeezeFrequency").value = userSettings.squeezeFrequency,
 	document.getElementById("msPerRad").value = userSettings["msPerRad"];
 	
 	document.getElementById("feedbackTwist").checked = userSettings["feedbackTwist"];
@@ -479,11 +483,15 @@ function setUserSettings()
 
 	document.getElementById("displayEnabled").checked = userSettings["displayEnabled"];
 	document.getElementById("sleeveTempDisplayed").checked = userSettings["sleeveTempDisplayed"];
-	document.getElementById("tempControlEnabled").checked = userSettings["tempControlEnabled"];
-    document.getElementById('tempControlInternalEnabled').checked = userSettings["tempControlInternalEnabled"];
+	document.getElementById("tempSleeveEnabled").checked = userSettings["tempSleeveEnabled"];
+    document.getElementById('tempInternalEnabled').checked = userSettings["tempInternalEnabled"];
 	document.getElementById("pitchFrequencyIsDifferent").checked = userSettings["pitchFrequencyIsDifferent"];
 	document.getElementById("Display_Screen_Width").value = userSettings["Display_Screen_Width"];
 	document.getElementById("Display_Screen_Height").value = userSettings["Display_Screen_Height"];
+    
+    if(userSettings["Display_Screen_Height"] == 32) {
+        document.getElementById('displayIs32Px').checked = true;
+    }
 	document.getElementById("TargetTemp").value = userSettings["TargetTemp"];
 	document.getElementById("HeatPWM").value = userSettings["HeatPWM"];
 	document.getElementById("HoldPWM").value = userSettings["HoldPWM"];
@@ -509,13 +517,18 @@ function setUserSettings()
     document.getElementById("dns2Input").value = userSettings["dns2"];
     //document.getElementById('bluetoothEnabled').checked = userSettings["bluetoothEnabled"];
     
-	// document.getElementById("Display_Rst_PIN").readonly = newtoungeHatExists;
+	// document.getElementById("Display_Rst_PIN").readOnly = newtoungeHatExists;
 
-	document.getElementById("Display_Screen_Width").readonly = true;
-	document.getElementById("Display_Screen_Height").readonly = true;
-	// document.getElementById("Display_Rst_PIN").readonly = true;
+	document.getElementById("Display_Screen_Width").readOnly = true;
+	document.getElementById("Display_Screen_Height").readOnly = true;
+	// document.getElementById("Display_Rst_PIN").readOnly = true;
+    document.getElementById('Internal_Temp_PIN').value = userSettings["Internal_Temp_PIN"];
+    document.getElementById('fanControlEnabled').checked = userSettings["fanControlEnabled"];
     document.getElementById('internalTempForFan').value = userSettings["internalTempForFan"];
     document.getElementById('Case_Fan_PIN').value = userSettings["Case_Fan_PIN"];
+    document.getElementById('caseFanResolution').value = userSettings["caseFanResolution"];
+    document.getElementById('caseFanFrequency').value = userSettings["caseFanFrequency"];
+    
 
     document.getElementById('debug').value = userSettings["logLevel"];
     
@@ -540,11 +553,14 @@ function setUserSettings()
         {channel: "R0", channelName: "Twist", switch: false, sr6Only: false},
         {channel: "R1", channelName: "Roll", switch: false, sr6Only: false},
         {channel: "R2", channelName: "Pitch", switch: false, sr6Only: false},
-        {channel: "V0", channelName: "Vibe 0", switch: true, sr6Only: false},
-        {channel: "V1", channelName: "Vibe 1", switch: true, sr6Only: false},
+        {channel: "V0", channelName: "Vibe 1", switch: true, sr6Only: false},
+        {channel: "V1", channelName: "Vibe 2", switch: true, sr6Only: false},
+        {channel: "V2", channelName: "Vibe 3", switch: true, sr6Only: false},
+        {channel: "V3", channelName: "Vibe 4", switch: true, sr6Only: false},
         {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
         {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
         {channel: "A2", channelName: "Lube", switch: true, sr6Only: false},
+        {channel: "A3", channelName: "Squeeze", switch: false, sr6Only: false}
     ]
     setupChannelSliders();
     documentLoaded = true;
@@ -1008,6 +1024,13 @@ function updateServoFrequency()
         showError(twistFrequencyControl.validationMessage);
     } else
         userSettings["twistFrequency"] = parseInt(twistFrequencyControl.value);
+        var twistFrequencyControl = document.getElementById('twistFrequency');
+
+    var squeezeFrequencyControl = document.getElementById('squeezeFrequency');
+    if(!squeezeFrequencyControl.checkValidity()) {
+        showError(squeezeFrequencyControl.validationMessage);
+    } else
+        userSettings["squeezeFrequency"] = parseInt(squeezeFrequencyControl.value);
     setRestartRequired();
     updateUserSettings();
 }
@@ -1250,7 +1273,7 @@ function updatePins()
                 pmwErrors.push("Lube/Vibe 1 pin: "+vibe1);
             assignedPins.push({name:"Lube/Vibe 1", pin:vibe1});
 
-            if(userSettings.tempControlEnabled) {
+            if(userSettings.tempSleeveEnabled) {
                 var heat = parseInt(document.getElementById('Heater_PIN').value);
                 pinDupeIndex = assignedPins.findIndex(x => x.pin === heat);
                 if(pinDupeIndex > -1)
@@ -1261,7 +1284,7 @@ function updatePins()
             }
 
             
-            if(userSettings.tempControlInternalEnabled) {
+            if(userSettings.tempInternalEnabled) {
                 var caseFanPin = parseInt(document.getElementById('Case_Fan_PIN').value);
                 pinDupeIndex = assignedPins.findIndex(x => x.pin === caseFanPin);
                 if(pinDupeIndex > -1)
@@ -1299,10 +1322,10 @@ function updatePins()
                 userSettings["Vibe0_PIN"] = vibe0;
                 userSettings["Vibe1_PIN"] = vibe1;
                 userSettings["Squeeze_PIN"] = squeezeServo;
-                if(userSettings.tempControlEnabled) {
+                if(userSettings.tempSleeveEnabled) {
                     userSettings["Heater_PIN"] = heat;
                 }
-                if(userSettings.tempControlInternalEnabled) {
+                if(userSettings.tempInternalEnabled) {
                     userSettings["Case_Fan_PIN"] = caseFanPin;
                 }
             }
@@ -1323,16 +1346,26 @@ function updateNonPWMPins(assignedPins) {
         errors.push("Manual lube pin and "+assignedPins[pinDupeIndex].name);
     assignedPins.push({name:"Manual lube", pin:lubeManual});
 
-    if(userSettings.tempControlEnabled) {
-        var temp = parseInt(document.getElementById('Temp_PIN').value);
+    var temp;
+    if(userSettings.tempSleeveEnabled) {
+        temp = parseInt(document.getElementById('Temp_PIN').value);
         pinDupeIndex = assignedPins.findIndex(x => x.pin === temp);
         if(pinDupeIndex > -1)
             errors.push("Temp pin and "+assignedPins[pinDupeIndex].name);
         assignedPins.push({name:"Temp", pin:temp});
     }
-
+    var internalTemp;
+    if(userSettings.tempInternalEnabled) {
+        internalTemp = parseInt(document.getElementById('Internal_Temp_PIN').value);
+        pinDupeIndex = assignedPins.findIndex(x => x.pin === internalTemp);
+        if(pinDupeIndex > -1)
+            errors.push("Internal temp pin and "+assignedPins[pinDupeIndex].name);
+        assignedPins.push({name:"Internal temp", pin:internalTemp});
+    }
+    
+    var twistFeedBack
     if(userSettings.feedbackTwist) {
-        var twistFeedBack = parseInt(document.getElementById('TwistFeedBack_PIN').value);
+        twistFeedBack = parseInt(document.getElementById('TwistFeedBack_PIN').value);
         pinDupeIndex = assignedPins.findIndex(x => x.pin === twistFeedBack);
         if(pinDupeIndex > -1)
             errors.push("Twist feedback pin and "+assignedPins[pinDupeIndex].name);
@@ -1340,12 +1373,15 @@ function updateNonPWMPins(assignedPins) {
     }
 
     if(errors.length == 0) {
-        if(userSettings.tempControlEnabled) {
+        if(userSettings.tempSleeveEnabled) {
             userSettings["LubeButton_PIN"] = lubeManual;
             userSettings["Temp_PIN"] = temp;
         }
         if(userSettings.feedbackTwist) {
             userSettings["TwistFeedBack_PIN"] = twistFeedBack;
+        }
+        if(userSettings.tempInternalEnabled) {
+            userSettings["Internal_Temp_PIN"] = internalTemp;
         }
     }
     return errors;
@@ -1456,10 +1492,12 @@ function toggleTempSettings(enabled)
     if(!enabled) 
     {
         document.getElementById('tempSettingsDisplayTable').hidden = true;
+        document.getElementById('sleeveTempDisplayedRow').hidden = true;
     }
     else if(systemInfo.buildFeatures.includes(BuildFeature.TEMP))
     {
         document.getElementById('tempSettingsDisplayTable').hidden = false;
+        document.getElementById('sleeveTempDisplayedRow').hidden = false;
     }
 }
 function toggleInternalTempSettings(enabled) 
@@ -1473,12 +1511,23 @@ function toggleInternalTempSettings(enabled)
         document.getElementById('internalTempTable').hidden = false;
     }
 }
+function setDiplayIs32Px() {
+    var heightControl = document.getElementById('Display_Screen_Height');
+    if(document.getElementById('displayIs32Px').checked) {
+        heightControl.value = 32;
+    } else {
+        heightControl.value = 64;
+    }
+    userSettings["Display_Screen_Height"] = parseInt(heightControl.value);
+    setRestartRequired();
+    updateUserSettings();
+}
 function setDisplaySettings()
 {
     userSettings["displayEnabled"] = document.getElementById('displayEnabled').checked;
     toggleDisplaySettings(userSettings["displayEnabled"]);
-    userSettings["Display_Screen_Width"] = parseInt(document.getElementById('Display_Screen_Width').value);
-    userSettings["Display_Screen_Height"] = parseInt(document.getElementById('Display_Screen_Height').value);
+    // userSettings["Display_Screen_Width"] = parseInt(document.getElementById('Display_Screen_Width').value);
+    // userSettings["Display_Screen_Height"] = parseInt(document.getElementById('Display_Screen_Height').value);
 
     // userSettings["Display_Rst_PIN"] = parseInt(document.getElementById('Display_Rst_PIN').value);
     userSettings["Display_I2C_Address"] = document.getElementById('Display_I2C_Address').value;
@@ -1488,8 +1537,8 @@ function setDisplaySettings()
     updateUserSettings();
 }
 function setTempSettings() {
-    userSettings["tempControlEnabled"] = document.getElementById('tempControlEnabled').checked;
-    toggleTempSettings(userSettings["tempControlEnabled"]);
+    userSettings["tempSleeveEnabled"] = document.getElementById('tempSleeveEnabled').checked;
+    toggleTempSettings(userSettings["tempSleeveEnabled"]);
     userSettings["TargetTemp"] = parseInt(document.getElementById('TargetTemp').value);
     userSettings["HeatPWM"] = parseInt(document.getElementById('HeatPWM').value);
     userSettings["HoldPWM"] = parseInt(document.getElementById('HoldPWM').value);
@@ -1502,15 +1551,28 @@ function setTempSettings() {
     updateUserSettings();
 }
 function setInternalTempSettings() {
-    userSettings["tempControlInternalEnabled"] = document.getElementById('tempControlInternalEnabled').checked;
-    toggleInternalTempSettings(userSettings["tempControlInternalEnabled"]);
+    userSettings["tempInternalEnabled"] = document.getElementById('tempInternalEnabled').checked;
+    userSettings["caseFanResolution"] = parseInt(document.getElementById('caseFanResolution').value);
+    userSettings["caseFanFrequency"] = parseInt(document.getElementById('caseFanFrequency').value);
+    toggleInternalTempSettings(userSettings["tempInternalEnabled"]);
 
+    setRestartRequired();
+    updateUserSettings();
+}
+function setFanControl() {
+    userSettings["fanControlEnabled"] = document.getElementById('fanControlEnabled').checked;
+    toggleFanControlSettings(userSettings["fanControlEnabled"]);
     setRestartRequired();
     updateUserSettings();
 }
 function setFanOnTemp() {
     userSettings["internalTempForFan"] = parseInt(document.getElementById('internalTempForFan').value);
     updateUserSettings();
+}
+function toggleFanControlSettings(enabled) {
+    var elements = document.getElementsByClassName('fan-control');
+    for(var i=0;i < elements.length; i++)
+        elements[i].style.display = enabled ? "revert" : "none";
 }
 function connectWifi() {
     
