@@ -54,7 +54,7 @@ SOFTWARE. */
 #endif
 #include "TCode/ServoHandler.h"
 
-#if DEBUG_BUILD == 0//Too much memory needed with debug
+#if DEBUG_BUILD == 0 && TCODE_V2 == 1//Too much memory needed with debug
 	#include "TCode/v0.2/ServoHandler0_2.h"
 #endif
 #include "TCode/v0.3/ServoHandler0_3.h"
@@ -106,6 +106,7 @@ BLEHandler* bleHandler = 0;
 bool apMode = false;
 bool setupSucceeded = false;
 bool restarting = false;
+bool deviceinUse = false;
 
 char udpData[255];
 char webSocketData[255];
@@ -139,7 +140,31 @@ void logCallBack(const char* in, LogLevel level) {
 	// }
 #endif
 }
-
+#if TEMP_ENABLED
+void tempChangeCallBack(TemperatureType type, const char* message) {
+	if(webSocketHandler) {
+		if (strpbrk(message, "{") == nullptr) {
+			webSocketHandler->sendCommand(message);
+		} else {
+			if(type == TemperatureType::SLEEVE) {
+				webSocketHandler->sendCommand("sleeveTempStatus", message);
+			} else {
+				webSocketHandler->sendCommand("internalTempStatus", message);
+			}
+		}
+	}
+}
+void tempStateChangeCallBack(TemperatureType type, const char* state) {
+	if(displayHandler) {
+		if(type == TemperatureType::SLEEVE) {
+			displayHandler->setHeateState(state);
+			displayHandler->setHeateStateShort(TemperatureHandler::getShortSleeveControlStatus(state));
+		} else {
+			displayHandler->setFanState(state);
+		}
+	}
+}
+#endif
 void startWeb(bool apMode) {
 #if WIFI_TCODE == 1
 	if(!webHandler.initialized) {
@@ -277,7 +302,7 @@ void setup()
 	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3) {
 		servoHandler = new ServoHandler0_3();
 	}
-#if DEBUG_BUILD == 0
+#if DEBUG_BUILD == 0 && TCODE_V2 == 1
 	else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2)
 		servoHandler = new ServoHandler0_2();
 #endif
@@ -289,22 +314,24 @@ void setup()
 	servoHandler->setMessageCallback(CommandCallback);
 
 #if TEMP_ENABLED == 1
-	if(SettingsHandler::tempInternalEnabled) {
-		TemperatureHandler::setupInternalTemp();
-	}
-	if(SettingsHandler::tempSleeveEnabled)
-	{
-		TemperatureHandler::setup();
-	}
 	if(SettingsHandler::tempSleeveEnabled || SettingsHandler::tempInternalEnabled) {
+		TemperatureHandler::setup();
+		if(SettingsHandler::tempInternalEnabled) {
+			TemperatureHandler::setupInternalTemp();
+		}
+		if(SettingsHandler::tempSleeveEnabled) {
+			TemperatureHandler::setupSleeveTemp();
+		}
+		TemperatureHandler::setMessageCallback(tempChangeCallBack);
+		TemperatureHandler::setStateChangeCallback(tempStateChangeCallBack);
 		xTaskCreatePinnedToCore(
 			TemperatureHandler::startLoop,/* Function to implement the task */
 			"TempTask", /* Name of the task */
 			10000,  /* Stack size in words */
 			NULL,  /* Task input parameter */
-			25,  /* Priority of the task */
+			1,  /* Priority of the task */
 			&temperatureTask,  /* Task handle. */
-			0); /* Core where the task should run */
+			APP_CPU_NUM); /* Core where the task should run */
 	}
 #endif
 #if DISPLAY_ENABLED == 1
@@ -360,9 +387,9 @@ void setup()
 			"DisplayTask", /* Name of the task */
 			10000,  /* Stack size in words */
 			displayHandler,  /* Task input parameter */
-			25,  /* Priority of the task */
+			1,  /* Priority of the task */
 			&displayTask,  /* Task handle. */
-			1); /* Core where the task should run */
+			APP_CPU_NUM); /* Core where the task should run */
 	}
 #endif
 }
@@ -389,11 +416,13 @@ void loop()
 				udpHandler->read(udpData);
 		if (strlen(webSocketData) > 0) 
 		{
+			deviceinUse = true;
 			//LogHandler::debug("main-loop", "webSocket writing: %s", webSocketData);
 			servoHandler->read(webSocketData);
 		}
 		else if (!apMode && strlen(udpData) > 0) 
 		{
+			deviceinUse = true;
 			//LogHandler::debug("main-loop", "udp writing: %s", udpData);
 			servoHandler->read(udpData);
 		} 
@@ -401,12 +430,14 @@ void loop()
 		#endif
 		if (Serial.available() > 0) 
 		{
+			deviceinUse = true;
 			serialData = Serial.readStringUntil('\n');
 			servoHandler->read(serialData);
 		} 
 		#if BLUETOOTH_TCODE == 1
 			else if (SettingsHandler::bluetoothEnabled && btHandler && btHandler->isConnected() && btHandler->available() > 0) 
 			{
+				deviceinUse = true;
 				serialData = btHandler->readStringUntil('\n');
 				servoHandler->read(serialData);
 			}
@@ -417,34 +448,11 @@ void loop()
 			servoHandler->execute();
 		}
 #if TEMP_ENABLED == 1
-		if(SettingsHandler::tempSleeveEnabled && TemperatureHandler::isRunning()) 
-		{
-			if(TemperatureHandler::sleeveTempQueue != NULL) {
-				TemperatureHandler::setSleeveControlStatus();
-				String* receive = 0;
-				if(xQueueReceive(TemperatureHandler::sleeveTempQueue, &receive, 0)) {
-					if(webSocketHandler && !receive->startsWith("{"))
-						webSocketHandler->sendCommand(receive->c_str());
-					else if(webSocketHandler)
-						webSocketHandler->sendCommand("sleeveTempStatus", receive->c_str());
-				}
-				if(receive)
-					delete receive;
-			}
+		if(SettingsHandler::tempSleeveEnabled && TemperatureHandler::isRunning()) {
+			TemperatureHandler::setHeaterState();
 		}
 		if(SettingsHandler::tempInternalEnabled && TemperatureHandler::isRunning()) {
-			if(TemperatureHandler::internalTempQueue != NULL) {
-				TemperatureHandler::setInternalControlStatus();
-				String* receive = 0;
-				if(xQueueReceive(TemperatureHandler::internalTempQueue, &receive, 0)) {
-					if(webSocketHandler && !receive->startsWith("{"))
-						webSocketHandler->sendCommand(receive->c_str());
-					else if(webSocketHandler)
-						webSocketHandler->sendCommand("internalTempStatus", receive->c_str());
-				}
-				if(receive)
-					delete receive;
-			}
+			TemperatureHandler::setFanState();
 		}
 #endif
 	}

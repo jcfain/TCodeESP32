@@ -39,7 +39,13 @@ class DisplayHandler
 {
 public:
 
-	DisplayHandler() : display(SettingsHandler::Display_Screen_Width,  SettingsHandler::Display_Screen_Height, &Wire, SettingsHandler::Display_Rst_PIN, 100000UL, 100000UL) { }
+	DisplayHandler() : 
+		display(
+			SettingsHandler::Display_Screen_Width,  
+			//SettingsHandler::Display_Screen_Height, 
+			64,
+			&Wire, 
+			SettingsHandler::Display_Rst_PIN, 100000UL, 100000UL) { }
 
 	void setup() 
 	{
@@ -63,10 +69,13 @@ public:
 			if (!displayConnected)
     			LogHandler::error("displayHandler", "SSD1306 allocation failed");
 		}
+		if(is32()) {
+			currentLine = 0;
+		}
 		delay(2000);
 		if(displayConnected)
 		{
-			// oled.setFont(Adafruit5x7);
+			//display.setFont(Adafruit5x7);
 			display.clearDisplay();
   			display.setTextColor(WHITE);
 			display.setTextSize(1);
@@ -78,17 +87,37 @@ public:
 		_ipAddress = ipAddress;
 	}
 
+	void setSleeveTemp(float temp) {
+		m_sleeveTemp = temp;
+	}
+	void setInternalTemp(float temp) {
+		m_internalTemp = temp;
+	}
+	void setHeateState(const char* state) {
+		m_HeatState = String(state);
+	}
+	void setHeateStateShort(const char* state) {
+		m_HeatStateShort = String(state);
+	}
+	void setFanState(const char* state) {
+		m_fanState = String(state);
+	}
+	
+
 	void clearDisplay()
 	{
 		if(displayConnected)
-		{
 			display.clearDisplay();
-		}
 	}
 
 	static void startLoop(void* displayHandlerRef)
 	{
-		((DisplayHandler*)displayHandlerRef)->loop();
+		if(((DisplayHandler*)displayHandlerRef)->isConnected())
+			((DisplayHandler*)displayHandlerRef)->loop();
+	}
+
+	bool isConnected() {
+		return displayConnected;
 	}
 
 	bool isRunning()
@@ -134,35 +163,31 @@ public:
 					}
 					for (int b=0; b <= bars; b++) 
 					{
-						display.fillRect((SettingsHandler::Display_Screen_Width - 17) + (b*3), 10 - (b*2),2,b*2,WHITE); 
+						display.fillRect((SettingsHandler::Display_Screen_Width - 17) + (b*3), 8 - (b*2),2,b*2,WHITE); 
 					}
 
-					display.print("IP: ");
-					display.println(_ipAddress);
-					display.setCursor(0,nextLine(is32() ? 0 : 3));
-					display.print(SettingsHandler::TCodeVersionName);
-					display.setCursor(SettingsHandler::Display_Screen_Width - (sizeof(SettingsHandler::ESP32Version) - 1) *6, currentLine);
-					display.println(SettingsHandler::ESP32Version);
+					left("IP: "); display.print(_ipAddress);
+					nextLine(is32() ? 0 : 3);
+					left(SettingsHandler::TCodeVersionName.c_str());
+					right(SettingsHandler::ESP32Version);
 					
 				} 
 				else if(WifiHandler::apMode)
 				{
-					display.println("AP mode: 192.168.1.1");
-					display.setCursor(0,nextLine(is32() ? 0 : 3));
-					display.println("SSID: TCodeESP32Setup");
-					display.setCursor(0,nextLine());
-					display.print(SettingsHandler::TCodeVersionName);
-					display.setCursor(SettingsHandler::Display_Screen_Width - (sizeof(SettingsHandler::ESP32Version) - 1) *6, currentLine);
-					display.println(SettingsHandler::ESP32Version);
+					left("AP mode: 192.168.1.1");
+					nextLine(is32() ? 0 : 3);
+					left("SSID: TCodeESP32Setup");
+					left(SettingsHandler::TCodeVersionName.c_str());
+					right(SettingsHandler::ESP32Version);
 				}
 				else
 				{
-					display.println("Wifi error");
+					display.print("Wifi error");
 				}
 
 				
 #if TEMP_ENABLED == 1
-				if(SettingsHandler::sleeveTempDisplayed || SettingsHandler::tempInternalEnabled)
+				if(SettingsHandler::sleeveTempDisplayed || SettingsHandler::internalTempDisplayed)
 				{
 					is32() ? draw32Temp() : draw64Temp();
 				}
@@ -271,6 +296,7 @@ public:
 	// }
 
 private:
+	const char* _TAG = "displayHandler";
 	IPAddress _ipAddress;
 	bool displayConnected = false;
 	int lastUpdate = 0;
@@ -281,12 +307,23 @@ private:
 	int lineHeight = 10;
 	int charWidth = 6;
 
+	float m_internalTemp = -127.0f;
+	float m_sleeveTemp = -127.0f;
+	String m_fanState = "Unknown";
+	String m_HeatState = "Unknown";
+	String m_HeatStateShort = "U";
+
 	Adafruit_SSD1306_RSB display;
 	bool m_animationPlaying = false;
 	int m_animationMilliSeconds = 10000;
 	
-	int nextLine(int additional = 0) {
-		currentLine += (lineHeight + additional);
+	int nextLine(int additionalPixels = 0) {
+		int newHeight = currentLine + (lineHeight + additionalPixels);
+		if(newHeight <= SettingsHandler::Display_Screen_Height - lineHeight) {
+			currentLine = newHeight;
+		} else {
+			LogHandler::error(_TAG, "End of the display reached when nextLine!");
+		}
 		return currentLine;
 	}
 	void newLine() {
@@ -299,6 +336,20 @@ private:
 			currentLine = 3;
 		}
 	}
+	void space(int count = 1) {
+		display.setCursor(display.getCursorX() + (count * charWidth), currentLine);
+	}
+	void right(const char* text, int margin = 0) {
+		display.setCursor((SettingsHandler::Display_Screen_Width - strlen(text) * charWidth) - margin * charWidth, currentLine);
+		display.print(text);
+	}
+	void left(const char* text, int margin = 0) {
+		display.setCursor(margin * charWidth, currentLine);
+		display.print(text); 
+	}
+	int getCurrentLineCurserPos() {
+		return display.getCursorX() * charWidth;	
+	}
 	void clearCurrentLine() {
 		display.fillRect(0, currentLine, SettingsHandler::Display_Screen_Width, 10, BLACK);
 	}
@@ -307,47 +358,47 @@ private:
 	}
 
 	void draw64Temp() {
-		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::tempInternalEnabled)
+		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed)
 		{
-			float tempValue = TemperatureHandler::getSleeveTemp();
 			display.setCursor(0,nextLine());
-			char sleeveTemp[14] = "Sleeve temp: ";
+			char sleeveTemp[9] = "Sleeve: ";
 			display.print(sleeveTemp);
 			int width = sizeof(sleeveTemp) * charWidth;
 			display.setCursor(width, currentLine);
 			display.fillRect(width, currentLine, SettingsHandler::Display_Screen_Width - width, 10, BLACK);
-			display.print(tempValue, 1);
+			display.print(m_sleeveTemp, 1);
 			display.print((char)247);
 			display.print("C");
 			if(SettingsHandler::tempSleeveEnabled) {
 				display.fillRect(0, nextLine(), SettingsHandler::Display_Screen_Width, 10, BLACK);
 				display.setCursor(15,currentLine);
-				String tempStatus = TemperatureHandler::getSleeveControlStatus();
-				display.println(tempStatus);
+				display.println(m_HeatState);
 			}
 		}
-		else if(!SettingsHandler::sleeveTempDisplayed && SettingsHandler::tempInternalEnabled)
+		else if(!SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed)
 		{
-			float tempValue = TemperatureHandler::getInternalTemp();
 			display.setCursor(0,nextLine());
-			char sleeveTemp[16] = "Internal temp: ";
+			char sleeveTemp[11] = "Internal: ";
 			display.print(sleeveTemp);
 			int width = sizeof(sleeveTemp) * charWidth;
 			display.setCursor(width, currentLine);
 			display.fillRect(width, currentLine, SettingsHandler::Display_Screen_Width - width, 10, BLACK);
-			display.print(tempValue, 1);
+			display.print(m_internalTemp, 1);
 			display.print((char)247);
 			display.print("C");
+			if(SettingsHandler::fanControlEnabled) {
+				display.fillRect(0, nextLine(), SettingsHandler::Display_Screen_Width, 10, BLACK);
+				display.setCursor(15, currentLine);
+				display.println(m_fanState);
+			}
 		}
-		else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::tempInternalEnabled)
+		else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed)
 		{
-			float sleeveTemp = TemperatureHandler::getSleeveTemp();
 			int cursurPos = 0;
 			display.setCursor(cursurPos,nextLine());
 			char sleeveTempText[7] = "Sleeve";
 			display.print(sleeveTempText);
 			
-			float internalTemp = TemperatureHandler::getInternalTemp();
 			char internalTempText[9] = "Internal";
 			cursurPos = SettingsHandler::Display_Screen_Width - ((sizeof(internalTempText) - 1) * charWidth);
 			display.setCursor(cursurPos, currentLine);
@@ -355,28 +406,27 @@ private:
 
 			newLine();
 			clearCurrentLine();
-			display.print(sleeveTemp, 1);
+			display.print(m_sleeveTemp, 1);
 			display.print((char)247);
 			display.print("C");//Max Length 7
 
 			cursurPos = SettingsHandler::Display_Screen_Width - 7 * charWidth;
 			display.setCursor(cursurPos, currentLine);
-			display.print(internalTemp, 1);
+			display.print(m_internalTemp, 1);
 			display.print((char)247);
 			display.print("C");//Max Length 7
 
 			if(SettingsHandler::tempSleeveEnabled) {
 				newLine();
 				clearCurrentLine();
-				String tempStatus = TemperatureHandler::getSleeveControlStatus() + " ";
-				display.print(tempStatus);
+				display.print(m_HeatState);
+				display.print(" ");
 			}
 		}
 	}
 	void draw32Temp() {
-		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::tempInternalEnabled)
+		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed)
 		{
-			float sleeveTemp = TemperatureHandler::getSleeveTemp();
 			int cursurPos = 0;
 			display.setCursor(cursurPos, nextLine());
 			clearCurrentLine();
@@ -385,20 +435,18 @@ private:
 			cursurPos = (sizeof(sleeveTempText) - 1) * charWidth;
 			display.setCursor(cursurPos, currentLine);
 
-			display.print(sleeveTemp, 1);
+			display.print(m_sleeveTemp, 1);
 			display.print((char)247);
 			display.print("C");//Max Length 6
 			cursurPos += 8 * charWidth;
 			
 			if(SettingsHandler::tempSleeveEnabled) {
 				display.setCursor(cursurPos, currentLine);
-				String tempStatus = TemperatureHandler::getShortSleeveControlStatus() + " ";
-				display.print(tempStatus);
+				display.print(m_HeatStateShort);
 			}
 		}
-		else if(!SettingsHandler::sleeveTempDisplayed && SettingsHandler::tempInternalEnabled)
+		else if(!SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed)
 		{
-			float internalTemp = TemperatureHandler::getInternalTemp();
 			//Display Temperature
 			//Serial.println(tempValue);
 			int cursurPos = 0;
@@ -408,44 +456,48 @@ private:
 			display.print(sleeveTempText);
 			cursurPos = (sizeof(sleeveTempText) - 1) * charWidth;
 			display.setCursor(cursurPos, currentLine);
-			display.print(internalTemp, 1);
+			display.print(m_internalTemp, 1);
 			display.print((char)247);
 			display.print("C");
 		}
-		else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::tempInternalEnabled)
+		else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed)
 		{
-			float sleeveTemp = TemperatureHandler::getSleeveTemp();
 			//Display Temperature
 			//Serial.println(tempValue);
-			int cursurPos = 0;
-			display.setCursor(cursurPos, nextLine());
-			char sleeveTempText[2] = "S";
-			display.print(sleeveTempText);
-			cursurPos = (sizeof(sleeveTempText) - 1) * charWidth;
-			display.setCursor(cursurPos, currentLine);
-			clearCurrentLine();
-			display.print(sleeveTemp, 1);
-			display.print((char)247);
-			display.print("C");//Max Length 6
-			cursurPos += 8 * charWidth;
+			newLine();
+			//char sleeveTempText[2] = "S";
+			char sleeveTempText[10];
+			char array[10];
+			sprintf(array, "%f", m_sleeveTemp);
+			int sleeveLen = strlen(array);
+			snprintf(sleeveTempText, 3 + sleeveLen, "S%f%cC", m_sleeveTemp, (char)247);
+			sleeveTempText[4 + sleeveLen] = {0};
+			left(sleeveTempText);
+
+			// cursurPos = (sizeof(sleeveTempText) - 1) * charWidth;
+			// display.setCursor(cursurPos, currentLine);
+			// clearCurrentLine();
+			// display.print(sleeveTemp, 1);
+			// display.print((char)247);
+			// display.print("C");//Max Length 6
+			// cursurPos += 8 * charWidth;
 			
 			if(SettingsHandler::tempSleeveEnabled) {
-				display.setCursor(cursurPos, currentLine);
-				String tempStatus = TemperatureHandler::getShortSleeveControlStatus() + " ";
-				display.print(tempStatus);
+				//space();
+				display.print("("+m_HeatStateShort+")");
 			}
-			
-			cursurPos += 3 * charWidth;
-			float internalTemp = TemperatureHandler::getInternalTemp();
-			char internalTempText[2] = "I";
-			display.setCursor(cursurPos, currentLine);
+			space();
+
+			char internalTempText[10];
+			snprintf(internalTempText, 10, "I%f%cC", m_internalTemp, (char)247);
+			internalTempText[strlen(internalTempText)] = {0};
 			display.print(internalTempText);
 
-			cursurPos += ((sizeof(internalTempText) - 1) * charWidth);
-			display.setCursor(cursurPos, currentLine);
-			display.print(internalTemp, 1);
-			display.print((char)247);
-			display.print("C");//Max Length 6
+			// cursurPos += ((sizeof(internalTempText) - 1) * charWidth);
+			// display.setCursor(cursurPos, currentLine);
+			// display.print(m_internalTemp, 1);
+			// display.print((char)247);
+			// display.print("C");//Max Length 6
 		}
 	}
 };

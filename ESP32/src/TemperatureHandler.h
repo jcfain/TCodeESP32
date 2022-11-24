@@ -27,30 +27,50 @@ SOFTWARE. */
 #include "TCode/Global.h"
 #include "SettingsHandler.h"
 
+enum class TemperatureType {
+	INTERNAL,
+	SLEEVE
+};
+
+using TEMP_CHANGE_FUNCTION_PTR_T = void (*)(TemperatureType type, const char* message);
+using STATE_CHANGE_FUNCTION_PTR_T = void (*)(TemperatureType type, const char* state);
+
 class TemperatureHandler
 {
 	private: 
+    static TEMP_CHANGE_FUNCTION_PTR_T message_callback;
+    static STATE_CHANGE_FUNCTION_PTR_T state_change_callback;
+
+	static int resolution;
+	static int delayInMillis;
+
+	static unsigned long lastSleeveTempRequest;
+	static unsigned long lastInternalTempRequest;
 
 	static OneWire oneWireInternal;
 	static DallasTemperature sensorsInternal;
+	static DeviceAddress internalDeviceAddress;
 	static float _currentInternalTemp;
 
 	static OneWire oneWireSleeve;
 	static DallasTemperature sensorsSleeve;
+	static DeviceAddress sleeveDeviceAddress;
 	static float _currentSleeveTemp;
-	static String _currentInternalStatus;
+	static String m_lastInternalStatus;
 	static float _lastSleeveTemp;
-	static String _currentSleeveStatus;
+	static String m_lastSleeveStatus;
 	static bool _isRunning;
-	static bool bootTime;
+	// static bool bootTime;
 	static bool targetSleeveTempReached;
 	// static int failsafeTimer;
 	static bool failsafeTriggerSleeve;
 	static bool failsafeTriggerInternal;
 	// static bool failsafeTriggerLogged;
-	static long bootTimer;
-	static xSemaphoreHandle sleeveTempMutexBus;
-	static xSemaphoreHandle sleeveStatusMutexBus;
+	// static long bootTimer;
+	// static xSemaphoreHandle sleeveTempMutexBus;
+	// static xSemaphoreHandle sleeveStatusMutexBus;
+	// static xSemaphoreHandle internalTempMutexBus;
+	// static xSemaphoreHandle internalStatusMutexBus;
 	static long failSafeFrequency;
 	static int failSafeFrequencyLimiter;
 	static int errorCountSleeve;
@@ -91,38 +111,63 @@ class TemperatureHandler
 	}
 	
 	public: 
-	static xQueueHandle sleeveTempQueue;
-	static xQueueHandle internalTempQueue;
+	// static xQueueHandle sleeveTempQueue;
+	// static xQueueHandle internalTempQueue;
 
-	static void setup()
+	
+	static void setMessageCallback(TEMP_CHANGE_FUNCTION_PTR_T f) // Sets the callback function used by TCode
 	{
-		LogHandler::info("temprature", "Starting sleeve temp on pin: %u", SettingsHandler::Sleeve_Temp_PIN);
-		sleeveTempQueue = xQueueCreate(1, sizeof(std::string *));
+		if (f == nullptr) {
+			message_callback = 0;
+		} else {
+			message_callback = f;
+		}
+	}
+	static void setStateChangeCallback(STATE_CHANGE_FUNCTION_PTR_T f) // Sets the callback function used by TCode
+	{
+		if (f == nullptr) {
+			state_change_callback = 0;
+		} else {
+			state_change_callback = f;
+		}
+	}
+
+	static void setup() {
+  		delayInMillis = 750 / (1 << (12 - resolution)); 
+	}
+
+	static void setupSleeveTemp()
+	{
+		LogHandler::info("temperature", "Starting sleeve temp on pin: %u", SettingsHandler::Sleeve_Temp_PIN);
+
 		oneWireSleeve.begin(SettingsHandler::Sleeve_Temp_PIN);
 		sensorsSleeve.setOneWire(&oneWireSleeve);
-		bootTime = true;
-		bootTimer = millis() + SettingsHandler::WarmUpTime;
-		// failsafeTimer = millis() + SettingsHandler::heaterFailsafeTime;
-		// failSafeFrequency = millis() + failSafeFrequencyLimiter; 
-		Serial.print("Starting heat on pin: ");
-		Serial.println(SettingsHandler::Heater_PIN);
+  		sensorsSleeve.getAddress(sleeveDeviceAddress, 0);
+		sensorsSleeve.begin();
+  		sensorsSleeve.setResolution(sleeveDeviceAddress, resolution);
+		requestSleeveTemp();
+		// bootTime = true;
+		// bootTimer = millis() + SettingsHandler::WarmUpTime;
+		LogHandler::debug("temperature", "Starting heat on pin: %u", SettingsHandler::Heater_PIN);
   		ledcSetup(Heater_PWM, SettingsHandler::heaterFrequency, SettingsHandler::heaterResolution);
-  		sleeveTempMutexBus = xSemaphoreCreateMutex();
-  		sleeveStatusMutexBus = xSemaphoreCreateMutex();
 		ledcAttachPin(SettingsHandler::Heater_PIN, Heater_PWM);
-		//sensors.setWaitForConversion(false);
+		//sensorsSleeve.setWaitForConversion(false);
 		sleeveTempInitialized = true;
 	}
 
 	static void setupInternalTemp()
 	{
 		LogHandler::info("temprature", "Starting internal temp on pin: %u", SettingsHandler::Internal_Temp_PIN);
-		internalTempQueue = xQueueCreate(1, sizeof(std::string *));
 		oneWireInternal.begin(SettingsHandler::Internal_Temp_PIN);
 		sensorsInternal.setOneWire(&oneWireInternal);
+  		sensorsInternal.getAddress(internalDeviceAddress, 0);
+		sensorsInternal.begin();
+  		sensorsInternal.setResolution(internalDeviceAddress, resolution);
+		requestInternalTemp();
 		if(SettingsHandler::fanControlEnabled) {
   			ledcSetup(CaseFan_PWM, SettingsHandler::caseFanFrequency, SettingsHandler::caseFanResolution);
 			ledcAttachPin(SettingsHandler::Case_Fan_PIN, CaseFan_PWM);
+  			// internalStatusMutexBus = xSemaphoreCreateMutex();
 			fanControlInitialized = true;
 		}
 		internalTempInitialized = true;
@@ -131,43 +176,75 @@ class TemperatureHandler
 	static void startLoop(void * parameter)
 	{
 		_isRunning = true;
-		Serial.print("Temp Core: ");
-		Serial.println(xPortGetCoreID());
+		LogHandler::debug("temperature", "Temp Core: %u", xPortGetCoreID());
+		lastSleeveTempRequest = millis(); 
 		while(_isRunning)
 		{
-			if(SettingsHandler::tempSleeveEnabled && sleeveTempInitialized) {
-				sensorsSleeve.requestTemperatures();
-				if (xSemaphoreTake(sleeveTempMutexBus, 1000 / portTICK_PERIOD_MS))
-				{
-					_currentSleeveTemp = sensorsSleeve.getTempCByIndex(0);
-					xSemaphoreGive(sleeveTempMutexBus);
-				}
-				else
-					Serial.println("writing temperature timed out \n");
-				String* statusJson = new String("{\"temp\":" + String(_currentSleeveTemp) + ", \"status\":\""+getSleeveControlStatus()+"\"}");
-				xQueueSend(sleeveTempQueue, &statusJson, 0);
-			}
-
-			if(SettingsHandler::tempInternalEnabled && internalTempInitialized) {
-				sensorsInternal.requestTemperatures();
-				_currentInternalTemp = sensorsInternal.getTempCByIndex(0);
-	 			String* statusJson = new String("{\"temp\":" + String(_currentInternalTemp) + ", \"status\":\""+getInternalControlStatus()+"\"}");
-				xQueueSend(internalTempQueue, &statusJson, 0);
-			}
-
-			Serial.flush();
+			getInternalTemp();
+			getSleeveTemp();
 			chackFailSafe();
+
         	vTaskDelay(1000/portTICK_PERIOD_MS);
+			// Serial.print("uxTaskGetStackHighWaterMark: ");
+			// Serial.println(uxTaskGetStackHighWaterMark(NULL) *4);
+			// Serial.print("xPortGetFreeHeapSize: ");
+			// Serial.println(xPortGetFreeHeapSize());
 		}
 		
-		Serial.print("Temp task exit");
+		LogHandler::debug("temperature", "Temp task exit");
   		vTaskDelete( NULL );
 	}
 
-	static void setInternalControlStatus()
+	static void requestInternalTemp() {
+		sensorsInternal.requestTemperaturesByIndex(0);
+		lastInternalTempRequest = millis(); 
+	}
+
+	static void getInternalTemp() {
+		if(SettingsHandler::tempInternalEnabled && internalTempInitialized && millis() - lastInternalTempRequest >= delayInMillis) {
+
+			long start = micros();
+
+			_currentInternalTemp = sensorsInternal.getTempCByIndex(0);
+
+			LogHandler::verbose("temperature", "internal getTempCByIndex: %ld", micros() - start);
+
+			String statusJson("{\"temp\":" + String(_currentInternalTemp) + ", \"status\":\""+m_lastInternalStatus+"\"}");
+			if(message_callback) {
+				message_callback(TemperatureType::INTERNAL, statusJson.c_str());
+			}
+			requestInternalTemp();
+		}
+	}
+
+	static void requestSleeveTemp() {
+		sensorsSleeve.requestTemperaturesByIndex(0);
+		lastSleeveTempRequest = millis(); 
+	}
+
+	static void getSleeveTemp() {
+		if(SettingsHandler::tempSleeveEnabled && sleeveTempInitialized && millis() - lastSleeveTempRequest >= delayInMillis) {
+			long start = micros();
+
+			_currentSleeveTemp = sensorsSleeve.getTempCByIndex(0);
+
+			long duration = micros() - start;
+
+			LogHandler::verbose("temperature", "sleeve getTempCByIndex: %ld", micros() - start);
+
+			String statusJson("{\"temp\":" + String(_currentSleeveTemp) + ", \"status\":\""+m_lastSleeveStatus+"\"}");
+			if(message_callback) {
+				message_callback(TemperatureType::SLEEVE, statusJson.c_str());
+			}
+			requestSleeveTemp();
+		}
+	}
+
+	static void setFanState()
 	{		
 		if (_isRunning) 
 		{
+			String currentState;
 			if(SettingsHandler::fanControlEnabled && fanControlInitialized)
 			{
 				if(failsafeTriggerInternal)
@@ -179,15 +256,15 @@ class TemperatureHandler
 					float currentTemp = _currentInternalTemp;
 					if (currentTemp == -127) 
 					{
-						_currentInternalStatus = "Error reading";
+						currentState = "Error reading";
 					} 
 					else
 					{
 						if(definitelyGreaterThanOREssentiallyEqual(currentTemp, SettingsHandler::internalTempForFan)) {
-							_currentInternalStatus = "Cooling";
+							currentState = "Cooling";
 							ledcWrite(CaseFan_PWM, SettingsHandler::caseFanPWM);
 						} else {
-							_currentInternalStatus = "Off";
+							currentState = "Off";
 							ledcWrite(CaseFan_PWM, 0);
 						}
 					}
@@ -196,19 +273,24 @@ class TemperatureHandler
 			else
 			{
 				if(SettingsHandler::fanControlEnabled && !fanControlInitialized)
-					_currentInternalStatus = "Restart required";
+					currentState = "Restart required";
 				else
-					_currentInternalStatus = "Disabled";
+					currentState = "Disabled";
+			}
+			if(state_change_callback && currentState != m_lastInternalStatus) {
+				m_lastInternalStatus = currentState;
+				state_change_callback(TemperatureType::INTERNAL, m_lastInternalStatus.c_str());
 			}
 		}
 	}
 
-	static void setSleeveControlStatus()
+	static void setHeaterState()
 	{		
 		//Serial.println(_currentTemp);
 		if (_isRunning) 
 		{
-			if(SettingsHandler::tempSleeveEnabled)
+			String currentState;
+			if(SettingsHandler::tempSleeveEnabled && sleeveTempInitialized)
 			{
 				if(failsafeTriggerSleeve)
 				{
@@ -219,28 +301,30 @@ class TemperatureHandler
 					float currentTemp = _currentSleeveTemp;
 					if (currentTemp == -127) 
 					{
-						_currentSleeveStatus = "Error reading";
+						currentState = "Error reading";
 					} 
 					else
 					{
-						if(currentTemp >= SettingsHandler::TargetTemp || millis() >= bootTimer)
-							bootTime = false;
-						if (definitelyLessThan(currentTemp, SettingsHandler::TargetTemp) || (currentTemp > 0 && bootTime)) 
+						// if(currentTemp >= SettingsHandler::TargetTemp || millis() >= bootTimer)
+						// 	bootTime = false;
+						if (definitelyLessThan(currentTemp, SettingsHandler::TargetTemp) 
+						//|| (currentTemp > 0 && bootTime)
+						) 
 						{
 							ledcWrite(Heater_PWM, SettingsHandler::HeatPWM);
 
-							if(bootTime) 
-							{
-								long time = bootTimer - millis();
-								int tseconds = time / 1000;
-								int tminutes = tseconds / 60;
-								int seconds = tseconds % 60;
-								_currentSleeveStatus = "Warm up time: " + String(tminutes) + ":" + (seconds < 10 ? "0" : "") + String(seconds);
-							}
-							else 
-							{
-								_currentSleeveStatus = "Heating";
-							}
+							// if(bootTime) 
+							// {
+							// 	long time = bootTimer - millis();
+							// 	int tseconds = time / 1000;
+							// 	int tminutes = tseconds / 60;
+							// 	int seconds = tseconds % 60;
+							// 	currentState = "Warm up time: " + String(tminutes) + ":" + (seconds < 10 ? "0" : "") + String(seconds);
+							// }
+							// else 
+							// {
+								currentState = "Heating";
+							// }
 							if(targetSleeveTempReached && SettingsHandler::TargetTemp - currentTemp >= 5)
 								targetSleeveTempReached = false;
 						} 
@@ -252,59 +336,51 @@ class TemperatureHandler
 								// Serial.print("Adding to queue: "); 
 								// Serial.println(_statusJson->c_str());
 								String* command = new String("tempReached");
-								xQueueSend(sleeveTempQueue, &command, 0);
+								if(message_callback)
+									message_callback(TemperatureType::SLEEVE, "tempReached");
+								//xQueueSend(sleeveTempQueue, &command, 0);
 							}
 							ledcWrite(Heater_PWM, SettingsHandler::HoldPWM);
-							_currentSleeveStatus = "Holding";
+							currentState = "Holding";
 						} 
 						else 
 						{
 							ledcWrite(Heater_PWM, 0);
-							_currentSleeveStatus = "Cooling";
+							currentState = "Cooling";
 						}
 					}
 				}
 			}
 			else
 			{
-				_currentSleeveStatus = "Disabled";
+				if(SettingsHandler::tempSleeveEnabled && !sleeveTempInitialized)
+					currentState = "Restart required";
+				else
+					currentState = "Disabled";
+			}
+			if(state_change_callback && currentState != m_lastSleeveStatus) {
+				m_lastSleeveStatus = currentState;
+				state_change_callback(TemperatureType::SLEEVE, m_lastSleeveStatus.c_str());
 			}
 		}
 	}
 
-	static float getSleeveTemp()
+	static const char* getShortSleeveControlStatus(const char* state)
 	{
-		return _currentSleeveTemp;
-	}
-
-	static String getSleeveControlStatus()
-	{
-		return _currentSleeveStatus;
-	}
-	static String getShortSleeveControlStatus()
-	{
-		if(_currentSleeveStatus == "Fail safe: read") {
+		if(strcmp(state, "Fail safe: read") == 0) {
 			return "F";
-		} else if(_currentSleeveStatus.startsWith("Error")) {
+		} else if(strpbrk(state, "Error") != nullptr) {
 			return "E";
-		} else if(_currentSleeveStatus.startsWith("Warm up")) {
+		} else if(strpbrk(state, "Warm up") != nullptr) {
 			return "W";
-		} else if(_currentSleeveStatus == "Holding") {
+		} else if(strcmp(state, "Holding") == 0) {
 			return "S";
-		} else if(_currentSleeveStatus == "Heating") {
+		} else if(strcmp(state, "Heating") == 0) {
 			return "H";
-		} else {
-			return "C";
+		} else if(strcmp(state, "Unknown") == 0) {
+			return "U";
 		}
-	}
-	static float getInternalTemp()
-	{
-		return _currentInternalTemp;
-	}
-
-	static String getInternalControlStatus()
-	{
-		return _currentInternalStatus;
+		return "C";
 	}
 
 	static void stop()
@@ -326,12 +402,14 @@ class TemperatureHandler
 					if(!failsafeTriggerSleeve) 
 					{
 						failsafeTriggerSleeve = true;
-						String* command = new String("failSafeTriggered");
-						xQueueSend(sleeveTempQueue, &command, 0);
-						_currentSleeveStatus = "Fail safe: read";
+						// String* command = new String("failSafeTriggered");
+						// xQueueSend(sleeveTempQueue, &command, 0);
+						if(message_callback)
+							message_callback(TemperatureType::SLEEVE, "failSafeTriggered");
+						m_lastSleeveStatus = "Fail safe: read";
 					}
 				} 
-				else if(_currentSleeveStatus.startsWith("Error")) 
+				else if(m_lastSleeveStatus.startsWith("Error")) 
 				{
 					errorCountSleeve++;
 				}
@@ -343,12 +421,14 @@ class TemperatureHandler
 					if(!failsafeTriggerInternal) 
 					{
 						failsafeTriggerInternal = true;
-						String* command = new String("failSafeTriggered");
-						xQueueSend(internalTempQueue, &command, 0);
-						_currentInternalStatus = "Fail safe: read";
+						// String* command = new String("failSafeTriggered");
+						// xQueueSend(internalTempQueue, &command, 0);
+						if(message_callback)
+							message_callback(TemperatureType::INTERNAL, "failSafeTriggered");
+						m_lastInternalStatus = "Fail safe: read";
 					}
 				} 
-				else if(_currentInternalStatus.startsWith("Error")) 
+				else if(m_lastInternalStatus.startsWith("Error")) 
 				{
 					errorCountInternal++;
 				}
@@ -357,28 +437,39 @@ class TemperatureHandler
 	}
 };
 
+int TemperatureHandler::resolution = 12;
+int TemperatureHandler::delayInMillis = 0;
+unsigned long TemperatureHandler::lastSleeveTempRequest = 0;
+unsigned long TemperatureHandler::lastInternalTempRequest = 0;
+
 OneWire TemperatureHandler::oneWireInternal;
 DallasTemperature TemperatureHandler::sensorsInternal;
+DeviceAddress TemperatureHandler::internalDeviceAddress;
 float TemperatureHandler::_currentInternalTemp;
-String TemperatureHandler::_currentInternalStatus = "Off";
+String TemperatureHandler::m_lastInternalStatus = "Off";
+TEMP_CHANGE_FUNCTION_PTR_T TemperatureHandler::message_callback = 0;
+STATE_CHANGE_FUNCTION_PTR_T TemperatureHandler::state_change_callback = 0;
 
 float TemperatureHandler::_currentSleeveTemp = 0.0f;
-String TemperatureHandler::_currentSleeveStatus = "Unknown";
+String TemperatureHandler::m_lastSleeveStatus = "Unknown";
 bool TemperatureHandler::_isRunning = false;
 OneWire TemperatureHandler::oneWireSleeve;
 DallasTemperature TemperatureHandler::sensorsSleeve;
-bool TemperatureHandler::bootTime;
-long TemperatureHandler::bootTimer;
+DeviceAddress TemperatureHandler::sleeveDeviceAddress;
+// bool TemperatureHandler::bootTime;
+// long TemperatureHandler::bootTimer;
 float TemperatureHandler::_lastSleeveTemp = -127.0;
 bool TemperatureHandler::targetSleeveTempReached = false;
 // int TemperatureHandler::failsafeTimer;
 bool TemperatureHandler::failsafeTriggerSleeve = false;
 bool TemperatureHandler::failsafeTriggerInternal = false;
 // bool TemperatureHandler::failsafeTriggerLogged = false;
-xSemaphoreHandle TemperatureHandler::sleeveTempMutexBus;
-xSemaphoreHandle TemperatureHandler::sleeveStatusMutexBus;
-xQueueHandle TemperatureHandler::sleeveTempQueue;
-xQueueHandle TemperatureHandler::internalTempQueue;
+// xSemaphoreHandle TemperatureHandler::sleeveTempMutexBus;
+// xSemaphoreHandle TemperatureHandler::sleeveStatusMutexBus;
+// xSemaphoreHandle TemperatureHandler::internalTempMutexBus;
+// xSemaphoreHandle TemperatureHandler::internalStatusMutexBus;
+// xQueueHandle TemperatureHandler::sleeveTempQueue;
+// xQueueHandle TemperatureHandler::internalTempQueue;
 long TemperatureHandler::failSafeFrequency;
 int TemperatureHandler::failSafeFrequencyLimiter = 10000;
 int TemperatureHandler::errorCountSleeve = 0;

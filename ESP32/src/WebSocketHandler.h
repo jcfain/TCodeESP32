@@ -28,6 +28,11 @@ SOFTWARE. */
 AsyncWebSocket ws("/ws");
 #include <mutex>
 
+class WebSocketCommand {
+    public:
+    const char* command;
+    const char* message;
+};
 
 class WebSocketHandler {
     public: 
@@ -79,24 +84,45 @@ class WebSocketHandler {
             if(isInitialized && command_mtx.try_lock()) {
                 std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
                 m_lastSend = millis();
-                
-                        if(LogHandler::getLogLevel() == LogLevel::VERBOSE) {
-                            if(message)
-                                Serial.printf("Sending WS command: %s, Message: %s", command, message);
-                            else
-                                Serial.printf("Sending WS command: %s", command);
-                        }
+
                 char commandJson[255];
-                if(!message)
-                    sprintf(commandJson, "{ \"command\": \"%s\" }", command);
-                else if(strpbrk(message, "{") != nullptr)
-                    sprintf(commandJson, "{ \"command\": \"%s\" , \"message\": %s }", command, message);
-                else
-                    sprintf(commandJson, "{ \"command\": \"%s\" , \"message\": \"%s\" }", command, message);
+                compileCommand(commandJson, command, message);
                 if(client)
                     client->text(commandJson);
                 else
                     ws.textAll(commandJson);
+            }
+        }
+
+        // Did not work last I tried it. Gave up.
+        template <size_t N>
+        void sendCommands(WebSocketCommand (&commands)[N], AsyncWebSocketClient* client = 0)
+        {
+            if(isInitialized && command_mtx.try_lock()) {
+                std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
+                m_lastSend = millis();
+
+                char commandsJson[255];
+                std::strcat(commandsJson, "[");
+                for (int i = 0; i < N; i++) 
+                {
+                    if(commands[i].command) {
+                        char commandJson[128];
+                        compileCommand(commandJson, commands[i].command, commands[i].message);
+                        Serial.print("compileCommand: ");
+                        Serial.println(commandJson);
+                        std::strcat(commandsJson, commandJson);
+                        if(i < N-1)
+                            std::strcat(commandsJson, ",");
+                    }
+                }
+                std::strcat(commandsJson, "]");
+                Serial.print("commandsJson: ");
+                Serial.println(commandsJson);
+                if(client)
+                    client->text(commandsJson);
+                else
+                    ws.textAll(commandsJson);
             }
         }
 
@@ -153,6 +179,21 @@ class WebSocketHandler {
         //     }
         //     vTaskDelete(NULL);
         // }
+
+        void compileCommand(char* buf, const char* command, const char* message = 0) {
+            if(LogHandler::getLogLevel() == LogLevel::VERBOSE) {
+                if(message)
+                    Serial.printf("Sending WS commands: %s, Message: %s\n", command, message);
+                else
+                    Serial.printf("Sending WS commands: %s\n",command);
+            }
+            if(!message)
+                sprintf(buf, "{ \"command\": \"%s\" }", command);
+            else if(strpbrk(message, "{") != nullptr)
+                sprintf(buf, "{ \"command\": \"%s\" , \"message\": %s }", command, message);
+            else
+                sprintf(buf, "{ \"command\": \"%s\" , \"message\": \"%s\" }", command, message);
+        }
 
         void processWebSocketTextMessage(char* msg) 
         {

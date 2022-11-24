@@ -69,6 +69,7 @@
 	"lubeAmount": 255,
 	"displayEnabled": true,
 	"sleeveTempDisplayed": false,
+	"internalTempDisplayed": false,
 	"tempSleeveEnabled": false,
 	"tempInternalEnabled": false,
 	"Display_Screen_Width": 128, 

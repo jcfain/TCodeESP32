@@ -123,9 +123,6 @@
 						</td>
 						<td>
 							<select name="TCodeVersion" id="TCodeVersion" onchange="setTCodeVersion()">
-								<option value="0">V0.2</option>
-								<option value="1">V0.3</option>
-								<!-- <option value="2">V1.0</option> -->
 							</select>
 						</td>
 					</tr>
@@ -606,18 +603,18 @@
 					</tr>
 					<tr>
 						<td>
-							<span>Current sleeve temp (&#8451;)</span> 
+							<span>Sleeve temp (&#8451;)</span> 
 						</td>
 						<td>
-							<span id="currentTemp">0</span> 
+							<input id="currentTemp" type="text" readonly>
 						</td>
 					</tr>
 					<tr>
 						<td>
-							<span>Current sleeve temp status</span> 
+							<span>Status</span> 
 						</td>
 						<td>
-							<span id="currentTempStatus">Unknown</span>
+							<input id="currentTempStatus" type="text" readonly>
 						</td>
 					</tr>
 					<tr>
@@ -740,6 +737,14 @@
 						</td>
 						<td>
 							<input id="sleeveTempDisplayed" type="checkbox" onclick="setDisplaySettings()"></input>
+						</td>
+					</tr>
+					<tr id="internalTempDisplayedRow">
+						<td>
+							<span>Internal temperature displayed</span> 
+						</td>
+						<td>
+							<input id="internalTempDisplayed" type="checkbox" onclick="setDisplaySettings()"></input>
 						</td>
 					</tr>
 				</tbody>

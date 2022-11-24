@@ -26,7 +26,7 @@ SOFTWARE. */
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
 
-#define featureCount 6
+#define featureCount 7
 
 enum class TCodeVersion {
     v0_2,
@@ -41,7 +41,8 @@ enum class BuildFeature {
     BLUETOOTH,
     DA,
     DISPLAY_,
-    TEMP
+    TEMP,
+    HAS_TCODE_V2
 };
 
 enum class BoardType {
@@ -135,6 +136,7 @@ class SettingsHandler
 		static int lubeAmount;
 		static bool displayEnabled;
 		static bool sleeveTempDisplayed;
+		static bool internalTempDisplayed;
 		static bool tempSleeveEnabled;
 		static bool tempInternalEnabled;
         static bool fanControlEnabled;
@@ -244,7 +246,7 @@ class SettingsHandler
                 TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
                 tempInternalEnabled = true;
                 RightServo_PIN = 13;
-                LeftServo_PIN = 2;
+                LeftServo_PIN = 15;
                 PitchLeftServo_PIN = 4;
                 ValveServo_PIN = 25;
                 TwistServo_PIN = 27;
@@ -398,6 +400,7 @@ class SettingsHandler
 				lubeAmount = json["lubeAmount"] | 255;
 				displayEnabled = json["displayEnabled"];
 				sleeveTempDisplayed = json["sleeveTempDisplayed"];
+                internalTempDisplayed = json["internalTempDisplayed"];
 				Display_Screen_Width = json["Display_Screen_Width"] | 128;
 				Display_Screen_Height = json["Display_Screen_Height"] | 64;
                 const char* Display_I2C_AddressTemp = json["Display_I2C_Address"];
@@ -658,6 +661,7 @@ class SettingsHandler
             doc["lubeEnabled"] = lubeEnabled;
 			doc["displayEnabled"] = displayEnabled;
 			doc["sleeveTempDisplayed"] = sleeveTempDisplayed;
+            doc["internalTempDisplayed"] = internalTempDisplayed;
 			doc["tempSleeveEnabled"] = tempSleeveEnabled;
 			doc["Display_Screen_Width"] = Display_Screen_Width;
 			doc["Display_Screen_Height"] = Display_Screen_Height;
@@ -739,6 +743,11 @@ class SettingsHandler
             #if DISPLAY_ENABLED == 1
                 LogHandler::debug("setBuildFeatures", "DISPLAY_ENABLED");
                 buildFeatures[index] = BuildFeature::DISPLAY_;
+                index++;
+            #endif
+            #if TCODE_V2 == 1
+                LogHandler::debug("setBuildFeatures", "TCODE_V2");
+                buildFeatures[index] = BuildFeature::HAS_TCODE_V2;
                 index++;
             #endif
             buildFeatures[featureCount - 1] = {};
@@ -986,6 +995,7 @@ class SettingsHandler
             // LogHandler::verbose(_TAG, "save Heater_PIN: %i", (int)doc["Heater_PIN"]);
             // LogHandler::verbose(_TAG, "save displayEnabled: %i", (bool)doc["displayEnabled"]);
             // LogHandler::verbose(_TAG, "save sleeveTempDisplayed: %i", (bool)doc["sleeveTempDisplayed"]);
+            // LogHandler::verbose(_TAG, "save internalTempDisplayed: %i", (bool)doc["internalTempDisplayed"]);
             // LogHandler::verbose(_TAG, "save tempSleeveEnabled: %i", (bool)doc["tempSleeveEnabled"]);
             // LogHandler::verbose(_TAG, "save Display_Screen_Width: %i", (int)doc["Display_Screen_Width"]);
             // LogHandler::verbose(_TAG, "save Display_Screen_Height: %i", (int)doc["Display_Screen_Height"]);
@@ -1059,6 +1069,7 @@ class SettingsHandler
             // LogHandler::verbose(_TAG, "update lubeAmount: %i", lubeAmount);
             // LogHandler::verbose(_TAG, "update displayEnabled: %i", displayEnabled);
             // LogHandler::verbose(_TAG, "update sleeveTempDisplayed: %i", sleeveTempDisplayed);
+            // LogHandler::verbose(_TAG, "update internalTempDisplayed: %i", internalTempDisplayed);
             // LogHandler::verbose(_TAG, "update tempSleeveEnabled: %i", tempSleeveEnabled);
             // LogHandler::verbose(_TAG, "update Display_Screen_Width: %i", Display_Screen_Width);
             // LogHandler::verbose(_TAG, "update Display_Screen_Height: %i", Display_Screen_Height);
@@ -1176,6 +1187,7 @@ int SettingsHandler::lubeAmount = 255;
 
 bool SettingsHandler::displayEnabled = false;
 bool SettingsHandler::sleeveTempDisplayed = false;
+bool SettingsHandler::internalTempDisplayed = false;
 bool SettingsHandler::tempSleeveEnabled = false;
 bool SettingsHandler::tempInternalEnabled = false;
 bool SettingsHandler::fanControlEnabled = false;

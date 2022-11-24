@@ -31,10 +31,18 @@ var debugEnabled = true;
 var playSounds = false;
 var importSettingsInputElement;
 var websocket;
+
 const TCodeVersion = {
     V2: 0,
     V3: 1
 }
+// Modified in toggleBuildOptions if TCode V2 is not in build
+const availableVersions = [
+    {version: TCodeVersion.V2, versionName: "v0.2"},
+    {version: TCodeVersion.V3, versionName: "v0.3"},
+] 
+const latestTCodeVersion = TCodeVersion.V3;
+
 const LogLevel = {
     ERROR: 0,
     WARNING: 1,
@@ -54,7 +62,8 @@ const BuildFeature = {
     BLUETOOTH: 3,
     DA: 4,
     DISPLAY_: 5,
-    TEMP: 6
+    TEMP: 6,
+    HAS_TCODE_V2: 7
 }
 dubugMessages = [];
 
@@ -186,8 +195,8 @@ function wsCallBackFunction(evt) {
 				var status = data["message"];
 				var tempStatus = status["status"];
 				var temp = status["temp"];
-                document.getElementById("currentTempStatus").innerText = tempStatus;
-                document.getElementById("currentTemp").innerText = temp;
+                document.getElementById("currentTempStatus").value = tempStatus;
+                document.getElementById("currentTemp").value = temp;
 				break;
             case "internalTempStatus":
 				var status = data["message"];
@@ -294,7 +303,7 @@ function onRestartClick()
             if(xhr.status == 200) {
                 var response = xhr.response;
                 logdebug("Restart succeed!");
-                if(response.apMode && userSettings.ssid !== "YOUR SSID HERE" ) {
+                if(response.apMode && userSettings.ssid !== "YOUR SSID HERE" && userSettings.wifiPass != "YOUR PASSWORD HERE") {
                     restartingAndChangingAddress = true;
                 }
                 
@@ -366,9 +375,6 @@ function setSystemInfo() {
     document.getElementById('chipID').value = systemInfo.chipID;
 
     toggleBuildOptions();
-
-
-    document.getElementById('TCodeVersion').readOnly = systemInfo.boardType === BoardType.CRIMZZON;
     
     const pinsAreEditable = isPinsEditable();
     document.getElementById("TwistFeedBack_PIN").readOnly = !pinsAreEditable;
@@ -483,6 +489,7 @@ function setUserSettings()
 
 	document.getElementById("displayEnabled").checked = userSettings["displayEnabled"];
 	document.getElementById("sleeveTempDisplayed").checked = userSettings["sleeveTempDisplayed"];
+	document.getElementById("internalTempDisplayed").checked = userSettings["internalTempDisplayed"];
 	document.getElementById("tempSleeveEnabled").checked = userSettings["tempSleeveEnabled"];
     document.getElementById('tempInternalEnabled').checked = userSettings["tempInternalEnabled"];
 	document.getElementById("pitchFrequencyIsDifferent").checked = userSettings["pitchFrequencyIsDifferent"];
@@ -575,6 +582,18 @@ function toggleBuildOptions() {
     const hasDisplay = systemInfo.buildFeatures.includes(BuildFeature.DISPLAY_);
     for(var i=0;i < displayElements.length; i++)
         displayElements[i].hidden = !hasDisplay;
+        
+    var tcodeVersionElement = document.getElementById('TCodeVersion');
+
+    if(!hasTCodeV2()) {
+        availableVersions.splice(availableVersions.findIndex(x => x.version === TCodeVersion.V2), 1);
+    }
+    availableVersions.forEach(x => {
+        const optionElement = document.createElement("option");
+        optionElement.value=x.version;
+        optionElement.innerText=x.versionName;
+        tcodeVersionElement.appendChild(optionElement);
+    });
 }
 
 function updateUserSettings() 
@@ -843,11 +862,14 @@ function setupChannelSliders()
 function isTCodeV3() {
     return userSettings["TCodeVersion"] >= TCodeVersion.V3;
 }
+function hasTCodeV2()  {
+    return systemInfo.buildFeatures.includes(BuildFeature.HAS_TCODE_V2);
+}
 function isPinsEditable() {
     return systemInfo.boardType === BoardType.DEVKIT;
 }
 function onChannelSliderInput(channel, value) {
-    sendTCode(channel+value.toString().padStart(userSettings["TCodeVersion"] == TCodeVersion.V3 ? 4 : 3, "0") + "S1000");
+    sendTCode(channel+value.toString().padStart(isTCodeV3() ? 4 : 3, "0") + "S1000");
 }
 function onMinInput(axis) 
 {
@@ -867,7 +889,7 @@ function onMinInput(axis)
     }
     //console.log("Min tcode: " + tcodeValue);
     userSettings[axisName] = tcodeValue;
-    sendTCode("L0"+tcodeValue.toString().padStart(userSettings["TCodeVersion"] == TCodeVersion.V3 ? 4 : 3, "0") + "S1000");
+    sendTCode("L0"+tcodeValue.toString().padStart(isTCodeV3() ? 4 : 3, "0") + "S1000");
     updateUserSettings();
 }
 
@@ -886,7 +908,7 @@ function onMaxInput(axis)
     var tcodeValue =  percentageToTcode(inputAxisMax.value);
     //console.log("Max tcode: " + tcodeValue);
     userSettings[axisName] = tcodeValue;
-    sendTCode("L0"+tcodeValue.toString().padStart(userSettings["TCodeVersion"] == TCodeVersion.V3 ? 4 : 3, "0") + "S1000");
+    sendTCode("L0"+tcodeValue.toString().padStart(isTCodeV3() ? 4 : 3, "0") + "S1000");
     updateUserSettings();
 }
 
@@ -1505,10 +1527,12 @@ function toggleInternalTempSettings(enabled)
     if(!enabled) 
     {
         document.getElementById('internalTempTable').hidden = true;
+        document.getElementById('internalTempDisplayedRow').hidden = true;
     }
     else if(systemInfo.buildFeatures.includes(BuildFeature.TEMP))
     {
         document.getElementById('internalTempTable').hidden = false;
+        document.getElementById('internalTempDisplayedRow').hidden = false;
     }
 }
 function setDiplayIs32Px() {
@@ -1532,7 +1556,8 @@ function setDisplaySettings()
     // userSettings["Display_Rst_PIN"] = parseInt(document.getElementById('Display_Rst_PIN').value);
     userSettings["Display_I2C_Address"] = document.getElementById('Display_I2C_Address').value;
     userSettings["sleeveTempDisplayed"] = document.getElementById('sleeveTempDisplayed').checked;
-	
+    userSettings["internalTempDisplayed"] = document.getElementById('internalTempDisplayed').checked;
+
     setRestartRequired();
     updateUserSettings();
 }
@@ -1750,18 +1775,31 @@ function importSettings() {
             var text = reader.result;
             var json = JSON.parse(text);
             Object.keys(json).forEach(function(key,index) {
-                if(key != "esp32Version") {
-                    var importedValue = json[key];
-                    var existingValue = userSettings[key];
-                    if(existingValue != undefined && existingValue != null)
-                        userSettings[key]=importedValue;
-                }
+                var importedValue = json[key];
+                var existingValue = userSettings[key];
+                // If the key doesnt exist anymore, dont import it.
+                if(existingValue != undefined && existingValue != null)// 0 can be valid
+                    userSettings[key]=importedValue;
+                else
+                    handleImportRenames(key, importedValue)
             });
+            // If the new build doesnt have the old TCode version in it, set it to the latest version.
+            if(availableVersions.findIndex(x => x.version == userSettings.TCodeVersion) == -1) {
+                userSettings.TCodeVersion = latestTCodeVersion;
+                document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
+                toggleNonTCodev3Options();
+            }
             updateUserSettings();
             setUserSettings();
             setRestartRequired();
         }, false);
 
         reader.readAsText(json);
+    }
+}
+
+function handleImportRenames(key, value) {
+    if(key == "LubeManual_PIN") {
+        userSettings.LubeButton_PIN = value;
     }
 }
