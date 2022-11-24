@@ -347,9 +347,6 @@ private:
 		display.setCursor(margin * charWidth, currentLine);
 		display.print(text); 
 	}
-	int getCurrentLineCurserPos() {
-		return display.getCursorX() * charWidth;	
-	}
 	void clearCurrentLine() {
 		display.fillRect(0, currentLine, SettingsHandler::Display_Screen_Width, 10, BLACK);
 	}
@@ -427,21 +424,26 @@ private:
 	void draw32Temp() {
 		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed)
 		{
-			int cursurPos = 0;
-			display.setCursor(cursurPos, nextLine());
-			clearCurrentLine();
-			char sleeveTempText[9] = "Sleeve: ";
-			display.print(sleeveTempText);
-			cursurPos = (sizeof(sleeveTempText) - 1) * charWidth;
-			display.setCursor(cursurPos, currentLine);
+			// int cursurPos = 0;
+			// display.setCursor(cursurPos, nextLine());
+			// clearCurrentLine();
+			// char sleeveTempText[9] = "Sleeve: ";
+			// display.print(sleeveTempText);
+			// cursurPos = (sizeof(sleeveTempText) - 1) * charWidth;
+			// display.setCursor(cursurPos, currentLine);
 
-			display.print(m_sleeveTemp, 1);
-			display.print((char)247);
-			display.print("C");//Max Length 6
-			cursurPos += 8 * charWidth;
+			// display.print(m_sleeveTemp, 1);
+			// display.print((char)247);
+			// display.print("C");//Max Length 6
+			// cursurPos += 8 * charWidth;
 			
+			newLine();
+			clearCurrentLine();
+			char buf[19];
+			getTempString("Sleeve: ", m_sleeveTemp, buf);
+			left(buf);
+
 			if(SettingsHandler::tempSleeveEnabled) {
-				display.setCursor(cursurPos, currentLine);
 				display.print(m_HeatStateShort);
 			}
 		}
@@ -449,55 +451,45 @@ private:
 		{
 			//Display Temperature
 			//Serial.println(tempValue);
-			int cursurPos = 0;
-			display.setCursor(cursurPos, nextLine());
-			clearCurrentLine();
-			char sleeveTempText[11] = "Internal: ";
-			display.print(sleeveTempText);
-			cursurPos = (sizeof(sleeveTempText) - 1) * charWidth;
-			display.setCursor(cursurPos, currentLine);
-			display.print(m_internalTemp, 1);
-			display.print((char)247);
-			display.print("C");
-		}
-		else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed)
-		{
-			//Display Temperature
-			//Serial.println(tempValue);
-			newLine();
-			//char sleeveTempText[2] = "S";
-			char sleeveTempText[10];
-			char array[10];
-			sprintf(array, "%f", m_sleeveTemp);
-			int sleeveLen = strlen(array);
-			snprintf(sleeveTempText, 3 + sleeveLen, "S%f%cC", m_sleeveTemp, (char)247);
-			sleeveTempText[4 + sleeveLen] = {0};
-			left(sleeveTempText);
-
-			// cursurPos = (sizeof(sleeveTempText) - 1) * charWidth;
-			// display.setCursor(cursurPos, currentLine);
+			// int cursurPos = 0;
+			// display.setCursor(cursurPos, nextLine());
 			// clearCurrentLine();
-			// display.print(sleeveTemp, 1);
-			// display.print((char)247);
-			// display.print("C");//Max Length 6
-			// cursurPos += 8 * charWidth;
-			
-			if(SettingsHandler::tempSleeveEnabled) {
-				//space();
-				display.print("("+m_HeatStateShort+")");
-			}
-			space();
-
-			char internalTempText[10];
-			snprintf(internalTempText, 10, "I%f%cC", m_internalTemp, (char)247);
-			internalTempText[strlen(internalTempText)] = {0};
-			display.print(internalTempText);
-
-			// cursurPos += ((sizeof(internalTempText) - 1) * charWidth);
+			// char sleeveTempText[11] = "Internal: ";
+			// display.print(sleeveTempText);
+			// cursurPos = (sizeof(sleeveTempText) - 1) * charWidth;
 			// display.setCursor(cursurPos, currentLine);
 			// display.print(m_internalTemp, 1);
 			// display.print((char)247);
-			// display.print("C");//Max Length 6
+			// display.print("C");
+			
+			newLine();
+			clearCurrentLine();
+			char buf[21];
+			getTempString("Internal: ", m_internalTemp, buf);
+			left(buf);
 		}
+		else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed)
+		{
+			newLine();
+			clearCurrentLine();
+			char buf[10];
+			getTempString("S", m_sleeveTemp, buf);
+			left(buf);
+			if(SettingsHandler::tempSleeveEnabled) {
+				display.print(m_HeatStateShort);
+			}
+			space();
+			getTempString("I", m_internalTemp, buf);
+			display.print(buf);
+		}
+	}
+	void getTempString(const char* displayText, float temp, char* buf) {
+		// size_t len = strlen(displayText);
+		// char tempText[len + 9];
+		// snprintf(tempText, 10, "%s%f%cC", displayText, temp, (char)247);
+		// //tempText[strlen(tempText)] = '\n';
+		String tempText = displayText + String(temp) + (char)247 + "C";
+		strcpy(buf, tempText.c_str());
+		//buf[strlen(buf) +1] = '\n';
 	}
 };
