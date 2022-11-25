@@ -70,6 +70,7 @@
 	"displayEnabled": true,
 	"sleeveTempDisplayed": false,
 	"internalTempDisplayed": false,
+	"versionDisplayed": false,
 	"tempSleeveEnabled": false,
 	"tempInternalEnabled": false,
 	"Display_Screen_Width": 128, 

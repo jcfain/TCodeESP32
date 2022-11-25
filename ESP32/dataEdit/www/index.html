@@ -731,6 +731,14 @@
 							<input id="Display_Screen_Height" type="text" oninput="setDisplaySettings()">
 						</td>
 					</tr>
+					<tr>
+						<td>
+							<span>System version displayed</span> 
+						</td>
+						<td>
+							<input id="versionDisplayed" type="checkbox" onclick="setDisplaySettings()"></input>
+						</td>
+					</tr>
 					<tr id="sleeveTempDisplayedRow">
 						<td>
 							<span>Sleeve temperature displayed</span> 
@@ -747,6 +755,7 @@
 							<input id="internalTempDisplayed" type="checkbox" onclick="setDisplaySettings()"></input>
 						</td>
 					</tr>
+					
 				</tbody>
 			</table>
 			<table id="channelTestsTable" class="formTable">

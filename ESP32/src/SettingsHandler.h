@@ -137,6 +137,7 @@ class SettingsHandler
 		static bool displayEnabled;
 		static bool sleeveTempDisplayed;
 		static bool internalTempDisplayed;
+		static bool versionDisplayed;
 		static bool tempSleeveEnabled;
 		static bool tempInternalEnabled;
         static bool fanControlEnabled;
@@ -401,6 +402,7 @@ class SettingsHandler
 				displayEnabled = json["displayEnabled"];
 				sleeveTempDisplayed = json["sleeveTempDisplayed"];
                 internalTempDisplayed = json["internalTempDisplayed"];
+                versionDisplayed = json["versionDisplayed"];
 				Display_Screen_Width = json["Display_Screen_Width"] | 128;
 				Display_Screen_Height = json["Display_Screen_Height"] | 64;
                 const char* Display_I2C_AddressTemp = json["Display_I2C_Address"];
@@ -593,6 +595,13 @@ class SettingsHandler
             doc["logLevel"] = (int)logLevel;
             LogHandler::setLogLevel(logLevel);
 
+            if(!tempInternalEnabled) {
+                internalTempDisplayed = false;
+                fanControlEnabled = false;
+            }
+            if(!tempSleeveEnabled) {
+                sleeveTempDisplayed = false;
+            }
             LogHandler::debug(_TAG, "Save settings");
             doc["fullBuild"] = fullBuild;
             doc["esp32Version"] = ESP32Version;
@@ -661,6 +670,7 @@ class SettingsHandler
             doc["lubeEnabled"] = lubeEnabled;
 			doc["displayEnabled"] = displayEnabled;
 			doc["sleeveTempDisplayed"] = sleeveTempDisplayed;
+            doc["versionDisplayed"] = versionDisplayed;
             doc["internalTempDisplayed"] = internalTempDisplayed;
 			doc["tempSleeveEnabled"] = tempSleeveEnabled;
 			doc["Display_Screen_Width"] = Display_Screen_Width;
@@ -824,7 +834,7 @@ class SettingsHandler
         // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
         // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
 		static const int deserializeSize = 3072;
-		static const int serializeSize = 1536;
+		static const int serializeSize = 2048;
 
         static int calculateRange(const char* channel, int value) 
         {
@@ -997,6 +1007,7 @@ class SettingsHandler
             // LogHandler::verbose(_TAG, "save sleeveTempDisplayed: %i", (bool)doc["sleeveTempDisplayed"]);
             // LogHandler::verbose(_TAG, "save internalTempDisplayed: %i", (bool)doc["internalTempDisplayed"]);
             // LogHandler::verbose(_TAG, "save tempSleeveEnabled: %i", (bool)doc["tempSleeveEnabled"]);
+            LogHandler::debug(_TAG, "save tempInternalEnabled: %i", (bool)doc["tempInternalEnabled"]);
             // LogHandler::verbose(_TAG, "save Display_Screen_Width: %i", (int)doc["Display_Screen_Width"]);
             // LogHandler::verbose(_TAG, "save Display_Screen_Height: %i", (int)doc["Display_Screen_Height"]);
             // LogHandler::verbose(_TAG, "save TargetTemp: %i", (int)doc["TargetTemp"]);
@@ -1071,6 +1082,7 @@ class SettingsHandler
             // LogHandler::verbose(_TAG, "update sleeveTempDisplayed: %i", sleeveTempDisplayed);
             // LogHandler::verbose(_TAG, "update internalTempDisplayed: %i", internalTempDisplayed);
             // LogHandler::verbose(_TAG, "update tempSleeveEnabled: %i", tempSleeveEnabled);
+            LogHandler::debug(_TAG, "update tempInternalEnabled: %i", tempInternalEnabled);
             // LogHandler::verbose(_TAG, "update Display_Screen_Width: %i", Display_Screen_Width);
             // LogHandler::verbose(_TAG, "update Display_Screen_Height: %i", Display_Screen_Height);
             // LogHandler::verbose(_TAG, "update TargetTemp: %i", TargetTemp);
@@ -1188,6 +1200,7 @@ int SettingsHandler::lubeAmount = 255;
 bool SettingsHandler::displayEnabled = false;
 bool SettingsHandler::sleeveTempDisplayed = false;
 bool SettingsHandler::internalTempDisplayed = false;
+bool SettingsHandler::versionDisplayed = true;
 bool SettingsHandler::tempSleeveEnabled = false;
 bool SettingsHandler::tempInternalEnabled = false;
 bool SettingsHandler::fanControlEnabled = false;

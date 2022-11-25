@@ -141,7 +141,8 @@ void logCallBack(const char* in, LogLevel level) {
 #endif
 }
 #if TEMP_ENABLED
-void tempChangeCallBack(TemperatureType type, const char* message) {
+void tempChangeCallBack(TemperatureType type, const char* message, float temp) {
+#if WIFI_TCODE == 1
 	if(webSocketHandler) {
 		if (strpbrk(message, "{") == nullptr) {
 			webSocketHandler->sendCommand(message);
@@ -153,16 +154,30 @@ void tempChangeCallBack(TemperatureType type, const char* message) {
 			}
 		}
 	}
-}
-void tempStateChangeCallBack(TemperatureType type, const char* state) {
+#endif
+#if DISPLAY_ENABLED
 	if(displayHandler) {
 		if(type == TemperatureType::SLEEVE) {
+			displayHandler->setSleeveTemp(temp);
+		} else {
+			displayHandler->setInternalTemp(temp);
+		}
+	}
+#endif
+}
+void tempStateChangeCallBack(TemperatureType type, const char* state) {
+#if DISPLAY_ENABLED
+	if(displayHandler) {
+		if(type == TemperatureType::SLEEVE) {
+			LogHandler::verbose("main-temp", "tempStateChangeCallBack heat: %s", state);
 			displayHandler->setHeateState(state);
 			displayHandler->setHeateStateShort(TemperatureHandler::getShortSleeveControlStatus(state));
 		} else {
+			LogHandler::verbose("main-temp", "tempStateChangeCallBack fan: %s", state);
 			displayHandler->setFanState(state);
 		}
 	}
+#endif
 }
 #endif
 void startWeb(bool apMode) {

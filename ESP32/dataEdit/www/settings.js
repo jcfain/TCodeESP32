@@ -490,6 +490,7 @@ function setUserSettings()
 	document.getElementById("displayEnabled").checked = userSettings["displayEnabled"];
 	document.getElementById("sleeveTempDisplayed").checked = userSettings["sleeveTempDisplayed"];
 	document.getElementById("internalTempDisplayed").checked = userSettings["internalTempDisplayed"];
+	document.getElementById("versionDisplayed").checked = userSettings["versionDisplayed"];
 	document.getElementById("tempSleeveEnabled").checked = userSettings["tempSleeveEnabled"];
     document.getElementById('tempInternalEnabled').checked = userSettings["tempInternalEnabled"];
 	document.getElementById("pitchFrequencyIsDifferent").checked = userSettings["pitchFrequencyIsDifferent"];
@@ -1557,6 +1558,7 @@ function setDisplaySettings()
     userSettings["Display_I2C_Address"] = document.getElementById('Display_I2C_Address').value;
     userSettings["sleeveTempDisplayed"] = document.getElementById('sleeveTempDisplayed').checked;
     userSettings["internalTempDisplayed"] = document.getElementById('internalTempDisplayed').checked;
+    userSettings["versionDisplayed"] = document.getElementById('versionDisplayed').checked;
 
     setRestartRequired();
     updateUserSettings();

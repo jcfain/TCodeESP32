@@ -69,9 +69,6 @@ public:
 			if (!displayConnected)
     			LogHandler::error("displayHandler", "SSD1306 allocation failed");
 		}
-		if(is32()) {
-			currentLine = 0;
-		}
 		delay(2000);
 		if(displayConnected)
 		{
@@ -89,9 +86,21 @@ public:
 
 	void setSleeveTemp(float temp) {
 		m_sleeveTemp = temp;
+		memset(m_sleeveTempString,'\0',sizeof(m_sleeveTempString));
+		if(temp < 0) {
+			strcpy(m_sleeveTempString, "XX.XX\0");
+		} else {   
+			dtostrf(temp, sizeof(m_sleeveTempString) - 1, 2, m_sleeveTempString);
+		}	
 	}
 	void setInternalTemp(float temp) {
 		m_internalTemp = temp;
+		memset(m_internalTempString,'\0',sizeof(m_internalTempString));
+		if(temp < 0) {
+			strcpy(m_internalTempString, "XX.XX\0");
+		} else {   
+			dtostrf(temp, sizeof(m_internalTempString) - 1, 2, m_internalTempString);
+		}	
 	}
 	void setHeateState(const char* state) {
 		m_HeatState = String(state);
@@ -106,8 +115,9 @@ public:
 
 	void clearDisplay()
 	{
-		if(displayConnected)
+		if(displayConnected) {
 			display.clearDisplay();
+		}
 	}
 
 	static void startLoop(void* displayHandlerRef)
@@ -132,18 +142,20 @@ public:
 	void loop()
 	{
 		_isRunning = true;
-		clearDisplay();
-		while(_isRunning) 
-		{
-			if(!m_animationPlaying && displayConnected && millis() >= lastUpdate + nextUpdate)
-			{
+		while(_isRunning) {
+			if(!m_animationPlaying && displayConnected && millis() >= lastUpdate + nextUpdate) {
 				lastUpdate = millis();
-				startLine();
+				clearDisplay();
+				setTextSize(1);
+				int headerPadding = is32() ? 0 : 3;
 				// Serial.print("Display Core: ");
 				// Serial.println(xPortGetCoreID());
-				display.setCursor(0,currentLine);
-				if(WifiHandler::isConnected())
-				{
+				if(WifiHandler::isConnected()) {
+					startLine(headerPadding);
+					left("IP: "); display.print(_ipAddress);
+
+					// Draw Wifi signal bars
+					int barHeight = is32() ? 8 : 10;
 					int bars;
 					//  int bars = map(RSSI,-80,-44,1,6); // this method doesn't refelct the Bars well
 					// simple if then to set the number of bars
@@ -161,34 +173,33 @@ public:
 					} else {
 						bars = 0;
 					}
-					for (int b=0; b <= bars; b++) 
-					{
-						display.fillRect((SettingsHandler::Display_Screen_Width - 17) + (b*3), 8 - (b*2),2,b*2,WHITE); 
+					for (int b=0; b <= bars; b++) {
+						display.fillRect((SettingsHandler::Display_Screen_Width - 17) + (b*3), barHeight - (b*2),2,b*2,WHITE); 
 					}
-
-					left("IP: "); display.print(_ipAddress);
-					nextLine(is32() ? 0 : 3);
-					left(SettingsHandler::TCodeVersionName.c_str());
-					right(SettingsHandler::ESP32Version);
+					newLine(headerPadding);
+					if(SettingsHandler::versionDisplayed) {
+						left(SettingsHandler::TCodeVersionName.c_str());
+						right(SettingsHandler::ESP32Version);
+						newLine();
+					}
 					
-				} 
-				else if(WifiHandler::apMode)
-				{
+				} else if(WifiHandler::apMode) {
+					startLine(headerPadding);
 					left("AP mode: 192.168.1.1");
-					nextLine(is32() ? 0 : 3);
+					newLine(headerPadding);
 					left("SSID: TCodeESP32Setup");
-					left(SettingsHandler::TCodeVersionName.c_str());
-					right(SettingsHandler::ESP32Version);
-				}
-				else
-				{
+					newLine();
+					if(is32() && SettingsHandler::versionDisplayed && !SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed
+						|| SettingsHandler::versionDisplayed) {
+						left(SettingsHandler::TCodeVersionName.c_str());
+						right(SettingsHandler::ESP32Version);
+						newLine();
+					}
+				} else {
 					display.print("Wifi error");
 				}
-
-				
 #if TEMP_ENABLED == 1
-				if(SettingsHandler::sleeveTempDisplayed || SettingsHandler::internalTempDisplayed)
-				{
+				if(SettingsHandler::sleeveTempDisplayed || SettingsHandler::internalTempDisplayed) {
 					is32() ? draw32Temp() : draw64Temp();
 				}
 #endif
@@ -303,12 +314,15 @@ private:
 	const int nextUpdate = 1000;
 	bool _isRunning = false;
 
-	int currentLine = 3;
+	int currentLine = 0;
+	int lineCount = 0;
 	int lineHeight = 10;
 	int charWidth = 6;
 
 	float m_internalTemp = -127.0f;
 	float m_sleeveTemp = -127.0f;
+	char m_internalTempString[7] = "XX.XX";
+	char m_sleeveTempString[7] = "XX.XX";
 	String m_fanState = "Unknown";
 	String m_HeatState = "Unknown";
 	String m_HeatStateShort = "U";
@@ -316,25 +330,36 @@ private:
 	Adafruit_SSD1306_RSB display;
 	bool m_animationPlaying = false;
 	int m_animationMilliSeconds = 10000;
-	
-	int nextLine(int additionalPixels = 0) {
-		int newHeight = currentLine + (lineHeight + additionalPixels);
-		if(newHeight <= SettingsHandler::Display_Screen_Height - lineHeight) {
-			currentLine = newHeight;
-		} else {
-			LogHandler::error(_TAG, "End of the display reached when nextLine!");
+
+	// Text size 1 is 6x8, 2 is 12x16, 3 is 18x24, etc
+	void setTextSize(uint8_t size) {
+		if(size >= 1) {
+			charWidth = 6 * size;
+			lineHeight = getLineHeight(size);
+			display.setTextSize(size);
 		}
-		return currentLine;
 	}
-	void newLine() {
-		display.setCursor(0, nextLine());
-	}
-	void startLine() {
-		if(is32()) {
-			currentLine = 0;
-		} else {
-			currentLine = 3;
+	void newLine(int additionalPixels = 0, int newLineTextSize = 0) {
+		int newLine = currentLine + (lineHeight + additionalPixels);
+		if(newLineTextSize > 0)
+			setTextSize(newLineTextSize);
+		if(newLine > SettingsHandler::Display_Screen_Height - lineHeight) {
+			LogHandler::warning(_TAG, "End of the display reached when newLine! Current: %i, New: %i, Max: %i", currentLine, newLine, SettingsHandler::Display_Screen_Height - lineHeight);
 		}
+		currentLine = newLine;
+		display.setCursor(0, currentLine);
+		//clearCurrentLine();
+	}
+	int getLineHeight(uint8_t size) {
+		int margin = 2;
+		return 8 * size + margin;
+	}
+	void startLine(int additionalPixels = 0) {
+		currentLine = (0 + additionalPixels);
+	}
+	bool hasNextLine(int newLineTextSize = 1) {
+		
+		return currentLine + getLineHeight(newLineTextSize) <= SettingsHandler::Display_Screen_Height - getLineHeight(newLineTextSize);
 	}
 	void space(int count = 1) {
 		display.setCursor(display.getCursorX() + (count * charWidth), currentLine);
@@ -347,6 +372,10 @@ private:
 		display.setCursor(margin * charWidth, currentLine);
 		display.print(text); 
 	}
+	void center(const char* text) {
+		display.setCursor((SettingsHandler::Display_Screen_Width - (strlen(text) * charWidth)) / 2, currentLine);
+		display.print(text); 
+	}
 	void clearCurrentLine() {
 		display.fillRect(0, currentLine, SettingsHandler::Display_Screen_Width, 10, BLACK);
 	}
@@ -355,141 +384,143 @@ private:
 	}
 
 	void draw64Temp() {
-		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed)
-		{
-			display.setCursor(0,nextLine());
-			char sleeveTemp[9] = "Sleeve: ";
-			display.print(sleeveTemp);
-			int width = sizeof(sleeveTemp) * charWidth;
-			display.setCursor(width, currentLine);
-			display.fillRect(width, currentLine, SettingsHandler::Display_Screen_Width - width, 10, BLACK);
-			display.print(m_sleeveTemp, 1);
-			display.print((char)247);
-			display.print("C");
-			if(SettingsHandler::tempSleeveEnabled) {
-				display.fillRect(0, nextLine(), SettingsHandler::Display_Screen_Width, 10, BLACK);
-				display.setCursor(15,currentLine);
-				display.println(m_HeatState);
+		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed) {
+			if(SettingsHandler::versionDisplayed) {
+				char buf[16];
+				getTempString("Sleeve: ", m_sleeveTempString, buf, sizeof(buf));
+				left(buf);
+				newLine();
+				left(m_HeatState.c_str(), 3);
+			} else {
+				setTextSize(3);
+				char buf[9];
+				getTempString("", m_sleeveTempString, buf, sizeof(buf));
+				left(buf);
+				newLine(0, 1);
+				center(m_HeatState.c_str());
 			}
-		}
-		else if(!SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed)
-		{
-			display.setCursor(0,nextLine());
-			char sleeveTemp[11] = "Internal: ";
-			display.print(sleeveTemp);
-			int width = sizeof(sleeveTemp) * charWidth;
-			display.setCursor(width, currentLine);
-			display.fillRect(width, currentLine, SettingsHandler::Display_Screen_Width - width, 10, BLACK);
-			display.print(m_internalTemp, 1);
-			display.print((char)247);
-			display.print("C");
-			if(SettingsHandler::fanControlEnabled) {
-				display.fillRect(0, nextLine(), SettingsHandler::Display_Screen_Width, 10, BLACK);
-				display.setCursor(15, currentLine);
-				display.println(m_fanState);
+		} else if(!SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed) {
+			if(SettingsHandler::versionDisplayed) {
+				char buf[18];
+				getTempString("Internal: ", m_internalTempString, buf, sizeof(buf));
+				left(buf);
+				if(SettingsHandler::fanControlEnabled) {
+					newLine();
+					left(m_fanState.c_str(), 3);
+				}
+			} else {
+				setTextSize(3);
+				char buf[9];
+				getTempString("", m_internalTempString, buf, sizeof(buf));
+				center(buf);
+				newLine(0, 1);
+				if(SettingsHandler::fanControlEnabled) {
+					center(m_fanState.c_str());
+				}
 			}
-		}
-		else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed)
-		{
-			int cursurPos = 0;
-			display.setCursor(cursurPos,nextLine());
-			char sleeveTempText[7] = "Sleeve";
-			display.print(sleeveTempText);
-			
-			char internalTempText[9] = "Internal";
-			cursurPos = SettingsHandler::Display_Screen_Width - ((sizeof(internalTempText) - 1) * charWidth);
-			display.setCursor(cursurPos, currentLine);
-			display.print(internalTempText);
+		} else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed) {
+			left("Sleeve");
+			right("Internal");
 
 			newLine();
-			clearCurrentLine();
-			display.print(m_sleeveTemp, 1);
-			display.print((char)247);
-			display.print("C");//Max Length 7
 
-			cursurPos = SettingsHandler::Display_Screen_Width - 7 * charWidth;
-			display.setCursor(cursurPos, currentLine);
-			display.print(m_internalTemp, 1);
-			display.print((char)247);
-			display.print("C");//Max Length 7
+			char buf[9];
+			getTempString("", m_sleeveTempString, buf, sizeof(buf));
+			left(buf);
+			if(SettingsHandler::versionDisplayed) {
+				display.print("("+m_HeatStateShort+")");
+			}
+			char buf2[9];
+			getTempString("", m_internalTempString, buf2, sizeof(buf2));
+			right(buf2);
 
-			if(SettingsHandler::tempSleeveEnabled) {
+			if(!SettingsHandler::versionDisplayed) {
 				newLine();
-				clearCurrentLine();
-				display.print(m_HeatState);
-				display.print(" ");
+				
+				left(m_HeatState.c_str());
+				if(SettingsHandler::fanControlEnabled) {
+					right(m_fanState.c_str());
+				}
 			}
 		}
 	}
 	void draw32Temp() {
-		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed)
-		{
-			// int cursurPos = 0;
-			// display.setCursor(cursurPos, nextLine());
-			// clearCurrentLine();
-			// char sleeveTempText[9] = "Sleeve: ";
-			// display.print(sleeveTempText);
-			// cursurPos = (sizeof(sleeveTempText) - 1) * charWidth;
-			// display.setCursor(cursurPos, currentLine);
-
-			// display.print(m_sleeveTemp, 1);
-			// display.print((char)247);
-			// display.print("C");//Max Length 6
-			// cursurPos += 8 * charWidth;
-			
-			newLine();
-			clearCurrentLine();
+		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed) {
 			char buf[19];
-			getTempString("Sleeve: ", m_sleeveTemp, buf);
-			left(buf);
-
-			if(SettingsHandler::tempSleeveEnabled) {
-				display.print(m_HeatStateShort);
-			}
-		}
-		else if(!SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed)
-		{
-			//Display Temperature
-			//Serial.println(tempValue);
-			// int cursurPos = 0;
-			// display.setCursor(cursurPos, nextLine());
-			// clearCurrentLine();
-			// char sleeveTempText[11] = "Internal: ";
-			// display.print(sleeveTempText);
-			// cursurPos = (sizeof(sleeveTempText) - 1) * charWidth;
-			// display.setCursor(cursurPos, currentLine);
-			// display.print(m_internalTemp, 1);
-			// display.print((char)247);
-			// display.print("C");
-			
-			newLine();
-			clearCurrentLine();
+			if(SettingsHandler::versionDisplayed || !hasNextLine()) {
+				getTempString("Sleeve: ", m_sleeveTempString, buf, sizeof(buf));
+				left(buf);
+				display.print("("+m_HeatStateShort+")");
+			} else if(hasNextLine(2)) {
+				setTextSize(2);
+				getTempString("SLT: ", m_sleeveTempString, buf, sizeof(buf));
+				left(buf);
+				setTextSize(1);
+				display.print("("+m_HeatStateShort+")");
+			} else {
+				getTempString("Sleeve: ", m_sleeveTempString, buf, sizeof(buf));
+				left(buf);
+				newLine();
+				left(m_HeatState.c_str(), 3);
+			} 
+		} else if(!SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed) {
 			char buf[21];
-			getTempString("Internal: ", m_internalTemp, buf);
-			left(buf);
-		}
-		else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed)
-		{
-			newLine();
-			clearCurrentLine();
-			char buf[10];
-			getTempString("S", m_sleeveTemp, buf);
-			left(buf);
-			if(SettingsHandler::tempSleeveEnabled) {
-				display.print(m_HeatStateShort);
+			if(SettingsHandler::versionDisplayed || !hasNextLine()) {
+				getTempString("Internal: ", m_internalTempString, buf, sizeof(buf));
+				left(buf);
+			} else if(hasNextLine(2)) {
+				setTextSize(2);
+				getTempString("INT:", m_internalTempString, buf, sizeof(buf));
+				left(buf);
+				// setTextSize(1);
+				// display.print("("+m_HeatStateShort+")");
+			} else {
+				left("Internal");
+				newLine();
+				getTempString("", m_internalTempString, buf, sizeof(buf));
+				left(buf, 3);
 			}
-			space();
-			getTempString("I", m_internalTemp, buf);
-			display.print(buf);
+		} else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed) {
+			char buf[10];
+			if(SettingsHandler::versionDisplayed || !hasNextLine()) {
+				getTempString("S", m_sleeveTempString, buf, sizeof(buf));
+				left(buf);
+				display.print("("+m_HeatStateShort+")");
+				getTempString("I", m_internalTempString, buf, sizeof(buf));
+				right(buf);
+			} else {
+				left("Sleeve", 1);
+				right("Internal", 1);
+				newLine();
+				getTempString("", m_sleeveTempString, buf, sizeof(buf));
+				left(buf, 1);
+				char buf2[10];
+				getTempString("", m_internalTempString, buf2, sizeof(buf2));
+				right(buf2, 2);
+			}
 		}
 	}
-	void getTempString(const char* displayText, float temp, char* buf) {
-		// size_t len = strlen(displayText);
-		// char tempText[len + 9];
-		// snprintf(tempText, 10, "%s%f%cC", displayText, temp, (char)247);
+	void getTempString(const char* displayText, char* temp, char* buf, int size) {
+		strtrim(temp);
+		snprintf(buf, size, "%s%s%cC", displayText, temp, (char)247);
+		//strtrim(buf);
 		// //tempText[strlen(tempText)] = '\n';
-		String tempText = displayText + String(temp) + (char)247 + "C";
-		strcpy(buf, tempText.c_str());
-		//buf[strlen(buf) +1] = '\n';
+		
+		// strtrim(temp);
+		// String tempText = displayText + String(temp) + (char)247 + "C";// TODO: remove String
+		// strcpy(buf, tempText.c_str());
+	}
+
+	void strtrim(char* str) {
+		int start = 0; // number of leading spaces
+		char* buffer = str;
+		while (*str && *str++ == ' ') ++start;
+		while (*str++); // move to end of string
+		int end = str - buffer - 1; 
+		while (end > 0 && buffer[end - 1] == ' ') --end; // backup over trailing spaces
+		buffer[end] = 0; // remove trailing spaces
+		if (end <= start || start == 0) return; // exit if no leading spaces or string is now empty
+		str = buffer + start;
+		while ((*buffer++ = *str++));  // remove leading spaces: K&R
 	}
 };

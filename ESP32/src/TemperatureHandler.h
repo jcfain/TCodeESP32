@@ -32,7 +32,39 @@ enum class TemperatureType {
 	SLEEVE
 };
 
-using TEMP_CHANGE_FUNCTION_PTR_T = void (*)(TemperatureType type, const char* message);
+class TemperatureState {
+	public:
+	// Global state
+	static const int MAX_LEN;
+	static const char* UNKNOWN;
+	static const char* DISABLED_STATE;
+	static const char* RESTART_REQUIRED;
+	// Heater state
+	static const char* FAIL_SAFE;
+	static const char* ERROR;
+	static const char* WARM_UP;
+	static const char* HOLD;
+	static const char* HEAT;
+	//Fan states
+	static const char* COOLING;
+	static const char* OFF;
+};
+// Global state
+const int TemperatureState::MAX_LEN = 10;
+const char* TemperatureState::UNKNOWN = "Unknown";
+const char* TemperatureState::DISABLED_STATE = "Disabled";
+const char* TemperatureState::RESTART_REQUIRED = "Restart";
+// Heater state
+const char* TemperatureState::FAIL_SAFE = "Fail safe";
+const char* TemperatureState::ERROR = "Error";
+const char* TemperatureState::WARM_UP = "Warm up";
+const char* TemperatureState::HOLD = "Holding";
+const char* TemperatureState::HEAT = "Heating";
+//Fan states
+const char* TemperatureState::COOLING = "Cooling";
+const char* TemperatureState::OFF = "Off";
+
+using TEMP_CHANGE_FUNCTION_PTR_T = void (*)(TemperatureType type, const char* message, float temp);
 using STATE_CHANGE_FUNCTION_PTR_T = void (*)(TemperatureType type, const char* state);
 
 class TemperatureHandler
@@ -112,11 +144,11 @@ class TemperatureHandler
 	static void setState(TemperatureType type, const char* state) {
 		bool stateChanged = false;
 		if(type == TemperatureType::INTERNAL) {
-			stateChanged = strcmp(state, m_lastInternalStatus.c_str()) > 0;
+			stateChanged = strcmp(state, m_lastInternalStatus.c_str()) != 0;
 			if(stateChanged)
 				m_lastInternalStatus = state;
 		} else {
-			stateChanged = strcmp(state, m_lastSleeveStatus.c_str()) > 0;
+			stateChanged = strcmp(state, m_lastSleeveStatus.c_str()) != 0;
 			if(stateChanged)
 				m_lastSleeveStatus = state;
 		}
@@ -229,7 +261,7 @@ class TemperatureHandler
 
 			String statusJson("{\"temp\":" + String(_currentInternalTemp) + ", \"status\":\""+m_lastInternalStatus+"\"}");
 			if(message_callback) {
-				message_callback(TemperatureType::INTERNAL, statusJson.c_str());
+				message_callback(TemperatureType::INTERNAL, statusJson.c_str(), _currentInternalTemp);
 			}
 			requestInternalTemp();
 		}
@@ -253,7 +285,7 @@ class TemperatureHandler
 
 			String statusJson("{\"temp\":" + String(_currentSleeveTemp) + ", \"status\":\""+m_lastSleeveStatus+"\"}");
 			if(message_callback) {
-				message_callback(TemperatureType::SLEEVE, statusJson.c_str());
+				message_callback(TemperatureType::SLEEVE, statusJson.c_str(), _currentSleeveTemp);
 			}
 			requestSleeveTemp();
 		}
@@ -275,15 +307,15 @@ class TemperatureHandler
 					float currentTemp = _currentInternalTemp;
 					if (currentTemp == -127) 
 					{
-						currentState = "Error reading";
+						currentState = TemperatureState::ERROR;
 					} 
 					else
 					{
 						if(definitelyGreaterThanOREssentiallyEqual(currentTemp, SettingsHandler::internalTempForFan)) {
-							currentState = "Cooling";
+							currentState = TemperatureState::COOLING;
 							ledcWrite(CaseFan_PWM, SettingsHandler::caseFanPWM);
 						} else {
-							currentState = "Off";
+							currentState = TemperatureState::OFF;
 							ledcWrite(CaseFan_PWM, 0);
 						}
 					}
@@ -292,11 +324,12 @@ class TemperatureHandler
 			else
 			{
 				if(SettingsHandler::fanControlEnabled && !fanControlInitialized)
-					currentState = "Restart required";
+					currentState = TemperatureState::RESTART_REQUIRED;
 				else
-					currentState = "Disabled";
+					currentState = TemperatureState::DISABLED_STATE;
 			}
-			setState(TemperatureType::INTERNAL, currentState.c_str());
+			if(!currentState.isEmpty())
+				setState(TemperatureType::INTERNAL, currentState.c_str());
 		}
 	}
 
@@ -317,7 +350,7 @@ class TemperatureHandler
 					float currentTemp = _currentSleeveTemp;
 					if (currentTemp == -127) 
 					{
-						currentState = "Error reading";
+						currentState = TemperatureState::ERROR;
 					} 
 					else
 					{
@@ -339,7 +372,7 @@ class TemperatureHandler
 							// }
 							// else 
 							// {
-								currentState = "Heating";
+								currentState = TemperatureState::HEAT;
 							// }
 							if(targetSleeveTempReached && SettingsHandler::TargetTemp - currentTemp >= 5)
 								targetSleeveTempReached = false;
@@ -353,16 +386,16 @@ class TemperatureHandler
 								// Serial.println(_statusJson->c_str());
 								String* command = new String("tempReached");
 								if(message_callback)
-									message_callback(TemperatureType::SLEEVE, "tempReached");
+									message_callback(TemperatureType::SLEEVE, "tempReached", _currentSleeveTemp);
 								//xQueueSend(sleeveTempQueue, &command, 0);
 							}
 							ledcWrite(Heater_PWM, SettingsHandler::HoldPWM);
-							currentState = "Holding";
+							currentState = TemperatureState::HOLD;
 						} 
 						else 
 						{
 							ledcWrite(Heater_PWM, 0);
-							currentState = "Cooling";
+							currentState = TemperatureState::OFF;
 						}
 					}
 				}
@@ -370,30 +403,32 @@ class TemperatureHandler
 			else
 			{
 				if(SettingsHandler::tempSleeveEnabled && !sleeveTempInitialized)
-					currentState = "Restart required";
+					currentState = TemperatureState::RESTART_REQUIRED;
 				else
-					currentState = "Disabled";
+					currentState = TemperatureState::DISABLED_STATE;
 			}
-			setState(TemperatureType::SLEEVE, currentState.c_str());
+			if(!currentState.isEmpty())
+				setState(TemperatureType::SLEEVE, currentState.c_str());
 		}
 	}
 
 	static const char* getShortSleeveControlStatus(const char* state)
 	{
-		if(strcmp(state, "Fail safe: read") == 0) {
+		if(strcmp(state, TemperatureState::FAIL_SAFE) == 0) {
 			return "F";
-		} else if(strpbrk(state, "Error") != nullptr) {
+		} else if(strcmp(state, TemperatureState::ERROR) == 0) {
 			return "E";
-		} else if(strpbrk(state, "Warm up") != nullptr) {
+		} else if(strcmp(state, TemperatureState::WARM_UP) == 0) {
 			return "W";
-		} else if(strcmp(state, "Holding") == 0) {
+		} else if(strcmp(state, TemperatureState::HOLD) == 0) {
 			return "S";
-		} else if(strcmp(state, "Heating") == 0) {
+		} else if(strcmp(state, TemperatureState::HEAT) == 0) {
 			return "H";
-		} else if(strcmp(state, "Unknown") == 0) {
+		} else if(strcmp(state, TemperatureState::UNKNOWN) == 0) {
 			return "U";
 		}
-		return "C";
+		//TemperatureState::OFF
+		return "O";
 	}
 
 	static void stop()
@@ -418,11 +453,11 @@ class TemperatureHandler
 						// String* command = new String("failSafeTriggered");
 						// xQueueSend(sleeveTempQueue, &command, 0);
 						if(message_callback)
-							message_callback(TemperatureType::SLEEVE, "failSafeTriggered");
-						setState(TemperatureType::SLEEVE, "Fail safe: read");
+							message_callback(TemperatureType::SLEEVE, "failSafeTriggered", _currentSleeveTemp);
+						setState(TemperatureType::SLEEVE, TemperatureState::FAIL_SAFE);
 					}
 				} 
-				else if(m_lastSleeveStatus.startsWith("Error")) 
+				else if(m_lastSleeveStatus == TemperatureState::ERROR) 
 				{
 					errorCountSleeve++;
 				}
@@ -437,11 +472,11 @@ class TemperatureHandler
 						// String* command = new String("failSafeTriggered");
 						// xQueueSend(internalTempQueue, &command, 0);
 						if(message_callback)
-							message_callback(TemperatureType::INTERNAL, "failSafeTriggered");
-						setState(TemperatureType::INTERNAL, "Fail safe: read");
+							message_callback(TemperatureType::INTERNAL, "failSafeTriggered", _currentInternalTemp);
+						setState(TemperatureType::INTERNAL, TemperatureState::FAIL_SAFE);
 					}
 				} 
-				else if(m_lastInternalStatus.startsWith("Error")) 
+				else if(m_lastInternalStatus == TemperatureState::ERROR) 
 				{
 					errorCountInternal++;
 				}
@@ -450,7 +485,7 @@ class TemperatureHandler
 	}
 };
 
-int TemperatureHandler::resolution = 12;
+int TemperatureHandler::resolution = 9;
 int TemperatureHandler::delayInMillis = 0;
 unsigned long TemperatureHandler::lastSleeveTempRequest = 0;
 unsigned long TemperatureHandler::lastInternalTempRequest = 0;
@@ -459,12 +494,12 @@ OneWire TemperatureHandler::oneWireInternal;
 DallasTemperature TemperatureHandler::sensorsInternal;
 DeviceAddress TemperatureHandler::internalDeviceAddress;
 float TemperatureHandler::_currentInternalTemp;
-String TemperatureHandler::m_lastInternalStatus = "Off";
+String TemperatureHandler::m_lastInternalStatus = TemperatureState::UNKNOWN;
 TEMP_CHANGE_FUNCTION_PTR_T TemperatureHandler::message_callback = 0;
 STATE_CHANGE_FUNCTION_PTR_T TemperatureHandler::state_change_callback = 0;
 
 float TemperatureHandler::_currentSleeveTemp = 0.0f;
-String TemperatureHandler::m_lastSleeveStatus = "Unknown";
+String TemperatureHandler::m_lastSleeveStatus = TemperatureState::UNKNOWN;
 bool TemperatureHandler::_isRunning = false;
 OneWire TemperatureHandler::oneWireSleeve;
 DallasTemperature TemperatureHandler::sensorsSleeve;
