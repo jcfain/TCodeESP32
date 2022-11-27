@@ -273,9 +273,12 @@ class SettingsHandler
 		        // EXT_Input3_PIN = 39;
 		        // EXT_Input4_PIN = 36;
 
-                heaterResolution = 8;
-                caseFanResolution = 10;
-                caseFanFrequency = 25;
+                if(loadingDefault) {
+                    heaterResolution = 8;
+                    caseFanResolution = 10;
+                    caseFanFrequency = 25;
+                    Display_Screen_Height = 32;
+                }
 	        #endif
 			if(loadingDefault)
 				save();
@@ -424,7 +427,8 @@ class SettingsHandler
                 internalTempForFan = json["internalTempForFan"] | 30;
                 caseFanFrequency = json["caseFanFrequency"] | 25;
                 caseFanResolution = json["caseFanResolution"] | 10;
-
+                caseFanPWM = pow(2, caseFanResolution) - 1;
+                
                 lubeEnabled = json["lubeEnabled"];
                 lastRebootReason = machine_reset_cause();
                 LogHandler::info(_TAG, "Last reset reason: %s", SettingsHandler::lastRebootReason);
@@ -1111,7 +1115,7 @@ BuildFeature SettingsHandler::buildFeatures[featureCount];
 const char* SettingsHandler::_TAG = "_SETTINGS_HANDLER";
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[8] = "v0.255b";
+const char SettingsHandler::ESP32Version[8] = "v0.256a";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char* SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";

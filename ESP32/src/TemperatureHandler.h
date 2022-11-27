@@ -70,6 +70,7 @@ using STATE_CHANGE_FUNCTION_PTR_T = void (*)(TemperatureType type, const char* s
 class TemperatureHandler
 {
 	private: 
+	static char _TAG[5];
     static TEMP_CHANGE_FUNCTION_PTR_T message_callback;
     static STATE_CHANGE_FUNCTION_PTR_T state_change_callback;
 
@@ -185,7 +186,7 @@ class TemperatureHandler
 
 	static void setupSleeveTemp()
 	{
-		LogHandler::info("temperature", "Starting sleeve temp on pin: %u", SettingsHandler::Sleeve_Temp_PIN);
+		LogHandler::info(_TAG, "Starting sleeve temp on pin: %u", SettingsHandler::Sleeve_Temp_PIN);
 		oneWireSleeve.begin(SettingsHandler::Sleeve_Temp_PIN);
 		sensorsSleeve.setOneWire(&oneWireSleeve);
   		sensorsSleeve.getAddress(sleeveDeviceAddress, 0);
@@ -196,7 +197,7 @@ class TemperatureHandler
 
 		// bootTime = true;
 		// bootTimer = millis() + SettingsHandler::WarmUpTime;
-		LogHandler::debug("temperature", "Starting heat on pin: %u", SettingsHandler::Heater_PIN);
+		LogHandler::debug(_TAG, "Starting heat on pin: %u", SettingsHandler::Heater_PIN);
   		ledcSetup(Heater_PWM, SettingsHandler::heaterFrequency, SettingsHandler::heaterResolution);
 		ledcAttachPin(SettingsHandler::Heater_PIN, Heater_PWM);
 		sleeveTempInitialized = true;
@@ -204,7 +205,7 @@ class TemperatureHandler
 
 	static void setupInternalTemp()
 	{
-		LogHandler::info("temprature", "Starting internal temp on pin: %u", SettingsHandler::Internal_Temp_PIN);
+		LogHandler::info(_TAG, "Starting internal temp on pin: %u", SettingsHandler::Internal_Temp_PIN);
 		oneWireInternal.begin(SettingsHandler::Internal_Temp_PIN);
 		sensorsInternal.setOneWire(&oneWireInternal);
   		sensorsInternal.getAddress(internalDeviceAddress, 0);
@@ -214,6 +215,7 @@ class TemperatureHandler
 		requestInternalTemp();
 
 		if(SettingsHandler::fanControlEnabled) {
+			LogHandler::debug(_TAG, "Setting up fan hz: %i, resolution: %i, max PWM: %i", SettingsHandler::caseFanFrequency, SettingsHandler::caseFanResolution, SettingsHandler::caseFanPWM);
   			ledcSetup(CaseFan_PWM, SettingsHandler::caseFanFrequency, SettingsHandler::caseFanResolution);
 			ledcAttachPin(SettingsHandler::Case_Fan_PIN, CaseFan_PWM);
   			// internalStatusMutexBus = xSemaphoreCreateMutex();
@@ -225,7 +227,7 @@ class TemperatureHandler
 	static void startLoop(void * parameter)
 	{
 		_isRunning = true;
-		LogHandler::debug("temperature", "Temp Core: %u", xPortGetCoreID());
+		LogHandler::debug(_TAG, "Temp Core: %u", xPortGetCoreID());
 		lastSleeveTempRequest = millis(); 
 		while(_isRunning)
 		{
@@ -240,7 +242,7 @@ class TemperatureHandler
 			// Serial.println(xPortGetFreeHeapSize());
 		}
 		
-		LogHandler::debug("temperature", "Temp task exit");
+		LogHandler::debug(_TAG, "Temp task exit");
   		vTaskDelete( NULL );
 	}
 
@@ -257,7 +259,7 @@ class TemperatureHandler
 
 			_currentInternalTemp = sensorsInternal.getTempC(internalDeviceAddress);
 
-			LogHandler::verbose("temperature", "internal getTempC duration: %ld", micros() - start);
+			LogHandler::verbose(_TAG, "internal getTempC duration: %ld", micros() - start);
 
 			String statusJson("{\"temp\":" + String(_currentInternalTemp) + ", \"status\":\""+m_lastInternalStatus+"\"}");
 			if(message_callback) {
@@ -281,7 +283,7 @@ class TemperatureHandler
 
 			long duration = micros() - start;
 
-			LogHandler::verbose("temperature", "sleeve getTempC duration: %ld", micros() - start);
+			LogHandler::verbose(_TAG, "sleeve getTempC duration: %ld", micros() - start);
 
 			String statusJson("{\"temp\":" + String(_currentSleeveTemp) + ", \"status\":\""+m_lastSleeveStatus+"\"}");
 			if(message_callback) {
@@ -312,8 +314,17 @@ class TemperatureHandler
 					else
 					{
 						if(definitelyGreaterThanOREssentiallyEqual(currentTemp, SettingsHandler::internalTempForFan)) {
+
 							currentState = TemperatureState::COOLING;
-							ledcWrite(CaseFan_PWM, SettingsHandler::caseFanPWM);
+							// Calculate pwm based on user entered values.
+							int pwm = map(round(currentTemp), 
+											SettingsHandler::internalTempForFan, 
+											SettingsHandler::internalTempForFan + round(SettingsHandler::internalTempForFan * 0.50), 
+											50, // Min duty.
+											SettingsHandler::caseFanPWM);
+							//LogHandler::verbose(_TAG, "Setting fan PWM: %i, maxTemp: %f", pwm, SettingsHandler::internalTempForFan + round(SettingsHandler::internalTempForFan * 0.50));
+
+							ledcWrite(CaseFan_PWM, pwm);
 						} else {
 							currentState = TemperatureState::OFF;
 							ledcWrite(CaseFan_PWM, 0);
@@ -484,6 +495,8 @@ class TemperatureHandler
 		}
 	}
 };
+
+char TemperatureHandler::_TAG[5] = "temp";
 
 int TemperatureHandler::resolution = 9;
 int TemperatureHandler::delayInMillis = 0;

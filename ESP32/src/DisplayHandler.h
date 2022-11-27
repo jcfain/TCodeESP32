@@ -42,17 +42,14 @@ public:
 	DisplayHandler() : 
 		display(
 			SettingsHandler::Display_Screen_Width,  
-			//SettingsHandler::Display_Screen_Height, 
-			64,
+			SettingsHandler::Display_Screen_Height, 
+			//64,
 			&Wire, 
 			SettingsHandler::Display_Rst_PIN, 100000UL, 100000UL) { }
 
 	void setup() 
 	{
     	LogHandler::info("displayHandler", "Setting up display");
-
-		// Serial.begin(115200);
-		// delay(1000);
 
 		//Wire.begin();
 		//Wire.setClock(100000UL);
@@ -475,10 +472,10 @@ private:
 				// setTextSize(1);
 				// display.print("("+m_HeatStateShort+")");
 			} else {
-				left("Internal");
+				getTempString("Internal: ", m_internalTempString, buf, sizeof(buf));
+				left(buf);
 				newLine();
-				getTempString("", m_internalTempString, buf, sizeof(buf));
-				left(buf, 3);
+				left(m_fanState.c_str(), 3);
 			}
 		} else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed) {
 			char buf[10];
