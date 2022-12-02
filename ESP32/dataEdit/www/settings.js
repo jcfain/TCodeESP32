@@ -395,6 +395,9 @@ function setSystemInfo() {
 	document.getElementById("Squeeze_PIN").readOnly = !pinsAreEditable;
 	document.getElementById("Internal_Temp_PIN").readOnly = !pinsAreEditable;
 
+    document.getElementById('caseFanResolution').readOnly = systemInfo.boardType === BoardType.CRIMZZON;
+    document.getElementById('caseFanFrequency').readOnly = systemInfo.boardType === BoardType.CRIMZZON;
+
     document.getElementById('lastRebootReason').value = systemInfo.lastRebootReason;
 }
 function setUserSettings() 
@@ -409,8 +412,13 @@ function setUserSettings()
     toggleFeedbackTwistSettings(userSettings["feedbackTwist"]);
     toggleDisplaySettings(userSettings["displayEnabled"]);
     toggleTempSettings(userSettings["tempSleeveEnabled"]);
-    toggleInternalTempSettings(userSettings["tempInternalEnabled"]);
-    toggleFanControlSettings(userSettings["fanControlEnabled"]);
+    if(systemInfo.boardType === BoardType.ISAAC) {
+        setBuildInternalTemp(false);
+        setBuildFanControl(false);
+    } else {
+        toggleInternalTempSettings(userSettings["tempInternalEnabled"]);
+        toggleFanControlSettings(userSettings["fanControlEnabled"]);
+    }
     // var xMin = userSettings["xMin"];
     // var xMax = userSettings["xMax"];
     //document.getElementById("xMin").value = xMin;
@@ -1523,6 +1531,12 @@ function toggleTempSettings(enabled)
         document.getElementById('sleeveTempDisplayedRow').hidden = false;
     }
 }
+function setBuildInternalTemp(enabled) {
+    var elements = document.getElementsByClassName('internal-temp-build');
+    for(var i=0;i < elements.length; i++)
+        elements[i].style.display = enabled ? "revert" : "none";
+        toggleInternalTempSettings(enabled);
+}
 function toggleInternalTempSettings(enabled) 
 {
     if(!enabled) 
@@ -1595,6 +1609,12 @@ function setFanControl() {
 function setFanOnTemp() {
     userSettings["internalTempForFan"] = parseInt(document.getElementById('internalTempForFan').value);
     updateUserSettings();
+}
+function setBuildFanControl(enabled) {
+    var elements = document.getElementsByClassName('fan-control-build');
+    for(var i=0;i < elements.length; i++)
+        elements[i].style.display = enabled ? "revert" : "none";
+    toggleFanControlSettings(enabled);
 }
 function toggleFanControlSettings(enabled) {
     var elements = document.getElementsByClassName('fan-control');

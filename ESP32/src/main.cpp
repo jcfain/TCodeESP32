@@ -89,6 +89,10 @@ WebHandler webHandler;
 WebSocketHandler* webSocketHandler = 0;
 #endif
 
+#if TEMP_ENABLED == 1
+	TemperatureHandler* temperatureHandler = 0;
+#endif
+
 BLEHandler* bleHandler = 0;
 
 #if DISPLAY_ENABLED == 1
@@ -171,7 +175,8 @@ void tempStateChangeCallBack(TemperatureType type, const char* state) {
 		if(type == TemperatureType::SLEEVE) {
 			LogHandler::verbose("main-temp", "tempStateChangeCallBack heat: %s", state);
 			displayHandler->setHeateState(state);
-			displayHandler->setHeateStateShort(TemperatureHandler::getShortSleeveControlStatus(state));
+			if(temperatureHandler)
+				displayHandler->setHeateStateShort(temperatureHandler->getShortSleeveControlStatus(state));
 		} else {
 			LogHandler::verbose("main-temp", "tempStateChangeCallBack fan: %s", state);
 			displayHandler->setFanState(state);
@@ -330,20 +335,15 @@ void setup()
 
 #if TEMP_ENABLED == 1
 	if(SettingsHandler::tempSleeveEnabled || SettingsHandler::tempInternalEnabled) {
-		TemperatureHandler::setup();
-		if(SettingsHandler::tempInternalEnabled) {
-			TemperatureHandler::setupInternalTemp();
-		}
-		if(SettingsHandler::tempSleeveEnabled) {
-			TemperatureHandler::setupSleeveTemp();
-		}
-		TemperatureHandler::setMessageCallback(tempChangeCallBack);
-		TemperatureHandler::setStateChangeCallback(tempStateChangeCallBack);
+		temperatureHandler = new TemperatureHandler();
+		temperatureHandler->setup();
+		temperatureHandler->setMessageCallback(tempChangeCallBack);
+		temperatureHandler->setStateChangeCallback(tempStateChangeCallBack);
 		xTaskCreatePinnedToCore(
 			TemperatureHandler::startLoop,/* Function to implement the task */
 			"TempTask", /* Name of the task */
 			10000,  /* Stack size in words */
-			NULL,  /* Task input parameter */
+			temperatureHandler,  /* Task input parameter */
 			1,  /* Priority of the task */
 			&temperatureTask,  /* Task handle. */
 			APP_CPU_NUM); /* Core where the task should run */
@@ -463,11 +463,13 @@ void loop()
 			servoHandler->execute();
 		}
 #if TEMP_ENABLED == 1
-		if(SettingsHandler::tempSleeveEnabled && TemperatureHandler::isRunning()) {
-			TemperatureHandler::setHeaterState();
-		}
-		if(SettingsHandler::tempInternalEnabled && TemperatureHandler::isRunning()) {
-			TemperatureHandler::setFanState();
+		if(temperatureHandler && temperatureHandler->isRunning()) {
+			if(SettingsHandler::tempSleeveEnabled) {
+				temperatureHandler->setHeaterState();
+			}
+			if(SettingsHandler::fanControlEnabled) {
+				temperatureHandler->setFanState();
+			}
 		}
 #endif
 	}

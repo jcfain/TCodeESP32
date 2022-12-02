@@ -146,8 +146,8 @@ class SettingsHandler
         static int Internal_Temp_PIN;
         static int Case_Fan_PIN;
 		static int Sleeve_Temp_PIN; 
-		static int caseFanPWM;// setting 0-255
-        static int internalTempForFan; // C
+		static int caseFanMaxDuty;
+        static double internalTempForFan; // C
 		static int Heater_PIN;
 		static int HeatLED_PIN;
 		static int TargetTemp;// Desired Temp in degC
@@ -228,20 +228,23 @@ class SettingsHandler
             setBuildFeatures();
 
 	        #if ISAAC_NEWTONGUE_BUILD == 1
-                RightServo_PIN = 13;
-                LeftServo_PIN = 2;
-                PitchLeftServo_PIN = 16;
+                TCodeVersionEnum = TCodeVersion::v0_3;
+                TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
+                RightServo_PIN = 2;
+                LeftServo_PIN = 13;
+                PitchLeftServo_PIN = 14;
                 ValveServo_PIN = 5;
                 TwistServo_PIN = 27;
-                TwistFeedBack_PIN = 26;
-                Vibe0_PIN = 25;
-                Vibe1_PIN = 19;
-                LubeButton_PIN = 15;
-                RightUpperServo_PIN = 12;
-                LeftUpperServo_PIN = 4;
-                PitchRightServo_PIN = 14;
-                Sleeve_Temp_PIN = 18; 
-                Heater_PIN = 23;
+                TwistFeedBack_PIN = 33;
+                Vibe0_PIN = 15;
+                Vibe1_PIN = 16;
+                LubeButton_PIN = 36;
+                RightUpperServo_PIN = 4;
+                LeftUpperServo_PIN = 12;
+                PitchRightServo_PIN = 17;
+                Sleeve_Temp_PIN = 25; 
+                Heater_PIN = 19;
+                Squeeze_PIN = 26;
             #elif CRIMZZON_BUILD == 1
                 TCodeVersionEnum = TCodeVersion::v0_3;
                 TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
@@ -424,10 +427,10 @@ class SettingsHandler
 
                 tempInternalEnabled = json["tempInternalEnabled"];
                 fanControlEnabled = json["fanControlEnabled"];
-                internalTempForFan = json["internalTempForFan"] | 30;
+                internalTempForFan = json["internalTempForFan"] | 30.0f;
                 caseFanFrequency = json["caseFanFrequency"] | 25;
                 caseFanResolution = json["caseFanResolution"] | 10;
-                caseFanPWM = pow(2, caseFanResolution) - 1;
+                caseFanMaxDuty = pow(2, caseFanResolution) - 1;
                 
                 lubeEnabled = json["lubeEnabled"];
                 lastRebootReason = machine_reset_cause();
@@ -1115,7 +1118,7 @@ BuildFeature SettingsHandler::buildFeatures[featureCount];
 const char* SettingsHandler::_TAG = "_SETTINGS_HANDLER";
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[8] = "v0.256a";
+const char SettingsHandler::ESP32Version[8] = "v0.258b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char* SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
@@ -1210,8 +1213,8 @@ bool SettingsHandler::tempInternalEnabled = false;
 bool SettingsHandler::fanControlEnabled = false;
 int SettingsHandler::Display_Screen_Width = 128; 
 int SettingsHandler::Display_Screen_Height = 64; 
-int SettingsHandler::caseFanPWM = 255;
-int SettingsHandler::internalTempForFan = 20;
+int SettingsHandler::caseFanMaxDuty = 255;
+double SettingsHandler::internalTempForFan = 20.0;
 int SettingsHandler::TargetTemp = 40;
 int SettingsHandler::HeatPWM = 255;
 int SettingsHandler::HoldPWM = 110;
