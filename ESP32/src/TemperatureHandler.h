@@ -27,6 +27,7 @@ SOFTWARE. */
 //#include <AutoPID.h>
 #include "TCode/Global.h"
 #include "SettingsHandler.h"
+#include "LogHandler.h"
 
 enum class TemperatureType {
 	INTERNAL,
@@ -43,7 +44,7 @@ class TemperatureState {
 	// Heater state
 	static const char* FAIL_SAFE;
 	static const char* ERROR;
-	static const char* WARM_UP;
+	static const char* MAX_TEMP_ERROR;
 	static const char* HOLD;
 	static const char* HEAT;
 	//Fan states
@@ -58,7 +59,7 @@ const char* TemperatureState::RESTART_REQUIRED = "Restart";
 // Heater state
 const char* TemperatureState::FAIL_SAFE = "Fail safe";
 const char* TemperatureState::ERROR = "Error";
-const char* TemperatureState::WARM_UP = "Warm up";
+const char* TemperatureState::MAX_TEMP_ERROR = "Max temp";
 const char* TemperatureState::HOLD = "Holding";
 const char* TemperatureState::HEAT = "Heating";
 //Fan states
@@ -99,6 +100,7 @@ class TemperatureHandler {
 		bool internalTempInitialized = false;
 
 		bool failsafeTriggerInternal = false;
+		bool maxTempTriggerInternal = false;
 		bool fanControlInitialized = false;
 		/////////////////////////////////////////
 
@@ -163,7 +165,15 @@ class TemperatureHandler {
 			state_change_callback(type, state);
 		}
 	}
+	void requestInternalTemp() {
+		sensorsInternal.requestTemperaturesByIndex(0);
+		lastInternalTempRequest = millis(); 
+	}
 
+	void requestSleeveTemp() {
+		sensorsSleeve.requestTemperaturesByIndex(0);
+		lastSleeveTempRequest = millis(); 
+	}
 	
 	public: 
 	// xQueueHandle sleeveTempQueue;
@@ -265,9 +275,8 @@ class TemperatureHandler {
 		((TemperatureHandler*)parameter)->loop();
 	}
 
-	void requestInternalTemp() {
-		sensorsInternal.requestTemperaturesByIndex(0);
-		lastInternalTempRequest = millis(); 
+	bool isMaxTempTriggered() {
+		return maxTempTriggerInternal;
 	}
 
 	void getInternalTemp() {
@@ -277,8 +286,10 @@ class TemperatureHandler {
 			long start = micros();
 
 			float currentInternalTemp = sensorsInternal.getTempC(internalDeviceAddress);
+			bool tempChanged = false;
 
 			if(!essentiallyEqual(_currentInternalTemp, m_lastInternalTemp)) {
+				tempChanged = true;
 				m_lastInternalTemp = _currentInternalTemp;
 				LogHandler::debug(_TAG, "Last internal temp: %f", m_lastInternalTemp);
 				//LogHandler::debug(_TAG, "Current internal temp: %f", _currentInternalTemp);
@@ -289,16 +300,11 @@ class TemperatureHandler {
 			LogHandler::verbose(_TAG, "internal getTempC duration: %ld", micros() - start);
 
 			String statusJson("{\"temp\":" + String(_currentInternalTemp) + ", \"status\":\""+m_lastInternalStatus+"\"}");
-			if(message_callback) {
+			if(tempChanged && message_callback) {
 				message_callback(TemperatureType::INTERNAL, statusJson.c_str(), _currentInternalTemp);
 			}
 			requestInternalTemp();
 		}
-	}
-
-	void requestSleeveTemp() {
-		sensorsSleeve.requestTemperaturesByIndex(0);
-		lastSleeveTempRequest = millis(); 
 	}
 
 	void getSleeveTemp() {
@@ -307,8 +313,10 @@ class TemperatureHandler {
 			long start = micros();
 
 			float currentSleeveTemp = sensorsSleeve.getTempC(sleeveDeviceAddress);
+			bool tempChanged = false;
 
 			if(!essentiallyEqual(_currentSleeveTemp, m_lastSleeveTemp)) {
+				tempChanged = true;
 				m_lastSleeveTemp = _currentSleeveTemp;
 			}
 			_currentSleeveTemp = currentSleeveTemp;
@@ -318,7 +326,7 @@ class TemperatureHandler {
 			LogHandler::verbose(_TAG, "sleeve getTempC duration: %ld", micros() - start);
 
 			String statusJson("{\"temp\":" + String(_currentSleeveTemp) + ", \"status\":\""+m_lastSleeveStatus+"\"}");
-			if(message_callback) {
+			if(tempChanged && message_callback) {
 				message_callback(TemperatureType::SLEEVE, statusJson.c_str(), _currentSleeveTemp);
 			}
 			requestSleeveTemp();
@@ -332,6 +340,9 @@ class TemperatureHandler {
 			if(SettingsHandler::fanControlEnabled && fanControlInitialized) {
 				if(failsafeTriggerInternal) {
 					currentState = TemperatureState::FAIL_SAFE;
+					currentDuty = SettingsHandler::caseFanMaxDuty;
+				} else if (maxTempTriggerInternal) {
+					currentState = TemperatureState::MAX_TEMP_ERROR;
 					currentDuty = SettingsHandler::caseFanMaxDuty;
 				} else {
 					double currentTemp = _currentInternalTemp;
@@ -476,8 +487,8 @@ class TemperatureHandler {
 			return "F";
 		} else if(strcmp(state, TemperatureState::ERROR) == 0) {
 			return "E";
-		} else if(strcmp(state, TemperatureState::WARM_UP) == 0) {
-			return "W";
+		} else if(strcmp(state, TemperatureState::MAX_TEMP_ERROR) == 0) {
+			return "M";
 		} else if(strcmp(state, TemperatureState::HOLD) == 0) {
 			return "S";
 		} else if(strcmp(state, TemperatureState::HEAT) == 0) {
@@ -504,29 +515,37 @@ class TemperatureHandler {
 				if(errorCountSleeve > 10) {
 					if(!failsafeTriggerSleeve) {
 						failsafeTriggerSleeve = true;
-						// String* command = new String("failSafeTriggered");
-						// xQueueSend(sleeveTempQueue, &command, 0);
 						if(message_callback)
 							message_callback(TemperatureType::SLEEVE, "failSafeTriggered", _currentSleeveTemp);
 						setState(TemperatureType::SLEEVE, TemperatureState::FAIL_SAFE);
 					}
 				} else if(m_lastSleeveStatus == TemperatureState::ERROR) {
 					errorCountSleeve++;
+				} else {
+					errorCountSleeve = 0;
 				}
 			}
 
 			if(SettingsHandler::tempInternalEnabled) {
+				if(definitelyGreaterThanOREssentiallyEqual(_currentInternalTemp, SettingsHandler::internalMaxTemp)) {
+					if(!failsafeTriggerInternal && !maxTempTriggerInternal) {
+						maxTempTriggerInternal = true;
+						if(message_callback)
+							message_callback(TemperatureType::INTERNAL, "failSafeTriggered", _currentInternalTemp);
+						setState(TemperatureType::INTERNAL, TemperatureState::MAX_TEMP_ERROR);
+					}
+				} 
 				if(errorCountInternal > 10) {
-					if(!failsafeTriggerInternal) {
+					if(!failsafeTriggerInternal && !maxTempTriggerInternal) {
 						failsafeTriggerInternal = true;
-						// String* command = new String("failSafeTriggered");
-						// xQueueSend(internalTempQueue, &command, 0);
 						if(message_callback)
 							message_callback(TemperatureType::INTERNAL, "failSafeTriggered", _currentInternalTemp);
 						setState(TemperatureType::INTERNAL, TemperatureState::FAIL_SAFE);
 					}
 				} else if(m_lastInternalStatus == TemperatureState::ERROR) {
 					errorCountInternal++;
+				} else {
+					errorCountInternal = 0;
 				}
 			}
 		}

@@ -25,6 +25,8 @@ SOFTWARE. */
 #include <sstream>
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
+#include "SettingsHandler.h"
+#include "LogHandler.h"
 
 #define featureCount 7
 
@@ -148,6 +150,7 @@ class SettingsHandler
 		static int Sleeve_Temp_PIN; 
 		static int caseFanMaxDuty;
         static double internalTempForFan; // C
+        static double internalMaxTemp; // C
 		static int Heater_PIN;
 		static int HeatLED_PIN;
 		static int TargetTemp;// Desired Temp in degC
@@ -155,7 +158,6 @@ class SettingsHandler
 		static int HoldPWM;// Hold heat PWM setting 0-255
 		static int Display_I2C_Address;
 		static int Display_Rst_PIN;
-        static long WarmUpTime;// Time to hold heating on first boot
         //static long heaterFailsafeTime;
         static float heaterThreshold;
         static int heaterResolution;
@@ -227,7 +229,7 @@ class SettingsHandler
             setBoardType();
             setBuildFeatures();
 
-	        #if ISAAC_NEWTONGUE_BUILD == 1
+	        #if ISAAC_NEWTONGUE_BUILD
                 TCodeVersionEnum = TCodeVersion::v0_3;
                 TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
                 RightServo_PIN = 2;
@@ -245,7 +247,7 @@ class SettingsHandler
                 Sleeve_Temp_PIN = 25; 
                 Heater_PIN = 19;
                 Squeeze_PIN = 26;
-            #elif CRIMZZON_BUILD == 1
+            #elif CRIMZZON_BUILD
                 TCodeVersionEnum = TCodeVersion::v0_3;
                 TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
                 tempInternalEnabled = true;
@@ -316,7 +318,7 @@ class SettingsHandler
                 {
                     strcpy(wifiPass, wifiPassConst);
                 }
-	            #if CRIMZZON_BUILD == 0
+	            #if !CRIMZZON_BUILD
                     TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 2);
                     TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
 	            #endif
@@ -348,7 +350,7 @@ class SettingsHandler
                 feedbackTwist =  json["feedbackTwist"];
                 analogTwist = json["analogTwist"];
 
-	        #if ISAAC_NEWTONGUE_BUILD == 0 && CRIMZZON_BUILD == 0
+	        #if !ISAAC_NEWTONGUE_BUILD && !CRIMZZON_BUILD
 				TwistFeedBack_PIN = json["TwistFeedBack_PIN"];
 				RightServo_PIN = json["RightServo_PIN"];
 				LeftServo_PIN = json["LeftServo_PIN"];
@@ -420,14 +422,15 @@ class SettingsHandler
                 heaterThreshold = json["heaterThreshold"] | 5.0;
                 heaterFrequency = json["heaterFrequency"] | 5000;
                 heaterResolution = json["heaterResolution"] | 8;
-				TargetTemp = json["TargetTemp"] | 40;
+				TargetTemp = json["TargetTemp"] | 40.0;
 				HeatPWM = json["HeatPWM"] | 255;
 				HoldPWM = json["HoldPWM"] | 110;
-                WarmUpTime = json["WarmUpTime"] | 600000;
 
                 tempInternalEnabled = json["tempInternalEnabled"];
                 fanControlEnabled = json["fanControlEnabled"];
-                internalTempForFan = json["internalTempForFan"] | 30.0f;
+                internalTempForFan = json["internalTempForFan"] | 30.0;
+                internalMaxTemp = json["internalMaxTemp"] | 50.0;
+                
                 caseFanFrequency = json["caseFanFrequency"] | 25;
                 caseFanResolution = json["caseFanResolution"] | 10;
                 caseFanMaxDuty = pow(2, caseFanResolution) - 1;
@@ -609,7 +612,7 @@ class SettingsHandler
             if(!tempSleeveEnabled) {
                 sleeveTempDisplayed = false;
             }
-            LogHandler::debug(_TAG, "Save settings");
+            LogHandler::info(_TAG, "Save settings");
             doc["fullBuild"] = fullBuild;
             doc["esp32Version"] = ESP32Version;
             doc["TCodeVersion"] = (int)TCodeVersionEnum;
@@ -691,7 +694,6 @@ class SettingsHandler
 			doc["Display_Rst_PIN"] = Display_Rst_PIN;
 			doc["Temp_PIN"] = Sleeve_Temp_PIN;
 			doc["Heater_PIN"] = Heater_PIN;
-            doc["WarmUpTime"] = WarmUpTime;
             //doc["heaterFailsafeTime"] = String(heaterFailsafeTime);
             doc["heaterThreshold"] = heaterThreshold;
             doc["heaterResolution"] = heaterResolution;
@@ -700,6 +702,7 @@ class SettingsHandler
             doc["caseFanFrequency"] = caseFanFrequency;
             doc["caseFanResolution"] = caseFanResolution;
             doc["internalTempForFan"] = internalTempForFan;
+            doc["internalMaxTemp"] = internalMaxTemp;
             doc["tempInternalEnabled"] = tempInternalEnabled;
 			
             LogSaveDebug(doc);
@@ -730,39 +733,39 @@ class SettingsHandler
 
         static void setBuildFeatures() {
             int index = 0;
-            #if WIFI_TCODE == 1
+            #if WIFI_TCODE
                 LogHandler::debug("setBuildFeatures", "WIFI_TCODE");
                 buildFeatures[index] = BuildFeature::WIFI;
                 index++;
             #endif
-            #if BLUETOOTH_TCODE == 1
+            #if BLUETOOTH_TCODE
                 LogHandler::debug("setBuildFeatures", "BLUETOOTH_TCODE");
                 buildFeatures[index] = BuildFeature::BLUETOOTH;
                 index++;
             #endif
-            #if DEBUG_BUILD == 1
+            #if DEBUG_BUILD
                 LogHandler::debug("setBuildFeatures", "DEBUG_BUILD");
                 buildFeatures[index] = BuildFeature::DEBUG;
                 LogHandler::setLogLevel(LogLevel::VERBOSE);
 		        debug = true;
                 index++;
             #endif
-            #if ESP32_DA == 1
+            #if ESP32_DA
                 LogHandler::debug("setBuildFeatures", "ESP32_DA");
                 buildFeatures[index] = BuildFeature::DA;
                 index++;
             #endif
-            #if TEMP_ENABLED == 1
+            #if TEMP_ENABLED
                 LogHandler::debug("setBuildFeatures", "TEMP_ENABLED");
                 buildFeatures[index] = BuildFeature::TEMP;
                 index++;
             #endif
-            #if DISPLAY_ENABLED == 1
+            #if DISPLAY_ENABLED
                 LogHandler::debug("setBuildFeatures", "DISPLAY_ENABLED");
                 buildFeatures[index] = BuildFeature::DISPLAY_;
                 index++;
             #endif
-            #if TCODE_V2 == 1
+            #if TCODE_V2
                 LogHandler::debug("setBuildFeatures", "TCODE_V2");
                 buildFeatures[index] = BuildFeature::HAS_TCODE_V2;
                 index++;
@@ -771,10 +774,10 @@ class SettingsHandler
         }
 
         static void setBoardType() {
-            #if ISAAC_NEWTONGUE_BUILD == 1
+            #if ISAAC_NEWTONGUE_BUILD
                 LogHandler::debug("setBoardType", "ISAAC_NEWTONGUE_BUILD");
                 boardType = BoardType::ISAAC;
-            #elif CRIMZZON_BUILD == 1
+            #elif CRIMZZON_BUILD
                 LogHandler::debug("setBoardType", "CRIMZZON_BUILD");
                 boardType = BoardType::CRIMZZON;
             #else
@@ -957,156 +960,156 @@ class SettingsHandler
 
         static void LogSaveDebug(DynamicJsonDocument doc) 
         {
-            // LogHandler::verbose(_TAG, "save TCodeVersionEnum: %i", (int)doc["TCodeVersion"]);
-            // LogHandler::verbose(_TAG, "save ssid: %s", (const char*) doc["ssid"]);
-            // // LogHandler::verbose(_TAG, "save wifiPass: %s", (const char*) doc["wifiPass"]);
-            // LogHandler::verbose(_TAG, "save udpServerPort: %i", (int)doc["udpServerPort"]);
-            // LogHandler::verbose(_TAG, "save webServerPort: %i", (int)doc["webServerPort"]);
-            // LogHandler::verbose(_TAG, "save hostname: %s", (const char*) doc["hostname"]);
-            // LogHandler::verbose(_TAG, "save friendlyName: %s", (const char*) doc["friendlyName"]);
-            // LogHandler::verbose(_TAG, "save pitchFrequencyIsDifferent ", (bool)doc["pitchFrequencyIsDifferent"]);
-            // LogHandler::verbose(_TAG, "save msPerRad: %i", (int)doc["msPerRad"]);
-            // LogHandler::verbose(_TAG, "save servoFrequency: %i", (int)doc["servoFrequency"]);
-            // LogHandler::verbose(_TAG, "save  pitchFrequency: %i", (int)doc["pitchFrequency"]);
-            // LogHandler::verbose(_TAG, "save valveFrequency: %i",(int)doc["valveFrequency"]);
-            // LogHandler::verbose(_TAG, "save twistFrequency: %i", (int)doc["twistFrequency"]);
-            // LogHandler::verbose(_TAG, "save continuousTwist: %i", (bool)doc["continuousTwist"]);
-            // LogHandler::verbose(_TAG, "save feedbackTwist: %i", (bool)doc["feedbackTwist"]);
-            // LogHandler::verbose(_TAG, "save analogTwist: %i", (bool)doc["analogTwist"]);
-            // LogHandler::verbose(_TAG, "save TwistFeedBack_PIN: %i", (int)doc["TwistFeedBack_PIN"]);
-            // LogHandler::verbose(_TAG, "save RightServo_PIN: %i", (int)doc["RightServo_PIN"]);
-            // LogHandler::verbose(_TAG, "save LeftServo_PIN: %i", (int)doc["LeftServo_PIN"]);
-            // LogHandler::verbose(_TAG, "save RightUpperServo_PIN: %i",(int)doc["RightUpperServo_PIN"]);
-            // LogHandler::verbose(_TAG, "save LeftUpperServo_PIN: %i", (int)doc["LeftUpperServo_PIN"]);
-            // LogHandler::verbose(_TAG, "save PitchLeftServo_PIN: %i", (int)doc["PitchLeftServo_PIN"]);
-            // LogHandler::verbose(_TAG, "save PitchRightServo_PIN: %i", (int)doc["PitchRightServo_PIN"]);
-            // LogHandler::verbose(_TAG, "save ValveServo_PIN: %i", (int)doc["ValveServo_PIN"]);
-            // LogHandler::verbose(_TAG, "save TwistServo_PIN: %i", (int)doc["TwistServo_PIN"]);
-            // LogHandler::verbose(_TAG, "save Vibe0_PIN: %i", (int)doc["Vibe0_PIN"]);
-            // LogHandler::verbose(_TAG, "save Vibe1_PIN: %i", (int)doc["Vibe1_PIN"]);
-            // LogHandler::verbose(_TAG, "save Lube_Pin: %i", (int)doc["Lube_Pin"]);
-            // LogHandler::verbose(_TAG, "save LubeButton_PIN: %i", (int)doc["LubeButton_PIN"]);
-            // LogHandler::verbose(_TAG, "save staticIP: %i", (bool)doc["staticIP"]);
-            // LogHandler::verbose(_TAG, "save localIP: %s", (const char*) doc["localIP"]);
-            // LogHandler::verbose(_TAG, "save gateway: %s", (const char*) doc["gateway"]);
-            // LogHandler::verbose(_TAG, "save subnet: %s", (const char*) doc["subnet"]);
-            // LogHandler::verbose(_TAG, "save dns1: %s", (const char*) doc["dns1"]);
-            // LogHandler::verbose(_TAG, "save dns2: %s", (const char*) doc["dns2"]);
-            // LogHandler::verbose(_TAG, "save sr6Mode: %i", (bool)doc["sr6Mode"]);
-            // LogHandler::verbose(_TAG, "save RightServo_ZERO: %i", (int)doc["RightServo_ZERO"]);
-            // LogHandler::verbose(_TAG, "save LeftServo_ZERO: %i", (int)doc["LeftServo_ZERO"]);
-            // LogHandler::verbose(_TAG, "save RightUpperServo_ZERO: %i", (int)doc["RightUpperServo_ZERO"]);
-            // LogHandler::verbose(_TAG, "save LeftUpperServo_ZERO: %i", (int)doc["LeftUpperServo_ZERO"]);
-            // LogHandler::verbose(_TAG, "save PitchLeftServo_ZERO: %i", (int)doc["PitchLeftServo_ZERO"]);
-            // LogHandler::verbose(_TAG, "save PitchRightServo_ZERO: %i", (int)doc["PitchRightServo_ZERO"]);
-            // LogHandler::verbose(_TAG, "save TwistServo_ZERO: %i", (int)doc["TwistServo_ZERO"]);
-            // LogHandler::verbose(_TAG, "save ValveServo_ZERO: %i", (int)doc["ValveServo_ZERO"]);
-            // LogHandler::verbose(_TAG, "save autoValve: %i", (bool)doc["autoValve"]);
-            // LogHandler::verbose(_TAG, "save inverseValve: %i", (bool)doc["inverseValve"]);
-            // LogHandler::verbose(_TAG, "save valveServo90Degrees: %i", (bool)doc["valveServo90Degrees"]);
-            // LogHandler::verbose(_TAG, "save inverseStroke: %i", (bool)doc["inverseStroke"]);
-            // LogHandler::verbose(_TAG, "save inversePitch: %i", (bool)doc["inversePitch"]);
-            // LogHandler::verbose(_TAG, "save lubeEnabled: %i", (bool)doc["lubeEnabled"]);
-            // LogHandler::verbose(_TAG, "save lubeAmount: %i", (int)doc["lubeAmount"]);
-            // LogHandler::verbose(_TAG, "save Temp_PIN: %i", (int)doc["Temp_PIN"]);
-            // LogHandler::verbose(_TAG, "save Heater_PIN: %i", (int)doc["Heater_PIN"]);
-            // LogHandler::verbose(_TAG, "save displayEnabled: %i", (bool)doc["displayEnabled"]);
-            // LogHandler::verbose(_TAG, "save sleeveTempDisplayed: %i", (bool)doc["sleeveTempDisplayed"]);
-            // LogHandler::verbose(_TAG, "save internalTempDisplayed: %i", (bool)doc["internalTempDisplayed"]);
-            // LogHandler::verbose(_TAG, "save tempSleeveEnabled: %i", (bool)doc["tempSleeveEnabled"]);
+            LogHandler::debug(_TAG, "save TCodeVersionEnum: %i", (int)doc["TCodeVersion"]);
+            LogHandler::debug(_TAG, "save ssid: %s", (const char*) doc["ssid"]);
+            // LogHandler::debug(_TAG, "save wifiPass: %s", (const char*) doc["wifiPass"]);
+            LogHandler::debug(_TAG, "save udpServerPort: %i", (int)doc["udpServerPort"]);
+            LogHandler::debug(_TAG, "save webServerPort: %i", (int)doc["webServerPort"]);
+            LogHandler::debug(_TAG, "save hostname: %s", (const char*) doc["hostname"]);
+            LogHandler::debug(_TAG, "save friendlyName: %s", (const char*) doc["friendlyName"]);
+            LogHandler::debug(_TAG, "save pitchFrequencyIsDifferent ", (bool)doc["pitchFrequencyIsDifferent"]);
+            LogHandler::debug(_TAG, "save msPerRad: %i", (int)doc["msPerRad"]);
+            LogHandler::debug(_TAG, "save servoFrequency: %i", (int)doc["servoFrequency"]);
+            LogHandler::debug(_TAG, "save  pitchFrequency: %i", (int)doc["pitchFrequency"]);
+            LogHandler::debug(_TAG, "save valveFrequency: %i",(int)doc["valveFrequency"]);
+            LogHandler::debug(_TAG, "save twistFrequency: %i", (int)doc["twistFrequency"]);
+            LogHandler::debug(_TAG, "save continuousTwist: %i", (bool)doc["continuousTwist"]);
+            LogHandler::debug(_TAG, "save feedbackTwist: %i", (bool)doc["feedbackTwist"]);
+            LogHandler::debug(_TAG, "save analogTwist: %i", (bool)doc["analogTwist"]);
+            LogHandler::debug(_TAG, "save TwistFeedBack_PIN: %i", (int)doc["TwistFeedBack_PIN"]);
+            LogHandler::debug(_TAG, "save RightServo_PIN: %i", (int)doc["RightServo_PIN"]);
+            LogHandler::debug(_TAG, "save LeftServo_PIN: %i", (int)doc["LeftServo_PIN"]);
+            LogHandler::debug(_TAG, "save RightUpperServo_PIN: %i",(int)doc["RightUpperServo_PIN"]);
+            LogHandler::debug(_TAG, "save LeftUpperServo_PIN: %i", (int)doc["LeftUpperServo_PIN"]);
+            LogHandler::debug(_TAG, "save PitchLeftServo_PIN: %i", (int)doc["PitchLeftServo_PIN"]);
+            LogHandler::debug(_TAG, "save PitchRightServo_PIN: %i", (int)doc["PitchRightServo_PIN"]);
+            LogHandler::debug(_TAG, "save ValveServo_PIN: %i", (int)doc["ValveServo_PIN"]);
+            LogHandler::debug(_TAG, "save TwistServo_PIN: %i", (int)doc["TwistServo_PIN"]);
+            LogHandler::debug(_TAG, "save Vibe0_PIN: %i", (int)doc["Vibe0_PIN"]);
+            LogHandler::debug(_TAG, "save Vibe1_PIN: %i", (int)doc["Vibe1_PIN"]);
+            LogHandler::debug(_TAG, "save Lube_Pin: %i", (int)doc["Lube_Pin"]);
+            LogHandler::debug(_TAG, "save LubeButton_PIN: %i", (int)doc["LubeButton_PIN"]);
+            LogHandler::debug(_TAG, "save staticIP: %i", (bool)doc["staticIP"]);
+            LogHandler::debug(_TAG, "save localIP: %s", (const char*) doc["localIP"]);
+            LogHandler::debug(_TAG, "save gateway: %s", (const char*) doc["gateway"]);
+            LogHandler::debug(_TAG, "save subnet: %s", (const char*) doc["subnet"]);
+            LogHandler::debug(_TAG, "save dns1: %s", (const char*) doc["dns1"]);
+            LogHandler::debug(_TAG, "save dns2: %s", (const char*) doc["dns2"]);
+            LogHandler::debug(_TAG, "save sr6Mode: %i", (bool)doc["sr6Mode"]);
+            LogHandler::debug(_TAG, "save RightServo_ZERO: %i", (int)doc["RightServo_ZERO"]);
+            LogHandler::debug(_TAG, "save LeftServo_ZERO: %i", (int)doc["LeftServo_ZERO"]);
+            LogHandler::debug(_TAG, "save RightUpperServo_ZERO: %i", (int)doc["RightUpperServo_ZERO"]);
+            LogHandler::debug(_TAG, "save LeftUpperServo_ZERO: %i", (int)doc["LeftUpperServo_ZERO"]);
+            LogHandler::debug(_TAG, "save PitchLeftServo_ZERO: %i", (int)doc["PitchLeftServo_ZERO"]);
+            LogHandler::debug(_TAG, "save PitchRightServo_ZERO: %i", (int)doc["PitchRightServo_ZERO"]);
+            LogHandler::debug(_TAG, "save TwistServo_ZERO: %i", (int)doc["TwistServo_ZERO"]);
+            LogHandler::debug(_TAG, "save ValveServo_ZERO: %i", (int)doc["ValveServo_ZERO"]);
+            LogHandler::debug(_TAG, "save autoValve: %i", (bool)doc["autoValve"]);
+            LogHandler::debug(_TAG, "save inverseValve: %i", (bool)doc["inverseValve"]);
+            LogHandler::debug(_TAG, "save valveServo90Degrees: %i", (bool)doc["valveServo90Degrees"]);
+            LogHandler::debug(_TAG, "save inverseStroke: %i", (bool)doc["inverseStroke"]);
+            LogHandler::debug(_TAG, "save inversePitch: %i", (bool)doc["inversePitch"]);
+            LogHandler::debug(_TAG, "save lubeEnabled: %i", (bool)doc["lubeEnabled"]);
+            LogHandler::debug(_TAG, "save lubeAmount: %i", (int)doc["lubeAmount"]);
+            LogHandler::debug(_TAG, "save Temp_PIN: %i", (int)doc["Temp_PIN"]);
+            LogHandler::debug(_TAG, "save Heater_PIN: %i", (int)doc["Heater_PIN"]);
+            LogHandler::debug(_TAG, "save displayEnabled: %i", (bool)doc["displayEnabled"]);
+            LogHandler::debug(_TAG, "save sleeveTempDisplayed: %i", (bool)doc["sleeveTempDisplayed"]);
+            LogHandler::debug(_TAG, "save internalTempDisplayed: %i", (bool)doc["internalTempDisplayed"]);
+            LogHandler::debug(_TAG, "save tempSleeveEnabled: %i", (bool)doc["tempSleeveEnabled"]);
             LogHandler::debug(_TAG, "save tempInternalEnabled: %i", (bool)doc["tempInternalEnabled"]);
-            // LogHandler::verbose(_TAG, "save Display_Screen_Width: %i", (int)doc["Display_Screen_Width"]);
-            // LogHandler::verbose(_TAG, "save Display_Screen_Height: %i", (int)doc["Display_Screen_Height"]);
-            // LogHandler::verbose(_TAG, "save TargetTemp: %i", (int)doc["TargetTemp"]);
-            // LogHandler::verbose(_TAG, "save HeatPWM: %i", (int)doc["HeatPWM"]);
-            // LogHandler::verbose(_TAG, "save HoldPWM: %i", (int)doc["HoldPWM"]);
-            // LogHandler::verbose(_TAG, "save Display_I2C_Address: %i", (int)doc["Display_I2C_Address"]);
-            // LogHandler::verbose(_TAG, "save Display_Rst_PIN: %i", (int)doc["Display_Rst_PIN"]);
-            // LogHandler::verbose(_TAG, "save WarmUpTime: %ld", (long)doc["WarmUpTime"]);
-            // LogHandler::verbose(_TAG, "save heaterFailsafeTime: %ld", (long)doc["heaterFailsafeTime"]);
-            // LogHandler::verbose(_TAG, "save heaterThreshold: %i", (int)doc["heaterThreshold"]);
-            // LogHandler::verbose(_TAG, "save heaterResolution: %i", (int)doc["heaterResolution"]);
-            // LogHandler::verbose(_TAG, "save heaterFrequency: %i", (int)doc["heaterFrequency"]);
-            // LogHandler::verbose(_TAG, "save newtoungeHatExists: %i", (bool)doc["newtoungeHatExists"]);
-            // LogHandler::verbose(_TAG, "save logLevel: %i", (int)doc["logLevel"]);
-            // LogHandler::verbose(_TAG, "save bluetoothEnabled: %i", (int)doc["bluetoothEnabled"]);
+            LogHandler::debug(_TAG, "save Display_Screen_Width: %i", (int)doc["Display_Screen_Width"]);
+            LogHandler::debug(_TAG, "save internalMaxTemp: %f", (double)doc["internalMaxTemp"]);
+            LogHandler::debug(_TAG, "save internalTempForFan: %f", (double)doc["internalTempForFan"]);
+            LogHandler::debug(_TAG, "save Display_Screen_Height: %i", (int)doc["Display_Screen_Height"]);
+            LogHandler::debug(_TAG, "save TargetTemp: %f", (double)doc["TargetTemp"]);
+            LogHandler::debug(_TAG, "save HeatPWM: %i", (int)doc["HeatPWM"]);
+            LogHandler::debug(_TAG, "save HoldPWM: %i", (int)doc["HoldPWM"]);
+            LogHandler::debug(_TAG, "save Display_I2C_Address: %i", (int)doc["Display_I2C_Address"]);
+            LogHandler::debug(_TAG, "save Display_Rst_PIN: %i", (int)doc["Display_Rst_PIN"]);
+            LogHandler::debug(_TAG, "save heaterFailsafeTime: %ld", (long)doc["heaterFailsafeTime"]);
+            LogHandler::debug(_TAG, "save heaterThreshold: %i", (int)doc["heaterThreshold"]);
+            LogHandler::debug(_TAG, "save heaterResolution: %i", (int)doc["heaterResolution"]);
+            LogHandler::debug(_TAG, "save heaterFrequency: %i", (int)doc["heaterFrequency"]);
+            LogHandler::debug(_TAG, "save newtoungeHatExists: %i", (bool)doc["newtoungeHatExists"]);
+            LogHandler::debug(_TAG, "save logLevel: %i", (int)doc["logLevel"]);
+            LogHandler::debug(_TAG, "save bluetoothEnabled: %i", (int)doc["bluetoothEnabled"]);
             
         }
 
         static void LogUpdateDebug() 
         {
-            // LogHandler::verbose(_TAG, "update TCodeVersionEnum: %i", TCodeVersionEnum);
-            // LogHandler::verbose(_TAG, "update ssid: %s", ssid);
-            // //LogHandler::verbose(_TAG, "update wifiPass: %s", wifiPass);
-            // LogHandler::verbose(_TAG, "update udpServerPort: %i", udpServerPort);
-            // LogHandler::verbose(_TAG, "update webServerPort: %i", webServerPort);
-            // LogHandler::verbose(_TAG, "update hostname: %s", hostname);
-            // LogHandler::verbose(_TAG, "update friendlyName: %s", friendlyName);
-            // LogHandler::verbose(_TAG, "update pitchFrequencyIsDifferent: %i", pitchFrequencyIsDifferent);
-            // LogHandler::verbose(_TAG, "update msPerRad: %i", msPerRad);
-            // LogHandler::verbose(_TAG, "update servoFrequency: %i", servoFrequency);
-            // LogHandler::verbose(_TAG, "update pitchFrequency: %i", pitchFrequency);
-            // LogHandler::verbose(_TAG, "update valveFrequency: %i", valveFrequency);
-            // LogHandler::verbose(_TAG, "update twistFrequency: %i", twistFrequency);
-            // LogHandler::verbose(_TAG, "update continuousTwist: %i", continuousTwist);
-            // LogHandler::verbose(_TAG, "update feedbackTwist: %i", feedbackTwist);
-            // LogHandler::verbose(_TAG, "update analogTwist: %i", analogTwist);
-            // LogHandler::verbose(_TAG, "update TwistFeedBack_PIN: %i", TwistFeedBack_PIN);
-            // LogHandler::verbose(_TAG, "update RightServo_PIN: %i", RightServo_PIN);
-            // LogHandler::verbose(_TAG, "update LeftServo_PIN: %i", LeftServo_PIN);
-            // LogHandler::verbose(_TAG, "update RightUpperServo_PIN: %i", RightUpperServo_PIN);
-            // LogHandler::verbose(_TAG, "update LeftUpperServo_PIN: %i", LeftUpperServo_PIN);
-            // LogHandler::verbose(_TAG, "update PitchLeftServo_PIN: %i", PitchLeftServo_PIN);
-            // LogHandler::verbose(_TAG, "update PitchRightServo_PIN: %i", PitchRightServo_PIN);
-            // LogHandler::verbose(_TAG, "update ValveServo_PIN: %i", ValveServo_PIN);
-            // LogHandler::verbose(_TAG, "update TwistServo_PIN: %i", TwistServo_PIN);
-            // LogHandler::verbose(_TAG, "update Vibe0_PIN: %i", Vibe0_PIN);
-            // LogHandler::verbose(_TAG, "update Vibe1_PIN: %i", Vibe1_PIN);
-            // LogHandler::verbose(_TAG, "update LubeButton_PIN: %i", LubeButton_PIN);
-            // LogHandler::verbose(_TAG, "update staticIP: %i", staticIP);
-            // LogHandler::verbose(_TAG, "update localIP: %s", localIP);
-            // LogHandler::verbose(_TAG, "update gateway: %s", gateway);
-            // LogHandler::verbose(_TAG, "update subnet: %s", subnet);
-            // LogHandler::verbose(_TAG, "update dns1: %s", dns1);
-            // LogHandler::verbose(_TAG, "update dns2: %s", dns2);
-            // LogHandler::verbose(_TAG, "update sr6Mode: %i", sr6Mode);
-            // LogHandler::verbose(_TAG, "update RightServo_ZERO: %i", RightServo_ZERO);
-            // LogHandler::verbose(_TAG, "update LeftServo_ZERO: %i", LeftServo_ZERO);
-            // LogHandler::verbose(_TAG, "update RightUpperServo_ZERO: %i", RightUpperServo_ZERO);
-            // LogHandler::verbose(_TAG, "update LeftUpperServo_ZERO: %i", LeftUpperServo_ZERO);
-            // LogHandler::verbose(_TAG, "update PitchLeftServo_ZERO: %i", PitchLeftServo_ZERO);
-            // LogHandler::verbose(_TAG, "update PitchRightServo_ZERO: %i", PitchRightServo_ZERO);
-            // LogHandler::verbose(_TAG, "update TwistServo_ZERO: %i", TwistServo_ZERO);
-            // LogHandler::verbose(_TAG, "update ValveServo_ZERO: %i", ValveServo_ZERO);
-            // LogHandler::verbose(_TAG, "update autoValve: %i", autoValve);
-            // LogHandler::verbose(_TAG, "update inverseValve: %i", inverseValve);
-            // LogHandler::verbose(_TAG, "update valveServo90Degrees: %i", valveServo90Degrees);
-            // LogHandler::verbose(_TAG, "update inverseStroke: %i", inverseStroke);
-            // LogHandler::verbose(_TAG, "update inversePitch: %i", inversePitch);
-            // LogHandler::verbose(_TAG, "update lubeEnabled: %i", lubeEnabled);
-            // LogHandler::verbose(_TAG, "update lubeAmount: %i", lubeAmount);
-            // LogHandler::verbose(_TAG, "update displayEnabled: %i", displayEnabled);
-            // LogHandler::verbose(_TAG, "update sleeveTempDisplayed: %i", sleeveTempDisplayed);
-            // LogHandler::verbose(_TAG, "update internalTempDisplayed: %i", internalTempDisplayed);
-            // LogHandler::verbose(_TAG, "update tempSleeveEnabled: %i", tempSleeveEnabled);
-            LogHandler::debug(_TAG, "update tempInternalEnabled: %i", tempInternalEnabled);
-            // LogHandler::verbose(_TAG, "update Display_Screen_Width: %i", Display_Screen_Width);
-            // LogHandler::verbose(_TAG, "update Display_Screen_Height: %i", Display_Screen_Height);
-            // LogHandler::verbose(_TAG, "update TargetTemp: %i", TargetTemp);
-            // LogHandler::verbose(_TAG, "update HeatPWM: %i", HeatPWM);
-            // LogHandler::verbose(_TAG, "update HoldPWM: %i", HoldPWM);
-            // LogHandler::verbose(_TAG, "update Display_I2C_Address: %i", Display_I2C_Address);
-            // LogHandler::verbose(_TAG, "update Display_Rst_PIN: %i", Display_Rst_PIN);
-            // LogHandler::verbose(_TAG, "update Temp_PIN: %i", Temp_PIN);
-            // LogHandler::verbose(_TAG, "update Heater_PIN: %i", Heater_PIN); 
-            // LogHandler::verbose(_TAG, "update WarmUpTime: %ld", WarmUpTime);
-            // LogHandler::verbose(_TAG, "update heaterFailsafeTime: %ld", heaterFailsafeTime);
-            // LogHandler::verbose(_TAG, "update heaterThreshold: %d", heaterThreshold);
-            // LogHandler::verbose(_TAG, "update heaterResolution: %i", heaterResolution);
-            // LogHandler::verbose(_TAG, "update heaterFrequency: %i", heaterFrequency);
-            // LogHandler::verbose(_TAG, "update newtoungeHatExists: %i", newtoungeHatExists);
-            // LogHandler::verbose(_TAG, "update logLevel: %i", (int)logLevel);
-            // LogHandler::verbose(_TAG, "update bluetoothEnabled: %i", (int)bluetoothEnabled);
+            // LogHandler::debug(_TAG, "update TCodeVersionEnum: %i", TCodeVersionEnum);
+            // LogHandler::debug(_TAG, "update ssid: %s", ssid);
+            // //LogHandler::debug(_TAG, "update wifiPass: %s", wifiPass);
+            // LogHandler::debug(_TAG, "update udpServerPort: %i", udpServerPort);
+            // LogHandler::debug(_TAG, "update webServerPort: %i", webServerPort);
+            // LogHandler::debug(_TAG, "update hostname: %s", hostname);
+            // LogHandler::debug(_TAG, "update friendlyName: %s", friendlyName);
+            // LogHandler::debug(_TAG, "update pitchFrequencyIsDifferent: %i", pitchFrequencyIsDifferent);
+            // LogHandler::debug(_TAG, "update msPerRad: %i", msPerRad);
+            // LogHandler::debug(_TAG, "update servoFrequency: %i", servoFrequency);
+            // LogHandler::debug(_TAG, "update pitchFrequency: %i", pitchFrequency);
+            // LogHandler::debug(_TAG, "update valveFrequency: %i", valveFrequency);
+            // LogHandler::debug(_TAG, "update twistFrequency: %i", twistFrequency);
+            // LogHandler::debug(_TAG, "update continuousTwist: %i", continuousTwist);
+            // LogHandler::debug(_TAG, "update feedbackTwist: %i", feedbackTwist);
+            // LogHandler::debug(_TAG, "update analogTwist: %i", analogTwist);
+            // LogHandler::debug(_TAG, "update TwistFeedBack_PIN: %i", TwistFeedBack_PIN);
+            // LogHandler::debug(_TAG, "update RightServo_PIN: %i", RightServo_PIN);
+            // LogHandler::debug(_TAG, "update LeftServo_PIN: %i", LeftServo_PIN);
+            // LogHandler::debug(_TAG, "update RightUpperServo_PIN: %i", RightUpperServo_PIN);
+            // LogHandler::debug(_TAG, "update LeftUpperServo_PIN: %i", LeftUpperServo_PIN);
+            // LogHandler::debug(_TAG, "update PitchLeftServo_PIN: %i", PitchLeftServo_PIN);
+            // LogHandler::debug(_TAG, "update PitchRightServo_PIN: %i", PitchRightServo_PIN);
+            // LogHandler::debug(_TAG, "update ValveServo_PIN: %i", ValveServo_PIN);
+            // LogHandler::debug(_TAG, "update TwistServo_PIN: %i", TwistServo_PIN);
+            // LogHandler::debug(_TAG, "update Vibe0_PIN: %i", Vibe0_PIN);
+            // LogHandler::debug(_TAG, "update Vibe1_PIN: %i", Vibe1_PIN);
+            // LogHandler::debug(_TAG, "update LubeButton_PIN: %i", LubeButton_PIN);
+            // LogHandler::debug(_TAG, "update staticIP: %i", staticIP);
+            // LogHandler::debug(_TAG, "update localIP: %s", localIP);
+            // LogHandler::debug(_TAG, "update gateway: %s", gateway);
+            // LogHandler::debug(_TAG, "update subnet: %s", subnet);
+            // LogHandler::debug(_TAG, "update dns1: %s", dns1);
+            // LogHandler::debug(_TAG, "update dns2: %s", dns2);
+            // LogHandler::debug(_TAG, "update sr6Mode: %i", sr6Mode);
+            // LogHandler::debug(_TAG, "update RightServo_ZERO: %i", RightServo_ZERO);
+            // LogHandler::debug(_TAG, "update LeftServo_ZERO: %i", LeftServo_ZERO);
+            // LogHandler::debug(_TAG, "update RightUpperServo_ZERO: %i", RightUpperServo_ZERO);
+            // LogHandler::debug(_TAG, "update LeftUpperServo_ZERO: %i", LeftUpperServo_ZERO);
+            // LogHandler::debug(_TAG, "update PitchLeftServo_ZERO: %i", PitchLeftServo_ZERO);
+            // LogHandler::debug(_TAG, "update PitchRightServo_ZERO: %i", PitchRightServo_ZERO);
+            // LogHandler::debug(_TAG, "update TwistServo_ZERO: %i", TwistServo_ZERO);
+            // LogHandler::debug(_TAG, "update ValveServo_ZERO: %i", ValveServo_ZERO);
+            // LogHandler::debug(_TAG, "update autoValve: %i", autoValve);
+            // LogHandler::debug(_TAG, "update inverseValve: %i", inverseValve);
+            // LogHandler::debug(_TAG, "update valveServo90Degrees: %i", valveServo90Degrees);
+            // LogHandler::debug(_TAG, "update inverseStroke: %i", inverseStroke);
+            // LogHandler::debug(_TAG, "update inversePitch: %i", inversePitch);
+            // LogHandler::debug(_TAG, "update lubeEnabled: %i", lubeEnabled);
+            // LogHandler::debug(_TAG, "update lubeAmount: %i", lubeAmount);
+            // LogHandler::debug(_TAG, "update displayEnabled: %i", displayEnabled);
+            // LogHandler::debug(_TAG, "update sleeveTempDisplayed: %i", sleeveTempDisplayed);
+            // LogHandler::debug(_TAG, "update internalTempDisplayed: %i", internalTempDisplayed);
+            // LogHandler::debug(_TAG, "update tempSleeveEnabled: %i", tempSleeveEnabled);
+            // LogHandler::debug(_TAG, "update tempInternalEnabled: %i", tempInternalEnabled);
+            // LogHandler::debug(_TAG, "update Display_Screen_Width: %i", Display_Screen_Width);
+            // LogHandler::debug(_TAG, "update Display_Screen_Height: %i", Display_Screen_Height);
+            // LogHandler::debug(_TAG, "update TargetTemp: %i", TargetTemp);
+            // LogHandler::debug(_TAG, "update HeatPWM: %i", HeatPWM);
+            // LogHandler::debug(_TAG, "update HoldPWM: %i", HoldPWM);
+            // LogHandler::debug(_TAG, "update Display_I2C_Address: %i", Display_I2C_Address);
+            // LogHandler::debug(_TAG, "update Display_Rst_PIN: %i", Display_Rst_PIN);
+            // LogHandler::debug(_TAG, "update Temp_PIN: %i", Temp_PIN);
+            // LogHandler::debug(_TAG, "update Heater_PIN: %i", Heater_PIN); 
+            // LogHandler::debug(_TAG, "update heaterFailsafeTime: %ld", heaterFailsafeTime);
+            // LogHandler::debug(_TAG, "update heaterThreshold: %d", heaterThreshold);
+            // LogHandler::debug(_TAG, "update heaterResolution: %i", heaterResolution);
+            // LogHandler::debug(_TAG, "update heaterFrequency: %i", heaterFrequency);
+            // LogHandler::debug(_TAG, "update newtoungeHatExists: %i", newtoungeHatExists);
+            // LogHandler::debug(_TAG, "update logLevel: %i", (int)logLevel);
+            // LogHandler::debug(_TAG, "update bluetoothEnabled: %i", (int)bluetoothEnabled);
             
         }
 };
@@ -1215,12 +1218,12 @@ int SettingsHandler::Display_Screen_Width = 128;
 int SettingsHandler::Display_Screen_Height = 64; 
 int SettingsHandler::caseFanMaxDuty = 255;
 double SettingsHandler::internalTempForFan = 20.0;
+double SettingsHandler::internalMaxTemp = 50.0;
 int SettingsHandler::TargetTemp = 40;
 int SettingsHandler::HeatPWM = 255;
 int SettingsHandler::HoldPWM = 110;
 int SettingsHandler::Display_I2C_Address = 0x3C;
 int SettingsHandler::Display_Rst_PIN = -1;
-long SettingsHandler::WarmUpTime = 600000;
 //long SettingsHandler::heaterFailsafeTime = 60000;
 float SettingsHandler::heaterThreshold = 5.0;
 int SettingsHandler::heaterResolution = 8;

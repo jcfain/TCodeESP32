@@ -515,7 +515,6 @@ function setUserSettings()
 	// document.getElementById("Display_Rst_PIN").value = userSettings["Display_Rst_PIN"];
 	document.getElementById("Temp_PIN").value = userSettings["Temp_PIN"];
 	document.getElementById("Heater_PIN").value = userSettings["Heater_PIN"];
-    document.getElementById("WarmUpTime").value = userSettings["WarmUpTime"];
 	// document.getElementById("heaterFailsafeTime").value = userSettings["heaterFailsafeTime"];
 	document.getElementById("heaterThreshold").value = userSettings["heaterThreshold"];
 	document.getElementById("heaterResolution").value = userSettings["heaterResolution"];
@@ -541,6 +540,7 @@ function setUserSettings()
     document.getElementById('Internal_Temp_PIN').value = userSettings["Internal_Temp_PIN"];
     document.getElementById('fanControlEnabled').checked = userSettings["fanControlEnabled"];
     document.getElementById('internalTempForFan').value = userSettings["internalTempForFan"];
+    document.getElementById('internalMaxTemp').value = userSettings["internalMaxTemp"];
     document.getElementById('Case_Fan_PIN').value = userSettings["Case_Fan_PIN"];
     document.getElementById('caseFanResolution').value = userSettings["caseFanResolution"];
     document.getElementById('caseFanFrequency').value = userSettings["caseFanFrequency"];
@@ -1580,11 +1580,9 @@ function setDisplaySettings()
 function setTempSettings() {
     userSettings["tempSleeveEnabled"] = document.getElementById('tempSleeveEnabled').checked;
     toggleTempSettings(userSettings["tempSleeveEnabled"]);
-    userSettings["TargetTemp"] = parseInt(document.getElementById('TargetTemp').value);
+    userSettings["TargetTemp"] = parseFloat(document.getElementById('TargetTemp').value);
     userSettings["HeatPWM"] = parseInt(document.getElementById('HeatPWM').value);
     userSettings["HoldPWM"] = parseInt(document.getElementById('HoldPWM').value);
-    userSettings["WarmUpTime"] = parseInt(document.getElementById('WarmUpTime').value);
-    // userSettings["heaterFailsafeTime"] = parseInt(document.getElementById('heaterFailsafeTime').value);
     userSettings["heaterThreshold"] = parseInt(document.getElementById('heaterThreshold').value);
     userSettings["heaterResolution"] = parseInt(document.getElementById('heaterResolution').value);
     userSettings["heaterFrequency"] = parseInt(document.getElementById('heaterFrequency').value);
@@ -1607,7 +1605,11 @@ function setFanControl() {
     updateUserSettings();
 }
 function setFanOnTemp() {
-    userSettings["internalTempForFan"] = parseInt(document.getElementById('internalTempForFan').value);
+    userSettings["internalTempForFan"] = parseFloat(document.getElementById('internalTempForFan').value);
+    updateUserSettings();
+}
+function setMaxTemp() {
+    userSettings["internalMaxTemp"] = parseFloat(document.getElementById('internalMaxTemp').value);
     updateUserSettings();
 }
 function setBuildFanControl(enabled) {

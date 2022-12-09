@@ -542,7 +542,7 @@
 							<span>Target Temperature (&#8451;)</span> 
 						</td>
 						<td>
-							<input id="TargetTemp" type="text" oninput="setTempSettings()">
+							<input id="TargetTemp" type="number" step="0.1" oninput="setTempSettings()">
 						</td>
 					</tr>
 					<tr title="This will be sent to the heater pin when the measured temp is below the 'Target Temperature'">
@@ -569,22 +569,6 @@
 							<input id="heaterThreshold" type="text"  oninput="setTempSettings()">
 						</td>
 					</tr>
-					<tr title="When the device is first started, this timer will count down and send the Heat PWM specified above until either the target has been reached or the time runs out.">
-						<td>
-							<span>Warm up time (ms)</span> 
-						</td>
-						<td>
-							<input id="WarmUpTime" type="text"  oninput="setTempSettings()">
-						</td>
-					</tr>
-					<!-- <tr title="If the measured temp is less than or equal to the laste measured temp for the given time, the failsafe will trigger and the heater is turned off.">
-						<td>
-							<span>Heater failsafe time out</span> 
-						</td>
-						<td>
-							<input id="heaterFailsafeTime" type="text"  oninput="setTempSettings()"> ms
-						</td>
-					</tr> -->
 					<tr>
 						<td>
 							<span>Heater resolution (bit)</span> 
@@ -648,6 +632,12 @@
 							<input id="internalTemp" type="text" readonly>
 						</td>
 					</tr>
+					<tr>
+						<td><span>Internal max temp (&#8451;)</span></td>
+						<td>
+							<input id="internalMaxTemp" type="number" step="0.1" oninput="setMaxTemp()" >
+						</td>
+					</tr>
 					<tr class="fan-control-build">
 						<td><span>Fan control enabled</span></td>
 						<td>
@@ -663,7 +653,7 @@
 					<tr class="fan-control">
 						<td><span>Fan on temp (&#8451;)</span></td>
 						<td>
-							<input id="internalTempForFan" type="number" min="0" oninput="setFanOnTemp()">
+							<input id="internalTempForFan" type="number" min="0" step="0.1" oninput="setFanOnTemp()">
 						</td>
 					</tr>
 					<tr class="fan-control">

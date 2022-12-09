@@ -26,12 +26,13 @@ SOFTWARE. */
 #include <Adafruit_GFX.h>
 #include "../lib/Ext/Adafruit_SSD1306_RSB.h"
 #include "SettingsHandler.h"
+#include "LogHandler.h"
 #include "WifiHandler.h"
-#if TEMP_ENABLED == 1
+#if TEMP_ENABLED
 #include "TemperatureHandler.h"
 #endif
 
-// #if ISAAC_NEWTONGUE_BUILD == 1
+// #if ISAAC_NEWTONGUE_BUILD
 // #include "../lib/animationFrames.h"
 // #endif
 
@@ -195,7 +196,7 @@ public:
 				} else {
 					display.print("Wifi error");
 				}
-#if TEMP_ENABLED == 1
+#if TEMP_ENABLED
 				if(SettingsHandler::sleeveTempDisplayed || SettingsHandler::internalTempDisplayed) {
 					is32() ? draw32Temp() : draw64Temp();
 				}
@@ -280,7 +281,7 @@ public:
 
 	// void playBootAnimationDontPanic() 
 	// {
-// #if ISAAC_NEWTONGUE_BUILD == 1
+// #if ISAAC_NEWTONGUE_BUILD
 // 		if(displayConnected)
 // 		{
 // 			display.clearDisplay();
