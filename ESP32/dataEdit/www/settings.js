@@ -65,6 +65,8 @@ const BuildFeature = {
     TEMP: 6,
     HAS_TCODE_V2: 7
 }
+const servoDegreeValue180 = 637; 
+const servoDegreeValue270 = 425; 
 dubugMessages = [];
 
 var AvailibleChannelsV2;
@@ -547,7 +549,6 @@ function setUserSettings()
     
 
     document.getElementById('debug').value = userSettings["logLevel"];
-    
     
     //document.getElementById('debugLink').hidden = !userSettings["debug"];
     
@@ -1065,16 +1066,35 @@ function updateServoFrequency()
     setRestartRequired();
     updateUserSettings();
 }
-function updateMSPerRad() 
+function updateMSPerRad(userChecked) 
 {
     var control = document.getElementById('msPerRad');
     if(!control.checkValidity()) {
         showError(control.validationMessage);
-        return;
+        return false;
     }
     userSettings["msPerRad"] = parseInt(control.value);
+    if(!userChecked) {
+        document.getElementById('msPerRadIs270').checked = userSettings["msPerRad"] == servoDegreeValue270;
+    }
     setRestartRequired();
     updateUserSettings();
+    return true;
+}
+
+function toggleMsPerRadIs270() {
+    var control = document.getElementById('msPerRad');
+    var msPerRadIs270Checkbox = document.getElementById('msPerRadIs270');
+    const backupvalue = control.value;
+    if(msPerRadIs270Checkbox.checked) {
+        control.value = servoDegreeValue270;//270 degree servo.
+    } else {
+        control.value = servoDegreeValue180;
+    }
+    if(!updateMSPerRad(true)) {
+        msPerRadIs270Checkbox.checked = !msPerRadIs270Checkbox.checked;
+        control.value = backupvalue;
+    }
 }
 
 function updateContinuousTwist()
@@ -1715,6 +1735,10 @@ function toggleDeviceOptions(sr6Mode)
         sr6Only[i].style.display = sr6Mode ? "revert" : "none";
     for(var i=0;i < osrOnly.length; i++)
         osrOnly[i].style.display = sr6Mode ? "none" : "revert";
+        
+    if(sr6Mode && userSettings["msPerRad"] == servoDegreeValue270) {
+        document.getElementById('msPerRadIs270').checked = true;
+    }
 }
 
 function toggleNonTCodev3Options()
