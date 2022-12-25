@@ -389,10 +389,10 @@ public:
             if (SettingsHandler::feedbackTwist && !SettingsHandler::continuousTwist) 
 			{
 				// Calculate twist position
-                noInterrupts();
+                //noInterrupts();
                 float dutyCycle = twistPulseLength;
                 dutyCycle = dutyCycle/lastTwistPulseCycle;
-                interrupts();
+                //interrupts();
 				float angPos = (dutyCycle - 0.029)/0.942;
 				angPos = constrain(angPos,0,1) - 0.5;
 				if (angPos - twistServoAngPos < - 0.8) { twistTurns += 1; }

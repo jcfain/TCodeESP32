@@ -509,7 +509,7 @@ class TemperatureHandler {
 	}
 
 	void chackFailSafe() {
-		if(millis() >= failSafeFrequency){
+		if(millis() >= failSafeFrequency) {
 			failSafeFrequency = millis() + failSafeFrequencyLimiter;
 			if(SettingsHandler::tempSleeveEnabled) {
 				if(errorCountSleeve > 10) {

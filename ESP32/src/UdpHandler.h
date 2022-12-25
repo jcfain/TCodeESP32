@@ -33,16 +33,16 @@ class Udphandler
   public:
     void setup(int localPort) 
     {
-		LogHandler::info("UDP-setup", "Starting UDP");
+		LogHandler::info(_TAG, "Starting UDP");
 		wifiUdp.begin(localPort);
         LogHandler::info(_TAG, "UDP Listening");
 		udpInitialized = true;
     }
 
 	void CommandCallback(const char* in){ //This overwrites the callback for message return
-		if(udpInitialized) {
+		if(udpInitialized && _lastConnectedPort > 0) {
 			LogHandler::info(_TAG, "Sending udp: %s", in);
-			wifiUdp.beginPacket(wifiUdp.remoteIP(), wifiUdp.remotePort());
+			wifiUdp.beginPacket(_lastConnectedIP, _lastConnectedPort);
 			int i = 0;
 			while (in[i] != 0)
 				wifiUdp.write((uint8_t)in[i++]);
@@ -50,18 +50,20 @@ class Udphandler
 		}
 	}
 
-
     void read(char* udpData) 
     {
-		if (!udpInitialized) 
-		{
+		if (!udpInitialized) {
 			udpData[0] = {0};
 			return;
 		}
 		// if there's data available, read a packet
 		int packetSize = wifiUdp.parsePacket();
-		if (packetSize) 
-		{
+		if (!packetSize) {
+			udpData[0] = {0};
+			return;
+		}
+		_lastConnectedPort = wifiUdp.remotePort();
+		_lastConnectedIP = wifiUdp.remoteIP();
 //          Serial.print("Received packet of size ");
 //          Serial.println(packetSize);
 //          Serial.print("From ");
@@ -69,39 +71,32 @@ class Udphandler
 //          Serial.print(remoteIp);
 //          Serial.print(", port ");
 //          Serial.println(Udp.remotePort());
-      
-			// read the packet into packetBufffer
-			int len = wifiUdp.read(packetBuffer, 255);
-			if (len > 0) 
-			{
-				packetBuffer[len] = 0;
-			}
-			if (SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 && strpbrk(packetBuffer, "$") != nullptr) 
-			{
-				CommandCallback("OK");
-				strcpy(udpData, packetBuffer);
-				LogHandler::info(_TAG, "Settings save received: %s", udpData);
-				return;
-			} 
-			else if (strpbrk(packetBuffer, jsonIdentifier) != nullptr) 
-			{
-				LogHandler::verbose(_TAG, "json recieved: %s", udpData);
-				SettingsHandler::processTCodeJson(udpData, packetBuffer);
-				return;
-			} 
+	
+		// read the packet into packetBufffer
+		int len = wifiUdp.read(packetBuffer, packetSize);
+		if (len > 0) {
+			packetBuffer[len] = 0;
+			//LogHandler::verbose(_TAG, "Udp in: %s", packetBuffer);
+		}
+		if (SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 && strpbrk(packetBuffer, "$") != nullptr) {
+			CommandCallback("OK");
+			strcpy(udpData, packetBuffer);
+			LogHandler::info(_TAG, "Settings save received: %s", udpData);
+		} else if (strpbrk(packetBuffer, jsonIdentifier) != nullptr) {
+			SettingsHandler::processTCodeJson(udpData, packetBuffer);
+			//LogHandler::verbose(_TAG, "json processed: %s", udpData);
+		} else {
 			//udpData[strlen(packetBuffer) + 1];
 			strcpy(udpData, packetBuffer);
-            LogHandler::verbose(_TAG, "Udp tcode in: %s", udpData);
-			// Serial.print("tcode: ");
-			// Serial.println(udpData);
-			return;
+			//LogHandler::verbose(_TAG, "Udp tcode in: %s", udpData);
 		}
-      	udpData[0] = {0};
     }
     
   private: 
     const char* _TAG = "UDP";
     WiFiUDP wifiUdp;
+	IPAddress _lastConnectedIP;
+	int _lastConnectedPort = 0;
     bool udpInitialized = false;
     char packetBuffer[255];; //buffer to hold incoming packet
     char jsonIdentifier[2] = "{";

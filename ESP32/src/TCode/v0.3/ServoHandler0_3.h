@@ -129,9 +129,11 @@ public:
         ledcSetup(Vibe1_PWM,VibePWM_Freq,8);
         ledcAttachPin(SettingsHandler::Vibe1_PIN,Vibe1_PWM); 
 
-        LogHandler::verbose(_TAG, "Connecting vib 3 to pin: %u", SettingsHandler::Vibe3_PIN);
-        ledcSetup(Vibe2_PWM,VibePWM_Freq,8);
-        ledcAttachPin(SettingsHandler::Vibe3_PIN,Vibe2_PWM); 
+        if(SettingsHandler::Vibe2_PIN > 0) {
+            LogHandler::verbose(_TAG, "Connecting vib 3 to pin: %u", SettingsHandler::Vibe2_PIN);
+            ledcSetup(Vibe2_PWM,VibePWM_Freq,8);
+            ledcAttachPin(SettingsHandler::Vibe2_PIN,Vibe2_PWM); 
+        }
 
         if(SettingsHandler::feedbackTwist)
         {
@@ -152,10 +154,11 @@ public:
                 analogReadResolution(11);
                 analogSetAttenuation(ADC_6db); */
             }
-        } else {
-            LogHandler::verbose(_TAG, "Connecting vib 4 to pin: %u", SettingsHandler::Vibe4_PIN);
+        } 
+        if(SettingsHandler::Vibe3_PIN > 0) {
+            LogHandler::verbose(_TAG, "Connecting vib 4 to pin: %u", SettingsHandler::Vibe3_PIN);
             ledcSetup(Vibe3_PWM,VibePWM_Freq,8);
-            ledcAttachPin(SettingsHandler::Vibe4_PIN,Vibe3_PWM); 
+            ledcAttachPin(SettingsHandler::Vibe3_PIN,Vibe3_PWM); 
         }
         
         // Signal done
@@ -210,11 +213,11 @@ public:
             float angPos;
             // Calculate twist position
             if (!SettingsHandler::analogTwist)
-            {
-                noInterrupts();
+            {  
+                //noInterrupts();
                 float dutyCycle = twistPulseLength;
                 dutyCycle = dutyCycle/lastTwistPulseCycle;
-                interrupts();
+                //interrupts();
                 angPos = (dutyCycle - 0.029)/0.942;
                     //  Serial.print("angPos "); 
                     //  Serial.println(angPos);
@@ -327,6 +330,12 @@ public:
                 pitchLeftValue = SetPitchServo(16248 - fwd, 4500 - thrust, side - 1.5*roll, -pitch);
                 pitchRightValue = SetPitchServo(16248 - fwd, 4500 - thrust, -side + 1.5*roll, -pitch);
             }
+				// Serial.printf("Sending lowerLeftValue: %i\n", lowerLeftValue);
+				// Serial.printf("Sending upperLeftValue: %i\n", upperLeftValue);
+				// Serial.printf("Sending lowerRightValue: %i\n", lowerRightValue);
+				// Serial.printf("Sending upperRightValue: %i\n", upperRightValue);
+				// Serial.printf("Sending pitchLeftValue: %i\n", pitchLeftValue);
+				// Serial.printf("Sending pitchRightValue: %i\n", pitchRightValue);
             // Set Servos
             ledcWrite(LowerLeftServo_PWM, map(SettingsHandler::LeftServo_ZERO - lowerLeftValue,0,MainServo_Int,0,65535));
             ledcWrite(UpperLeftServo_PWM, map(SettingsHandler::LeftUpperServo_ZERO + upperLeftValue,0,MainServo_Int,0,65535));

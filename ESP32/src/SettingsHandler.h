@@ -88,8 +88,8 @@ class SettingsHandler
 		static int TwistServo_PIN;
 		static int Vibe0_PIN;
 		static int Vibe1_PIN;
+        static int Vibe2_PIN;
         static int Vibe3_PIN;
-        static int Vibe4_PIN;
         static int LubeButton_PIN;
         static int Squeeze_PIN;
         static int StrokeMin;
@@ -102,7 +102,6 @@ class SettingsHandler
         static int SwayMax;
         static int SurgeMin;
         static int SurgeMax;
-        static int speed;
         static int msPerRad;
         static int servoFrequency;
         static int pitchFrequency;
@@ -153,6 +152,8 @@ class SettingsHandler
         static double internalMaxTemp; // C
 		static int Heater_PIN;
 		static int HeatLED_PIN;
+		static int I2C_SDA_PIN;
+		static int I2C_SCL_PIN;
 		static int TargetTemp;// Desired Temp in degC
 		static int HeatPWM;// Heating PWM setting 0-255
 		static int HoldPWM;// Hold heat PWM setting 0-255
@@ -223,6 +224,11 @@ class SettingsHandler
                 loadingDefault = true;
             }
             JsonObject jsonObj = doc.as<JsonObject>();
+            
+            #if CRIMZZON_BUILD || ISAAC_NEWTONGUE_BUILD
+                TCodeVersionEnum = TCodeVersion::v0_3;
+                TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
+	        #endif
 
             update(jsonObj);
             
@@ -230,8 +236,6 @@ class SettingsHandler
             setBuildFeatures();
 
 	        #if ISAAC_NEWTONGUE_BUILD
-                TCodeVersionEnum = TCodeVersion::v0_3;
-                TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
                 RightServo_PIN = 2;
                 LeftServo_PIN = 13;
                 PitchLeftServo_PIN = 14;
@@ -248,41 +252,41 @@ class SettingsHandler
                 Heater_PIN = 19;
                 Squeeze_PIN = 26;
             #elif CRIMZZON_BUILD
-                TCodeVersionEnum = TCodeVersion::v0_3;
-                TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
-                tempInternalEnabled = true;
-                RightServo_PIN = 13;
-                LeftServo_PIN = 15;
-                PitchLeftServo_PIN = 4;
-                ValveServo_PIN = 25;
-                TwistServo_PIN = 27;
+                Heater_PIN = 33;
+                Case_Fan_PIN = 16;
+
                 Vibe0_PIN = 18;
                 Vibe1_PIN = 19;
-                RightUpperServo_PIN = 12;
-                LeftUpperServo_PIN = 2;
-                PitchRightServo_PIN = 14;
-                Sleeve_Temp_PIN = 5; 
-                Heater_PIN = 33;
-
-                Internal_Temp_PIN = 32;
-                Case_Fan_PIN = 16;
-                Squeeze_PIN = 17;
-                Vibe3_PIN = 23;
-                Vibe4_PIN = 26;
-
-                TwistFeedBack_PIN = 0;// Boot pin
-
-                //EXT
-                LubeButton_PIN = 35;// EXT_Input1_PIN
-                // EXT_Input2_PIN = 34;
-		        // EXT_Input3_PIN = 39;
-		        // EXT_Input4_PIN = 36;
+                Vibe2_PIN = 23;
+                Vibe3_PIN = 26;
 
                 if(loadingDefault) {
+                    RightServo_PIN = 13;
+                    LeftServo_PIN = 15;
+                    PitchLeftServo_PIN = 4;
+                    ValveServo_PIN = 25;
+                    TwistServo_PIN = 27;
+                    RightUpperServo_PIN = 12;
+                    LeftUpperServo_PIN = 2;
+                    PitchRightServo_PIN = 14;
+                    Sleeve_Temp_PIN = 5; 
+                    
+                    LubeButton_PIN = 35;// EXT_Input1_PIN
+
+                    Squeeze_PIN = 17;
+                    Internal_Temp_PIN = 32;
+                    //EXT
+                    // EXT_Input2_PIN = 34;
+                    // EXT_Input3_PIN = 39;
+                    // EXT_Input4_PIN = 36;
+
+                    TwistFeedBack_PIN = 0;// Boot pin
+
                     heaterResolution = 8;
                     caseFanResolution = 10;
                     caseFanFrequency = 25;
                     Display_Screen_Height = 32;
+                    tempInternalEnabled = true;
                 }
 	        #endif
 			if(loadingDefault)
@@ -332,13 +336,12 @@ class SettingsHandler
                     strcpy(friendlyName, friendlyNameTemp);
 					
 				bluetoothEnabled =  json["bluetoothEnabled"];
-                StrokeMin = json["xMin"] | 1;
-                StrokeMax = json["xMax"] | 1000;
-                RollMin = json["yRollMin"] | 1;
-                RollMax = json["yRollMax"] | 1000;
-                PitchMin = json["xRollMin"] | 1;
-                PitchMax = json["xRollMax"] | 1000;
-                speed = json["speed"] | 1000;
+                StrokeMin = 1;
+                StrokeMax = SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 ? 9999 : 999;
+                RollMin = 1;
+                RollMax = SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 ? 9999 : 999;
+                PitchMin = 1;
+                PitchMax = SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 ? 9999 : 999;
                 pitchFrequencyIsDifferent = json["pitchFrequencyIsDifferent"];
                 msPerRad =  json["msPerRad"] | 637;
                 servoFrequency = json["servoFrequency"] | 50;
@@ -350,27 +353,30 @@ class SettingsHandler
                 feedbackTwist =  json["feedbackTwist"];
                 analogTwist = json["analogTwist"];
 
-	        #if !ISAAC_NEWTONGUE_BUILD && !CRIMZZON_BUILD
-				TwistFeedBack_PIN = json["TwistFeedBack_PIN"];
-				RightServo_PIN = json["RightServo_PIN"];
-				LeftServo_PIN = json["LeftServo_PIN"];
-				RightUpperServo_PIN = json["RightUpperServo_PIN"];
-				LeftUpperServo_PIN = json["LeftUpperServo_PIN"];
-				PitchLeftServo_PIN = json["PitchLeftServo_PIN"];
-				PitchRightServo_PIN = json["PitchRightServo_PIN"];
-				ValveServo_PIN = json["ValveServo_PIN"];
-				TwistServo_PIN = json["TwistServo_PIN"];
+	        #if !CRIMZZON_BUILD && !ISAAC_NEWTONGUE_BUILD
+				Heater_PIN = json["Heater_PIN"] | 33;
+                Case_Fan_PIN = json["Case_Fan_PIN"];
 				Vibe0_PIN = json["Vibe0_PIN"];
 				Vibe1_PIN = json["Vibe1_PIN"];
-				LubeButton_PIN = json["LubeButton_PIN"];
-                Internal_Temp_PIN = json["Internal_Temp_PIN"];
-                Case_Fan_PIN = json["Case_Fan_PIN"];
-                Squeeze_PIN  = json["Squeeze_PIN"];
+                Vibe2_PIN = json["Vibe2_PIN"];
                 Vibe3_PIN = json["Vibe3_PIN"];
-                Vibe4_PIN = json["Vibe4_PIN"];
+	        #endif
+
+	        #if !ISAAC_NEWTONGUE_BUILD
+                TwistFeedBack_PIN = json["TwistFeedBack_PIN"];
+                RightServo_PIN = json["RightServo_PIN"];
+                LeftServo_PIN = json["LeftServo_PIN"];
+                RightUpperServo_PIN = json["RightUpperServo_PIN"];
+                LeftUpperServo_PIN = json["LeftUpperServo_PIN"];
+                PitchLeftServo_PIN = json["PitchLeftServo_PIN"];
+                PitchRightServo_PIN = json["PitchRightServo_PIN"];
+                ValveServo_PIN = json["ValveServo_PIN"];
+                TwistServo_PIN = json["TwistServo_PIN"];
+                LubeButton_PIN = json["LubeButton_PIN"];
+                Internal_Temp_PIN = json["Internal_Temp_PIN"];
+                Squeeze_PIN  = json["Squeeze_PIN"];
                 Squeeze_PIN = json["Squeeze_PIN"];
-				Sleeve_Temp_PIN = json["Temp_PIN"] | 5;
-				Heater_PIN = json["Heater_PIN"] | 33;
+                Sleeve_Temp_PIN = json["Temp_PIN"] | 5;
 	        #endif
 
 				staticIP = json["staticIP"];
@@ -623,13 +629,6 @@ class SettingsHandler
             doc["hostname"] =  hostname;
             doc["friendlyName"] = friendlyName;
             doc["bluetoothEnabled"] = bluetoothEnabled;
-            doc["xMin"] = StrokeMin;
-            doc["xMax"] = StrokeMax;
-            doc["yRollMin"] = RollMin;
-            doc["yRollMax"] = RollMax;
-            doc["xRollMin"] = PitchMin;
-            doc["xRollMax"] = PitchMax;
-            doc["speed"] = speed;
             doc["pitchFrequencyIsDifferent"] = pitchFrequencyIsDifferent;
             doc["msPerRad"] = msPerRad;
             doc["servoFrequency"] = servoFrequency;
@@ -652,6 +651,8 @@ class SettingsHandler
 			doc["Squeeze_PIN"] = Squeeze_PIN;
 			doc["Vibe0_PIN"] = Vibe0_PIN;
 			doc["Vibe1_PIN"] = Vibe1_PIN;
+			doc["Vibe2_PIN"] = Vibe2_PIN;
+			doc["Vibe3_PIN"] = Vibe3_PIN;
 			doc["Case_Fan_PIN"] = Case_Fan_PIN;
 			doc["LubeButton_PIN"] = LubeButton_PIN;
             doc["Internal_Temp_PIN"] = Internal_Temp_PIN;
@@ -788,10 +789,7 @@ class SettingsHandler
 
         static void processTCodeJson(char* outbuf, char* tcodeJson) 
         {
-            const size_t readCapacity = JSON_ARRAY_SIZE(5) + 5*JSON_OBJECT_SIZE(2) + 100;
-
-            StaticJsonDocument<readCapacity> doc;
-            //DynamicJsonDocument doc(readCapacity);
+            StaticJsonDocument<512> doc;
             DeserializationError error = deserializeJson(doc, tcodeJson);
             if (error) {
                 LogHandler::error(_TAG, "Failed to read udp jsonobject, using default configuration");
@@ -799,42 +797,55 @@ class SettingsHandler
                 return;
             }
             JsonArray arr = doc.as<JsonArray>();
-            char buffer[100] = "";
+            char buffer[255] = "";
             for(JsonObject repo: arr) 
             { 
-                const char* channel = repo["Channel"];
-                int value = repo["Value"];
-                if(channel != nullptr && value != 0) 
+                const char* channel = repo["c"];
+                int value = repo["v"];
+                if(channel != nullptr && value > 0) 
                 {
-                if(buffer[0] == '\0') 
-                {
-                    //Serial.println("tcode empty");
-                    strcpy(buffer, channel);
-                } 
-                else 
-                {
-                    strcat(buffer, channel);
-                }
-                char integer_string[4];
-                sprintf(integer_string, "%03d", SettingsHandler::calculateRange(channel, value));
-                //pad(integer_string);
-                //sprintf(integer_string, "%d", SettingsHandler::calculateRange(channel, value));
-                //Serial.print("integer_string");
-                //Serial.println(integer_string);
-                strcat (buffer, integer_string);
-                if (SettingsHandler::speed > 0) {
-                    char speed_string[5];
-                    sprintf(speed_string, "%04d", SettingsHandler::speed);
-                    strcat (buffer, "S");
-                    strcat (buffer, speed_string);
-                }
-                strcat(buffer, " ");
-                // Serial.print("buffer");
-                // Serial.println(buffer);
+                    if(buffer[0] == '\0') 
+                    {
+                        //Serial.println("tcode empty");
+                        strcpy(buffer, channel);
+                    } 
+                    else 
+                    {
+                        strcat(buffer, channel);
+                    }
+                // Serial.print("channel: ");
+                // Serial.print(channel);
+                // Serial.print(" value: ");
+                // Serial.println(value);
+                    char integer_string[4];
+                    sprintf(integer_string, SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2 ? "%03d" : "%04d", SettingsHandler::calculateRange(channel, value));
+                    //pad(integer_string);
+                    //sprintf(integer_string, "%d", SettingsHandler::calculateRange(channel, value));
+                    //Serial.print("integer_string");
+                    //Serial.println(integer_string);
+                    strcat (buffer, integer_string);
+                    int speed = repo["s"];
+                    int interval = repo["i"];
+                    if (interval > 0) {
+                        char interval_string[5];
+                        sprintf(interval_string, "%d", interval);
+                        strcat (buffer, "I");
+                        strcat (buffer, interval_string);
+                    } else if (speed > 0) {
+                        char speed_string[5];
+                        sprintf(speed_string, "%d", speed);
+                        strcat (buffer, "S");
+                        strcat (buffer, speed_string);
+                    }
+                    strcat(buffer, " ");
+                    // Serial.print("buffer ");
+                    // Serial.println(buffer);
                 }
             }
-            strcat(buffer, "\n");
             strcpy(outbuf, buffer);
+            strcat(outbuf, "\n");
+                // Serial.print("outbuf ");
+                // Serial.println(outbuf);
         }
         
     private:
@@ -883,7 +894,7 @@ class SettingsHandler
             {
                 return PitchMax;
             }
-            return 1000;
+            return 9999;
         }
 
         static String TCodeVersionMapper(TCodeVersion version) 
@@ -1121,7 +1132,7 @@ BuildFeature SettingsHandler::buildFeatures[featureCount];
 const char* SettingsHandler::_TAG = "_SETTINGS_HANDLER";
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[8] = "v0.258b";
+const char SettingsHandler::ESP32Version[8] = "v0.259b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char* SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
@@ -1154,25 +1165,25 @@ int SettingsHandler::Vibe1_PIN;
 int SettingsHandler::LubeButton_PIN;
 int SettingsHandler::Sleeve_Temp_PIN; 
 int SettingsHandler::Heater_PIN;
+int SettingsHandler::I2C_SDA_PIN = 21;
+int SettingsHandler::I2C_SCL_PIN = 22;
 
 int SettingsHandler::Internal_Temp_PIN;
 int SettingsHandler::Case_Fan_PIN;
 int SettingsHandler::Squeeze_PIN;
+int SettingsHandler::Vibe2_PIN;
 int SettingsHandler::Vibe3_PIN;
-int SettingsHandler::Vibe4_PIN;
 
 //int SettingsHandler::HeatLED_PIN = 32;
 // pin 25 cannot be servo. Throws error
 bool SettingsHandler::lubeEnabled = true;
 
-int SettingsHandler::StrokeMin;
-int SettingsHandler::StrokeMax;
-int SettingsHandler::RollMin;
-int SettingsHandler::RollMax;
-int SettingsHandler::PitchMin;
-int SettingsHandler::PitchMax;
-
-int SettingsHandler::speed;
+int SettingsHandler::StrokeMin = 1;
+int SettingsHandler::StrokeMax = 9999;
+int SettingsHandler::RollMin = 1;
+int SettingsHandler::RollMax = 9999;
+int SettingsHandler::PitchMin = 1;
+int SettingsHandler::PitchMax = 9999;
 
 bool SettingsHandler::pitchFrequencyIsDifferent;
 int SettingsHandler::msPerRad;
@@ -1222,7 +1233,7 @@ double SettingsHandler::internalMaxTemp = 50.0;
 int SettingsHandler::TargetTemp = 40;
 int SettingsHandler::HeatPWM = 255;
 int SettingsHandler::HoldPWM = 110;
-int SettingsHandler::Display_I2C_Address = 0x3C;
+int SettingsHandler::Display_I2C_Address = 0;// = 0x3C;
 int SettingsHandler::Display_Rst_PIN = -1;
 //long SettingsHandler::heaterFailsafeTime = 60000;
 float SettingsHandler::heaterThreshold = 5.0;

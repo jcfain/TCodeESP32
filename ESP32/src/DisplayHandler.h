@@ -28,6 +28,7 @@ SOFTWARE. */
 #include "SettingsHandler.h"
 #include "LogHandler.h"
 #include "WifiHandler.h"
+#include <vector>
 #if TEMP_ENABLED
 #include "TemperatureHandler.h"
 #endif
@@ -54,6 +55,9 @@ public:
 
 		//Wire.begin();
 		//Wire.setClock(100000UL);
+		if(!SettingsHandler::Display_I2C_Address && !I2CScan()) {
+			return;
+		}
 
 		if (SettingsHandler::Display_Rst_PIN >= 0)
 		{
@@ -120,7 +124,7 @@ public:
 
 	static void startLoop(void* displayHandlerRef)
 	{
-		if(((DisplayHandler*)displayHandlerRef)->isConnected())
+		//if(((DisplayHandler*)displayHandlerRef)->isConnected())
 			((DisplayHandler*)displayHandlerRef)->loop();
 	}
 
@@ -139,6 +143,10 @@ public:
 
 	void loop()
 	{
+		if(!isConnected()) {
+  			vTaskDelete( NULL );
+			return;
+		}
 		_isRunning = true;
 		while(_isRunning) {
 			if(!m_animationPlaying && displayConnected && millis() >= lastUpdate + nextUpdate) {
@@ -233,12 +241,14 @@ public:
 		}
 	}
 
-	void I2CScan() 
+	bool I2CScan() 
 	{
 		byte error, address;
 		int nDevices;
-		Serial.println("Scanning...");
+		Serial.println("Scanning for I2C...");
 		nDevices = 0;
+		Wire.begin(SettingsHandler::I2C_SDA_PIN, SettingsHandler::I2C_SCL_PIN);
+		std::vector<int> foundAddresses;
 		for(address = 1; address < 127; address++ ) 
 		{
 			Wire.beginTransmission(address);
@@ -251,6 +261,7 @@ public:
 					Serial.print("0");
 				}
 				Serial.println(address,HEX);
+				foundAddresses.push_back(address);
 				nDevices++;
 			}
 			else if (error==4) 
@@ -263,15 +274,12 @@ public:
 				Serial.println(address,HEX);
 			}    
 		}
-		if (nDevices == 0) 
-		{
+		if (nDevices == 0) {
 			Serial.println("No I2C devices found\n");
+			return false;
 		}
-		else 
-		{
-			Serial.println("done\n");
-		}
-		delay(5000);  
+		SettingsHandler::Display_I2C_Address = foundAddresses.front();
+		return true;
 	}
 
 	// static void startAnimationDontPanic(void* displayHandlerRef) 
