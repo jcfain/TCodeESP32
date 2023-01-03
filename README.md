@@ -1,5 +1,5 @@
 # TCodeESP32
-This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). It adds Network Tcode capabilities and WiFi/BLE configuration.
+This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). It adds Network Tcode capabilities, Modcase temperature control, internal temperature control, OLED display and WiFi/BLE configuration.
 
 ## INSTALLATION:
   ### BINARIES
@@ -11,8 +11,8 @@ This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). I
   - https://docs.platformio.org/en/latest//integration/ide/vscode.html#quick-start
   - https://github.com/espressif/arduino-esp32#installation-instructions
   #### LIBRARIES 
-    You will need a few additional libraries to build this sketch. 
-    If platformIO is installed, it should download these automatically on first build.
+    Depending on the build you select, you will need a few additional libraries to build this sketch. 
+    If platformIO is installed with the correct directory selected (platformio.ini), it should download these automatically on first build.
     - ESP32Servo
     - ESP Async Webserver
     - EAsyncTCP
@@ -34,4 +34,4 @@ This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). I
     
     You can also set the wifi settings via the web interface in AP mode on first boot.
     Or you can use the Android configurator app I wrote found here:
-    https://www.patreon.com/posts/tcode-android-51962566
+    https://www.patreon.com/posts/tcodeconfig-0-5a-72658342
