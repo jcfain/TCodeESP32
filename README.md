@@ -2,9 +2,10 @@
 This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). It adds Network Tcode capabilities, Modcase temperature control, internal temperature control, OLED display and WiFi/BLE configuration.
 
 ## INSTALLATION:
-  ### BINARIES
-  See the pdf in the latest release zip https://github.com/jcfain/TCodeESP32/releases
-  ### SOURCE
+  ### FROM BINARIES (RECOMMENDED for most users)
+  See the pdf in the latest release zip for flashing instructions 
+  https://github.com/jcfain/TCodeESP32/releases
+  ### FROM SOURCE
   First You need to install the dev environment for the ESP32 and arduino.
   Some good placees to start 
   - https://platformio.org/install/ide?install=vscode 
