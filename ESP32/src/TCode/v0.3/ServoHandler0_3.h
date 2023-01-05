@@ -76,7 +76,7 @@ public:
         tcode.RegisterAxis("A3", "Squeeze");
         // Setup Servo PWM channels
         // Lower Left Servo
-        if(DEBUG_BUILD == 0) {
+        if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
             LogHandler::verbose(_TAG, "Connecting left servo to pin: %u", SettingsHandler::LeftServo_PIN);
             ledcSetup(LowerLeftServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::LeftServo_PIN,LowerLeftServo_PWM);
@@ -91,7 +91,7 @@ public:
             LogHandler::verbose(_TAG, "Connecting left upper servo to pin: %u", SettingsHandler::LeftUpperServo_PIN);
             ledcSetup(UpperLeftServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::LeftUpperServo_PIN,UpperLeftServo_PWM);
-            if(DEBUG_BUILD == 0) {
+            if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
                 // Upper Right Servo
             LogHandler::verbose(_TAG, "Connecting right upper servo to pin: %u", SettingsHandler::RightUpperServo_PIN);
                 ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);

@@ -34,8 +34,10 @@ SOFTWARE. */
 // #ifdef FW_VERSION
 // #pragma message STR(FW_VERSION)
 // #endif
-
+#if BUILD_TYPE == RELEASE
 #include <Arduino.h>
+#endif
+
 #include <SPIFFS.h>
 #include "LogHandler.h"
 #include "SettingsHandler.h"
@@ -54,7 +56,7 @@ SOFTWARE. */
 #endif
 #include "TCode/ServoHandler.h"
 
-#if !DEBUG_BUILD && TCODE_V2//Too much memory needed with debug
+#if TCODE_V2//Too much memory needed with debug
 	#include "TCode/v0.2/ServoHandler0_2.h"
 #endif
 
@@ -413,7 +415,7 @@ void loop() {
 			ESP.restart();
         	restarting = true;
 		}
-        //vTaskDelay(1000/portTICK_PERIOD_MS);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
 	} 
 #if TEMP_ENABLED
 	else if (SettingsHandler::tempInternalEnabled && temperatureHandler->isMaxTempTriggered()) {
@@ -469,10 +471,10 @@ void loop() {
 	#endif
 	if(!setupSucceeded) {
 		LogHandler::error("main", "There was an issue in setup");
-        //vTaskDelay(5000/portTICK_PERIOD_MS);
+        vTaskDelay(5000/portTICK_PERIOD_MS);
 	}
 	if(SettingsHandler::saving) {
 		LogHandler::info("main", "Saving settings, main loop disabled...");
-        //vTaskDelay(100/portTICK_PERIOD_MS);
+        vTaskDelay(100/portTICK_PERIOD_MS);
 	}
 }

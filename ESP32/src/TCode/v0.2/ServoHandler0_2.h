@@ -167,7 +167,7 @@ public:
 		Vibe0_PIN = SettingsHandler::Vibe0_PIN;
 		Vibe1_PIN = SettingsHandler::Vibe1_PIN;
 
-        if(DEBUG_BUILD == 0) {
+        if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
 			// Declare servos and set zero
 			rightServoConnected = RightServo.attach(RightServo_PIN);
 			if (rightServoConnected == 0) 
@@ -193,7 +193,7 @@ public:
 				// Serial.println(LeftUpperServo_PIN);
 				LogHandler::error(_TAG, "Failure to connect to left upper pin: %i", LeftUpperServo_PIN);
 			}
-			if(DEBUG_BUILD == 0) {
+			if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
 				rightUpperServoConnected = RightUpperServo.attach(RightUpperServo_PIN);
 				if (rightUpperServoConnected == 0) 
 				{
