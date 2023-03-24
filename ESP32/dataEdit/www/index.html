@@ -110,7 +110,7 @@
 					</tr> -->
 				</tbody>
 			</table>
-			<table id="deviceSettingsTable" class="formTable">
+			<table id="deviceSettingsTable" class="formTable servoOnly">
 				<tbody>
 					<tr>
 						<th colspan="3">
@@ -316,6 +316,14 @@
 							<input id="Vibe3_PIN" type="number" max="99" min="0" oninput="updatePins()">
 						</td>
 					</tr>
+					<tr>
+						<td>
+							<span>Disable PIN validation</span> 
+						</td>
+						<td>
+							<input id="disablePinValidation" type="checkbox" onchange="disablePinValidation()">
+						</td>
+					</tr>
 					<tr class="pwmAvaliblePinRow">
 						<td colspan="3">
 							<span>
@@ -325,7 +333,87 @@
 					</tr>
 				</tbody>
 			</table>
-			<table id="deviceSR6SettingsTable" class="formTable sr6Only">
+			<table id="deviceSettingsBLDCTable" class="formTable BLDCOnly">
+				<tbody>
+					<tr>
+						<th colspan="3">
+							<h3>General</h3>
+						</th>
+					</tr>
+					<tr>
+						<td>
+							<span>Voltage</span> 
+						</td>
+						<td>
+							<input id="BLDC_MotorA_Voltage" type="number" max="99.0" min="0.0" step=".01" oninput="updateBLDCSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Current</span> 
+						</td>
+						<td>
+							<input id="BLDC_MotorA_Current" type="number" max="99.0" min="0.0" step=".01" oninput="updateBLDCSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Encoder PIN</span> 
+						</td>
+						<td>
+							<input id="BLDC_Encoder_PIN" type="number" max="99" min="0" oninput="updateBLDCPins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Enable PIN</span> 
+						</td>
+						<td>
+							<input id="BLDC_Enable_PIN" type="number" max="99" min="0" oninput="updateBLDCPins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>PWMchannel1 PIN</span> 
+						</td>
+						<td>
+							<input id="BLDC_PWMchannel1_PIN" type="number" max="99" min="0" oninput="updateBLDCPins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>PWMchannel2 PIN</span> 
+						</td>
+						<td>
+							<input id="BLDC_PWMchannel2_PIN" type="number" max="99" min="0" oninput="updateBLDCPins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>PWMchannel3 PIN</span> 
+						</td>
+						<td>
+							<input id="BLDC_PWMchannel3_PIN" type="number" max="99" min="0" oninput="updateBLDCPins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Disable PIN validation</span> 
+						</td>
+						<td>
+							<input id="disablePinValidation" type="checkbox" onchange="disablePinValidation()">
+						</td>
+					</tr>
+					<tr class="pwmAvaliblePinRow">
+						<td colspan="3">
+							<span>
+								PWM availible on: 2,4,5,12-19,21-23,25-27,32,33
+							</span> 
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<table id="deviceSR6SettingsTable" class="formTable sr6Only servoOnly">
 				<tbody>
 					<tr>
 						<th colspan="3">
@@ -385,7 +473,7 @@
 					</tr>
 				</tbody>
 			</table>
-			<table class="formTable">
+			<table id="otherSettingsTable" class="formTable">
 				<tbody>
 					<tr>
 						<th colspan="2">

@@ -7,9 +7,6 @@
 #define VALVE_DEFAULT 5000        // Auto-valve default suction level (low-high, 0-9999) 
 #define VIBE_TIMEOUT 2000         // Timeout for vibration channels (milliseconds).
 
-// T-Code Channels
-#define CHANNELS 11                // Number of channels of each type (LRVA)
-
 // ----------------------------
 //  Auto Settings
 // ----------------------------

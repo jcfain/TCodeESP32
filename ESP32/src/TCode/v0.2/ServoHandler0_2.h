@@ -19,11 +19,13 @@
 // v2.7b - T-valve suction level algorithm modified. 30-11-2020
 
 #pragma once
+#define CHANNELS 11
 
 #include <ESP32Servo.h>
+#include "../../SettingsHandler.h"
 #include "ToyComs.h"
 #include "../Global.h"
-#include "../ServoHandler.h"
+#include "../MotorHandler.h"
 
 /* volatile int twistFeedBackPin = SettingsHandler::TwistFeedBack_PIN;
 // Twist position monitor variables
@@ -44,7 +46,7 @@ void IRAM_ATTR twistChange()
 	}
 } */
 
-class ServoHandler0_2 : public ServoHandler
+class ServoHandler0_2 : public MotorHandler
 {
 
 private:
@@ -141,20 +143,20 @@ private:
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency, int msPerRad) override 
+    void setup() override 
     {
-        ms_per_rad = msPerRad;
+        ms_per_rad = SettingsHandler::msPerRad;
 		toy.setup();
         toy.identifyTCode();
 
-        RightServo.setPeriodHertz(servoFrequency);
-        RightUpperServo.setPeriodHertz(servoFrequency);
-        LeftServo.setPeriodHertz(servoFrequency);
-        LeftUpperServo.setPeriodHertz(servoFrequency);
-        PitchLeftServo.setPeriodHertz(pitchFrequency);
-        PitchRightServo.setPeriodHertz(pitchFrequency);
-		ValveServo.setPeriodHertz(valveFrequency);
-		TwistServo.setPeriodHertz(twistFrequency);
+        RightServo.setPeriodHertz(SettingsHandler::servoFrequency);
+        RightUpperServo.setPeriodHertz(SettingsHandler::servoFrequency);
+        LeftServo.setPeriodHertz(SettingsHandler::servoFrequency);
+        LeftUpperServo.setPeriodHertz(SettingsHandler::servoFrequency);
+        PitchLeftServo.setPeriodHertz(SettingsHandler::pitchFrequency);
+        PitchRightServo.setPeriodHertz(SettingsHandler::pitchFrequency);
+		ValveServo.setPeriodHertz(SettingsHandler::valveFrequency);
+		TwistServo.setPeriodHertz(SettingsHandler::twistFrequency);
 
 		RightServo_PIN = SettingsHandler::RightServo_PIN;
 		LeftServo_PIN = SettingsHandler::LeftServo_PIN;
@@ -283,7 +285,7 @@ public:
   		pinMode(LubeManual_PIN,INPUT);
 
         // Set servo pulse interval
-        tick = 1000/servoFrequency; //ms
+        tick = 1000/SettingsHandler::servoFrequency; //ms
         // Set time for first pulse
         nextPulse = millis() + tick;
 

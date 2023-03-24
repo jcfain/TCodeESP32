@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2022 Jason C. Fain
+Copyright (c) 2023 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,28 +19,15 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
-
-// #define ST(A) #A
-// #define STR(A) ST(A)
-// #ifdef DEBUG
-// #pragma message STR(DEBUG)
-// #endif
-// #ifdef ISAAC_NEWTONGUE_BUILD
-// #pragma message STR(ISAAC_NEWTONGUE_BUILD)
-// #endif
-// #ifdef FULL_BUILD
-// #pragma message STR(FULL_BUILD)
-// #endif
-// #ifdef FW_VERSION
-// #pragma message STR(FW_VERSION)
-// #endif
 #if BUILD_TYPE == RELEASE
 #include <Arduino.h>
 #endif
 
+#include "utils.h"
 #include <SPIFFS.h>
 #include "LogHandler.h"
 #include "SettingsHandler.h"
+#include "SystemCommandHandler.h"
 #if WIFI_TCODE
 	#include "WifiHandler.h"
 #endif
@@ -54,14 +41,18 @@ SOFTWARE. */
 #if BLUETOOTH_TCODE
 	#include "BluetoothHandler.h"
 #endif
-#include "TCode/ServoHandler.h"
+#include "TCode/MotorHandler.h"
 
-#if TCODE_V2//Too much memory needed with debug
-	#include "TCode/v0.2/ServoHandler0_2.h"
+#if MOTOR_TYPE == 0
+	#if TCODE_V2//Too much memory needed with debug
+		#include "TCode/v0.2/ServoHandler0_2.h"
+	#endif
+
+	#include "TCode/v0.3/ServoHandler0_3.h"
+	//#include "TCode/v1.0/ServoHandler1_0.h"
+#elif MOTOR_TYPE == 1
+	#include "TCode/v0.3/BLDCHandler0_3.h"
 #endif
-
-#include "TCode/v0.3/ServoHandler0_3.h"
-//#include "TCode/v1.0/ServoHandler1_0.h"
 
 #if WIFI_TCODE
 	#include "UdpHandler.h"
@@ -80,7 +71,7 @@ SOFTWARE. */
 #endif
 
 //TcpHandler tcpHandler;
-ServoHandler* servoHandler;
+MotorHandler* motorHandler;
 
 #if WIFI_TCODE
 	Udphandler* udpHandler = 0;
@@ -120,20 +111,25 @@ void displayPrint(String text) {
 	#endif
 }
 
-void CommandCallback(const char* in) {
-	LogHandler::debug("main", "Enter TCode Command callback");
-#if BLUETOOTH_TCODE
-	if (SettingsHandler::bluetoothEnabled && btHandler->isConnected())
-		btHandler->CommandCallback(in);
-#endif
-#if WIFI_TCODE
-	if(webSocketHandler)
-		webSocketHandler->CommandCallback(in);
-	if(udpHandler)
-		udpHandler->CommandCallback(in);
-#endif
-	if(Serial)
-		Serial.println(in);
+
+void TCodeCommandCallback(const char* in) {
+
+	if(strpbrk("$", in) != nullptr) {
+		SystemCommandHandler::process(in);
+	} else {
+		#if BLUETOOTH_TCODE
+			if (SettingsHandler::bluetoothEnabled && btHandler->isConnected())
+				btHandler->CommandCallback(in);
+		#endif
+		#if WIFI_TCODE
+			if(webSocketHandler)
+				webSocketHandler->CommandCallback(in);
+			if(udpHandler)
+				udpHandler->CommandCallback(in);
+		#endif
+		if(Serial)
+			Serial.println(in);
+	}
 }
 
 void logCallBack(const char* in, LogLevel level) {
@@ -318,19 +314,25 @@ void setup()
 	SettingsHandler::load();
 	LogHandler::info("main-setup", "Version: %s", SettingsHandler::ESP32Version);
 
+#if MOTOR_TYPE == 0
 	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3) {
-		servoHandler = new ServoHandler0_3();
+		motorHandler = new ServoHandler0_3();
 	}
-#if !DEBUG_BUILD && TCODE_V2
-	else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2)
-		servoHandler = new ServoHandler0_2();
+	#if !DEBUG_BUILD && TCODE_V2
+		else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2)
+			motorHandler = new ServoHandler0_2();
+	#endif
+		else {
+			return;
+			//motorHandler = new ServoHandler1_0();
+		}
+#elif MOTOR_TYPE == 1
+	motorHandler = new BLDCHandler0_3();
+#else
+	return;
 #endif
-	else {
-		return;
-		//servoHandler = new ServoHandler1_0();
-	}
 
-	servoHandler->setMessageCallback(CommandCallback);
+	motorHandler->setMessageCallback(TCodeCommandCallback);
 
 #if TEMP_ENABLED
 	if(SettingsHandler::tempSleeveEnabled || SettingsHandler::tempInternalEnabled) {
@@ -391,7 +393,7 @@ void setup()
 	#endif
     //otaHandler.setup();
 	displayPrint("Setting up servos");
-    servoHandler->setup(SettingsHandler::servoFrequency, SettingsHandler::pitchFrequency, SettingsHandler::valveFrequency, SettingsHandler::twistFrequency, SettingsHandler::msPerRad);
+    motorHandler->setup();
 #if DISPLAY_ENABLED
 	if(SettingsHandler::displayEnabled)
 	{
@@ -409,7 +411,7 @@ void setup()
 }
 
 void loop() {
-	if (SettingsHandler::restartRequired || restarting) {  // check the flag here to determine if a restart is required
+	if (SystemCommandHandler::restartRequired || restarting) {  // check the flag here to determine if a restart is required
 		if(!restarting) {
 			LogHandler::info("main", "Restarting ESP");
 			ESP.restart();
@@ -435,16 +437,16 @@ void loop() {
 				udpHandler->read(udpData);
 			if (strlen(webSocketData) > 0) {
 				//LogHandler::debug("main-loop", "webSocket writing: %s", webSocketData);
-				servoHandler->read(webSocketData);
+				motorHandler->read(webSocketData);
 			} else if (!apMode && strlen(udpData) > 0) {
 				LogHandler::debug("main-loop", "udp writing: %s", udpData);
-				servoHandler->read(udpData);
+				motorHandler->read(udpData);
 			} 
 			else 
 #endif
 			if (Serial.available() > 0) {
 				serialData = Serial.readStringUntil('\n');
-				servoHandler->read(serialData);
+				motorHandler->read(serialData);
 			} 
 #if BLUETOOTH_TCODE
 			else if (SettingsHandler::bluetoothEnabled && btHandler && btHandler->isConnected() && btHandler->available() > 0) {
@@ -455,7 +457,7 @@ void loop() {
 #endif
 
 			if (strlen(udpData) == 0 && strlen(webSocketData) == 0 && serialData.length() == 0) {// No wifi or websocket data 
-				servoHandler->execute();
+				motorHandler->execute();
 			}
 		}
 	}

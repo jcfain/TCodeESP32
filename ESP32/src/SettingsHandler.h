@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2022 Jason C. Fain
+Copyright (c) 2023 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -53,6 +53,11 @@ enum class BoardType {
     ISAAC
 };
 
+enum class MotorType {
+    Servo,
+    BLDC
+};
+
 class SettingsHandler 
 {
   public:
@@ -66,6 +71,7 @@ class SettingsHandler
         static BuildFeature buildFeatures[featureCount];
         static String TCodeVersionName;
         static TCodeVersion TCodeVersionEnum;
+        static MotorType motorType;
         const static char ESP32Version[8];
         const static char HandShakeChannel[4];
         const static char SettingsChannel[4];
@@ -86,6 +92,15 @@ class SettingsHandler
 		static int PitchRightServo_PIN;
 		static int ValveServo_PIN;
 		static int TwistServo_PIN;
+        
+        static int BLDC_Encoder_PIN;
+        static int BLDC_Enable_PIN;
+        static int BLDC_PWMchannel1_PIN;
+        static int BLDC_PWMchannel2_PIN;
+        static int BLDC_PWMchannel3_PIN;
+        static int BLDC_MotorA_Voltage;         // BLDC Motor operating voltage (12-20V)
+        static float BLDC_MotorA_Current;       // BLDC Maximum operating current (Amps)
+        
 		static int Vibe0_PIN;
 		static int Vibe1_PIN;
         static int Vibe2_PIN;
@@ -142,6 +157,7 @@ class SettingsHandler
 		static bool tempSleeveEnabled;
 		static bool tempInternalEnabled;
         static bool fanControlEnabled;
+        static bool batteryLevelEnabled;
 		static int Display_Screen_Width; 
 		static int Display_Screen_Height; 
         static int Internal_Temp_PIN;
@@ -170,7 +186,6 @@ class SettingsHandler
         static int strokerOffset;
         static int strokerAmplitude;
 
-        static bool restartRequired;
         static const char* lastRebootReason;
 
         static const char* userSettingsFilePath;
@@ -234,6 +249,7 @@ class SettingsHandler
             
             setBoardType();
             setBuildFeatures();
+            setMotorType();
 
 	        #if ISAAC_NEWTONGUE_BUILD
                 RightServo_PIN = 2;
@@ -293,7 +309,7 @@ class SettingsHandler
 				save();
         }
 
-        static void reset() 
+        static void defaultAll() 
         {
             DynamicJsonDocument doc(deserializeSize);
             File file = SPIFFS.open(userSettingsDefaultFilePath, "r");
@@ -342,16 +358,18 @@ class SettingsHandler
                 RollMax = SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 ? 9999 : 999;
                 PitchMin = 1;
                 PitchMax = SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 ? 9999 : 999;
-                pitchFrequencyIsDifferent = json["pitchFrequencyIsDifferent"];
-                msPerRad =  json["msPerRad"] | 637;
-                servoFrequency = json["servoFrequency"] | 50;
-                pitchFrequency = json[pitchFrequencyIsDifferent ? "pitchFrequency" : "servoFrequency"];
-                valveFrequency = json["valveFrequency"] | 50;
-                twistFrequency = json["twistFrequency"] | 50;
-                squeezeFrequency = json["squeezeFrequency"] | 50;
-				continuousTwist = json["continuousTwist"];
-                feedbackTwist =  json["feedbackTwist"];
-                analogTwist = json["analogTwist"];
+                #if MOTOR_TYPE == 0
+                    pitchFrequencyIsDifferent = json["pitchFrequencyIsDifferent"];
+                    msPerRad =  json["msPerRad"] | 637;
+                    servoFrequency = json["servoFrequency"] | 50;
+                    pitchFrequency = json[pitchFrequencyIsDifferent ? "pitchFrequency" : "servoFrequency"];
+                    valveFrequency = json["valveFrequency"] | 50;
+                    twistFrequency = json["twistFrequency"] | 50;
+                    squeezeFrequency = json["squeezeFrequency"] | 50;
+                    continuousTwist = json["continuousTwist"];
+                    feedbackTwist =  json["feedbackTwist"];
+                    analogTwist = json["analogTwist"];
+                #endif
 
 	        #if !CRIMZZON_BUILD && !ISAAC_NEWTONGUE_BUILD
 				Heater_PIN = json["Heater_PIN"] | 33;
@@ -372,12 +390,19 @@ class SettingsHandler
                 PitchRightServo_PIN = json["PitchRightServo_PIN"];
                 ValveServo_PIN = json["ValveServo_PIN"];
                 TwistServo_PIN = json["TwistServo_PIN"];
+                Squeeze_PIN = json["Squeeze_PIN"];
                 LubeButton_PIN = json["LubeButton_PIN"];
                 Internal_Temp_PIN = json["Internal_Temp_PIN"];
-                Squeeze_PIN  = json["Squeeze_PIN"];
-                Squeeze_PIN = json["Squeeze_PIN"];
                 Sleeve_Temp_PIN = json["Temp_PIN"] | 5;
 	        #endif
+
+                BLDC_Encoder_PIN = json["BLDC_Encoder_PIN"];
+                BLDC_Enable_PIN = json["BLDC_Enable_PIN"];
+                BLDC_PWMchannel1_PIN = json["BLDC_PWMchannel1_PIN"];
+                BLDC_PWMchannel2_PIN = json["BLDC_PWMchannel2_PIN"];
+                BLDC_PWMchannel3_PIN = json["BLDC_PWMchannel3_PIN"];
+                BLDC_MotorA_Voltage = json["BLDC_MotorA_Voltage"];
+                BLDC_MotorA_Current = json["BLDC_MotorA_Current"];
 
 				staticIP = json["staticIP"];
                 const char* localIPTemp = json["localIP"];
@@ -508,6 +533,7 @@ class SettingsHandler
             doc["TCodeVersion"] = (int)TCodeVersionEnum;
             doc["lastRebootReason"] = lastRebootReason;
             doc["boardType"] = (int)boardType;
+            doc["motorType"] = (int)motorType;
             JsonArray buildFeaturesJsonArray = doc.createNestedArray("buildFeatures");
             for (BuildFeature value : buildFeatures) {
                 buildFeaturesJsonArray.add((int)value);
@@ -656,6 +682,15 @@ class SettingsHandler
 			doc["Case_Fan_PIN"] = Case_Fan_PIN;
 			doc["LubeButton_PIN"] = LubeButton_PIN;
             doc["Internal_Temp_PIN"] = Internal_Temp_PIN;
+
+            doc["BLDC_Encoder_PIN"] = BLDC_Encoder_PIN;
+            doc["BLDC_Enable_PIN"] = BLDC_Enable_PIN;
+            doc["BLDC_PWMchannel1_PIN"] = BLDC_PWMchannel1_PIN;
+            doc["BLDC_PWMchannel2_PIN"] = BLDC_PWMchannel2_PIN;
+            doc["BLDC_PWMchannel3_PIN"] = BLDC_PWMchannel3_PIN;
+            doc["BLDC_MotorA_Voltage"] = BLDC_MotorA_Voltage;
+            doc["BLDC_MotorA_Current"] = BLDC_MotorA_Current;
+
 			doc["staticIP"] = staticIP;
 			doc["localIP"] = localIP;
 			doc["gateway"] = gateway;
@@ -784,6 +819,14 @@ class SettingsHandler
             #else
                 LogHandler::debug("setBoardType", "DEVKIT_BUILD");
                 boardType = BoardType::DEVKIT;
+            #endif
+        }
+
+        static void setMotorType() {
+            #if MOTOR_TYPE == 0
+                motorType = MotorType::Servo;
+            #elif MOTOR_TYPE == 1
+                motorType = MotorType::BLDC;
             #endif
         }
 
@@ -1132,7 +1175,8 @@ BuildFeature SettingsHandler::buildFeatures[featureCount];
 const char* SettingsHandler::_TAG = "_SETTINGS_HANDLER";
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
-const char SettingsHandler::ESP32Version[8] = "v0.26b";
+MotorType SettingsHandler::motorType = MotorType::Servo;
+const char SettingsHandler::ESP32Version[8] = "v0.261b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char* SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
@@ -1141,7 +1185,6 @@ const char* SettingsHandler::logPath = "/log.json";
 const char* SettingsHandler::defaultWifiPass = "YOUR PASSWORD HERE";
 const char* SettingsHandler::decoyPass = "Too bad haxor!";
 bool SettingsHandler::bluetoothEnabled = true;
-bool SettingsHandler::restartRequired = false;
 bool SettingsHandler::debug = false;
 LogLevel SettingsHandler::logLevel = LogLevel::INFO;
 bool SettingsHandler::isTcp = true;
@@ -1208,6 +1251,15 @@ int SettingsHandler::RightUpperServo_ZERO = 1500;
 int SettingsHandler::LeftUpperServo_ZERO = 1500;
 int SettingsHandler::PitchLeftServo_ZERO = 1500;
 int SettingsHandler::PitchRightServo_ZERO = 1500;
+
+int SettingsHandler::BLDC_Encoder_PIN = 33;
+int SettingsHandler::BLDC_Enable_PIN = 14;
+int SettingsHandler::BLDC_PWMchannel1_PIN = 27;
+int SettingsHandler::BLDC_PWMchannel2_PIN = 26;
+int SettingsHandler::BLDC_PWMchannel3_PIN = 25;
+int SettingsHandler::BLDC_MotorA_Voltage = 20;         // BLDC Motor operating voltage (12-20V)
+float SettingsHandler::BLDC_MotorA_Current = 1.5;     // BLDC Maximum operating current (Amps)
+
 int SettingsHandler::TwistServo_ZERO = 1500;
 int SettingsHandler::ValveServo_ZERO = 1500; 
 int SettingsHandler::SqueezeServo_ZERO = 1500;
@@ -1225,6 +1277,7 @@ bool SettingsHandler::versionDisplayed = true;
 bool SettingsHandler::tempSleeveEnabled = false;
 bool SettingsHandler::tempInternalEnabled = false;
 bool SettingsHandler::fanControlEnabled = false;
+bool SettingsHandler::batteryLevelEnabled = true;
 int SettingsHandler::Display_Screen_Width = 128; 
 int SettingsHandler::Display_Screen_Height = 64; 
 int SettingsHandler::caseFanMaxDuty = 255;

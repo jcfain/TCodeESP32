@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2020 Jason C. Fain
+Copyright (c) 2023 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -336,14 +336,12 @@ class TemperatureHandler {
 	void setFanState() {		
 		if (_isRunning) {
 			String currentState;
-			double currentDuty = 0;
+			double currentDuty = SettingsHandler::caseFanMaxDuty;
 			if(SettingsHandler::fanControlEnabled && fanControlInitialized) {
 				if(failsafeTriggerInternal) {
 					currentState = TemperatureState::FAIL_SAFE;
-					currentDuty = SettingsHandler::caseFanMaxDuty;
 				} else if (maxTempTriggerInternal) {
 					currentState = TemperatureState::MAX_TEMP_ERROR;
-					currentDuty = SettingsHandler::caseFanMaxDuty;
 				} else {
 					double currentTemp = _currentInternalTemp;
 					//LogHandler::debug(_TAG, "Current global temp: %f", _currentInternalTemp);
@@ -355,7 +353,8 @@ class TemperatureHandler {
 						// 	currentState = TemperatureState::COOLING;
 						// 	currentDuty = SettingsHandler::caseFanMaxDuty * 0.8;
 						// } else 
-						if(definitelyGreaterThanOREssentiallyEqual(currentTemp, SettingsHandler::internalTempForFan)) {
+						if(definitelyGreaterThanOREssentiallyEqual(currentTemp, SettingsHandler::internalTempForFan) || 
+							(definitelyGreaterThanOREssentiallyEqual(currentTemp, SettingsHandler::internalTempForFan - 5) && m_lastInternalTempDuty > 0)) {
 							//LogHandler::debug(_TAG, "definitelyGreaterThanOREssentiallyEqual: %f >= %f", currentTemp, SettingsHandler::internalTempForFan);
 							currentState = TemperatureState::COOLING;
 								// Calculate pwm based on user entered values.
@@ -392,7 +391,6 @@ class TemperatureHandler {
 							// 	LogHandler::debug(_TAG, "Current temp: %f,  fan on temp: %f", _currentInternalTemp, SettingsHandler::internalTempForFan);
 							//  }
 							
-							currentDuty = SettingsHandler::caseFanMaxDuty;
 						} else {
 							currentState = TemperatureState::OFF;
 							currentDuty = 0;

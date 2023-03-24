@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2020 Jason C. Fain
+Copyright (c) 2023 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -156,10 +156,14 @@ public:
 				int headerPadding = is32() ? 0 : 3;
 				// Serial.print("Display Core: ");
 				// Serial.println(xPortGetCoreID());
+
 				if(WifiHandler::isConnected()) {
 					startLine(headerPadding);
-					left("IP: "); display.print(_ipAddress);
+					//left("IP: "); 
+					display.print(_ipAddress);
 
+					drawBatteryLevel();
+					
 					// Draw Wifi signal bars
 					int barHeight = is32() ? 8 : 10;
 					int bars;
@@ -182,6 +186,7 @@ public:
 					for (int b=0; b <= bars; b++) {
 						display.fillRect((SettingsHandler::Display_Screen_Width - 17) + (b*3), barHeight - (b*2),2,b*2,WHITE); 
 					}
+
 					newLine(headerPadding);
 					if(SettingsHandler::versionDisplayed) {
 						left(SettingsHandler::TCodeVersionName.c_str());
@@ -192,6 +197,7 @@ public:
 				} else if(WifiHandler::apMode) {
 					startLine(headerPadding);
 					left("AP mode: 192.168.1.1");
+					drawBatteryLevel();
 					newLine(headerPadding);
 					left("SSID: TCodeESP32Setup");
 					newLine();
@@ -203,12 +209,14 @@ public:
 					}
 				} else {
 					display.print("Wifi error");
+					drawBatteryLevel();
 				}
 #if TEMP_ENABLED
 				if(SettingsHandler::sleeveTempDisplayed || SettingsHandler::internalTempDisplayed) {
 					is32() ? draw32Temp() : draw64Temp();
 				}
 #endif
+
 				display.display();
 			}
         	vTaskDelay(1000/portTICK_PERIOD_MS);
@@ -279,6 +287,7 @@ public:
 			return false;
 		}
 		SettingsHandler::Display_I2C_Address = foundAddresses.front();
+		SettingsHandler::save();
 		return true;
 	}
 
@@ -362,6 +371,7 @@ private:
 	}
 	void startLine(int additionalPixels = 0) {
 		currentLine = (0 + additionalPixels);
+		display.setCursor(0, currentLine);
 	}
 	bool hasNextLine(int newLineTextSize = 1) {
 		
@@ -506,6 +516,49 @@ private:
 			}
 		}
 	}
+
+	void drawBatteryLevel() {
+		if(SettingsHandler::batteryLevelEnabled) {
+			uint16_t raw = analogRead(32);
+			double voltageNumber = (raw * 3.3 ) / 4095;
+			Serial.print("voltage: ");
+			Serial.println(voltageNumber);
+			const char* voltage = String(voltageNumber).c_str();
+			//right(voltage, 5);
+
+			int batteryBars;
+
+			if (voltageNumber >= 3) { 
+				batteryBars = 5;
+			} else if (voltageNumber < 3 && voltageNumber > 2.9) {
+				batteryBars = 4;
+			} else if (voltageNumber < 2.9 && voltageNumber > 2.7) {
+				batteryBars = 3;
+			} else if (voltageNumber < 2.7 && voltageNumber > 2.4) {
+				batteryBars = 2;
+			} else if (voltageNumber < 2.4 && voltageNumber > 2.6) {
+				batteryBars = 1;
+			} else {
+				batteryBars = 0;
+			}
+			for (int b=0; b <= batteryBars; b++) {
+				display.fillRect(
+					(SettingsHandler::Display_Screen_Width - (!WifiHandler::isConnected() ? 20 : 37)) + (b*3), 
+					2, 
+					2, 
+					lineHeight - 4, 
+					WHITE); 
+			}
+			display.drawRect(
+				SettingsHandler::Display_Screen_Width - (!WifiHandler::isConnected() ? 23 : 40),
+				1, 
+				20, 
+				lineHeight-2, 
+				WHITE); // draw the outline box
+		}
+	}
+
+	
 	void getTempString(const char* displayText, char* temp, char* buf, int size) {
 		strtrim(temp);
 		snprintf(buf, size, "%s%s%cC", displayText, temp, (char)247);

@@ -21,21 +21,24 @@
 
 #pragma once
 
-#include "TCode0_3.h"
-#include "../Global.h"
-#include "../ServoHandler.h"
+#define CHANNELS 11
 
-class ServoHandler0_3 : public ServoHandler {
+#include "TCode0_3.h"
+#include "../../SettingsHandler.h"
+#include "../Global.h"
+#include "../MotorHandler.h"
+
+class ServoHandler0_3 : public MotorHandler {
 
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency, int msPerRad) override {
-        ms_per_rad = msPerRad;
-        MainServo_Freq = servoFrequency;
-        PitchServo_Freq = pitchFrequency;
-        TwistServo_Freq = twistFrequency;
-        ValveServo_Freq = valveFrequency;
+    void setup() override {
+        ms_per_rad = SettingsHandler::msPerRad;
+        MainServo_Freq = SettingsHandler::servoFrequency;
+        PitchServo_Freq = SettingsHandler::pitchFrequency;
+        TwistServo_Freq = SettingsHandler::twistFrequency;
+        ValveServo_Freq = SettingsHandler::valveFrequency;
         SqueezeServo_Freq = SettingsHandler::squeezeFrequency;
 // Servo Pulse intervals
         MainServo_Int = 1000000/MainServo_Freq;

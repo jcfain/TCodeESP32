@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2022 Jason C. Fain
+Copyright (c) 2023 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -79,9 +79,9 @@ class Udphandler
 			//LogHandler::verbose(_TAG, "Udp in: %s", packetBuffer);
 		}
 		if (SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 && strpbrk(packetBuffer, "$") != nullptr) {
-			CommandCallback("OK");
 			strcpy(udpData, packetBuffer);
-			LogHandler::info(_TAG, "Settings save received: %s", udpData);
+			LogHandler::info(_TAG, "System command received: %s", udpData);
+			CommandCallback("OK");
 		} else if (strpbrk(packetBuffer, jsonIdentifier) != nullptr) {
 			SettingsHandler::processTCodeJson(udpData, packetBuffer);
 			//LogHandler::verbose(_TAG, "json processed: %s", udpData);
