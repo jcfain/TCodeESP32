@@ -21,21 +21,24 @@
 
 #pragma once
 
-#include "TCode0_3.h"
-#include "../Global.h"
-#include "../ServoHandler.h"
+#define CHANNELS 11
 
-class ServoHandler0_3 : public ServoHandler {
+#include "TCode0_3.h"
+#include "../../SettingsHandler.h"
+#include "../Global.h"
+#include "../MotorHandler.h"
+
+class ServoHandler0_3 : public MotorHandler {
 
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency, int msPerRad) override {
-        ms_per_rad = msPerRad;
-        MainServo_Freq = servoFrequency;
-        PitchServo_Freq = pitchFrequency;
-        TwistServo_Freq = twistFrequency;
-        ValveServo_Freq = valveFrequency;
+    void setup() override {
+        ms_per_rad = SettingsHandler::msPerRad;
+        MainServo_Freq = SettingsHandler::servoFrequency;
+        PitchServo_Freq = SettingsHandler::pitchFrequency;
+        TwistServo_Freq = SettingsHandler::twistFrequency;
+        ValveServo_Freq = SettingsHandler::valveFrequency;
         SqueezeServo_Freq = SettingsHandler::squeezeFrequency;
 // Servo Pulse intervals
         MainServo_Int = 1000000/MainServo_Freq;
@@ -76,7 +79,7 @@ public:
         tcode.RegisterAxis("A3", "Squeeze");
         // Setup Servo PWM channels
         // Lower Left Servo
-        if(DEBUG_BUILD == 0) {
+        if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
             LogHandler::verbose(_TAG, "Connecting left servo to pin: %u", SettingsHandler::LeftServo_PIN);
             ledcSetup(LowerLeftServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::LeftServo_PIN,LowerLeftServo_PWM);
@@ -91,7 +94,7 @@ public:
             LogHandler::verbose(_TAG, "Connecting left upper servo to pin: %u", SettingsHandler::LeftUpperServo_PIN);
             ledcSetup(UpperLeftServo_PWM,MainServo_Freq,16);
             ledcAttachPin(SettingsHandler::LeftUpperServo_PIN,UpperLeftServo_PWM);
-            if(DEBUG_BUILD == 0) {
+            if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
                 // Upper Right Servo
             LogHandler::verbose(_TAG, "Connecting right upper servo to pin: %u", SettingsHandler::RightUpperServo_PIN);
                 ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);
@@ -129,9 +132,11 @@ public:
         ledcSetup(Vibe1_PWM,VibePWM_Freq,8);
         ledcAttachPin(SettingsHandler::Vibe1_PIN,Vibe1_PWM); 
 
-        LogHandler::verbose(_TAG, "Connecting vib 3 to pin: %u", SettingsHandler::Vibe3_PIN);
-        ledcSetup(Vibe2_PWM,VibePWM_Freq,8);
-        ledcAttachPin(SettingsHandler::Vibe3_PIN,Vibe2_PWM); 
+        if(SettingsHandler::Vibe2_PIN > 0) {
+            LogHandler::verbose(_TAG, "Connecting vib 3 to pin: %u", SettingsHandler::Vibe2_PIN);
+            ledcSetup(Vibe2_PWM,VibePWM_Freq,8);
+            ledcAttachPin(SettingsHandler::Vibe2_PIN,Vibe2_PWM); 
+        }
 
         if(SettingsHandler::feedbackTwist)
         {
@@ -152,10 +157,11 @@ public:
                 analogReadResolution(11);
                 analogSetAttenuation(ADC_6db); */
             }
-        } else {
-            LogHandler::verbose(_TAG, "Connecting vib 4 to pin: %u", SettingsHandler::Vibe4_PIN);
+        } 
+        if(SettingsHandler::Vibe3_PIN > 0) {
+            LogHandler::verbose(_TAG, "Connecting vib 4 to pin: %u", SettingsHandler::Vibe3_PIN);
             ledcSetup(Vibe3_PWM,VibePWM_Freq,8);
-            ledcAttachPin(SettingsHandler::Vibe4_PIN,Vibe3_PWM); 
+            ledcAttachPin(SettingsHandler::Vibe3_PIN,Vibe3_PWM); 
         }
         
         // Signal done
@@ -210,11 +216,11 @@ public:
             float angPos;
             // Calculate twist position
             if (!SettingsHandler::analogTwist)
-            {
-                noInterrupts();
+            {  
+                //noInterrupts();
                 float dutyCycle = twistPulseLength;
                 dutyCycle = dutyCycle/lastTwistPulseCycle;
-                interrupts();
+                //interrupts();
                 angPos = (dutyCycle - 0.029)/0.942;
                     //  Serial.print("angPos "); 
                     //  Serial.println(angPos);
@@ -327,6 +333,12 @@ public:
                 pitchLeftValue = SetPitchServo(16248 - fwd, 4500 - thrust, side - 1.5*roll, -pitch);
                 pitchRightValue = SetPitchServo(16248 - fwd, 4500 - thrust, -side + 1.5*roll, -pitch);
             }
+				// Serial.printf("Sending lowerLeftValue: %i\n", lowerLeftValue);
+				// Serial.printf("Sending upperLeftValue: %i\n", upperLeftValue);
+				// Serial.printf("Sending lowerRightValue: %i\n", lowerRightValue);
+				// Serial.printf("Sending upperRightValue: %i\n", upperRightValue);
+				// Serial.printf("Sending pitchLeftValue: %i\n", pitchLeftValue);
+				// Serial.printf("Sending pitchRightValue: %i\n", pitchRightValue);
             // Set Servos
             ledcWrite(LowerLeftServo_PWM, map(SettingsHandler::LeftServo_ZERO - lowerLeftValue,0,MainServo_Int,0,65535));
             ledcWrite(UpperLeftServo_PWM, map(SettingsHandler::LeftUpperServo_ZERO + upperLeftValue,0,MainServo_Int,0,65535));

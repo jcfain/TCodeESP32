@@ -19,11 +19,13 @@
 // v2.7b - T-valve suction level algorithm modified. 30-11-2020
 
 #pragma once
+#define CHANNELS 11
 
 #include <ESP32Servo.h>
+#include "../../SettingsHandler.h"
 #include "ToyComs.h"
 #include "../Global.h"
-#include "../ServoHandler.h"
+#include "../MotorHandler.h"
 
 /* volatile int twistFeedBackPin = SettingsHandler::TwistFeedBack_PIN;
 // Twist position monitor variables
@@ -44,7 +46,7 @@ void IRAM_ATTR twistChange()
 	}
 } */
 
-class ServoHandler0_2 : public ServoHandler
+class ServoHandler0_2 : public MotorHandler
 {
 
 private:
@@ -141,20 +143,20 @@ private:
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency, int msPerRad) override 
+    void setup() override 
     {
-        ms_per_rad = msPerRad;
+        ms_per_rad = SettingsHandler::msPerRad;
 		toy.setup();
         toy.identifyTCode();
 
-        RightServo.setPeriodHertz(servoFrequency);
-        RightUpperServo.setPeriodHertz(servoFrequency);
-        LeftServo.setPeriodHertz(servoFrequency);
-        LeftUpperServo.setPeriodHertz(servoFrequency);
-        PitchLeftServo.setPeriodHertz(pitchFrequency);
-        PitchRightServo.setPeriodHertz(pitchFrequency);
-		ValveServo.setPeriodHertz(valveFrequency);
-		TwistServo.setPeriodHertz(twistFrequency);
+        RightServo.setPeriodHertz(SettingsHandler::servoFrequency);
+        RightUpperServo.setPeriodHertz(SettingsHandler::servoFrequency);
+        LeftServo.setPeriodHertz(SettingsHandler::servoFrequency);
+        LeftUpperServo.setPeriodHertz(SettingsHandler::servoFrequency);
+        PitchLeftServo.setPeriodHertz(SettingsHandler::pitchFrequency);
+        PitchRightServo.setPeriodHertz(SettingsHandler::pitchFrequency);
+		ValveServo.setPeriodHertz(SettingsHandler::valveFrequency);
+		TwistServo.setPeriodHertz(SettingsHandler::twistFrequency);
 
 		RightServo_PIN = SettingsHandler::RightServo_PIN;
 		LeftServo_PIN = SettingsHandler::LeftServo_PIN;
@@ -167,7 +169,7 @@ public:
 		Vibe0_PIN = SettingsHandler::Vibe0_PIN;
 		Vibe1_PIN = SettingsHandler::Vibe1_PIN;
 
-        if(DEBUG_BUILD == 0) {
+        if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
 			// Declare servos and set zero
 			rightServoConnected = RightServo.attach(RightServo_PIN);
 			if (rightServoConnected == 0) 
@@ -193,7 +195,7 @@ public:
 				// Serial.println(LeftUpperServo_PIN);
 				LogHandler::error(_TAG, "Failure to connect to left upper pin: %i", LeftUpperServo_PIN);
 			}
-			if(DEBUG_BUILD == 0) {
+			if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
 				rightUpperServoConnected = RightUpperServo.attach(RightUpperServo_PIN);
 				if (rightUpperServoConnected == 0) 
 				{
@@ -283,7 +285,7 @@ public:
   		pinMode(LubeManual_PIN,INPUT);
 
         // Set servo pulse interval
-        tick = 1000/servoFrequency; //ms
+        tick = 1000/SettingsHandler::servoFrequency; //ms
         // Set time for first pulse
         nextPulse = millis() + tick;
 
@@ -389,10 +391,10 @@ public:
             if (SettingsHandler::feedbackTwist && !SettingsHandler::continuousTwist) 
 			{
 				// Calculate twist position
-                noInterrupts();
+                //noInterrupts();
                 float dutyCycle = twistPulseLength;
                 dutyCycle = dutyCycle/lastTwistPulseCycle;
-                interrupts();
+                //interrupts();
 				float angPos = (dutyCycle - 0.029)/0.942;
 				angPos = constrain(angPos,0,1) - 0.5;
 				if (angPos - twistServoAngPos < - 0.8) { twistTurns += 1; }

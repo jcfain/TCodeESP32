@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2020 Jason C. Fain
+Copyright (c) 2023 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,8 @@ SOFTWARE. */
 
 #include <AsyncJson.h>
 #include <list>
+#include "SettingsHandler.h"
+#include "LogHandler.h"
 
 AsyncWebSocket ws("/ws");
 #include <mutex>
@@ -181,7 +183,7 @@ class WebSocketHandler {
         // }
 
         void compileCommand(char* buf, const char* command, const char* message = 0) {
-            if(LogHandler::getLogLevel() == LogLevel::VERBOSE) {
+            if(LogHandler::getLogLevel() == LogLevel::DEBUG) {
                 if(message)
                     Serial.printf("Sending WS commands: %s, Message: %s\n", command, message);
                 else

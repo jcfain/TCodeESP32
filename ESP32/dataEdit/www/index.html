@@ -110,7 +110,7 @@
 					</tr> -->
 				</tbody>
 			</table>
-			<table id="deviceSettingsTable" class="formTable">
+			<table id="deviceSettingsTable" class="formTable servoOnly">
 				<tbody>
 					<tr>
 						<th colspan="3">
@@ -183,7 +183,15 @@
 							<input id="squeezeFrequency" type="number" min="1" oninput="updateServoFrequency()">
 						</td>
 					</tr>
-					<tr>
+					<tr class="sr6Only">
+						<td>
+							<span>Set (&#181;) for 270 degree servos</span> 
+						</td>
+						<td>
+							<input id="msPerRadIs270" type="checkbox" onclick="toggleMsPerRadIs270()"></input>
+						</td>
+					</tr>
+					<tr class="sr6Only">
 						<td>
 							<span>Micro seconds per radian (&#181;)</span> 
 						</td>
@@ -207,7 +215,7 @@
 							<span>Right</span> 
 						</td>
 						<td>
-							<input id="RightServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
+							<input id="RightServo_PIN" type="number" max="99" min="0" oninput="updatePins()">
 						</td>
 						<td>
 							<input id="RightServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
@@ -218,7 +226,7 @@
 							<span>Left</span> 
 						</td>
 						<td>
-							<input id="LeftServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
+							<input id="LeftServo_PIN" type="number" max="99" min="0" oninput="updatePins()">
 						</td>
 						<td>
 							<input id="LeftServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
@@ -229,7 +237,7 @@
 							<span>Pitch</span> 
 						</td>
 						<td>
-							<input id="PitchLeftServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
+							<input id="PitchLeftServo_PIN" type="number" max="99" min="0" oninput="updatePins()">
 						</td>
 						<td>
 							<input id="PitchLeftServo_ZERO" type="number" max="9999" min="1"  oninput="updateZeros()">
@@ -251,7 +259,7 @@
 							<span>Squeeze</span> 
 						</td>
 						<td>
-							<input id="Squeeze_PIN" type="number" max="99" min="1" oninput="updatePins()">
+							<input id="Squeeze_PIN" type="number" max="99" min="0" oninput="updatePins()">
 						</td>
 						<td>
 							<input id="Squeeze_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
@@ -262,7 +270,7 @@
 							<span>Twist</span> 
 						</td>
 						<td>
-							<input id="TwistServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
+							<input id="TwistServo_PIN" type="number" max="99" min="0" oninput="updatePins()">
 						</td>
 						<td>
 							<input id="TwistServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
@@ -273,31 +281,47 @@
 							<span>Twist feedback</span> 
 						</td>
 						<td>
-							<input id="TwistFeedBack_PIN" type="number" max="99" min="1" oninput="updatePins()">
+							<input id="TwistFeedBack_PIN" type="number" max="99" min="0" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
 						<td>
-							<span>Vibe 0</span> 
+							<span>Vibe 1</span> 
 						</td>
 						<td>
-							<input id="Vibe0_PIN" type="number" max="99" min="1" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Lube/Vibe 1</span> 
-						</td>
-						<td>
-							<input id="Vibe1_PIN" type="number" max="99" min="1" oninput="updatePins()">
+							<input id="Vibe0_PIN" type="number" max="99" min="0" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
 						<td>
-							<span>Lube button</span> 
+							<span>Lube/Vibe 2</span> 
 						</td>
 						<td>
-							<input id="LubeButton_PIN" type="number" max="99" min="1" oninput="updatePins()">
+							<input id="Vibe1_PIN" type="number" max="99" min="0" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Vibe 3</span> 
+						</td>
+						<td>
+							<input id="Vibe2_PIN" type="number" max="99" min="0" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Vibe 4</span> 
+						</td>
+						<td>
+							<input id="Vibe3_PIN" type="number" max="99" min="0" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Disable PIN validation</span> 
+						</td>
+						<td>
+							<input id="disablePinValidation" type="checkbox" onchange="disablePinValidation()">
 						</td>
 					</tr>
 					<tr class="pwmAvaliblePinRow">
@@ -309,7 +333,87 @@
 					</tr>
 				</tbody>
 			</table>
-			<table id="deviceSR6SettingsTable" class="formTable sr6Only">
+			<table id="deviceSettingsBLDCTable" class="formTable BLDCOnly">
+				<tbody>
+					<tr>
+						<th colspan="3">
+							<h3>General</h3>
+						</th>
+					</tr>
+					<tr>
+						<td>
+							<span>Voltage</span> 
+						</td>
+						<td>
+							<input id="BLDC_MotorA_Voltage" type="number" max="99.0" min="0.0" step=".01" oninput="updateBLDCSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Current</span> 
+						</td>
+						<td>
+							<input id="BLDC_MotorA_Current" type="number" max="99.0" min="0.0" step=".01" oninput="updateBLDCSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Encoder PIN</span> 
+						</td>
+						<td>
+							<input id="BLDC_Encoder_PIN" type="number" max="99" min="0" oninput="updateBLDCPins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Enable PIN</span> 
+						</td>
+						<td>
+							<input id="BLDC_Enable_PIN" type="number" max="99" min="0" oninput="updateBLDCPins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>PWMchannel1 PIN</span> 
+						</td>
+						<td>
+							<input id="BLDC_PWMchannel1_PIN" type="number" max="99" min="0" oninput="updateBLDCPins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>PWMchannel2 PIN</span> 
+						</td>
+						<td>
+							<input id="BLDC_PWMchannel2_PIN" type="number" max="99" min="0" oninput="updateBLDCPins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>PWMchannel3 PIN</span> 
+						</td>
+						<td>
+							<input id="BLDC_PWMchannel3_PIN" type="number" max="99" min="0" oninput="updateBLDCPins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span>Disable PIN validation</span> 
+						</td>
+						<td>
+							<input id="disablePinValidation" type="checkbox" onchange="disablePinValidation()">
+						</td>
+					</tr>
+					<tr class="pwmAvaliblePinRow">
+						<td colspan="3">
+							<span>
+								PWM availible on: 2,4,5,12-19,21-23,25-27,32,33
+							</span> 
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<table id="deviceSR6SettingsTable" class="formTable sr6Only servoOnly">
 				<tbody>
 					<tr>
 						<th colspan="3">
@@ -332,7 +436,7 @@
 							<span>Right upper</span> 
 						</td>
 						<td>
-							<input id="RightUpperServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
+							<input id="RightUpperServo_PIN" type="number" max="99" min="0" oninput="updatePins()">
 						</td>
 						<td>
 							<input id="RightUpperServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
@@ -343,7 +447,7 @@
 							<span>Left upper</span> 
 						</td>
 						<td>
-							<input id="LeftUpperServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
+							<input id="LeftUpperServo_PIN" type="number" max="99" min="0" oninput="updatePins()">
 						</td>
 						<td>
 							<input id="LeftUpperServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
@@ -354,7 +458,7 @@
 							<span>Pitch right</span> 
 						</td>
 						<td>
-							<input id="PitchRightServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
+							<input id="PitchRightServo_PIN" type="number" max="99" min="0" oninput="updatePins()">
 						</td>
 						<td>
 							<input id="PitchRightServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
@@ -369,7 +473,7 @@
 					</tr>
 				</tbody>
 			</table>
-			<table class="formTable">
+			<table id="otherSettingsTable" class="formTable">
 				<tbody>
 					<tr>
 						<th colspan="2">
@@ -450,6 +554,14 @@
 					</tr>
 					<tr>
 						<td>
+							<span>Lube button PIN</span> 
+						</td>
+						<td>
+							<input id="LubeButton_PIN" type="number" max="99" min="0" oninput="updatePins()">
+						</td>
+					</tr>
+					<tr>
+						<td>
 							<span>Manual lube speed (1-255)</span> 
 						</td>
 						<td>
@@ -526,7 +638,7 @@
 							<span>Sleeve temp sensor pin</span> 
 						</td>
 						<td>
-							<input id="Temp_PIN" type="number" min="1" oninput="updatePins()">
+							<input id="Temp_PIN" type="number" min="0" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -534,7 +646,7 @@
 							<span>Heater pin</span> 
 						</td>
 						<td>
-							<input id="Heater_PIN" type="number" min="1" oninput="updatePins()">
+							<input id="Heater_PIN" type="number" min="0" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -542,7 +654,7 @@
 							<span>Target Temperature (&#8451;)</span> 
 						</td>
 						<td>
-							<input id="TargetTemp" type="text" oninput="setTempSettings()">
+							<input id="TargetTemp" type="number" step="0.1" oninput="setTempSettings()">
 						</td>
 					</tr>
 					<tr title="This will be sent to the heater pin when the measured temp is below the 'Target Temperature'">
@@ -569,22 +681,6 @@
 							<input id="heaterThreshold" type="text"  oninput="setTempSettings()">
 						</td>
 					</tr>
-					<tr title="When the device is first started, this timer will count down and send the Heat PWM specified above until either the target has been reached or the time runs out.">
-						<td>
-							<span>Warm up time (ms)</span> 
-						</td>
-						<td>
-							<input id="WarmUpTime" type="text"  oninput="setTempSettings()">
-						</td>
-					</tr>
-					<!-- <tr title="If the measured temp is less than or equal to the laste measured temp for the given time, the failsafe will trigger and the heater is turned off.">
-						<td>
-							<span>Heater failsafe time out</span> 
-						</td>
-						<td>
-							<input id="heaterFailsafeTime" type="text"  oninput="setTempSettings()"> ms
-						</td>
-					</tr> -->
 					<tr>
 						<td>
 							<span>Heater resolution (bit)</span> 
@@ -648,6 +744,12 @@
 							<input id="internalTemp" type="text" readonly>
 						</td>
 					</tr>
+					<tr>
+						<td><span>Internal max temp (&#8451;)</span></td>
+						<td>
+							<input id="internalMaxTemp" type="number" step="0.1" oninput="setMaxTemp()" >
+						</td>
+					</tr>
 					<tr class="fan-control-build">
 						<td><span>Fan control enabled</span></td>
 						<td>
@@ -663,7 +765,7 @@
 					<tr class="fan-control">
 						<td><span>Fan on temp (&#8451;)</span></td>
 						<td>
-							<input id="internalTempForFan" type="number" min="0" oninput="setFanOnTemp()">
+							<input id="internalTempForFan" type="number" min="0" step="0.1" oninput="setFanOnTemp()">
 						</td>
 					</tr>
 					<tr class="fan-control">
@@ -686,7 +788,7 @@
 					</tr>
 				</tbody>
 			</table>
-			<table id="deviceSettingsDisplayTable" class="formTable fullBuild">
+			<table id="displaySettingsDisplayTable" class="formTable build_display">
 				<tbody>
 					<tr>
 						<th colspan="2">

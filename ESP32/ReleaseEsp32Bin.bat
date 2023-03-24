@@ -25,8 +25,10 @@ ECHO 4 - Isaac
 ECHO 5 - Display
 ECHO 6 - Temp
 ECHO 7 - BlueTooth
-ECHO 8 - Debug
-ECHO 9 - EXIT
+ECHO 8 - bldc
+ECHO 9 - bldc display temp
+ECHO 10 - Debug
+ECHO 11 - EXIT
 ECHO.
 
 SET /P M=Build (1):
@@ -39,8 +41,10 @@ IF %M%==4 SET BUILD_MODIFIER=-isaac
 IF %M%==5 SET BUILD_MODIFIER=-display
 IF %M%==6 SET BUILD_MODIFIER=-temperature
 IF %M%==7 SET BUILD_MODIFIER=-bluetooth
-IF %M%==8 SET BUILD_MODIFIER=-debug
-IF %M%==9 GOTO EOF
+IF %M%==8 SET BUILD_MODIFIER=-bldc
+IF %M%==9 SET BUILD_MODIFIER=-bldc-display-temp
+IF %M%==10 SET BUILD_MODIFIER=-debug
+IF %M%==11 GOTO EOF
 
 SET ESPTOOLDIR="%~dp0bin\esptool-v3.3.2-win64\"
 
@@ -53,7 +57,8 @@ XCOPY %ESPTOOLDIR%esptool.exe "%OUTDIR%\esptool\esptool.exe" /d /Y
 XCOPY %ESPTOOLDIR%LICENSE "%OUTDIR%\esptool\LICENSE" /d /Y
 XCOPY %ESPTOOLDIR%README.md "%OUTDIR%\esptool\README.md" /d /Y
 
-%ESPTOOLDIR%esptool.exe --chip esp32 merge_bin -o "%OUTDIR%\release.bin" --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 "%userprofile%\.platformio\packages\framework-arduinoespressif32\tools\sdk\esp32\bin\bootloader_dio_40m.bin" 0x8000 .pio\build\%BUILD%\partitions.bin 0x10000 .pio\build\%BUILD%\firmware.bin 0xe000 "%userprofile%\.platformio\packages\framework-arduinoespressif32\tools\partitions\boot_app0.bin" 0x003d0000 .pio\build\%BUILD%\spiffs.bin
+
+%ESPTOOLDIR%esptool.exe --chip esp32 merge_bin -o "%OUTDIR%\release.bin" --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 .pio\build\%BUILD%\bootloader.bin 0x8000 .pio\build\%BUILD%\partitions.bin 0xe000 "%userprofile%\.platformio\packages\framework-arduinoespressif32\tools\partitions\boot_app0.bin" 0x10000 .pio\build\%BUILD%\firmware.bin 0x310000 .pio\build\%BUILD%\spiffs.bin
 
 SET releaseZip="%~dp0bin\TCode_ESP32_Release_v%version%%BUILD_MODIFIER%.zip"
 

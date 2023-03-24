@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2020 Jason C. Fain
+Copyright (c) 2023 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -152,16 +152,13 @@ class WebHandler {
                 request->send(response);
                 delay(2000);
                 webSocketHandler->closeAll();
-                Serial.println("Device restarting...");
-                //ESP.restart();
-                SettingsHandler::restartRequired = true;
-                delay(5000);
+                SystemCommandHandler::restart();
             });
 
             server->on("/default", HTTP_POST, [](AsyncWebServerRequest *request)
             {
                 Serial.println("Settings default");
-				SettingsHandler::reset();
+				SettingsHandler::defaultAll();
             });
 
             AsyncCallbackJsonWebHandler* settingsUpdateHandler = new AsyncCallbackJsonWebHandler("/settings", [](AsyncWebServerRequest *request, JsonVariant &json)

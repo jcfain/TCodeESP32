@@ -143,20 +143,26 @@ private:
 
   // Function to process the individual commands
   void readCmd(String command) {
-    command.toUpperCase();
   
     // Switch between command types
     switch( command.charAt(0) ) {
       // Axis commands
       case 'L':
+      case 'l':
       case 'R':
+      case 'r':
       case 'V':
+      case 'v':
       case 'A':
+      case 'a':
+        command.toUpperCase();
         axisCmd(command);
       break;
   
       // Device commands
       case 'D':
+      case 'd':
+        command.toUpperCase();
         deviceCmd(command);
       break;
   
@@ -228,7 +234,7 @@ private:
     command = command.substring(1);
 
     // Look for device stop command
-    if (command.substring(0,4) == "STOP") {
+    if (command.substring(0,4).equalsIgnoreCase("STOP")) {
         for (i = 0; i < 10; i++) { Linear[i].Stop(); }
         for (i = 0; i < 10; i++) { Rotation[i].Stop(); }
         for (i = 0; i < 10; i++) { Vibration[i].Set(0,' ',0); }
@@ -264,9 +270,13 @@ private:
     char type = command.charAt(1); 
     switch (type) {
       case 'L':
+      case 'l':
       case 'R':
+      case 'r':
       case 'V':
+      case 'v':
       case 'A':
+      case 'a':
       valid = true;
       break;
 
@@ -303,10 +313,13 @@ private:
     if (valid) {
       int memIndex = 0;
       switch (type) {
-        case 'L': memIndex = 0; break;
-        case 'R': memIndex = 80; break;
-        case 'V': memIndex = 160; break;
-        case 'A': memIndex = 240; break;
+        case 'L':
+        case 'l': 
+          memIndex = 0; 
+        break;
+        case 'R':case 'r': memIndex = 80; break;
+        case 'V':case 'v': memIndex = 160; break;
+        case 'A':case 'a': memIndex = 240; break;
       }
       memIndex += 8*channel;
       minVal = constrain(minVal,0,9999);
@@ -316,11 +329,13 @@ private:
       EEPROM.commit();
       // Output that axis changed successfully
       switch (type) {
-        case 'L': axisRow("L" + String(channel), memIndex, Linear[channel].Name); break;
-        case 'R': axisRow("R" + String(channel), memIndex, Rotation[channel].Name); break;
-        case 'V': axisRow("V" + String(channel), memIndex, Vibration[channel].Name); break;
-        case 'A': axisRow("A" + String(channel), memIndex, Auxiliary[channel].Name); break;             
+        case 'L':case 'l': axisRow("L" + String(channel), memIndex, Linear[channel].Name); break;
+        case 'R':case 'r': axisRow("R" + String(channel), memIndex, Rotation[channel].Name); break;
+        case 'V':case 'v': axisRow("V" + String(channel), memIndex, Vibration[channel].Name); break;
+        case 'A':case 'a': axisRow("A" + String(channel), memIndex, Auxiliary[channel].Name); break;             
       }
+    } else {
+      sendMessage(command.c_str());
     }
   }
  

@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2020 Jason C. Fain
+Copyright (c) 2023 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -65,10 +65,17 @@ const BuildFeature = {
     TEMP: 6,
     HAS_TCODE_V2: 7
 }
+const MotorType = {
+    Servo: 0,
+    BLDC: 1
+};
+const servoDegreeValue180 = 637; 
+const servoDegreeValue270 = 425; 
 dubugMessages = [];
 
 var AvailibleChannelsV2;
 var AvailibleChannelsV3;
+var AvailibleChannelsBLDC;
 var testDeviceUseIModifier = false;
 var testDeviceDisableModifier = false;
 var testDeviceModifierValue = "1000";
@@ -81,6 +88,10 @@ var startUpHostName;
 var startUpWebPort;
 var startUpStaticIP;
 var startUpLocalIP;
+
+//PWM availible on: 2,4,5,12-19,21-23,25-27,32-33
+var validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33];
+var inputOnlypins = [34,35,36,39];
 
 document.addEventListener("DOMContentLoaded", function() {
     onDocumentLoad();
@@ -376,27 +387,31 @@ function setSystemInfo() {
 
     toggleBuildOptions();
     
-    const pinsAreEditable = isPinsEditable();
-    document.getElementById("TwistFeedBack_PIN").readOnly = !pinsAreEditable;
-    document.getElementById("RightServo_PIN").readOnly = !pinsAreEditable;
-    document.getElementById("LeftServo_PIN").readOnly = !pinsAreEditable;
-    document.getElementById("RightUpperServo_PIN").readOnly = !pinsAreEditable
-    document.getElementById("LeftUpperServo_PIN").readOnly = !pinsAreEditable;
-    document.getElementById("PitchLeftServo_PIN").readOnly = !pinsAreEditable;
-    document.getElementById("PitchRightServo_PIN").readOnly = !pinsAreEditable;
-    document.getElementById("ValveServo_PIN").readOnly = !pinsAreEditable;
-	document.getElementById("TwistServo_PIN").readOnly = !pinsAreEditable;
-    document.getElementById("Vibe0_PIN").readOnly = !pinsAreEditable;
-    document.getElementById("Vibe1_PIN").readOnly = !pinsAreEditable;
-    document.getElementById("LubeButton_PIN").readOnly = !pinsAreEditable;
-	document.getElementById("Temp_PIN").readOnly = !pinsAreEditable;
-	document.getElementById("Heater_PIN").readOnly = !pinsAreEditable;
-	document.getElementById("Case_Fan_PIN").readOnly = !pinsAreEditable;
-	document.getElementById("Squeeze_PIN").readOnly = !pinsAreEditable;
-	document.getElementById("Internal_Temp_PIN").readOnly = !pinsAreEditable;
+    // const pinsAreEditable = isPinsEditable();
+    // document.getElementById("TwistFeedBack_PIN").readOnly = !pinsAreEditable;
+    // document.getElementById("RightServo_PIN").readOnly = !pinsAreEditable;
+    // document.getElementById("LeftServo_PIN").readOnly = !pinsAreEditable;
+    // document.getElementById("RightUpperServo_PIN").readOnly = !pinsAreEditable
+    // document.getElementById("LeftUpperServo_PIN").readOnly = !pinsAreEditable;
+    // document.getElementById("PitchLeftServo_PIN").readOnly = !pinsAreEditable;
+    // document.getElementById("PitchRightServo_PIN").readOnly = !pinsAreEditable;
+    // document.getElementById("ValveServo_PIN").readOnly = !pinsAreEditable;
+	// document.getElementById("TwistServo_PIN").readOnly = !pinsAreEditable;
 
-    document.getElementById('caseFanResolution').readOnly = systemInfo.boardType === BoardType.CRIMZZON;
-    document.getElementById('caseFanFrequency').readOnly = systemInfo.boardType === BoardType.CRIMZZON;
+    // document.getElementById("Vibe0_PIN").readOnly = !pinsAreEditable;
+    // document.getElementById("Vibe1_PIN").readOnly = !pinsAreEditable;
+    // document.getElementById("Vibe2_PIN").readOnly = !pinsAreEditable;
+    // document.getElementById("Vibe3_PIN").readOnly = !pinsAreEditable;
+
+    //document.getElementById("LubeButton_PIN").readOnly = !pinsAreEditable;
+	// document.getElementById("Temp_PIN").readOnly = !pinsAreEditable;
+	// document.getElementById("Heater_PIN").readOnly = !pinsAreEditable;
+	// document.getElementById("Case_Fan_PIN").readOnly = !pinsAreEditable;
+	// document.getElementById("Squeeze_PIN").readOnly = !pinsAreEditable;
+	//document.getElementById("Internal_Temp_PIN").readOnly = !pinsAreEditable;
+
+    //validPWMpins = [17,25,27];
+    //validPWMpins = [2,4,5,12,13,14,15,17,21,22,25,27,32];
 
     document.getElementById('lastRebootReason').value = systemInfo.lastRebootReason;
 }
@@ -419,6 +434,7 @@ function setUserSettings()
         toggleInternalTempSettings(userSettings["tempInternalEnabled"]);
         toggleFanControlSettings(userSettings["fanControlEnabled"]);
     }
+    toggleMotorTypeOptions();
     // var xMin = userSettings["xMin"];
     // var xMax = userSettings["xMax"];
     //document.getElementById("xMin").value = xMin;
@@ -474,8 +490,18 @@ function setUserSettings()
 	document.getElementById("TwistServo_PIN").value = userSettings["TwistServo_PIN"];
     document.getElementById("Vibe0_PIN").value = userSettings["Vibe0_PIN"];
     document.getElementById("Vibe1_PIN").value = userSettings["Vibe1_PIN"];
+    document.getElementById("Vibe2_PIN").value = userSettings["Vibe2_PIN"];
+    document.getElementById("Vibe3_PIN").value = userSettings["Vibe3_PIN"];
 	document.getElementById("LubeButton_PIN").value = userSettings["LubeButton_PIN"];
 	document.getElementById("Squeeze_PIN").value = userSettings["Squeeze_PIN"];
+
+	document.getElementById("BLDC_MotorA_Voltage").value = userSettings["BLDC_MotorA_Voltage"];
+	document.getElementById("BLDC_MotorA_Current").value = userSettings["BLDC_MotorA_Current"];
+	document.getElementById("BLDC_Encoder_PIN").value = userSettings["BLDC_Encoder_PIN"];
+	document.getElementById("BLDC_Enable_PIN").value = userSettings["BLDC_Enable_PIN"];
+	document.getElementById("BLDC_PWMchannel1_PIN").value = userSettings["BLDC_PWMchannel1_PIN"];
+	document.getElementById("BLDC_PWMchannel2_PIN").value = userSettings["BLDC_PWMchannel2_PIN"];
+	document.getElementById("BLDC_PWMchannel3_PIN").value = userSettings["BLDC_PWMchannel3_PIN"];
 	
     document.getElementById("RightServo_ZERO").value = userSettings["RightServo_ZERO"];
     document.getElementById("LeftServo_ZERO").value = userSettings["LeftServo_ZERO"];
@@ -515,7 +541,6 @@ function setUserSettings()
 	// document.getElementById("Display_Rst_PIN").value = userSettings["Display_Rst_PIN"];
 	document.getElementById("Temp_PIN").value = userSettings["Temp_PIN"];
 	document.getElementById("Heater_PIN").value = userSettings["Heater_PIN"];
-    document.getElementById("WarmUpTime").value = userSettings["WarmUpTime"];
 	// document.getElementById("heaterFailsafeTime").value = userSettings["heaterFailsafeTime"];
 	document.getElementById("heaterThreshold").value = userSettings["heaterThreshold"];
 	document.getElementById("heaterResolution").value = userSettings["heaterResolution"];
@@ -541,13 +566,13 @@ function setUserSettings()
     document.getElementById('Internal_Temp_PIN').value = userSettings["Internal_Temp_PIN"];
     document.getElementById('fanControlEnabled').checked = userSettings["fanControlEnabled"];
     document.getElementById('internalTempForFan').value = userSettings["internalTempForFan"];
+    document.getElementById('internalMaxTemp').value = userSettings["internalMaxTemp"];
     document.getElementById('Case_Fan_PIN').value = userSettings["Case_Fan_PIN"];
     document.getElementById('caseFanResolution').value = userSettings["caseFanResolution"];
     document.getElementById('caseFanFrequency').value = userSettings["caseFanFrequency"];
     
 
     document.getElementById('debug').value = userSettings["logLevel"];
-    
     
     //document.getElementById('debugLink').hidden = !userSettings["debug"];
     
@@ -578,6 +603,16 @@ function setUserSettings()
         {channel: "A2", channelName: "Lube", switch: true, sr6Only: false},
         {channel: "A3", channelName: "Squeeze", switch: false, sr6Only: false}
     ]
+    AvailibleChannelsBLDC = [
+        {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
+        {channel: "V0", channelName: "Vibe 1", switch: true, sr6Only: false},
+        {channel: "V1", channelName: "Vibe 2", switch: true, sr6Only: false},
+        {channel: "V2", channelName: "Vibe 3", switch: true, sr6Only: false},
+        {channel: "V3", channelName: "Vibe 4", switch: true, sr6Only: false},
+        {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
+        {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
+        {channel: "A2", channelName: "Lube", switch: true, sr6Only: false}
+    ]
     setupChannelSliders();
     documentLoaded = true;
 }
@@ -603,6 +638,18 @@ function toggleBuildOptions() {
         optionElement.innerText=x.versionName;
         tcodeVersionElement.appendChild(optionElement);
     });
+}
+
+function toggleMotorTypeOptions() {
+    if(systemInfo.motorType === MotorType.Servo) {
+        var BLDCElements = document.getElementsByClassName('BLDCOnly');
+        for(var i=0;i < BLDCElements.length; i++)
+            BLDCElements[i].style.display = "none";
+    } else {
+        var servoElements = document.getElementsByClassName('servoOnly');
+        for(var i=0;i < servoElements.length; i++)
+            servoElements[i].style.display = "none";
+    }
 }
 
 function updateUserSettings() 
@@ -729,7 +776,7 @@ function sendTCode(tcode) {
 
 function sendDeviceHome() {
     channelSliderList.forEach(x => x.value = x.channelModel.switch ? 0 : 50);
-    var availibleChannels = isTCodeV3() ? AvailibleChannelsV3 : AvailibleChannelsV2;
+    var availibleChannels = systemInfo["motorType"] == MotorType.Servo ? isTCodeV3() ? AvailibleChannelsV3 : AvailibleChannelsV2 : AvailibleChannelsBLDC;
     var tcode = "";
     availibleChannels.forEach((element, index, array) => {
         tcode += getSliderTCode(element.channel, element.switch ? 0 : 50, false, 1000, false);
@@ -778,7 +825,7 @@ function setupChannelSliders()
     bodyNode.appendChild(feedbackRowNode);
 
     channelSliderList = [];
-    var availibleChannels = isTCodeV3() ? AvailibleChannelsV3 : AvailibleChannelsV2;
+    var availibleChannels = systemInfo["motorType"] == MotorType.Servo ? isTCodeV3() ? AvailibleChannelsV3 : AvailibleChannelsV2 : AvailibleChannelsBLDC;
     for(var i=0; i<availibleChannels.length;i++)
     {
         if(userSettings["sr6Mode"] && availibleChannels[i].sr6Only || !availibleChannels[i].sr6Only) {
@@ -1065,16 +1112,35 @@ function updateServoFrequency()
     setRestartRequired();
     updateUserSettings();
 }
-function updateMSPerRad() 
+function updateMSPerRad(userChecked) 
 {
     var control = document.getElementById('msPerRad');
     if(!control.checkValidity()) {
         showError(control.validationMessage);
-        return;
+        return false;
     }
     userSettings["msPerRad"] = parseInt(control.value);
+    if(!userChecked) {
+        document.getElementById('msPerRadIs270').checked = userSettings["msPerRad"] == servoDegreeValue270;
+    }
     setRestartRequired();
     updateUserSettings();
+    return true;
+}
+
+function toggleMsPerRadIs270() {
+    var control = document.getElementById('msPerRad');
+    var msPerRadIs270Checkbox = document.getElementById('msPerRadIs270');
+    const backupvalue = control.value;
+    if(msPerRadIs270Checkbox.checked) {
+        control.value = servoDegreeValue270;//270 degree servo.
+    } else {
+        control.value = servoDegreeValue180;
+    }
+    if(!updateMSPerRad(true)) {
+        msPerRadIs270Checkbox.checked = !msPerRadIs270Checkbox.checked;
+        control.value = backupvalue;
+    }
 }
 
 function updateContinuousTwist()
@@ -1193,229 +1259,587 @@ function setInversePitch() {
     userSettings["inversePitch"] = document.getElementById('inversePitch').checked;
 	updateUserSettings();
 }
-
+function disablePinValidation() {
+    if (!userSettings["disablePinValidation"] && confirm("This will disable ALL PIN validations.\nBe sure you know what you're doing!")) {
+        userSettings["disablePinValidation"] = true;
+    } else {
+        userSettings["disablePinValidation"] = false;
+        document.getElementById("disablePinValidation").checked = false;
+    }
+	updateUserSettings();
+}
+function updateBLDCSettings() {
+    
+    userSettings["BLDC_MotorA_Voltage"] = parseInt(document.getElementById('BLDC_MotorA_Voltage').value);
+    userSettings["BLDC_MotorA_Current"] = parseFloat(document.getElementById('BLDC_MotorA_Current').value);
+    setRestartRequired();
+    updateUserSettings();
+}
+function updateBLDCPins() {
+    if(upDateTimeout !== null) 
+    {
+        clearTimeout(upDateTimeout);
+    }
+    upDateTimeout = setTimeout(() => 
+    {
+        var pinValues = validateBLDCPins();
+        if(pinValues) {
+            userSettings["BLDC_Encoder_PIN"] = pinValues.BLDC_Encoder_PIN;
+            userSettings["BLDC_Enable_PIN"] = pinValues.BLDC_Enable_PIN;
+            userSettings["BLDC_PWMchannel1_PIN"] = pinValues.BLDC_PWMchannel1_PIN;
+            userSettings["BLDC_PWMchannel2_PIN"] = pinValues.BLDC_PWMchannel2_PIN;
+            userSettings["BLDC_PWMchannel3_PIN"] = pinValues.BLDC_PWMchannel3_PIN
+            setRestartRequired();
+            updateUserSettings();
+        }
+    }, 2000);
+}
 function updatePins() 
 {
-    if (isPinsEditable()) {
-        if(upDateTimeout !== null) 
-        {
-            clearTimeout(upDateTimeout);
-        }
-        upDateTimeout = setTimeout(() => 
-        {
-            clearErrors("pinValidation"); 
-            //PWM availible on: 2,4,5,12-19,21-23,25-27,32-33
-            var validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33];
-            var assignedPins = [];
-            var errors = [];
-            var pmwErrors = [];
-
-            var twistServo = parseInt(document.getElementById('TwistServo_PIN').value);
-            var pinDupeIndex = assignedPins.findIndex(x => x.pin === twistServo);
-            if(pinDupeIndex > -1)
-                errors.push("Twist servo pin and "+assignedPins[pinDupeIndex].name);
-            if(validPWMpins.indexOf(twistServo) == -1)
-                pmwErrors.push("Twist servo pin: "+twistServo);
-            assignedPins.push({name:"Twist servo", pin:twistServo});
-
-            var squeezeServo = parseInt(document.getElementById('Squeeze_PIN').value);
-            var pinDupeIndex = assignedPins.findIndex(x => x.pin === squeezeServo);
-            if(pinDupeIndex > -1)
-                errors.push("Squeeze servo pin and "+assignedPins[pinDupeIndex].name);
-            if(validPWMpins.indexOf(squeezeServo) == -1)
-                pmwErrors.push("Squeeze servo pin: "+squeezeServo);
-            assignedPins.push({name:"Squeeze servo", pin:squeezeServo});
-
-            var rightPin = parseInt(document.getElementById('RightServo_PIN').value);
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === rightPin);
-            if(pinDupeIndex > -1)
-                errors.push("Right servo pin and "+assignedPins[pinDupeIndex].name);
-            if(validPWMpins.indexOf(rightPin) == -1)
-                pmwErrors.push("Right servo pin: "+rightPin);
-            assignedPins.push({name:"Right servo", pin:rightPin});
-
-            var leftPin = parseInt(document.getElementById('LeftServo_PIN').value);
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === leftPin);
-            if(pinDupeIndex > -1)
-                errors.push("Left servo pin and "+assignedPins[pinDupeIndex].name);
-            if(validPWMpins.indexOf(leftPin) == -1)
-                pmwErrors.push("Left servo pin: "+leftPin);
-            assignedPins.push({name:"Left servo", pin:leftPin});
-
-            var rightUpper = parseInt(document.getElementById('RightUpperServo_PIN').value);
-            var leftUpper = parseInt(document.getElementById('LeftUpperServo_PIN').value);
-            var pitchRight = parseInt(document.getElementById('PitchRightServo_PIN').value);
-            if(userSettings["sr6Mode"]) {
-                pinDupeIndex = assignedPins.findIndex(x => x.pin === rightUpper);
-                if(pinDupeIndex > -1)
-                    errors.push("Right upper servo pin and "+assignedPins[pinDupeIndex].name);
-                if(validPWMpins.indexOf(rightUpper) == -1)
-                    pmwErrors.push("Right upper servo pin: "+rightUpper);
-                assignedPins.push({name:"Right upper servo", pin:rightUpper});
-
-                pinDupeIndex = assignedPins.findIndex(x => x.pin === leftUpper);
-                if(pinDupeIndex > -1)
-                    errors.push("Left upper servo pin and "+assignedPins[pinDupeIndex].name);
-                if(validPWMpins.indexOf(leftUpper) == -1)
-                    pmwErrors.push("Left upper servo pin: "+leftUpper);
-                assignedPins.push({name:"Left upper servo", pin:leftUpper});
-
-                pinDupeIndex = assignedPins.findIndex(x => x.pin === pitchRight);
-                if(pinDupeIndex> -1)
-                    errors.push("Pitch right servo pin and "+assignedPins[pinDupeIndex].name);
-                if(validPWMpins.indexOf(pitchRight) == -1)
-                    pmwErrors.push("Pitch right servo pin: "+pitchRight);
-                assignedPins.push({name:"Pitch right servo", pin:pitchRight});
-            }
-
-            var pitchLeft = parseInt(document.getElementById('PitchLeftServo_PIN').value);
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === pitchLeft);
-            if(pinDupeIndex > -1)
-                errors.push("Pitch left servo pin and "+assignedPins[pinDupeIndex].name);
-            if(validPWMpins.indexOf(pitchLeft) == -1)
-                pmwErrors.push("Pitch left servo pin: "+pitchLeft);
-            //assignedPins.push(pitchLeft);
-            assignedPins.push({name:"Pitch left servo", pin:pitchLeft});
-
-
-            var valveServo = parseInt(document.getElementById('ValveServo_PIN').value);
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === valveServo);
-            if(pinDupeIndex > -1)
-                errors.push("Valve servo pin and "+assignedPins[pinDupeIndex].name);
-            if(validPWMpins.indexOf(valveServo) == -1)
-                pmwErrors.push("Valve servo pin: "+valveServo);
-            //assignedPins.push(valveServo);
-            assignedPins.push({name:"Valve servo", pin:valveServo});
-
-            var vibe0 = parseInt(document.getElementById('Vibe0_PIN').value);
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === vibe0);
-            if(pinDupeIndex > -1)
-                errors.push("Vibe 0 pin and "+assignedPins[pinDupeIndex].name);
-            if(validPWMpins.indexOf(vibe0) == -1)
-                pmwErrors.push("Vibe 0 pin: "+vibe0);
-            //assignedPins.push(vibe0);
-            assignedPins.push({name:"Vibe 0", pin:vibe0});
-
-            var vibe1 = parseInt(document.getElementById('Vibe1_PIN').value);
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === vibe1);
-            if(pinDupeIndex > -1)
-                errors.push("Lube/Vibe 1 pin and "+assignedPins[pinDupeIndex].name);
-            if(validPWMpins.indexOf(vibe1) == -1)
-                pmwErrors.push("Lube/Vibe 1 pin: "+vibe1);
-            assignedPins.push({name:"Lube/Vibe 1", pin:vibe1});
-
-            if(userSettings.tempSleeveEnabled) {
-                var heat = parseInt(document.getElementById('Heater_PIN').value);
-                pinDupeIndex = assignedPins.findIndex(x => x.pin === heat);
-                if(pinDupeIndex > -1)
-                    errors.push("Heater pin and "+assignedPins[pinDupeIndex].name);
-                if(validPWMpins.indexOf(heat) == -1)
-                    pmwErrors.push("Heater pin: "+heat);
-                assignedPins.push({name:"Heater", pin:heat});
-            }
-
-            
-            if(userSettings.tempInternalEnabled) {
-                var caseFanPin = parseInt(document.getElementById('Case_Fan_PIN').value);
-                pinDupeIndex = assignedPins.findIndex(x => x.pin === caseFanPin);
-                if(pinDupeIndex > -1)
-                    errors.push("Case fan pin and "+assignedPins[pinDupeIndex].name);
-                if(validPWMpins.indexOf(caseFanPin) == -1)
-                    pmwErrors.push("Case fan pin: "+caseFanPin);
-                assignedPins.push({name:"Case fan pin", pin:heat});
-            }
-
-            var nonPWMErrors = updateNonPWMPins(assignedPins);
-            errors.push(...nonPWMErrors);
-
-            if (errors.length > 0 || pmwErrors.length > 0) {
-                var errorString = "<div name='pinValidation'>Pins NOT saved due to invalid input.<br>";
-                if(errors.length > 0 )
-                    errorString += "<div style='margin-left: 25px;'>The following pins are duplicated:<br><div style='color: white; margin-left: 25px;'>"+errors.join("<br>")+"</div></div>";
-                if (pmwErrors.length > 0) {
-                    if(errors.length > 0) {
-                        errorString += "<br>";
-                    } 
-                    errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pmwErrors.join("<br>")+"</div></div>";
-                }
-                
-                errorString += "</div>";
-                showError(errorString);
-            } else {
-                userSettings["TwistServo_PIN"] = twistServo
-                userSettings["RightServo_PIN"] = rightPin;
-                userSettings["LeftServo_PIN"] = leftPin;
-                userSettings["RightUpperServo_PIN"] = rightUpper;
-                userSettings["LeftUpperServo_PIN"] = leftUpper;
-                userSettings["PitchLeftServo_PIN"] = pitchLeft;
-                userSettings["PitchRightServo_PIN"] = pitchRight;
-                userSettings["ValveServo_PIN"] = valveServo;
-                userSettings["Vibe0_PIN"] = vibe0;
-                userSettings["Vibe1_PIN"] = vibe1;
-                userSettings["Squeeze_PIN"] = squeezeServo;
-                if(userSettings.tempSleeveEnabled) {
-                    userSettings["Heater_PIN"] = heat;
-                }
-                if(userSettings.tempInternalEnabled) {
-                    userSettings["Case_Fan_PIN"] = caseFanPin;
-                }
-            }
-
-            if (errors.length == 0 || nonPWMErrors.length == 0) {
-                setRestartRequired();
-                updateUserSettings();
-            }
-        }, 2000);
+    if(upDateTimeout !== null) 
+    {
+        clearTimeout(upDateTimeout);
     }
+    upDateTimeout = setTimeout(() => 
+    {
+        // clearErrors("pinValidation"); 
+        // var assignedPins = [];
+        // var errors = [];
+        // var pmwErrors = [];
+
+        // var twistServo = parseInt(document.getElementById('TwistServo_PIN').value);
+        // var pinDupeIndex = assignedPins.findIndex(x => x.pin === twistServo);
+        // if(pinDupeIndex > -1)
+        //     errors.push("Twist servo pin and "+assignedPins[pinDupeIndex].name);
+        // if(validPWMpins.indexOf(twistServo) == -1)
+        //     pmwErrors.push("Twist servo pin: "+twistServo);
+        // assignedPins.push({name:"Twist servo", pin:twistServo});
+
+        // var squeezeServo = parseInt(document.getElementById('Squeeze_PIN').value);
+        // var pinDupeIndex = assignedPins.findIndex(x => x.pin === squeezeServo);
+        // if(pinDupeIndex > -1)
+        //     errors.push("Squeeze servo pin and "+assignedPins[pinDupeIndex].name);
+        // if(validPWMpins.indexOf(squeezeServo) == -1)
+        //     pmwErrors.push("Squeeze servo pin: "+squeezeServo);
+        // assignedPins.push({name:"Squeeze servo", pin:squeezeServo});
+
+        // var rightPin = parseInt(document.getElementById('RightServo_PIN').value);
+        // pinDupeIndex = assignedPins.findIndex(x => x.pin === rightPin);
+        // if(pinDupeIndex > -1)
+        //     errors.push("Right servo pin and "+assignedPins[pinDupeIndex].name);
+        // if(validPWMpins.indexOf(rightPin) == -1)
+        //     pmwErrors.push("Right servo pin: "+rightPin);
+        // assignedPins.push({name:"Right servo", pin:rightPin});
+
+        // var leftPin = parseInt(document.getElementById('LeftServo_PIN').value);
+        // pinDupeIndex = assignedPins.findIndex(x => x.pin === leftPin);
+        // if(pinDupeIndex > -1)
+        //     errors.push("Left servo pin and "+assignedPins[pinDupeIndex].name);
+        // if(validPWMpins.indexOf(leftPin) == -1)
+        //     pmwErrors.push("Left servo pin: "+leftPin);
+        // assignedPins.push({name:"Left servo", pin:leftPin});
+
+        // var rightUpper = parseInt(document.getElementById('RightUpperServo_PIN').value);
+        // var leftUpper = parseInt(document.getElementById('LeftUpperServo_PIN').value);
+        // var pitchRight = parseInt(document.getElementById('PitchRightServo_PIN').value);
+        // if(userSettings["sr6Mode"]) {
+        //     pinDupeIndex = assignedPins.findIndex(x => x.pin === rightUpper);
+        //     if(pinDupeIndex > -1)
+        //         errors.push("Right upper servo pin and "+assignedPins[pinDupeIndex].name);
+        //     if(validPWMpins.indexOf(rightUpper) == -1)
+        //         pmwErrors.push("Right upper servo pin: "+rightUpper);
+        //     assignedPins.push({name:"Right upper servo", pin:rightUpper});
+
+        //     pinDupeIndex = assignedPins.findIndex(x => x.pin === leftUpper);
+        //     if(pinDupeIndex > -1)
+        //         errors.push("Left upper servo pin and "+assignedPins[pinDupeIndex].name);
+        //     if(validPWMpins.indexOf(leftUpper) == -1)
+        //         pmwErrors.push("Left upper servo pin: "+leftUpper);
+        //     assignedPins.push({name:"Left upper servo", pin:leftUpper});
+
+        //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pitchRight);
+        //     if(pinDupeIndex> -1)
+        //         errors.push("Pitch right servo pin and "+assignedPins[pinDupeIndex].name);
+        //     if(validPWMpins.indexOf(pitchRight) == -1)
+        //         pmwErrors.push("Pitch right servo pin: "+pitchRight);
+        //     assignedPins.push({name:"Pitch right servo", pin:pitchRight});
+        // }
+
+        // var pitchLeft = parseInt(document.getElementById('PitchLeftServo_PIN').value);
+        // pinDupeIndex = assignedPins.findIndex(x => x.pin === pitchLeft);
+        // if(pinDupeIndex > -1)
+        //     errors.push("Pitch left servo pin and "+assignedPins[pinDupeIndex].name);
+        // if(validPWMpins.indexOf(pitchLeft) == -1)
+        //     pmwErrors.push("Pitch left servo pin: "+pitchLeft);
+        // //assignedPins.push(pitchLeft);
+        // assignedPins.push({name:"Pitch left servo", pin:pitchLeft});
+
+
+        // var valveServo = parseInt(document.getElementById('ValveServo_PIN').value);
+        // pinDupeIndex = assignedPins.findIndex(x => x.pin === valveServo);
+        // if(pinDupeIndex > -1)
+        //     errors.push("Valve servo pin and "+assignedPins[pinDupeIndex].name);
+        // if(validPWMpins.indexOf(valveServo) == -1)
+        //     pmwErrors.push("Valve servo pin: "+valveServo);
+        // //assignedPins.push(valveServo);
+        // assignedPins.push({name:"Valve servo", pin:valveServo});
+
+        // var vibe0 = parseInt(document.getElementById('Vibe0_PIN').value);
+        // pinDupeIndex = assignedPins.findIndex(x => x.pin === vibe0);
+        // if(pinDupeIndex > -1)
+        //     errors.push("Vibe 0 pin and "+assignedPins[pinDupeIndex].name);
+        // if(validPWMpins.indexOf(vibe0) == -1)
+        //     pmwErrors.push("Vibe 0 pin: "+vibe0);
+        // //assignedPins.push(vibe0);
+        // assignedPins.push({name:"Vibe 0", pin:vibe0});
+
+        // var vibe1 = parseInt(document.getElementById('Vibe1_PIN').value);
+        // pinDupeIndex = assignedPins.findIndex(x => x.pin === vibe1);
+        // if(pinDupeIndex > -1)
+        //     errors.push("Lube/Vibe 1 pin and "+assignedPins[pinDupeIndex].name);
+        // if(validPWMpins.indexOf(vibe1) == -1)
+        //     pmwErrors.push("Lube/Vibe 1 pin: "+vibe1);
+        // assignedPins.push({name:"Lube/Vibe 1", pin:vibe1});
+
+        // if(userSettings.tempSleeveEnabled) {
+        //     var heat = parseInt(document.getElementById('Heater_PIN').value);
+        //     pinDupeIndex = assignedPins.findIndex(x => x.pin === heat);
+        //     if(pinDupeIndex > -1)
+        //         errors.push("Heater pin and "+assignedPins[pinDupeIndex].name);
+        //     if(validPWMpins.indexOf(heat) == -1)
+        //         pmwErrors.push("Heater pin: "+heat);
+        //     assignedPins.push({name:"Heater", pin:heat});
+        // }
+
+        
+        // if(userSettings.tempInternalEnabled) {
+        //     var caseFanPin = parseInt(document.getElementById('Case_Fan_PIN').value);
+        //     pinDupeIndex = assignedPins.findIndex(x => x.pin === caseFanPin);
+        //     if(pinDupeIndex > -1)
+        //         errors.push("Case fan pin and "+assignedPins[pinDupeIndex].name);
+        //     if(validPWMpins.indexOf(caseFanPin) == -1)
+        //         pmwErrors.push("Case fan pin: "+caseFanPin);
+        //     assignedPins.push({name:"Case fan pin", pin:heat});
+        // }
+
+        // var nonPWMErrors = updateNonPWMPins(assignedPins);
+        // errors.push(...nonPWMErrors.errors);
+
+        // if (errors.length > 0 || pmwErrors.length > 0) {
+        //     var errorString = "<div name='pinValidation'>Pins NOT saved due to invalid input.<br>";
+        //     if(errors.length > 0 )
+        //         errorString += "<div style='margin-left: 25px;'>The following pins are duplicated:<br><div style='color: white; margin-left: 25px;'>"+errors.join("<br>")+"</div></div>";
+        //     if(nonPWMErrors.invalidPins.length > 0) {
+        //         errorString += "<br>";
+        //         errorString += "<div style='margin-left: 25px;'>The following pins are invalid:<br><div style='color: white; margin-left: 25px;'>"+nonPWMErrors.invalidPins.join("<br>")+"</div></div>";
+        //     }
+        //     if (pmwErrors.length > 0) {
+        //         if(errors.length > 0) {
+        //             errorString += "<br>";
+        //         } 
+        //         errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pmwErrors.join("<br>")+"</div></div>";
+        //     }
+            
+        //     errorString += "</div>";
+        //     showError(errorString);
+        // } else {
+        var pinValues = validatePins();
+        if(pinValues) {
+            userSettings["TwistServo_PIN"] = pinValues.twistServo;
+            userSettings["RightServo_PIN"] = pinValues.rightPin;
+            userSettings["LeftServo_PIN"] = pinValues.leftPin;
+            userSettings["RightUpperServo_PIN"] = pinValues.rightUpper;
+            userSettings["LeftUpperServo_PIN"] = pinValues.leftUpper;
+            userSettings["PitchLeftServo_PIN"] = pinValues.pitchLeft;
+            userSettings["PitchRightServo_PIN"] = pinValues.pitchRight;
+            userSettings["ValveServo_PIN"] = pinValues.valveServo;
+            userSettings["Vibe0_PIN"] = pinValues.vibe0;
+            userSettings["Vibe1_PIN"] = pinValues.vibe1;
+            userSettings["Vibe2_PIN"] = pinValues.vibe2;
+            userSettings["Vibe3_PIN"] = pinValues.vibe3;
+            userSettings["Squeeze_PIN"] = pinValues.squeezeServo;
+            userSettings["LubeButton_PIN"] = pinValues.lubeButton;
+            if(userSettings.tempSleeveEnabled) {
+                userSettings["Heater_PIN"] = pinValues.heat;
+            }
+            if(userSettings.tempInternalEnabled) {
+                userSettings["Case_Fan_PIN"] = pinValues.caseFanPin;
+            }
+            if(userSettings.tempSleeveEnabled) {
+                userSettings["Temp_PIN"] = pinValues.temp;
+            }
+            if(userSettings.feedbackTwist) {
+                userSettings["TwistFeedBack_PIN"] = pinValues.twistFeedBack;
+            }
+            if(userSettings.tempInternalEnabled) {
+                userSettings["Internal_Temp_PIN"] = pinValues.internalTemp;
+            }
+            setRestartRequired();
+            updateUserSettings();
+        }
+    }, 2000);
 }
 
-function updateNonPWMPins(assignedPins) {
-    var errors = [];
-    var lubeManual = parseInt(document.getElementById('LubeButton_PIN').value);
-    var pinDupeIndex = assignedPins.findIndex(x => x.pin === lubeManual);
-    if(pinDupeIndex > -1)
-        errors.push("Manual lube pin and "+assignedPins[pinDupeIndex].name);
-    assignedPins.push({name:"Manual lube", pin:lubeManual});
+// function updateNonPWMPins(assignedPins) {
+//     var errors = [];
+//     var invalidPins = [];
+//     var lubeButton = parseInt(document.getElementById('LubeButton_PIN').value);
+//     var pinDupeIndex = assignedPins.findIndex(x => x.pin === lubeButton);
+//     if(validPWMpins.indexOf(lubeButton) == -1 || inputOnlypins.indexOf(lubeButton) == -1)
+//         invalidPins.push("Invalid Lube button pin: "+lubeButton);
+//     if(pinDupeIndex > -1)
+//         errors.push("Button lube pin and "+assignedPins[pinDupeIndex].name);
+//     assignedPins.push({name:"Button lube", pin:lubeButton});
 
-    var temp;
-    if(userSettings.tempSleeveEnabled) {
-        temp = parseInt(document.getElementById('Temp_PIN').value);
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === temp);
-        if(pinDupeIndex > -1)
-            errors.push("Temp pin and "+assignedPins[pinDupeIndex].name);
-        assignedPins.push({name:"Temp", pin:temp});
+//     var temp;
+//     if(userSettings.tempSleeveEnabled) {
+//         temp = parseInt(document.getElementById('Temp_PIN').value);
+//         if(validPWMpins.indexOf(temp) == -1 || inputOnlypins.indexOf(temp) == -1)
+//             invalidPins.push("Invalid Sleeve temp pin: "+temp);
+//         pinDupeIndex = assignedPins.findIndex(x => x.pin === temp);
+//         if(pinDupeIndex > -1)
+//             errors.push("Temp pin and "+assignedPins[pinDupeIndex].name);
+//         assignedPins.push({name:"Temp", pin:temp});
+//     }
+//     var internalTemp;
+//     if(userSettings.tempInternalEnabled) {
+//         internalTemp = parseInt(document.getElementById('Internal_Temp_PIN').value);
+//         if(validPWMpins.indexOf(internalTemp) == -1 || inputOnlypins.indexOf(internalTemp) == -1)
+//             invalidPins.push("Invalid Internal temp pin: "+internalTemp);
+//         pinDupeIndex = assignedPins.findIndex(x => x.pin === internalTemp);
+//         if(pinDupeIndex > -1)
+//             errors.push("Internal temp pin and "+assignedPins[pinDupeIndex].name);
+//         assignedPins.push({name:"Internal temp", pin:internalTemp});
+//     }
+    
+//     var twistFeedBack
+//     if(userSettings.feedbackTwist) {
+//         twistFeedBack = parseInt(document.getElementById('TwistFeedBack_PIN').value);
+//         if(validPWMpins.indexOf(twistFeedBack) == -1 || inputOnlypins.indexOf(twistFeedBack) == -1)
+//             invalidPins.push("Invalid Twist feedback pin: "+twistFeedBack);
+//         pinDupeIndex = assignedPins.findIndex(x => x.pin === twistFeedBack);
+//         if(pinDupeIndex > -1)
+//             errors.push("Twist feedback pin and "+assignedPins[pinDupeIndex].name);
+//         assignedPins.push({name:"Twist feed back", pin:twistFeedBack});
+//     }
+
+//     var errors = [];
+//     var invalidPins = [];
+//     if(validateNonPWMPins(assignedPins, errors, invalidPins)) {
+//         if(userSettings.tempSleeveEnabled) {
+//             userSettings["LubeButton_PIN"] = lubeButton;
+//             userSettings["Temp_PIN"] = temp;
+//         }
+//         if(userSettings.feedbackTwist) {
+//             userSettings["TwistFeedBack_PIN"] = twistFeedBack;
+//         }
+//         if(userSettings.tempInternalEnabled) {
+//             userSettings["Internal_Temp_PIN"] = internalTemp;
+//         }
+//     }
+//     return { errors: errors, invalidPins: invalidPins } ;
+// }
+
+/** 
+ * Validates the pin number values in the forms inputs. 
+ * Shows an error and returns boolean;
+*/
+
+function validateBLDCPins() {
+    clearErrors("pinValidation"); 
+    var assignedPins = [];
+    var duplicatePins = [];
+    var pmwErrors = [];
+    var pinValues = getBLDCPinValues();
+    if(userSettings["disablePinValidation"])
+        return pinValues;
+
+    var pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_Encoder_PIN);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Encoder pin and "+assignedPins[pinDupeIndex].name);
+    assignedPins.push({name:"Encoder", pin:pinValues.BLDC_Encoder_PIN});
+    
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_Enable_PIN);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Enable pin and "+assignedPins[pinDupeIndex].name);
+    assignedPins.push({name:"Enable", pin:pinValues.BLDC_Enable_PIN});
+
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel1_PIN);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("PWMchannel1 pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel1_PIN) == -1)
+        pmwErrors.push("PWMchannel1 pin: "+pinValues.BLDC_PWMchannel1_PIN);
+    assignedPins.push({name:"PWMchannel1", pin:pinValues.BLDC_PWMchannel1_PIN});
+
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel2_PIN);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("PWMchannel2 pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel2_PIN) == -1)
+        pmwErrors.push("PWMchannel2 pin: "+pinValues.BLDC_PWMchannel2_PIN);
+    assignedPins.push({name:"PWMchannel2", pin:pinValues.BLDC_PWMchannel2_PIN});
+
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel3_PIN);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("PWMchannel3 pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel3_PIN) == -1)
+        pmwErrors.push("PWMchannel3pin: "+pinValues.BLDC_PWMchannel3_PIN);
+    assignedPins.push({name:"PWMchannel3", pin:pinValues.BLDC_PWMchannel3_PIN});
+
+    var invalidPins = [];
+
+    if (duplicatePins.length || pmwErrors.length || invalidPins.length) {
+        var errorString = "<div name='pinValidation'>Pins NOT saved due to invalid input.<br>";
+        if(duplicatePins.length )
+            errorString += "<div style='margin-left: 25px;'>The following pins are duplicated:<br><div style='color: white; margin-left: 25px;'>"+duplicatePins.join("<br>")+"</div></div>";
+        if(invalidPins.length) {
+            if(duplicatePins.length)
+                errorString += "<br>";
+            errorString += "<div style='margin-left: 25px;'>The following pins are invalid:<br><div style='color: white; margin-left: 25px;'>"+invalidPins.join("<br>")+"</div></div>";
+        }
+        if (pmwErrors.length) {
+            if(duplicatePins.length || invalidPins.length) {
+                errorString += "<br>";
+            } 
+            errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pmwErrors.join("<br>")+"</div></div>";
+        }
+        
+        errorString += "</div>";
+        showError(errorString);
+        return undefined;
     }
-    var internalTemp;
-    if(userSettings.tempInternalEnabled) {
-        internalTemp = parseInt(document.getElementById('Internal_Temp_PIN').value);
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === internalTemp);
+    return pinValues;
+}
+
+function validatePins() {
+    clearErrors("pinValidation"); 
+    var assignedPins = [];
+    var duplicatePins = [];
+    var pmwErrors = [];
+    var pinValues = getPinValues();
+    if(userSettings["disablePinValidation"])
+        return pinValues;
+
+    var pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.twistServo);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Twist servo pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.twistServo) == -1)
+        pmwErrors.push("Twist servo pin: "+pinValues.twistServo);
+    assignedPins.push({name:"Twist servo", pin:pinValues.twistServo});
+
+    var pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.squeezeServo);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Squeeze servo pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.squeezeServo) == -1)
+        pmwErrors.push("Squeeze servo pin: "+pinValues.squeezeServo);
+    assignedPins.push({name:"Squeeze servo", pin:pinValues.squeezeServo});
+
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.rightPin);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Right servo pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.rightPin) == -1)
+        pmwErrors.push("Right servo pin: "+pinValues.rightPin);
+    assignedPins.push({name:"Right servo", pin:pinValues.rightPin});
+
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.leftPin);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Left servo pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.leftPin) == -1)
+        pmwErrors.push("Left servo pin: "+pinValues.leftPin);
+    assignedPins.push({name:"Left servo", pin:pinValues.leftPin});
+
+    if(userSettings["sr6Mode"]) {
+        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.rightUpper);
         if(pinDupeIndex > -1)
-            errors.push("Internal temp pin and "+assignedPins[pinDupeIndex].name);
-        assignedPins.push({name:"Internal temp", pin:internalTemp});
+            duplicatePins.push("Right upper servo pin and "+assignedPins[pinDupeIndex].name);
+        if(validPWMpins.indexOf(pinValues.rightUpper) == -1)
+            pmwErrors.push("Right upper servo pin: "+pinValues.rightUpper);
+        assignedPins.push({name:"Right upper servo", pin:pinValues.rightUpper});
+
+        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.leftUpper);
+        if(pinDupeIndex > -1)
+            duplicatePins.push("Left upper servo pin and "+assignedPins[pinDupeIndex].name);
+        if(validPWMpins.indexOf(pinValues.leftUpper) == -1)
+            pmwErrors.push("Left upper servo pin: "+pinValues.leftUpper);
+        assignedPins.push({name:"Left upper servo", pin:pinValues.leftUpper});
+
+        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.pitchRight);
+        if(pinDupeIndex> -1)
+            duplicatePins.push("Pitch right servo pin and "+assignedPins[pinDupeIndex].name);
+        if(validPWMpins.indexOf(pinValues.pitchRight) == -1)
+            pmwErrors.push("Pitch right servo pin: "+pinValues.pitchRight);
+        assignedPins.push({name:"Pitch right servo", pin:pinValues.pitchRight});
+    }
+
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.pitchLeft);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Pitch left servo pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.pitchLeft) == -1)
+        pmwErrors.push("Pitch left servo pin: "+pinValues.pitchLeft);
+    assignedPins.push({name:"Pitch left servo", pin:pinValues.pitchLeft});
+
+
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.valveServo);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Valve servo pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.valveServo) == -1)
+        pmwErrors.push("Valve servo pin: "+pinValues.valveServo);
+    assignedPins.push({name:"Valve servo", pin:pinValues.valveServo});
+
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.vibe0);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Vibe 1 pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.vibe0) == -1)
+        pmwErrors.push("Vibe 1 pin: "+pinValues.vibe0);
+    assignedPins.push({name:"Vibe 1", pin:pinValues.vibe0});
+
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.vibe1);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Lube/Vibe 2 pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.vibe1) == -1)
+        pmwErrors.push("Lube/Vibe 1 pin: "+pinValues.vibe1);
+    assignedPins.push({name:"Lube/Vibe 1", pin:pinValues.vibe1});
+
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.vibe2);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Vibe 3 pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.vibe2) == -1)
+        pmwErrors.push("Vibe 3 pin: "+pinValues.vibe2);
+    assignedPins.push({name:"Vibe 3", pin:pinValues.vibe2});
+
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.vibe3);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Vibe 4 pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.vibe3) == -1)
+        pmwErrors.push("Vibe 4 pin: "+pinValues.vibe3);
+    assignedPins.push({name:"Vibe 4", pin:pinValues.vibe3});
+
+    if(userSettings.tempSleeveEnabled) {
+
+        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.heat);
+        if(pinDupeIndex > -1)
+            duplicatePins.push("Heater pin and "+assignedPins[pinDupeIndex].name);
+        if(validPWMpins.indexOf(pinValues.heat) == -1)
+            pmwErrors.push("Heater pin: "+pinValues.heat);
+        assignedPins.push({name:"Heater", pin:pinValues.heat});
+    }
+
+    
+    if(userSettings.tempInternalEnabled) {
+
+        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.caseFanPin);
+        if(pinDupeIndex > -1)
+            duplicatePins.push("Case fan pin and "+assignedPins[pinDupeIndex].name);
+        if(validPWMpins.indexOf(pinValues.caseFanPin) == -1)
+            pmwErrors.push("Case fan pin: "+pinValues.caseFanPin);
+        assignedPins.push({name:"Case fan pin", pin:pinValues.caseFanPin});
+    }
+
+    var invalidPins = [];
+    validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues);
+
+    if (duplicatePins.length || pmwErrors.length || invalidPins.length) {
+        var errorString = "<div name='pinValidation'>Pins NOT saved due to invalid input.<br>";
+        if(duplicatePins.length )
+            errorString += "<div style='margin-left: 25px;'>The following pins are duplicated:<br><div style='color: white; margin-left: 25px;'>"+duplicatePins.join("<br>")+"</div></div>";
+        if(invalidPins.length) {
+            if(duplicatePins.length)
+                errorString += "<br>";
+            errorString += "<div style='margin-left: 25px;'>The following pins are invalid:<br><div style='color: white; margin-left: 25px;'>"+invalidPins.join("<br>")+"</div></div>";
+        }
+        if (pmwErrors.length) {
+            if(duplicatePins.length || invalidPins.length) {
+                errorString += "<br>";
+            } 
+            errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pmwErrors.join("<br>")+"</div></div>";
+        }
+        
+        errorString += "</div>";
+        showError(errorString);
+        return undefined;
+    }
+    return pinValues;
+}
+
+/** Does not show an error. Just returns true/false */
+function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues) {
+
+    var pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.lubeButton);
+    if(validPWMpins.indexOf(pinValues.lubeButton) == -1 && inputOnlypins.indexOf(lubeButton) == -1)
+        invalidPins.push("Invalid Lube button pin: "+pinValues.lubeButton);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Lube button pin and "+assignedPins[pinDupeIndex].name);
+    assignedPins.push({name:"Lube button", pin:pinValues.lubeButton});
+
+    if(userSettings.tempSleeveEnabled) {
+        if(validPWMpins.indexOf(pinValues.temp) == -1 && inputOnlypins.indexOf(pinValues.temp) == -1)
+            invalidPins.push("Invalid Sleeve temp pin: "+pinValues.temp);
+        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.temp);
+        if(pinDupeIndex > -1)
+            duplicatePins.push("Temp pin and "+assignedPins[pinDupeIndex].name);
+        assignedPins.push({name:"Temp", pin:pinValues.temp});
+    }
+    if(userSettings.tempInternalEnabled) {
+        if(validPWMpins.indexOf(pinValues.internalTemp) == -1 && inputOnlypins.indexOf(pinValues.internalTemp) == -1)
+            invalidPins.push("Invalid Internal temp pin: "+pinValues.internalTemp);
+        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.internalTemp);
+        if(pinDupeIndex > -1)
+            duplicatePins.push("Internal temp pin and "+assignedPins[pinDupeIndex].name);
+        assignedPins.push({name:"Internal temp", pin:pinValues.internalTemp});
     }
     
-    var twistFeedBack
     if(userSettings.feedbackTwist) {
-        twistFeedBack = parseInt(document.getElementById('TwistFeedBack_PIN').value);
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === twistFeedBack);
+        if(validPWMpins.indexOf(pinValues.twistFeedBack) == -1 && inputOnlypins.indexOf(pinValues.twistFeedBack) == -1)
+            invalidPins.push("Invalid Twist feedback pin: "+pinValues.twistFeedBack);
+        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.twistFeedBack);
         if(pinDupeIndex > -1)
-            errors.push("Twist feedback pin and "+assignedPins[pinDupeIndex].name);
-        assignedPins.push({name:"Twist feed back", pin:twistFeedBack});
+            duplicatePins.push("Twist feedback pin and "+assignedPins[pinDupeIndex].name);
+        assignedPins.push({name:"Twist feed back", pin:pinValues.twistFeedBack});
     }
+    if(duplicatePins.length || invalidPins.length) 
+        return false;
+    return true;
+}
 
-    if(errors.length == 0) {
-        if(userSettings.tempSleeveEnabled) {
-            userSettings["LubeButton_PIN"] = lubeManual;
-            userSettings["Temp_PIN"] = temp;
-        }
-        if(userSettings.feedbackTwist) {
-            userSettings["TwistFeedBack_PIN"] = twistFeedBack;
-        }
-        if(userSettings.tempInternalEnabled) {
-            userSettings["Internal_Temp_PIN"] = internalTemp;
-        }
-    }
-    return errors;
+function getBLDCPinValues() {
+    var pinValues = {};
+    pinValues.BLDC_Encoder_PIN = parseInt(document.getElementById('BLDC_Encoder_PIN').value);
+    pinValues.BLDC_Enable_PIN = parseInt(document.getElementById('BLDC_Enable_PIN').value);
+    pinValues.BLDC_PWMchannel1_PIN = parseInt(document.getElementById('BLDC_PWMchannel1_PIN').value);
+    pinValues.BLDC_PWMchannel2_PIN = parseInt(document.getElementById('BLDC_PWMchannel2_PIN').value);
+    pinValues.BLDC_PWMchannel3_PIN = parseInt(document.getElementById('BLDC_PWMchannel3_PIN').value);
+    return pinValues;
+}
+function getPinValues() {
+    var pinValues = {};
+    pinValues.twistServo = parseInt(document.getElementById('TwistServo_PIN').value);
+    pinValues.squeezeServo = parseInt(document.getElementById('Squeeze_PIN').value);
+    pinValues.rightPin = parseInt(document.getElementById('RightServo_PIN').value);
+    pinValues.leftPin = parseInt(document.getElementById('LeftServo_PIN').value);
+    pinValues.rightUpper = parseInt(document.getElementById('RightUpperServo_PIN').value);
+    pinValues.leftUpper = parseInt(document.getElementById('LeftUpperServo_PIN').value);
+    pinValues.pitchRight = parseInt(document.getElementById('PitchRightServo_PIN').value);
+    pinValues.pitchLeft = parseInt(document.getElementById('PitchLeftServo_PIN').value);
+    pinValues.valveServo = parseInt(document.getElementById('ValveServo_PIN').value);
+    pinValues.vibe0 = parseInt(document.getElementById('Vibe0_PIN').value);
+    pinValues.vibe1 = parseInt(document.getElementById('Vibe1_PIN').value);
+    pinValues.vibe2 = parseInt(document.getElementById('Vibe2_PIN').value);
+    pinValues.vibe3 = parseInt(document.getElementById('Vibe3_PIN').value);
+
+    if(systemInfo.boardType === BoardType.CRIMZZON) 
+        document.getElementById('Heater_PIN').value = 33;
+
+    pinValues.heat = parseInt(document.getElementById('Heater_PIN').value);
+
+    if(systemInfo.boardType === BoardType.CRIMZZON) 
+        document.getElementById('Case_Fan_PIN').value = 16;
+
+    pinValues.caseFanPin = parseInt(document.getElementById('Case_Fan_PIN').value);
+
+    pinValues.lubeButton = parseInt(document.getElementById('LubeButton_PIN').value);
+    pinValues.temp = parseInt(document.getElementById('Temp_PIN').value);
+    pinValues.internalTemp = parseInt(document.getElementById('Internal_Temp_PIN').value);
+    pinValues.twistFeedBack = parseInt(document.getElementById('TwistFeedBack_PIN').value);
+    return pinValues;
 }
 
 function updateZeros() 
@@ -1511,11 +1935,11 @@ function toggleDisplaySettings(enabled)
 {
     if(!enabled) 
     {
-        document.getElementById('deviceSettingsDisplayTable').hidden = true;
+        document.getElementById('displaySettingsDisplayTable').hidden = true;
     }
     else if(systemInfo.buildFeatures.includes(BuildFeature.DISPLAY_))
     {
-        document.getElementById('deviceSettingsDisplayTable').hidden = false;
+        document.getElementById('displaySettingsDisplayTable').hidden = false;
     }
 }
 function toggleTempSettings(enabled) 
@@ -1580,11 +2004,9 @@ function setDisplaySettings()
 function setTempSettings() {
     userSettings["tempSleeveEnabled"] = document.getElementById('tempSleeveEnabled').checked;
     toggleTempSettings(userSettings["tempSleeveEnabled"]);
-    userSettings["TargetTemp"] = parseInt(document.getElementById('TargetTemp').value);
+    userSettings["TargetTemp"] = parseFloat(document.getElementById('TargetTemp').value);
     userSettings["HeatPWM"] = parseInt(document.getElementById('HeatPWM').value);
     userSettings["HoldPWM"] = parseInt(document.getElementById('HoldPWM').value);
-    userSettings["WarmUpTime"] = parseInt(document.getElementById('WarmUpTime').value);
-    // userSettings["heaterFailsafeTime"] = parseInt(document.getElementById('heaterFailsafeTime').value);
     userSettings["heaterThreshold"] = parseInt(document.getElementById('heaterThreshold').value);
     userSettings["heaterResolution"] = parseInt(document.getElementById('heaterResolution').value);
     userSettings["heaterFrequency"] = parseInt(document.getElementById('heaterFrequency').value);
@@ -1607,7 +2029,11 @@ function setFanControl() {
     updateUserSettings();
 }
 function setFanOnTemp() {
-    userSettings["internalTempForFan"] = parseInt(document.getElementById('internalTempForFan').value);
+    userSettings["internalTempForFan"] = parseFloat(document.getElementById('internalTempForFan').value);
+    updateUserSettings();
+}
+function setMaxTemp() {
+    userSettings["internalMaxTemp"] = parseFloat(document.getElementById('internalMaxTemp').value);
     updateUserSettings();
 }
 function setBuildFanControl(enabled) {
@@ -1713,6 +2139,10 @@ function toggleDeviceOptions(sr6Mode)
         sr6Only[i].style.display = sr6Mode ? "revert" : "none";
     for(var i=0;i < osrOnly.length; i++)
         osrOnly[i].style.display = sr6Mode ? "none" : "revert";
+        
+    if(sr6Mode && userSettings["msPerRad"] == servoDegreeValue270) {
+        document.getElementById('msPerRadIs270').checked = true;
+    }
 }
 
 function toggleNonTCodev3Options()
@@ -1811,9 +2241,11 @@ function importSettings() {
                 document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
                 toggleNonTCodev3Options();
             }
-            updateUserSettings();
             setUserSettings();
-            setRestartRequired();
+            if(validatePins()) {// Do not save if pin values are invalid.
+                setRestartRequired();
+                updateUserSettings();
+            }
         }, false);
 
         reader.readAsText(json);

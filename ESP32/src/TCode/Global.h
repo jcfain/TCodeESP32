@@ -7,9 +7,6 @@
 #define VALVE_DEFAULT 5000        // Auto-valve default suction level (low-high, 0-9999) 
 #define VIBE_TIMEOUT 2000         // Timeout for vibration channels (milliseconds).
 
-// T-Code Channels
-#define CHANNELS 11                // Number of channels of each type (LRVA)
-
 // ----------------------------
 //  Auto Settings
 // ----------------------------
@@ -46,22 +43,23 @@ volatile int lastTwistPulseCycle;
 // Twist position detection functions
 void IRAM_ATTR twistChange() 
 {
+	long currentMicros = esp_timer_get_time();
 	//Thanks to AberrantJ for the following changes. https://discord.com/channels/664171761415356426/673141343320670210/919994227423858728
-  	noInterrupts();
+  	//noInterrupts();
 	if(digitalRead(SettingsHandler::TwistFeedBack_PIN) == HIGH)
 	{
-		twistPulseCycle = micros()-twistPulseStart;
-  		twistPulseStart = micros();
+		twistPulseCycle = currentMicros-twistPulseStart;
+  		twistPulseStart = currentMicros;
 	}
 	else if (lastTwistPulseCycle != twistPulseCycle) 
 	{
-      int currentPulseLength = micros()-twistPulseStart;
+      int currentPulseLength = currentMicros-twistPulseStart;
       if (currentPulseLength <= 1000000/50) {
         twistPulseLength = currentPulseLength;
         lastTwistPulseCycle = twistPulseCycle;
       }
 	}
-  	interrupts();
+  	//interrupts();
 }
 
 

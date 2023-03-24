@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2022 Jason C. Fain
+Copyright (c) 2023 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,9 +25,9 @@ SOFTWARE. */
 #include <Arduino.h>
 #include "Global.h"
 
-class ServoHandler {
+class MotorHandler {
 public:
-    virtual void setup(int servoFrequency, int pitchFrequency, int valveFrequency, int twistFrequency, int msPerRad) = 0;
+    virtual void setup() = 0;
     virtual void read(byte inByte) = 0;
     virtual void read(String inString) = 0;
     virtual void execute() = 0;
