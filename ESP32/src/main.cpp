@@ -323,6 +323,7 @@ void setup()
 			motorHandler = new ServoHandler0_2();
 	#endif
 		else {
+			LogHandler::error("main-setup", "No motor type defined!");
 			return;
 			//motorHandler = new ServoHandler1_0();
 		}
@@ -420,8 +421,13 @@ void loop() {
         vTaskDelay(1000/portTICK_PERIOD_MS);
 	} 
 #if TEMP_ENABLED
-	else if (SettingsHandler::tempInternalEnabled && temperatureHandler->isMaxTempTriggered()) {
-		LogHandler::error("main", "Internal temp has reached a maximum of %f. Servos disabled!", SettingsHandler::internalMaxTemp);
+	else if (SettingsHandler::tempInternalEnabled && temperatureHandler && temperatureHandler->isMaxTempTriggered()) {
+		motorHandler->read("STOP\n");
+		motorHandler->execute();
+		LogHandler::error("main", "Internal temp has reached maximum user set. Main loop disabled! Restart system to enable the loop.");
+			if(SettingsHandler::fanControlEnabled) {
+				temperatureHandler->setFanState();
+			}
         vTaskDelay(5000/portTICK_PERIOD_MS);
 	} 
 #endif

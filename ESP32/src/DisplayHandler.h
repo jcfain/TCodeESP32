@@ -519,42 +519,52 @@ private:
 
 	void drawBatteryLevel() {
 		if(SettingsHandler::batteryLevelEnabled) {
-			uint16_t raw = analogRead(32);
-			double voltageNumber = (raw * 3.3 ) / 4095;
-			Serial.print("voltage: ");
-			Serial.println(voltageNumber);
-			const char* voltage = String(voltageNumber).c_str();
+			uint16_t raw = analogRead(SettingsHandler::batteryLevelPin);
+			double voltageNumberRaw = (raw * 3.3 ) / 4095;
+			// Serial.print("voltage: ");
+			// Serial.println(voltageNumberRaw);
 			//right(voltage, 5);
 
-			int batteryBars;
-
-			if (voltageNumber >= 3) { 
-				batteryBars = 5;
-			} else if (voltageNumber < 3 && voltageNumber > 2.9) {
-				batteryBars = 4;
-			} else if (voltageNumber < 2.9 && voltageNumber > 2.7) {
-				batteryBars = 3;
-			} else if (voltageNumber < 2.7 && voltageNumber > 2.4) {
-				batteryBars = 2;
-			} else if (voltageNumber < 2.4 && voltageNumber > 2.6) {
-				batteryBars = 1;
+			if(SettingsHandler::batteryLevelNumeric) {
+				double voltageNumber = mapf(voltageNumberRaw, 0.0, 3.3, 0.0, SettingsHandler::batteryVoltageMax);
+				// const char* voltage = String(voltageNumber).c_str();
+				// if(voltageNumber == 0.00) {
+				// 	voltage = "0.0";
+				// }
+				//right(voltage, 3);
+				display.setCursor((SettingsHandler::Display_Screen_Width - (voltageNumber < 10.0 ? 3 : 4) * charWidth) - 3 * charWidth, currentLine);
+				display.print(voltageNumber, 1);
 			} else {
-				batteryBars = 0;
+				int batteryBars;
+
+				if (voltageNumberRaw >= 3) { 
+					batteryBars = 5;
+				} else if (voltageNumberRaw < 3 && voltageNumberRaw > 2.9) {
+					batteryBars = 4;
+				} else if (voltageNumberRaw < 2.9 && voltageNumberRaw > 2.7) {
+					batteryBars = 3;
+				} else if (voltageNumberRaw < 2.7 && voltageNumberRaw > 2.4) {
+					batteryBars = 2;
+				} else if (voltageNumberRaw < 2.4 && voltageNumberRaw > 2.6) {
+					batteryBars = 1;
+				} else {
+					batteryBars = 0;
+				}
+				for (int b=0; b < batteryBars; b++) {
+					display.fillRect(
+						(SettingsHandler::Display_Screen_Width - (!WifiHandler::isConnected() ? 20 : 37)) + (b*3), 
+						2, 
+						2, 
+						lineHeight - 4, 
+						WHITE); 
+				}
+				display.drawRect(
+					SettingsHandler::Display_Screen_Width - (!WifiHandler::isConnected() ? 23 : 40),
+					1, 
+					20, 
+					lineHeight-2, 
+					WHITE); // draw the outline box
 			}
-			for (int b=0; b <= batteryBars; b++) {
-				display.fillRect(
-					(SettingsHandler::Display_Screen_Width - (!WifiHandler::isConnected() ? 20 : 37)) + (b*3), 
-					2, 
-					2, 
-					lineHeight - 4, 
-					WHITE); 
-			}
-			display.drawRect(
-				SettingsHandler::Display_Screen_Width - (!WifiHandler::isConnected() ? 23 : 40),
-				1, 
-				20, 
-				lineHeight-2, 
-				WHITE); // draw the outline box
 		}
 	}
 

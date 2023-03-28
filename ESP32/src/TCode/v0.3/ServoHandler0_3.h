@@ -185,7 +185,6 @@ public:
     // String getDeviceSettings() {
     //     return tcode.getDeviceSettings();
     // }
-
 // int testVar = -1;
 // int testVar2 = -1;
     void execute() override {

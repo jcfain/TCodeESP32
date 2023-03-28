@@ -624,6 +624,14 @@
 							<input id="tempInternalEnabled" type="checkbox" onclick="setInternalTempSettings()"></input>
 						</td>
 					</tr>
+					<tr class="build_display" title="This is not a comprehensive battery level. Only measures the voltage via a voltage devider on the specified pin at this time.">
+						<td>
+							<span>Battery voltage enabled</span> 
+						</td>
+						<td>
+							<input id="batteryLevelEnabled" type="checkbox" onclick="setBatterySettings()"></input>
+						</td>
+					</tr>
 				</tbody>
 			</table>
 			<table id="tempSettingsDisplayTable" class="formTable">
@@ -855,6 +863,34 @@
 						</td>
 						<td>
 							<input id="internalTempDisplayed" type="checkbox" onclick="setDisplaySettings()"></input>
+						</td>
+					</tr>
+					
+				</tbody>
+			</table>
+			<table id="batterySettingsTable" class="formTable build_display displayOnly batteryOnly">
+				<tbody>
+					<tr>
+						<th colspan="2">
+							<h3>Battery</h3>
+						</th>
+					</tr>
+					<tr>
+						<td><span>Voltage pin (ADC)</span></td>
+						<td>
+							<input id="batteryLevelPin"  type="number" min="0" step="1" onclick="setBatterySettings()">
+						</td>
+					</tr>
+					<tr title="Display voltage as a number instead of bars">
+						<td><span>Display voltage</span></td>
+						<td>
+							<input id="batteryLevelNumeric" type="checkbox" oninput="setBatterySettings()">
+						</td>
+					</tr>
+					<tr title="This is used to map 3.3 volts to max voltage">
+						<td><span>Max voltage</span></td>
+						<td>
+							<input id="batteryVoltageMax"  type="number" min="0" step="0.10" onclick="setBatterySettings()" title="For display calculation only.">
 						</td>
 					</tr>
 					

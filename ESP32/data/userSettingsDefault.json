@@ -87,5 +87,9 @@
 	"heaterFrequency": 5000,
 	"fanControlEnabled": false,
 	"caseFanFrequency": 25,
-	"caseFanResolution": 10
+	"caseFanResolution": 10,
+	"batteryLevelEnabled": false,
+	"batteryLevelPin": 32,
+	"batteryLevelNumeric": false,
+	"batteryVoltageMax": 12.6
 }

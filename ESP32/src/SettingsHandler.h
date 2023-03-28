@@ -158,6 +158,9 @@ class SettingsHandler
 		static bool tempInternalEnabled;
         static bool fanControlEnabled;
         static bool batteryLevelEnabled;
+        static int batteryLevelPin;
+        static bool batteryLevelNumeric;
+        static double batteryVoltageMax;
 		static int Display_Screen_Width; 
 		static int Display_Screen_Height; 
         static int Internal_Temp_PIN;
@@ -322,12 +325,13 @@ class SettingsHandler
 
         static bool update(JsonObject json) 
         {
+            LogHandler::debug(_TAG, "Update settings");
             if(json.size() > 0) 
             {
+                LogHandler::debug(_TAG, "json.size() > 0");
                 logLevel = (LogLevel)(json["logLevel"] | 1);
                 LogHandler::setLogLevel(logLevel);
 
-                LogHandler::debug(_TAG, "Update settings");
                 const char* ssidConst = json["ssid"];
                 if( ssid != nullptr) 
                 {
@@ -462,6 +466,11 @@ class SettingsHandler
                 internalTempForFan = json["internalTempForFan"] | 30.0;
                 internalMaxTemp = json["internalMaxTemp"] | 50.0;
                 
+                batteryLevelEnabled = json["batteryLevelEnabled"];
+                batteryLevelPin = json["batteryLevelPin"];
+                batteryLevelNumeric = json["batteryLevelNumeric"];
+                batteryVoltageMax = json["batteryVoltageMax"];
+                
                 caseFanFrequency = json["caseFanFrequency"] | 25;
                 caseFanResolution = json["caseFanResolution"] | 10;
                 caseFanMaxDuty = pow(2, caseFanResolution) - 1;
@@ -501,7 +510,7 @@ class SettingsHandler
         //     return bytes;
         // }
 
-        static void serialize(char buf[2048])
+        static void serialize(char buf[2128])
         {
             LogHandler::debug(_TAG, "Get settings...");
             File file = SPIFFS.open(userSettingsFilePath, "r");
@@ -519,8 +528,10 @@ class SettingsHandler
             String output;
             serializeJson(doc, output);
             //serializeJson(doc, Serial);
-            if(LogHandler::getLogLevel() == LogLevel::VERBOSE)
+            if(LogHandler::getLogLevel() == LogLevel::VERBOSE) {
                 Serial.printf("Settings: %s\n", output.c_str());
+                Serial.printf("Size: %ld\n", strlen(output.c_str()));
+            }
             //LogHandler::verbose(_TAG, "Output: %s", output.c_str());
             buf[0]  = {0};
             strcpy(buf, output.c_str());
@@ -740,6 +751,11 @@ class SettingsHandler
             doc["internalTempForFan"] = internalTempForFan;
             doc["internalMaxTemp"] = internalMaxTemp;
             doc["tempInternalEnabled"] = tempInternalEnabled;
+                
+            doc["batteryLevelEnabled"] = batteryLevelEnabled;
+            doc["batteryLevelPin"] = batteryLevelPin;
+            doc["batteryLevelNumeric"] = batteryLevelNumeric;
+            doc["batteryVoltageMax"] = round2(batteryVoltageMax);
 			
             LogSaveDebug(doc);
 
@@ -897,7 +913,7 @@ class SettingsHandler
         // Use http://arduinojson.org/assistant to compute the capacity.
         // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
         // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
-		static const int deserializeSize = 3072;
+		static const int deserializeSize = 4096;
 		static const int serializeSize = 2048;
 
         static int calculateRange(const char* channel, int value) 
@@ -1278,6 +1294,9 @@ bool SettingsHandler::tempSleeveEnabled = false;
 bool SettingsHandler::tempInternalEnabled = false;
 bool SettingsHandler::fanControlEnabled = false;
 bool SettingsHandler::batteryLevelEnabled = true;
+int SettingsHandler::batteryLevelPin = 32;
+bool SettingsHandler::batteryLevelNumeric = true;
+double SettingsHandler::batteryVoltageMax = 12.6;
 int SettingsHandler::Display_Screen_Width = 128; 
 int SettingsHandler::Display_Screen_Height = 64; 
 int SettingsHandler::caseFanMaxDuty = 255;

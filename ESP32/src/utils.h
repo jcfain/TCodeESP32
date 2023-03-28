@@ -21,3 +21,12 @@ char* substr(const char* arr, int begin, int len)
     res[len] = 0;
     return res;
 }
+
+double round2(double value) {
+   return (int)(value * 100 + 0.5) / 100.0;
+}
+
+double mapf(double x, double in_min, double in_max, double out_min, double out_max)
+{
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}

@@ -13,6 +13,7 @@
 // History:
 // Alpha1 - First release. 2-2-2023
 // Alpha2 - Encoder moved to PIN33, End switch pin removed and start sequence changed. 23-2-2023
+// Modifications by Khrull (Fain)
 
 
 #pragma once
@@ -37,19 +38,19 @@ volatile int shortest = 500;
 
 
 
-    // Encoder Interrupt detector
-    void IRAM_ATTR encoderChange() {
-        long currentMicros = esp_timer_get_time();
-        if(digitalRead(SettingsHandler::BLDC_Encoder_PIN) == HIGH)
-        {
-            encoderPulseCycle = currentMicros-encoderPulseStart;
-            encoderPulseStart = currentMicros;
-        }
-        else
-        {
-            encoderPulseLength = currentMicros-encoderPulseStart;
-        }
+// Encoder Interrupt detector
+void IRAM_ATTR encoderChange() {
+    long currentMicros = esp_timer_get_time();
+    if(digitalRead(SettingsHandler::BLDC_Encoder_PIN) == HIGH)
+    {
+        encoderPulseCycle = currentMicros-encoderPulseStart;
+        encoderPulseStart = currentMicros;
     }
+    else
+    {
+        encoderPulseLength = currentMicros-encoderPulseStart;
+    }
+}
 
 class BLDCHandler0_3 : public MotorHandler {
 

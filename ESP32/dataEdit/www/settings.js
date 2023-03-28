@@ -435,6 +435,7 @@ function setUserSettings()
         toggleFanControlSettings(userSettings["fanControlEnabled"]);
     }
     toggleMotorTypeOptions();
+    toggleBatterySettings(userSettings["batteryLevelEnabled"]);
     // var xMin = userSettings["xMin"];
     // var xMax = userSettings["xMax"];
     //document.getElementById("xMin").value = xMin;
@@ -570,8 +571,12 @@ function setUserSettings()
     document.getElementById('Case_Fan_PIN').value = userSettings["Case_Fan_PIN"];
     document.getElementById('caseFanResolution').value = userSettings["caseFanResolution"];
     document.getElementById('caseFanFrequency').value = userSettings["caseFanFrequency"];
-    
 
+    document.getElementById('batteryLevelEnabled').checked = userSettings["batteryLevelEnabled"];
+    document.getElementById('batteryLevelPin').value = userSettings["batteryLevelPin"];
+    document.getElementById('batteryLevelNumeric').checked = userSettings["batteryLevelNumeric"];
+    document.getElementById('batteryVoltageMax').value = userSettings["batteryVoltageMax"];
+    
     document.getElementById('debug').value = userSettings["logLevel"];
     
     //document.getElementById('debugLink').hidden = !userSettings["debug"];
@@ -1200,6 +1205,11 @@ function toggleFeedbackTwistSettings(feedbackChecked) {
         document.getElementById("analogTwistRow").style.display = 'none';
     }
 }
+function toggleBatterySettings(batteryEnabled) {
+    var batteryOnly = document.getElementsByClassName('batteryOnly');
+    for(var i=0;i < batteryOnly.length; i++)
+        batteryOnly[i].style.display = batteryEnabled ? "revert" : "none";
+}
 
 function updateHostName() 
 {
@@ -1282,7 +1292,7 @@ function updateBLDCPins() {
     }
     upDateTimeout = setTimeout(() => 
     {
-        var pinValues = validateBLDCPins();
+        var pinValues = validatePins();
         if(pinValues) {
             userSettings["BLDC_Encoder_PIN"] = pinValues.BLDC_Encoder_PIN;
             userSettings["BLDC_Enable_PIN"] = pinValues.BLDC_Enable_PIN;
@@ -1540,82 +1550,20 @@ function updatePins()
 //     return { errors: errors, invalidPins: invalidPins } ;
 // }
 
+
 /** 
  * Validates the pin number values in the forms inputs. 
- * Shows an error and returns boolean;
+ * Shows an error and returns the pin values or undefined if error
 */
-
-function validateBLDCPins() {
-    clearErrors("pinValidation"); 
-    var assignedPins = [];
-    var duplicatePins = [];
-    var pmwErrors = [];
-    var pinValues = getBLDCPinValues();
-    if(userSettings["disablePinValidation"])
-        return pinValues;
-
-    var pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_Encoder_PIN);
-    if(pinDupeIndex > -1)
-        duplicatePins.push("Encoder pin and "+assignedPins[pinDupeIndex].name);
-    assignedPins.push({name:"Encoder", pin:pinValues.BLDC_Encoder_PIN});
-    
-    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_Enable_PIN);
-    if(pinDupeIndex > -1)
-        duplicatePins.push("Enable pin and "+assignedPins[pinDupeIndex].name);
-    assignedPins.push({name:"Enable", pin:pinValues.BLDC_Enable_PIN});
-
-    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel1_PIN);
-    if(pinDupeIndex > -1)
-        duplicatePins.push("PWMchannel1 pin and "+assignedPins[pinDupeIndex].name);
-    if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel1_PIN) == -1)
-        pmwErrors.push("PWMchannel1 pin: "+pinValues.BLDC_PWMchannel1_PIN);
-    assignedPins.push({name:"PWMchannel1", pin:pinValues.BLDC_PWMchannel1_PIN});
-
-    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel2_PIN);
-    if(pinDupeIndex > -1)
-        duplicatePins.push("PWMchannel2 pin and "+assignedPins[pinDupeIndex].name);
-    if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel2_PIN) == -1)
-        pmwErrors.push("PWMchannel2 pin: "+pinValues.BLDC_PWMchannel2_PIN);
-    assignedPins.push({name:"PWMchannel2", pin:pinValues.BLDC_PWMchannel2_PIN});
-
-    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel3_PIN);
-    if(pinDupeIndex > -1)
-        duplicatePins.push("PWMchannel3 pin and "+assignedPins[pinDupeIndex].name);
-    if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel3_PIN) == -1)
-        pmwErrors.push("PWMchannel3pin: "+pinValues.BLDC_PWMchannel3_PIN);
-    assignedPins.push({name:"PWMchannel3", pin:pinValues.BLDC_PWMchannel3_PIN});
-
-    var invalidPins = [];
-
-    if (duplicatePins.length || pmwErrors.length || invalidPins.length) {
-        var errorString = "<div name='pinValidation'>Pins NOT saved due to invalid input.<br>";
-        if(duplicatePins.length )
-            errorString += "<div style='margin-left: 25px;'>The following pins are duplicated:<br><div style='color: white; margin-left: 25px;'>"+duplicatePins.join("<br>")+"</div></div>";
-        if(invalidPins.length) {
-            if(duplicatePins.length)
-                errorString += "<br>";
-            errorString += "<div style='margin-left: 25px;'>The following pins are invalid:<br><div style='color: white; margin-left: 25px;'>"+invalidPins.join("<br>")+"</div></div>";
-        }
-        if (pmwErrors.length) {
-            if(duplicatePins.length || invalidPins.length) {
-                errorString += "<br>";
-            } 
-            errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pmwErrors.join("<br>")+"</div></div>";
-        }
-        
-        errorString += "</div>";
-        showError(errorString);
-        return undefined;
-    }
-    return pinValues;
-}
-
 function validatePins() {
+    if(systemInfo.motorType == MotorType.BLDC) {
+        return validateBLDCPins();
+    }
     clearErrors("pinValidation"); 
     var assignedPins = [];
     var duplicatePins = [];
     var pmwErrors = [];
-    var pinValues = getPinValues();
+    var pinValues = getServoPinValues();
     if(userSettings["disablePinValidation"])
         return pinValues;
 
@@ -1760,11 +1708,77 @@ function validatePins() {
     return pinValues;
 }
 
+function validateBLDCPins() {
+    clearErrors("pinValidation"); 
+    var assignedPins = [];
+    var duplicatePins = [];
+    var pmwErrors = [];
+    var pinValues = getBLDCPinValues();
+    if(userSettings["disablePinValidation"])
+        return pinValues;
+
+    var pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_Encoder_PIN);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Encoder pin and "+assignedPins[pinDupeIndex].name);
+    assignedPins.push({name:"Encoder", pin:pinValues.BLDC_Encoder_PIN});
+    
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_Enable_PIN);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("Enable pin and "+assignedPins[pinDupeIndex].name);
+    assignedPins.push({name:"Enable", pin:pinValues.BLDC_Enable_PIN});
+
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel1_PIN);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("PWMchannel1 pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel1_PIN) == -1)
+        pmwErrors.push("PWMchannel1 pin: "+pinValues.BLDC_PWMchannel1_PIN);
+    assignedPins.push({name:"PWMchannel1", pin:pinValues.BLDC_PWMchannel1_PIN});
+
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel2_PIN);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("PWMchannel2 pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel2_PIN) == -1)
+        pmwErrors.push("PWMchannel2 pin: "+pinValues.BLDC_PWMchannel2_PIN);
+    assignedPins.push({name:"PWMchannel2", pin:pinValues.BLDC_PWMchannel2_PIN});
+
+    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel3_PIN);
+    if(pinDupeIndex > -1)
+        duplicatePins.push("PWMchannel3 pin and "+assignedPins[pinDupeIndex].name);
+    if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel3_PIN) == -1)
+        pmwErrors.push("PWMchannel3pin: "+pinValues.BLDC_PWMchannel3_PIN);
+    assignedPins.push({name:"PWMchannel3", pin:pinValues.BLDC_PWMchannel3_PIN});
+
+    var invalidPins = [];
+    validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues);
+
+    if (duplicatePins.length || pmwErrors.length || invalidPins.length) {
+        var errorString = "<div name='pinValidation'>Pins NOT saved due to invalid input.<br>";
+        if(duplicatePins.length )
+            errorString += "<div style='margin-left: 25px;'>The following pins are duplicated:<br><div style='color: white; margin-left: 25px;'>"+duplicatePins.join("<br>")+"</div></div>";
+        if(invalidPins.length) {
+            if(duplicatePins.length)
+                errorString += "<br>";
+            errorString += "<div style='margin-left: 25px;'>The following pins are invalid:<br><div style='color: white; margin-left: 25px;'>"+invalidPins.join("<br>")+"</div></div>";
+        }
+        if (pmwErrors.length) {
+            if(duplicatePins.length || invalidPins.length) {
+                errorString += "<br>";
+            } 
+            errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pmwErrors.join("<br>")+"</div></div>";
+        }
+        
+        errorString += "</div>";
+        showError(errorString);
+        return undefined;
+    }
+    return pinValues;
+}
+
 /** Does not show an error. Just returns true/false */
 function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues) {
 
     var pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.lubeButton);
-    if(validPWMpins.indexOf(pinValues.lubeButton) == -1 && inputOnlypins.indexOf(lubeButton) == -1)
+    if(validPWMpins.indexOf(pinValues.lubeButton) == -1 && inputOnlypins.indexOf(pinValues.lubeButton) == -1)
         invalidPins.push("Invalid Lube button pin: "+pinValues.lubeButton);
     if(pinDupeIndex > -1)
         duplicatePins.push("Lube button pin and "+assignedPins[pinDupeIndex].name);
@@ -1786,8 +1800,17 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
             duplicatePins.push("Internal temp pin and "+assignedPins[pinDupeIndex].name);
         assignedPins.push({name:"Internal temp", pin:pinValues.internalTemp});
     }
+
+    if(userSettings.batteryEnabled) {
+        if(validPWMpins.indexOf(pinValues.batteryLevelPin) == -1 && inputOnlypins.indexOf(pinValues.batteryLevelPin) == -1)
+            invalidPins.push("Battery level pin: "+pinValues.batteryLevelPin);
+        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.batteryLevelPin);
+        if(pinDupeIndex > -1)
+            duplicatePins.push("Battery level pin and "+assignedPins[pinDupeIndex].name);
+        assignedPins.push({name:"Battery level", pin:pinValues.batteryLevelPin});
+    }
     
-    if(userSettings.feedbackTwist) {
+    if(userSettings.feedbackTwist && pinValues.twistFeedBack) {
         if(validPWMpins.indexOf(pinValues.twistFeedBack) == -1 && inputOnlypins.indexOf(pinValues.twistFeedBack) == -1)
             invalidPins.push("Invalid Twist feedback pin: "+pinValues.twistFeedBack);
         pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.twistFeedBack);
@@ -1807,9 +1830,10 @@ function getBLDCPinValues() {
     pinValues.BLDC_PWMchannel1_PIN = parseInt(document.getElementById('BLDC_PWMchannel1_PIN').value);
     pinValues.BLDC_PWMchannel2_PIN = parseInt(document.getElementById('BLDC_PWMchannel2_PIN').value);
     pinValues.BLDC_PWMchannel3_PIN = parseInt(document.getElementById('BLDC_PWMchannel3_PIN').value);
+    getCommonPinValues(pinValues);
     return pinValues;
 }
-function getPinValues() {
+function getServoPinValues() {
     var pinValues = {};
     pinValues.twistServo = parseInt(document.getElementById('TwistServo_PIN').value);
     pinValues.squeezeServo = parseInt(document.getElementById('Squeeze_PIN').value);
@@ -1820,10 +1844,19 @@ function getPinValues() {
     pinValues.pitchRight = parseInt(document.getElementById('PitchRightServo_PIN').value);
     pinValues.pitchLeft = parseInt(document.getElementById('PitchLeftServo_PIN').value);
     pinValues.valveServo = parseInt(document.getElementById('ValveServo_PIN').value);
+    pinValues.twistFeedBack = parseInt(document.getElementById('TwistFeedBack_PIN').value);
+    getCommonPinValues(pinValues);
+    return pinValues;
+}
+
+function getCommonPinValues(pinValues) {
+
     pinValues.vibe0 = parseInt(document.getElementById('Vibe0_PIN').value);
     pinValues.vibe1 = parseInt(document.getElementById('Vibe1_PIN').value);
     pinValues.vibe2 = parseInt(document.getElementById('Vibe2_PIN').value);
     pinValues.vibe3 = parseInt(document.getElementById('Vibe3_PIN').value);
+    
+    pinValues.batteryLevelPin = parseInt(document.getElementById('batteryLevelPin').value);
 
     if(systemInfo.boardType === BoardType.CRIMZZON) 
         document.getElementById('Heater_PIN').value = 33;
@@ -1838,8 +1871,6 @@ function getPinValues() {
     pinValues.lubeButton = parseInt(document.getElementById('LubeButton_PIN').value);
     pinValues.temp = parseInt(document.getElementById('Temp_PIN').value);
     pinValues.internalTemp = parseInt(document.getElementById('Internal_Temp_PIN').value);
-    pinValues.twistFeedBack = parseInt(document.getElementById('TwistFeedBack_PIN').value);
-    return pinValues;
 }
 
 function updateZeros() 
@@ -1941,7 +1972,11 @@ function toggleDisplaySettings(enabled)
     {
         document.getElementById('displaySettingsDisplayTable').hidden = false;
     }
+    var displayOnly = document.getElementsByClassName('displayOnly');
+    for(var i=0;i < displayOnly.length; i++)
+    displayOnly[i].style.display = displayEnabled ? "revert" : "none";
 }
+
 function toggleTempSettings(enabled) 
 {
     if(!enabled) 
@@ -2022,6 +2057,13 @@ function setInternalTempSettings() {
     setRestartRequired();
     updateUserSettings();
 }
+function setBatterySettings() {
+    userSettings["batteryLevelEnabled"] = document.getElementById('batteryLevelEnabled').checked;
+    toggleBatterySettings(userSettings["batteryLevelEnabled"]);
+    userSettings["batteryLevelNumeric"] = document.getElementById('batteryLevelNumeric').checked;
+    userSettings["batteryVoltageMax"] = parseFloat(document.getElementById('batteryVoltageMax').value);
+    updateUserSettings();
+}	
 function setFanControl() {
     userSettings["fanControlEnabled"] = document.getElementById('fanControlEnabled').checked;
     toggleFanControlSettings(userSettings["fanControlEnabled"]);

@@ -55,7 +55,7 @@ class WebHandler {
                 // DynamicJsonDocument doc(SettingsHandler::deserialize);
                 // File file = SPIFFS.open(SettingsHandler::userSettingsFilePath, "r");
                 // DeserializationError error = deserializeJson(doc, file);
-                char settings[2048];
+                char settings[2128];
                 SettingsHandler::serialize(settings);
                 if (strlen(settings) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
@@ -183,7 +183,7 @@ class WebHandler {
                     AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"msg\":\"Could not parse JSON\"}");
                     request->send(response);
                 }
-            }, 1500U );//Bad request? increase the size.
+            }, 1600U );//Bad request? increase the size.
 
             // //To upload through terminal you can use: curl -F "image=@firmware.bin" esp8266-webupdate.local/update
             // server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request){
