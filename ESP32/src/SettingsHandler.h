@@ -98,7 +98,7 @@ class SettingsHandler
         static int BLDC_PWMchannel1_PIN;
         static int BLDC_PWMchannel2_PIN;
         static int BLDC_PWMchannel3_PIN;
-        static int BLDC_MotorA_Voltage;         // BLDC Motor operating voltage (12-20V)
+        static float BLDC_MotorA_Voltage;         // BLDC Motor operating voltage (12-20V)
         static float BLDC_MotorA_Current;       // BLDC Maximum operating current (Amps)
         
 		static int Vibe0_PIN;
@@ -462,8 +462,8 @@ class SettingsHandler
                 BLDC_PWMchannel1_PIN = json["BLDC_PWMchannel1_PIN"] | 27;
                 BLDC_PWMchannel2_PIN = json["BLDC_PWMchannel2_PIN"] | 26;
                 BLDC_PWMchannel3_PIN = json["BLDC_PWMchannel3_PIN"] | 25;
-                BLDC_MotorA_Voltage = json["BLDC_MotorA_Voltage"] | 20;
-                BLDC_MotorA_Current = json["BLDC_MotorA_Current"] | 1.5;
+                BLDC_MotorA_Voltage = round2(json["BLDC_MotorA_Voltage"] | 20.0);
+                BLDC_MotorA_Current = round2(json["BLDC_MotorA_Current"] | 1.5);
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -753,8 +753,8 @@ class SettingsHandler
             doc["BLDC_PWMchannel1_PIN"] = BLDC_PWMchannel1_PIN;
             doc["BLDC_PWMchannel2_PIN"] = BLDC_PWMchannel2_PIN;
             doc["BLDC_PWMchannel3_PIN"] = BLDC_PWMchannel3_PIN;
-            doc["BLDC_MotorA_Voltage"] = BLDC_MotorA_Voltage;
-            doc["BLDC_MotorA_Current"] = BLDC_MotorA_Current;
+            doc["BLDC_MotorA_Voltage"] = round2(BLDC_MotorA_Voltage);
+            doc["BLDC_MotorA_Current"] = round2(BLDC_MotorA_Current);
 
 			doc["staticIP"] = staticIP;
 			doc["localIP"] = localIP;
@@ -1246,7 +1246,7 @@ const char* SettingsHandler::_TAG = "_SETTINGS_HANDLER";
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
 MotorType SettingsHandler::motorType = MotorType::Servo;
-const char SettingsHandler::ESP32Version[8] = "v0.27b";
+const char SettingsHandler::ESP32Version[8] = "v0.271b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char* SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
@@ -1327,7 +1327,7 @@ int SettingsHandler::BLDC_Enable_PIN = 14;
 int SettingsHandler::BLDC_PWMchannel1_PIN = 27;
 int SettingsHandler::BLDC_PWMchannel2_PIN = 26;
 int SettingsHandler::BLDC_PWMchannel3_PIN = 25;
-int SettingsHandler::BLDC_MotorA_Voltage = 20;         // BLDC Motor operating voltage (12-20V)
+float SettingsHandler::BLDC_MotorA_Voltage = 20.0;         // BLDC Motor operating voltage (12-20V)
 float SettingsHandler::BLDC_MotorA_Current = 1.5;     // BLDC Maximum operating current (Amps)
 
 int SettingsHandler::TwistServo_ZERO = 1500;
