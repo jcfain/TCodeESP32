@@ -12,8 +12,7 @@ class TCode0_3 : public TCodeBase {
   public:
   
   // Setup function
-  void setup(const char* firmware, const char* tcode) 
-  {
+  void setup(const char* firmware, const char* tcode) override {
     firmwareID = firmware;
     tcodeID = tcode;
 
@@ -25,7 +24,7 @@ class TCode0_3 : public TCodeBase {
   }
 
   // Function to name and activate axis
-  void RegisterAxis(String ID, String axisName) {
+  void RegisterAxis(String ID, String axisName) override {
     char type = ID.charAt(0);
     int channel = ID.charAt(1) - '0';
     if ((0 <= channel && channel < CHANNELS)) {
@@ -40,7 +39,7 @@ class TCode0_3 : public TCodeBase {
   }
 
   // Function to read off individual bytes as input
-  void ByteInput(byte inByte) {
+  void ByteInput(byte inByte) override {
     bufferString += (char)inByte;  // Add new character to string
     
     if (inByte=='\n') {  // Execute string on newline
@@ -51,7 +50,7 @@ class TCode0_3 : public TCodeBase {
   }
 
   // Function to read off whole strings as input
-  void StringInput(String inString) {
+  void StringInput(String inString) override {
     bufferString = inString;  // Replace existing buffer with input string
     bufferString.trim();  // Remove spaces, etc, from buffer
     executeString(bufferString); // Execute string
@@ -59,7 +58,7 @@ class TCode0_3 : public TCodeBase {
   }
 
   // Function to set an axis
-  void AxisInput(String ID, int magnitude, char extension, long extMagnitude) {
+  void AxisInput(String ID, int magnitude, char extension, long extMagnitude) override {
     char type = ID.charAt(0);
     int channel = ID.charAt(1) - '0';
     if ((0 <= channel && channel < CHANNELS)) {
@@ -74,7 +73,7 @@ class TCode0_3 : public TCodeBase {
   }
 
   // Function to read the current position of an axis
-  int AxisRead(String ID) {
+  int AxisRead(String ID) override {
     int x = 5000; // This is the return variable
     char type = ID.charAt(0);
     int channel = ID.charAt(1) - '0';
@@ -91,7 +90,7 @@ class TCode0_3 : public TCodeBase {
   }
 
   // Function to query when an axis was last commanded
-  unsigned long AxisLast(String ID) {
+  unsigned long AxisLast(String ID) override {
     unsigned long t = 0; // Return time
     char type = ID.charAt(0);
     int channel = ID.charAt(1) - '0';
@@ -107,7 +106,7 @@ class TCode0_3 : public TCodeBase {
     return t;
   }
 
-  void getDeviceSettings(char* settings) {
+  void getDeviceSettings(char* settings) override {
     String deviceSettings = "";
     for (int i = 0; i < 10; i++) { deviceSettings += axisRow("L" + String(i), 8*i, Linear[i].Name); }
     for (int i = 0; i < 10; i++) { deviceSettings += axisRow("R" + String(i), 8*i+80, Rotation[i].Name); }

@@ -273,6 +273,10 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
 }
 #endif
 
+void batteryVoltageCallback(double voltage) {
+
+}
+
 void setup() 
 {
 	// see if we can use the onboard led for status

@@ -48,7 +48,6 @@ void IRAM_ATTR twistChange()
 
 class ServoHandler0_2 : public MotorHandler
 {
-
 private:
 	const char* _TAG = "ServoHandler0_2";
     ToyComms toy; 
@@ -146,7 +145,7 @@ public:
     void setup() override 
     {
         ms_per_rad = SettingsHandler::msPerRad;
-		toy.setup();
+        toy.setup();
         toy.identifyTCode();
 
         RightServo.setPeriodHertz(SettingsHandler::servoFrequency);

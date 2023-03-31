@@ -32,7 +32,7 @@ SOFTWARE. */
 #if TEMP_ENABLED
 #include "TemperatureHandler.h"
 #endif
-
+#include "BatteryHandler.h"
 // #if ISAAC_NEWTONGUE_BUILD
 // #include "../lib/animationFrames.h"
 // #endif
@@ -57,19 +57,8 @@ public:
 		//Wire.setClock(100000UL);
 		if(!SettingsHandler::Display_I2C_Address && !I2CScan()) {
 			return;
-		}
-
-		if (SettingsHandler::Display_Rst_PIN >= 0)
-		{
-			displayConnected = display.begin(SSD1306_SWITCHCAPVCC, SettingsHandler::Display_I2C_Address, SettingsHandler::Display_Rst_PIN);
-			if (!displayConnected)
-    			LogHandler::error("displayHandler", "SSD1306 RST_PIN allocation failed");
-		}
-		else
-		{
-			displayConnected = display.begin(SSD1306_SWITCHCAPVCC, SettingsHandler::Display_I2C_Address);
-			if (!displayConnected)
-    			LogHandler::error("displayHandler", "SSD1306 allocation failed");
+		} else if(!connectDisplay(SettingsHandler::Display_I2C_Address)) {
+			return;
 		}
 		delay(2000);
 		if(displayConnected)
@@ -112,6 +101,9 @@ public:
 	}
 	void setFanState(const char* state) {
 		m_fanState = String(state);
+	}
+	void setBatteryVoltage(double value) {
+		m_batteryVoltage = value;
 	}
 	
 
@@ -196,7 +188,7 @@ public:
 					
 				} else if(WifiHandler::apMode) {
 					startLine(headerPadding);
-					left("AP mode: 192.168.1.1");
+					left("AP: 192.168.1.1");
 					drawBatteryLevel();
 					newLine(headerPadding);
 					left("SSID: TCodeESP32Setup");
@@ -286,8 +278,15 @@ public:
 			Serial.println("No I2C devices found\n");
 			return false;
 		}
-		SettingsHandler::Display_I2C_Address = foundAddresses.front();
-		SettingsHandler::save();
+  		unsigned int vecSize = foundAddresses.size();
+		for(unsigned int i = 0; i < vecSize; i++)
+		{
+			if(connectDisplay(foundAddresses[i])) {
+				SettingsHandler::Display_I2C_Address = foundAddresses[i];
+				SettingsHandler::save();
+				break;
+			}
+		}
 		return true;
 	}
 
@@ -341,6 +340,7 @@ private:
 	String m_fanState = "Unknown";
 	String m_HeatState = "Unknown";
 	String m_HeatStateShort = "U";
+	double m_batteryVoltage = 0.0;
 
 	Adafruit_SSD1306_RSB display;
 	bool m_animationPlaying = false;
@@ -518,34 +518,22 @@ private:
 	}
 
 	void drawBatteryLevel() {
-		if(SettingsHandler::batteryLevelEnabled) {
-			uint16_t raw = analogRead(SettingsHandler::batteryLevelPin);
-			double voltageNumberRaw = (raw * 3.3 ) / 4095;
-			// Serial.print("voltage: ");
-			// Serial.println(voltageNumberRaw);
-			//right(voltage, 5);
-
+		if(BatteryHandler::connected()) {
 			if(SettingsHandler::batteryLevelNumeric) {
-				double voltageNumber = mapf(voltageNumberRaw, 0.0, 3.3, 0.0, SettingsHandler::batteryVoltageMax);
-				// const char* voltage = String(voltageNumber).c_str();
-				// if(voltageNumber == 0.00) {
-				// 	voltage = "0.0";
-				// }
-				//right(voltage, 3);
-				display.setCursor((SettingsHandler::Display_Screen_Width - (voltageNumber < 10.0 ? 3 : 4) * charWidth) - 3 * charWidth, currentLine);
+				double voltageNumber = mapf(m_batteryVoltage, 0.0, 3.3, 0.0, SettingsHandler::batteryVoltageMax);
+				display.setCursor((SettingsHandler::Display_Screen_Width - (voltageNumber < 10.0 ? 3 : 4) * charWidth) - (WifiHandler::isConnected() ? 3 : 0) * charWidth, currentLine);
 				display.print(voltageNumber, 1);
 			} else {
 				int batteryBars;
-
-				if (voltageNumberRaw >= 3) { 
+				if (m_batteryVoltage >= 3.17) { 
 					batteryBars = 5;
-				} else if (voltageNumberRaw < 3 && voltageNumberRaw > 2.9) {
+				} else if (m_batteryVoltage < 3.17 && m_batteryVoltage > 3.09) {
 					batteryBars = 4;
-				} else if (voltageNumberRaw < 2.9 && voltageNumberRaw > 2.7) {
+				} else if (m_batteryVoltage < 3.09 && m_batteryVoltage > 3.02) {
 					batteryBars = 3;
-				} else if (voltageNumberRaw < 2.7 && voltageNumberRaw > 2.4) {
+				} else if (m_batteryVoltage < 3.02 && m_batteryVoltage > 2.92) {
 					batteryBars = 2;
-				} else if (voltageNumberRaw < 2.4 && voltageNumberRaw > 2.6) {
+				} else if (m_batteryVoltage < 2.92 && m_batteryVoltage > 2.83) {
 					batteryBars = 1;
 				} else {
 					batteryBars = 0;
@@ -568,6 +556,21 @@ private:
 		}
 	}
 
+	bool connectDisplay(int address) {
+		if (SettingsHandler::Display_Rst_PIN >= 0)
+		{
+			displayConnected = display.begin(SSD1306_SWITCHCAPVCC, address, SettingsHandler::Display_Rst_PIN);
+			if (!displayConnected)
+    			LogHandler::error("displayHandler", "SSD1306 RST_PIN allocation failed");
+		}
+		else
+		{
+			displayConnected = display.begin(SSD1306_SWITCHCAPVCC, address);
+			if (!displayConnected)
+    			LogHandler::error("displayHandler", "SSD1306 allocation failed");
+		}
+		return displayConnected;
+	}
 	
 	void getTempString(const char* displayText, char* temp, char* buf, int size) {
 		strtrim(temp);
@@ -578,18 +581,5 @@ private:
 		// strtrim(temp);
 		// String tempText = displayText + String(temp) + (char)247 + "C";// TODO: remove String
 		// strcpy(buf, tempText.c_str());
-	}
-
-	void strtrim(char* str) {
-		int start = 0; // number of leading spaces
-		char* buffer = str;
-		while (*str && *str++ == ' ') ++start;
-		while (*str++); // move to end of string
-		int end = str - buffer - 1; 
-		while (end > 0 && buffer[end - 1] == ' ') --end; // backup over trailing spaces
-		buffer[end] = 0; // remove trailing spaces
-		if (end <= start || start == 0) return; // exit if no leading spaces or string is now empty
-		str = buffer + start;
-		while ((*buffer++ = *str++));  // remove leading spaces: K&R
 	}
 };

@@ -25,8 +25,8 @@ SOFTWARE. */
 #include <sstream>
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
-#include "SettingsHandler.h"
 #include "LogHandler.h"
+#include "utils.h"
 
 #define featureCount 7
 
@@ -158,7 +158,7 @@ class SettingsHandler
 		static bool tempInternalEnabled;
         static bool fanControlEnabled;
         static bool batteryLevelEnabled;
-        static int batteryLevelPin;
+        static int Battery_Voltage_PIN;
         static bool batteryLevelNumeric;
         static double batteryVoltageMax;
 		static int Display_Screen_Width; 
@@ -299,13 +299,13 @@ class SettingsHandler
                     // EXT_Input3_PIN = 39;
                     // EXT_Input4_PIN = 36;
 
-                    TwistFeedBack_PIN = 0;// Boot pin
+                    // TwistFeedBack_PIN = 0;// Boot pin
 
-                    heaterResolution = 8;
-                    caseFanResolution = 10;
-                    caseFanFrequency = 25;
-                    Display_Screen_Height = 32;
-                    tempInternalEnabled = true;
+                    // heaterResolution = 8;
+                    // caseFanResolution = 10;
+                    // caseFanFrequency = 25;
+                    // Display_Screen_Height = 32;
+                    // tempInternalEnabled = true;
                 }
 	        #endif
 			if(loadingDefault)
@@ -362,51 +362,110 @@ class SettingsHandler
                 RollMax = SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 ? 9999 : 999;
                 PitchMin = 1;
                 PitchMax = SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 ? 9999 : 999;
-                #if MOTOR_TYPE == 0
-                    pitchFrequencyIsDifferent = json["pitchFrequencyIsDifferent"];
-                    msPerRad =  json["msPerRad"] | 637;
-                    servoFrequency = json["servoFrequency"] | 50;
-                    pitchFrequency = json[pitchFrequencyIsDifferent ? "pitchFrequency" : "servoFrequency"];
-                    valveFrequency = json["valveFrequency"] | 50;
-                    twistFrequency = json["twistFrequency"] | 50;
-                    squeezeFrequency = json["squeezeFrequency"] | 50;
-                    continuousTwist = json["continuousTwist"];
-                    feedbackTwist =  json["feedbackTwist"];
-                    analogTwist = json["analogTwist"];
-                #endif
 
-	        #if !CRIMZZON_BUILD && !ISAAC_NEWTONGUE_BUILD
-				Heater_PIN = json["Heater_PIN"] | 33;
-                Case_Fan_PIN = json["Case_Fan_PIN"];
-				Vibe0_PIN = json["Vibe0_PIN"];
-				Vibe1_PIN = json["Vibe1_PIN"];
-                Vibe2_PIN = json["Vibe2_PIN"];
-                Vibe3_PIN = json["Vibe3_PIN"];
+//Servo motors//////////////////////////////////////////////////////////////////////////////////
+            pitchFrequencyIsDifferent = json["pitchFrequencyIsDifferent"];
+            msPerRad =  json["msPerRad"] | 637;
+            servoFrequency = json["servoFrequency"] | 50;
+            pitchFrequency = json[pitchFrequencyIsDifferent ? "pitchFrequency" : "servoFrequency"] | servoFrequency;
+            sr6Mode = json["sr6Mode"];
+
+            RightServo_ZERO = json["RightServo_ZERO"] | 1500;
+            LeftServo_ZERO = json["LeftServo_ZERO"] | 1500;
+            RightUpperServo_ZERO = json["RightUpperServo_ZERO"] | 1500;
+            LeftUpperServo_ZERO = json["LeftUpperServo_ZERO"] | 1500;
+            PitchLeftServo_ZERO = json["PitchLeftServo_ZERO"] | 1500;
+            PitchRightServo_ZERO = json["PitchRightServo_ZERO"] | 1500;
+	        #if ISAAC_NEWTONGUE_BUILD
+                TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 33;
+                RightServo_PIN = json["RightServo_PIN"] | 2;
+                LeftServo_PIN = json["LeftServo_PIN"] | 13;
+                RightUpperServo_PIN = json["RightUpperServo_PIN"] | 4;
+                LeftUpperServo_PIN = json["LeftUpperServo_PIN"] | 12;
+                PitchLeftServo_PIN = json["PitchLeftServo_PIN"] | 14;
+                PitchRightServo_PIN = json["PitchRightServo_PIN"] | 17;
+                ValveServo_PIN = json["ValveServo_PIN"] | 5;
+                TwistServo_PIN = json["TwistServo_PIN"] | 27;
+//Common motor
+                Squeeze_PIN = json["Squeeze_PIN"] | 26;
+                LubeButton_PIN = json["LubeButton_PIN"] | 36;
+                // Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
+                Sleeve_Temp_PIN = json["Temp_PIN"] | 25;
+                // Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
+                Vibe0_PIN = json["Vibe0_PIN"] | 15;
+                Vibe1_PIN = json["Vibe1_PIN"] | 16;
+                // Vibe2_PIN = json["Vibe2_PIN"] | 23;
+                // Vibe3_PIN = json["Vibe3_PIN"] | 32;
+                Heater_PIN = json["Heater_PIN"] | 19;
+                Battery_Voltage_PIN = json["Battery_Voltage_PIN"] | 39;
+            #elif CRIMZZON_BUILD
+                    //EXT
+                    // EXT_Input2_PIN = 34;
+                    // EXT_Input3_PIN = 39;
+                    // EXT_Input4_PIN = 36;
+
+                heaterResolution = json["heaterResolution"] | 8;
+                caseFanResolution = json["caseFanResolution"] | 10;
+                caseFanFrequency = json["caseFanFrequency"] | 25;
+                Display_Screen_Height = json["Display_Screen_Height"] | 32;
+                TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 0;
+                Internal_Temp_PIN = json["Internal_Temp_PIN"] | 32;
+                Vibe3_PIN = json["Vibe3_PIN"] | 26;
 	        #endif
-
 	        #if !ISAAC_NEWTONGUE_BUILD
-                TwistFeedBack_PIN = json["TwistFeedBack_PIN"];
-                RightServo_PIN = json["RightServo_PIN"];
-                LeftServo_PIN = json["LeftServo_PIN"];
-                RightUpperServo_PIN = json["RightUpperServo_PIN"];
-                LeftUpperServo_PIN = json["LeftUpperServo_PIN"];
-                PitchLeftServo_PIN = json["PitchLeftServo_PIN"];
-                PitchRightServo_PIN = json["PitchRightServo_PIN"];
-                ValveServo_PIN = json["ValveServo_PIN"];
-                TwistServo_PIN = json["TwistServo_PIN"];
-                Squeeze_PIN = json["Squeeze_PIN"];
-                LubeButton_PIN = json["LubeButton_PIN"];
-                Internal_Temp_PIN = json["Internal_Temp_PIN"];
+                #if !CRIMZZON_BUILD
+                    TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 26;
+                #endif
+                RightServo_PIN = json["RightServo_PIN"] | 13;
+                LeftServo_PIN = json["LeftServo_PIN"] | 15;
+                RightUpperServo_PIN = json["RightUpperServo_PIN"] | 12;
+                LeftUpperServo_PIN = json["LeftUpperServo_PIN"] | 2;
+                PitchLeftServo_PIN = json["PitchLeftServo_PIN"] | 4;
+                PitchRightServo_PIN = json["PitchRightServo_PIN"] | 14;
+//Common motor
+                Squeeze_PIN = json["Squeeze_PIN"] | 17;
+                LubeButton_PIN = json["LubeButton_PIN"] | 35;
+                #if !CRIMZZON_BUILD
+                    Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
+                #endif
                 Sleeve_Temp_PIN = json["Temp_PIN"] | 5;
+                Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
+                Vibe0_PIN = json["Vibe0_PIN"] | 18;
+                Vibe1_PIN = json["Vibe1_PIN"] | 19;
+                Vibe2_PIN = json["Vibe2_PIN"] | 23;
+                #if !CRIMZZON_BUILD
+                    Vibe3_PIN = json["Vibe3_PIN"] | 32;
+                #endif
+                #if MOTOR_TYPE == 0
+                    Heater_PIN = json["Heater_PIN"] | 33;
+                    ValveServo_PIN = json["ValveServo_PIN"] | 25;
+                    TwistServo_PIN = json["TwistServo_PIN"] | 27;
+                #elif MOTOR_TYPE == 1
+                    Heater_PIN = json["Heater_PIN"] | 15;
+                    ValveServo_PIN = json["ValveServo_PIN"] | 12;
+                    TwistServo_PIN = json["TwistServo_PIN"] | 13;
+                #endif
+                Battery_Voltage_PIN = json["Battery_Voltage_PIN"] | 39;
 	        #endif
+                twistFrequency = json["twistFrequency"] | 50;
+                squeezeFrequency = json["squeezeFrequency"] | 50;
+                valveFrequency = json["valveFrequency"] | 50;
+                continuousTwist = json["continuousTwist"];
+                feedbackTwist =  json["feedbackTwist"];
+                analogTwist = json["analogTwist"];
+    			TwistServo_ZERO = json["TwistServo_ZERO"] | 1500;
+    			ValveServo_ZERO = json["ValveServo_ZERO"] | 1500;
+    			SqueezeServo_ZERO = json["Squeeze_ZERO"] | 1500;
+// BLDC motor
+                BLDC_Encoder_PIN = json["BLDC_Encoder_PIN"] | 33;
+                BLDC_Enable_PIN = json["BLDC_Enable_PIN"] | 14;
+                BLDC_PWMchannel1_PIN = json["BLDC_PWMchannel1_PIN"] | 27;
+                BLDC_PWMchannel2_PIN = json["BLDC_PWMchannel2_PIN"] | 26;
+                BLDC_PWMchannel3_PIN = json["BLDC_PWMchannel3_PIN"] | 25;
+                BLDC_MotorA_Voltage = json["BLDC_MotorA_Voltage"] | 20;
+                BLDC_MotorA_Current = json["BLDC_MotorA_Current"] | 1.5;
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
-                BLDC_Encoder_PIN = json["BLDC_Encoder_PIN"];
-                BLDC_Enable_PIN = json["BLDC_Enable_PIN"];
-                BLDC_PWMchannel1_PIN = json["BLDC_PWMchannel1_PIN"];
-                BLDC_PWMchannel2_PIN = json["BLDC_PWMchannel2_PIN"];
-                BLDC_PWMchannel3_PIN = json["BLDC_PWMchannel3_PIN"];
-                BLDC_MotorA_Voltage = json["BLDC_MotorA_Voltage"];
-                BLDC_MotorA_Current = json["BLDC_MotorA_Current"];
 
 				staticIP = json["staticIP"];
                 const char* localIPTemp = json["localIP"];
@@ -425,16 +484,6 @@ class SettingsHandler
                 if (dns2Temp != nullptr)
                     strcpy(dns2, dns2Temp);
 
-				sr6Mode = json["sr6Mode"];
-    			RightServo_ZERO = json["RightServo_ZERO"];
-    			LeftServo_ZERO = json["LeftServo_ZERO"];
-    			RightUpperServo_ZERO = json["RightUpperServo_ZERO"];
-    			LeftUpperServo_ZERO = json["LeftUpperServo_ZERO"];
-    			PitchLeftServo_ZERO = json["PitchLeftServo_ZERO"];
-    			PitchRightServo_ZERO = json["PitchRightServo_ZERO"];
-    			TwistServo_ZERO = json["TwistServo_ZERO"];
-    			ValveServo_ZERO = json["ValveServo_ZERO"];
-    			SqueezeServo_ZERO = json["Squeeze_ZERO"];
 				autoValve = json["autoValve"];
 				inverseValve = json["inverseValve"];
 				valveServo90Degrees = json["valveServo90Degrees"];
@@ -447,7 +496,9 @@ class SettingsHandler
                 internalTempDisplayed = json["internalTempDisplayed"];
                 versionDisplayed = json["versionDisplayed"];
 				Display_Screen_Width = json["Display_Screen_Width"] | 128;
-				Display_Screen_Height = json["Display_Screen_Height"] | 64;
+                #if !CRIMZZON_BUILD
+				    Display_Screen_Height = json["Display_Screen_Height"] | 64;
+                #endif
                 const char* Display_I2C_AddressTemp = json["Display_I2C_Address"];
                 if (Display_I2C_AddressTemp != nullptr)
 					Display_I2C_Address = (int)strtol(Display_I2C_AddressTemp, NULL, 0);
@@ -456,7 +507,9 @@ class SettingsHandler
 				tempSleeveEnabled = json["tempSleeveEnabled"];
                 heaterThreshold = json["heaterThreshold"] | 5.0;
                 heaterFrequency = json["heaterFrequency"] | 5000;
-                heaterResolution = json["heaterResolution"] | 8;
+                #if !CRIMZZON_BUILD
+                    heaterResolution = json["heaterResolution"] | 8;
+                #endif
 				TargetTemp = json["TargetTemp"] | 40.0;
 				HeatPWM = json["HeatPWM"] | 255;
 				HoldPWM = json["HoldPWM"] | 110;
@@ -467,12 +520,13 @@ class SettingsHandler
                 internalMaxTemp = json["internalMaxTemp"] | 50.0;
                 
                 batteryLevelEnabled = json["batteryLevelEnabled"];
-                batteryLevelPin = json["batteryLevelPin"];
                 batteryLevelNumeric = json["batteryLevelNumeric"];
                 batteryVoltageMax = json["batteryVoltageMax"];
                 
-                caseFanFrequency = json["caseFanFrequency"] | 25;
-                caseFanResolution = json["caseFanResolution"] | 10;
+                #if !CRIMZZON_BUILD
+                    caseFanFrequency = json["caseFanFrequency"] | 25;
+                    caseFanResolution = json["caseFanResolution"] | 10;
+                #endif
                 caseFanMaxDuty = pow(2, caseFanResolution) - 1;
                 
                 lubeEnabled = json["lubeEnabled"];
@@ -753,7 +807,7 @@ class SettingsHandler
             doc["tempInternalEnabled"] = tempInternalEnabled;
                 
             doc["batteryLevelEnabled"] = batteryLevelEnabled;
-            doc["batteryLevelPin"] = batteryLevelPin;
+            doc["Battery_Voltage_PIN"] = Battery_Voltage_PIN;
             doc["batteryLevelNumeric"] = batteryLevelNumeric;
             doc["batteryVoltageMax"] = round2(batteryVoltageMax);
 			
@@ -1294,7 +1348,7 @@ bool SettingsHandler::tempSleeveEnabled = false;
 bool SettingsHandler::tempInternalEnabled = false;
 bool SettingsHandler::fanControlEnabled = false;
 bool SettingsHandler::batteryLevelEnabled = true;
-int SettingsHandler::batteryLevelPin = 32;
+int SettingsHandler::Battery_Voltage_PIN = 32;
 bool SettingsHandler::batteryLevelNumeric = true;
 double SettingsHandler::batteryVoltageMax = 12.6;
 int SettingsHandler::Display_Screen_Width = 128; 

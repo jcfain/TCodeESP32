@@ -55,6 +55,7 @@ void IRAM_ATTR encoderChange() {
 class BLDCHandler0_3 : public MotorHandler {
 
 public:
+    BLDCHandler0_3() : MotorHandler(new TCode0_3()) { }
     //Encoder Interrupt detector
     static void IRAM_ATTR encoderRising() {
         attachInterrupt(SettingsHandler::BLDC_Encoder_PIN, encoderFalling, FALLING);
@@ -102,16 +103,16 @@ public:
     void setup() override {
 
             // Start serial connection and report status
-            tcode.setup(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName.c_str());
+            m_tcode->setup(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName.c_str());
 
-            tcode.StringInput("D0");
-            tcode.StringInput("D1");
+            m_tcode->StringInput("D0");
+            m_tcode->StringInput("D1");
 
             // #ESP32# Enable EEPROM
             //EEPROM.begin(320); Done in TCode class
 
             // Register device axes
-            tcode.RegisterAxis("L0", "Up");
+            m_tcode->RegisterAxis("L0", "Up");
 
             // Set Starting state
             zeroAngle = 0;
@@ -161,20 +162,22 @@ public:
             // Record start time
             startTime = millis();
 
+            setupCommon();
+
             // Signal ready to start
             Serial.println("Ready!");
     }
 
     void read(byte inByte) override {
-        tcode.ByteInput(inByte);
+        m_tcode->ByteInput(inByte);
     }
 
     void read(String inString) override {
-        tcode.StringInput(inString);
+        m_tcode->StringInput(inString);
     }
 
     void setMessageCallback(TCODE_FUNCTION_PTR_T function) override {
-        tcode.setMessageCallback(function);
+        m_tcode->setMessageCallback(function);
     }
 
 
@@ -186,7 +189,7 @@ public:
         // Collect inputs
         // These functions query the t-code object for the position/level at a specified time
         // Number recieved will be an integer, 0-9999
-        xLin = tcode.AxisRead("L0");
+        xLin = m_tcode->AxisRead("L0");
 
 
         // Update sensor position
@@ -216,6 +219,8 @@ public:
         // Motion control function
         motorA.move(motorVoltage);
 
+        executeCommon(xLin);
+        
         /* IGNORE! 
         unsigned long currentMillis = millis();
         if (currentMillis - previousMillis >= interval) {
@@ -229,8 +234,7 @@ public:
         }
         counter++;
         */
-
-
+       
     }
 
 private:
@@ -246,7 +250,6 @@ private:
     float MotorA_ZeroElecAngle = 1.45;                 // This number is the zero angle (in radians) for the motor relative to the encoder.
     Direction MotorA_SensorDirection = Direction::CW; // Do not change. If the motor is showing CCW rotate the motor connector 180 degrees to reverse the motor.
 
-    TCode0_3 tcode;
     GenericSensor sensorA = GenericSensor(readEncoder, initEncoder);
     // BLDC motor & driver instance
     // BLDCMotor motor = BLDCMotor(pole pair number, phase resistance (optional) );

@@ -28,8 +28,24 @@
 
 class ToyComms : public TCodeBase {
   public:
-	//String command;
-  
+
+	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
+  void setup(const char* firmware, const char* tcode) override {};
+	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
+	void RegisterAxis(String ID, String axisName) override {};
+	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
+	void ByteInput(byte inByte) override {};
+	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
+	void StringInput(String inString) override {};
+	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
+	void AxisInput(String ID, int magnitude, char extension, long extMagnitude) override {};
+	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
+	int AxisRead(String ID) override { return -1;  };
+	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
+	unsigned long AxisLast(String ID) override { return -1; };
+	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
+	void getDeviceSettings(char* settings) override {};
+
     // Setup function
     void setup() {
       // Centralise everything
