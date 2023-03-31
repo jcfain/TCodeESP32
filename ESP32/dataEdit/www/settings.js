@@ -1287,7 +1287,7 @@ function disablePinValidation() {
 }
 function updateBLDCSettings() {
     
-    userSettings["BLDC_MotorA_Voltage"] = parseInt(document.getElementById('BLDC_MotorA_Voltage').value);
+    userSettings["BLDC_MotorA_Voltage"] = parseFloat(document.getElementById('BLDC_MotorA_Voltage').value);
     userSettings["BLDC_MotorA_Current"] = parseFloat(document.getElementById('BLDC_MotorA_Current').value);
     setRestartRequired();
     updateUserSettings();

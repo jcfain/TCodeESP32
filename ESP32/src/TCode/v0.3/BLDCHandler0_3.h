@@ -119,14 +119,15 @@ public:
             mode = 0;
             
             // Begin tracking encoder
+            LogHandler::info(_TAG, "Setup BLDC motor on pin: %ld", SettingsHandler::BLDC_Encoder_PIN);
             attachInterrupt(SettingsHandler::BLDC_Encoder_PIN, encoderChange, CHANGE);
-            //attachInterrupt(SettingsHandler::BLDC_Encoder_PIN, encoderRising, RISING);
 
             // initialise encoder hardware
             sensorA.init();
             
             // driver config
             // power supply voltage [V]
+            LogHandler::info(_TAG, "Voltage: %f", SettingsHandler::BLDC_MotorA_Voltage);
             driverA.voltage_power_supply = SettingsHandler::BLDC_MotorA_Voltage;
             // Max DC voltage allowed - default voltage_power_supply
             driverA.voltage_limit = 20;
@@ -134,6 +135,7 @@ public:
             driverA.init();
 
             // limiting motor movements
+            LogHandler::info(_TAG, "Current: %f", SettingsHandler::BLDC_MotorA_Current);
             motorA.current_limit = SettingsHandler::BLDC_MotorA_Current;   // [Amps]
 
             // set control loop type to be used
@@ -221,24 +223,21 @@ public:
 
         executeCommon(xLin);
         
-        /* IGNORE! 
-        unsigned long currentMillis = millis();
-        if (currentMillis - previousMillis >= interval) {
-            previousMillis = currentMillis;
-            Serial.print(xPosition);
-            Serial.print("\t");
-            Serial.print(motorVoltage);
-            Serial.print("\t");
-            Serial.println(mode);
-            counter = 0;
+        if(SettingsHandler::logLevel == LogLevel::VERBOSE) {
+            unsigned long currentMillis = millis();
+            if (currentMillis - previousMillis >= interval) {
+                previousMillis = currentMillis;
+                LogHandler::verbose(_TAG, "xPosition: %f \t motorVoltage: %f \t mode: %f", xPosition, motorVoltage, mode);
+                counter = 0;
+            }
+            counter++;
         }
-        counter++;
-        */
        
     }
 
 private:
 
+    const char* _TAG = "BLDCHandler0_3";
     long startTime;
     // Drive Parameters
 
