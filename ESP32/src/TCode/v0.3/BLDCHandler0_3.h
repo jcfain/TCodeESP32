@@ -18,8 +18,6 @@
 
 #pragma once
 
-#define CHANNELS 3
-
 #include <SimpleFOC.h>
 #include "TCode0_3.h"
 #include "../../SettingsHandler.h"

@@ -19,7 +19,6 @@
 // v2.7b - T-valve suction level algorithm modified. 30-11-2020
 
 #pragma once
-#define CHANNELS 11
 
 #include <ESP32Servo.h>
 #include "../../SettingsHandler.h"

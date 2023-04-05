@@ -359,7 +359,7 @@ private:
 		if(newLineTextSize > 0)
 			setTextSize(newLineTextSize);
 		if(newLine > SettingsHandler::Display_Screen_Height - lineHeight) {
-			LogHandler::warning(_TAG, "End of the display reached when newLine! Current: %i, New: %i, Max: %i", currentLine, newLine, SettingsHandler::Display_Screen_Height - lineHeight);
+			//LogHandler::warning(_TAG, "End of the display reached when newLine! Current: %i, New: %i, Max: %i", currentLine, newLine, SettingsHandler::Display_Screen_Height - lineHeight);
 		}
 		currentLine = newLine;
 		display.setCursor(0, currentLine);

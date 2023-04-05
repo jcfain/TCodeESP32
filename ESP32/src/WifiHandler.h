@@ -23,6 +23,9 @@ SOFTWARE. */
 #pragma once
 #include <WiFi.h>
 #include <esp_wifi.h>
+#include "LogHandler.h"
+#include "SettingsHandler.h"
+
 enum class WiFiStatus {
   CONNECTED,
   DISCONNECTED

@@ -121,6 +121,7 @@ private:
   const char* tcodeID;
   String bufferString; // String to hold incomming commands
 
+	const static int CHANNELS = 11;
 
   // Declare axes
   Axis Linear[CHANNELS];

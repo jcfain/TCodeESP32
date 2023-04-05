@@ -41,7 +41,7 @@ class Udphandler
 
 	void CommandCallback(const char* in){ //This overwrites the callback for message return
 		if(udpInitialized && _lastConnectedPort > 0) {
-			LogHandler::info(_TAG, "Sending udp: %s", in);
+			LogHandler::info(_TAG, "Sending udp to client: %s", in);
 			wifiUdp.beginPacket(_lastConnectedIP, _lastConnectedPort);
 			int i = 0;
 			while (in[i] != 0)

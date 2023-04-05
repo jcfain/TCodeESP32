@@ -1878,13 +1878,7 @@ function getCommonPinValues(pinValues) {
     
     pinValues.Battery_Voltage_PIN = parseInt(document.getElementById('Battery_Voltage_PIN').value);
 
-    if(systemInfo.boardType === BoardType.CRIMZZON) 
-        document.getElementById('Heater_PIN').value = 33;
-
     pinValues.heat = parseInt(document.getElementById('Heater_PIN').value);
-
-    if(systemInfo.boardType === BoardType.CRIMZZON) 
-        document.getElementById('Case_Fan_PIN').value = 16;
 
     pinValues.caseFanPin = parseInt(document.getElementById('Case_Fan_PIN').value);
 
