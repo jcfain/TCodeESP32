@@ -26,6 +26,7 @@ SOFTWARE. */
 #include "Global.h"
 #include "TCodeBase.h"
 #include "../SettingsHandler.h"
+#include "../TagHandler.h"
 
 class MotorHandler {
 public:
@@ -51,6 +52,8 @@ protected:
     void setupCommon() {
         if(!m_tcode)
             return;
+            
+        LogHandler::debug(_TAG, "Setting valve frequency: %u", SettingsHandler::valveFrequency);
         ValveServo_Freq = SettingsHandler::valveFrequency;
 
         ValveServo_Int = 1000000/ValveServo_Freq;
@@ -75,22 +78,22 @@ protected:
         m_tcode->RegisterAxis("A3", "Squeeze");
 
         // Valve Servo
-        LogHandler::verbose(_TAG, "Connecting valve servo to pin: %u", SettingsHandler::ValveServo_PIN);
+        LogHandler::debug(_TAG, "Connecting valve servo to pin: %u", SettingsHandler::ValveServo_PIN);
         ledcSetup(ValveServo_PWM,ValveServo_Freq,16);
         ledcAttachPin(SettingsHandler::ValveServo_PIN,ValveServo_PWM);
 
         // Set vibration PWM pins
         // Vibe0 Pin
-        LogHandler::verbose(_TAG, "Connecting vib 1 to pin: %u", SettingsHandler::Vibe0_PIN);
+        LogHandler::debug(_TAG, "Connecting vib 1 to pin: %u", SettingsHandler::Vibe0_PIN);
         ledcSetup(Vibe0_PWM,VibePWM_Freq,8);
         ledcAttachPin(SettingsHandler::Vibe0_PIN,Vibe0_PWM);
         // Vibe1 Pin
-        LogHandler::verbose(_TAG, "Connecting lube/vib 2 to pin: %u", SettingsHandler::Vibe1_PIN);
+        LogHandler::debug(_TAG, "Connecting lube/vib 2 to pin: %u", SettingsHandler::Vibe1_PIN);
         ledcSetup(Vibe1_PWM,VibePWM_Freq,8);
         ledcAttachPin(SettingsHandler::Vibe1_PIN,Vibe1_PWM); 
 
         if(SettingsHandler::Vibe2_PIN > 0) {
-            LogHandler::verbose(_TAG, "Connecting vib 3 to pin: %u", SettingsHandler::Vibe2_PIN);
+            LogHandler::debug(_TAG, "Connecting vib 3 to pin: %u", SettingsHandler::Vibe2_PIN);
             ledcSetup(Vibe2_PWM,VibePWM_Freq,8);
             ledcAttachPin(SettingsHandler::Vibe2_PIN,Vibe2_PWM); 
         }
@@ -101,7 +104,7 @@ protected:
             pinMode(SettingsHandler::TwistFeedBack_PIN,INPUT);
             if(!SettingsHandler::analogTwist) 
             {
-                LogHandler::verbose(_TAG, "Attaching interrupt for twist feedback to pin: %u", SettingsHandler::TwistFeedBack_PIN);
+                LogHandler::debug(_TAG, "Attaching interrupt for twist feedback to pin: %u", SettingsHandler::TwistFeedBack_PIN);
                 attachInterrupt(SettingsHandler::TwistFeedBack_PIN, twistChange, CHANGE);
                 //Serial.print("Setting digital twist "); 
                 //Serial.println(SettingsHandler::TwistFeedBack_PIN);
@@ -116,7 +119,7 @@ protected:
             }
         } 
         if(SettingsHandler::Vibe3_PIN > 0) {
-            LogHandler::verbose(_TAG, "Connecting vib 4 to pin: %u", SettingsHandler::Vibe3_PIN);
+            LogHandler::debug(_TAG, "Connecting vib 4 to pin: %u", SettingsHandler::Vibe3_PIN);
             ledcSetup(Vibe3_PWM,VibePWM_Freq,8);
             ledcAttachPin(SettingsHandler::Vibe3_PIN,Vibe3_PWM); 
         }
@@ -222,7 +225,7 @@ protected:
     }
     
 private:
-    const char* _TAG = "MotorHandler";
+    const char* _TAG = TagHandler::MotorHandler;
 
     int ValveServo_Int;
     int ValveServo_Freq;

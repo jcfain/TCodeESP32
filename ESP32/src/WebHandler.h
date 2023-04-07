@@ -30,6 +30,7 @@ SOFTWARE. */
 #include <ESPmDNS.h>
 #include "WifiHandler.h"
 #include "WebSocketHandler.h"
+#include "TagHandler.h"
 
 AsyncWebServer* server;
 class WebHandler {
@@ -40,7 +41,7 @@ class WebHandler {
             stop();
             if (port < 1) 
                 port = 80;
-		    LogHandler::info("WEB-setup", "Starting web server on port: %i", port);
+		    LogHandler::info(_TAG, "Starting web server on port: %i", port);
             server = new AsyncWebServer(port);
             webSocketHandler->setup(server);
 
@@ -55,7 +56,7 @@ class WebHandler {
                 // DynamicJsonDocument doc(SettingsHandler::deserialize);
                 // File file = SPIFFS.open(SettingsHandler::userSettingsFilePath, "r");
                 // DeserializationError error = deserializeJson(doc, file);
-                char settings[2128];
+                char settings[3072];
                 SettingsHandler::serialize(settings);
                 if (strlen(settings) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
@@ -73,7 +74,7 @@ class WebHandler {
             });   
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                char systemInfo[512];
+                char systemInfo[1024];
                 SettingsHandler::getSystemInfo(systemInfo);
                 if (strlen(systemInfo) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
@@ -84,7 +85,6 @@ class WebHandler {
                 request->send(response);
             });   
             
-
             server->on("/log", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 Serial.println("Get log...");
@@ -183,7 +183,7 @@ class WebHandler {
                     AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"msg\":\"Could not parse JSON\"}");
                     request->send(response);
                 }
-            }, 1600U );//Bad request? increase the size.
+            }, 2400U );//Bad request? increase the size.
 
             // //To upload through terminal you can use: curl -F "image=@firmware.bin" esp8266-webupdate.local/update
             // server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request){
@@ -255,6 +255,7 @@ class WebHandler {
         }
 
     private:
+        const char* _TAG = TagHandler::WebHandler;
         void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
             if(!index){
                 Serial.printf("UploadStart: %s\n", filename.c_str());

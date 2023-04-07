@@ -25,6 +25,7 @@
 #pragma once
 
 #include "../TCodeBase.h"
+#include "../../TagHandler.h"
 
 class ToyComms : public TCodeBase {
   public:
@@ -502,6 +503,7 @@ class ToyComms : public TCodeBase {
 
 
   private:
+    const char* _TAG = TagHandler::ToyHandler;
 
     // Input parameters
     boolean linear;

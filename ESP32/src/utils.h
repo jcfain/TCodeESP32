@@ -2,6 +2,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <vector>
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
 
@@ -20,7 +21,7 @@ char* substr(const char* arr, int begin, int len)
     char* res = new char[len + 1];
     for (int i = 0; i < len; i++)
         res[i] = *(arr + begin + i);
-    res[len] = 0;
+    res[len] = {0};
     return res;
 }
 
@@ -67,7 +68,29 @@ adc1_channel_t gpioToADC1(int gpioPin) {
         default: return ADC1_CHANNEL_MAX;
     }
 }
-// adc2_channel_t gpioToADC2(int gpioPin) {
+
+bool contains_duplicate(const std::vector<const char*>& values ) {
+    for( std::size_t i = 0 ; i < values.size() ; ++i )
+        for( std::size_t j = i+1 ; j < values.size() ; ++j ) // for each number after the one at i
+            if( values[i] == values[j] ) return true ; // found a duplicate
+
+    return false ;
+}
+
+struct isCharValue
+{
+    private:
+    const char* m_value;
+
+    public:
+    isCharValue(const char* value) : m_value(value) {}
+
+    bool operator == (const char* value)
+    {
+        return (strcmp(m_value, value) != 0);
+    }
+};
+// adc2_channel_t gpioToADC2(int gpioPinc:\Users\jfain\AppData\Local\Programs\Microsoft VS Code\resources\app\out\vs\code\electron-sandbox\workbench\workbench.html) {
 //     switch(gpioPin) {
 //         case 4:
 //             return ADC2_CHANNEL_0;

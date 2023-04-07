@@ -25,6 +25,7 @@ SOFTWARE. */
 #include <esp_wifi.h>
 #include "LogHandler.h"
 #include "SettingsHandler.h"
+#include "TagHandler.h"
 
 enum class WiFiStatus {
   CONNECTED,
@@ -257,7 +258,7 @@ class WifiHandler
 	}
 private: 
     WIFI_STATUS_FUNCTION_PTR_T wifiStatus_callback;
-    const char* _TAG = "WIFI";
+    const char* _TAG = TagHandler::WifiHandler;
     const char *ssid = "TCodeESP32Setup";
     const char *password = "12345678";
     int connectTimeOut = 10000;

@@ -26,6 +26,7 @@ SOFTWARE. */
 #include <list>
 #include "SettingsHandler.h"
 #include "LogHandler.h"
+#include "TagHandler.h"
 
 AsyncWebSocket ws("/ws");
 #include <mutex>
@@ -158,7 +159,7 @@ class WebSocketHandler {
         bool isInitialized = false;
         std::mutex serial_mtx;
         std::mutex command_mtx;
-        const char* _TAG = "WebSocket";
+        const char* _TAG = TagHandler::WebsocketsHandler;
 // unsigned long lastCall;
         std::list<AsyncWebSocketClient *> m_clients;
         QueueHandle_t tCodeInQueue;

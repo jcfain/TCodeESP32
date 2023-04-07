@@ -6,6 +6,8 @@
 // #include "esp_log.h"
 
 #include <mutex>
+#include <vector>
+#include "utils.h"
 
 
 enum class LogLevel {
@@ -20,7 +22,7 @@ using LOG_FUNCTION_PTR_T = void (*)(const char* input, LogLevel level);
 class LogHandler {
 public:
     // Need to port to espidf framework instead of arduino to be able to change this at runtime.
-    static void setLogLevel(LogLevel logLevel, const String tag = "*") {
+    static void setLogLevel(LogLevel logLevel) {
         _currentLogLevel = logLevel;
         // // Chant change this at runtime...
         // switch(logLevel) {
@@ -40,67 +42,163 @@ public:
         //         esp_log_level_set(tag.c_str(), ESP_LOG_ERROR);
         // }
     }
+    
     static LogLevel getLogLevel() {
         return _currentLogLevel;
     }
 
+    static void setIncludes(std::vector<String> tags) {
+        clearIncludes();
+		for(unsigned int i = 0; i < tags.size(); i++) {
+           //addTag(tags[i]);
+            m_tags.push_back(tags[i]);
+		}
+    }
+    static std::vector<String> getIncludes() {
+        return m_tags;
+    }
+
+    static void clearIncludes() {
+        m_tags.clear();
+    }
+
+    static bool addInclude(const char* tag) {
+        std::vector<String>::iterator position = std::find(m_tags.begin(), m_tags.end(), tag);
+        if (position == m_tags.end()) // == myVector.end() means the element was not found
+            m_tags.push_back(tag);
+        else
+            return false;
+        return true;
+    }
+
+    static bool removeInclude(const char* tag) {
+        std::vector<String>::iterator position = std::find(m_tags.begin(), m_tags.end(), tag);
+        if (position != m_tags.end()) // == myVector.end() means the element was not found
+            m_tags.erase(position);
+        else
+            return false;
+        return true;
+    }
+
+    static void setExcludes(std::vector<String> tags) {
+        clearExcludes();
+		for(unsigned int i = 0; i < tags.size(); i++) {
+           //addTag(tags[i]);
+            m_filters.push_back(tags[i]);
+		}
+    }
+
+    static std::vector<String> getExcludes() {
+        return m_filters;
+    }
+
+    static void clearExcludes() {
+        m_filters.clear();
+    }
+
+    static bool addExclude(const char* tag) {
+        // Serial.print("Adding filter: ");
+        // Serial.println(tag);
+        // Serial.println(m_filters.size());
+        std::vector<String>::iterator position = std::find(m_filters.begin(), m_filters.end(), tag);
+        if (position == m_filters.end()) {// == myVector.end() means the element was not found
+            m_filters.push_back(tag);
+            // Serial.println(m_filters.size());
+        } else {
+            // Serial.println(m_filters.size());
+            return false;
+        }
+        // Serial.println(m_filters.front());
+        return true;
+    }
+
+    static bool removeExclude(const char* tag) {
+        // Serial.print("Removing filter: ");
+        // Serial.println(tag);
+        // Serial.println(m_filters.size());
+        std::vector<String>::iterator position = std::find(m_filters.begin(), m_filters.end(), tag);
+        if (position != m_filters.end()) {// == myVector.end() means the element was not found
+            m_filters.erase(position);
+            // Serial.println(m_filters.size());
+        } else {
+            // Serial.println(m_filters.size());
+            return false;
+        }
+        return true;
+    }
+
     static void verbose(const char *tag, const char *format, ...) {
         if(_currentLogLevel == LogLevel::VERBOSE) {
-            if (serial_mtx.try_lock()) {
-                std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
+            //Serial.println("verbose tryLock");
+		    xSemaphoreTake(xMutex, portMAX_DELAY);
+            if(isLogged(tag)) {
                 va_list vArgs;
                 va_start(vArgs, format);
-                parseMessage(format, "VERBOSE", LogLevel::VERBOSE, vArgs);
+                parseMessage(format, "VERBOSE", tag, LogLevel::VERBOSE, vArgs);
                 va_end(vArgs);
             }
+            xSemaphoreGive(xMutex);
+            //Serial.println("verbose exit");
         }
     }
 
     static void debug(const char *tag, const char *format, ...) {
         if(_currentLogLevel >= LogLevel::DEBUG) {
-            if (serial_mtx.try_lock()) {
-                std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
+            //Serial.println("debug tryLock");
+		    xSemaphoreTake(xMutex, portMAX_DELAY);
+            if(isLogged(tag)) {
                 va_list vArgs;
                 va_start(vArgs, format);
-                parseMessage(format, "DEBUG", LogLevel::DEBUG, vArgs);
+                parseMessage(format, "DEBUG", tag, LogLevel::DEBUG, vArgs);
                 va_end(vArgs);
             }
+            xSemaphoreGive(xMutex);
+            //Serial.println("debug exit");
         }
     }
 
     static void info(const char *tag, const char *format, ...) {
         if(_currentLogLevel >= LogLevel::INFO) {
-            if (serial_mtx.try_lock()) {
-                std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
+            //Serial.println("info tryLock");
+		    xSemaphoreTake(xMutex, portMAX_DELAY);
+            if(isLogged(tag)) {
                 va_list vArgs;
                 va_start(vArgs, format);
-                parseMessage(format, "INFO", LogLevel::INFO, vArgs);
+                parseMessage(format, "INFO", tag, LogLevel::INFO, vArgs);
                 va_end(vArgs);
             }
+            xSemaphoreGive(xMutex);
+            //Serial.println("info exit");
         }
     }
 
     static void warning(const char *tag, const char *format, ...) {
         if(_currentLogLevel >= LogLevel::WARNING) {
-            if (serial_mtx.try_lock()) {
-                std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
+            //Serial.println("warning tryLock");
+		    xSemaphoreTake(xMutex, portMAX_DELAY);
+            if(isLogged(tag)) {
                 va_list vArgs;
                 va_start(vArgs, format);
-                parseMessage(format, "WARNING", LogLevel::WARNING, vArgs);
+                parseMessage(format, "WARNING", tag, LogLevel::WARNING, vArgs);
                 va_end(vArgs);
             }
+            xSemaphoreGive(xMutex);
+            //Serial.println("warning exit");
         }
     }
 
     static void error(const char *tag, const char *format, ...) {
         if(_currentLogLevel >= LogLevel::ERROR) {
-            if (serial_mtx.try_lock()) {
-                std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
+            //Serial.println("error tryLock");
+		    xSemaphoreTake(xMutex, portMAX_DELAY);
+            if(isLogged(tag)) {
                 va_list vArgs;
                 va_start(vArgs, format);
-                parseMessage(format, "ERROR", LogLevel::ERROR, vArgs);
+                parseMessage(format, tag, "ERROR", LogLevel::ERROR, vArgs);
                 va_end(vArgs);
             }
+            xSemaphoreGive(xMutex);
+        //Serial.println("error exit");
         }
     }
 
@@ -111,11 +209,17 @@ public:
 private: 
     static LOG_FUNCTION_PTR_T message_callback;
     static LogLevel _currentLogLevel;
-    static std::mutex serial_mtx;
+	static SemaphoreHandle_t xMutex;
+    static std::vector<String> m_tags;
+    static std::vector<String> m_filters;
 
-    static void parseMessage(const char* format, const char* level, LogLevel logLevel, va_list vArgs) {
+    static void parseMessage(const char* valueFormat, const char* level, const char* tag, LogLevel logLevel, va_list vArgs) {
+        if(strlen(valueFormat) > 1024) {
+            Serial.println("Log value too big for buffer");
+            return;
+        }
         char temp[1024];
-        int len = vsnprintf(temp, sizeof(temp) - 1, format, vArgs);
+        int len = vsnprintf(temp, sizeof(temp) - 1, valueFormat, vArgs);
         temp[sizeof(temp) - 1] = 0;
         int i;
 
@@ -126,12 +230,41 @@ private:
             temp[i] = 0;
         }
         if(i > 0) {
-            Serial.printf("%s: %s%s", level, temp, "\n");
+            Serial.printf("%s %s: %s\n", level, tag, temp);
             if(message_callback)
                 message_callback(temp, logLevel);
         }
     }
+    static bool isTagged(const char* tag) {
+        if(m_tags.empty())
+            return true;//tag all by default
+        std::vector<String>::iterator position = std::find(m_tags.begin(), m_tags.end(), tag);
+        return position != m_tags.end();
+    }
+    static bool isFiltered(const char* tag) {
+        if(m_filters.empty())
+            return false;
+        // Serial.print("isFiltered: ");
+        // Serial.println(tag);
+        // Serial.println(m_filters.size());
+        // Serial.println(m_filters.front());
+        std::vector<String>::iterator position = std::find(m_filters.begin(), m_filters.end(), tag);
+        // Serial.print("position: ");
+        // Serial.println(std::distance( m_filters.begin(), position ));
+        return position != m_filters.end();
+    }
+    static bool isLogged(const char* tag) {
+        bool tagged = isTagged(tag);
+        bool filtered = isFiltered(tag);
+        // Serial.print("issTagged: ");
+        // Serial.println(tagged);
+        // Serial.print("filtered: ");
+        // Serial.println(filtered);
+        return tagged && !filtered;
+    }
 };
-std::mutex  LogHandler::serial_mtx;
+SemaphoreHandle_t LogHandler::xMutex = xSemaphoreCreateMutex();
+std::vector<String> LogHandler::m_tags;
+std::vector<String> LogHandler::m_filters;
 LogLevel LogHandler::_currentLogLevel = LogLevel::INFO;
 LOG_FUNCTION_PTR_T LogHandler::message_callback = 0;

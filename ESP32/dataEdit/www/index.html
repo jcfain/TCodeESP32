@@ -947,7 +947,7 @@
 						<input id="chipID" type="text" readonly>
 					</td>
 				</tr>
-				<tr title="Set to show output in the text area. Note: Verbose level will NOT show. See the serial for that message level">
+				<tr title="Set to show output in the serial monitor.">
 					<td>
 						<span>Debug</span> 
 					</td>
@@ -960,6 +960,40 @@
 							<option value="4">VERBOSE</option>
 						</select>
 						<!-- <button onclick="clearLog()">Clear</button> -->
+					</td>
+				</tr>
+				<tr title="Set to includ specific tags output in the serial monitor. (Overrides excludes)">
+					<td>
+						<span>Included tags</span> 
+					</td>
+					<td>
+						<select id="log-include-tags" onchange="setDebug()" multiple>
+						</select>
+						<!-- <button onclick="clearLog()">Clear</button> -->
+					</td>
+				</tr>
+				<tr>
+					<td>
+					</td>
+					<td>
+						<button onclick="clearTags('log-include-tags')">Clear included</button>
+					</td>
+				</tr>
+				<tr title="Set to exclude specific tags output in the serial monitor. (Overriden by includes)">
+					<td>
+						<span>Excluded tags</span> 
+					</td>
+					<td>
+						<select id="log-exclude-tags" onchange="setDebug()" multiple>
+						</select>
+						<!-- <button onclick="clearLog()">Clear</button> -->
+					</td>
+				</tr>
+				<tr>
+					<td>
+					</td>
+					<td>
+						<button onclick="clearTags('log-exclude-tags')">Clear excluded</button>
 					</td>
 				</tr>
 				<!-- <tr id="debugLink">

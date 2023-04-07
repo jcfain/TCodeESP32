@@ -8,6 +8,7 @@ For now this is only for first configs */
 #include <BLEUtils.h>
 #include <BLE2902.h>
 #include <sstream>
+#include "TagHandler.h"
 
 
 #define SERVICE_UUID "ff1b451d-3070-4276-9c81-5dc5ea1043bc" // UART service UUID
@@ -165,7 +166,7 @@ public:
         sendChunkIndex = 0;
     }
 private:
-    const char* _TAG = "BLE";
+    const char* _TAG = TagHandler::BLEHandler;
     // QueueHandle_t debugInQueue;
     // int m_lastSend;
     // TaskHandle_t* emptyQueueHandle;
@@ -188,7 +189,7 @@ class MyServerCallbacks: public BLEServerCallbacks {
         BLEDevice::startAdvertising();
     }
 private:
-    const char* _TAG = "BLE";
+    const char* _TAG = TagHandler::BLEHandler;
 };
 
 class DescriptorCallbacks: public BLEDescriptorCallbacks 
@@ -204,12 +205,13 @@ class DescriptorCallbacks: public BLEDescriptorCallbacks
         LogHandler::debug(_TAG, "Descriptor onRead: ");
     }
 private:
-    const char* _TAG = "BLE";
+    const char* _TAG = TagHandler::BLEHandler;
 };
 
 class BLEHandler 
 {
     private:
+        const char* _TAG = TagHandler::BLEHandler;
         BLECharacteristic *pCharacteristic;
         bool deviceConnected = false;
         bool isInitailized = false;
@@ -220,9 +222,8 @@ class BLEHandler
     public:
     void setup() 
     {
-        LogHandler::debug(_TAG, "*** BLE enter setup");
         // Create the BLE Device
-        LogHandler::info("BLE-setup", "Starting BLE: %s", "TCodeConfig");
+        LogHandler::info(_TAG, "Setup BLE: %s", "TCodeConfig");
         BLEDevice::init("TCodeConfig"); // Give it a name
         //BLEDevice::setMTU(23);
         // Create the BLE Server
@@ -260,16 +261,16 @@ class BLEHandler
         
         isInitailized = true;
         
-        LogHandler::debug(_TAG, "BLE exit setup ***");
+        LogHandler::debug(_TAG, "Exit setup");
     }
 
     void stop() 
     {
         if(isInitailized) 
         {
-            LogHandler::info(_TAG, "*** BLE Stop");
+            LogHandler::info(_TAG, "Stop");
             BLEDevice::deinit(true);
-            LogHandler::info(_TAG, "BLE deinit");
+            LogHandler::debug(_TAG, "deinit");
             isInitailized = false;
             if(pServer != nullptr) 
                 delete(pServer);
@@ -283,6 +284,6 @@ class BLEHandler
                 delete(characteristicCallbacks);
         }
     }
-private:
-    const char* _TAG = "BLE";
 };
+
+

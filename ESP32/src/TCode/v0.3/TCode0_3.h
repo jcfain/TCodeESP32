@@ -4,6 +4,7 @@
 #include <EEPROM.h>
 #include "Axis.h"
 #include "../TCodeBase.h"
+#include "../../TagHandler.h"
 // -----------------------------
 // Class to manage Toy Comms
 // -----------------------------
@@ -116,6 +117,7 @@ class TCode0_3 : public TCodeBase {
   }
 
 private:
+  const char* _TAG = TagHandler::TCodeHandler;
   // Strings
   const char* firmwareID;
   const char* tcodeID;

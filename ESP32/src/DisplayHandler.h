@@ -33,6 +33,7 @@ SOFTWARE. */
 #include "TemperatureHandler.h"
 #endif
 #include "BatteryHandler.h"
+#include "TagHandler.h"
 // #if ISAAC_NEWTONGUE_BUILD
 // #include "../lib/animationFrames.h"
 // #endif
@@ -51,7 +52,7 @@ public:
 
 	void setup() 
 	{
-    	LogHandler::info("displayHandler", "Setting up display");
+    	LogHandler::info(_TAG, "Setting up display");
 
 		//Wire.begin();
 		//Wire.setClock(100000UL);
@@ -67,7 +68,9 @@ public:
 			display.clearDisplay();
   			display.setTextColor(WHITE);
 			display.setTextSize(1);
-		}
+		} else
+			LogHandler::verbose(_TAG, "Display is not connected");
+    	LogHandler::debug(_TAG, "Setting up display finished");
 	}
 
 	void setLocalIPAddress(IPAddress ipAddress)
@@ -76,6 +79,7 @@ public:
 	}
 
 	void setSleeveTemp(float temp) {
+    	LogHandler::verbose(_TAG, "setSleeveTemp: %f", temp);
 		m_sleeveTemp = temp;
 		memset(m_sleeveTempString,'\0',sizeof(m_sleeveTempString));
 		if(temp < 0) {
@@ -85,6 +89,7 @@ public:
 		}	
 	}
 	void setInternalTemp(float temp) {
+    	LogHandler::verbose(_TAG, "setInternalTemp: %f", temp);
 		m_internalTemp = temp;
 		memset(m_internalTempString,'\0',sizeof(m_internalTempString));
 		if(temp < 0) {
@@ -94,21 +99,26 @@ public:
 		}	
 	}
 	void setHeateState(const char* state) {
+    	LogHandler::verbose(_TAG, "setHeateState: %s", state);
 		m_HeatState = String(state);
 	}
 	void setHeateStateShort(const char* state) {
+    	LogHandler::verbose(_TAG, "setHeateStateShort: %s", state);
 		m_HeatStateShort = String(state);
 	}
 	void setFanState(const char* state) {
+    	LogHandler::verbose(_TAG, "setFanState: %s", state);
 		m_fanState = String(state);
 	}
 	void setBatteryVoltage(double value) {
+    	LogHandler::verbose(_TAG, "setBatteryVoltage: %f", value);
 		m_batteryVoltage = value;
 	}
 	
 
 	void clearDisplay()
 	{
+    	LogHandler::verbose(_TAG, "clear display");
 		if(displayConnected) {
 			display.clearDisplay();
 		}
@@ -116,6 +126,7 @@ public:
 
 	static void startLoop(void* displayHandlerRef)
 	{
+		LogHandler::debug(TagHandler::DisplayHandler, "Starting loop");
 		//if(((DisplayHandler*)displayHandlerRef)->isConnected())
 			((DisplayHandler*)displayHandlerRef)->loop();
 	}
@@ -130,12 +141,15 @@ public:
 	}
 	void stopRunning()
 	{
+    	LogHandler::verbose(_TAG, "stopRunning");
 		_isRunning = false;
 	}
 
 	void loop()
 	{
+		LogHandler::verbose(_TAG, "Enter loop");
 		if(!isConnected()) {
+			LogHandler::warning(_TAG, "Display not connected when starting loop");
   			vTaskDelete( NULL );
 			return;
 		}
@@ -150,6 +164,7 @@ public:
 				// Serial.println(xPortGetCoreID());
 
 				if(WifiHandler::isConnected()) {
+					LogHandler::verbose(_TAG, "Enter wifi connected");
 					startLine(headerPadding);
 					//left("IP: "); 
 					display.print(_ipAddress);
@@ -187,9 +202,10 @@ public:
 					}
 					
 				} else if(WifiHandler::apMode) {
+					LogHandler::verbose(_TAG, "Enter apMode");
 					startLine(headerPadding);
 					left("AP: 192.168.1.1");
-					drawBatteryLevel();
+					//drawBatteryLevel();
 					newLine(headerPadding);
 					left("SSID: TCodeESP32Setup");
 					newLine();
@@ -200,6 +216,7 @@ public:
 						newLine();
 					}
 				} else {
+					LogHandler::verbose(_TAG, "Enter Wifi error");
 					display.print("Wifi error");
 					drawBatteryLevel();
 				}
@@ -321,7 +338,7 @@ public:
 	// }
 
 private:
-	const char* _TAG = "displayHandler";
+	const char* _TAG = TagHandler::DisplayHandler;
 	IPAddress _ipAddress;
 	bool displayConnected = false;
 	int lastUpdate = 0;
@@ -359,7 +376,7 @@ private:
 		if(newLineTextSize > 0)
 			setTextSize(newLineTextSize);
 		if(newLine > SettingsHandler::Display_Screen_Height - lineHeight) {
-			//LogHandler::warning(_TAG, "End of the display reached when newLine! Current: %i, New: %i, Max: %i", currentLine, newLine, SettingsHandler::Display_Screen_Height - lineHeight);
+			LogHandler::warning(_TAG, "End of the display reached when newLine! Current: %i, New: %i, Max: %i", currentLine, newLine, SettingsHandler::Display_Screen_Height - lineHeight);
 		}
 		currentLine = newLine;
 		display.setCursor(0, currentLine);
@@ -371,7 +388,7 @@ private:
 	}
 	void startLine(int additionalPixels = 0) {
 		currentLine = (0 + additionalPixels);
-		display.setCursor(0, currentLine);
+		//display.setCursor(0, currentLine);
 	}
 	bool hasNextLine(int newLineTextSize = 1) {
 		
@@ -462,6 +479,7 @@ private:
 	}
 	void draw32Temp() {
 		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed) {
+		LogHandler::verbose(_TAG, "Enter draw32Temp");
 			char buf[19];
 			if(SettingsHandler::versionDisplayed || !hasNextLine()) {
 				getTempString("Sleeve: ", m_sleeveTempString, buf, sizeof(buf));
@@ -519,6 +537,7 @@ private:
 
 	void drawBatteryLevel() {
 		if(BatteryHandler::connected()) {
+    		LogHandler::verbose(_TAG, "Enter draw battery");
 			if(SettingsHandler::batteryLevelNumeric) {
 				double voltageNumber = mapf(m_batteryVoltage, 0.0, 3.3, 0.0, SettingsHandler::batteryVoltageMax);
 				display.setCursor((SettingsHandler::Display_Screen_Width - (voltageNumber < 10.0 ? 3 : 4) * charWidth) - (WifiHandler::isConnected() ? 3 : 0) * charWidth, currentLine);
@@ -557,18 +576,24 @@ private:
 	}
 
 	bool connectDisplay(int address) {
+		if(LogHandler::getLogLevel() == LogLevel::DEBUG) {
+			std::stringstream Display_I2C_Address_String;
+			Display_I2C_Address_String << "0x" << std::hex << address;
+			LogHandler::debug(_TAG, "Connect to display at address: %s", Display_I2C_Address_String.str());
+		}
 		if (SettingsHandler::Display_Rst_PIN >= 0)
 		{
 			displayConnected = display.begin(SSD1306_SWITCHCAPVCC, address, SettingsHandler::Display_Rst_PIN);
 			if (!displayConnected)
-    			LogHandler::error("displayHandler", "SSD1306 RST_PIN allocation failed");
+    			LogHandler::error(_TAG, "SSD1306 RST_PIN allocation failed");
 		}
 		else
 		{
 			displayConnected = display.begin(SSD1306_SWITCHCAPVCC, address);
 			if (!displayConnected)
-    			LogHandler::error("displayHandler", "SSD1306 allocation failed");
+    			LogHandler::error(_TAG, "SSD1306 allocation failed");
 		}
+		LogHandler::debug(_TAG, "Exit connectDisplay connected: %ld", displayConnected);
 		return displayConnected;
 	}
 	

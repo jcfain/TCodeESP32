@@ -27,6 +27,7 @@ SOFTWARE. */
 #include <BLEHandler.h>
 #include "SettingsHandler.h"
 #include "LogHandler.h"
+#include "TagHandler.h"
 
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
 #error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
@@ -36,13 +37,13 @@ class BluetoothHandler
 {
   public:
     bool setup() {
-		  LogHandler::info("Bluetooth-setup", "Starting bluetooth serial: %s", "TCodeESP32");
+		  LogHandler::info(_TAG, "Starting bluetooth serial: %s", "TCodeESP32");
       if(!SerialBT.begin("TCodeESP32"))
 	  {
-        LogHandler::error("Bluetooth-setup", "An error occurred initializing Bluetooth serial");
+        LogHandler::error(_TAG, "An error occurred initializing Bluetooth serial");
         return false;
       }
-      LogHandler::info("Bluetooth-setup", "Bluetooth started");
+      LogHandler::info(_TAG, "Bluetooth started");
 	    _isConnected = true;
       return true;
     }
@@ -87,6 +88,7 @@ class BluetoothHandler
 	}
 
   private:
+    const char* _TAG = TagHandler::BluetoothHandler;
   	bool _isConnected = false;
     BluetoothSerial SerialBT;
 };

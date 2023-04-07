@@ -25,8 +25,10 @@ SOFTWARE. */
 #include <sstream>
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
+#include <vector>
 #include "LogHandler.h"
 #include "utils.h"
+#include "TagHandler.h"
 
 #define featureCount 7
 
@@ -204,13 +206,13 @@ class SettingsHandler
 			if(!SPIFFS.exists(userSettingsFilePath)) 
 			{
                 LogHandler::info(_TAG, "Failed to read settings file, using default configuration");
-                LogHandler::info(_TAG, "Read Settings: %s", userSettingsDefaultFilePath);
+                LogHandler::info(_TAG, "Read Settings file: %s", userSettingsDefaultFilePath);
             	file = SPIFFS.open(userSettingsDefaultFilePath, "r");
 				loadingDefault = true;
 			} 
 			else 
 			{
-                LogHandler::info(_TAG, "Read Settings: %s", userSettingsFilePath);
+                LogHandler::info(_TAG, "Read Settings file: %s", userSettingsFilePath);
             	file = SPIFFS.open(userSettingsFilePath, "r");
 			}
             DeserializationError error = deserializeJson(doc, file);
@@ -271,12 +273,33 @@ class SettingsHandler
 
         static bool update(JsonObject json) 
         {
-            LogHandler::debug(_TAG, "Update settings");
+            LogHandler::info(_TAG, "Load settings");
             if(json.size() > 0) 
             {
-                LogHandler::debug(_TAG, "json.size() > 0");
                 logLevel = (LogLevel)(json["logLevel"] | 1);
                 LogHandler::setLogLevel(logLevel);
+
+                // std::vector<const char*> tags;
+                // //tags.push_back(TagHandler::DisplayHandler);
+                // tags.push_back(TagHandler::BLDCHandler);
+                // tags.push_back(TagHandler::ServoHandler3);
+                // tags.push_back(TagHandler::TCodeHandler);
+                // tags.push_back(TagHandler::Main);
+                // LogHandler::setTags(tags);
+
+                JsonArray includes = json["log-include-tags"].as<JsonArray>();
+                std::vector<String> includesVec;
+                for(int i = 0; i < includes.size(); i++) {
+                    includesVec.push_back(includes[i]);
+                }
+                LogHandler::setIncludes(includesVec);
+
+                JsonArray excludes = json["log-exclude-tags"].as<JsonArray>();
+                std::vector<String> excludesVec;
+                for(int i = 0; i < excludes.size(); i++) {
+                    excludesVec.push_back(excludes[i]);
+                }
+                LogHandler::setExcludes(excludesVec);
 
                 const char* ssidConst = json["ssid"];
                 if( ssid != nullptr) 
@@ -527,7 +550,7 @@ class SettingsHandler
         //     return bytes;
         // }
 
-        static void serialize(char buf[2128])
+        static void serialize(char buf[3072])
         {
             LogHandler::debug(_TAG, "Get settings...");
             File file = SPIFFS.open(userSettingsFilePath, "r");
@@ -554,8 +577,8 @@ class SettingsHandler
             strcpy(buf, output.c_str());
         }
 
-        static void getSystemInfo(char buf[512]) {
-            DynamicJsonDocument doc(512);
+        static void getSystemInfo(char buf[1024]) {
+            DynamicJsonDocument doc(1024);
             
             doc["esp32Version"] = ESP32Version;
             doc["TCodeVersion"] = (int)TCodeVersionEnum;
@@ -566,6 +589,12 @@ class SettingsHandler
             for (BuildFeature value : buildFeatures) {
                 buildFeaturesJsonArray.add((int)value);
             }
+
+            JsonArray availableTagsJsonArray = doc.createNestedArray("availableTags");
+            for (const char* tag : TagHandler::AvailableTags) {
+                availableTagsJsonArray.add(tag);
+            }
+            
             doc["localIP"] = localIP;
             doc["gateway"] = gateway;
             doc["subnet"] = subnet;
@@ -664,6 +693,12 @@ class SettingsHandler
 
             doc["logLevel"] = (int)logLevel;
             LogHandler::setLogLevel(logLevel);
+
+            //std::vector<const char*> tags;
+            // tags.push_back(TagHandler::DisplayHandler);
+            // tags.push_back(TagHandler::BLDCHandler);
+            // tags.push_back(TagHandler::ServoHandler3);
+            //LogHandler::setTags(tags);
 
             if(!tempInternalEnabled) {
                 internalTempDisplayed = false;
@@ -773,6 +808,18 @@ class SettingsHandler
             doc["Battery_Voltage_PIN"] = Battery_Voltage_PIN;
             doc["batteryLevelNumeric"] = batteryLevelNumeric;
             doc["batteryVoltageMax"] = round2(batteryVoltageMax);
+
+            JsonArray includes = doc.createNestedArray("log-include-tags");
+            std::vector<String> includesVec = LogHandler::getIncludes();
+            for(int i = 0; i < includesVec.size(); i++) {
+                includes.add(includesVec[i]);
+            }
+            
+            JsonArray excludes = doc.createNestedArray("log-exclude-tags");
+            std::vector<String> excludesVec = LogHandler::getExcludes();
+            for(int i = 0; i < excludesVec.size(); i++) {
+                excludes.add(excludesVec[i]);
+            }
 			
             LogSaveDebug(doc);
 
@@ -931,7 +978,7 @@ class SettingsHandler
         // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
         // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
 		static const int deserializeSize = 4096;
-		static const int serializeSize = 2048;
+		static const int serializeSize = 3072;
 
         static int calculateRange(const char* channel, int value) 
         {
@@ -1049,6 +1096,7 @@ class SettingsHandler
         {
             LogHandler::debug(_TAG, "save TCodeVersionEnum: %i", (int)doc["TCodeVersion"]);
             LogHandler::debug(_TAG, "save ssid: %s", (const char*) doc["ssid"]);
+            Serial.println((const char*)doc["ssid"]);
             // LogHandler::debug(_TAG, "save wifiPass: %s", (const char*) doc["wifiPass"]);
             LogHandler::debug(_TAG, "save udpServerPort: %i", (int)doc["udpServerPort"]);
             LogHandler::debug(_TAG, "save webServerPort: %i", (int)doc["webServerPort"]);
@@ -1205,11 +1253,11 @@ bool SettingsHandler::fullBuild = false;
 
 BoardType SettingsHandler::boardType = BoardType::DEVKIT;
 BuildFeature SettingsHandler::buildFeatures[featureCount];
-const char* SettingsHandler::_TAG = "_SETTINGS_HANDLER";
+const char* SettingsHandler::_TAG = TagHandler::SettingsHandler;
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
 MotorType SettingsHandler::motorType = MotorType::Servo;
-const char SettingsHandler::ESP32Version[8] = "v0.272b";
+const char SettingsHandler::ESP32Version[8] = "v0.275b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char* SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";

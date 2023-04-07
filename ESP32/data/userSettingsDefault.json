@@ -91,5 +91,7 @@
 	"caseFanResolution": 10,
 	"batteryLevelEnabled": false,
 	"batteryLevelNumeric": false,
-	"batteryVoltageMax": 12.6
+	"batteryVoltageMax": 12.6,
+	"log-exclude-tags": [],
+	"log-include-tags": []
 }

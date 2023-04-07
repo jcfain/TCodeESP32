@@ -26,6 +26,7 @@ SOFTWARE. */
 #include <Arduino.h>
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
+#include "TagHandler.h"
 
 
 class Udphandler 
@@ -93,7 +94,7 @@ class Udphandler
     }
     
   private: 
-    const char* _TAG = "UDP";
+    const char* _TAG = TagHandler::UdpHandler;
     WiFiUDP wifiUdp;
 	IPAddress _lastConnectedIP;
 	int _lastConnectedPort = 0;

@@ -28,6 +28,7 @@ SOFTWARE. */
 #include "utils.h"
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
+#include "TagHandler.h"
 
 class BatteryHandler {
 public:
@@ -63,6 +64,7 @@ public:
     }
 
     void getBatteryLevel() {
+    	LogHandler::verbose(_TAG, "Enter getBatteryLevel");
         if(m_adc1Channel == adc1_channel_t::ADC1_CHANNEL_MAX) {
             return;
         }
@@ -103,6 +105,7 @@ public:
     }
 
 private:
+    const char* _TAG = TagHandler::BatteryHandler;
     static bool m_battery_connected;
 	double m_batteryVoltage = 0.0;
 	esp_adc_cal_characteristics_t m_adc1_chars;

@@ -21,12 +21,11 @@
 
 #pragma once
 
-#define CHANNELS 11
-
 #include "TCode0_3.h"
 #include "../../SettingsHandler.h"
 #include "../Global.h"
 #include "../MotorHandler.h"
+#include "../../TagHandler.h"
 
 class ServoHandler0_3 : public MotorHandler {
 
@@ -294,7 +293,7 @@ public:
     }
 
 private:
-	const char* _TAG = "ServoHandler0_3";
+    const char* _TAG = TagHandler::ServoHandler3;
     int MainServo_Int;
     int PitchServo_Int;
     int TwistServo_Int;

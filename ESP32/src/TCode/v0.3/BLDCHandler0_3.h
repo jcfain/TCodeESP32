@@ -23,6 +23,7 @@
 #include "../../SettingsHandler.h"
 #include "../Global.h"
 #include "../MotorHandler.h"
+#include "../../TagHandler.h"
 
 
 // encoder position monitor variables
@@ -117,7 +118,7 @@ public:
             mode = 0;
             
             // Begin tracking encoder
-            LogHandler::info(_TAG, "Setup BLDC motor on pin: %ld", SettingsHandler::BLDC_Encoder_PIN);
+            LogHandler::debug(_TAG, "Setup BLDC motor on pin: %ld", SettingsHandler::BLDC_Encoder_PIN);
             attachInterrupt(SettingsHandler::BLDC_Encoder_PIN, encoderChange, CHANGE);
 
             // initialise encoder hardware
@@ -125,7 +126,7 @@ public:
             
             // driver config
             // power supply voltage [V]
-            LogHandler::info(_TAG, "Voltage: %f", SettingsHandler::BLDC_MotorA_Voltage);
+            LogHandler::debug(_TAG, "Voltage: %f", SettingsHandler::BLDC_MotorA_Voltage);
             driverA.voltage_power_supply = SettingsHandler::BLDC_MotorA_Voltage;
             // Max DC voltage allowed - default voltage_power_supply
             driverA.voltage_limit = 20;
@@ -133,7 +134,7 @@ public:
             driverA.init();
 
             // limiting motor movements
-            LogHandler::info(_TAG, "Current: %f", SettingsHandler::BLDC_MotorA_Current);
+            LogHandler::debug(_TAG, "Current: %f", SettingsHandler::BLDC_MotorA_Current);
             motorA.current_limit = SettingsHandler::BLDC_MotorA_Current;   // [Amps]
 
             // set control loop type to be used
@@ -225,7 +226,7 @@ public:
             unsigned long currentMillis = millis();
             if (currentMillis - previousMillis >= interval) {
                 previousMillis = currentMillis;
-                LogHandler::verbose(_TAG, "xPosition: %f \t motorVoltage: %f \t mode: %f", xPosition, motorVoltage, mode);
+                //LogHandler::verbose(_TAG, "xPosition: %f \t motorVoltage: %f \t mode: %f", xPosition, motorVoltage, mode);
                 counter = 0;
             }
             counter++;
@@ -235,7 +236,7 @@ public:
 
 private:
 
-    const char* _TAG = "BLDCHandler0_3";
+    const char* _TAG = TagHandler::BLDCHandler;
     long startTime;
     // Drive Parameters
 

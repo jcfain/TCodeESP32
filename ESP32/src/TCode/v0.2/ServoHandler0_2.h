@@ -25,6 +25,7 @@
 #include "ToyComs.h"
 #include "../Global.h"
 #include "../MotorHandler.h"
+#include "../../TagHandler.h"
 
 /* volatile int twistFeedBackPin = SettingsHandler::TwistFeedBack_PIN;
 // Twist position monitor variables
@@ -48,7 +49,7 @@ void IRAM_ATTR twistChange()
 class ServoHandler0_2 : public MotorHandler
 {
 private:
-	const char* _TAG = "ServoHandler0_2";
+    const char* _TAG = TagHandler::ServoHandler2;
     ToyComms toy; 
     // Declare servos
     Servo RightServo;

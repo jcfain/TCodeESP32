@@ -168,12 +168,12 @@ void tempStateChangeCallBack(TemperatureType type, const char* state) {
 #if DISPLAY_ENABLED
 	if(displayHandler) {
 		if(type == TemperatureType::SLEEVE) {
-			LogHandler::debug("main-temp", "tempStateChangeCallBack heat: %s", state);
+			LogHandler::verbose(TagHandler::Main, "tempStateChangeCallBack heat: %s", state);
 			displayHandler->setHeateState(state);
 			if(temperatureHandler)
 				displayHandler->setHeateStateShort(temperatureHandler->getShortSleeveControlStatus(state));
 		} else {
-			LogHandler::debug("main-temp", "tempStateChangeCallBack fan: %s", state);
+			LogHandler::verbose(TagHandler::Main, "tempStateChangeCallBack fan: %s", state);
 			displayHandler->setFanState(state);
 		}
 	}
@@ -222,17 +222,17 @@ void startUDP() {
 void startConfigMode(bool withBle= true) {
 #if WIFI_TCODE
 	apMode = true;
-	LogHandler::info("main-setup", "Starting in APMode");
+	LogHandler::info(TagHandler::Main, "Starting in APMode");
 	displayPrint("Starting in APMode");
 	if (wifi.startAp()) 
 	{
-		LogHandler::info("main-setup", "APMode started");
+		LogHandler::info(TagHandler::Main, "APMode started");
 		displayPrint("APMode started");
 		startWeb(true);
 	}
 	else 
 	{
-		LogHandler::error("main-setup", "APMode start failed");
+		LogHandler::error(TagHandler::Main, "APMode start failed");
 		displayPrint("APMode start failed");
 	}
 #endif
@@ -247,7 +247,9 @@ void startConfigMode(bool withBle= true) {
 #if WIFI_TCODE
 void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
 	if(status == WiFiStatus::CONNECTED) {
+        LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiStatus::CONNECTED");
 		if(reason == WiFiReason::AP_MODE) {
+        	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AP_MODE");
 			#if !ESP32_DA
             if(bleHandler)
               bleHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
@@ -256,14 +258,18 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
 	} else {
 		// wifi.dispose();
 		// startApMode();
+        LogHandler::debug(TagHandler::Main, "wifiStatusCallBack Not connected");
 		if(reason == WiFiReason::NO_AP || reason == WiFiReason::UNKNOWN) {
+        	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::NO_AP || WiFiReason::UNKNOWN");
 			startConfigMode(false);
 		} else if(reason == WiFiReason::AUTH) {
-            LogHandler::warning("main-setup", "Connection auth failed: Resetting wifi password and restarting");
+        	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AUTH");
+            LogHandler::warning(TagHandler::Main, "Connection auth failed: Resetting wifi password and restarting");
             strcpy(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass);
             SettingsHandler::save();
             ESP.restart();
 		}  else if(reason == WiFiReason::AP_MODE) {
+        	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AP_MODE");
 			// #if !ESP32_DA
 			// if(bleHandler)
 			// 	bleHandler->setup();
@@ -297,9 +303,9 @@ void setup()
 	  chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
 	}
 	Serial.println();
-	LogHandler::info("main-setup", "ESP32 Chip model = %s Rev %d\n", ESP.getChipModel(), ESP.getChipRevision());
-	LogHandler::info("main-setup", "This chip has %d cores\n", ESP.getChipCores());
- 	LogHandler::info("main-setup", "Chip ID: %u\n", chipId);
+	LogHandler::info(TagHandler::Main, "ESP32 Chip model = %s Rev %d\n", ESP.getChipModel(), ESP.getChipRevision());
+	LogHandler::info(TagHandler::Main, "This chip has %d cores\n", ESP.getChipCores());
+ 	LogHandler::info(TagHandler::Main, "Chip ID: %u\n", chipId);
 
     // esp_log_level_set("*", ESP_LOG_VERBOSE);
 	// LogHandler::debug("main", "this is verbose");
@@ -310,13 +316,13 @@ void setup()
 
 	if(!SPIFFS.begin(true))
 	{
-		LogHandler::error("main-setup", "An Error has occurred while mounting SPIFFS");
+		LogHandler::error(TagHandler::Main, "An Error has occurred while mounting SPIFFS");
 		setupSucceeded = false;
 		return;
 	}
 
 	SettingsHandler::load();
-	LogHandler::info("main-setup", "Version: %s", SettingsHandler::ESP32Version);
+	LogHandler::info(TagHandler::Main, "Version: %s", SettingsHandler::ESP32Version);
 
 #if MOTOR_TYPE == 0
 	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3) {
@@ -327,7 +333,7 @@ void setup()
 			motorHandler = new ServoHandler0_2();
 	#endif
 		else {
-			LogHandler::error("main-setup", "No motor type defined!");
+			LogHandler::error(TagHandler::Main, "No motor type defined!");
 			return;
 			//motorHandler = new ServoHandler1_0();
 		}
@@ -397,9 +403,10 @@ void setup()
 		}
 	#endif
     //otaHandler.setup();
-	displayPrint("Setting up servos");
+	displayPrint("Setting up motor");
     motorHandler->setup();
 #if DISPLAY_ENABLED
+    LogHandler::debug(TagHandler::Main, "Start Display task");
 	if(SettingsHandler::displayEnabled)
 	{
 		xTaskCreatePinnedToCore(
@@ -413,12 +420,13 @@ void setup()
 	}
 #endif
 	setupSucceeded = true;
+    LogHandler::debug(TagHandler::Main, "Setup finished");
 }
 
 void loop() {
 	if (SystemCommandHandler::restartRequired || restarting) {  // check the flag here to determine if a restart is required
 		if(!restarting) {
-			LogHandler::info("main", "Restarting ESP");
+			LogHandler::info(TagHandler::Main, "Restarting ESP");
 			ESP.restart();
         	restarting = true;
 		}
@@ -428,7 +436,7 @@ void loop() {
 	else if (SettingsHandler::tempInternalEnabled && temperatureHandler && temperatureHandler->isMaxTempTriggered()) {
 		motorHandler->read("STOP\n");
 		motorHandler->execute();
-		LogHandler::error("main", "Internal temp has reached maximum user set. Main loop disabled! Restart system to enable the loop.");
+		LogHandler::error(TagHandler::Main, "Internal temp has reached maximum user set. Main loop disabled! Restart system to enable the loop.");
 			if(SettingsHandler::fanControlEnabled) {
 				temperatureHandler->setFanState();
 			}
@@ -446,10 +454,10 @@ void loop() {
 			if(udpHandler)
 				udpHandler->read(udpData);
 			if (strlen(webSocketData) > 0) {
-				//LogHandler::debug("main-loop", "webSocket writing: %s", webSocketData);
+				//LogHandler::debug(TagHandler::MainLoop, "webSocket writing: %s", webSocketData);
 				motorHandler->read(webSocketData);
 			} else if (!apMode && strlen(udpData) > 0) {
-				LogHandler::debug("main-loop", "udp writing: %s", udpData);
+				LogHandler::debug(TagHandler::MainLoop, "udp writing: %s", udpData);
 				motorHandler->read(udpData);
 			} 
 			else 
@@ -482,11 +490,11 @@ void loop() {
 		}
 	#endif
 	if(!setupSucceeded) {
-		LogHandler::error("main", "There was an issue in setup");
+		LogHandler::error(TagHandler::Main, "There was an issue in setup");
         vTaskDelay(5000/portTICK_PERIOD_MS);
 	}
 	if(SettingsHandler::saving) {
-		LogHandler::info("main", "Saving settings, main loop disabled...");
+		LogHandler::info(TagHandler::Main, "Saving settings, main loop disabled...");
         vTaskDelay(100/portTICK_PERIOD_MS);
 	}
 }

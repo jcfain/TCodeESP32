@@ -252,11 +252,26 @@ function debug(message) {
 
 function setDebug() {
     userSettings["logLevel"] = parseInt(document.getElementById('debug').value);
+
+    const selectedIncludes = document.querySelectorAll('#log-include-tags option:checked');
+    userSettings["log-include-tags"] =  Array.from(selectedIncludes).map(el => el.value);
+
+    const selectedExcludes = document.querySelectorAll('#log-exclude-tags option:checked');
+    userSettings["log-exclude-tags"] = Array.from(selectedExcludes).map(el => el.value);
+
+    //document.getElementById("log-exclude-tags").disabled = selectedIncludes.length > 0;
     // if(userSettings["logLevel"] == LogLevel.VERBOSE)
     //     alert("There are not enough resources to send VERBOSE messages to the site.\nUse serial to view them.")
 	updateUserSettings();
 }
-
+function clearTags(name) {
+    userSettings[name] = [];
+    var element = document.getElementById(name);
+    for (var i = 0; i < element.options.length; i++) {
+        element.options[i].selected = false;
+    }
+	updateUserSettings();
+}
 function clearLog() {
     if(debugTextElement) {
         dubugMessages = [];
@@ -392,6 +407,22 @@ function setSystemInfo() {
     document.getElementById('chipCores').value = systemInfo.chipCores;
     document.getElementById('chipID').value = systemInfo.chipID;
 
+    var excludedTagsElement = document.getElementById('log-exclude-tags');
+    systemInfo.availableTags.forEach(element => {
+        var option = document.createElement("option");
+        option.value = element;
+        option.innerText = element;
+        excludedTagsElement.appendChild(option);
+    });
+
+    var includedTagsElement = document.getElementById('log-include-tags');
+    systemInfo.availableTags.forEach(element => {
+        var option = document.createElement("option");
+        option.value = element;
+        option.innerText = element;
+        includedTagsElement.appendChild(option);
+    });
+    
     toggleBuildOptions();
     
     // const pinsAreEditable = isPinsEditable();
@@ -585,6 +616,15 @@ function setUserSettings()
     document.getElementById('batteryVoltageMax').value = userSettings["batteryVoltageMax"];
     
     document.getElementById('debug').value = userSettings["logLevel"];
+
+    var includedElement = document.getElementById('log-include-tags');
+    for (var i = 0; i < includedElement.options.length; i++) {
+        includedElement.options[i].selected = userSettings["log-include-tags"].indexOf(includedElement.options[i].value) >= 0;
+    }
+    var excludedElement = document.getElementById('log-exclude-tags');
+    for (var i = 0; i < excludedElement.options.length; i++) {
+        excludedElement.options[i].selected = userSettings["log-exclude-tags"].indexOf(excludedElement.options[i].value) >= 0;
+    }
     
     //document.getElementById('debugLink').hidden = !userSettings["debug"];
     

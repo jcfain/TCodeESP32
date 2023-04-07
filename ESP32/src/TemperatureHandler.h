@@ -28,6 +28,7 @@ SOFTWARE. */
 #include "TCode/Global.h"
 #include "SettingsHandler.h"
 #include "LogHandler.h"
+#include "TagHandler.h"
 
 enum class TemperatureType {
 	INTERNAL,
@@ -71,7 +72,7 @@ using STATE_CHANGE_FUNCTION_PTR_T = void (*)(TemperatureType type, const char* s
 
 class TemperatureHandler {
 	private: 
-		char _TAG[5] = "temp";
+		const char* _TAG = TagHandler::TemperatureHandler;
 
 		bool _isRunning = false;
 
