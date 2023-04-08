@@ -126,7 +126,7 @@ public:
 
 	static void startLoop(void* displayHandlerRef)
 	{
-		LogHandler::debug(TagHandler::DisplayHandler, "Starting loop");
+		//LogHandler::debug(TagHandler::DisplayHandler, "Starting loop");
 		//if(((DisplayHandler*)displayHandlerRef)->isConnected())
 			((DisplayHandler*)displayHandlerRef)->loop();
 	}
@@ -166,7 +166,6 @@ public:
 				if(WifiHandler::isConnected()) {
 					LogHandler::verbose(_TAG, "Enter wifi connected");
 					startLine(headerPadding);
-					//left("IP: "); 
 					display.print(_ipAddress);
 
 					drawBatteryLevel();
@@ -205,14 +204,19 @@ public:
 					LogHandler::verbose(_TAG, "Enter apMode");
 					startLine(headerPadding);
 					left("AP: 192.168.1.1");
-					//drawBatteryLevel();
+					drawBatteryLevel();
 					newLine(headerPadding);
-					left("SSID: TCodeESP32Setup");
-					newLine();
+					if(!is32()) {
+						left("SSID: TCodeESP32Setup");
+						newLine();
+					}
 					if(is32() && SettingsHandler::versionDisplayed && !SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed
 						|| SettingsHandler::versionDisplayed) {
 						left(SettingsHandler::TCodeVersionName.c_str());
 						right(SettingsHandler::ESP32Version);
+						newLine();
+					} else if(is32()) {
+						left("SSID: TCodeESP32Setup");
 						newLine();
 					}
 				} else {
@@ -388,7 +392,7 @@ private:
 	}
 	void startLine(int additionalPixels = 0) {
 		currentLine = (0 + additionalPixels);
-		//display.setCursor(0, currentLine);
+		display.setCursor(0, currentLine);
 	}
 	bool hasNextLine(int newLineTextSize = 1) {
 		
@@ -418,7 +422,9 @@ private:
 
 	void draw64Temp() {
 		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed) {
+			LogHandler::verbose(_TAG, "Enter draw64Temp sleeveTempDisplayed");
 			if(SettingsHandler::versionDisplayed) {
+				LogHandler::verbose(_TAG, "versionDisplayed");
 				char buf[16];
 				getTempString("Sleeve: ", m_sleeveTempString, buf, sizeof(buf));
 				left(buf);
@@ -433,7 +439,9 @@ private:
 				center(m_HeatState.c_str());
 			}
 		} else if(!SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed) {
+			LogHandler::verbose(_TAG, "Enter draw64Temp internalTempDisplayed");
 			if(SettingsHandler::versionDisplayed) {
+				LogHandler::verbose(_TAG, "versionDisplayed");
 				char buf[18];
 				getTempString("Internal: ", m_internalTempString, buf, sizeof(buf));
 				left(buf);
@@ -452,6 +460,7 @@ private:
 				}
 			}
 		} else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed) {
+			LogHandler::verbose(_TAG, "Enter draw64Temp sleeveTempDisplayed && internalTempDisplayed");
 			left("Sleeve");
 			right("Internal");
 
@@ -468,6 +477,7 @@ private:
 			right(buf2);
 
 			if(!SettingsHandler::versionDisplayed) {
+				LogHandler::verbose(_TAG, "versionDisplayed");
 				newLine();
 				
 				left(m_HeatState.c_str());
@@ -479,13 +489,15 @@ private:
 	}
 	void draw32Temp() {
 		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed) {
-		LogHandler::verbose(_TAG, "Enter draw32Temp");
+			LogHandler::verbose(_TAG, "Enter draw32Temp sleeveTempDisplayed");
 			char buf[19];
 			if(SettingsHandler::versionDisplayed || !hasNextLine()) {
+				LogHandler::verbose(_TAG, "versionDisplayed");
 				getTempString("Sleeve: ", m_sleeveTempString, buf, sizeof(buf));
 				left(buf);
 				display.print("("+m_HeatStateShort+")");
 			} else if(hasNextLine(2)) {
+				LogHandler::verbose(_TAG, "hasNextLine(2)");
 				setTextSize(2);
 				getTempString("SLT: ", m_sleeveTempString, buf, sizeof(buf));
 				left(buf);
@@ -498,11 +510,14 @@ private:
 				left(m_HeatState.c_str(), 3);
 			} 
 		} else if(!SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed) {
+			LogHandler::verbose(_TAG, "Enter draw32Temp internalTempDisplayed");
 			char buf[21];
 			if(SettingsHandler::versionDisplayed || !hasNextLine()) {
+				LogHandler::verbose(_TAG, "versionDisplayed");
 				getTempString("Internal: ", m_internalTempString, buf, sizeof(buf));
 				left(buf);
 			} else if(hasNextLine(2)) {
+				LogHandler::verbose(_TAG, "hasNextLine(2)");
 				setTextSize(2);
 				getTempString("INT:", m_internalTempString, buf, sizeof(buf));
 				left(buf);
@@ -515,8 +530,10 @@ private:
 				left(m_fanState.c_str(), 3);
 			}
 		} else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed) {
+			LogHandler::verbose(_TAG, "Enter draw32Temp sleeveTempDisplayed && internalTempDisplayed");
 			char buf[10];
 			if(SettingsHandler::versionDisplayed || !hasNextLine()) {
+				LogHandler::verbose(_TAG, "versionDisplayed");
 				getTempString("S", m_sleeveTempString, buf, sizeof(buf));
 				left(buf);
 				display.print("("+m_HeatStateShort+")");

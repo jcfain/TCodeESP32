@@ -77,19 +77,6 @@ bool contains_duplicate(const std::vector<const char*>& values ) {
     return false ;
 }
 
-struct isCharValue
-{
-    private:
-    const char* m_value;
-
-    public:
-    isCharValue(const char* value) : m_value(value) {}
-
-    bool operator == (const char* value)
-    {
-        return (strcmp(m_value, value) != 0);
-    }
-};
 // adc2_channel_t gpioToADC2(int gpioPinc:\Users\jfain\AppData\Local\Programs\Microsoft VS Code\resources\app\out\vs\code\electron-sandbox\workbench\workbench.html) {
 //     switch(gpioPin) {
 //         case 4:

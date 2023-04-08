@@ -276,7 +276,7 @@ class SettingsHandler
             LogHandler::info(_TAG, "Load settings");
             if(json.size() > 0) 
             {
-                logLevel = (LogLevel)(json["logLevel"] | 1);
+                logLevel = (LogLevel)(json["logLevel"] | 2);
                 LogHandler::setLogLevel(logLevel);
 
                 // std::vector<const char*> tags;
@@ -620,7 +620,7 @@ class SettingsHandler
 
         static bool save(String data)
         {
-            
+            LogHandler::debug(_TAG, "Save frome string");
             printMemory();
             DynamicJsonDocument doc(deserializeSize);
             
@@ -673,6 +673,7 @@ class SettingsHandler
 
         static bool save() 
         {
+            LogHandler::info(_TAG, "Save settings");
             saving = true;
             // Delete existing file, otherwise the configuration is appended to the file
             // Serial.print("SPIFFS used: ");
@@ -693,6 +694,10 @@ class SettingsHandler
 
             doc["logLevel"] = (int)logLevel;
             LogHandler::setLogLevel(logLevel);
+            // Serial.println("logLevel: ");
+            // Serial.println((int)logLevel);
+            // Serial.println( doc["logLevel"] .as<int>());
+            // Serial.println((int)doc["logLevel"]);
 
             //std::vector<const char*> tags;
             // tags.push_back(TagHandler::DisplayHandler);
@@ -707,7 +712,6 @@ class SettingsHandler
             if(!tempSleeveEnabled) {
                 sleeveTempDisplayed = false;
             }
-            LogHandler::info(_TAG, "Save settings");
             doc["fullBuild"] = fullBuild;
             doc["esp32Version"] = ESP32Version;
             doc["TCodeVersion"] = (int)TCodeVersionEnum;
@@ -820,8 +824,28 @@ class SettingsHandler
             for(int i = 0; i < excludesVec.size(); i++) {
                 excludes.add(excludesVec[i]);
             }
-			
-            LogSaveDebug(doc);
+
+
+            LogHandler::debug(_TAG, "Is overflowed: %u", doc.overflowed());
+            if(doc.overflowed()) {
+                LogHandler::error(_TAG, "Document is overflowed! Increase serialize size.");
+                return false;
+            }
+            
+            LogHandler::debug(_TAG, "isNull: %u", doc.isNull());
+            if(doc.isNull()) {
+                LogHandler::error(_TAG, "Document is null!");
+                return false;
+            }
+
+            LogHandler::debug(_TAG, "Memory usage: %u bytes", doc.memoryUsage());
+            if(doc.memoryUsage() == 0) {
+                LogHandler::error(_TAG, "Document is empty!");
+                return false;
+            }
+			//Stopped working for some reason...
+            //Printing all defaults
+            //LogSaveDebug(doc);
 
             if (serializeJson(doc, file) == 0) 
             {
@@ -977,8 +1001,9 @@ class SettingsHandler
         // Use http://arduinojson.org/assistant to compute the capacity.
         // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
         // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
-		static const int deserializeSize = 4096;
+		static const int deserializeSize = 6144;
 		static const int serializeSize = 3072;
+        //3072
 
         static int calculateRange(const char* channel, int value) 
         {
@@ -1094,81 +1119,79 @@ class SettingsHandler
 
         static void LogSaveDebug(DynamicJsonDocument doc) 
         {
-            LogHandler::debug(_TAG, "save TCodeVersionEnum: %i", (int)doc["TCodeVersion"]);
-            LogHandler::debug(_TAG, "save ssid: %s", (const char*) doc["ssid"]);
-            Serial.println((const char*)doc["ssid"]);
-            // LogHandler::debug(_TAG, "save wifiPass: %s", (const char*) doc["wifiPass"]);
-            LogHandler::debug(_TAG, "save udpServerPort: %i", (int)doc["udpServerPort"]);
-            LogHandler::debug(_TAG, "save webServerPort: %i", (int)doc["webServerPort"]);
-            LogHandler::debug(_TAG, "save hostname: %s", (const char*) doc["hostname"]);
-            LogHandler::debug(_TAG, "save friendlyName: %s", (const char*) doc["friendlyName"]);
-            LogHandler::debug(_TAG, "save pitchFrequencyIsDifferent ", (bool)doc["pitchFrequencyIsDifferent"]);
-            LogHandler::debug(_TAG, "save msPerRad: %i", (int)doc["msPerRad"]);
-            LogHandler::debug(_TAG, "save servoFrequency: %i", (int)doc["servoFrequency"]);
-            LogHandler::debug(_TAG, "save  pitchFrequency: %i", (int)doc["pitchFrequency"]);
-            LogHandler::debug(_TAG, "save valveFrequency: %i",(int)doc["valveFrequency"]);
-            LogHandler::debug(_TAG, "save twistFrequency: %i", (int)doc["twistFrequency"]);
-            LogHandler::debug(_TAG, "save continuousTwist: %i", (bool)doc["continuousTwist"]);
-            LogHandler::debug(_TAG, "save feedbackTwist: %i", (bool)doc["feedbackTwist"]);
-            LogHandler::debug(_TAG, "save analogTwist: %i", (bool)doc["analogTwist"]);
-            LogHandler::debug(_TAG, "save TwistFeedBack_PIN: %i", (int)doc["TwistFeedBack_PIN"]);
-            LogHandler::debug(_TAG, "save RightServo_PIN: %i", (int)doc["RightServo_PIN"]);
-            LogHandler::debug(_TAG, "save LeftServo_PIN: %i", (int)doc["LeftServo_PIN"]);
-            LogHandler::debug(_TAG, "save RightUpperServo_PIN: %i",(int)doc["RightUpperServo_PIN"]);
-            LogHandler::debug(_TAG, "save LeftUpperServo_PIN: %i", (int)doc["LeftUpperServo_PIN"]);
-            LogHandler::debug(_TAG, "save PitchLeftServo_PIN: %i", (int)doc["PitchLeftServo_PIN"]);
-            LogHandler::debug(_TAG, "save PitchRightServo_PIN: %i", (int)doc["PitchRightServo_PIN"]);
-            LogHandler::debug(_TAG, "save ValveServo_PIN: %i", (int)doc["ValveServo_PIN"]);
-            LogHandler::debug(_TAG, "save TwistServo_PIN: %i", (int)doc["TwistServo_PIN"]);
-            LogHandler::debug(_TAG, "save Vibe0_PIN: %i", (int)doc["Vibe0_PIN"]);
-            LogHandler::debug(_TAG, "save Vibe1_PIN: %i", (int)doc["Vibe1_PIN"]);
-            LogHandler::debug(_TAG, "save Lube_Pin: %i", (int)doc["Lube_Pin"]);
-            LogHandler::debug(_TAG, "save LubeButton_PIN: %i", (int)doc["LubeButton_PIN"]);
-            LogHandler::debug(_TAG, "save staticIP: %i", (bool)doc["staticIP"]);
-            LogHandler::debug(_TAG, "save localIP: %s", (const char*) doc["localIP"]);
-            LogHandler::debug(_TAG, "save gateway: %s", (const char*) doc["gateway"]);
-            LogHandler::debug(_TAG, "save subnet: %s", (const char*) doc["subnet"]);
-            LogHandler::debug(_TAG, "save dns1: %s", (const char*) doc["dns1"]);
-            LogHandler::debug(_TAG, "save dns2: %s", (const char*) doc["dns2"]);
-            LogHandler::debug(_TAG, "save sr6Mode: %i", (bool)doc["sr6Mode"]);
-            LogHandler::debug(_TAG, "save RightServo_ZERO: %i", (int)doc["RightServo_ZERO"]);
-            LogHandler::debug(_TAG, "save LeftServo_ZERO: %i", (int)doc["LeftServo_ZERO"]);
-            LogHandler::debug(_TAG, "save RightUpperServo_ZERO: %i", (int)doc["RightUpperServo_ZERO"]);
-            LogHandler::debug(_TAG, "save LeftUpperServo_ZERO: %i", (int)doc["LeftUpperServo_ZERO"]);
-            LogHandler::debug(_TAG, "save PitchLeftServo_ZERO: %i", (int)doc["PitchLeftServo_ZERO"]);
-            LogHandler::debug(_TAG, "save PitchRightServo_ZERO: %i", (int)doc["PitchRightServo_ZERO"]);
-            LogHandler::debug(_TAG, "save TwistServo_ZERO: %i", (int)doc["TwistServo_ZERO"]);
-            LogHandler::debug(_TAG, "save ValveServo_ZERO: %i", (int)doc["ValveServo_ZERO"]);
-            LogHandler::debug(_TAG, "save autoValve: %i", (bool)doc["autoValve"]);
-            LogHandler::debug(_TAG, "save inverseValve: %i", (bool)doc["inverseValve"]);
-            LogHandler::debug(_TAG, "save valveServo90Degrees: %i", (bool)doc["valveServo90Degrees"]);
-            LogHandler::debug(_TAG, "save inverseStroke: %i", (bool)doc["inverseStroke"]);
-            LogHandler::debug(_TAG, "save inversePitch: %i", (bool)doc["inversePitch"]);
-            LogHandler::debug(_TAG, "save lubeEnabled: %i", (bool)doc["lubeEnabled"]);
-            LogHandler::debug(_TAG, "save lubeAmount: %i", (int)doc["lubeAmount"]);
-            LogHandler::debug(_TAG, "save Temp_PIN: %i", (int)doc["Temp_PIN"]);
-            LogHandler::debug(_TAG, "save Heater_PIN: %i", (int)doc["Heater_PIN"]);
-            LogHandler::debug(_TAG, "save displayEnabled: %i", (bool)doc["displayEnabled"]);
-            LogHandler::debug(_TAG, "save sleeveTempDisplayed: %i", (bool)doc["sleeveTempDisplayed"]);
-            LogHandler::debug(_TAG, "save internalTempDisplayed: %i", (bool)doc["internalTempDisplayed"]);
-            LogHandler::debug(_TAG, "save tempSleeveEnabled: %i", (bool)doc["tempSleeveEnabled"]);
-            LogHandler::debug(_TAG, "save tempInternalEnabled: %i", (bool)doc["tempInternalEnabled"]);
-            LogHandler::debug(_TAG, "save Display_Screen_Width: %i", (int)doc["Display_Screen_Width"]);
-            LogHandler::debug(_TAG, "save internalMaxTemp: %f", (double)doc["internalMaxTemp"]);
-            LogHandler::debug(_TAG, "save internalTempForFan: %f", (double)doc["internalTempForFan"]);
-            LogHandler::debug(_TAG, "save Display_Screen_Height: %i", (int)doc["Display_Screen_Height"]);
-            LogHandler::debug(_TAG, "save TargetTemp: %f", (double)doc["TargetTemp"]);
-            LogHandler::debug(_TAG, "save HeatPWM: %i", (int)doc["HeatPWM"]);
-            LogHandler::debug(_TAG, "save HoldPWM: %i", (int)doc["HoldPWM"]);
-            LogHandler::debug(_TAG, "save Display_I2C_Address: %i", (int)doc["Display_I2C_Address"]);
-            LogHandler::debug(_TAG, "save Display_Rst_PIN: %i", (int)doc["Display_Rst_PIN"]);
-            LogHandler::debug(_TAG, "save heaterFailsafeTime: %ld", (long)doc["heaterFailsafeTime"]);
-            LogHandler::debug(_TAG, "save heaterThreshold: %i", (int)doc["heaterThreshold"]);
-            LogHandler::debug(_TAG, "save heaterResolution: %i", (int)doc["heaterResolution"]);
-            LogHandler::debug(_TAG, "save heaterFrequency: %i", (int)doc["heaterFrequency"]);
-            LogHandler::debug(_TAG, "save newtoungeHatExists: %i", (bool)doc["newtoungeHatExists"]);
-            LogHandler::debug(_TAG, "save logLevel: %i", (int)doc["logLevel"]);
-            LogHandler::debug(_TAG, "save bluetoothEnabled: %i", (int)doc["bluetoothEnabled"]);
+            LogHandler::debug(_TAG, "save TCodeVersionEnum: %i", doc["TCodeVersion"].as<int>());
+            LogHandler::debug(_TAG, "save ssid: %s", doc["ssid"].as<String>());
+            LogHandler::debug(_TAG, "save udpServerPort: %i", doc["udpServerPort"].as<int>());
+            LogHandler::debug(_TAG, "save webServerPort: %i", doc["webServerPort"].as<int>());
+            LogHandler::debug(_TAG, "save hostname: %s", doc["hostname"].as<String>());
+            LogHandler::debug(_TAG, "save friendlyName: %s", doc["friendlyName"].as<String>());
+            LogHandler::debug(_TAG, "save pitchFrequencyIsDifferent ", doc["pitchFrequencyIsDifferent"].as<bool>());
+            LogHandler::debug(_TAG, "save msPerRad: %i", doc["msPerRad"].as<int>());
+            LogHandler::debug(_TAG, "save servoFrequency: %i", doc["servoFrequency"].as<int>());
+            LogHandler::debug(_TAG, "save  pitchFrequency: %i", doc["pitchFrequency"].as<int>());
+            LogHandler::debug(_TAG, "save valveFrequency: %i",doc["valveFrequency"].as<int>());
+            LogHandler::debug(_TAG, "save twistFrequency: %i", doc["twistFrequency"].as<int>());
+            LogHandler::debug(_TAG, "save continuousTwist: %i", doc["continuousTwist"].as<bool>());
+            LogHandler::debug(_TAG, "save feedbackTwist: %i", doc["feedbackTwist"].as<bool>());
+            LogHandler::debug(_TAG, "save analogTwist: %i", doc["analogTwist"].as<bool>());
+            LogHandler::debug(_TAG, "save TwistFeedBack_PIN: %i", doc["TwistFeedBack_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save RightServo_PIN: %i", doc["RightServo_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save LeftServo_PIN: %i", doc["LeftServo_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save RightUpperServo_PIN: %i",doc["RightUpperServo_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save LeftUpperServo_PIN: %i", doc["LeftUpperServo_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save PitchLeftServo_PIN: %i", doc["PitchLeftServo_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save PitchRightServo_PIN: %i", doc["PitchRightServo_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save ValveServo_PIN: %i", doc["ValveServo_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save TwistServo_PIN: %i", doc["TwistServo_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save Vibe0_PIN: %i", doc["Vibe0_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save Vibe1_PIN: %i", doc["Vibe1_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save Lube_Pin: %i", doc["Lube_Pin"].as<int>());
+            LogHandler::debug(_TAG, "save LubeButton_PIN: %i", doc["LubeButton_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save staticIP: %i", doc["staticIP"].as<bool>());
+            LogHandler::debug(_TAG, "save localIP: %s", doc["localIP"].as<String>());
+            LogHandler::debug(_TAG, "save gateway: %s", doc["gateway"].as<String>());
+            LogHandler::debug(_TAG, "save subnet: %s", doc["subnet"].as<String>());
+            LogHandler::debug(_TAG, "save dns1: %s", doc["dns1"].as<String>());
+            LogHandler::debug(_TAG, "save dns2: %s", doc["dns2"].as<String>());
+            LogHandler::debug(_TAG, "save sr6Mode: %i", doc["sr6Mode"].as<bool>());
+            LogHandler::debug(_TAG, "save RightServo_ZERO: %i", doc["RightServo_ZERO"].as<int>());
+            LogHandler::debug(_TAG, "save LeftServo_ZERO: %i", doc["LeftServo_ZERO"].as<int>());
+            LogHandler::debug(_TAG, "save RightUpperServo_ZERO: %i", doc["RightUpperServo_ZERO"].as<int>());
+            LogHandler::debug(_TAG, "save LeftUpperServo_ZERO: %i", doc["LeftUpperServo_ZERO"].as<int>());
+            LogHandler::debug(_TAG, "save PitchLeftServo_ZERO: %i", doc["PitchLeftServo_ZERO"].as<int>());
+            LogHandler::debug(_TAG, "save PitchRightServo_ZERO: %i", doc["PitchRightServo_ZERO"].as<int>());
+            LogHandler::debug(_TAG, "save TwistServo_ZERO: %i", doc["TwistServo_ZERO"].as<int>());
+            LogHandler::debug(_TAG, "save ValveServo_ZERO: %i", doc["ValveServo_ZERO"].as<int>());
+            LogHandler::debug(_TAG, "save autoValve: %i", doc["autoValve"].as<bool>());
+            LogHandler::debug(_TAG, "save inverseValve: %i", doc["inverseValve"].as<bool>());
+            LogHandler::debug(_TAG, "save valveServo90Degrees: %i", doc["valveServo90Degrees"].as<bool>());
+            LogHandler::debug(_TAG, "save inverseStroke: %i", doc["inverseStroke"].as<bool>());
+            LogHandler::debug(_TAG, "save inversePitch: %i", doc["inversePitch"].as<bool>());
+            LogHandler::debug(_TAG, "save lubeEnabled: %i", doc["lubeEnabled"].as<bool>());
+            LogHandler::debug(_TAG, "save lubeAmount: %i", doc["lubeAmount"].as<int>());
+            LogHandler::debug(_TAG, "save Temp_PIN: %i", doc["Temp_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save Heater_PIN: %i", doc["Heater_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save displayEnabled: %i", doc["displayEnabled"].as<bool>());
+            LogHandler::debug(_TAG, "save sleeveTempDisplayed: %i", doc["sleeveTempDisplayed"].as<bool>());
+            LogHandler::debug(_TAG, "save internalTempDisplayed: %i", doc["internalTempDisplayed"].as<bool>());
+            LogHandler::debug(_TAG, "save tempSleeveEnabled: %i", doc["tempSleeveEnabled"].as<bool>());
+            LogHandler::debug(_TAG, "save tempInternalEnabled: %i", doc["tempInternalEnabled"].as<bool>());
+            LogHandler::debug(_TAG, "save Display_Screen_Width: %i", doc["Display_Screen_Width"].as<int>());
+            LogHandler::debug(_TAG, "save internalMaxTemp: %f", doc["internalMaxTemp"].as<double>());
+            LogHandler::debug(_TAG, "save internalTempForFan: %f", doc["internalTempForFan"].as<double>());
+            LogHandler::debug(_TAG, "save Display_Screen_Height: %i", doc["Display_Screen_Height"].as<int>());
+            LogHandler::debug(_TAG, "save TargetTemp: %f", doc["TargetTemp"].as<double>());
+            LogHandler::debug(_TAG, "save HeatPWM: %i", doc["HeatPWM"].as<int>());
+            LogHandler::debug(_TAG, "save HoldPWM: %i", doc["HoldPWM"].as<int>());
+            LogHandler::debug(_TAG, "save Display_I2C_Address: %i", doc["Display_I2C_Address"].as<int>());
+            LogHandler::debug(_TAG, "save Display_Rst_PIN: %i", doc["Display_Rst_PIN"].as<int>());
+            LogHandler::debug(_TAG, "save heaterFailsafeTime: %ld", doc["heaterFailsafeTime"].as<long>());
+            LogHandler::debug(_TAG, "save heaterThreshold: %i", doc["heaterThreshold"].as<int>());
+            LogHandler::debug(_TAG, "save heaterResolution: %i", doc["heaterResolution"].as<int>());
+            LogHandler::debug(_TAG, "save heaterFrequency: %i", doc["heaterFrequency"].as<int>());
+            LogHandler::debug(_TAG, "save newtoungeHatExists: %i", doc["newtoungeHatExists"].as<bool>());
+            LogHandler::debug(_TAG, "save logLevel: %i", doc["logLevel"].as<int>());
+            LogHandler::debug(_TAG, "save bluetoothEnabled: %i", doc["bluetoothEnabled"].as<bool>());
             
         }
 
@@ -1257,7 +1280,7 @@ const char* SettingsHandler::_TAG = TagHandler::SettingsHandler;
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
 MotorType SettingsHandler::motorType = MotorType::Servo;
-const char SettingsHandler::ESP32Version[8] = "v0.275b";
+const char SettingsHandler::ESP32Version[8] = "v0.276b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char* SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";

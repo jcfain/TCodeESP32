@@ -91,13 +91,14 @@ public:
 			}
 			if(strstr(in, "$log-level") != nullptr) {
 				char * pEnd;
-				int valueInt = String(value).toInt();
+				int valueInt = (int)(String(value).toInt());
 				if(valueInt > (int)LogLevel::VERBOSE) {
 					LogHandler::error(_TAG, "Invalid value: %ld. Valid log levels are 0-4", valueInt);
 					xSemaphoreGive(xMutex);
 					return false;
 				}
-				SettingsHandler::logLevel = (LogLevel)valueInt;
+				SettingsHandler::logLevel = static_cast<LogLevel>(valueInt);
+				LogHandler::setLogLevel(static_cast<LogLevel>(valueInt));
 				Serial.printf("Log level changed to: %ld\n", valueInt);
 				Serial.println("Execute the command '$save' to store the new value otherwise the value will reset upon reboot.");
 				xSemaphoreGive(xMutex);

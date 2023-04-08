@@ -292,7 +292,7 @@ void setup()
 
 	Serial.begin(115200);
 	
-    LogHandler::setLogLevel(LogLevel::DEBUG);
+    LogHandler::setLogLevel(LogLevel::INFO);
 	LogHandler::setMessageCallback(logCallBack);
 	#if WIFI_TCODE
 		wifi.setWiFiStatusCallback(wifiStatusCallBack);
@@ -351,15 +351,20 @@ void setup()
 		temperatureHandler->setup();
 		temperatureHandler->setMessageCallback(tempChangeCallBack);
 		temperatureHandler->setStateChangeCallback(tempStateChangeCallBack);
-		xTaskCreatePinnedToCore(
+    	LogHandler::debug(TagHandler::Main, "Start temperature task");
+		auto tempStartStatus = xTaskCreatePinnedToCore(
 			TemperatureHandler::startLoop,/* Function to implement the task */
 			"TempTask", /* Name of the task */
-			10000,  /* Stack size in words */
+			5000,  /* Stack size in words */
 			temperatureHandler,  /* Task input parameter */
 			1,  /* Priority of the task */
 			&temperatureTask,  /* Task handle. */
 			APP_CPU_NUM); /* Core where the task should run */
+		if(tempStartStatus != pdPASS) {
+			LogHandler::error(TagHandler::Main, "Could not start temperature task.");
+		}
 	}
+	
 #endif
 #if DISPLAY_ENABLED
 	displayHandler = new DisplayHandler();
@@ -406,19 +411,23 @@ void setup()
 	displayPrint("Setting up motor");
     motorHandler->setup();
 #if DISPLAY_ENABLED
-    LogHandler::debug(TagHandler::Main, "Start Display task");
 	if(SettingsHandler::displayEnabled)
 	{
-		xTaskCreatePinnedToCore(
+    	LogHandler::debug(TagHandler::Main, "Start Display task");
+		auto displayStatus = xTaskCreatePinnedToCore(
 			DisplayHandler::startLoop,/* Function to implement the task */
 			"DisplayTask", /* Name of the task */
-			10000,  /* Stack size in words */
+			5000,  /* Stack size in words */
 			displayHandler,  /* Task input parameter */
 			1,  /* Priority of the task */
 			&displayTask,  /* Task handle. */
 			APP_CPU_NUM); /* Core where the task should run */
+			if(displayStatus != pdPASS) {
+    			LogHandler::error(TagHandler::Main, "Could not start display task.");
+			}
 	}
 #endif
+    LogHandler::debug(TagHandler::Main, "xPortGetFreeHeapSize: %u", xPortGetFreeHeapSize());
 	setupSucceeded = true;
     LogHandler::debug(TagHandler::Main, "Setup finished");
 }
