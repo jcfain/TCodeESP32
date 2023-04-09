@@ -607,10 +607,9 @@
 							<input id="tempInternalEnabled" type="checkbox" onclick="setInternalTempSettings()"></input>
 						</td>
 					</tr>
-					<!-- Hidden due to issues with this method. Hoping to get a better method with extra hardware at a later date that I just ordered. -->
-						<tr title="This is not a comprehensive battery level. Only measures the voltage via a voltage divider on the specified pin at this time." hidden>
+						<tr title="This uses the module 'CJMCU-294' That has a 'LTC2944' gas gauge chip on it.">
 						<td>
-							<span>Battery voltage enabled</span> 
+							<span>Battery gauge enabled</span> 
 						</td>
 						<td>
 							<input id="batteryLevelEnabled" type="checkbox" onclick="setBatterySettings()" ></input>
@@ -859,28 +858,59 @@
 							<h3>Battery</h3>
 						</th>
 					</tr>
-					<tr>
+					<!-- <tr>
 						<td><span>Voltage pin (ADC)</span></td>
 						<td>
 							<input id="Battery_Voltage_PIN"  type="number" min="0" step="1" oninput="updatePins()">
 						</td>
-					</tr>
-					<tr title="Display voltage as a number instead of bars">
-						<td><span>Display voltage</span></td>
+					</tr> -->
+					<tr title="Display as a number instead of bars">
+						<td><span>Display capacity percentage</span></td>
 						<td>
 							<input id="batteryLevelNumeric" type="checkbox" oninput="setBatterySettings()">
 						</td>
 					</tr>
-					<tr title="This is used to map 3.3 volts to max voltage">
+					<!-- <tr title="This is used to map 3.3 volts to max voltage">
 						<td><span>Max voltage</span></td>
 						<td>
-							<input id="batteryVoltageMax"  type="number" min="0" step="0.10" onclick="setBatterySettings()" title="For display calculation only.">
+							<input id="batteryVoltageMax"  type="number" min="0" step="0.10" oninput="setBatterySettings()" title="For display calculation only.">
+						</td>
+					</tr> -->
+					<tr>
+						<td><span>Max capacity</span></td>
+						<td>
+							<input id="batteryCapacityMax" type="number" min="0" step="0.10" oninput="setBatterySettings()">
 						</td>
 					</tr>
 					<tr>
+						<td><span></span></td>
+						<td title="Sets accumulated charge registers to the maximum value set above">
+							<button id="batteryCapacitySetFull" onclick="setBatteryFull()">Set capacity full</button>
+						</td>
+					</tr>
+					<tr>
+						<td><span>Capacity remaining (mAh)</span></td>
+						<td>
+							<input id="batteryCapacityRemaining" type="text" readonly value="Unknown" />
+						</td>
+					</tr>
+					<tr>
+						<td><span>Capacity remaining (%)</span></td>
+						<td>
+							<input id="batteryCapacityRemainingPercentage" type="text" readonly value="Unknown" />
+						</td>
+					</tr>
+					
+					<tr>
 						<td><span>Voltage</span></td>
 						<td>
-							<input id="batteryVoltage" type="text" readonly value="Coming soon" />
+							<input id="batteryVoltage" type="text" readonly value="Unknown" />
+						</td>
+					</tr>
+					<tr>
+						<td><span>Temperature (C)</span></td>
+						<td>
+							<input id="batteryTemperature" type="text" readonly value="Unknown" />
 						</td>
 					</tr>
 				</tbody>

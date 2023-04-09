@@ -194,7 +194,7 @@ public:
             if(isLogged(tag)) {
                 va_list vArgs;
                 va_start(vArgs, format);
-                parseMessage(format, tag, "ERROR", LogLevel::ERROR, vArgs);
+                parseMessage(format, "ERROR", tag, LogLevel::ERROR, vArgs);
                 va_end(vArgs);
             }
             xSemaphoreGive(xMutex);

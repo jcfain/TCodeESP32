@@ -182,7 +182,7 @@ class TemperatureHandler {
 
 	void loop() {
 		_isRunning = true;
-		LogHandler::debug(_TAG, "Temp Core: %u", xPortGetCoreID());
+		LogHandler::debug(_TAG, "Temp task cpu core: %u", xPortGetCoreID());
 		lastSleeveTempRequest = millis(); 
 		while(_isRunning)
 		{
@@ -300,7 +300,7 @@ class TemperatureHandler {
 
 			LogHandler::verbose(_TAG, "internal getTempC duration: %ld", micros() - start);
 
-			String statusJson("{\"temp\":" + String(_currentInternalTemp) + ", \"status\":\""+m_lastInternalStatus+"\"}");
+			String statusJson("{\"temp\":\"" + String(_currentInternalTemp) + "\", \"status\":\""+m_lastInternalStatus+"\"}");
 			if(tempChanged && message_callback) {
 				message_callback(TemperatureType::INTERNAL, statusJson.c_str(), _currentInternalTemp);
 			}
@@ -326,7 +326,7 @@ class TemperatureHandler {
 
 			LogHandler::verbose(_TAG, "sleeve getTempC duration: %ld", micros() - start);
 
-			String statusJson("{\"temp\":" + String(_currentSleeveTemp) + ", \"status\":\""+m_lastSleeveStatus+"\"}");
+			String statusJson("{\"temp\":\"" + String(_currentSleeveTemp) + "\", \"status\":\""+m_lastSleeveStatus+"\"}");
 			if(tempChanged && message_callback) {
 				message_callback(TemperatureType::SLEEVE, statusJson.c_str(), _currentSleeveTemp);
 			}

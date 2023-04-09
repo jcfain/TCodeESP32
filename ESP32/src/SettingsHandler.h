@@ -163,6 +163,7 @@ class SettingsHandler
         static int Battery_Voltage_PIN;
         static bool batteryLevelNumeric;
         static double batteryVoltageMax;
+        static int batteryCapacityMax;
 		static int Display_Screen_Width; 
 		static int Display_Screen_Height; 
         static int Internal_Temp_PIN;
@@ -507,7 +508,8 @@ class SettingsHandler
                 
                 batteryLevelEnabled = json["batteryLevelEnabled"];
                 batteryLevelNumeric = json["batteryLevelNumeric"];
-                batteryVoltageMax = json["batteryVoltageMax"];
+                batteryVoltageMax = json["batteryVoltageMax"] | 12.6;
+                batteryCapacityMax = json["batteryCapacityMax"] | 0;// Let batteryHandler set the default
                 
                 #if !CRIMZZON_BUILD
                     caseFanFrequency = json["caseFanFrequency"] | 25;
@@ -812,7 +814,8 @@ class SettingsHandler
             doc["Battery_Voltage_PIN"] = Battery_Voltage_PIN;
             doc["batteryLevelNumeric"] = batteryLevelNumeric;
             doc["batteryVoltageMax"] = round2(batteryVoltageMax);
-
+            doc["batteryCapacityMax"] = batteryCapacityMax;
+            
             JsonArray includes = doc.createNestedArray("log-include-tags");
             std::vector<String> includesVec = LogHandler::getIncludes();
             for(int i = 0; i < includesVec.size(); i++) {
@@ -1383,8 +1386,9 @@ bool SettingsHandler::tempInternalEnabled = false;
 bool SettingsHandler::fanControlEnabled = false;
 bool SettingsHandler::batteryLevelEnabled = true;
 int SettingsHandler::Battery_Voltage_PIN = 32;
-bool SettingsHandler::batteryLevelNumeric = true;
+bool SettingsHandler::batteryLevelNumeric = false;
 double SettingsHandler::batteryVoltageMax = 12.6;
+int SettingsHandler::batteryCapacityMax;
 int SettingsHandler::Display_Screen_Width = 128; 
 int SettingsHandler::Display_Screen_Height = 64; 
 int SettingsHandler::caseFanMaxDuty = 255;

@@ -70,8 +70,12 @@ SOFTWARE. */
 	BluetoothHandler* btHandler = 0;
 #endif
 
+#include "BatteryHandler.h"
+
 //TcpHandler tcpHandler;
 MotorHandler* motorHandler;
+BatteryHandler* batteryHandler;
+TaskHandle_t batteryTask;
 
 #if WIFI_TCODE
 	Udphandler* udpHandler = 0;
@@ -279,8 +283,18 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
 }
 #endif
 
-void batteryVoltageCallback(double voltage) {
-
+void batteryVoltageCallback(float capacityRemainingPercentage, float capacityRemaining, float voltage, float temperature) {
+	#if DISPLAY_ENABLED
+		if(displayHandler) {
+			displayHandler->setBatteryInformation(capacityRemainingPercentage, voltage, temperature);
+		}
+	#endif
+	#if WIFI_TCODE
+		if(webSocketHandler) {
+			String statusJson("{\"batteryCapacityRemaining\":\"" + String(capacityRemaining) + "\", \"batteryCapacityRemainingPercentage\":\"" + String(capacityRemainingPercentage) + "\", \"batteryVoltage\":\""+String(voltage)+"\", \"batteryTemperature\":\""+String(temperature)+"\"}");
+			webSocketHandler->sendCommand("batteryStatus", statusJson.c_str());
+		}
+	#endif
 }
 
 void setup() 
@@ -323,6 +337,25 @@ void setup()
 
 	SettingsHandler::load();
 	LogHandler::info(TagHandler::Main, "Version: %s", SettingsHandler::ESP32Version);
+
+	if(SettingsHandler::batteryLevelEnabled) {
+		batteryHandler = new BatteryHandler();
+		if(batteryHandler->setup()) {
+			LogHandler::debug(TagHandler::Main, "Start Battery task");
+			auto batteryStatus = xTaskCreatePinnedToCore(
+				BatteryHandler::startLoop,/* Function to implement the task */
+				"BatteryTask", /* Name of the task */
+				4028,  /* Stack size in words */
+				batteryHandler,  /* Task input parameter */
+				1,  /* Priority of the task */
+				&batteryTask,  /* Task handle. */
+				APP_CPU_NUM); /* Core where the task should run */
+				if(batteryStatus != pdPASS) {
+					LogHandler::error(TagHandler::Main, "Could not start battery task.");
+				}
+				batteryHandler->setMessageCallback(batteryVoltageCallback);
+		}
+	}
 
 #if MOTOR_TYPE == 0
 	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3) {
@@ -498,6 +531,7 @@ void loop() {
 			}
 		}
 	#endif
+
 	if(!setupSucceeded) {
 		LogHandler::error(TagHandler::Main, "There was an issue in setup");
         vTaskDelay(5000/portTICK_PERIOD_MS);

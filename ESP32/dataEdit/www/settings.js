@@ -224,10 +224,17 @@ function wsCallBackFunction(evt) {
             // case "failSafeTriggered":
             //     playFail();
             //     break;
-            case "batteryVoltage":
+            case "batteryStatus":
 				var status = data["message"];
-				var voltage = status["voltage"];
-                document.getElementById("batteryVoltage").value = voltage;
+				var batteryVoltage = status["batteryVoltage"];
+				var batteryCapacityRemainingPercentage = status["batteryCapacityRemainingPercentage"];
+				var batteryCapacityRemaining = status["batteryCapacityRemaining"];
+				var batteryTemperature = status["batteryTemperature"];
+                
+                document.getElementById("batteryVoltage").value = batteryVoltage;
+                document.getElementById("batteryCapacityRemaining").value = batteryCapacityRemaining;
+                document.getElementById("batteryCapacityRemainingPercentage").value = batteryCapacityRemainingPercentage;
+                document.getElementById("batteryTemperature").value = batteryTemperature;
                 break;
             case "debug":
 				var message = data["message"];
@@ -611,9 +618,10 @@ function setUserSettings()
     document.getElementById('caseFanFrequency').value = userSettings["caseFanFrequency"];
 
     document.getElementById('batteryLevelEnabled').checked = userSettings["batteryLevelEnabled"];
-    document.getElementById('Battery_Voltage_PIN').value = userSettings["Battery_Voltage_PIN"];
+    //document.getElementById('Battery_Voltage_PIN').value = userSettings["Battery_Voltage_PIN"];
     document.getElementById('batteryLevelNumeric').checked = userSettings["batteryLevelNumeric"];
-    document.getElementById('batteryVoltageMax').value = userSettings["batteryVoltageMax"];
+    //document.getElementById('batteryVoltageMax').value = userSettings["batteryVoltageMax"];
+    document.getElementById('batteryCapacityMax').value = userSettings["batteryCapacityMax"];
     
     document.getElementById('debug').value = userSettings["logLevel"];
 
@@ -1543,9 +1551,9 @@ function updateCommonPins(pinValues) {
     if(userSettings.tempInternalEnabled) {
         userSettings["Internal_Temp_PIN"] = pinValues.internalTemp;
     }
-    if(userSettings.batteryLevelEnabled) {
-        userSettings["Battery_Voltage_PIN"] = pinValues.Battery_Voltage_PIN;
-    }
+    // if(userSettings.batteryLevelEnabled) {
+    //     userSettings["Battery_Voltage_PIN"] = pinValues.Battery_Voltage_PIN;
+    // }
 
 }
 // function updateNonPWMPins(assignedPins) {
@@ -1863,12 +1871,12 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
     }
 
     if(userSettings.batteryLevelEnabled) {
-        if(adc1Pins.indexOf(pinValues.Battery_Voltage_PIN) == -1) 
-            invalidPins.push("Battery voltage pin: "+pinValues.Battery_Voltage_PIN + " is not a valid adc1 pin.");
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.Battery_Voltage_PIN);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Battery voltage pin and "+assignedPins[pinDupeIndex].name);
-        assignedPins.push({name:"Battery voltage", pin:pinValues.Battery_Voltage_PIN});
+        // if(adc1Pins.indexOf(pinValues.Battery_Voltage_PIN) == -1) 
+        //     invalidPins.push("Battery voltage pin: "+pinValues.Battery_Voltage_PIN + " is not a valid adc1 pin.");
+        // pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.Battery_Voltage_PIN);
+        // if(pinDupeIndex > -1)
+        //     duplicatePins.push("Battery voltage pin and "+assignedPins[pinDupeIndex].name);
+        // assignedPins.push({name:"Battery voltage", pin:pinValues.Battery_Voltage_PIN});
     }
     
     if(userSettings.feedbackTwist && pinValues.twistFeedBack) {
@@ -1916,7 +1924,7 @@ function getCommonPinValues(pinValues) {
     pinValues.vibe2 = parseInt(document.getElementById('Vibe2_PIN').value);
     pinValues.vibe3 = parseInt(document.getElementById('Vibe3_PIN').value);
     
-    pinValues.Battery_Voltage_PIN = parseInt(document.getElementById('Battery_Voltage_PIN').value);
+    //pinValues.Battery_Voltage_PIN = parseInt(document.getElementById('Battery_Voltage_PIN').value);
 
     pinValues.heat = parseInt(document.getElementById('Heater_PIN').value);
 
@@ -2115,15 +2123,21 @@ function setBatterySettings() {
     userSettings["batteryLevelEnabled"] = document.getElementById('batteryLevelEnabled').checked;
     toggleBatterySettings(userSettings["batteryLevelEnabled"]);
     userSettings["batteryLevelNumeric"] = document.getElementById('batteryLevelNumeric').checked;
-    userSettings["batteryVoltageMax"] = parseFloat(document.getElementById('batteryVoltageMax').value);
+    //userSettings["batteryVoltageMax"] = parseFloat(document.getElementById('batteryVoltageMax').value);
+    userSettings["batteryCapacityMax"] = parseFloat(document.getElementById('batteryCapacityMax').value);
+    setRestartRequired();
     updateUserSettings();
 }	
+function setBatteryFull() {
+    sendWebsocketCommand("setBatteryFull");
+}
 function setFanControl() {
     userSettings["fanControlEnabled"] = document.getElementById('fanControlEnabled').checked;
     toggleFanControlSettings(userSettings["fanControlEnabled"]);
     setRestartRequired();
     updateUserSettings();
 }
+
 function setFanOnTemp() {
     userSettings["internalTempForFan"] = parseFloat(document.getElementById('internalTempForFan').value);
     updateUserSettings();

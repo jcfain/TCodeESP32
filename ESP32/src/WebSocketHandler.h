@@ -27,6 +27,7 @@ SOFTWARE. */
 #include "SettingsHandler.h"
 #include "LogHandler.h"
 #include "TagHandler.h"
+#include "BatteryHandler.h"
 
 AsyncWebSocket ws("/ws");
 #include <mutex>
@@ -235,6 +236,11 @@ class WebSocketHandler {
 
                 if(!jsonObj["command"].isNull()) 
                 {
+                    String command = jsonObj["command"].as<String>();
+                    String message = jsonObj["message"].as<String>();
+                    if(command == "setBatteryFull") {
+                        BatteryHandler::setBatteryToFull();
+                    }
                     // String* message = jsonObj["message"];
                     // Serial.print("Recieved websocket tcode message: ");
                     // Serial.println(message->c_str());

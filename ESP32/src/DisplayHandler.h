@@ -110,11 +110,14 @@ public:
     	LogHandler::verbose(_TAG, "setFanState: %s", state);
 		m_fanState = String(state);
 	}
-	void setBatteryVoltage(double value) {
-    	LogHandler::verbose(_TAG, "setBatteryVoltage: %f", value);
-		m_batteryVoltage = value;
+	void setBatteryInformation(float capacityRemainingPercentage, float voltage, float temperature) {
+    	LogHandler::verbose(_TAG, "setBatteryCapacityRemainingPercentage: %f", capacityRemainingPercentage);
+		m_batteryCapacityRemainingPercentage = capacityRemainingPercentage;
+    	LogHandler::verbose(_TAG, "setBatteryVoltage: %f", voltage);
+		m_batteryVoltage = voltage;
+    	LogHandler::verbose(_TAG, "setBatteryTemperature: %f", temperature);
+		m_batteryTemperature = temperature;
 	}
-	
 
 	void clearDisplay()
 	{
@@ -147,7 +150,7 @@ public:
 
 	void loop()
 	{
-		LogHandler::verbose(_TAG, "Enter loop");
+		LogHandler::debug(_TAG, "Display task cpu core: %u", xPortGetCoreID());
 		if(!isConnected()) {
 			LogHandler::warning(_TAG, "Display not connected when starting loop");
   			vTaskDelete( NULL );
@@ -361,7 +364,9 @@ private:
 	String m_fanState = "Unknown";
 	String m_HeatState = "Unknown";
 	String m_HeatStateShort = "U";
-	double m_batteryVoltage = 0.0;
+	float m_batteryVoltage = 0.0;
+	int m_batteryCapacityRemainingPercentage;
+	float m_batteryTemperature;
 
 	Adafruit_SSD1306_RSB display;
 	bool m_animationPlaying = false;
@@ -556,23 +561,45 @@ private:
 		if(BatteryHandler::connected()) {
     		LogHandler::verbose(_TAG, "Enter draw battery");
 			if(SettingsHandler::batteryLevelNumeric) {
-				double voltageNumber = mapf(m_batteryVoltage, 0.0, 3.3, 0.0, SettingsHandler::batteryVoltageMax);
-				display.setCursor((SettingsHandler::Display_Screen_Width - (voltageNumber < 10.0 ? 3 : 4) * charWidth) - (WifiHandler::isConnected() ? 3 : 0) * charWidth, currentLine);
-				display.print(voltageNumber, 1);
+				//double voltageNumber = mapf(m_batteryVoltage, 0.0, 3.3, 0.0, SettingsHandler::batteryVoltageMax);
+				if (false) {//Display voltage
+					display.setCursor((SettingsHandler::Display_Screen_Width - (m_batteryVoltage < 10.0 ? 3 : 4) * charWidth) - (WifiHandler::isConnected() ? 3 : 0) * charWidth, currentLine);
+					display.print(m_batteryVoltage, 1);
+				} else {
+					display.setCursor((SettingsHandler::Display_Screen_Width - (m_batteryCapacityRemainingPercentage < 10.0 ? 3 : 4) * charWidth) - (WifiHandler::isConnected() ? 3 : 0) * charWidth, currentLine);
+					display.print(m_batteryCapacityRemainingPercentage, 1);
+					display.print("%");
+				}
 			} else {
 				int batteryBars;
-				if (m_batteryVoltage >= 3.17) { 
-					batteryBars = 5;
-				} else if (m_batteryVoltage < 3.17 && m_batteryVoltage > 3.09) {
-					batteryBars = 4;
-				} else if (m_batteryVoltage < 3.09 && m_batteryVoltage > 3.02) {
-					batteryBars = 3;
-				} else if (m_batteryVoltage < 3.02 && m_batteryVoltage > 2.92) {
-					batteryBars = 2;
-				} else if (m_batteryVoltage < 2.92 && m_batteryVoltage > 2.83) {
-					batteryBars = 1;
+				if(false) {//Display voltage
+					if (m_batteryVoltage >= 3.17) { 
+						batteryBars = 5;
+					} else if (m_batteryVoltage < 3.17 && m_batteryVoltage > 3.09) {
+						batteryBars = 4;
+					} else if (m_batteryVoltage < 3.09 && m_batteryVoltage > 3.02) {
+						batteryBars = 3;
+					} else if (m_batteryVoltage < 3.02 && m_batteryVoltage > 2.92) {
+						batteryBars = 2;
+					} else if (m_batteryVoltage < 2.92 && m_batteryVoltage > 2.83) {
+						batteryBars = 1;
+					} else {
+						batteryBars = 0;
+					}
 				} else {
-					batteryBars = 0;
+					if (m_batteryCapacityRemainingPercentage >= 80) { 
+						batteryBars = 5;
+					} else if (m_batteryCapacityRemainingPercentage < 80 && m_batteryCapacityRemainingPercentage > 60) {
+						batteryBars = 4;
+					} else if (m_batteryCapacityRemainingPercentage < 60 && m_batteryCapacityRemainingPercentage > 40) {
+						batteryBars = 3;
+					} else if (m_batteryCapacityRemainingPercentage < 40 && m_batteryCapacityRemainingPercentage > 20) {
+						batteryBars = 2;
+					} else if (m_batteryCapacityRemainingPercentage < 20 && m_batteryCapacityRemainingPercentage > 1) {
+						batteryBars = 1;
+					} else {
+						batteryBars = 0;
+					}
 				}
 				for (int b=0; b < batteryBars; b++) {
 					display.fillRect(
