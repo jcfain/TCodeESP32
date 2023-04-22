@@ -93,6 +93,12 @@
 	"batteryLevelNumeric": false,
 	"batteryVoltageMax": null,
 	"batteryCapacityMax": null,
+	"motionUpdateGlobal": null,
+	"motionPeriodGlobal": null,
+	"motionAmplitudeGlobal": null,
+	"motionOffsetGlobal": null,
+	"motionPhaseGlobal": null,
+	"motionReversedGlobal": null,
 	"log-exclude-tags": [],
 	"log-include-tags": []
 }

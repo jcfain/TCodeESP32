@@ -915,6 +915,117 @@
 					</tr>
 				</tbody>
 			</table>
+			<table id="motionGeneratorSettingsTable" class="formTable">
+				<tbody>
+					<tr>
+						<th colspan="2">
+							<h3>Motion generator</h3>
+						</th>
+					</tr>
+					<tr>
+						<td><span>Enabled</span></td>
+						<td>
+							<input id="motionEnabled" type="checkbox" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr tite="This is the time in between updates that gives the system time to process other tasks. (DO NOT SET TOO LOW ON ESP32!)\nIt may be best to just leave at default.">
+						<td><span>Update rate (ms)</span></td>
+						<td>
+							<input id="motionUpdateGlobal" type="number" min="1" step="1" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr tite="THis is the time it takes to make a revolution.\nLower is faster movement.">
+						<td><span>Period (ms)</span></td>
+						<td>
+							<input id="motionPeriodGlobal" type="number" min="0" step="100" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td><span>Period random</span></td>
+						<td>
+							<input id="motionPeriodGlobalRandom" type="checkbox" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr id="motionPeriodGlobalRandomMinRow">
+						<td><span>Min</span></td>
+						<td>
+							<input id="motionPeriodGlobalRandomMin" type="number" min="0" step="100" step="1" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr id="motionPeriodGlobalRandomMaxRow">
+						<td><span>Max</span></td>
+						<td>
+							<input id="motionPeriodGlobalRandomMax" type="number" min="0" step="100" step="1" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td><span>Amplitude</span></td>
+						<td>
+							<input id="motionAmplitudeGlobal" type="number" min="0" max="90" step="1" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td><span>Amplitude random</span></td>
+						<td>
+							<input id="motionAmplitudeGlobalRandom" type="checkbox" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr id="motionAmplitudeGlobalRandomMinRow">
+						<td><span>Min</span></td>
+						<td>
+							<input id="motionAmplitudeGlobalRandomMin" type="number" min="0" max="90" step="1" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr id="motionAmplitudeGlobalRandomMaxRow">
+						<td><span>Max</span></td>
+						<td>
+							<input id="motionAmplitudeGlobalRandomMax" type="number" min="0" max="90" step="1" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td><span>Offset from 0</span></td>
+						<td>
+							<input id="motionOffsetGlobal" type="number" min="-90" max="90" step="1" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td><span>Offset random</span></td>
+						<td>
+							<input id="motionOffsetGlobalRandom" type="checkbox" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr id="motionOffsetGlobalRandomMinRow">
+						<td><span>Min</span></td>
+						<td>
+							<input id="motionOffsetGlobalRandomMin" type="number" min="-90" max="90" step="1" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr id="motionOffsetGlobalRandomMaxRow">
+						<td><span>Max</span></td>
+						<td>
+							<input id="motionOffsetGlobalRandomMax" type="number" min="-90" max="90" step="1" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr title="Initial phase in degrees. The phase should ideally be between (offset-amplitude/2) and (offset+amplitude/2)">
+						<td><span>Phase</span></td>
+						<td>
+							<input id="motionPhaseGlobal" type="number" min="0" step="0.10" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<!-- <tr>
+						<td><span>Reverse</span></td>
+						<td>
+							<input id="motionReversedGlobal" type="checkbox" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr> -->
+					<tr>
+						<td><span></span></td>
+						<td>
+							<button id="motionDefault" onclick="setMotionGeneratorSettingsDefault()">Default</button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
 			<table id="channelTestsTable" class="formTable">
 			</table>
 			<table id="systemInfoTable" class="formTable">

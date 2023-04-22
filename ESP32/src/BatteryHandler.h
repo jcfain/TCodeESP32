@@ -80,12 +80,6 @@ public:
         }
         LogHandler::info(_TAG, "Monitor connected!");
         m_battery_connected = true;
-        if(SettingsHandler::batteryCapacityMax <= 0 ) {
-            LogHandler::info(_TAG, "Setting default capacity to 3500");
-            SettingsHandler::batteryCapacityMax = 3500;
-            BatteryHandler::setBatteryToFull();
-            SettingsHandler::save();
-        }
         gauge.setADCMode(ADC_MODE_SLEEP); // In sleep mode, voltage and temperature measurements will only take place when requested
         setBatteryCapacity(SettingsHandler::batteryCapacityMax);
         gauge.startMeasurement();

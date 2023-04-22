@@ -26,6 +26,8 @@ SOFTWARE. */
 #include <Arduino.h>
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
+#include "SettingsHandler.h"
+#include "LogHandler.h"
 #include "TagHandler.h"
 
 

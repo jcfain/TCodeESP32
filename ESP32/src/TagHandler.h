@@ -44,6 +44,7 @@ class TagHandler {
     static const char* BLDCHandler;
     static const char* ToyHandler;
     static const char* MotorHandler;
+    static const char* MotionHandler;
 
     static const std::vector<const char *> AvailableTags;
 };
@@ -67,6 +68,7 @@ const char* TagHandler::TCodeHandler = "tcode-handler";
 const char* TagHandler::BLDCHandler = "bldc-handler";
 const char* TagHandler::ToyHandler = "toy-handler";
 const char* TagHandler::MotorHandler = "motor-handler";
+const char* TagHandler::MotionHandler = "motion-handler";
 
 const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::Main,
@@ -89,6 +91,7 @@ const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::TCodeHandler,
     TagHandler::BLDCHandler,
     TagHandler::ToyHandler,
-    TagHandler::MotorHandler
+    TagHandler::MotorHandler,
+    TagHandler::MotionHandler
 
 };

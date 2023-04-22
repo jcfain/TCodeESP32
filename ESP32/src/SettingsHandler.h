@@ -32,6 +32,8 @@ SOFTWARE. */
 
 #define featureCount 7
 
+using SETTING_STATE_FUNCTION_PTR_T = void (*)(const char* group, const char* settingNameThatChanged);
+
 enum class TCodeVersion {
     v0_2,
     v0_3,
@@ -64,6 +66,7 @@ class SettingsHandler
 {
   public:
 
+        static bool initialized;
         static bool saving;
         static bool fullBuild;
         static bool debug;
@@ -259,6 +262,16 @@ class SettingsHandler
 
 			if(loadingDefault)
 				save();
+            initialized = true;
+        }
+
+        static void setMessageCallback(SETTING_STATE_FUNCTION_PTR_T f) {
+            LogHandler::debug(_TAG, "setMessageCallback");
+            if (f == nullptr) {
+                message_callback = 0;
+            } else {
+                message_callback = f;
+            }
         }
 
         static void defaultAll() 
@@ -509,7 +522,7 @@ class SettingsHandler
                 batteryLevelEnabled = json["batteryLevelEnabled"];
                 batteryLevelNumeric = json["batteryLevelNumeric"];
                 batteryVoltageMax = json["batteryVoltageMax"] | 12.6;
-                batteryCapacityMax = json["batteryCapacityMax"] | 0;// Let batteryHandler set the default
+                batteryCapacityMax = json["batteryCapacityMax"] | 3500;
                 
                 #if !CRIMZZON_BUILD
                     caseFanFrequency = json["caseFanFrequency"] | 25;
@@ -518,6 +531,24 @@ class SettingsHandler
                 caseFanMaxDuty = pow(2, caseFanResolution) - 1;
                 
                 lubeEnabled = json["lubeEnabled"];
+
+                setValue(json, motionEnabled, "motionGenerator", "motionEnabled", false);
+                setValue(json, motionUpdateGlobal, "motionGenerator", "motionUpdateGlobal", 100);
+                setValue(json, motionPeriodGlobal, "motionGenerator","motionPeriodGlobal",  2000); 
+                setValue(json, motionAmplitudeGlobal, "motionGenerator", "motionAmplitudeGlobal", 60); 
+                setValue(json, motionOffsetGlobal, "motionGenerator", "motionOffsetGlobal", 0); 
+                setValue(json, motionPhaseGlobal, "motionGenerator", "motionPhaseGlobal", 0);  
+                setValue(json, motionReversedGlobal, "motionGenerator", "motionReversedGlobal", false);  
+                setValue(json, motionPeriodGlobalRandom, "motionGenerator", "motionPeriodGlobalRandom", false); 
+                setValue(json, motionPeriodGlobalRandomMin, "motionGenerator", "motionPeriodGlobalRandomMin", 500);  
+                setValue(json, motionPeriodGlobalRandomMax, "motionGenerator", "motionPeriodGlobalRandomMax", 2000);   
+                setValue(json, motionAmplitudeGlobalRandom, "motionGenerator", "motionAmplitudeGlobalRandom", false); 
+                setValue(json, motionAmplitudeGlobalRandomMin, "motionGenerator", "motionAmplitudeGlobalRandomMin", 20);  
+                setValue(json, motionAmplitudeGlobalRandomMax, "motionGenerator", "motionAmplitudeGlobalRandomMax", 70);   
+                setValue(json, motionOffsetGlobalRandom, "motionGenerator", "motionOffsetGlobalRandom", false);  
+                setValue(json, motionOffsetGlobalRandomMin, "motionGenerator", "motionOffsetGlobalRandomMin",  20);  
+                setValue(json, motionOffsetGlobalRandomMax, "motionGenerator", "motionOffsetGlobalRandomMax", 50);  
+
                 lastRebootReason = machine_reset_cause();
                 LogHandler::info(_TAG, "Last reset reason: %s", SettingsHandler::lastRebootReason);
                 LogUpdateDebug();
@@ -525,6 +556,105 @@ class SettingsHandler
             } 
             return false;
         }
+
+
+        static bool getMotionEnabled() {
+            return motionEnabled;
+        }
+        static void setMotionEnabled(bool newValue) {
+            setValue(newValue, motionEnabled, "motionGenerator", "motionEnabled");
+        }
+        static int getMotionUpdateGlobal() {
+            return motionUpdateGlobal;
+        }
+        static void setMotionUpdateGlobal(int newValue) {
+            setValue(newValue, motionUpdateGlobal, "motionGenerator", "motionUpdateGlobal");
+        }
+        static int getMotionPeriodGlobal() {
+            return motionPeriodGlobal;
+        }
+        static void setMotionPeriodGlobal(int newValue) {
+            setValue(newValue, motionPeriodGlobal, "motionGenerator", "motionPeriodGlobal");
+        }
+        static int getMotionAmplitudeGlobal() {
+            return motionAmplitudeGlobal;
+        }
+        static void setMotionAmplitudeGlobal(int newValue) {
+            setValue(newValue, motionAmplitudeGlobal, "motionGenerator", "motionAmplitudeGlobal");
+        }
+        static int getMotionOffsetGlobal() {
+            return motionOffsetGlobal;
+        }
+        static void setMotionOffsetGlobal(int newValue) {
+            setValue(newValue, motionOffsetGlobal, "motionGenerator", "motionOffsetGlobal");
+        }
+        static float getMotionPhaseGlobal() {
+            return motionPhaseGlobal;
+        }
+        static void setMotionPhaseGlobal(float newValue) {
+            setValue(newValue, motionPhaseGlobal, "motionGenerator", "motionPhaseGlobal");
+        }
+        static bool getMotionReversedGlobal() {
+            return motionReversedGlobal;
+        }
+        static void setMotionReversedGlobal(bool newValue) {
+            setValue(newValue, motionReversedGlobal, "motionGenerator", "motionReversedGlobal");
+        }
+        static bool getMotionPeriodGlobalRandom() {
+            return motionPeriodGlobalRandom;
+        }
+        static void setMotionPeriodGlobalRandom(bool newValue) {
+            setValue(newValue, motionPeriodGlobalRandom, "motionGenerator", "motionPeriodGlobalRandom");
+        }
+        static int getMotionPeriodGlobalRandomMin() {
+            return motionPeriodGlobalRandomMin;
+        }
+        static void setMotionPeriodGlobalRandomMin(int newValue) {
+            setValue(newValue, motionPeriodGlobalRandomMin, "motionGenerator", "motionPeriodGlobalRandomMin");
+        }
+        static int getMotionPeriodGlobalRandomMax() {
+            return motionPeriodGlobalRandomMax;
+        }
+        static void setMotionPeriodGlobalRandomMax(int newValue) {
+            setValue(newValue, motionPeriodGlobalRandomMax, "motionGenerator", "motionPeriodGlobalRandomMax");
+        }
+        static bool getMotionAmplitudeGlobalRandom() {
+            return motionAmplitudeGlobalRandom;
+        }
+        static void setMotionAmplitudeGlobalRandom(bool newValue) {
+            setValue(newValue, motionAmplitudeGlobalRandom, "motionGenerator", "motionAmplitudeGlobalRandom");
+        }
+        static int getMotionAmplitudeGlobalRandomMin() {
+            return motionAmplitudeGlobalRandomMin;
+        }
+        static void setMotionAmplitudeGlobalRandomMin(int newValue) {
+            setValue(newValue, motionAmplitudeGlobalRandomMin, "motionGenerator", "motionAmplitudeGlobalRandomMin");
+        }
+        static int getMotionAmplitudeGlobalRandomMax() {
+            return motionAmplitudeGlobalRandomMax;
+        }
+        static void setMotionAmplitudeGlobalRandomMax(int newValue) {
+            setValue(newValue, motionAmplitudeGlobalRandomMax, "motionGenerator", "motionAmplitudeGlobalRandomMax");
+        }
+        static bool getMotionOffsetGlobalRandom() {
+            return motionOffsetGlobalRandom;
+        }
+        static void setMotionOffsetGlobalRandom(bool newValue) {
+            setValue(newValue, motionOffsetGlobalRandom, "motionGenerator", "motionOffsetGlobalRandom");
+        }
+        static int getMotionOffsetGlobalRandomMin() {
+            return motionOffsetGlobalRandomMin;
+        }
+        static void setMotionOffsetGlobalRandomMin(int newValue) {
+            setValue(newValue, motionOffsetGlobalRandomMin, "motionGenerator", "motionOffsetGlobalRandomMin");
+        }
+        static int getMotionOffsetGlobalRandomMax() {
+            return motionOffsetGlobalRandomMax;
+        }
+        static void setMotionOffsetGlobalRandomMax(int newValue) {
+            setValue(newValue, motionOffsetGlobalRandomMax, "motionGenerator", "motionOffsetGlobalRandomMax");
+        }
+
 
         //Untested
      /*    static bool parse(const String jsonInput) 
@@ -567,6 +697,7 @@ class SettingsHandler
             if(strcmp(doc["wifiPass"], defaultWifiPass) != 0 )
                 doc["wifiPass"] = "Too bad haxor!";// Do not send password if its not default
                 
+            doc["motionEnabled"] = motionEnabled;
             String output;
             serializeJson(doc, output);
             //serializeJson(doc, Serial);
@@ -816,6 +947,22 @@ class SettingsHandler
             doc["batteryVoltageMax"] = round2(batteryVoltageMax);
             doc["batteryCapacityMax"] = batteryCapacityMax;
             
+            //doc["motionEnabled"] = motionEnabled;
+            doc["motionUpdateGlobal"] = motionUpdateGlobal;
+            doc["motionPeriodGlobal"] = motionPeriodGlobal;
+            doc["motionAmplitudeGlobal"] = motionAmplitudeGlobal;
+            doc["motionOffsetGlobal"] = motionOffsetGlobal;
+            doc["motionPhaseGlobal"] = motionPhaseGlobal;
+            doc["motionReversedGlobal"] = motionReversedGlobal;
+            doc["motionPeriodGlobalRandom"] = motionPeriodGlobalRandom;
+            doc["motionAmplitudeGlobalRandom"] = motionAmplitudeGlobalRandom;
+            doc["motionPeriodGlobalRandomMin"] = motionPeriodGlobalRandomMin; 
+            doc["motionPeriodGlobalRandomMax"] = motionPeriodGlobalRandomMax; 
+            doc["motionAmplitudeGlobalRandomMin"] = motionAmplitudeGlobalRandomMin; 
+            doc["motionAmplitudeGlobalRandomMax"] = motionAmplitudeGlobalRandomMax; 
+            doc["motionOffsetGlobalRandomMin"] = motionOffsetGlobalRandomMin; 
+            doc["motionOffsetGlobalRandomMax"] = motionOffsetGlobalRandomMax; 
+            
             JsonArray includes = doc.createNestedArray("log-include-tags");
             std::vector<String> includesVec = LogHandler::getIncludes();
             for(int i = 0; i < includesVec.size(); i++) {
@@ -848,7 +995,7 @@ class SettingsHandler
             }
 			//Stopped working for some reason...
             //Printing all defaults
-            //LogSaveDebug(doc);
+            LogSaveDebug(doc);
 
             if (serializeJson(doc, file) == 0) 
             {
@@ -1001,12 +1148,85 @@ class SettingsHandler
     private:
         static const char* _TAG;
         static const char* userSettingsDefaultFilePath;
+	    static SETTING_STATE_FUNCTION_PTR_T message_callback;
         // Use http://arduinojson.org/assistant to compute the capacity.
         // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
         // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
 		static const int deserializeSize = 6144;
 		static const int serializeSize = 3072;
         //3072
+
+        static bool motionEnabled;
+        static int motionUpdateGlobal;    
+        static int motionPeriodGlobal; 
+        static int motionAmplitudeGlobal;  
+        static int motionOffsetGlobal;   
+        static bool motionPeriodGlobalRandom;
+        static int motionPeriodGlobalRandomMin; 
+        static int motionPeriodGlobalRandomMax; 
+        static bool motionAmplitudeGlobalRandom; 
+        static int motionAmplitudeGlobalRandomMin; 
+        static int motionAmplitudeGlobalRandomMax; 
+        static bool motionOffsetGlobalRandom;  
+        static int motionOffsetGlobalRandomMin; 
+        static int motionOffsetGlobalRandomMax; 
+        static float motionPhaseGlobal;  
+        static bool motionReversedGlobal;   
+
+        static void sendMessage(const char* group, const char* message) {
+            if(message_callback) {
+                LogHandler::debug(_TAG, "sendMessage: message_callback group %s: %s", group, message);
+                message_callback(group, message);
+            } else {
+                LogHandler::debug(_TAG, "sendMessage: message_callback 0");
+            }
+        }
+
+        static void setValue(JsonObject json, bool &variable, const char* propertyGroup, const char* propertyName, bool defaultValue) {
+            bool newValue = json[propertyName] | defaultValue;
+            setValue(newValue, variable, propertyGroup, propertyName);
+        }
+        static void setValue(JsonObject json, char* &variable, const char* propertyGroup, const char* propertyName, const char* defaultValue) {
+            const char* newValue = json[propertyName] | defaultValue;
+            setValue(newValue, variable, propertyGroup, propertyName);
+        }
+        static void setValue(JsonObject json, int &variable, const char* propertyGroup, const char* propertyName, int defaultValue) {
+            int newValue = json[propertyName] | defaultValue;
+            setValue(newValue, variable, propertyGroup, propertyName);
+        }
+        static void setValue(JsonObject json, float &variable, const char* propertyGroup, const char* propertyName, float defaultValue) {
+            float newValue = json[propertyName] | defaultValue;
+            setValue(newValue, variable, propertyGroup, propertyName);
+        }
+
+        static void setValue(bool newValue, bool &variable, const char* propertyGroup, const char* propertyName) {
+            bool valueChanged = initialized && variable != newValue;
+            LogHandler::debug(TagHandler::SettingsHandler, "Set bool '%s' oldValue '%ld' newValue '%ld' changed: '%ld'", propertyName, variable, newValue, valueChanged);
+            variable = newValue;
+            if(valueChanged)
+                sendMessage(propertyGroup, propertyName);
+        }
+        static void setValue(const char* newValue, char* &variable, const char* propertyGroup, const char* propertyName) {
+            bool valueChanged = initialized && strcmp(variable, newValue) != -1;
+            LogHandler::debug(TagHandler::SettingsHandler, "Set char* '%s' oldValue '%s' newValue '%s' changed: '%ld'", propertyName, variable, newValue, valueChanged);
+            strcpy(variable, newValue);
+            if(valueChanged)
+                sendMessage(propertyGroup, propertyName);
+        }
+        static void setValue(int newValue, int &variable, const char* propertyGroup, const char* propertyName) {
+            bool valueChanged = initialized && variable != newValue;
+            LogHandler::debug(TagHandler::SettingsHandler, "Set int '%s' oldValue '%ld' newValue '%ld' changed: '%ld'", propertyName, variable, newValue, valueChanged);
+            variable = newValue;
+            if(valueChanged)
+                sendMessage(propertyGroup, propertyName);
+        }
+        static void setValue(float newValue, float &variable, const char* propertyGroup, const char* propertyName) {
+            bool valueChanged = initialized && variable != newValue;
+            LogHandler::debug(TagHandler::SettingsHandler, "Set float '%s' oldValue '%f' newValue '%f' changed: '%ld'", propertyName, variable, newValue, valueChanged);
+            variable = newValue;
+            if(valueChanged)
+                sendMessage(propertyGroup, propertyName);
+        }
 
         static int calculateRange(const char* channel, int value) 
         {
@@ -1124,6 +1344,7 @@ class SettingsHandler
         {
             LogHandler::debug(_TAG, "save TCodeVersionEnum: %i", doc["TCodeVersion"].as<int>());
             LogHandler::debug(_TAG, "save ssid: %s", doc["ssid"].as<String>());
+            //LogHandler::debug(_TAG, "save pass: %s", doc["wifiPass"].as<String>());
             LogHandler::debug(_TAG, "save udpServerPort: %i", doc["udpServerPort"].as<int>());
             LogHandler::debug(_TAG, "save webServerPort: %i", doc["webServerPort"].as<int>());
             LogHandler::debug(_TAG, "save hostname: %s", doc["hostname"].as<String>());
@@ -1274,16 +1495,18 @@ class SettingsHandler
             
         }
 };
+bool SettingsHandler::initialized = false;
 bool SettingsHandler::saving = false;
 bool SettingsHandler::fullBuild = false;
 
 BoardType SettingsHandler::boardType = BoardType::DEVKIT;
 BuildFeature SettingsHandler::buildFeatures[featureCount];
 const char* SettingsHandler::_TAG = TagHandler::SettingsHandler;
+SETTING_STATE_FUNCTION_PTR_T SettingsHandler::message_callback = 0;
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
 MotorType SettingsHandler::motorType = MotorType::Servo;
-const char SettingsHandler::ESP32Version[8] = "v0.276b";
+const char SettingsHandler::ESP32Version[8] = "v0.28b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char* SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
@@ -1410,3 +1633,20 @@ const char* SettingsHandler::lastRebootReason;
 int SettingsHandler::strokerSamples = 100;
 int SettingsHandler::strokerOffset = 3276;
 int SettingsHandler::strokerAmplitude = 32767;
+
+bool SettingsHandler::motionEnabled = false;
+int SettingsHandler::motionUpdateGlobal; 
+int SettingsHandler::motionPeriodGlobal;    
+int SettingsHandler::motionAmplitudeGlobal;  
+int SettingsHandler::motionOffsetGlobal;      
+float SettingsHandler::motionPhaseGlobal;  
+bool SettingsHandler::motionReversedGlobal = false;   
+bool SettingsHandler::motionPeriodGlobalRandom = false;
+bool SettingsHandler::motionAmplitudeGlobalRandom = false; 
+bool SettingsHandler::motionOffsetGlobalRandom = false;  
+int SettingsHandler::motionPeriodGlobalRandomMin;     
+int SettingsHandler::motionPeriodGlobalRandomMax;     
+int SettingsHandler::motionAmplitudeGlobalRandomMin;     
+int SettingsHandler::motionAmplitudeGlobalRandomMax;     
+int SettingsHandler::motionOffsetGlobalRandomMin;     
+int SettingsHandler::motionOffsetGlobalRandomMax;     

@@ -71,11 +71,14 @@ SOFTWARE. */
 #endif
 
 #include "BatteryHandler.h"
+#include "MotionHandler.h"
 
 //TcpHandler tcpHandler;
 MotorHandler* motorHandler;
 BatteryHandler* batteryHandler;
 TaskHandle_t batteryTask;
+
+MotionHandler motionHandler;
 
 #if WIFI_TCODE
 	Udphandler* udpHandler = 0;
@@ -108,6 +111,7 @@ bool restarting = false;
 
 char udpData[600];
 char webSocketData[600];
+char movement[600];
 
 void displayPrint(String text) {
 	#if DISPLAY_ENABLED
@@ -297,6 +301,44 @@ void batteryVoltageCallback(float capacityRemainingPercentage, float capacityRem
 	#endif
 }
 
+void settingChangeCallback(const char* group, const char* settingThatChanged) {
+    LogHandler::debug(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
+	if(strcmp(group, "motionGenerator") == 0) {
+		if(strcmp(settingThatChanged, "motionEnabled") == 0) 
+			motionHandler.setEnabled(SettingsHandler::getMotionEnabled());
+		else if(strcmp(settingThatChanged, "motionAmplitudeGlobal") == 0) 
+			motionHandler.setAmplitude(SettingsHandler::getMotionAmplitudeGlobal());
+		else if(strcmp(settingThatChanged, "motionOffsetGlobal") == 0) 
+			motionHandler.setOffset(SettingsHandler::getMotionOffsetGlobal());
+		else if(strcmp(settingThatChanged, "motionUpdateGlobal") == 0) 
+			motionHandler.setPeriod(SettingsHandler::getMotionPeriodGlobal());
+		else if(strcmp(settingThatChanged, "motionUpdateGlobal") == 0) 
+			motionHandler.setUpdate(SettingsHandler::getMotionUpdateGlobal());
+		else if(strcmp(settingThatChanged, "motionPhaseGlobal") == 0) 
+			motionHandler.setPhase(SettingsHandler::getMotionPhaseGlobal());
+		else if(strcmp(settingThatChanged, "motionReversedGlobal") == 0) 
+			motionHandler.setReverse(SettingsHandler::getMotionReversedGlobal());
+		else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandom") == 0) 
+			motionHandler.setAmplitudeRandom(SettingsHandler::getMotionAmplitudeGlobalRandom());
+		else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandomMin") == 0) 
+			motionHandler.setAmplitudeRandomMin(SettingsHandler::getMotionAmplitudeGlobalRandomMin());
+		else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandomMax") == 0) 
+			motionHandler.setAmplitudeRandomMax(SettingsHandler::getMotionAmplitudeGlobalRandomMax());
+		else if(strcmp(settingThatChanged, "motionPeriodGlobalRandom") == 0) 
+			motionHandler.setPeriodRandom(SettingsHandler::getMotionPeriodGlobalRandom());
+		else if(strcmp(settingThatChanged, "motionPeriodGlobalRandomMin") == 0) 
+			motionHandler.setPeriodRandomMin(SettingsHandler::getMotionPeriodGlobalRandomMin());
+		else if(strcmp(settingThatChanged, "motionPeriodGlobalRandomMax") == 0) 
+			motionHandler.setPeriodRandomMax(SettingsHandler::getMotionPeriodGlobalRandomMax());
+		else if(strcmp(settingThatChanged, "motionOffsetGlobalRandom") == 0) 
+			motionHandler.setOffsetRandom(SettingsHandler::getMotionOffsetGlobalRandom());
+		else if(strcmp(settingThatChanged, "motionOffsetGlobalRandomMin") == 0) 
+			motionHandler.setOffsetRandomMin(SettingsHandler::getMotionOffsetGlobalRandomMin());
+		else if(strcmp(settingThatChanged, "motionOffsetGlobalRandomMax") == 0) 
+			motionHandler.setOffsetRandomMax(SettingsHandler::getMotionOffsetGlobalRandomMax());
+	}
+}
+
 void setup() 
 {
 	// see if we can use the onboard led for status
@@ -460,7 +502,10 @@ void setup()
 			}
 	}
 #endif
+
+	motionHandler.setup(SettingsHandler::TCodeVersionEnum);
     LogHandler::debug(TagHandler::Main, "xPortGetFreeHeapSize: %u", xPortGetFreeHeapSize());
+	SettingsHandler::setMessageCallback(settingChangeCallback);
 	setupSucceeded = true;
     LogHandler::debug(TagHandler::Main, "Setup finished");
 }
@@ -499,7 +544,7 @@ void loop() {
 				//LogHandler::debug(TagHandler::MainLoop, "webSocket writing: %s", webSocketData);
 				motorHandler->read(webSocketData);
 			} else if (!apMode && strlen(udpData) > 0) {
-				LogHandler::debug(TagHandler::MainLoop, "udp writing: %s", udpData);
+				LogHandler::verbose(TagHandler::MainLoop, "udp writing: %s", udpData);
 				motorHandler->read(udpData);
 			} 
 			else 
@@ -515,13 +560,20 @@ void loop() {
 				servoHandler->read(serialData);
 			}
 #endif
+			else if (SettingsHandler::getMotionEnabled()) {
+				motionHandler.getMovement(movement);
+				if(strlen(movement) > 0) {
+					LogHandler::verbose(TagHandler::MainLoop, "motion handler writing: %s", movement);
+					motorHandler->read(movement);
+				}
+			} 
 
-			if (strlen(udpData) == 0 && strlen(webSocketData) == 0 && serialData.length() == 0) {// No wifi or websocket data 
+			if (strlen(movement) == 0 && strlen(udpData) == 0 && strlen(webSocketData) == 0 && serialData.length() == 0) {// No data from above
 				motorHandler->execute();
 			}
 		}
 	}
-	#if TEMP_ENABLED
+#if TEMP_ENABLED
 		if(setupSucceeded && temperatureHandler && temperatureHandler->isRunning()) {
 			if(SettingsHandler::tempSleeveEnabled) {
 				temperatureHandler->setHeaterState();
@@ -530,8 +582,7 @@ void loop() {
 				temperatureHandler->setFanState();
 			}
 		}
-	#endif
-
+#endif
 	if(!setupSucceeded) {
 		LogHandler::error(TagHandler::Main, "There was an issue in setup");
         vTaskDelay(5000/portTICK_PERIOD_MS);

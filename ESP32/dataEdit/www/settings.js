@@ -634,6 +634,26 @@ function setUserSettings()
         excludedElement.options[i].selected = userSettings["log-exclude-tags"].indexOf(excludedElement.options[i].value) >= 0;
     }
     
+    document.getElementById('motionEnabled').checked = userSettings["motionEnabled"];
+    document.getElementById('motionUpdateGlobal').value = userSettings["motionUpdateGlobal"];
+    document.getElementById('motionPeriodGlobal').value = userSettings["motionPeriodGlobal"];
+    document.getElementById('motionAmplitudeGlobal').value = userSettings["motionAmplitudeGlobal"];
+    document.getElementById('motionOffsetGlobal').value = userSettings["motionOffsetGlobal"];  
+    document.getElementById('motionPhaseGlobal').value = userSettings["motionPhaseGlobal"];
+    document.getElementById('motionPeriodGlobalRandom').checked = userSettings["motionPeriodGlobalRandom"];
+    document.getElementById('motionAmplitudeGlobalRandom').checked = userSettings["motionAmplitudeGlobalRandom"];
+    document.getElementById('motionOffsetGlobalRandom').checked = userSettings["motionOffsetGlobalRandom"];
+    toggleMotionRandomSettings();
+    document.getElementById('motionPeriodGlobalRandomMin').value = userSettings["motionPeriodGlobalRandomMin"];
+    document.getElementById('motionPeriodGlobalRandomMax').value = userSettings["motionPeriodGlobalRandomMax"];
+    document.getElementById('motionAmplitudeGlobalRandomMin').value = userSettings["motionAmplitudeGlobalRandomMin"];
+    document.getElementById('motionAmplitudeGlobalRandomMax').value = userSettings["motionAmplitudeGlobalRandomMax"];
+    document.getElementById('motionOffsetGlobalRandomMin').value = userSettings["motionOffsetGlobalRandomMin"];
+    document.getElementById('motionOffsetGlobalRandomMax').value = userSettings["motionOffsetGlobalRandomMax"];
+    
+					
+    //document.getElementById('motionReversedGlobal').checked = userSettings["motionReversedGlobal"];
+
     //document.getElementById('debugLink').hidden = !userSettings["debug"];
     
     AvailibleChannelsV2 = [
@@ -1617,6 +1637,24 @@ function updateCommonPins(pinValues) {
 // }
 
 
+function validateIntControl(controlID, settingVariable) {
+    var control = document.getElementById(controlID);
+    if(control.checkValidity()) {
+        settingVariable = parseInt(control.value);
+    }
+}
+function validateFloatControl(controlID, settingVariable) {
+    var control = document.getElementById(controlID);
+    if(control.checkValidity()) {
+        settingVariable = parseInt(control.value);
+    }
+}
+function validateStringControl(controlID, settingVariable) {
+    var control = document.getElementById(controlID);
+    if(control.checkValidity()) {
+        settingVariable = control.value;
+    }
+}
 /** 
  * Validates the pin number values in the forms inputs. 
  * Shows an error and returns the pin values or undefined if error
@@ -2003,14 +2041,14 @@ function updateZeros()
 
         if(validValue)
         {
-            userSettings["RightServo_ZERO"] = document.getElementById('RightServo_ZERO').value;
-            userSettings["LeftServo_ZERO"] = document.getElementById('LeftServo_ZERO').value;
-            userSettings["RightUpperServo_ZERO"] = document.getElementById('RightUpperServo_ZERO').value;
-            userSettings["LeftUpperServo_ZERO"] = document.getElementById('LeftUpperServo_ZERO').value;
-            userSettings["PitchLeftServo_ZERO"] = document.getElementById('PitchLeftServo_ZERO').value;
-            userSettings["PitchRightServo_ZERO"] = document.getElementById('PitchRightServo_ZERO').value;
-            userSettings["ValveServo_ZERO"] = document.getElementById('ValveServo_ZERO').value;
-            userSettings["TwistServo_ZERO"] = document.getElementById('TwistServo_ZERO').value;
+            userSettings["RightServo_ZERO"] = RightServo_ZERO;
+            userSettings["LeftServo_ZERO"] = LeftServo_ZERO;
+            userSettings["RightUpperServo_ZERO"] = RightUpperServo_ZERO;
+            userSettings["LeftUpperServo_ZERO"] = LeftUpperServo_ZERO;
+            userSettings["PitchLeftServo_ZERO"] = PitchLeftServo_ZERO;
+            userSettings["PitchRightServo_ZERO"] = PitchRightServo_ZERO;
+            userSettings["ValveServo_ZERO"] = ValveServo_ZERO;
+            userSettings["TwistServo_ZERO"] = TwistServo_ZERO;
             updateUserSettings();
         }
         else
@@ -2131,6 +2169,54 @@ function setBatterySettings() {
 function setBatteryFull() {
     sendWebsocketCommand("setBatteryFull");
 }
+function toggleMotionRandomSettings() {
+    toggleControlVisabilityByID("motionPeriodGlobalRandomMinRow", userSettings["motionPeriodGlobalRandom"]);
+    toggleControlVisabilityByID("motionPeriodGlobalRandomMaxRow", userSettings["motionPeriodGlobalRandom"]);
+    toggleControlVisabilityByID("motionAmplitudeGlobalRandomMinRow", userSettings["motionAmplitudeGlobalRandom"]);
+    toggleControlVisabilityByID("motionAmplitudeGlobalRandomMaxRow", userSettings["motionAmplitudeGlobalRandom"]);
+    toggleControlVisabilityByID("motionOffsetGlobalRandomMinRow", userSettings["motionOffsetGlobalRandom"]);
+    toggleControlVisabilityByID("motionOffsetGlobalRandomMaxRow", userSettings["motionOffsetGlobalRandom"]);
+}
+function setMotionGeneratorSettings() {
+    userSettings["motionEnabled"] = document.getElementById('motionEnabled').checked;
+    validateIntControl('motionUpdateGlobal', userSettings["motionUpdateGlobal"]);
+    validateIntControl('motionPeriodGlobal', userSettings["motionPeriodGlobal"]);
+    validateIntControl('motionAmplitudeGlobal', userSettings["motionAmplitudeGlobal"]);
+    validateIntControl('motionOffsetGlobal', userSettings["motionOffsetGlobal"]);
+    validateIntControl('motionPhaseGlobal', userSettings["motionPhaseGlobal"]);
+
+    userSettings["motionPeriodGlobalRandom"] = document.getElementById('motionPeriodGlobalRandom').checked;
+    userSettings["motionAmplitudeGlobalRandom"] = document.getElementById('motionAmplitudeGlobalRandom').checked;
+    userSettings["motionOffsetGlobalRandom"] = document.getElementById('motionOffsetGlobalRandom').checked;
+    toggleMotionRandomSettings();
+
+    validateIntControl('motionPeriodGlobalRandomMin', userSettings["motionPeriodGlobalRandomMin"]);
+    validateIntControl('motionPeriodGlobalRandomMax', userSettings["motionPeriodGlobalRandomMax"]);
+    validateIntControl('motionAmplitudeGlobalRandomMin', userSettings["motionAmplitudeGlobalRandomMin"]);
+    validateIntControl('motionAmplitudeGlobalRandomMax', userSettings["motionAmplitudeGlobalRandomMax"]);
+    validateIntControl('motionOffsetGlobalRandomMin', userSettings["motionOffsetGlobalRandomMin"]);
+    validateIntControl('motionOffsetGlobalRandomMax', userSettings["motionOffsetGlobalRandomMax"]);
+    //userSettings["motionReversedGlobal"] = document.getElementById('motionReversedGlobal').checked;
+    updateUserSettings();
+}
+
+function setMotionGeneratorSettingsDefault() {
+    userSettings["motionEnabled"] = false;
+    userSettings["motionUpdateGlobal"] = 100;
+    userSettings["motionPeriodGlobal"] = 2000;
+    userSettings["motionAmplitudeGlobal"] = 60;
+    userSettings["motionOffsetGlobal"] = 0;  
+    userSettings["motionPhaseGlobal"] = 0;
+    userSettings["motionReversedGlobal"] = false;
+    document.getElementById('motionEnabled').checked = userSettings["motionEnabled"];
+    document.getElementById('motionUpdateGlobal').value = userSettings["motionUpdateGlobal"];
+    document.getElementById('motionPeriodGlobal').value = userSettings["motionPeriodGlobal"];
+    document.getElementById('motionAmplitudeGlobal').value = userSettings["motionAmplitudeGlobal"];
+    document.getElementById('motionOffsetGlobal').value = userSettings["motionOffsetGlobal"];  
+    document.getElementById('motionPhaseGlobal').value = userSettings["motionPhaseGlobal"];
+    document.getElementById('motionReversedGlobal').checked = userSettings["motionReversedGlobal"];
+    updateUserSettings();
+}
 function setFanControl() {
     userSettings["fanControlEnabled"] = document.getElementById('fanControlEnabled').checked;
     toggleFanControlSettings(userSettings["fanControlEnabled"]);
@@ -2211,6 +2297,22 @@ function updateWifiSettings() {
 	updateUserSettings();
 	
 }
+
+function toggleControlVisabilityByID(id, hidden) {
+    var control = document.getElementById(id);
+    control.style.display = hidden ? "revert" : "none";
+}
+function toggleControlVisabilityByName(name, hidden) {
+    var controls = document.getElementByName(name);
+    for(var i=0;i < controls.length; i++)
+        controls[i].style.display = hidden ? "revert" : "none";
+}
+function toggleControlVisabilityByClassName(name, hidden) {
+    var controls = document.getElementByClassName(name);
+    for(var i=0;i < controls.length; i++)
+        controls[i].style.display = hidden ? "revert" : "none";
+}
+
 function togglePitchServoFrequency(isChecked) 
 {
     if(isChecked) 

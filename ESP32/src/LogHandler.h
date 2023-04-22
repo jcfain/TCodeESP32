@@ -214,25 +214,30 @@ private:
     static std::vector<String> m_filters;
 
     static void parseMessage(const char* valueFormat, const char* level, const char* tag, LogLevel logLevel, va_list vArgs) {
-        if(strlen(valueFormat) > 1024) {
-            Serial.println("Log value too big for buffer");
-            return;
-        }
-        char temp[1024];
-        int len = vsnprintf(temp, sizeof(temp) - 1, valueFormat, vArgs);
-        temp[sizeof(temp) - 1] = 0;
-        int i;
-
-        for (i = len - 1; i >= 0; --i) {
-            if (temp[i] != '\n' && temp[i] != '\r' && temp[i] != ' ') {
-                break;
+        try {
+            if(strlen(valueFormat) > 1024) {
+                Serial.println("Log value too big for buffer");
+                return;
             }
-            temp[i] = 0;
-        }
-        if(i > 0) {
-            Serial.printf("%s %s: %s\n", level, tag, temp);
-            if(message_callback)
-                message_callback(temp, logLevel);
+            char temp[1024];
+            int len = vsnprintf(temp, sizeof(temp) - 1, valueFormat, vArgs);
+            temp[sizeof(temp) - 1] = 0;
+            int i;
+
+            for (i = len - 1; i >= 0; --i) {
+                if (temp[i] != '\n' && temp[i] != '\r' && temp[i] != ' ') {
+                    break;
+                }
+                temp[i] = 0;
+            }
+            if(i > 0) {
+                Serial.printf("%s %s: %s\n", level, tag, temp);
+                if(message_callback)
+                    message_callback(temp, logLevel);
+            }
+        } catch (...) {
+            Serial.print("Error processing log message.");
+            Serial.println(valueFormat);
         }
 
         
