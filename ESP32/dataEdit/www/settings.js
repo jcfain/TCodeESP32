@@ -42,7 +42,6 @@ const availableVersions = [
     {version: TCodeVersion.V3, versionName: "v0.3"},
 ] 
 const latestTCodeVersion = TCodeVersion.V3;
-
 const LogLevel = {
     ERROR: 0,
     WARNING: 1,
@@ -639,7 +638,7 @@ function setUserSettings()
     document.getElementById('motionPeriodGlobal').value = userSettings["motionPeriodGlobal"];
     document.getElementById('motionAmplitudeGlobal').value = userSettings["motionAmplitudeGlobal"];
     document.getElementById('motionOffsetGlobal').value = userSettings["motionOffsetGlobal"];  
-    document.getElementById('motionPhaseGlobal').value = userSettings["motionPhaseGlobal"];
+    // document.getElementById('motionPhaseGlobal').value = userSettings["motionPhaseGlobal"];
     document.getElementById('motionPeriodGlobalRandom').checked = userSettings["motionPeriodGlobalRandom"];
     document.getElementById('motionAmplitudeGlobalRandom').checked = userSettings["motionAmplitudeGlobalRandom"];
     document.getElementById('motionOffsetGlobalRandom').checked = userSettings["motionOffsetGlobalRandom"];
@@ -650,7 +649,12 @@ function setUserSettings()
     document.getElementById('motionAmplitudeGlobalRandomMax').value = userSettings["motionAmplitudeGlobalRandomMax"];
     document.getElementById('motionOffsetGlobalRandomMin').value = userSettings["motionOffsetGlobalRandomMin"];
     document.getElementById('motionOffsetGlobalRandomMax').value = userSettings["motionOffsetGlobalRandomMax"];
-    
+    document.getElementById('motionRandomChangeMax').value = userSettings["motionRandomChangeMax"];
+    document.getElementById('motionRandomChangeMin').value = userSettings["motionRandomChangeMin"];
+    setIntMinAndMax('motionPeriodGlobalRandomMin', 'motionPeriodGlobalRandomMax');
+    setIntMinAndMax('motionAmplitudeGlobalRandomMin', 'motionAmplitudeGlobalRandomMax');
+    setIntMinAndMax('motionOffsetGlobalRandomMin', 'motionOffsetGlobalRandomMax');
+    setIntMinAndMax('motionRandomChangeMin', 'motionRandomChangeMax');
 					
     //document.getElementById('motionReversedGlobal').checked = userSettings["motionReversedGlobal"];
 
@@ -1636,22 +1640,35 @@ function updateCommonPins(pinValues) {
 //     return { errors: errors, invalidPins: invalidPins } ;
 // }
 
-
-function validateIntControl(controlID, settingVariable) {
+function setIntMax(id, max) {
+    var max = document.getElementById(id);
+    max.setAttribute('max', parseInt(max));
+}
+/** Sets two numeric int controls to not overlap */
+function setIntMinAndMax(minID, maxID) {
+    var min = document.getElementById(minID);
+    var max = document.getElementById(maxID);
+    min.setAttribute('max', parseInt(max.value) - 1);
+    max.setAttribute('min', parseInt(min.value) + 1);
+}
+/** additionalValidations takes a parameter with the value */
+function validateIntControl(controlID, settingVariable, additionalValidations) {
     var control = document.getElementById(controlID);
-    if(control.checkValidity()) {
+    if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
         settingVariable = parseInt(control.value);
     }
 }
-function validateFloatControl(controlID, settingVariable) {
+/** additionalValidations takes a parameter with the value */
+function validateFloatControl(controlID, settingVariable, additionalValidations) {
     var control = document.getElementById(controlID);
-    if(control.checkValidity()) {
+    if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
         settingVariable = parseInt(control.value);
     }
 }
-function validateStringControl(controlID, settingVariable) {
+/** additionalValidations takes a parameter with the value */
+function validateStringControl(controlID, settingVariable, additionalValidations) {
     var control = document.getElementById(controlID);
-    if(control.checkValidity()) {
+    if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
         settingVariable = control.value;
     }
 }
@@ -2176,6 +2193,8 @@ function toggleMotionRandomSettings() {
     toggleControlVisabilityByID("motionAmplitudeGlobalRandomMaxRow", userSettings["motionAmplitudeGlobalRandom"]);
     toggleControlVisabilityByID("motionOffsetGlobalRandomMinRow", userSettings["motionOffsetGlobalRandom"]);
     toggleControlVisabilityByID("motionOffsetGlobalRandomMaxRow", userSettings["motionOffsetGlobalRandom"]);
+    toggleControlVisabilityByID("motionRandomChangeMinRow", userSettings["motionOffsetGlobalRandom"] || userSettings["motionAmplitudeGlobalRandom"] || userSettings["motionPeriodGlobalRandom"]);
+    toggleControlVisabilityByID("motionRandomChangeMaxRow", userSettings["motionOffsetGlobalRandom"] || userSettings["motionAmplitudeGlobalRandom"] || userSettings["motionPeriodGlobalRandom"]);
 }
 function setMotionGeneratorSettings() {
     userSettings["motionEnabled"] = document.getElementById('motionEnabled').checked;
@@ -2183,19 +2202,27 @@ function setMotionGeneratorSettings() {
     validateIntControl('motionPeriodGlobal', userSettings["motionPeriodGlobal"]);
     validateIntControl('motionAmplitudeGlobal', userSettings["motionAmplitudeGlobal"]);
     validateIntControl('motionOffsetGlobal', userSettings["motionOffsetGlobal"]);
-    validateIntControl('motionPhaseGlobal', userSettings["motionPhaseGlobal"]);
+    // validateFloatControl('motionPhaseGlobal', userSettings["motionPhaseGlobal"]);
 
     userSettings["motionPeriodGlobalRandom"] = document.getElementById('motionPeriodGlobalRandom').checked;
     userSettings["motionAmplitudeGlobalRandom"] = document.getElementById('motionAmplitudeGlobalRandom').checked;
     userSettings["motionOffsetGlobalRandom"] = document.getElementById('motionOffsetGlobalRandom').checked;
     toggleMotionRandomSettings();
 
+    setIntMinAndMax('motionPeriodGlobalRandomMin', 'motionPeriodGlobalRandomMax');
     validateIntControl('motionPeriodGlobalRandomMin', userSettings["motionPeriodGlobalRandomMin"]);
     validateIntControl('motionPeriodGlobalRandomMax', userSettings["motionPeriodGlobalRandomMax"]);
+    setIntMinAndMax('motionAmplitudeGlobalRandomMin', 'motionAmplitudeGlobalRandomMax');
     validateIntControl('motionAmplitudeGlobalRandomMin', userSettings["motionAmplitudeGlobalRandomMin"]);
     validateIntControl('motionAmplitudeGlobalRandomMax', userSettings["motionAmplitudeGlobalRandomMax"]);
+    setIntMinAndMax('motionOffsetGlobalRandomMin', 'motionOffsetGlobalRandomMax');
     validateIntControl('motionOffsetGlobalRandomMin', userSettings["motionOffsetGlobalRandomMin"]);
     validateIntControl('motionOffsetGlobalRandomMax', userSettings["motionOffsetGlobalRandomMax"]);
+    setIntMinAndMax('motionRandomChangeMin', 'motionRandomChangeMax');
+    validateIntControl('motionRandomChangeMin', userSettings["motionRandomChangeMin"]);
+    validateIntControl('motionRandomChangeMax', userSettings["motionRandomChangeMax"]);
+
+    
     //userSettings["motionReversedGlobal"] = document.getElementById('motionReversedGlobal').checked;
     updateUserSettings();
 }
@@ -2206,14 +2233,14 @@ function setMotionGeneratorSettingsDefault() {
     userSettings["motionPeriodGlobal"] = 2000;
     userSettings["motionAmplitudeGlobal"] = 60;
     userSettings["motionOffsetGlobal"] = 0;  
-    userSettings["motionPhaseGlobal"] = 0;
+    // userSettings["motionPhaseGlobal"] = 0;
     userSettings["motionReversedGlobal"] = false;
     document.getElementById('motionEnabled').checked = userSettings["motionEnabled"];
     document.getElementById('motionUpdateGlobal').value = userSettings["motionUpdateGlobal"];
     document.getElementById('motionPeriodGlobal').value = userSettings["motionPeriodGlobal"];
     document.getElementById('motionAmplitudeGlobal').value = userSettings["motionAmplitudeGlobal"];
     document.getElementById('motionOffsetGlobal').value = userSettings["motionOffsetGlobal"];  
-    document.getElementById('motionPhaseGlobal').value = userSettings["motionPhaseGlobal"];
+    // document.getElementById('motionPhaseGlobal').value = userSettings["motionPhaseGlobal"];
     document.getElementById('motionReversedGlobal').checked = userSettings["motionReversedGlobal"];
     updateUserSettings();
 }

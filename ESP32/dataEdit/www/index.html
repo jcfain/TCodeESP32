@@ -29,9 +29,9 @@
 							<h3>Wireless</h3>
 						</th>
 					</tr>
-					<tr title="The ESP32 currently only supports 2.4ghz connections.\nIf you enter a 5ghz ssid here your ESP32 WILL NOT CONNECT!">
+					<tr>
 						<td>
-							<span>SSID (2.4ghz only)</span> 
+							<span title="The ESP32 currently only supports 2.4ghz connections.\nIf you enter a 5ghz ssid here your ESP32 WILL NOT CONNECT!">SSID (2.4ghz only)</span> 
 						</td>
 						<td>
 							<input id="ssid" type="text" maxlength="32" oninput="updateWifiSettings()">
@@ -125,7 +125,7 @@
 							<span>Voltage</span> 
 						</td>
 						<td>
-							<input id="BLDC_MotorA_Voltage" type="number" max="99.0" min="0.0" step=".01" oninput="updateBLDCSettings()">
+							<input id="BLDC_MotorA_Voltage" type="number" min="0.0" max="2147483647" step="0.01" oninput="updateBLDCSettings()">
 						</td>
 					</tr>
 					<tr class="BLDCOnly">
@@ -133,7 +133,7 @@
 							<span>Current</span> 
 						</td>
 						<td>
-							<input id="BLDC_MotorA_Current" type="number" max="99.0" min="0.0" step=".01" oninput="updateBLDCSettings()">
+							<input id="BLDC_MotorA_Current" type="number" min="0.0" max="2147483647" step="0.01" oninput="updateBLDCSettings()">
 						</td>
 					</tr>
 					<tr class="BLDCOnly">
@@ -141,7 +141,7 @@
 							<span>Encoder PIN</span> 
 						</td>
 						<td>
-							<input id="BLDC_Encoder_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="BLDC_Encoder_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr class="BLDCOnly">
@@ -149,7 +149,7 @@
 							<span>Enable PIN</span> 
 						</td>
 						<td>
-							<input id="BLDC_Enable_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="BLDC_Enable_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr class="BLDCOnly">
@@ -157,7 +157,7 @@
 							<span>PWMchannel1 PIN</span> 
 						</td>
 						<td>
-							<input id="BLDC_PWMchannel1_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="BLDC_PWMchannel1_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr class="BLDCOnly">
@@ -165,7 +165,7 @@
 							<span>PWMchannel2 PIN</span> 
 						</td>
 						<td>
-							<input id="BLDC_PWMchannel2_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="BLDC_PWMchannel2_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr class="BLDCOnly">
@@ -173,7 +173,7 @@
 							<span>PWMchannel3 PIN</span> 
 						</td>
 						<td>
-							<input id="BLDC_PWMchannel3_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="BLDC_PWMchannel3_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 					</tr>
 
@@ -181,53 +181,53 @@
 					<!--------------------------------------- BLDC ----------------------------------------------------->
 
 
-					<tr title="Choose the version of TCode you want the firmware to use." class="servoOnly">
+					<tr class="servoOnly">
 						<td>
-							<span>TCode version</span> 
+							<span title="Choose the version of TCode you want the firmware to use.">TCode version</span> 
 						</td>
 						<td>
 							<select name="TCodeVersion" id="TCodeVersion" onchange="setTCodeVersion()">
 							</select>
 						</td>
 					</tr>
-					<tr title="Uncheck this if you are building an OSR" class="servoOnly">
+					<tr class="servoOnly">
 						<td>
-							<span>SR6 mode</span> 
+							<span title="Uncheck this if you are building an OSR">SR6 mode</span> 
 						</td>
 						<td>
 							<input id="sr6Mode" type="checkbox" onclick="setSR6Mode()"></input>
 						</td>
 					</tr>
-					<tr title="This sets the frequency of the main servos. L/R and Pitch\nif 'Pitch Frequency is different' is NOT checked" class="servoOnly">
+					<tr class="servoOnly">
 						<td>
-							<span>Servo Frequency (hz)</span> 
+							<span title="This sets the frequency of the main servos. L/R and Pitch\nif 'Pitch Frequency is different' is NOT checked">Servo Frequency (hz)</span> 
 						</td>
 						<td>
-							<input id="servoFrequency" type="number" min="1" oninput="updateServoFrequency()" class="servoOnly">
+							<input id="servoFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()" class="servoOnly">
 						</td>
 					</tr>
-					<tr title="This sets the frequency of the main servos. L/R and Pitch" class="servoOnly">
+					<trclass="servoOnly">
 						<td>
-							<span>Pitch Frequency is different</span> 
+							<span title="This sets the frequency of the main servos. L/R and Pitch" >Pitch Frequency is different</span> 
 						</td>
 						<td>
 							<input id="pitchFrequencyIsDifferent" type="checkbox" onclick="setPitchFrequencyIsDifferent()"></input>
 						</td>
 					</tr>
-					<tr id="pitchFrequencyRow" title="This sets the frequency of the pitch servos." class="servoOnly">
+					<tr id="pitchFrequencyRow" class="servoOnly">
 						<td>
-							<span>Pitch Frequency (hz)</span> 
+							<span title="This sets the frequency of the pitch servos.">Pitch Frequency (hz)</span> 
 						</td>
 						<td>
-							<input id="pitchFrequency" type="number" min="1" oninput="updateServoFrequency()">
+							<input id="pitchFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
 						</td>
 					</tr>
-					<tr title="This sets the frequency of the valve servo.">
+					<tr>
 						<td>
-							<span>Valve Frequency (hz)</span> 
+							<span title="This sets the frequency of the valve servo.">Valve Frequency (hz)</span> 
 						</td>
 						<td>
-							<input id="valveFrequency" type="number" min="1" oninput="updateServoFrequency()">
+							<input id="valveFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
 						</td>
 					</tr>
 					<tr title="This sets the frequency of the twist servo." class="servoOnly">
@@ -235,7 +235,7 @@
 							<span>Twist Frequency (hz)</span> 
 						</td>
 						<td>
-							<input id="twistFrequency" type="number" min="1" oninput="updateServoFrequency()">
+							<input id="twistFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
 						</td>
 					</tr>
 					<tr title="This sets the frequency of the squeeze servo." class="servoOnly">
@@ -243,7 +243,7 @@
 							<span>Squeeze Frequency (hz)</span> 
 						</td>
 						<td>
-							<input id="squeezeFrequency" type="number" min="1" oninput="updateServoFrequency()">
+							<input id="squeezeFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
 						</td>
 					</tr>
 					<tr class="sr6Only servoOnly">
@@ -259,7 +259,7 @@
 							<span>Micro seconds per radian (&#181;)</span> 
 						</td>
 						<td>
-							<input id="msPerRad" type="number" min="1" oninput="updateMSPerRad()">
+							<input id="msPerRad" type="number" min="1" max="2147483647" oninput="updateMSPerRad()">
 						</td>
 					</tr>
 					<tr class="servoHeader">
@@ -278,10 +278,10 @@
 							<span>Right</span> 
 						</td>
 						<td>
-							<input id="RightServo_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="RightServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="RightServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
+							<input id="RightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr class="servoOnly">
@@ -289,10 +289,10 @@
 							<span>Left</span> 
 						</td>
 						<td>
-							<input id="LeftServo_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="LeftServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="LeftServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
+							<input id="LeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr class="servoOnly">
@@ -300,10 +300,10 @@
 							<span>Pitch</span> 
 						</td>
 						<td>
-							<input id="PitchLeftServo_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="PitchLeftServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="PitchLeftServo_ZERO" type="number" max="9999" min="1"  oninput="updateZeros()">
+							<input id="PitchLeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -311,10 +311,10 @@
 							<span>Valve</span> 
 						</td>
 						<td>
-							<input id="ValveServo_PIN" type="number" max="99" min="1" oninput="updatePins()">
+							<input id="ValveServo_PIN" type="number" min="1" max="2147483647" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="ValveServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
+							<input id="ValveServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr class="v3Only servoOnly">
@@ -322,10 +322,10 @@
 							<span>Squeeze</span> 
 						</td>
 						<td>
-							<input id="Squeeze_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="Squeeze_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="Squeeze_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
+							<input id="Squeeze_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr class="servoOnly">
@@ -333,10 +333,10 @@
 							<span>Twist</span> 
 						</td>
 						<td>
-							<input id="TwistServo_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="TwistServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="TwistServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
+							<input id="TwistServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr class="feedbackTwistOnly servoOnly">
@@ -344,7 +344,7 @@
 							<span>Twist feedback</span> 
 						</td>
 						<td>
-							<input id="TwistFeedBack_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="TwistFeedBack_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -387,10 +387,10 @@
 							<span>Right upper</span> 
 						</td>
 						<td>
-							<input id="RightUpperServo_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="RightUpperServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="RightUpperServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
+							<input id="RightUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -398,10 +398,10 @@
 							<span>Left upper</span> 
 						</td>
 						<td>
-							<input id="LeftUpperServo_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="LeftUpperServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="LeftUpperServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
+							<input id="LeftUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr>
@@ -409,10 +409,10 @@
 							<span>Pitch right</span> 
 						</td>
 						<td>
-							<input id="PitchRightServo_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="PitchRightServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 						<td>
-							<input id="PitchRightServo_ZERO" type="number" max="9999" min="1" oninput="updateZeros()">
+							<input id="PitchRightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 						</td>
 					</tr>
 					<tr class="pwmAvaliblePinRow">
@@ -431,25 +431,25 @@
 							<h3>Other</h3>
 						</th>
 					</tr>
-					<tr title="This will revert the T-Valve to the original behavior. (Depricated)" class="v2Only">
+					<tr class="v2Only">
 						<td>
-							<span>Auto T-Valve</span> 
+							<span title="This will revert the T-Valve to the original behavior. (Depricated)">Auto T-Valve</span> 
 						</td>
 						<td>
 							<input id="autoValve" type="checkbox" onclick="setAutoValve()"></input>
 						</td>
 					</tr>
-					<tr title="Check this if your T-Valve micro servo closes on down stroke. aka:MG90S">
+					<tr>
 						<td>
-							<span>Inverse T-Valve</span> 
+							<span title="Check this if your T-Valve micro servo closes on down stroke. aka:MG90S">Inverse T-Valve</span> 
 						</td>
 						<td>
 							<input id="inverseValve" type="checkbox" onclick="setInverseValve()"></input>
 						</td>
 					</tr>
-					<tr title="Check this if your T-Valve micro servo is 90 degrees range instead of 180. aka:MG90S">
+					<tr>
 						<td>
-							<span>T-Valve 90 degree servo</span> 
+							<span title="Check this if your T-Valve micro servo is 90 degrees range instead of 180. aka:MG90S">T-Valve 90 degree servo</span> 
 						</td>
 						<td>
 							<input id="valveServo90Degrees" type="checkbox" onclick="setValveServo90Degrees()"></input>
@@ -500,7 +500,7 @@
 							<span>Vibe 1</span> 
 						</td>
 						<td>
-							<input id="Vibe0_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="Vibe0_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -508,7 +508,7 @@
 							<span>Lube/Vibe 2</span> 
 						</td>
 						<td>
-							<input id="Vibe1_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="Vibe1_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -516,7 +516,7 @@
 							<span>Vibe 3</span> 
 						</td>
 						<td>
-							<input id="Vibe2_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="Vibe2_PIN" type="number"  min="0" max="2147483647" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -524,12 +524,12 @@
 							<span>Vibe 4</span> 
 						</td>
 						<td>
-							<input id="Vibe3_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="Vibe3_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 					</tr>
-					<tr class="v3Only" title="Enable this and the firmware will treat the second vibe channel like the lube channel.">
+					<tr class="v3Only">
 						<td>
-							<span>Lube enabled on V2</span> 
+							<span title="Enable this and the firmware will treat the second vibe channel like the lube channel.">Lube enabled on V2</span> 
 						</td>
 						<td>
 							<input id="lubeEnabled" type="checkbox" onchange="updateLubeEnabled()">
@@ -540,7 +540,7 @@
 							<span>Lube button PIN</span> 
 						</td>
 						<td>
-							<input id="LubeButton_PIN" type="number" max="99" min="0" oninput="updatePins()">
+							<input id="LubeButton_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -551,25 +551,30 @@
 							<input id="lubeAmount" type="number" max="255" min="1" oninput="updateLubeAmount()">
 						</td>
 					</tr>
-					<tr title="The UDP port on which TCode is sent over the network on. Change this if you have a conflict on your local network.\nOtherwise, just leave it be.">
+					<tr>
 						<td>
-							<span>Udp port</span> 
+							<span title="The UDP port on which TCode is sent over the network on. Change this if you have a conflict on your local network.
+							Otherwise, just leave it be.">Udp port</span> 
 						</td>
 						<td>
 							<input id="udpServerPort" type="number" max="65,535" min="1" oninput="updateUdpPort()">
 						</td>
 					</tr>
-					<tr title="Web server port used to access this page and websocket input. Change this if you have a conflict on your local network.\nOtherwise, just leave it be.">
+					<tr>
 						<td>
-							<span>Web port</span> 
+							<span title="Web server port used to access this page and websocket input. Change this if you have a conflict on your local network.
+							Otherwise, just leave it be.">Web port</span> 
 						</td>
 						<td>
 							<input id="webServerPort" type="text" max="65,535" oninput="updateWebPort()">
 						</td>
 					</tr>
-					<tr title="This is the name of the device you will use to access this page after WiFi connection. default(tcode.local)\nSome routers DO NOT support mDNS so you may need to use the IP address anyways.\n\nYou may also use this address in some apps (XTP) to send TCode over the network.">
+					<tr>
 						<td>
-							<span>Host name</span> 
+							<span title="This is the name of the device you will use to access this page after WiFi connection. default(tcode.local)
+							Some routers DO NOT support mDNS so you may need to use the IP address anyways.
+							
+							You may also use this address in some apps (XTP) to send TCode over the network.">Host name</span> 
 						</td>
 						<td>
 							<input id="hostname" type="text" maxlength="63" oninput="updateHostName()">
@@ -607,9 +612,9 @@
 							<input id="tempInternalEnabled" type="checkbox" onclick="setInternalTempSettings()"></input>
 						</td>
 					</tr>
-						<tr title="This uses the module 'CJMCU-294' That has a 'LTC2944' gas gauge chip on it.">
+						<tr>
 						<td>
-							<span>Battery gauge enabled</span> 
+							<span title="This uses the module 'CJMCU-294' That has a 'LTC2944' gas gauge chip on it.">Battery gauge enabled</span> 
 						</td>
 						<td>
 							<input id="batteryLevelEnabled" type="checkbox" onclick="setBatterySettings()" ></input>
@@ -629,7 +634,7 @@
 							<span>Sleeve temp sensor pin</span> 
 						</td>
 						<td>
-							<input id="Temp_PIN" type="number" min="0" oninput="updatePins()">
+							<input id="Temp_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -637,7 +642,7 @@
 							<span>Heater pin</span> 
 						</td>
 						<td>
-							<input id="Heater_PIN" type="number" min="0" oninput="updatePins()">
+							<input id="Heater_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -645,28 +650,28 @@
 							<span>Target Temperature (&#8451;)</span> 
 						</td>
 						<td>
-							<input id="TargetTemp" type="number" step="0.1" oninput="setTempSettings()">
+							<input id="TargetTemp" type="number" step="0.1" max="2147483647" oninput="setTempSettings()">
 						</td>
 					</tr>
-					<tr title="This will be sent to the heater pin when the measured temp is below the 'Target Temperature'">
+					<tr>
 						<td>
-							<span>Heat PWM</span> 
+							<span title="This will be sent to the heater pin when the measured temp is below the 'Target Temperature'">Heat PWM</span> 
 						</td>
 						<td>
 							<input id="HeatPWM" type="text" oninput="setTempSettings()">
 						</td>
 					</tr>
-					<tr title="This will be sent to the heater pin when the measured temp is above the 'Target Temperature' + 'Heater hold threshold'">
+					<tr>
 						<td>
-							<span>Hold PWM</span> 
+							<span title="This will be sent to the heater pin when the measured temp is above the 'Target Temperature' + 'Heater hold threshold'">Hold PWM</span> 
 						</td>
 						<td>
 							<input id="HoldPWM" type="text" oninput="setTempSettings()">
 						</td>
 					</tr>
-					<tr title="The 'Hold PWM' specified above will be sent while the temp less than or equal to:'Target Temperature' + 'Heater hold threshold'">
+					<tr>
 						<td>
-							<span>Heater hold threshold (&#8451;)</span> 
+							<span title="The 'Hold PWM' specified above will be sent while the temp less than or equal to:'Target Temperature' + 'Heater hold threshold'">Heater hold threshold (&#8451;)</span> 
 						</td>
 						<td>
 							<input id="heaterThreshold" type="text"  oninput="setTempSettings()">
@@ -726,7 +731,7 @@
 					<tr>
 						<td><span>Internal temp PIN</span></td>
 						<td>
-							<input id="Internal_Temp_PIN" type="number" min="0" oninput="updatePins()">
+							<input id="Internal_Temp_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 						</td>
 					</tr>
 					<tr>
@@ -756,7 +761,7 @@
 					<tr class="fan-control">
 						<td><span>Fan on temp (&#8451;)</span></td>
 						<td>
-							<input id="internalTempForFan" type="number" min="0" step="0.1" oninput="setFanOnTemp()">
+							<input id="internalTempForFan" type="number" min="0" max="2147483647" step="0.1" oninput="setFanOnTemp()">
 						</td>
 					</tr>
 					<tr class="fan-control">
@@ -861,11 +866,11 @@
 					<!-- <tr>
 						<td><span>Voltage pin (ADC)</span></td>
 						<td>
-							<input id="Battery_Voltage_PIN"  type="number" min="0" step="1" oninput="updatePins()">
+							<input id="Battery_Voltage_PIN"  type="number" min="0" max="2147483647" step="1" oninput="updatePins()">
 						</td>
 					</tr> -->
-					<tr title="Display as a number instead of bars">
-						<td><span>Display capacity percentage</span></td>
+					<tr>
+						<td><span title="Display as a number instead of bars">Display capacity percentage</span></td>
 						<td>
 							<input id="batteryLevelNumeric" type="checkbox" oninput="setBatterySettings()">
 						</td>
@@ -873,13 +878,13 @@
 					<!-- <tr title="This is used to map 3.3 volts to max voltage">
 						<td><span>Max voltage</span></td>
 						<td>
-							<input id="batteryVoltageMax"  type="number" min="0" step="0.10" oninput="setBatterySettings()" title="For display calculation only.">
+							<input id="batteryVoltageMax"  type="number" min="0" step="0.10" max="2147483647" oninput="setBatterySettings()" title="For display calculation only.">
 						</td>
 					</tr> -->
 					<tr>
 						<td><span>Max capacity</span></td>
 						<td>
-							<input id="batteryCapacityMax" type="number" min="0" step="0.10" oninput="setBatterySettings()">
+							<input id="batteryCapacityMax" type="number" min="0" max="2147483647" step="0.01" oninput="setBatterySettings()">
 						</td>
 					</tr>
 					<tr>
@@ -928,16 +933,17 @@
 							<input id="motionEnabled" type="checkbox" oninput="setMotionGeneratorSettings()">
 						</td>
 					</tr>
-					<tr tite="This is the time in between updates that gives the system time to process other tasks. (DO NOT SET TOO LOW ON ESP32!)\nIt may be best to just leave at default.">
-						<td><span>Update rate (ms)</span></td>
+					<tr>
+						<td><span tite="This is the time in between updates that gives the system time to process other tasks. (DO NOT SET TOO LOW ON ESP32!)
+							It may be best to just leave at default.">Update rate (ms)</span></td>
 						<td>
-							<input id="motionUpdateGlobal" type="number" min="1" step="1" oninput="setMotionGeneratorSettings()">
+							<input id="motionUpdateGlobal" type="number" min="1" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
 						</td>
 					</tr>
-					<tr tite="THis is the time it takes to make a revolution.\nLower is faster movement.">
-						<td><span>Period (ms)</span></td>
+					<tr>
+						<td><span tite="THis is the time it takes to make a revolution.\nLower is faster movement.">Period (ms)</span></td>
 						<td>
-							<input id="motionPeriodGlobal" type="number" min="0" step="100" oninput="setMotionGeneratorSettings()">
+							<input id="motionPeriodGlobal" type="number" min="0" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
 						</td>
 					</tr>
 					<tr>
@@ -947,21 +953,21 @@
 						</td>
 					</tr>
 					<tr id="motionPeriodGlobalRandomMinRow">
-						<td><span>Min</span></td>
+						<td><span>Min (ms)</span></td>
 						<td>
-							<input id="motionPeriodGlobalRandomMin" type="number" min="0" step="100" step="1" oninput="setMotionGeneratorSettings()">
+							<input id="motionPeriodGlobalRandomMin" type="number" min="0" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
 						</td>
 					</tr>
 					<tr id="motionPeriodGlobalRandomMaxRow">
-						<td><span>Max</span></td>
+						<td><span>Max (ms)</span></td>
 						<td>
-							<input id="motionPeriodGlobalRandomMax" type="number" min="0" step="100" step="1" oninput="setMotionGeneratorSettings()">
+							<input id="motionPeriodGlobalRandomMax" type="number" min="0" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
 						</td>
 					</tr>
 					<tr>
-						<td><span>Amplitude</span></td>
+						<td><span>Amplitude (%)</span></td>
 						<td>
-							<input id="motionAmplitudeGlobal" type="number" min="0" max="90" step="1" oninput="setMotionGeneratorSettings()">
+							<input id="motionAmplitudeGlobal" type="number" min="0" max="100" step="1" oninput="setMotionGeneratorSettings()">
 						</td>
 					</tr>
 					<tr>
@@ -971,21 +977,21 @@
 						</td>
 					</tr>
 					<tr id="motionAmplitudeGlobalRandomMinRow">
-						<td><span>Min</span></td>
+						<td><span>Min (%)</span></td>
 						<td>
-							<input id="motionAmplitudeGlobalRandomMin" type="number" min="0" max="90" step="1" oninput="setMotionGeneratorSettings()">
+							<input id="motionAmplitudeGlobalRandomMin" type="number" min="0" max="100" step="1" oninput="setMotionGeneratorSettings()">
 						</td>
 					</tr>
 					<tr id="motionAmplitudeGlobalRandomMaxRow">
-						<td><span>Max</span></td>
+						<td><span>Max (%)</span></td>
 						<td>
-							<input id="motionAmplitudeGlobalRandomMax" type="number" min="0" max="90" step="1" oninput="setMotionGeneratorSettings()">
+							<input id="motionAmplitudeGlobalRandomMax" type="number" min="0" max="100" step="1" oninput="setMotionGeneratorSettings()">
 						</td>
 					</tr>
 					<tr>
-						<td><span>Offset from 0</span></td>
+						<td><span>Offset (tcode)</span></td>
 						<td>
-							<input id="motionOffsetGlobal" type="number" min="-90" max="90" step="1" oninput="setMotionGeneratorSettings()">
+							<input id="motionOffsetGlobal" type="number" min="0" max="9999" step="1" oninput="setMotionGeneratorSettings()">
 						</td>
 					</tr>
 					<tr>
@@ -995,21 +1001,37 @@
 						</td>
 					</tr>
 					<tr id="motionOffsetGlobalRandomMinRow">
-						<td><span>Min</span></td>
+						<td><span>Min (tcode)</span></td>
 						<td>
-							<input id="motionOffsetGlobalRandomMin" type="number" min="-90" max="90" step="1" oninput="setMotionGeneratorSettings()">
+							<input id="motionOffsetGlobalRandomMin" type="number" min="0" max="9999" step="1" oninput="setMotionGeneratorSettings()">
 						</td>
 					</tr>
 					<tr id="motionOffsetGlobalRandomMaxRow">
-						<td><span>Max</span></td>
+						<td><span>Max (tcode)</span></td>
 						<td>
-							<input id="motionOffsetGlobalRandomMax" type="number" min="-90" max="90" step="1" oninput="setMotionGeneratorSettings()">
+							<input id="motionOffsetGlobalRandomMax" type="number" min="0" max="9999" step="1" oninput="setMotionGeneratorSettings()">
 						</td>
 					</tr>
-					<tr title="Initial phase in degrees. The phase should ideally be between (offset-amplitude/2) and (offset+amplitude/2)">
-						<td><span>Phase</span></td>
+					<!-- <tr>
+						<td><span title="Initial phase in degrees. The phase should ideally be between (offset-amplitude/2) and (offset+amplitude/2)">Phase</span></td>
 						<td>
-							<input id="motionPhaseGlobal" type="number" min="0" step="0.10" oninput="setMotionGeneratorSettings()">
+							<input id="motionPhaseGlobal" type="number" min="0" step="0.01" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr> -->
+					<tr id="motionRandomChangeMinRow">
+						<td><span title="Gate the random change period between all attributes in between two values.
+							If this random value time outs and any attribute hasnt timed out yet,
+							it will wait till the next timeout. All attributes get thier own random change value based on the min/max">Random change min (ms)</span></td>
+						<td>
+							<input id="motionRandomChangeMin" type="number" min="1" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
+						</td>
+					</tr>
+					<tr id="motionRandomChangeMaxRow">
+						<td><span title="Gate the random change period between all attributes in between two values.
+							If this random value time outs and any attribute hasnt timed out yet,
+							it will wait till the next timeout. All attributes get thier own random change value based on the min/max">Random change max (ms)</span></td>
+						<td>
+							<input id="motionRandomChangeMax" type="number" min="1" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
 						</td>
 					</tr>
 					<!-- <tr>

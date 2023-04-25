@@ -336,6 +336,10 @@ void settingChangeCallback(const char* group, const char* settingThatChanged) {
 			motionHandler.setOffsetRandomMin(SettingsHandler::getMotionOffsetGlobalRandomMin());
 		else if(strcmp(settingThatChanged, "motionOffsetGlobalRandomMax") == 0) 
 			motionHandler.setOffsetRandomMax(SettingsHandler::getMotionOffsetGlobalRandomMax());
+		else if(strcmp(settingThatChanged, "motionRandomChangeMin") == 0) 
+			motionHandler.setMotionRandomChangeMin(SettingsHandler::getMotionRandomChangeMin());
+		else if(strcmp(settingThatChanged, "motionRandomChangeMax") == 0) 
+			motionHandler.setMotionRandomChangeMax(SettingsHandler::getMotionRandomChangeMax());
 	}
 }
 
@@ -540,27 +544,46 @@ void loop() {
 				webSocketHandler->getTCode(webSocketData);
 			if(udpHandler)
 				udpHandler->read(udpData);
-			if (strlen(webSocketData) > 0) {
+			if (!SettingsHandler::getMotionEnabled() && strlen(webSocketData) > 0) {
 				//LogHandler::debug(TagHandler::MainLoop, "webSocket writing: %s", webSocketData);
 				motorHandler->read(webSocketData);
-			} else if (!apMode && strlen(udpData) > 0) {
+			} else if (!apMode && !SettingsHandler::getMotionEnabled() && strlen(udpData) > 0) {
 				LogHandler::verbose(TagHandler::MainLoop, "udp writing: %s", udpData);
 				motorHandler->read(udpData);
 			} 
 			else 
 #endif
-			if (Serial.available() > 0) {
+			if (!SettingsHandler::getMotionEnabled() && Serial.available() > 0) {
 				serialData = Serial.readStringUntil('\n');
 				motorHandler->read(serialData);
 			} 
 #if BLUETOOTH_TCODE
-			else if (SettingsHandler::bluetoothEnabled && btHandler && btHandler->isConnected() && btHandler->available() > 0) {
+			else if (!SettingsHandler::getMotionEnabled() && SettingsHandler::bluetoothEnabled && btHandler && btHandler->isConnected() && btHandler->available() > 0) {
 				deviceinUse = true;
 				serialData = btHandler->readStringUntil('\n');
 				servoHandler->read(serialData);
 			}
 #endif
 			else if (SettingsHandler::getMotionEnabled()) {
+				// Read and process tcode $ commands
+				if(Serial.available() > 0) {
+					serialData = Serial.readStringUntil('\n');
+					if(serialData.startsWith("$"))
+						motorHandler->read(serialData);
+				}
+#if WIFI_TCODE
+				else if(strlen(udpData) > 0 && strpbrk("$", udpData) != nullptr)
+					motorHandler->read(udpData);
+				else if(strlen(webSocketData) > 0 && strpbrk("$", webSocketData) != nullptr)
+					motorHandler->read(webSocketData);
+#endif
+#if BLUETOOTH_TCODE
+				else if (SettingsHandler::bluetoothEnabled && btHandler && btHandler->isConnected() && btHandler->available() > 0) {
+					deviceinUse = true;
+					serialData = btHandler->readStringUntil('\n');
+					servoHandler->read(serialData);
+				}
+#endif
 				motionHandler.getMovement(movement);
 				if(strlen(movement) > 0) {
 					LogHandler::verbose(TagHandler::MainLoop, "motion handler writing: %s", movement);
