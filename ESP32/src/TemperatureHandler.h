@@ -455,12 +455,9 @@ class TemperatureHandler {
 						} else if (definitelyLessThanOREssentiallyEqual(currentTemp, (SettingsHandler::TargetTemp + SettingsHandler::heaterThreshold))) {
 							if(!targetSleeveTempReached) {
 								targetSleeveTempReached = true;
-								// Serial.print("Adding to queue: "); 
-								// Serial.println(_statusJson->c_str());
 								String* command = new String("tempReached");
 								if(message_callback)
 									message_callback(TemperatureType::SLEEVE, "tempReached", _currentSleeveTemp);
-								//xQueueSend(sleeveTempQueue, &command, 0);
 							}
 							ledcWrite(Heater_PWM, SettingsHandler::HoldPWM);
 							currentState = TemperatureState::HOLD;
