@@ -535,7 +535,7 @@ void loop() {
 	} 
 #endif
 	else {
-		if(setupSucceeded && !SettingsHandler::saving)
+		if(setupSucceeded)
 		{
 			//otaHandler.handle();
 			String serialData;
@@ -610,8 +610,8 @@ void loop() {
 		LogHandler::error(TagHandler::Main, "There was an issue in setup");
         vTaskDelay(5000/portTICK_PERIOD_MS);
 	}
-	if(SettingsHandler::saving) {
-		LogHandler::info(TagHandler::Main, "Saving settings, main loop disabled...");
-        vTaskDelay(100/portTICK_PERIOD_MS);
-	}
+	// if(SettingsHandler::saving) {
+	// 	LogHandler::info(TagHandler::Main, "Saving settings, main loop disabled...");
+    //     vTaskDelay(100/portTICK_PERIOD_MS);
+	// }
 }

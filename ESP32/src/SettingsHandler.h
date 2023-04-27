@@ -545,7 +545,7 @@ public:
             setValue(json, motionEnabled, "motionGenerator", "motionEnabled", false);
             setValue(json, motionUpdateGlobal, "motionGenerator", "motionUpdateGlobal", 100);
             setValue(json, motionPeriodGlobal, "motionGenerator", "motionPeriodGlobal", 2000);
-            setValue(json, motionAmplitudeGlobal, "motionGenerator", "motionAmplitudeGlobal", 70);
+            setValue(json, motionAmplitudeGlobal, "motionGenerator", "motionAmplitudeGlobal", 60);
             setValue(json, motionOffsetGlobal, "motionGenerator", "motionOffsetGlobal", 5000);
             setValue(json, motionPhaseGlobal, "motionGenerator", "motionPhaseGlobal", 0);
             setValue(json, motionReversedGlobal, "motionGenerator", "motionReversedGlobal", false);
@@ -554,7 +554,7 @@ public:
             setValue(json, motionPeriodGlobalRandomMax, "motionGenerator", "motionPeriodGlobalRandomMax", 2000);
             setValue(json, motionAmplitudeGlobalRandom, "motionGenerator", "motionAmplitudeGlobalRandom", false);
             setValue(json, motionAmplitudeGlobalRandomMin, "motionGenerator", "motionAmplitudeGlobalRandomMin", 20);
-            setValue(json, motionAmplitudeGlobalRandomMax, "motionGenerator", "motionAmplitudeGlobalRandomMax", 70);
+            setValue(json, motionAmplitudeGlobalRandomMax, "motionGenerator", "motionAmplitudeGlobalRandomMax", 60);
             setValue(json, motionOffsetGlobalRandom, "motionGenerator", "motionOffsetGlobalRandom", false);
             setValue(json, motionOffsetGlobalRandomMin, "motionGenerator", "motionOffsetGlobalRandomMin", 3000);
             setValue(json, motionOffsetGlobalRandomMax, "motionGenerator", "motionOffsetGlobalRandomMax", 7000);
@@ -1607,7 +1607,7 @@ SETTING_STATE_FUNCTION_PTR_T SettingsHandler::message_callback = 0;
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
 MotorType SettingsHandler::motorType = MotorType::Servo;
-const char SettingsHandler::ESP32Version[8] = "v0.28b";
+const char SettingsHandler::ESP32Version[8] = "v0.282b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char *SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";

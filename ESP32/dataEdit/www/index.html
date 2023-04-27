@@ -930,7 +930,7 @@
 					<tr>
 						<td><span>Enabled</span></td>
 						<td>
-							<input id="motionEnabled" type="checkbox" oninput="setMotionGeneratorSettings()">
+							<input id="motionEnabled" type="checkbox" oninput="setMotionEnabledClicked()">
 						</td>
 					</tr>
 					<tr>
@@ -949,7 +949,7 @@
 					<tr>
 						<td><span>Period random</span></td>
 						<td>
-							<input id="motionPeriodGlobalRandom" type="checkbox" oninput="setMotionGeneratorSettings()">
+							<input id="motionPeriodGlobalRandom" type="checkbox" oninput="setMotionPeriodGlobalRandomClicked()">
 						</td>
 					</tr>
 					<tr id="motionPeriodGlobalRandomMinRow">
@@ -973,7 +973,7 @@
 					<tr>
 						<td><span>Amplitude random</span></td>
 						<td>
-							<input id="motionAmplitudeGlobalRandom" type="checkbox" oninput="setMotionGeneratorSettings()">
+							<input id="motionAmplitudeGlobalRandom" type="checkbox" oninput="setMotionAmplitudeGlobalRandomClicked()">
 						</td>
 					</tr>
 					<tr id="motionAmplitudeGlobalRandomMinRow">
@@ -997,7 +997,7 @@
 					<tr>
 						<td><span>Offset random</span></td>
 						<td>
-							<input id="motionOffsetGlobalRandom" type="checkbox" oninput="setMotionGeneratorSettings()">
+							<input id="motionOffsetGlobalRandom" type="checkbox" oninput="setMotionOffsetGlobalRandomRandomClicked()">
 						</td>
 					</tr>
 					<tr id="motionOffsetGlobalRandomMinRow">
@@ -1044,6 +1044,12 @@
 						<td><span></span></td>
 						<td>
 							<button id="motionDefault" onclick="setMotionGeneratorSettingsDefault()">Default</button>
+						</td>
+					</tr>
+					<tr>
+						<td><span></span></td>
+						<td>
+							<button id="motionStop" onclick="setMotionGeneratorStop()">Stop</button>
 						</td>
 					</tr>
 				</tbody>
