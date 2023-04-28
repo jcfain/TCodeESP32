@@ -310,7 +310,7 @@ void settingChangeCallback(const char* group, const char* settingThatChanged) {
 			motionHandler.setAmplitude(SettingsHandler::getMotionAmplitudeGlobal());
 		else if(strcmp(settingThatChanged, "motionOffsetGlobal") == 0) 
 			motionHandler.setOffset(SettingsHandler::getMotionOffsetGlobal());
-		else if(strcmp(settingThatChanged, "motionUpdateGlobal") == 0) 
+		else if(strcmp(settingThatChanged, "motionPeriodGlobal") == 0) 
 			motionHandler.setPeriod(SettingsHandler::getMotionPeriodGlobal());
 		else if(strcmp(settingThatChanged, "motionUpdateGlobal") == 0) 
 			motionHandler.setUpdate(SettingsHandler::getMotionUpdateGlobal());

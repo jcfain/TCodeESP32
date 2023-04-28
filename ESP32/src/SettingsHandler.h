@@ -1607,7 +1607,7 @@ SETTING_STATE_FUNCTION_PTR_T SettingsHandler::message_callback = 0;
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
 MotorType SettingsHandler::motorType = MotorType::Servo;
-const char SettingsHandler::ESP32Version[8] = "v0.282b";
+const char SettingsHandler::ESP32Version[8] = "v0.283b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char *SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
