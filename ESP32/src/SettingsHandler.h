@@ -386,26 +386,26 @@ public:
             // Sleeve_Temp_PIN = 25;
             // Heater_PIN = 19;
             // Squeeze_PIN = 26;
-            TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 33;
-            RightServo_PIN = json["RightServo_PIN"] | 2;
+            TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 32;
+            RightServo_PIN = json["RightServo_PIN"] | 4;
             LeftServo_PIN = json["LeftServo_PIN"] | 13;
-            RightUpperServo_PIN = json["RightUpperServo_PIN"] | 4;
-            LeftUpperServo_PIN = json["LeftUpperServo_PIN"] | 12;
-            PitchLeftServo_PIN = json["PitchLeftServo_PIN"] | 14;
+            RightUpperServo_PIN = json["RightUpperServo_PIN"] | 16;
+            LeftUpperServo_PIN = json["LeftUpperServo_PIN"] | 27;
+            PitchLeftServo_PIN = json["PitchLeftServo_PIN"] | 26;
             PitchRightServo_PIN = json["PitchRightServo_PIN"] | 17;
-            ValveServo_PIN = json["ValveServo_PIN"] | 5;
-            TwistServo_PIN = json["TwistServo_PIN"] | 27;
+            ValveServo_PIN = json["ValveServo_PIN"] | 18;
+            TwistServo_PIN = json["TwistServo_PIN"] | 25;
             // Common motor
-            Squeeze_PIN = json["Squeeze_PIN"] | 26;
-            LubeButton_PIN = json["LubeButton_PIN"] | 36;
+            Squeeze_PIN = json["Squeeze_PIN"] | 19;
+            LubeButton_PIN = json["LubeButton_PIN"] | 34;
             // Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
-            Sleeve_Temp_PIN = json["Temp_PIN"] | 25;
+            Sleeve_Temp_PIN = json["Temp_PIN"] | 33;
             // Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
             Vibe0_PIN = json["Vibe0_PIN"] | 15;
-            Vibe1_PIN = json["Vibe1_PIN"] | 16;
+            Vibe1_PIN = json["Vibe1_PIN"] | 2;
             // Vibe2_PIN = json["Vibe2_PIN"] | 23;
             // Vibe3_PIN = json["Vibe3_PIN"] | 32;
-            Heater_PIN = json["Heater_PIN"] | 19;
+            Heater_PIN = json["Heater_PIN"] | 5;
             Battery_Voltage_PIN = json["Battery_Voltage_PIN"] | 39;
 #elif CRIMZZON_BUILD
 
