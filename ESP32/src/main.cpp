@@ -72,6 +72,8 @@ SOFTWARE. */
 
 #include "BatteryHandler.h"
 #include "MotionHandler.h"
+#include "VoiceHandler.hpp"
+
 
 //TcpHandler tcpHandler;
 MotorHandler* motorHandler;
@@ -79,6 +81,8 @@ BatteryHandler* batteryHandler;
 TaskHandle_t batteryTask;
 
 MotionHandler motionHandler;
+VoiceHandler* voiceHandler;
+TaskHandle_t voiceTask;
 
 #if WIFI_TCODE
 	Udphandler* udpHandler = 0;
@@ -400,6 +404,24 @@ void setup()
 					LogHandler::error(TagHandler::Main, "Could not start battery task.");
 				}
 				batteryHandler->setMessageCallback(batteryVoltageCallback);
+		}
+	}
+	if(SettingsHandler::voiceEnabled) {
+		voiceHandler = new VoiceHandler();
+		voiceHandler->setMessageCallback(TCodeCommandCallback);
+		if(voiceHandler->setup()) {
+			LogHandler::debug(TagHandler::Main, "Start Voice task");
+			auto voiceStatus = xTaskCreatePinnedToCore(
+				VoiceHandler::startLoop,/* Function to implement the task */
+				"VoiceTask", /* Name of the task */
+				4028,  /* Stack size in words */
+				voiceHandler,  /* Task input parameter */
+				1,  /* Priority of the task */
+				&voiceTask,  /* Task handle. */
+				APP_CPU_NUM); /* Core where the task should run */
+				if(voiceStatus != pdPASS) {
+					LogHandler::error(TagHandler::Main, "Could not start voice task.");
+				}
 		}
 	}
 
