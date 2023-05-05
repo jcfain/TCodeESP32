@@ -45,6 +45,7 @@ class TagHandler {
     static const char* ToyHandler;
     static const char* MotorHandler;
     static const char* MotionHandler;
+    static const char* VoiceHandler;
 
     static const std::vector<const char *> AvailableTags;
 };
@@ -69,29 +70,30 @@ const char* TagHandler::BLDCHandler = "bldc-handler";
 const char* TagHandler::ToyHandler = "toy-handler";
 const char* TagHandler::MotorHandler = "motor-handler";
 const char* TagHandler::MotionHandler = "motion-handler";
+const char* TagHandler::VoiceHandler = "voice-handler";
 
 const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::Main,
     TagHandler::MainLoop,
+    TagHandler::SystemCommandHandler,
+    TagHandler::SettingsHandler,
+    TagHandler::WifiHandler,
+    TagHandler::WebHandler,
+    TagHandler::WebsocketsHandler,
+    TagHandler::UdpHandler,
+    TagHandler::ServoHandler3,
+    TagHandler::TCodeHandler,
+    TagHandler::ServoHandler2,
+    TagHandler::ToyHandler,
+    TagHandler::BLDCHandler,
     TagHandler::DisplayHandler,
     TagHandler::TemperatureHandler,
     TagHandler::BatteryHandler,
-    TagHandler::SettingsHandler,
-    TagHandler::WifiHandler,
-    TagHandler::UdpHandler,
-    TagHandler::WebsocketsHandler,
     TagHandler::WebHandler,
-    TagHandler::SystemCommandHandler,
     TagHandler::BLEHandler,
     TagHandler::BluetoothHandler,
-    TagHandler::WebHandler,
-    TagHandler::SystemCommandHandler,
-    TagHandler::ServoHandler3,
-    TagHandler::ServoHandler2,
-    TagHandler::TCodeHandler,
-    TagHandler::BLDCHandler,
-    TagHandler::ToyHandler,
     TagHandler::MotorHandler,
-    TagHandler::MotionHandler
+    TagHandler::MotionHandler,
+    TagHandler::VoiceHandler
 
 };

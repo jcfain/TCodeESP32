@@ -232,6 +232,17 @@ public:
 					return true;
 				}, true);
 			}
+			if(isCommand(in, "$motion-set-profile")) {
+				return validateGreaterThanZero("Motion phase global", value, [](int valueInt) -> bool {
+					if(valueInt > maxMotionProfileCount) {
+						LogHandler::error(_TAG, "Motion profile %ld does not exist", valueInt);
+						return false;
+					}
+					SettingsHandler::setMotionProfile(valueInt);
+					Serial.println("Profile changed");
+					return true;
+				}, true);
+			}
 			Serial.printf("Invalid command: %s\n", in);
 			printCommandHelp();
 			xSemaphoreGive(xMutex);
@@ -381,19 +392,21 @@ private:
 		Serial.println("Motion generator:");
 		Serial.println("$motion-enable ----------------- Enable motion generator");
 		Serial.println("$motion-disable ---------------- Disable motion generator");
+		Serial.println("$motion-set-profile:value ------ Set the current profile");
+		Serial.printf("    Motion profile values: 1-%ld\n", maxMotionProfileCount);
 		Serial.println("$motion-toggle ----------------- Toggle motion generator");
-		Serial.println("$motion-period-random-on ------- Period random on");
-		Serial.println("$motion-period-random-off ------ Period random off");
-		Serial.println("$motion-amplitude-random-on ---- Amplitude random on");
-		Serial.println("$motion-amplitude-random-off --- Amplitude random off");
-		Serial.println("$motion-offset-random-on ------- Offset random on");
-		Serial.println("$motion-offset-random-off ------ Offset random off");
-		Serial.println("$motion-period-global:value ---- Set period");
-		Serial.println("$motion-update-global:value ---- Set update rate");
-		Serial.println("$motion-amplitude-global:value - Set amplitude");
-		Serial.println("$motion-offset-global:value ---- Set offset");
-		Serial.println("$motion-phase-global:value ----- Set phase");
-		Serial.println("$motion-reverse-global:value --- Set reverse");
+		Serial.println("$motion-period-random-on ------- Period random on for the current profile");
+		Serial.println("$motion-period-random-off ------ Period random off for the current profile");
+		Serial.println("$motion-amplitude-random-on ---- Amplitude random on for the current profile");
+		Serial.println("$motion-amplitude-random-off --- Amplitude random off for the current profile");
+		Serial.println("$motion-offset-random-on ------- Offset random on for the current profile");
+		Serial.println("$motion-offset-random-off ------ Offset random off for the current profile");
+		Serial.println("$motion-period-global:value ---- Set period for the current profile");
+		Serial.println("$motion-update-global:value ---- Set update rate for the current profile");
+		Serial.println("$motion-amplitude-global:value - Set amplitude for the current profile");
+		Serial.println("$motion-offset-global:value ---- Set offset for the current profile");
+		Serial.println("$motion-phase-global:value ----- Set phase for the current profile");
+		Serial.println("$motion-reverse-global:value --- Set reverse for the current profile");
 	}
 };
 

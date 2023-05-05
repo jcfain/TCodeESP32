@@ -2,6 +2,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <sstream>
 #include <vector>
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
@@ -76,6 +77,23 @@ bool contains_duplicate(const std::vector<const char*>& values ) {
 
     return false ;
 }
+
+void hexToString(int inByte, char* buf) {
+    std::stringstream addressString;
+    addressString << "0x" << std::hex << inByte;
+    strcpy(buf, addressString.str().c_str());
+}
+int stringToHex(std::string buff) {
+    return (int)strtol(buff.c_str(), NULL, 0);
+}
+
+struct StrCompare
+{
+   bool operator()(char const *a, char const *b) const
+   {
+      return strcmp(a, b) < 0;
+   }
+};
 
 // adc2_channel_t gpioToADC2(int gpioPinc:\Users\jfain\AppData\Local\Programs\Microsoft VS Code\resources\app\out\vs\code\electron-sandbox\workbench\workbench.html) {
 //     switch(gpioPin) {

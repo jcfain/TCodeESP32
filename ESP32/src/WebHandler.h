@@ -31,6 +31,7 @@ SOFTWARE. */
 #include "WifiHandler.h"
 #include "WebSocketHandler.h"
 #include "TagHandler.h"
+#include "SystemCommandHandler.h"
 
 AsyncWebServer* server;
 class WebHandler {
@@ -56,7 +57,7 @@ class WebHandler {
                 // DynamicJsonDocument doc(SettingsHandler::deserialize);
                 // File file = SPIFFS.open(SettingsHandler::userSettingsFilePath, "r");
                 // DeserializationError error = deserializeJson(doc, file);
-                char settings[3072];
+                char settings[6144];
                 SettingsHandler::serialize(settings);
                 if (strlen(settings) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
@@ -183,7 +184,7 @@ class WebHandler {
                     AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"msg\":\"Could not parse JSON\"}");
                     request->send(response);
                 }
-            }, 2400U );//Bad request? increase the size.
+            }, 6000U );//Bad request? increase the size.
 
             // //To upload through terminal you can use: curl -F "image=@firmware.bin" esp8266-webupdate.local/update
             // server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request){

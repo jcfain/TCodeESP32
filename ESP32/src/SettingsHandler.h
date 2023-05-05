@@ -26,9 +26,13 @@ SOFTWARE. */
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
 #include <vector>
+#include <map>
+#include <Wire.h>
 #include "LogHandler.h"
 #include "utils.h"
 #include "TagHandler.h"
+#include "../lib/struct/voice.h"
+#include "../lib/struct/motionProfile.h"
 
 #define featureCount 7
 
@@ -80,6 +84,7 @@ public:
     static String TCodeVersionName;
     static TCodeVersion TCodeVersionEnum;
     static MotorType motorType;
+    static std::vector<int> systemI2CAddresses;
     const static char ESP32Version[8];
     const static char HandShakeChannel[4];
     const static char SettingsChannel[4];
@@ -194,9 +199,8 @@ public:
     static int caseFanFrequency;
     static int caseFanResolution;
 
-    static int strokerSamples;
-    static int strokerOffset;
-    static int strokerAmplitude;
+    static bool voiceEnabled;
+    static VoiceCommand voiceCommands[147];
 
     static const char *lastRebootReason;
 
@@ -264,6 +268,7 @@ public:
         setBoardType();
         setBuildFeatures();
         setMotorType();
+        I2CScan();
 
         if (loadingDefault)
             save();
@@ -310,20 +315,23 @@ public:
             // tags.push_back(TagHandler::Main);
             // LogHandler::setTags(tags);
 
-            JsonArray includes = json["log-include-tags"].as<JsonArray>();
+            // JsonArray includes = json["log-include-tags"].as<JsonArray>();
             std::vector<String> includesVec;
-            for (int i = 0; i < includes.size(); i++)
-            {
-                includesVec.push_back(includes[i]);
-            }
+            // for (int i = 0; i < includes.size(); i++)
+            // {
+            //     includesVec.push_back(includes[i]);
+            // }
+            setValue(json, includesVec, "log", "log-include-tags");
             LogHandler::setIncludes(includesVec);
 
-            JsonArray excludes = json["log-exclude-tags"].as<JsonArray>();
+            // JsonArray excludes = json["log-exclude-tags"].as<JsonArray>();
             std::vector<String> excludesVec;
-            for (int i = 0; i < excludes.size(); i++)
-            {
-                excludesVec.push_back(excludes[i]);
-            }
+            
+            // for (int i = 0; i < excludes.size(); i++)
+            // {
+            //     excludesVec.push_back(excludes[i]);
+            // }
+            setValue(json, excludesVec, "log", "log-exclude-tags");
             LogHandler::setExcludes(excludesVec);
 
             const char *ssidConst = json["ssid"];
@@ -542,25 +550,43 @@ public:
 
             lubeEnabled = json["lubeEnabled"];
 
+            motionSelectedProfileIndex = json["motionSelectedProfileIndex"] | 0;
+            JsonArray motionProfilesObj = json["motionProfiles"].as<JsonArray>();
+            
+            if(motionProfilesObj.isNull()) {
+                LogHandler::info(_TAG, "No motion profiles stored, loading default");
+                for(int i = 0; i < maxMotionProfileCount; i++) {
+                    motionProfiles[i] = MotionProfile(i + 1);
+                }
+            } else {
+                for(int i = 0; i<motionProfilesObj.size(); i++) {
+                    if(i == maxMotionProfileCount) 
+                        break;
+                    auto profile = MotionProfile();
+                    LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", motionProfilesObj[i]["motionProfileName"].as<String>());
+                    profile.fromJson(motionProfilesObj[i].as<JsonObject>());
+                    motionProfiles[i] = profile;
+                }
+            }
+            auto selectedProfile = motionProfiles[motionSelectedProfileIndex];
             setValue(json, motionEnabled, "motionGenerator", "motionEnabled", false);
-            setValue(json, motionUpdateGlobal, "motionGenerator", "motionUpdateGlobal", 100);
-            setValue(json, motionPeriodGlobal, "motionGenerator", "motionPeriodGlobal", 2000);
-            setValue(json, motionAmplitudeGlobal, "motionGenerator", "motionAmplitudeGlobal", 60);
-            setValue(json, motionOffsetGlobal, "motionGenerator", "motionOffsetGlobal", 5000);
-            setValue(json, motionPhaseGlobal, "motionGenerator", "motionPhaseGlobal", 0);
-            setValue(json, motionReversedGlobal, "motionGenerator", "motionReversedGlobal", false);
-            setValue(json, motionPeriodGlobalRandom, "motionGenerator", "motionPeriodGlobalRandom", false);
-            setValue(json, motionPeriodGlobalRandomMin, "motionGenerator", "motionPeriodGlobalRandomMin", 500);
-            setValue(json, motionPeriodGlobalRandomMax, "motionGenerator", "motionPeriodGlobalRandomMax", 2000);
-            setValue(json, motionAmplitudeGlobalRandom, "motionGenerator", "motionAmplitudeGlobalRandom", false);
-            setValue(json, motionAmplitudeGlobalRandomMin, "motionGenerator", "motionAmplitudeGlobalRandomMin", 20);
-            setValue(json, motionAmplitudeGlobalRandomMax, "motionGenerator", "motionAmplitudeGlobalRandomMax", 60);
-            setValue(json, motionOffsetGlobalRandom, "motionGenerator", "motionOffsetGlobalRandom", false);
-            setValue(json, motionOffsetGlobalRandomMin, "motionGenerator", "motionOffsetGlobalRandomMin", 3000);
-            setValue(json, motionOffsetGlobalRandomMax, "motionGenerator", "motionOffsetGlobalRandomMax", 7000);
-
-            setValue(json, motionRandomChangeMin, "motionGenerator", "motionRandomChangeMin", 3000);
-            setValue(json, motionRandomChangeMax, "motionGenerator", "motionRandomChangeMax", 30000);
+            setValue(selectedProfile.motionUpdateGlobal, motionUpdateGlobal, "motionGenerator", "motionUpdateGlobal");
+            setValue(selectedProfile.motionPeriodGlobal, motionPeriodGlobal, "motionGenerator", "motionPeriodGlobal");
+            setValue(selectedProfile.motionAmplitudeGlobal, motionAmplitudeGlobal, "motionGenerator", "motionAmplitudeGlobal");
+            setValue(selectedProfile.motionOffsetGlobal, motionOffsetGlobal, "motionGenerator", "motionOffsetGlobal");
+            setValue(selectedProfile.motionPhaseGlobal, motionPhaseGlobal, "motionGenerator", "motionPhaseGlobal");
+            setValue(selectedProfile.motionReversedGlobal, motionReversedGlobal, "motionGenerator", "motionReversedGlobal");
+            setValue(selectedProfile.motionPeriodGlobalRandom, motionPeriodGlobalRandom, "motionGenerator", "motionPeriodGlobalRandom");
+            setValue(selectedProfile.motionPeriodGlobalRandomMin, motionPeriodGlobalRandomMin, "motionGenerator", "motionPeriodGlobalRandomMin");
+            setValue(selectedProfile.motionPeriodGlobalRandomMax, motionPeriodGlobalRandomMax, "motionGenerator", "motionPeriodGlobalRandomMax");
+            setValue(selectedProfile.motionAmplitudeGlobalRandom, motionAmplitudeGlobalRandom, "motionGenerator", "motionAmplitudeGlobalRandom");
+            setValue(selectedProfile.motionAmplitudeGlobalRandomMin, motionAmplitudeGlobalRandomMin, "motionGenerator", "motionAmplitudeGlobalRandomMin");
+            setValue(selectedProfile.motionAmplitudeGlobalRandomMax, motionAmplitudeGlobalRandomMax, "motionGenerator", "motionAmplitudeGlobalRandomMax");
+            setValue(selectedProfile.motionOffsetGlobalRandom, motionOffsetGlobalRandom, "motionGenerator", "motionOffsetGlobalRandom");
+            setValue(selectedProfile.motionOffsetGlobalRandomMin, motionOffsetGlobalRandomMin, "motionGenerator", "motionOffsetGlobalRandomMin");
+            setValue(selectedProfile.motionOffsetGlobalRandomMax, motionOffsetGlobalRandomMax, "motionGenerator", "motionOffsetGlobalRandomMax");
+            setValue(selectedProfile.motionRandomChangeMin, motionRandomChangeMin, "motionGenerator", "motionRandomChangeMin");
+            setValue(selectedProfile.motionRandomChangeMax, motionRandomChangeMax, "motionGenerator", "motionRandomChangeMax");
 
             lastRebootReason = machine_reset_cause();
             LogHandler::info(_TAG, "Last reset reason: %s", SettingsHandler::lastRebootReason);
@@ -574,7 +600,7 @@ public:
     {
         return motionEnabled;
     }
-    static void setMotionEnabled(bool newValue)
+    static void setMotionEnabled(const bool& newValue)
     {
         setValue(newValue, motionEnabled, "motionGenerator", "motionEnabled");
     }
@@ -582,137 +608,214 @@ public:
     {
         return motionUpdateGlobal;
     }
-    static void setMotionUpdateGlobal(int newValue)
+    static void setMotionUpdateGlobal(const int& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionUpdateGlobal = newValue;
         setValue(newValue, motionUpdateGlobal, "motionGenerator", "motionUpdateGlobal");
     }
     static int getMotionPeriodGlobal()
     {
         return motionPeriodGlobal;
     }
-    static void setMotionPeriodGlobal(int newValue)
+    static void setMotionPeriodGlobal(const int& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionPeriodGlobal = newValue;
         setValue(newValue, motionPeriodGlobal, "motionGenerator", "motionPeriodGlobal");
     }
     static int getMotionAmplitudeGlobal()
-    {
+     {
         return motionAmplitudeGlobal;
     }
-    static void setMotionAmplitudeGlobal(int newValue)
+    static void setMotionAmplitudeGlobal(const int& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobal = newValue;
         setValue(newValue, motionAmplitudeGlobal, "motionGenerator", "motionAmplitudeGlobal");
     }
     static int getMotionOffsetGlobal()
     {
         return motionOffsetGlobal;
     }
-    static void setMotionOffsetGlobal(int newValue)
+    static void setMotionOffsetGlobal(const int& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionOffsetGlobal = newValue;
         setValue(newValue, motionOffsetGlobal, "motionGenerator", "motionOffsetGlobal");
     }
     static float getMotionPhaseGlobal()
     {
         return motionPhaseGlobal;
     }
-    static void setMotionPhaseGlobal(float newValue)
+    static void setMotionPhaseGlobal(const float& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionPhaseGlobal = newValue;
         setValue(newValue, motionPhaseGlobal, "motionGenerator", "motionPhaseGlobal");
     }
     static bool getMotionReversedGlobal()
     {
         return motionReversedGlobal;
     }
-    static void setMotionReversedGlobal(bool newValue)
+    static void setMotionReversedGlobal(const bool& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionReversedGlobal = newValue;
         setValue(newValue, motionReversedGlobal, "motionGenerator", "motionReversedGlobal");
     }
     static bool getMotionPeriodGlobalRandom()
     {
         return motionPeriodGlobalRandom;
     }
-    static void setMotionPeriodGlobalRandom(bool newValue)
+    static void setMotionPeriodGlobalRandom(const bool& newValue)
     {
         setValue(newValue, motionPeriodGlobalRandom, "motionGenerator", "motionPeriodGlobalRandom");
+        auto obj = motionProfiles[motionSelectedProfileIndex];
+        obj.motionPeriodGlobalRandom = newValue;
     }
     static int getMotionPeriodGlobalRandomMin()
     {
         return motionPeriodGlobalRandomMin;
     }
-    static void setMotionPeriodGlobalRandomMin(int newValue)
+    static void setMotionPeriodGlobalRandomMin(const int& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionPeriodGlobalRandomMin = newValue;
         setValue(newValue, motionPeriodGlobalRandomMin, "motionGenerator", "motionPeriodGlobalRandomMin");
     }
     static int getMotionPeriodGlobalRandomMax()
     {
         return motionPeriodGlobalRandomMax;
     }
-    static void setMotionPeriodGlobalRandomMax(int newValue)
+    static void setMotionPeriodGlobalRandomMax(const int& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionPeriodGlobalRandomMax = newValue;
         setValue(newValue, motionPeriodGlobalRandomMax, "motionGenerator", "motionPeriodGlobalRandomMax");
     }
     static bool getMotionAmplitudeGlobalRandom()
     {
         return motionAmplitudeGlobalRandom;
     }
-    static void setMotionAmplitudeGlobalRandom(bool newValue)
+    static void setMotionAmplitudeGlobalRandom(const bool& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandom = newValue;
         setValue(newValue, motionAmplitudeGlobalRandom, "motionGenerator", "motionAmplitudeGlobalRandom");
     }
     static int getMotionAmplitudeGlobalRandomMin()
     {
         return motionAmplitudeGlobalRandomMin;
     }
-    static void setMotionAmplitudeGlobalRandomMin(int newValue)
+    static void setMotionAmplitudeGlobalRandomMin(const int& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandomMin = newValue;
         setValue(newValue, motionAmplitudeGlobalRandomMin, "motionGenerator", "motionAmplitudeGlobalRandomMin");
     }
     static int getMotionAmplitudeGlobalRandomMax()
     {
         return motionAmplitudeGlobalRandomMax;
     }
-    static void setMotionAmplitudeGlobalRandomMax(int newValue)
+    static void setMotionAmplitudeGlobalRandomMax(const int& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandomMax = newValue;
         setValue(newValue, motionAmplitudeGlobalRandomMax, "motionGenerator", "motionAmplitudeGlobalRandomMax");
     }
     static bool getMotionOffsetGlobalRandom()
     {
         return motionOffsetGlobalRandom;
     }
-    static void setMotionOffsetGlobalRandom(bool newValue)
+    static void setMotionOffsetGlobalRandom(const bool& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandom = newValue;
         setValue(newValue, motionOffsetGlobalRandom, "motionGenerator", "motionOffsetGlobalRandom");
     }
     static int getMotionOffsetGlobalRandomMin()
     {
         return motionOffsetGlobalRandomMin;
     }
-    static void setMotionOffsetGlobalRandomMin(int newValue)
+    static void setMotionOffsetGlobalRandomMin(const int& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandomMin = newValue;
         setValue(newValue, motionOffsetGlobalRandomMin, "motionGenerator", "motionOffsetGlobalRandomMin");
     }
     static int getMotionOffsetGlobalRandomMax()
     {
         return motionOffsetGlobalRandomMax;
     }
-    static void setMotionOffsetGlobalRandomMax(int newValue)
+    static void setMotionOffsetGlobalRandomMax(const int& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandomMax = newValue;
         setValue(newValue, motionOffsetGlobalRandomMax, "motionGenerator", "motionOffsetGlobalRandomMax");
     }
     static int getMotionRandomChangeMin()
     {
         return motionRandomChangeMin;
     }
-    static void setMotionRandomChangeMin(int newValue)
+    static void setMotionRandomChangeMin(const int& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionRandomChangeMin = newValue;
         setValue(newValue, motionRandomChangeMin, "motionGenerator", "motionRandomChangeMin");
     }
     static int getMotionRandomChangeMax()
     {
         return motionRandomChangeMax;
     }
-    static void setMotionRandomChangeMax(int newValue)
+    static void setMotionRandomChangeMax(const int& newValue)
     {
+        motionProfiles[motionSelectedProfileIndex].motionRandomChangeMax = newValue;
         setValue(newValue, motionRandomChangeMax, "motionGenerator", "motionRandomChangeMax");
+    }
+
+    static int motionProfileExists(const char* profile) {
+        int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
+        for (size_t i = 0; i < len; i++)
+        {
+            if (strcmp(motionProfiles[i].motionProfileName, profile) == 0)
+                return (int)i;
+        }
+        return -1;
+    }
+
+    static void setMotionDefaults() {
+        setMotionEnabled(false);
+        auto motionProfile = MotionProfile(motionSelectedProfileIndex + 1);
+        setMotionProfile(motionProfile, motionSelectedProfileIndex);
+    }
+
+    static void setMotionProfile(const char profile[31]) {
+        auto index = motionProfileExists(profile);
+        if(index < 0) {
+            LogHandler::error(_TAG, "Motion profile %s does not exist", profile);
+            return;
+        }
+        setMotionProfile(index);
+    }
+    static void setMotionProfile(const int& index) {
+        int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
+        if(index < 0 || index > len - 1) {
+            LogHandler::error(_TAG, "Invalid motion profile index: %ld", index);
+            return;
+        }
+        auto newProfile = motionProfiles[index];
+        setMotionProfile(newProfile, index);
+    }
+    static void setMotionProfile(const MotionProfile& profile, int profileIndex) {
+        int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
+        if(profileIndex < 0 || profileIndex > len - 1) {
+            LogHandler::error(_TAG, "Invalid motion profile index: %ld", profileIndex);
+            return;
+        }
+        motionSelectedProfileIndex = profileIndex;
+        setMotionUpdateGlobal(profile.motionUpdateGlobal);
+        setMotionPeriodGlobal(profile.motionPeriodGlobal);
+        setMotionAmplitudeGlobal(profile.motionAmplitudeGlobal);
+        setMotionOffsetGlobal(profile.motionOffsetGlobal);
+        setMotionPhaseGlobal(profile.motionPhaseGlobal);
+        setMotionReversedGlobal(profile.motionReversedGlobal);
+        setMotionPeriodGlobalRandom(profile.motionPeriodGlobalRandom);
+        setMotionPeriodGlobalRandomMin(profile.motionPeriodGlobalRandomMin);
+        setMotionPeriodGlobalRandomMax(profile.motionPeriodGlobalRandomMax);
+        setMotionAmplitudeGlobalRandom(profile.motionAmplitudeGlobalRandom);
+        setMotionAmplitudeGlobalRandomMin(profile.motionAmplitudeGlobalRandomMin);
+        setMotionAmplitudeGlobalRandomMax(profile.motionAmplitudeGlobalRandomMax);
+        setMotionOffsetGlobalRandom(profile.motionOffsetGlobalRandom);
+        setMotionOffsetGlobalRandomMin(profile.motionOffsetGlobalRandomMin);
+        setMotionOffsetGlobalRandomMax(profile.motionOffsetGlobalRandomMax);
+        setMotionRandomChangeMin(profile.motionRandomChangeMin);
+        setMotionRandomChangeMax(profile.motionRandomChangeMax);
     }
 
     // Untested
@@ -741,7 +844,7 @@ public:
     //     return bytes;
     // }
 
-    static void serialize(char buf[3072])
+    static void serialize(char buf[6144])
     {
         LogHandler::debug(_TAG, "Get settings...");
         File file = SPIFFS.open(userSettingsFilePath, "r");
@@ -791,7 +894,14 @@ public:
         {
             availableTagsJsonArray.add(tag);
         }
-
+        JsonArray systemI2CAddressesJsonArray = doc.createNestedArray("systemI2CAddresses");
+        systemI2CAddressesJsonArray.add("0x0");
+        for (int value : systemI2CAddresses) {
+			char buf[10];
+            hexToString(value, buf);
+            systemI2CAddressesJsonArray.add(buf);
+        }
+        
         doc["localIP"] = localIP;
         doc["gateway"] = gateway;
         doc["subnet"] = subnet;
@@ -1016,24 +1126,29 @@ public:
         doc["batteryVoltageMax"] = round2(batteryVoltageMax);
         doc["batteryCapacityMax"] = batteryCapacityMax;
 
-        // doc["motionEnabled"] = motionEnabled;
-        doc["motionUpdateGlobal"] = motionUpdateGlobal;
-        doc["motionPeriodGlobal"] = motionPeriodGlobal;
-        doc["motionAmplitudeGlobal"] = motionAmplitudeGlobal;
-        doc["motionOffsetGlobal"] = motionOffsetGlobal;
-        doc["motionPhaseGlobal"] = motionPhaseGlobal;
-        doc["motionReversedGlobal"] = motionReversedGlobal;
-        doc["motionPeriodGlobalRandom"] = motionPeriodGlobalRandom;
-        doc["motionAmplitudeGlobalRandom"] = motionAmplitudeGlobalRandom;
-        doc["motionOffsetGlobalRandom"] = motionOffsetGlobalRandom;
-        doc["motionPeriodGlobalRandomMin"] = motionPeriodGlobalRandomMin;
-        doc["motionPeriodGlobalRandomMax"] = motionPeriodGlobalRandomMax;
-        doc["motionAmplitudeGlobalRandomMin"] = motionAmplitudeGlobalRandomMin;
-        doc["motionAmplitudeGlobalRandomMax"] = motionAmplitudeGlobalRandomMax;
-        doc["motionOffsetGlobalRandomMin"] = motionOffsetGlobalRandomMin;
-        doc["motionOffsetGlobalRandomMax"] = motionOffsetGlobalRandomMax;
-        doc["motionRandomChangeMin"] = motionRandomChangeMin;
-        doc["motionRandomChangeMax"] = motionRandomChangeMax;
+        doc["motionSelectedProfileIndex"] = motionSelectedProfileIndex;
+        int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
+        for (int i=0; i < len; i++)
+        {
+            doc["motionProfiles"][i]["motionProfileName"] = motionProfiles[i].motionProfileName;
+            doc["motionProfiles"][i]["motionUpdateGlobal"] = motionProfiles[i].motionUpdateGlobal;
+            doc["motionProfiles"][i]["motionPeriodGlobal"] = motionProfiles[i].motionPeriodGlobal;
+            doc["motionProfiles"][i]["motionAmplitudeGlobal"] = motionProfiles[i].motionAmplitudeGlobal;
+            doc["motionProfiles"][i]["motionOffsetGlobal"] = motionProfiles[i].motionOffsetGlobal;
+            doc["motionProfiles"][i]["motionPhaseGlobal"] = motionProfiles[i].motionPhaseGlobal;
+            doc["motionProfiles"][i]["motionReversedGlobal"] = motionProfiles[i].motionReversedGlobal;
+            doc["motionProfiles"][i]["motionPeriodGlobalRandom"] = motionProfiles[i].motionPeriodGlobalRandom;
+            doc["motionProfiles"][i]["motionAmplitudeGlobalRandom"] = motionProfiles[i].motionAmplitudeGlobalRandom;
+            doc["motionProfiles"][i]["motionOffsetGlobalRandom"] = motionProfiles[i].motionOffsetGlobalRandom;
+            doc["motionProfiles"][i]["motionPeriodGlobalRandomMin"] = motionProfiles[i].motionPeriodGlobalRandomMin;
+            doc["motionProfiles"][i]["motionPeriodGlobalRandomMax"] = motionProfiles[i].motionPeriodGlobalRandomMax;
+            doc["motionProfiles"][i]["motionAmplitudeGlobalRandomMin"] = motionProfiles[i].motionAmplitudeGlobalRandomMin;
+            doc["motionProfiles"][i]["motionAmplitudeGlobalRandomMax"] = motionProfiles[i].motionAmplitudeGlobalRandomMax;
+            doc["motionProfiles"][i]["motionOffsetGlobalRandomMin"] = motionProfiles[i].motionOffsetGlobalRandomMin;
+            doc["motionProfiles"][i]["motionOffsetGlobalRandomMax"] = motionProfiles[i].motionOffsetGlobalRandomMax;
+            doc["motionProfiles"][i]["motionRandomChangeMin"] = motionProfiles[i].motionRandomChangeMin;
+            doc["motionProfiles"][i]["motionRandomChangeMax"] = motionProfiles[i].motionRandomChangeMax;
+        }
 
 
         JsonArray includes = doc.createNestedArray("log-include-tags");
@@ -1230,6 +1345,57 @@ public:
         // Serial.println(outbuf);
     }
 
+	static bool I2CScan() 
+	{
+		byte error, address;
+		int nDevices;
+		LogHandler::info(_TAG, "Scanning for I2C...");
+		nDevices = 0;
+		Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+		for(address = 1; address < 127; address++ ) 
+		{
+			Wire.beginTransmission(address);
+			error = Wire.endTransmission();
+			if (error == 0) 
+			{
+				//Serial.print("I2C device found at address 0x");
+				// if (address<16) 
+				// {
+				// 	Serial.print("0");
+				// }
+				// Serial.println(address,HEX);
+
+                // std::stringstream I2C_Address_String;
+                // I2C_Address_String << "0x" << std::hex << address;
+                // std::string foundAddress = I2C_Address_String.str();
+                
+				char buf[10];
+				hexToString(address, buf);
+				LogHandler::info(_TAG, "I2C device found at address %s", buf);
+
+				systemI2CAddresses.push_back(address);
+				nDevices++;
+			}
+			else if (error==4) 
+			{
+				Serial.print("Unknow error at address 0x");
+				if (address<16) 
+				{
+					Serial.print("0");
+				}
+				Serial.println(address,HEX);
+                // std::stringstream I2C_Address_String;
+                // I2C_Address_String << "0x" << std::hex << address;
+                // std::string foundAddress = I2C_Address_String.str();
+				// LogHandler::error(_TAG, "Unknow error at address %s", foundAddress);
+			}    
+		}
+		if (nDevices == 0) {
+			LogHandler::info(_TAG, "No I2C devices found");
+			return false;
+		}
+		return true;
+	}
 private:
     static const char *_TAG;
     static const char *userSettingsDefaultFilePath;
@@ -1237,11 +1403,15 @@ private:
     // Use http://arduinojson.org/assistant to compute the capacity.
     // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
     // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
-    static const int deserializeSize = 6144;
-    static const int serializeSize = 3072;
+    static const int deserializeSize = 8144;
+    static const int serializeSize = 4072;
     // 3072
 
     static bool motionEnabled;
+    //static char motionSelectedProfileName[31];
+    static int motionSelectedProfileIndex;
+    static MotionProfile motionProfiles[maxMotionProfileCount];
+    //static std::map<const char*, MotionProfile*, StrCompare>  motionProfiles;
     static int motionUpdateGlobal;
     static int motionPeriodGlobal;
     static int motionAmplitudeGlobal;
@@ -1292,6 +1462,19 @@ private:
     {
         float newValue = json[propertyName] | defaultValue;
         setValue(newValue, variable, propertyGroup, propertyName);
+    }
+
+    static void setValue(JsonObject json, std::vector<String> &variable, const char *propertyGroup, const char *propertyName)
+    {
+        variable.clear();
+        if(json[propertyName].isNull()) {
+            return;
+        }
+        JsonArray jsonArray = json[propertyName].as<JsonArray>();
+        for (int i = 0; i < jsonArray.size(); i++)
+        {
+            variable.push_back(jsonArray[i]);
+        }
     }
 
     static void setValue(bool newValue, bool &variable, const char *propertyGroup, const char *propertyName)
@@ -1603,11 +1786,12 @@ bool SettingsHandler::fullBuild = false;
 BoardType SettingsHandler::boardType = BoardType::DEVKIT;
 BuildFeature SettingsHandler::buildFeatures[featureCount];
 const char *SettingsHandler::_TAG = TagHandler::SettingsHandler;
+std::vector<int> SettingsHandler::systemI2CAddresses;
 SETTING_STATE_FUNCTION_PTR_T SettingsHandler::message_callback = 0;
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
 MotorType SettingsHandler::motorType = MotorType::Servo;
-const char SettingsHandler::ESP32Version[8] = "v0.283b";
+const char SettingsHandler::ESP32Version[8] = "v0.285b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char *SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
@@ -1731,11 +1915,13 @@ int SettingsHandler::caseFanFrequency = 25;
 int SettingsHandler::caseFanResolution = 10;
 const char *SettingsHandler::lastRebootReason;
 
-int SettingsHandler::strokerSamples = 100;
-int SettingsHandler::strokerOffset = 3276;
-int SettingsHandler::strokerAmplitude = 32767;
+bool SettingsHandler::voiceEnabled = false;
 
 bool SettingsHandler::motionEnabled = false;
+//char SettingsHandler::motionSelectedProfileName[31];
+int SettingsHandler::motionSelectedProfileIndex = 0;
+MotionProfile SettingsHandler::motionProfiles[maxMotionProfileCount];
+//std::map<const char*, MotionProfile*, StrCompare> SettingsHandler::motionProfiles;
 int SettingsHandler::motionUpdateGlobal;
 int SettingsHandler::motionPeriodGlobal;
 int SettingsHandler::motionAmplitudeGlobal;

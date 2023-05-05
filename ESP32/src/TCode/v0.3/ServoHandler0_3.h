@@ -76,7 +76,7 @@ public:
             ledcAttachPin(SettingsHandler::LeftUpperServo_PIN,UpperLeftServo_PWM);
             if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
                 // Upper Right Servo
-            LogHandler::verbose(_TAG, "Connecting right upper servo to pin: %u", SettingsHandler::RightUpperServo_PIN);
+                LogHandler::verbose(_TAG, "Connecting right upper servo to pin: %u", SettingsHandler::RightUpperServo_PIN);
                 ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);
                 ledcAttachPin(SettingsHandler::RightUpperServo_PIN,UpperRightServo_PWM);
                 // Right Pitch Servo

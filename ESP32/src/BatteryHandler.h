@@ -28,8 +28,8 @@ SOFTWARE. */
 #include <LTC2944.h>
 #include "SettingsHandler.h"
 #include "utils.h"
-#include "driver/adc.h"
-#include "esp_adc_cal.h"
+// #include "driver/adc.h"
+// #include "esp_adc_cal.h"
 #include "LogHandler.h"
 #include "TagHandler.h"
 
@@ -67,6 +67,10 @@ public:
 
     bool setup() {
         LogHandler::info(_TAG, "Setup battery monitor");
+        if(SettingsHandler::systemI2CAddresses.size() == 0) {
+            LogHandler::info(_TAG, "No I2C devices found in system");
+            return false;
+        }
         Wire.begin();
         long timeout = millis() + 10000;
         LogHandler::info(_TAG, "Connecting to monitor");

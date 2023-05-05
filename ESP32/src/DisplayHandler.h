@@ -53,12 +53,18 @@ public:
 	void setup() 
 	{
     	LogHandler::info(_TAG, "Setting up display");
+        if(SettingsHandler::systemI2CAddresses.size() == 0) {
+            LogHandler::info(_TAG, "No I2C devices found in system");
+            return;
+        }
 
 		//Wire.begin();
 		//Wire.setClock(100000UL);
-		if(!SettingsHandler::Display_I2C_Address && !I2CScan()) {
+		if(!SettingsHandler::Display_I2C_Address) {
+    		LogHandler::info(_TAG, "No address to connect to");
 			return;
 		} else if(!connectDisplay(SettingsHandler::Display_I2C_Address)) {
+    		LogHandler::info(_TAG, "Could not connect address");
 			return;
 		}
 		delay(2000);
@@ -69,8 +75,8 @@ public:
   			display.setTextColor(WHITE);
 			display.setTextSize(1);
 		} else
-			LogHandler::verbose(_TAG, "Display is not connected");
-    	LogHandler::debug(_TAG, "Setting up display finished");
+			LogHandler::error(_TAG, "Display is not connected");
+    	LogHandler::info(_TAG, "Setting up display finished");
 	}
 
 	void setLocalIPAddress(IPAddress ipAddress)
@@ -159,6 +165,7 @@ public:
 		_isRunning = true;
 		while(_isRunning) {
 			if(!m_animationPlaying && displayConnected && millis() >= lastUpdate + nextUpdate) {
+				LogHandler::verbose(_TAG, "Enter display loop");
 				lastUpdate = millis();
 				clearDisplay();
 				setTextSize(1);
@@ -198,6 +205,7 @@ public:
 
 					newLine(headerPadding);
 					if(SettingsHandler::versionDisplayed) {
+						LogHandler::verbose(_TAG, "Enter versionDisplayed");
 						left(SettingsHandler::TCodeVersionName.c_str());
 						right(SettingsHandler::ESP32Version);
 						newLine();
@@ -263,55 +271,6 @@ public:
 			display.println(value);
 			display.display();
 		}
-	}
-
-	bool I2CScan() 
-	{
-		byte error, address;
-		int nDevices;
-		Serial.println("Scanning for I2C...");
-		nDevices = 0;
-		Wire.begin(SettingsHandler::I2C_SDA_PIN, SettingsHandler::I2C_SCL_PIN);
-		std::vector<int> foundAddresses;
-		for(address = 1; address < 127; address++ ) 
-		{
-			Wire.beginTransmission(address);
-			error = Wire.endTransmission();
-			if (error == 0) 
-			{
-				Serial.print("I2C device found at address 0x");
-				if (address<16) 
-				{
-					Serial.print("0");
-				}
-				Serial.println(address,HEX);
-				foundAddresses.push_back(address);
-				nDevices++;
-			}
-			else if (error==4) 
-			{
-				Serial.print("Unknow error at address 0x");
-				if (address<16) 
-				{
-					Serial.print("0");
-				}
-				Serial.println(address,HEX);
-			}    
-		}
-		if (nDevices == 0) {
-			Serial.println("No I2C devices found\n");
-			return false;
-		}
-  		unsigned int vecSize = foundAddresses.size();
-		for(unsigned int i = 0; i < vecSize; i++)
-		{
-			if(connectDisplay(foundAddresses[i])) {
-				SettingsHandler::Display_I2C_Address = foundAddresses[i];
-				SettingsHandler::save();
-				break;
-			}
-		}
-		return true;
 	}
 
 	// static void startAnimationDontPanic(void* displayHandlerRef) 
@@ -618,12 +577,37 @@ private:
 			}
 		}
 	}
+	// bool tryConnect() //Connects to the wrong address
+	// {
+  	// 	unsigned int vecSize = SettingsHandler::systemI2CAddresses.size();
+	// 	LogHandler::info(_TAG, "System I2c device count %ld", vecSize);
+	// 	if(vecSize) {
+	// 		for(unsigned int i = 0; i < vecSize; i++)
+	// 		{
+	// 			//const char* address = SettingsHandler::systemI2CAddresses[i].c_str();
+	// 			char buf[10];
+	// 			hexToString(SettingsHandler::systemI2CAddresses[i], buf);
+	// 			LogHandler::info(_TAG, "Trying to connect to %s", buf);
+	// 			if(SettingsHandler::systemI2CAddresses[i] && connectDisplay(SettingsHandler::systemI2CAddresses[i])) {
+	// 				LogHandler::info(_TAG, "Sucess!");
+	// 				SettingsHandler::Display_I2C_Address = SettingsHandler::systemI2CAddresses[i];
+	// 				SettingsHandler::save();
+	// 				return true;
+	// 			} else {
+	// 				LogHandler::info(_TAG, "Failed..");
+	// 			}
+	// 		}
+	// 		LogHandler::info(_TAG, "Could not connect to any I2C address");
+	// 	}
+	// 	return false;
+	// }
 
 	bool connectDisplay(int address) {
 		if(LogHandler::getLogLevel() == LogLevel::DEBUG) {
-			std::stringstream Display_I2C_Address_String;
-			Display_I2C_Address_String << "0x" << std::hex << address;
-			LogHandler::debug(_TAG, "Connect to display at address: %s", Display_I2C_Address_String.str());
+			char buf[10];
+			hexToString(address, buf);
+			LogHandler::debug(_TAG, "Connect to display at address: %s", buf);
+			LogHandler::debug(_TAG, "byte: %ld", address);
 		}
 		if (SettingsHandler::Display_Rst_PIN >= 0)
 		{

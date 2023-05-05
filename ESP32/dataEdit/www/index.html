@@ -796,7 +796,9 @@
 							<span>I2C address</span> 
 						</td>
 						<td>
-							<input id="Display_I2C_Address" type="text" oninput="setDisplaySettings()">
+							<input id="Display_I2C_Address_text" type="text" oninput="setDisplaySettings()">
+							<select name="Display_I2C_Address" id="Display_I2C_Address" onchange="setDisplayAddress()">
+							</select>
 						</td>
 					</tr>
 			<!-- 		<tr>
@@ -931,6 +933,20 @@
 						<td><span>Enabled</span></td>
 						<td>
 							<input id="motionEnabled" type="checkbox" oninput="setMotionEnabledClicked()">
+						</td>
+					</tr>
+					<tr>
+						<td><span>Profile</span></td>
+						<td>
+							<select id="motionProfiles" onchange="setMotionGeneratorProfile()"></select>
+							<!-- <button id="addMotionProfile" onclick="addMotionProfile()">+</button>
+							<button id="deleteMotionProfile" onclick="deleteMotionProfile()">-</button> -->
+						</td>
+					</tr>
+					<tr>
+						<td><span>Profile name</span></td>
+						<td>
+							<input id="motionProfileName" oninput="setMotionGeneratorSettings()">
 						</td>
 					</tr>
 					<tr>
