@@ -18,6 +18,14 @@ p{
 input:read-only, textarea:read-only {
   background-color: #ccc;
 }
+button {
+  border-radius: 5px;
+}
+button:hover {
+  border-color: aqua;
+  background-color: cornflowerblue;
+  color: white;
+}
 .error {
   border-radius: 25px;
   background-color:firebrick;
@@ -123,8 +131,9 @@ input:read-only, textarea:read-only {
 }
 .formTable input[type=text],
 .formTable input[type=number],
-.formTable input[type=password] {
-  width: 100%;
+.formTable input[type=password],
+.formTable select {
+  flex-grow: 1;
   border-radius: 5px;
 }
 .formTable input[type=text]:invalid,
@@ -394,6 +403,28 @@ div[slider] > input[type=range]::-ms-tooltip {
   border-color: #fff transparent #fff transparent;
   animation: loading-spinner 1.2s linear infinite;
 }
+
+.button-toggle-stop {
+  border-color: rgb(255, 0, 0);
+  background-color: darkred;
+  color: white;
+}
+.button-toggle-stop:hover {
+  border-color: darkred;
+  background-color: red;
+  color: darkred;
+}
+.button-toggle-start {
+  border-color: lightgreen;
+  background-color: green;
+  color: lightgreen;
+}
+.button-toggle-start:hover {
+  border-color: white;
+  background-color: lightgreen;
+  color: green;
+}
+
 @keyframes loading-spinner {
   0% {
       transform: rotate(0deg);

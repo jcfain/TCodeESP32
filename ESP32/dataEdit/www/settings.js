@@ -488,6 +488,7 @@ function setUserSettings()
     }
     toggleMotorTypeOptions();
     toggleBatterySettings(userSettings["batteryLevelEnabled"]);
+    setMotionEnabledStatus();
     // var xMin = userSettings["xMin"];
     // var xMax = userSettings["xMax"];
     //document.getElementById("xMin").value = xMin;
@@ -643,37 +644,36 @@ function setUserSettings()
     }
     
     // var motionProfilesElement = document.getElementById('motionProfiles');
-    Object.keys(userSettings["motionProfiles"]).forEach(x => {
+    userSettings["motionProfiles"].forEach((x, index) => {
         // var option = document.createElement("option");
         // option.id = x;
         // option.value = x;
         // option.innerText = x;
         // motionProfilesElement.appendChild(option);
-        addMotionProfileOption(x, userSettings["motionProfiles"][x]);
+        addMotionProfileOption(index, x);
     });
 
-    const currentProfile = userSettings["motionSelectedProfileIndex"]
-    document.getElementById('motionProfiles').value = currentProfile;
+    const currentProfileIndex = userSettings["motionSelectedProfileIndex"];
+    document.getElementById('motionProfiles').value = currentProfileIndex;
 
-    document.getElementById('motionEnabled').checked = userSettings["motionEnabled"];
-    document.getElementById('motionProfileName').value = userSettings['motionProfiles'][currentProfile]["motionProfileName"];
-    document.getElementById('motionUpdateGlobal').value = userSettings['motionProfiles'][currentProfile]["motionUpdateGlobal"];
-    document.getElementById('motionPeriodGlobal').value = userSettings['motionProfiles'][currentProfile]["motionPeriodGlobal"];
-    document.getElementById('motionAmplitudeGlobal').value = userSettings['motionProfiles'][currentProfile]["motionAmplitudeGlobal"];
-    document.getElementById('motionOffsetGlobal').value = userSettings['motionProfiles'][currentProfile]["motionOffsetGlobal"];  
+    document.getElementById('motionProfileName').value = userSettings['motionProfiles'][currentProfileIndex]["motionProfileName"];
+    document.getElementById('motionUpdateGlobal').value = userSettings['motionProfiles'][currentProfileIndex]["motionUpdateGlobal"];
+    document.getElementById('motionPeriodGlobal').value = userSettings['motionProfiles'][currentProfileIndex]["motionPeriodGlobal"];
+    document.getElementById('motionAmplitudeGlobal').value = userSettings['motionProfiles'][currentProfileIndex]["motionAmplitudeGlobal"];
+    document.getElementById('motionOffsetGlobal').value = userSettings['motionProfiles'][currentProfileIndex]["motionOffsetGlobal"];  
     // document.getElementById('motionPhaseGlobal').value = userSettings["motionPhaseGlobal"];
-    document.getElementById('motionPeriodGlobalRandom').checked = userSettings['motionProfiles'][currentProfile]["motionPeriodGlobalRandom"];
-    document.getElementById('motionAmplitudeGlobalRandom').checked = userSettings['motionProfiles'][currentProfile]["motionAmplitudeGlobalRandom"];
-    document.getElementById('motionOffsetGlobalRandom').checked = userSettings['motionProfiles'][currentProfile]["motionOffsetGlobalRandom"];
+    document.getElementById('motionPeriodGlobalRandom').checked = userSettings['motionProfiles'][currentProfileIndex]["motionPeriodGlobalRandom"];
+    document.getElementById('motionAmplitudeGlobalRandom').checked = userSettings['motionProfiles'][currentProfileIndex]["motionAmplitudeGlobalRandom"];
+    document.getElementById('motionOffsetGlobalRandom').checked = userSettings['motionProfiles'][currentProfileIndex]["motionOffsetGlobalRandom"];
     toggleMotionRandomSettings();
-    document.getElementById('motionPeriodGlobalRandomMin').value = userSettings['motionProfiles'][currentProfile]["motionPeriodGlobalRandomMin"];
-    document.getElementById('motionPeriodGlobalRandomMax').value = userSettings['motionProfiles'][currentProfile]["motionPeriodGlobalRandomMax"];
-    document.getElementById('motionAmplitudeGlobalRandomMin').value = userSettings['motionProfiles'][currentProfile]["motionAmplitudeGlobalRandomMin"];
-    document.getElementById('motionAmplitudeGlobalRandomMax').value = userSettings['motionProfiles'][currentProfile]["motionAmplitudeGlobalRandomMax"];
-    document.getElementById('motionOffsetGlobalRandomMin').value = userSettings['motionProfiles'][currentProfile]["motionOffsetGlobalRandomMin"];
-    document.getElementById('motionOffsetGlobalRandomMax').value = userSettings['motionProfiles'][currentProfile]["motionOffsetGlobalRandomMax"];
-    document.getElementById('motionRandomChangeMax').value = userSettings['motionProfiles'][currentProfile]["motionRandomChangeMax"];
-    document.getElementById('motionRandomChangeMin').value = userSettings['motionProfiles'][currentProfile]["motionRandomChangeMin"];
+    document.getElementById('motionPeriodGlobalRandomMin').value = userSettings['motionProfiles'][currentProfileIndex]["motionPeriodGlobalRandomMin"];
+    document.getElementById('motionPeriodGlobalRandomMax').value = userSettings['motionProfiles'][currentProfileIndex]["motionPeriodGlobalRandomMax"];
+    document.getElementById('motionAmplitudeGlobalRandomMin').value = userSettings['motionProfiles'][currentProfileIndex]["motionAmplitudeGlobalRandomMin"];
+    document.getElementById('motionAmplitudeGlobalRandomMax').value = userSettings['motionProfiles'][currentProfileIndex]["motionAmplitudeGlobalRandomMax"];
+    document.getElementById('motionOffsetGlobalRandomMin').value = userSettings['motionProfiles'][currentProfileIndex]["motionOffsetGlobalRandomMin"];
+    document.getElementById('motionOffsetGlobalRandomMax').value = userSettings['motionProfiles'][currentProfileIndex]["motionOffsetGlobalRandomMax"];
+    document.getElementById('motionRandomChangeMax').value = userSettings['motionProfiles'][currentProfileIndex]["motionRandomChangeMax"];
+    document.getElementById('motionRandomChangeMin').value = userSettings['motionProfiles'][currentProfileIndex]["motionRandomChangeMin"];
     setIntMinAndMax('motionPeriodGlobalRandomMin', 'motionPeriodGlobalRandomMax');
     setIntMinAndMax('motionAmplitudeGlobalRandomMin', 'motionAmplitudeGlobalRandomMax');
     setIntMinAndMax('motionOffsetGlobalRandomMin', 'motionOffsetGlobalRandomMax');
@@ -759,7 +759,7 @@ function toggleMotorTypeOptions() {
     }
 }
 
-function updateUserSettings() 
+function updateUserSettings(debounceInMs = 3000) 
 {
     if (documentLoaded) {
         if(upDateTimeout !== null) 
@@ -821,7 +821,7 @@ function updateUserSettings()
             var body = JSON.stringify(userSettings);
             xhr.send(body);
             upDateTimeout = null;
-        }, 3000);
+        }, debounceInMs);
     }
 }
 
@@ -2218,7 +2218,7 @@ function setBatteryFull() {
     sendWebsocketCommand("setBatteryFull");
 }
 function toggleMotionRandomSettings() {
-    var currentProfile = userSettings["motionSelectedProfileIndex"];
+    var currentProfile = getMotionProfileSelectedIndex();
     toggleControlVisabilityByID("motionOffsetGlobalRandomMinRow", userSettings['motionProfiles'][currentProfile]["motionOffsetGlobalRandom"]);
     toggleControlVisabilityByID("motionOffsetGlobalRandomMaxRow", userSettings['motionProfiles'][currentProfile]["motionOffsetGlobalRandom"]);
     toggleControlVisabilityByID("motionAmplitudeGlobalRandomMinRow", userSettings['motionProfiles'][currentProfile]["motionAmplitudeGlobalRandom"]);
@@ -2228,30 +2228,30 @@ function toggleMotionRandomSettings() {
     toggleMotionRandomMinMaxSettingsSettings();
 }
 function toggleMotionRandomMinMaxSettingsSettings() {
-    var currentProfile = userSettings["motionSelectedProfileIndex"];
+    var currentProfile = getMotionProfileSelectedIndex();
     toggleControlVisabilityByID("motionRandomChangeMinRow", userSettings['motionProfiles'][currentProfile]["motionOffsetGlobalRandom"] || userSettings['motionProfiles'][currentProfile]["motionAmplitudeGlobalRandom"] || userSettings['motionProfiles'][currentProfile]["motionPeriodGlobalRandom"]);
     toggleControlVisabilityByID("motionRandomChangeMaxRow", userSettings['motionProfiles'][currentProfile]["motionOffsetGlobalRandom"] || userSettings['motionProfiles'][currentProfile]["motionAmplitudeGlobalRandom"] || userSettings['motionProfiles'][currentProfile]["motionPeriodGlobalRandom"]);
 }
 
 function setMotionEnabledClicked() {
-    var motionEnabled = document.getElementById('motionEnabled').checked;
-    if(motionEnabled) {
-        sendTCode("$motion-enable");
+    userSettings["motionEnabled"] = !userSettings["motionEnabled"];//document.getElementById('motionEnabled').checked;
+    sendTCode(userSettings["motionEnabled"] ? "$motion-enable" : "$motion-disable");
+    //userSettings["motionEnabled"] ? button.classList.add("button-toggle-stop") : button.classList.remove("button-toggle-stop");
+    setMotionEnabledStatus();
+}
+function setMotionEnabledStatus() {
+    var button = document.getElementById('motionEnabledToggle');
+    button.innerText = userSettings["motionEnabled"] ? "Stop" : "Start"
+    if(userSettings["motionEnabled"]) {
+        button.classList.add("button-toggle-stop");
+        button.classList.remove("button-toggle-start");
     } else {
-        sendTCode("$motion-disable");
+        button.classList.remove("button-toggle-stop");
+        button.classList.add("button-toggle-start");
     }
-    userSettings["motionEnabled"] = motionEnabled;
-    // setMotionGeneratorSettings();
 }
-
-function setMotionGeneratorStop() {
-    sendTCode("$motion-disable");
-    document.getElementById('motionEnabled').checked = false;
-    userSettings["motionEnabled"] = false;
-}
-
 function setMotionPeriodGlobalRandomClicked() {
-    var currentProfile = userSettings["motionSelectedProfileIndex"];
+    var currentProfile = getMotionProfileSelectedIndex();
     var motionEnabled = document.getElementById('motionPeriodGlobalRandom').checked;
     if(motionEnabled) {
         sendTCode("$motion-period-random-on");
@@ -2265,7 +2265,7 @@ function setMotionPeriodGlobalRandomClicked() {
     updateUserSettings();
 }
 function setMotionAmplitudeGlobalRandomClicked() {
-    var currentProfile = userSettings["motionSelectedProfileIndex"];
+    var currentProfile = getMotionProfileSelectedIndex();
     var motionEnabled = document.getElementById('motionAmplitudeGlobalRandom').checked;
     if(motionEnabled) {
         sendTCode("$motion-amplitude-random-on");
@@ -2279,7 +2279,7 @@ function setMotionAmplitudeGlobalRandomClicked() {
     updateUserSettings();
 }
 function setMotionOffsetGlobalRandomRandomClicked() {
-    var currentProfile = userSettings["motionSelectedProfileIndex"];
+    var currentProfile = getMotionProfileSelectedIndex();
     var motionEnabled = document.getElementById('motionOffsetGlobalRandom').checked;
     if(motionEnabled) {
         sendTCode("$motion-offset-random-on");
@@ -2293,10 +2293,15 @@ function setMotionOffsetGlobalRandomRandomClicked() {
     updateUserSettings();
 }
 function setMotionGeneratorProfile() {
-    userSettings["motionSelectedProfileIndex"] = parseInt(document.getElementById('motionProfiles').value);
-    sendTCode(`$motion-set-profile:${userSettings["motionSelectedProfileIndex"]}`);
-    setMotionGeneratorSettingsProfile(userSettings["motionSelectedProfileIndex"]);
-    updateUserSettings();
+    sendTCode(`$motion-set-profile:${getMotionProfileSelectedIndex() + 1}`);
+    setMotionGeneratorSettingsProfile(getMotionProfileSelectedIndex());
+}
+function setMotionProfileDefault() {
+    userSettings["motionDefaultProfileIndex"] = getMotionProfileSelectedIndex();
+    updateUserSettings(1);
+}
+function getMotionProfileSelectedIndex() {
+    return parseInt(document.getElementById('motionProfiles').value);
 }
 var validateGeneratorSettingsDebounce;
 function setMotionGeneratorSettings() {
@@ -2304,65 +2309,44 @@ function setMotionGeneratorSettings() {
         clearTimeout(validateGeneratorSettingsDebounce);
     }
     validateGeneratorSettingsDebounce = setTimeout(() => {
-        var currentProfile = userSettings["motionSelectedProfileIndex"];
-        userSettings['motionProfiles'][currentProfile]["motionProfileName"] = document.getElementById("motionProfileName").value;
-        validateIntControl('motionUpdateGlobal', userSettings['motionProfiles'][currentProfile], "motionUpdateGlobal");
-        validateIntControl('motionPeriodGlobal', userSettings['motionProfiles'][currentProfile], "motionPeriodGlobal");
-        validateIntControl('motionAmplitudeGlobal', userSettings['motionProfiles'][currentProfile], "motionAmplitudeGlobal");
-        validateIntControl('motionOffsetGlobal', userSettings['motionProfiles'][currentProfile], "motionOffsetGlobal");
+        var currentProfileIndex = getMotionProfileSelectedIndex();
+        validateIntControl('motionUpdateGlobal', userSettings['motionProfiles'][currentProfileIndex], "motionUpdateGlobal");
+        validateIntControl('motionPeriodGlobal', userSettings['motionProfiles'][currentProfileIndex], "motionPeriodGlobal");
+        validateIntControl('motionAmplitudeGlobal', userSettings['motionProfiles'][currentProfileIndex], "motionAmplitudeGlobal");
+        validateIntControl('motionOffsetGlobal', userSettings['motionProfiles'][currentProfileIndex], "motionOffsetGlobal");
         // validateFloatControl('motionPhaseGlobal', userSettings["motionPhaseGlobal"]);
 
-        // userSettings["motionEnabled"] = document.getElementById('motionEnabled').checked;
-
         setIntMinAndMax('motionPeriodGlobalRandomMin', 'motionPeriodGlobalRandomMax');
-        validateIntControl('motionPeriodGlobalRandomMin', userSettings['motionProfiles'][currentProfile], "motionPeriodGlobalRandomMin");
-        validateIntControl('motionPeriodGlobalRandomMax', userSettings['motionProfiles'][currentProfile], "motionPeriodGlobalRandomMax");
+        validateIntControl('motionPeriodGlobalRandomMin', userSettings['motionProfiles'][currentProfileIndex], "motionPeriodGlobalRandomMin");
+        validateIntControl('motionPeriodGlobalRandomMax', userSettings['motionProfiles'][currentProfileIndex], "motionPeriodGlobalRandomMax");
         setIntMinAndMax('motionAmplitudeGlobalRandomMin', 'motionAmplitudeGlobalRandomMax');
-        validateIntControl('motionAmplitudeGlobalRandomMin', userSettings['motionProfiles'][currentProfile], "motionAmplitudeGlobalRandomMin");
-        validateIntControl('motionAmplitudeGlobalRandomMax', userSettings['motionProfiles'][currentProfile], "motionAmplitudeGlobalRandomMax");
+        validateIntControl('motionAmplitudeGlobalRandomMin', userSettings['motionProfiles'][currentProfileIndex], "motionAmplitudeGlobalRandomMin");
+        validateIntControl('motionAmplitudeGlobalRandomMax', userSettings['motionProfiles'][currentProfileIndex], "motionAmplitudeGlobalRandomMax");
         setIntMinAndMax('motionOffsetGlobalRandomMin', 'motionOffsetGlobalRandomMax');
-        validateIntControl('motionOffsetGlobalRandomMin', userSettings['motionProfiles'][currentProfile], "motionOffsetGlobalRandomMin");
-        validateIntControl('motionOffsetGlobalRandomMax', userSettings['motionProfiles'][currentProfile], "motionOffsetGlobalRandomMax");
+        validateIntControl('motionOffsetGlobalRandomMin', userSettings['motionProfiles'][currentProfileIndex], "motionOffsetGlobalRandomMin");
+        validateIntControl('motionOffsetGlobalRandomMax', userSettings['motionProfiles'][currentProfileIndex], "motionOffsetGlobalRandomMax");
         setIntMinAndMax('motionRandomChangeMin', 'motionRandomChangeMax');
-        validateIntControl('motionRandomChangeMin', userSettings['motionProfiles'][currentProfile], "motionRandomChangeMin");
-        validateIntControl('motionRandomChangeMax', userSettings['motionProfiles'][currentProfile], "motionRandomChangeMax");
+        validateIntControl('motionRandomChangeMin', userSettings['motionProfiles'][currentProfileIndex], "motionRandomChangeMin");
+        validateIntControl('motionRandomChangeMax', userSettings['motionProfiles'][currentProfileIndex], "motionRandomChangeMax");
 
         
         //userSettings["motionReversedGlobal"] = document.getElementById('motionReversedGlobal').checked;
-        updateUserSettings();
-    },1500);
+        updateUserSettings(1);
+    },3000);
 }
-
-// function addMotionProfile() {
-//     clearErrors();
-//     if(Object.keys(userSettings['motionProfiles']).length >= 6) {
-//         showError("Max profile limit 6");
-//         return;
-//     }
-//     var newName = prompt('Name');
-//     if(!newName) {
-//         return;
-//     }else if(newName.trim().length < 1) {
-//         showError("Invalid name: empty");
-//         return;
-//     } else if(newName.trim().length > 30) {
-//         showError("Invalid name: too long max 30");
-//         return;
-//     } else if(userSettings['motionProfiles'][newName]) {
-//         showError("Invalid name: already exists");
-//         return;
-//     } else  if (newName.search(/^[a-zA-Z0-9-_]+$/) === -1) { 
-//         showError("Invalid name: Only alpha numeric, dashes and underscore allowed.");
-//         return;
-//     }
-//     userSettings["motionSelectedProfileIndex"] = newName.trim();
-//     userSettings['motionProfiles'][newName] = {};
-//     const motionProfilesElement = document.getElementById('motionProfiles');
-//     motionProfilesElement.value = newName;
-//     addMotionProfileOption(newName, true);
-//     setProfileMotionGeneratorSettingsDefault(newName);
-//     updateUserSettings();
-// }
+var setMotionGeneratorNameDebounce;
+function setMotionGeneratorName() {
+    if(setMotionGeneratorNameDebounce) {
+        clearTimeout(setMotionGeneratorNameDebounce);
+    }
+    
+    validateGeneratorSettingsDebounce = setTimeout(() => {
+        var currentProfileIndex = getMotionProfileSelectedIndex();
+        userSettings['motionProfiles'][currentProfileIndex]["motionProfileName"] = document.getElementById("motionProfileName").value;
+        updateMotionProfileName(currentProfileIndex);
+        updateUserSettings(1);
+    },3000);
+}
 function addMotionProfileOption(profileIndex, profile, selectNewProfile) {
     const motionProfilesElement = document.getElementById('motionProfiles');
     var option = document.createElement("option");
@@ -2374,68 +2358,69 @@ function addMotionProfileOption(profileIndex, profile, selectNewProfile) {
         motionProfilesElement.value = profileName;
     }
 }
-// function deleteMotionProfile() {
-//     var currentProfile = userSettings["motionSelectedProfileIndex"];
-//     if (currentProfile != "Default" && confirm(`Are you sure you want to delete '${currentProfile}'?`)) {
-//         delete userSettings[currentProfile];
-//         userSettings["motionSelectedProfileIndex"] = "Default";
-//         setMotionGeneratorSettingsProfile("Default");
-//         const motionProfilesElement = document.getElementById('motionProfiles');
-//         motionProfilesElement.removeChild(e.options[e.selectedIndex]);
-//         updateUserSettings();
-//     } else {
-//         alert("Cannot delete default profile!");
-//     }
-// }
-
+function selectMotionProfile(profileIndex) {
+    const motionProfilesElement = document.getElementById('motionProfiles');
+    motionProfilesElement.value = profileIndex;
+    setMotionGeneratorSettingsProfile(profileIndex);
+}
+function updateMotionProfileName(profileIndex) {
+    const motionProfilesElement = document.getElementById('motionProfiles');
+    var optionsIndex = motionProfilesElement.options.selectedIndex;
+    
+    for (var i=0, n=motionProfilesElement.options.length;i<n;i++) {
+        if (motionProfilesElement.options[i].value == profileIndex) {
+            optionsIndex = i;
+            break;
+        }
+    }
+    motionProfilesElement.options[optionsIndex].innerText = userSettings['motionProfiles'][profileIndex]["motionProfileName"];
+}
 function setMotionGeneratorSettingsDefault() {
-    var currentProfile = userSettings["motionSelectedProfileIndex"];
-    if (confirm(`Are you sure you want to set the current profile '${currentProfile}' to the default settings?`)) {
-        setProfileMotionGeneratorSettingsDefault(currentProfile);
-        updateUserSettings();
+    var profileIndex = getMotionProfileSelectedIndex();
+    if (confirm(`Are you sure you want to set the current profile '${userSettings['motionProfiles'][profileIndex]["motionProfileName"]}' to the default settings?`)) {
+        setProfileMotionGeneratorSettingsDefault(profileIndex);
+        updateUserSettings(1);
     }
 }
-
-function setProfileMotionGeneratorSettingsDefault(profile) {
-    userSettings['motionProfiles'][profile]["motionProfileName"] = "Profile "+ profile + 1;
-    userSettings['motionProfiles'][profile]["motionUpdateGlobal"] = 100;
-    userSettings['motionProfiles'][profile]["motionPeriodGlobal"] = 2000;
-    userSettings['motionProfiles'][profile]["motionAmplitudeGlobal"] = 60;
-    userSettings['motionProfiles'][profile]["motionOffsetGlobal"] = 5000  
-    userSettings['motionProfiles'][profile]["motionPeriodGlobalRandom"] = false;
-    userSettings['motionProfiles'][profile]["motionPeriodGlobalRandomMin"] = 500;
-    userSettings['motionProfiles'][profile]["motionPeriodGlobalRandomMax"] = 2000;
-    userSettings['motionProfiles'][profile]["motionAmplitudeGlobalRandom"] = false;
-    userSettings['motionProfiles'][profile]["motionAmplitudeGlobalRandomMin"] = 20;
-    userSettings['motionProfiles'][profile]["motionAmplitudeGlobalRandomMax"] = 60;
-    userSettings['motionProfiles'][profile]["motionOffsetGlobalRandom"] = false;
-    userSettings['motionProfiles'][profile]["motionOffsetGlobalRandomMin"] = 3000;
-    userSettings['motionProfiles'][profile]["motionOffsetGlobalRandomMax"] = 7000;
-    userSettings['motionProfiles'][profile]["motionRandomChangeMinDefault"] = 3000;
-    userSettings['motionProfiles'][profile]["motionRandomChangeMaxDefault"] = 30000;
-    userSettings['motionProfiles'][profile]["motionPhaseGlobal"] = 0;
-    userSettings['motionProfiles'][profile]["motionReversedGlobal"] = false;
+function setProfileMotionGeneratorSettingsDefault(profileIndex) {
+    userSettings['motionProfiles'][profileIndex]["motionProfileName"] = "Profile "+ profileIndex + 1;
+    userSettings['motionProfiles'][profileIndex]["motionUpdateGlobal"] = 100;
+    userSettings['motionProfiles'][profileIndex]["motionPeriodGlobal"] = 2000;
+    userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobal"] = 60;
+    userSettings['motionProfiles'][profileIndex]["motionOffsetGlobal"] = 5000  
+    userSettings['motionProfiles'][profileIndex]["motionPeriodGlobalRandom"] = false;
+    userSettings['motionProfiles'][profileIndex]["motionPeriodGlobalRandomMin"] = 500;
+    userSettings['motionProfiles'][profileIndex]["motionPeriodGlobalRandomMax"] = 2000;
+    userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobalRandom"] = false;
+    userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobalRandomMin"] = 20;
+    userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobalRandomMax"] = 60;
+    userSettings['motionProfiles'][profileIndex]["motionOffsetGlobalRandom"] = false;
+    userSettings['motionProfiles'][profileIndex]["motionOffsetGlobalRandomMin"] = 3000;
+    userSettings['motionProfiles'][profileIndex]["motionOffsetGlobalRandomMax"] = 7000;
+    userSettings['motionProfiles'][profileIndex]["motionRandomChangeMinDefault"] = 3000;
+    userSettings['motionProfiles'][profileIndex]["motionRandomChangeMaxDefault"] = 30000;
+    userSettings['motionProfiles'][profileIndex]["motionPhaseGlobal"] = 0;
+    userSettings['motionProfiles'][profileIndex]["motionReversedGlobal"] = false;
     
-    setMotionGeneratorSettingsProfile(profile);
+    setMotionGeneratorSettingsProfile(profileIndex);
 }
-
-function setMotionGeneratorSettingsProfile(profile) {
-    document.getElementById('motionProfileName').value = userSettings['motionProfiles'][profile]["motionProfileName"];
-    document.getElementById('motionUpdateGlobal').value = userSettings['motionProfiles'][profile]["motionUpdateGlobal"];
-    document.getElementById('motionPeriodGlobal').value = userSettings['motionProfiles'][profile]["motionPeriodGlobal"];
-    document.getElementById('motionAmplitudeGlobal').value = userSettings['motionProfiles'][profile]["motionAmplitudeGlobal"];
-    document.getElementById('motionOffsetGlobal').value = userSettings['motionProfiles'][profile]["motionOffsetGlobal"];  
-    //document.getElementById('motionPhaseGlobal').value = userSettings['motionProfiles'][profile]["motionPhaseGlobal"];
-    //document.getElementById('motionReversedGlobal').checked = userSettings['motionProfiles'][profile]["motionReversedGlobal"];
-    document.getElementById('motionPeriodGlobalRandom').checked = userSettings['motionProfiles'][profile]["motionPeriodGlobalRandom"];
-    document.getElementById('motionPeriodGlobalRandomMin').value = userSettings['motionProfiles'][profile]["motionPeriodGlobalRandomMin"];  
-    document.getElementById('motionPeriodGlobalRandomMax').value = userSettings['motionProfiles'][profile]["motionPeriodGlobalRandomMax"];  
-    document.getElementById('motionAmplitudeGlobalRandom').checked = userSettings['motionProfiles'][profile]["motionAmplitudeGlobalRandom"];
-    document.getElementById('motionAmplitudeGlobalRandomMin').value = userSettings['motionProfiles'][profile]["motionAmplitudeGlobalRandomMin"];  
-    document.getElementById('motionAmplitudeGlobalRandomMax').value = userSettings['motionProfiles'][profile]["motionAmplitudeGlobalRandomMax"];  
-    document.getElementById('motionOffsetGlobalRandom').checked = userSettings['motionProfiles'][profile]["motionOffsetGlobalRandom"];
-    document.getElementById('motionOffsetGlobalRandomMin').value = userSettings['motionProfiles'][profile]["motionOffsetGlobalRandomMin"];  
-    document.getElementById('motionOffsetGlobalRandomMax').value = userSettings['motionProfiles'][profile]["motionOffsetGlobalRandomMax"];  
+function setMotionGeneratorSettingsProfile(profileIndex) {
+    document.getElementById('motionProfileName').value = userSettings['motionProfiles'][profileIndex]["motionProfileName"];
+    document.getElementById('motionUpdateGlobal').value = userSettings['motionProfiles'][profileIndex]["motionUpdateGlobal"];
+    document.getElementById('motionPeriodGlobal').value = userSettings['motionProfiles'][profileIndex]["motionPeriodGlobal"];
+    document.getElementById('motionAmplitudeGlobal').value = userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobal"];
+    document.getElementById('motionOffsetGlobal').value = userSettings['motionProfiles'][profileIndex]["motionOffsetGlobal"];  
+    //document.getElementById('motionPhaseGlobal').value = userSettings['motionProfiles'][profileIndex]["motionPhaseGlobal"];
+    //document.getElementById('motionReversedGlobal').checked = userSettings['motionProfiles'][profileIndex]["motionReversedGlobal"];
+    document.getElementById('motionPeriodGlobalRandom').checked = userSettings['motionProfiles'][profileIndex]["motionPeriodGlobalRandom"];
+    document.getElementById('motionPeriodGlobalRandomMin').value = userSettings['motionProfiles'][profileIndex]["motionPeriodGlobalRandomMin"];  
+    document.getElementById('motionPeriodGlobalRandomMax').value = userSettings['motionProfiles'][profileIndex]["motionPeriodGlobalRandomMax"];  
+    document.getElementById('motionAmplitudeGlobalRandom').checked = userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobalRandom"];
+    document.getElementById('motionAmplitudeGlobalRandomMin').value = userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobalRandomMin"];  
+    document.getElementById('motionAmplitudeGlobalRandomMax').value = userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobalRandomMax"];  
+    document.getElementById('motionOffsetGlobalRandom').checked = userSettings['motionProfiles'][profileIndex]["motionOffsetGlobalRandom"];
+    document.getElementById('motionOffsetGlobalRandomMin').value = userSettings['motionProfiles'][profileIndex]["motionOffsetGlobalRandomMin"];  
+    document.getElementById('motionOffsetGlobalRandomMax').value = userSettings['motionProfiles'][profileIndex]["motionOffsetGlobalRandomMax"];  
     toggleMotionRandomSettings();
 }
 

@@ -930,15 +930,17 @@
 						</th>
 					</tr>
 					<tr>
-						<td><span>Enabled</span></td>
+						<td></td>
 						<td>
-							<input id="motionEnabled" type="checkbox" oninput="setMotionEnabledClicked()">
+							<!-- <input id="motionEnabled" type="checkbox" oninput="setMotionEnabledClicked()"> -->
+							<button id="motionEnabledToggle" class="button-toggle-start" onclick="setMotionEnabledClicked()">Start</button>
 						</td>
 					</tr>
 					<tr>
 						<td><span>Profile</span></td>
 						<td>
 							<select id="motionProfiles" onchange="setMotionGeneratorProfile()"></select>
+							<button id="setMotionProfileDefault" onclick="setMotionProfileDefault()">Set default profile</button>
 							<!-- <button id="addMotionProfile" onclick="addMotionProfile()">+</button>
 							<button id="deleteMotionProfile" onclick="deleteMotionProfile()">-</button> -->
 						</td>
@@ -946,7 +948,7 @@
 					<tr>
 						<td><span>Profile name</span></td>
 						<td>
-							<input id="motionProfileName" oninput="setMotionGeneratorSettings()">
+							<input id="motionProfileName" type="text" oninput="setMotionGeneratorName()">
 						</td>
 					</tr>
 					<tr>
@@ -1060,12 +1062,6 @@
 						<td><span></span></td>
 						<td>
 							<button id="motionDefault" onclick="setMotionGeneratorSettingsDefault()">Default</button>
-						</td>
-					</tr>
-					<tr>
-						<td><span></span></td>
-						<td>
-							<button id="motionStop" onclick="setMotionGeneratorStop()">Stop</button>
 						</td>
 					</tr>
 				</tbody>

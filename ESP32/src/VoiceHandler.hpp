@@ -52,9 +52,9 @@ public:
         _isConnected = true;
         LogHandler::info(_TAG, "Begin ok!");
         
-        setVolume(6);
+        //setVolume(6);
         setMuteMode(0);
-        setWakeTime(20);
+        setWakeTime(10);
         /**
              @brief Get wake-up duration
             @return The currently-set wake-up period
@@ -136,39 +136,30 @@ private:
         switch (voiceCommand) {
             case 5:
             LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
-            sendMessage("$motion-offset-random-off");
-            sendMessage("$motion-period-random-off");
-            sendMessage("$motion-amplitude-random-off");
             sendMessage("$motion-enable");
+            sendMessage("$motion-set-profile:1");
             break;
             case 6:
             LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
-            sendMessage("$motion-offset-random-on");
-            sendMessage("$motion-period-random-on");
-            sendMessage("$motion-amplitude-random-on");
             sendMessage("$motion-enable");
+            sendMessage("$motion-set-profile:2");
             break;
             case 7:
             LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
-            sendMessage("$motion-offset-random-off");
-            sendMessage("$motion-period-random-off");
-            sendMessage("$motion-amplitude-random-off");
-            sendMessage("$motion-period-global:2000");
-            sendMessage("$motion-amplitude-global:60");
-            sendMessage("$motion-offset-globall:4000");
             sendMessage("$motion-enable");
+            sendMessage("$motion-set-profile:3");
             break;
             case 8:
             LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
-            sendMessage("$motion-offset-random-off");
-            sendMessage("$motion-period-random-off");
-            sendMessage("$motion-amplitude-random-off");
-            sendMessage("$motion-period-global:500");
-            sendMessage("$motion-amplitude-global:40");
-            sendMessage("$motion-offset-globall:7000");
             sendMessage("$motion-enable");
+            sendMessage("$motion-set-profile:4");
             break;
             case 9:
+            LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
+            sendMessage("$motion-enable");
+            sendMessage("$motion-set-profile:5");
+            break;
+            case 10:
             LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
             sendMessage("$motion-disable");
             break;

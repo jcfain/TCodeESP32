@@ -25,6 +25,7 @@ SOFTWARE. */
 #include <ArduinoJson.h>
 
 #define maxMotionProfileCount 5
+#define maxMotionProfileNameLength 31
 #define motionDefaultProfileName "Profile"
 #define motionUpdateGlobalDefault 100
 #define motionPeriodGlobalDefault 2000
@@ -67,7 +68,7 @@ struct MotionProfile {
     // const int motionRandomChangeMinDefault = 3000;
     // const int motionRandomChangeMaxDefault = 30000;
 
-    char motionProfileName[31] = motionDefaultProfileName;
+    char motionProfileName[maxMotionProfileNameLength] = motionDefaultProfileName;
     int motionUpdateGlobal = motionUpdateGlobalDefault;
     int motionPeriodGlobal = motionPeriodGlobalDefault;
     int motionAmplitudeGlobal = motionAmplitudeGlobalDefault;

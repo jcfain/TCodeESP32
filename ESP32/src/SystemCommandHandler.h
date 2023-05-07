@@ -1,3 +1,4 @@
+#pragma once
 
 #include <Arduino.h>
 #include "SettingsHandler.h"
@@ -196,52 +197,58 @@ public:
 				}, true);
 			}
 
-			if(isCommand(in, "$motion-update-global")) {
-				return validateGreaterThanZero("Motion update global", value, [](int valueInt) -> bool {
+			if(isCommand(in, "$motion-profile-name")) {
+				return validateMaxLength("Motion profile name", value, maxMotionProfileNameLength, false, [](const char* value) -> bool {
+					SettingsHandler::setMotionProfileName(value);
+					return true;
+				}, true);
+			}
+			if(isCommand(in, "$motion-update")) {
+				return validateGreaterThanNegativeOne("Motion update global", value, [](int valueInt) -> bool {
 					SettingsHandler::setMotionUpdateGlobal(valueInt);
 					return true;
 				}, true);
 			}
-			if(isCommand(in, "$motion-period-global")) {
-				return validateGreaterThanZero("Motion period global", value, [](int valueInt) -> bool {
+			if(isCommand(in, "$motion-period")) {
+				return validateGreaterThanNegativeOne("Motion period global", value, [](int valueInt) -> bool {
 					SettingsHandler::setMotionPeriodGlobal(valueInt);
 					return true;
 				}, true);
 			}
-			if(isCommand(in, "$motion-amplitude-global")) {
-				return validateGreaterThanZero("Motion amplitude global", value, [](int valueInt) -> bool {
+			if(isCommand(in, "$motion-amplitude")) {
+				return validateGreaterThanNegativeOne("Motion amplitude global", value, [](int valueInt) -> bool {
 					SettingsHandler::setMotionAmplitudeGlobal(valueInt);
 					return true;
 				}, true);
 			}
-			if(isCommand(in, "$motion-offset-global")) {
-				return validateGreaterThanZero("Motion offset global", value, [](int valueInt) -> bool {
+			if(isCommand(in, "$motion-offset")) {
+				return validateGreaterThanNegativeOne("Motion offset global", value, [](int valueInt) -> bool {
 					SettingsHandler::setMotionOffsetGlobal(valueInt);
 					return true;
 				}, true);
 			}
-			if(isCommand(in, "$motion-phase-global")) {
-				return validateGreaterThanZero("Motion phase global", value, [](int valueInt) -> bool {
+			if(isCommand(in, "$motion-phase")) {
+				return validateGreaterThanNegativeOne("Motion phase global", value, [](int valueInt) -> bool {
 					SettingsHandler::setMotionPhaseGlobal(valueInt);
 					return true;
 				}, true);
 			}
-			if(isCommand(in, "$motion-reverse-global")) {
-				return validateGreaterThanZero("Motion reverse global", value, [](int valueInt) -> bool {
+			if(isCommand(in, "$motion-reverse")) {
+				return validateGreaterThanNegativeOne("Motion reverse global", value, [](int valueInt) -> bool {
 					SettingsHandler::setMotionReversedGlobal(valueInt);
 					return true;
 				}, true);
 			}
 			if(isCommand(in, "$motion-set-profile")) {
-				return validateGreaterThanZero("Motion phase global", value, [](int valueInt) -> bool {
-					if(valueInt > maxMotionProfileCount) {
-						LogHandler::error(_TAG, "Motion profile %ld does not exist", valueInt);
+				return validateGreaterThanZero("Motion profile", value, [](int valueInt) -> bool {
+					int profileAsIndex = valueInt - 1;
+					if(profileAsIndex > maxMotionProfileCount) {
+						LogHandler::error(_TAG, "Motion profile %ld does not exist", profileAsIndex);
 						return false;
 					}
-					SettingsHandler::setMotionProfile(valueInt);
-					Serial.println("Profile changed");
+					SettingsHandler::setMotionProfile(profileAsIndex);
 					return true;
-				}, true);
+				});
 			}
 			Serial.printf("Invalid command: %s\n", in);
 			printCommandHelp();
@@ -308,6 +315,21 @@ private:
 	}
 
 	static bool validateGreaterThanZero(const char* name, const char* value, bool (*function)(int), bool isSaveRequired = false, bool isRestartRequired = false) {
+		int valueInt = getInt(value);
+		if(valueInt < 1) {
+			Serial.printf("Invalid value: %ld.", valueInt);
+			xSemaphoreGive(xMutex);
+			return false;
+		}
+		bool subValidate = function(valueInt);
+		if(subValidate) {
+			printNewState(name, valueInt);
+			printComplete(isRestartRequired, isSaveRequired);
+		}
+		xSemaphoreGive(xMutex);
+		return subValidate;
+	}
+	static bool validateGreaterThanNegativeOne(const char* name, const char* value, bool (*function)(int), bool isSaveRequired = false, bool isRestartRequired = false) {
 		int valueInt = getInt(value);
 		if(valueInt < 0) {
 			Serial.printf("Invalid value: %ld.", valueInt);
@@ -401,12 +423,12 @@ private:
 		Serial.println("$motion-amplitude-random-off --- Amplitude random off for the current profile");
 		Serial.println("$motion-offset-random-on ------- Offset random on for the current profile");
 		Serial.println("$motion-offset-random-off ------ Offset random off for the current profile");
-		Serial.println("$motion-period-global:value ---- Set period for the current profile");
-		Serial.println("$motion-update-global:value ---- Set update rate for the current profile");
-		Serial.println("$motion-amplitude-global:value - Set amplitude for the current profile");
-		Serial.println("$motion-offset-global:value ---- Set offset for the current profile");
-		Serial.println("$motion-phase-global:value ----- Set phase for the current profile");
-		Serial.println("$motion-reverse-global:value --- Set reverse for the current profile");
+		Serial.println("$motion-period:value ----------- Set period for the current profile");
+		Serial.println("$motion-update:value ----------- Set update rate for the current profile");
+		Serial.println("$motion-amplitude:value -------- Set amplitude for the current profile");
+		Serial.println("$motion-offset:value ----------- Set offset for the current profile");
+		Serial.println("$motion-phase:value ------------ Set phase for the current profile");
+		Serial.println("$motion-reverse:value ---------- Set reverse for the current profile");
 	}
 };
 

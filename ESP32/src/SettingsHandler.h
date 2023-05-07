@@ -550,7 +550,8 @@ public:
 
             lubeEnabled = json["lubeEnabled"];
 
-            motionSelectedProfileIndex = json["motionSelectedProfileIndex"] | 0;
+            motionDefaultProfileIndex = json["motionDefaultProfileIndex"] | 0;
+            motionSelectedProfileIndex = motionDefaultProfileIndex;
             JsonArray motionProfilesObj = json["motionProfiles"].as<JsonArray>();
             
             if(motionProfilesObj.isNull()) {
@@ -569,7 +570,7 @@ public:
                 }
             }
             auto selectedProfile = motionProfiles[motionSelectedProfileIndex];
-            setValue(json, motionEnabled, "motionGenerator", "motionEnabled", false);
+            setValue(false, motionEnabled, "motionGenerator", "motionEnabled");
             setValue(selectedProfile.motionUpdateGlobal, motionUpdateGlobal, "motionGenerator", "motionUpdateGlobal");
             setValue(selectedProfile.motionPeriodGlobal, motionPeriodGlobal, "motionGenerator", "motionPeriodGlobal");
             setValue(selectedProfile.motionAmplitudeGlobal, motionAmplitudeGlobal, "motionGenerator", "motionAmplitudeGlobal");
@@ -603,6 +604,10 @@ public:
     static void setMotionEnabled(const bool& newValue)
     {
         setValue(newValue, motionEnabled, "motionGenerator", "motionEnabled");
+    }
+    static void setMotionProfileName(const char newValue[maxMotionProfileNameLength])
+    {
+        strcpy(motionProfiles[motionSelectedProfileIndex].motionProfileName, newValue);
     }
     static int getMotionUpdateGlobal()
     {
@@ -775,7 +780,7 @@ public:
         setMotionProfile(motionProfile, motionSelectedProfileIndex);
     }
 
-    static void setMotionProfile(const char profile[31]) {
+    static void setMotionProfile(const char profile[maxMotionProfileNameLength]) {
         auto index = motionProfileExists(profile);
         if(index < 0) {
             LogHandler::error(_TAG, "Motion profile %s does not exist", profile);
@@ -861,6 +866,7 @@ public:
             doc["wifiPass"] = "Too bad haxor!"; // Do not send password if its not default
 
         doc["motionEnabled"] = motionEnabled;
+        doc["motionSelectedProfileIndex"] = motionSelectedProfileIndex;
         String output;
         serializeJson(doc, output);
         // serializeJson(doc, Serial);
@@ -1126,7 +1132,7 @@ public:
         doc["batteryVoltageMax"] = round2(batteryVoltageMax);
         doc["batteryCapacityMax"] = batteryCapacityMax;
 
-        doc["motionSelectedProfileIndex"] = motionSelectedProfileIndex;
+        doc["motionDefaultProfileIndex"] = motionDefaultProfileIndex;
         int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
         for (int i=0; i < len; i++)
         {
@@ -1408,8 +1414,9 @@ private:
     // 3072
 
     static bool motionEnabled;
-    //static char motionSelectedProfileName[31];
+    //static char motionSelectedProfileName[maxMotionProfileNameLength];
     static int motionSelectedProfileIndex;
+    static int motionDefaultProfileIndex;
     static MotionProfile motionProfiles[maxMotionProfileCount];
     //static std::map<const char*, MotionProfile*, StrCompare>  motionProfiles;
     static int motionUpdateGlobal;
@@ -1915,11 +1922,12 @@ int SettingsHandler::caseFanFrequency = 25;
 int SettingsHandler::caseFanResolution = 10;
 const char *SettingsHandler::lastRebootReason;
 
-bool SettingsHandler::voiceEnabled = false;
+bool SettingsHandler::voiceEnabled = true;
 
 bool SettingsHandler::motionEnabled = false;
-//char SettingsHandler::motionSelectedProfileName[31];
+//char SettingsHandler::motionSelectedProfileName[maxMotionProfileNameLength];
 int SettingsHandler::motionSelectedProfileIndex = 0;
+int SettingsHandler::motionDefaultProfileIndex = 0;
 MotionProfile SettingsHandler::motionProfiles[maxMotionProfileCount];
 //std::map<const char*, MotionProfile*, StrCompare> SettingsHandler::motionProfiles;
 int SettingsHandler::motionUpdateGlobal;
