@@ -199,7 +199,6 @@ public:
     static int caseFanFrequency;
     static int caseFanResolution;
 
-    static bool voiceEnabled;
     static VoiceCommand voiceCommands[147];
 
     static const char *lastRebootReason;
@@ -268,7 +267,7 @@ public:
         setBoardType();
         setBuildFeatures();
         setMotorType();
-        I2CScan();
+        //I2CScan();
 
         if (loadingDefault)
             save();
@@ -589,6 +588,11 @@ public:
             setValue(selectedProfile.motionRandomChangeMin, motionRandomChangeMin, "motionGenerator", "motionRandomChangeMin");
             setValue(selectedProfile.motionRandomChangeMax, motionRandomChangeMax, "motionGenerator", "motionRandomChangeMax");
 
+            setValue(json, voiceEnabled, "voiceHandler", "voiceEnabled", false);
+            setValue(json, voiceMuted, "voiceHandler", "voiceMuted", false);
+            setValue(json, voiceVolume, "voiceHandler", "voiceVolume", 0);
+            setValue(json, voiceWakeTime, "voiceHandler", "voiceWakeTime", 10);
+
             lastRebootReason = machine_reset_cause();
             LogHandler::info(_TAG, "Last reset reason: %s", SettingsHandler::lastRebootReason);
             LogUpdateDebug();
@@ -821,6 +825,31 @@ public:
         setMotionOffsetGlobalRandomMax(profile.motionOffsetGlobalRandomMax);
         setMotionRandomChangeMin(profile.motionRandomChangeMin);
         setMotionRandomChangeMax(profile.motionRandomChangeMax);
+    }
+
+    static bool getVoiceEnabled() {
+        return voiceEnabled;
+    }
+    static void setVoiceEnabled(bool value) {
+        setValue(value, voiceEnabled, "voiceHandler", "voiceEnabled");
+    }
+    static bool getVoiceMuted() {
+        return voiceMuted;
+    }
+    static void setVoiceMuted(bool value) {
+        setValue(value, voiceMuted, "voiceHandler", "voiceMuted");
+    }
+    static int getVoiceVolume() {
+        return voiceVolume;
+    }
+    static void setVoiceVolume(int value) {
+        setValue(value, voiceVolume, "voiceHandler", "voiceVolume");
+    }
+    static int getVoiceWakeTime() {
+        return voiceWakeTime;
+    }
+    static void setVoiceWakeTime(int value) {
+        setValue(value, voiceWakeTime, "voiceHandler", "voiceWakeTime");
     }
 
     // Untested
@@ -1156,6 +1185,10 @@ public:
             doc["motionProfiles"][i]["motionRandomChangeMax"] = motionProfiles[i].motionRandomChangeMax;
         }
 
+        doc["voiceEnabled"] = voiceEnabled;
+        doc["voiceMuted"] = voiceMuted;
+        doc["voiceWakeTime"] = voiceWakeTime;
+        doc["voiceVolume"] = voiceVolume;
 
         JsonArray includes = doc.createNestedArray("log-include-tags");
         std::vector<String> includesVec = LogHandler::getIncludes();
@@ -1350,9 +1383,33 @@ public:
         // Serial.print("outbuf ");
         // Serial.println(outbuf);
     }
-
+    static bool waitForI2CDevices(const int& i2cAddress = 0) {
+        int tries = 0;
+        while((systemI2CAddresses.size() == 0 || i2cAddress) && tries <= 3) {
+            tries++;
+            I2CScan();
+            if(i2cAddress && std::find(systemI2CAddresses.begin(), systemI2CAddresses.end(), i2cAddress) != systemI2CAddresses.end()) {
+                return true;
+            } else if(i2cAddress) {
+                LogHandler::info(_TAG, "I2c address: %ld not found. trying again...", i2cAddress);
+            } else {
+                LogHandler::info(_TAG, "No I2C devices found in system, trying again...");
+            }
+            if(tries >= 3){
+                if (i2cAddress) {
+                    LogHandler::error(_TAG, "I2c address: %ld timed out.", i2cAddress);
+                } else {
+                    LogHandler::error(_TAG, "No I2C devices found in system");
+                }
+                return false;
+            }
+            vTaskDelay(1000/portTICK_PERIOD_MS);
+        }
+        return true;
+    }
 	static bool I2CScan() 
 	{
+        systemI2CAddresses.clear();
 		byte error, address;
 		int nDevices;
 		LogHandler::info(_TAG, "Scanning for I2C...");
@@ -1377,7 +1434,7 @@ public:
                 
 				char buf[10];
 				hexToString(address, buf);
-				LogHandler::info(_TAG, "I2C device found at address %s", buf);
+				LogHandler::info(_TAG, "I2C device found at address %s, byte %ld", buf, address);
 
 				systemI2CAddresses.push_back(address);
 				nDevices++;
@@ -1436,7 +1493,12 @@ private:
     static bool motionReversedGlobal;
     static int motionRandomChangeMin;
     static int motionRandomChangeMax;
-
+    
+    static bool voiceEnabled;
+    static bool voiceMuted;
+    static int voiceWakeTime ;
+    static int voiceVolume;
+    
     static void sendMessage(const char *group, const char *message)
     {
         if (message_callback)
@@ -1922,7 +1984,10 @@ int SettingsHandler::caseFanFrequency = 25;
 int SettingsHandler::caseFanResolution = 10;
 const char *SettingsHandler::lastRebootReason;
 
-bool SettingsHandler::voiceEnabled = true;
+bool SettingsHandler::voiceEnabled = false;
+bool SettingsHandler::voiceMuted = false;
+int SettingsHandler::voiceWakeTime = 10;
+int SettingsHandler::voiceVolume = 10;
 
 bool SettingsHandler::motionEnabled = false;
 //char SettingsHandler::motionSelectedProfileName[maxMotionProfileNameLength];

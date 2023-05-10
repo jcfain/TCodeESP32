@@ -7,7 +7,7 @@
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
 
-int getposition(const char *array, size_t size, char c)
+int getposition(const char *array, const size_t& size, const char& c)
 {
     for (size_t i = 0; i < size; i++)
     {
@@ -17,7 +17,7 @@ int getposition(const char *array, size_t size, char c)
     return -1;
 }
 
-char* substr(const char* arr, int begin, int len)
+char* substr(const char* arr, const int& begin, const int& len)
 {
     char* res = new char[len + 1];
     for (int i = 0; i < len; i++)
@@ -26,29 +26,29 @@ char* substr(const char* arr, int begin, int len)
     return res;
 }
 
-void strtrim(char* str) {
+void strtrim(char* buf) {
     int start = 0; // number of leading spaces
-    char* buffer = str;
-    while (*str && *str++ == ' ') ++start;
-    while (*str++); // move to end of string
-    int end = str - buffer - 1; 
+    char* buffer = buf;
+    while (*buf && *buf++ == ' ') ++start;
+    while (*buf++); // move to end of string
+    int end = buf - buffer - 1; 
     while (end > 0 && buffer[end - 1] == ' ') --end; // backup over trailing spaces
     buffer[end] = 0; // remove trailing spaces
     if (end <= start || start == 0) return; // exit if no leading spaces or string is now empty
-    str = buffer + start;
-    while ((*buffer++ = *str++));  // remove leading spaces: K&R
+    buf = buffer + start;
+    while ((*buffer++ = *buf++));  // remove leading spaces: K&R
 }
 
-double round2(double value) {
+double round2(const double &value) {
    return (int)(value * 100 + 0.5) / 100.0;
 }
 
-double mapf(double x, double in_min, double in_max, double out_min, double out_max)
+double mapf(const double& x, const double& in_min, const double& in_max, const double& out_min, const double& out_max)
 {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-adc1_channel_t gpioToADC1(int gpioPin) {
+adc1_channel_t gpioToADC1(const int& gpioPin) {
     switch(gpioPin) {
         case 36:
             return ADC1_CHANNEL_0;
@@ -78,7 +78,7 @@ bool contains_duplicate(const std::vector<const char*>& values ) {
     return false ;
 }
 
-void hexToString(int inByte, char* buf) {
+void hexToString(const int &inByte, char* buf) {
     std::stringstream addressString;
     addressString << "0x" << std::hex << inByte;
     strcpy(buf, addressString.str().c_str());

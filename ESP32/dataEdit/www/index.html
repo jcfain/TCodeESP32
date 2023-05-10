@@ -948,7 +948,7 @@
 					<tr>
 						<td><span>Profile name</span></td>
 						<td>
-							<input id="motionProfileName" type="text" oninput="setMotionGeneratorName()">
+							<input id="motionProfileName" type="text"  maxlength="31" oninput="setMotionGeneratorName()">
 						</td>
 					</tr>
 					<tr>
@@ -1062,6 +1062,39 @@
 						<td><span></span></td>
 						<td>
 							<button id="motionDefault" onclick="setMotionGeneratorSettingsDefault()">Default</button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<table id="voiceSettingsTable" class="formTable">
+				<tbody>
+					<tr>
+						<th colspan="2">
+							<h3>Voice</h3>
+						</th>
+					</tr>
+					<tr>
+						<td><span title="Requires DF Robot gravity offline speech module">Enabled</span></td>
+						<td>
+							<input id="voiceEnabled" type="checkbox" oninput="toggleVoiceSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td><span title="0 = do not set">Volume (0-7)</span></td>
+						<td>
+							<input id="voiceVolume" type="number" min="0" max="7" step="1" oninput="setVoiceSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td><span>Mute</span></td>
+						<td>
+							<input id="voiceMuted" type="checkbox" oninput="setVoiceSettings()">
+						</td>
+					</tr>
+					<tr>
+						<td><span>Wake time (seconds)</span></td>
+						<td>
+							<input id="voiceWakeTime" type="number" min="0" max="255" step="1" oninput="setVoiceSettings()">
 						</td>
 					</tr>
 				</tbody>

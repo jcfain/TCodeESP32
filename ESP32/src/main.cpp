@@ -344,9 +344,70 @@ void settingChangeCallback(const char* group, const char* settingThatChanged) {
 			motionHandler.setMotionRandomChangeMin(SettingsHandler::getMotionRandomChangeMin());
 		else if(strcmp(settingThatChanged, "motionRandomChangeMax") == 0) 
 			motionHandler.setMotionRandomChangeMax(SettingsHandler::getMotionRandomChangeMax());
+	} else if(voiceHandler && strcmp(group, "voiceHandler") == 0) {
+		if(strcmp(settingThatChanged, "voiceMuted") == 0) 
+			voiceHandler->setMuteMode(SettingsHandler::getVoiceMuted());
+		else if(strcmp(settingThatChanged, "voiceVolume") == 0) 
+			voiceHandler->setVolume(SettingsHandler::getVoiceVolume());
+		else if(strcmp(settingThatChanged, "voiceWakeTime") == 0) 
+			voiceHandler->setWakeTime(SettingsHandler::getVoiceWakeTime());
 	}
 }
-
+void loadI2CModules() {
+#if DISPLAY_ENABLED
+	if(SettingsHandler::displayEnabled)
+	{
+    	LogHandler::debug(TagHandler::Main, "Start Display task");
+		auto displayStatus = xTaskCreatePinnedToCore(
+			DisplayHandler::startLoop,/* Function to implement the task */
+			"DisplayTask", /* Name of the task */
+			5000,  /* Stack size in words */
+			displayHandler,  /* Task input parameter */
+			1,  /* Priority of the task */
+			&displayTask,  /* Task handle. */
+			APP_CPU_NUM); /* Core where the task should run */
+			if(displayStatus != pdPASS) {
+    			LogHandler::error(TagHandler::Main, "Could not start display task.");
+			}
+	}
+#endif
+	if(SettingsHandler::batteryLevelEnabled) {
+		batteryHandler = new BatteryHandler();
+		if(batteryHandler->setup()) {
+			LogHandler::debug(TagHandler::Main, "Start Battery task");
+			auto batteryStatus = xTaskCreatePinnedToCore(
+				BatteryHandler::startLoop,/* Function to implement the task */
+				"BatteryTask", /* Name of the task */
+				4028,  /* Stack size in words */
+				batteryHandler,  /* Task input parameter */
+				1,  /* Priority of the task */
+				&batteryTask,  /* Task handle. */
+				APP_CPU_NUM); /* Core where the task should run */
+				if(batteryStatus != pdPASS) {
+					LogHandler::error(TagHandler::Main, "Could not start battery task.");
+				}
+				batteryHandler->setMessageCallback(batteryVoltageCallback);
+		}
+	}
+	if(SettingsHandler::getVoiceEnabled()) {
+		voiceHandler = new VoiceHandler();
+		voiceHandler->setMessageCallback(TCodeCommandCallback);
+		if(voiceHandler->setup()) {
+			LogHandler::debug(TagHandler::Main, "Start Voice task");
+			auto voiceStatus = xTaskCreatePinnedToCore(
+				VoiceHandler::startLoop,/* Function to implement the task */
+				"VoiceTask", /* Name of the task */
+				4028,  /* Stack size in words */
+				voiceHandler,  /* Task input parameter */
+				1,  /* Priority of the task */
+				&voiceTask,  /* Task handle. */
+				APP_CPU_NUM); /* Core where the task should run */
+				if(voiceStatus != pdPASS) {
+					LogHandler::error(TagHandler::Main, "Could not start voice task.");
+				}
+		}
+	}
+}
 void setup() 
 {
 	// see if we can use the onboard led for status
@@ -387,43 +448,6 @@ void setup()
 
 	SettingsHandler::load();
 	LogHandler::info(TagHandler::Main, "Version: %s", SettingsHandler::ESP32Version);
-
-	if(SettingsHandler::batteryLevelEnabled) {
-		batteryHandler = new BatteryHandler();
-		if(batteryHandler->setup()) {
-			LogHandler::debug(TagHandler::Main, "Start Battery task");
-			auto batteryStatus = xTaskCreatePinnedToCore(
-				BatteryHandler::startLoop,/* Function to implement the task */
-				"BatteryTask", /* Name of the task */
-				4028,  /* Stack size in words */
-				batteryHandler,  /* Task input parameter */
-				1,  /* Priority of the task */
-				&batteryTask,  /* Task handle. */
-				APP_CPU_NUM); /* Core where the task should run */
-				if(batteryStatus != pdPASS) {
-					LogHandler::error(TagHandler::Main, "Could not start battery task.");
-				}
-				batteryHandler->setMessageCallback(batteryVoltageCallback);
-		}
-	}
-	if(SettingsHandler::voiceEnabled) {
-		voiceHandler = new VoiceHandler();
-		voiceHandler->setMessageCallback(TCodeCommandCallback);
-		if(voiceHandler->setup()) {
-			LogHandler::debug(TagHandler::Main, "Start Voice task");
-			auto voiceStatus = xTaskCreatePinnedToCore(
-				VoiceHandler::startLoop,/* Function to implement the task */
-				"VoiceTask", /* Name of the task */
-				4028,  /* Stack size in words */
-				voiceHandler,  /* Task input parameter */
-				1,  /* Priority of the task */
-				&voiceTask,  /* Task handle. */
-				APP_CPU_NUM); /* Core where the task should run */
-				if(voiceStatus != pdPASS) {
-					LogHandler::error(TagHandler::Main, "Could not start voice task.");
-				}
-		}
-	}
 
 #if MOTOR_TYPE == 0
 	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3) {
@@ -511,25 +535,8 @@ void setup()
     //otaHandler.setup();
 	displayPrint("Setting up motor");
     motorHandler->setup();
-#if DISPLAY_ENABLED
-	if(SettingsHandler::displayEnabled)
-	{
-    	LogHandler::debug(TagHandler::Main, "Start Display task");
-		auto displayStatus = xTaskCreatePinnedToCore(
-			DisplayHandler::startLoop,/* Function to implement the task */
-			"DisplayTask", /* Name of the task */
-			5000,  /* Stack size in words */
-			displayHandler,  /* Task input parameter */
-			1,  /* Priority of the task */
-			&displayTask,  /* Task handle. */
-			APP_CPU_NUM); /* Core where the task should run */
-			if(displayStatus != pdPASS) {
-    			LogHandler::error(TagHandler::Main, "Could not start display task.");
-			}
-	}
-#endif
-
 	motionHandler.setup(SettingsHandler::TCodeVersionEnum);
+	loadI2CModules();
     LogHandler::debug(TagHandler::Main, "xPortGetFreeHeapSize: %u", xPortGetFreeHeapSize());
 	SettingsHandler::setMessageCallback(settingChangeCallback);
 	setupSucceeded = true;

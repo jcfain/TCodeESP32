@@ -67,10 +67,9 @@ public:
 
     bool setup() {
         LogHandler::info(_TAG, "Setup battery monitor");
-        if(SettingsHandler::systemI2CAddresses.size() == 0) {
-            LogHandler::info(_TAG, "No I2C devices found in system");
+		if(!SettingsHandler::waitForI2CDevices(LTC2944_ADDRESS)) {
             return false;
-        }
+        } 
         Wire.begin();
         long timeout = millis() + 10000;
         LogHandler::info(_TAG, "Connecting to monitor");

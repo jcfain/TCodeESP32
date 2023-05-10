@@ -35,12 +35,11 @@ class VoiceHandler {
 public:
     bool setup() {
         LogHandler::info(_TAG, "Setup voice");
-        if(SettingsHandler::systemI2CAddresses.size() == 0) {
-            LogHandler::info(_TAG, "No I2C devices found in system");
+		if(!SettingsHandler::waitForI2CDevices(DF2301Q_I2C_ADDR)) {
             return false;
         }
         int tries = 0;
-        while (!asr.begin() && tries <= 3) {
+        while (!asr.begin() && tries <= 3) {// Returns true no matter what right now.
             LogHandler::error(_TAG, "Could not connect, trying again.");
             if(tries >= 3){
                 LogHandler::error(_TAG, "Communication with device failed, please check connection");
@@ -52,16 +51,18 @@ public:
         _isConnected = true;
         LogHandler::info(_TAG, "Begin ok!");
         
-        //setVolume(6);
-        setMuteMode(0);
-        setWakeTime(10);
+        if(SettingsHandler::getVoiceVolume() > 0) {
+            setVolume(SettingsHandler::getVoiceVolume());
+        }
+        setMuteMode(SettingsHandler::getVoiceMuted());
+        setWakeTime(SettingsHandler::getVoiceWakeTime());
         /**
              @brief Get wake-up duration
             @return The currently-set wake-up period
         */
-        uint8_t wakeTime = 0;
-        wakeTime = asr.getWakeTime();
-        LogHandler::info(_TAG, "wakeTime: %ld", wakeTime);
+        // uint8_t wakeTime = 0;
+        // wakeTime = asr.getWakeTime();
+        // LogHandler::info(_TAG, "wakeTime: %ld", wakeTime);
         
         return true;
     }

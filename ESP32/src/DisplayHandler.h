@@ -53,7 +53,9 @@ public:
 	void setup() 
 	{
     	LogHandler::info(_TAG, "Setting up display");
-        if(SettingsHandler::systemI2CAddresses.size() == 0) {
+        int tries = 0;
+		SettingsHandler::waitForI2CDevices(SettingsHandler::Display_I2C_Address); 
+        if(!SettingsHandler::Display_I2C_Address || SettingsHandler::systemI2CAddresses.size() == 0) {
             LogHandler::info(_TAG, "No I2C devices found in system");
             return;
         }

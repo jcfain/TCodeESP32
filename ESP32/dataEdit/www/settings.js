@@ -678,8 +678,13 @@ function setUserSettings()
     setIntMinAndMax('motionAmplitudeGlobalRandomMin', 'motionAmplitudeGlobalRandomMax');
     setIntMinAndMax('motionOffsetGlobalRandomMin', 'motionOffsetGlobalRandomMax');
     setIntMinAndMax('motionRandomChangeMin', 'motionRandomChangeMax');
-					
     //document.getElementById('motionReversedGlobal').checked = userSettings["motionReversedGlobal"];
+					
+    
+    document.getElementById('voiceEnabled').checked = userSettings['voiceEnabled'];
+    document.getElementById('voiceMuted').checked = userSettings['voiceMuted'];
+    document.getElementById('voiceVolume').value = userSettings['voiceVolume'];
+    document.getElementById('voiceWakeTime').value = userSettings['voiceWakeTime'];
 
     //document.getElementById('debugLink').hidden = !userSettings["debug"];
     
@@ -1679,7 +1684,10 @@ function validateIntControl(controlID, settingsObject, settingVariableName, addi
     var control = document.getElementById(controlID);
     if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
         settingsObject[settingVariableName] = parseInt(control.value);
+        return true;
     }
+    showError(`${controlID} is invalid: ${control.errorText}`)
+    return false;
 }
 var validateFloatDebounce;
 /** additionalValidations takes a parameter with the value */
@@ -1687,14 +1695,20 @@ function validateFloatControl(controlID, settingsObject, settingVariableName, ad
     var control = document.getElementById(controlID);
     if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
         settingsObject[settingVariableName] = parseInt(control.value);
+        return true;
     }
+    showError(`${controlID} is invalid: ${control.errorText}`)
+    return false;
 }
 /** additionalValidations takes a parameter with the value */
 function validateStringControl(controlID, settingsObject, settingVariableName, additionalValidations) {
     var control = document.getElementById(controlID);
     if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
-        settingsObject[settingVariableName] = control.value;
+        settingsObject[settingVariableName && settingVariableName.trim().length ? settingVariableName : controlID] = control.value;
+        return true;
     }
+    showError(`${controlID} is invalid: ${control.errorText}`)
+    return false;
 }
 /** 
  * Validates the pin number values in the forms inputs. 
@@ -2340,11 +2354,13 @@ function setMotionGeneratorName() {
         clearTimeout(setMotionGeneratorNameDebounce);
     }
     
-    validateGeneratorSettingsDebounce = setTimeout(() => {
+    setMotionGeneratorNameDebounce = setTimeout(() => {
         var currentProfileIndex = getMotionProfileSelectedIndex();
-        userSettings['motionProfiles'][currentProfileIndex]["motionProfileName"] = document.getElementById("motionProfileName").value;
-        updateMotionProfileName(currentProfileIndex);
-        updateUserSettings(1);
+        if(validateStringControl("motionProfileName", userSettings['motionProfiles'][currentProfileIndex])) {
+            //userSettings['motionProfiles'][currentProfileIndex]["motionProfileName"] = document.getElementById("motionProfileName").value;
+            updateMotionProfileName(currentProfileIndex);
+            updateUserSettings(1);
+        }
     },3000);
 }
 function addMotionProfileOption(profileIndex, profile, selectNewProfile) {
@@ -2423,7 +2439,17 @@ function setMotionGeneratorSettingsProfile(profileIndex) {
     document.getElementById('motionOffsetGlobalRandomMax').value = userSettings['motionProfiles'][profileIndex]["motionOffsetGlobalRandomMax"];  
     toggleMotionRandomSettings();
 }
-
+function toggleVoiceSettings() {
+    userSettings['voiceEnabled'] = document.getElementById('voiceEnabled').checked;  
+    setRestartRequired();
+    updateUserSettings();
+}
+function setVoiceSettings() {
+    userSettings['voiceMuted'] = document.getElementById('voiceMuted').checked;  
+    validateIntControl("voiceVolume", userSettings, "voiceVolume");
+    validateIntControl("voiceWakeTime", userSettings, "voiceWakeTime");
+    updateUserSettings();
+}
 function setFanControl() {
     userSettings["fanControlEnabled"] = document.getElementById('fanControlEnabled').checked;
     toggleFanControlSettings(userSettings["fanControlEnabled"]);
