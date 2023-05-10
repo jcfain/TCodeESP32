@@ -1,16 +1,16 @@
 html {
   font-family: Helvetica;
-  display: inline-block;
+  /* display: inline-block;
   margin: 0px auto;
-  text-align: center;
+  text-align: center; */
 }
 body {
   background-color: lightgray;
   color: black;
-  display: flex;
+  /* display: flex;
   align-content: center;
   flex-direction: column;
-  align-items: center;
+  align-items: center; */
 }
 p{
   font-size: 1.5rem;
@@ -80,10 +80,10 @@ button:hover {
   top: 5%;
   right: 5%;
 }
-.systemInfo tr > td:first-child {
+.systemInfo .tRow > .tCell:first-child {
   text-align: right;
 }
-.systemInfo tr > td:last-child {
+.systemInfo .tRow > .tCell:last-child {
   text-align: left;
 }
 .restartRequired {
@@ -97,15 +97,16 @@ button:hover {
 }
 .rootTable {
   display: flex;
-  flex-flow: row;
   flex-wrap: wrap;
 }
-.rootTable > div {
+/* .rootTable > div {
   display: flex;
   flex-direction: column;
   align-content: center;
-}
+} */
 .formTable {
+  display: flex;
+  flex-direction: column;
   background-color: darkgray;
   border-collapse: separate; 
   border-spacing: 0 5px; 
@@ -114,19 +115,38 @@ button:hover {
   border-radius: 10px;
   margin: 10px;
   padding: 25px;
+  min-width: 500px;
 }
 .formTable h3 {
   text-align: center;
   margin-top: -10px;
 }
-.formTable > tbody > tr:not(.servoHeader) > td:last-child {
-	text-align: left;
+.tHeader {
+  display: flex; 
+  justify-content: center;
 }
-.formTable > tbody > tr:not(.servoHeader) > td:first-child {
-	text-align: right;
+.formTable .tRow {
+  width: 100%;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+.formTable .tCell {
+  flex-grow: 1;
+  flex-basis: 33%;
+}
+.formTable .tRow,
+.formTable .tCell {
+  display: flex;
+}
+.formTable > div > .tRow:not(.servoHeader) > .tCell:last-child {
+  justify-content: flex-start;
+  margin-left: 4px;
+}
+.formTable > div > .tRow:not(.servoHeader) > .tCell:first-child {
+  justify-content: flex-end;
 }
 
-.formTable > tbody > tr:not(.servoHeader) > td:first-child span {
+.formTable > div > .tRow:not(.servoHeader) > .tCell:first-child span {
   margin-right: 8px;
 }
 .formTable input[type=text],
@@ -153,19 +173,19 @@ button:hover {
   text-align: left;
   font-weight: bolder;
 }
-.servoHeader > td {
+.servoHeader > .tCell {
   background-color: gainsboro;
   padding: 5px;
   border: 1px solid transparent;
   border-style: solid none;
 }
-.servoHeader > td:first-child:not(.other) {
+.servoHeader > .tCell:first-child:not(.other) {
   text-align: right;
   border-right: 1px solid black;
   border-top-left-radius: 10px; 
   border-bottom-left-radius: 10px;
 }
-.servoHeader > td:last-child:not(.other) {
+.servoHeader > .tCell:last-child:not(.other) {
   border-top-right-radius: 10px; 
   border-left: 1px solid black;
   border-bottom-right-radius: 10px;
@@ -357,10 +377,10 @@ div[slider] > input[type=range]::-ms-tooltip {
   opacity: 1;
 }
 
-.pwmAvaliblePinRow > td:last-child {
+.pwmAvaliblePinRow > .tCell:last-child {
   padding-top: 25px;
 }
-.pwmAvaliblePinRow > td:last-child > span {
+.pwmAvaliblePinRow > .tCell:last-child > span {
   font-size: smaller;
   right: 5px;
   position: relative;
@@ -437,11 +457,8 @@ div[slider] > input[type=range]::-ms-tooltip {
 
 
 @media only screen and (-webkit-min-device-pixel-ratio: 2.75)   {
-  body {
-    margin: 0;
-  }
   .formTable {
-    max-width: 375px;
-    align-self: center;
+    width: 85vw;
+    min-width: auto;
   }
 }

@@ -915,11 +915,12 @@ function setupChannelSliders()
     while (channelTestsNode.firstChild) {
         channelTestsNode.removeChild(channelTestsNode.firstChild);
     }
-    var bodyNode = document.createElement("tbody");
+    var bodyNode = document.createElement("div");
     channelTestsNode.appendChild(bodyNode);
     
-    var headerRowNode = document.createElement("tr");
-    var headerCellNode = document.createElement("td");
+    var headerRowNode = document.createElement("div");
+    var headerCellNode = document.createElement("div");
+    headerCellNode.classList.add("tHeader");
     headerCellNode.colSpan = "2";
     headerCellNode.style.textAlign = "center";
     var headerH3Node = document.createElement("h3");
@@ -928,8 +929,10 @@ function setupChannelSliders()
     headerRowNode.appendChild(headerCellNode);
     bodyNode.appendChild(headerRowNode);
 
-    var feedbackRowNode = document.createElement("tr");
-    var feedbackCellNode = document.createElement("td");
+    var feedbackRowNode = document.createElement("div");
+    feedbackRowNode.classList.add("tRow");
+    var feedbackCellNode = document.createElement("div");
+    feedbackCellNode.classList.add("tCell");
     feedbackCellNode.innerText = "TCode input: awaiting user...";
     feedbackCellNode.colSpan = "2";
     feedbackCellNode.style.textAlign = "left";
@@ -944,10 +947,13 @@ function setupChannelSliders()
             var channel = availibleChannels[i].channel;
             var channelName = availibleChannels[i].channelName;
 
-            var rowNode = document.createElement("tr");
-            var titleCellNode = document.createElement("td");
+            var rowNode = document.createElement("div");
+            rowNode.classList.add("tRow");
+            var titleCellNode = document.createElement("div");
+            titleCellNode.classList.add("tCell");
             titleCellNode.innerText = channelName + " ("+channel+")";
-            var inputCellNode = document.createElement("td");
+            var inputCellNode = document.createElement("div");
+            inputCellNode.classList.add("tCell");
             rowNode.appendChild(titleCellNode);
             rowNode.appendChild(inputCellNode);
             var sliderNode = document.createElement("input");
@@ -974,10 +980,13 @@ function setupChannelSliders()
     testDeviceModifierValueNode.addEventListener("input", (event) => {
         testDeviceModifierValue = event.target.value;
     });
-    var testDeviceModifierValueRowNode = document.createElement("tr");
-    var testDeviceModifierValueCellNode = document.createElement("td");
+    var testDeviceModifierValueRowNode = document.createElement("div");
+    testDeviceModifierValueRowNode.classList.add("tRow");
+    var testDeviceModifierValueCellNode = document.createElement("div");
+    testDeviceModifierValueCellNode.classList.add("tCell");
     testDeviceModifierValueCellNode.innerText = "Magnitude (I/S) value";
-    var testDeviceModifierValueInputCellNode = document.createElement("td");
+    var testDeviceModifierValueInputCellNode = document.createElement("div");
+    testDeviceModifierValueInputCellNode.classList.add("tCell");
     testDeviceModifierValueInputCellNode.appendChild(testDeviceModifierValueNode);
     testDeviceModifierValueRowNode.appendChild(testDeviceModifierValueCellNode);
     testDeviceModifierValueRowNode.appendChild(testDeviceModifierValueInputCellNode);
@@ -989,10 +998,13 @@ function setupChannelSliders()
     testDeviceUseIModifierNode.addEventListener("click", (event) => {
         testDeviceUseIModifier = event.target.checked;
     });
-    var testDeviceUseIModifierRowNode = document.createElement("tr");
-    var testDeviceUseIModifierCellNode = document.createElement("td");
+    var testDeviceUseIModifierRowNode = document.createElement("div");
+    testDeviceUseIModifierRowNode.classList.add("tRow");
+    var testDeviceUseIModifierCellNode = document.createElement("div");
+    testDeviceUseIModifierCellNode.classList.add("tCell");
     testDeviceUseIModifierCellNode.innerText = "Use Magnitude + Time Interval (I)";
-    var testDeviceUseIModifierInputCellNode = document.createElement("td");
+    var testDeviceUseIModifierInputCellNode = document.createElement("div");
+    testDeviceUseIModifierInputCellNode.classList.add("tCell");
     testDeviceUseIModifierInputCellNode.appendChild(testDeviceUseIModifierNode);
     testDeviceUseIModifierRowNode.appendChild(testDeviceUseIModifierCellNode);
     testDeviceUseIModifierRowNode.appendChild(testDeviceUseIModifierInputCellNode);
@@ -1004,10 +1016,13 @@ function setupChannelSliders()
     testDeviceDisableModifierNode.addEventListener("click", (event) => {
         testDeviceDisableModifier = event.target.checked;
     });
-    var testDeviceDisableModifierRowNode = document.createElement("tr");
-    var testDeviceDisableModifierCellNode = document.createElement("td");
+    var testDeviceDisableModifierRowNode = document.createElement("div");
+    testDeviceDisableModifierRowNode.classList.add("tRow");
+    var testDeviceDisableModifierCellNode = document.createElement("div");
+    testDeviceDisableModifierCellNode.classList.add("tCell");
     testDeviceDisableModifierCellNode.innerText = "Disable magnitude";
     var testDeviceDisableModifierInputCellNode = document.createElement("td");
+    testDeviceDisableModifierInputCellNode.classList.add("tCell");
     testDeviceDisableModifierInputCellNode.appendChild(testDeviceDisableModifierNode);
     testDeviceDisableModifierRowNode.appendChild(testDeviceDisableModifierCellNode);
     testDeviceDisableModifierRowNode.appendChild(testDeviceDisableModifierInputCellNode);
@@ -1019,9 +1034,11 @@ function setupChannelSliders()
         sendDeviceHome();
     });
     testDeviceHomeNode.innerText = "All home"
-    var testDeviceHomeRowNode = document.createElement("tr");
-    var testDeviceHomeCellNode = document.createElement("td");
-    testDeviceHomeCellNode.style.textAlign = "center";
+    var testDeviceHomeRowNode = document.createElement("div");
+    testDeviceHomeRowNode.classList.add("tRow");
+    var testDeviceHomeCellNode = document.createElement("div");
+    testDeviceHomeCellNode.classList.add("tCell");
+    testDeviceHomeCellNode.style.justifyContent = "flex-end";
     testDeviceHomeCellNode.colSpan = 2;
     testDeviceHomeCellNode.appendChild(testDeviceHomeNode);
     testDeviceHomeRowNode.appendChild(testDeviceHomeCellNode);
@@ -1306,7 +1323,7 @@ function updateFeedbackTwist()
 function toggleFeedbackTwistSettings(feedbackChecked) {
     var feedbackTwistOnly = document.getElementsByClassName('feedbackTwistOnly');
     for(var i=0;i < feedbackTwistOnly.length; i++)
-        feedbackTwistOnly[i].style.display = feedbackChecked ? "revert" : "none";
+        feedbackTwistOnly[i].style.display = feedbackChecked ? "flex" : "none";
         
     if(feedbackChecked && !isTCodeV3()) {
         document.getElementById("analogTwistRow").style.display = 'none';
@@ -1315,7 +1332,7 @@ function toggleFeedbackTwistSettings(feedbackChecked) {
 function toggleBatterySettings(batteryEnabled) {
     var batteryOnly = document.getElementsByClassName('batteryOnly');
     for(var i=0;i < batteryOnly.length; i++)
-        batteryOnly[i].style.display = batteryEnabled ? "revert" : "none";
+        batteryOnly[i].style.display = batteryEnabled ? "flex" : "none";
 }
 
 function updateHostName() 
@@ -2129,7 +2146,7 @@ function toggleDisplaySettings(enabled)
     }
     var displayOnly = document.getElementsByClassName('displayOnly');
     for(var i=0;i < displayOnly.length; i++)
-    displayOnly[i].style.display = displayEnabled ? "revert" : "none";
+    displayOnly[i].style.display = displayEnabled ? "flex" : "none";
 }
 
 function toggleTempSettings(enabled) 
@@ -2148,7 +2165,7 @@ function toggleTempSettings(enabled)
 function setBuildInternalTemp(enabled) {
     var elements = document.getElementsByClassName('internal-temp-build');
     for(var i=0;i < elements.length; i++)
-        elements[i].style.display = enabled ? "revert" : "none";
+        elements[i].style.display = enabled ? "flex" : "none";
         toggleInternalTempSettings(enabled);
 }
 function toggleInternalTempSettings(enabled) 
@@ -2468,13 +2485,13 @@ function setMaxTemp() {
 function setBuildFanControl(enabled) {
     var elements = document.getElementsByClassName('fan-control-build');
     for(var i=0;i < elements.length; i++)
-        elements[i].style.display = enabled ? "revert" : "none";
+        elements[i].style.display = enabled ? "flex" : "none";
     toggleFanControlSettings(enabled);
 }
 function toggleFanControlSettings(enabled) {
     var elements = document.getElementsByClassName('fan-control');
     for(var i=0;i < elements.length; i++)
-        elements[i].style.display = enabled ? "revert" : "none";
+        elements[i].style.display = enabled ? "flex" : "none";
 }
 function connectWifi() {
     
@@ -2533,17 +2550,17 @@ function updateWifiSettings() {
 
 function toggleControlVisabilityByID(id, hidden) {
     var control = document.getElementById(id);
-    control.style.display = hidden ? "revert" : "none";
+    control.style.display = hidden ? "flex" : "none";
 }
 function toggleControlVisabilityByName(name, hidden) {
     var controls = document.getElementByName(name);
     for(var i=0;i < controls.length; i++)
-        controls[i].style.display = hidden ? "revert" : "none";
+        controls[i].style.display = hidden ? "flex" : "none";
 }
 function toggleControlVisabilityByClassName(name, hidden) {
     var controls = document.getElementByClassName(name);
     for(var i=0;i < controls.length; i++)
-        controls[i].style.display = hidden ? "revert" : "none";
+        controls[i].style.display = hidden ? "flex" : "none";
 }
 
 function togglePitchServoFrequency(isChecked) 
@@ -2581,9 +2598,9 @@ function toggleDeviceOptions(sr6Mode)
     var osrOnly = document.getElementsByClassName('osrOnly');
     var sr6Only = document.getElementsByClassName('sr6Only');
     for(var i=0;i < sr6Only.length; i++)
-        sr6Only[i].style.display = sr6Mode ? "revert" : "none";
+        sr6Only[i].style.display = sr6Mode ? "flex" : "none";
     for(var i=0;i < osrOnly.length; i++)
-        osrOnly[i].style.display = sr6Mode ? "none" : "revert";
+        osrOnly[i].style.display = sr6Mode ? "none" : "flex";
         
     if(sr6Mode && userSettings["msPerRad"] == servoDegreeValue270) {
         document.getElementById('msPerRadIs270').checked = true;
@@ -2595,9 +2612,9 @@ function toggleNonTCodev3Options()
     var v2Only = document.getElementsByClassName('v2Only');
     var v3Only = document.getElementsByClassName('v3Only');
     for(var i=0;i < v3Only.length; i++)
-        v3Only[i].style.display = isTCodeV3() ? "revert" : "none";
+        v3Only[i].style.display = isTCodeV3() ? "flex" : "none";
     for(var i=0;i < v2Only.length; i++)
-        v2Only[i].style.display = isTCodeV3() ? "none" : "revert";
+        v2Only[i].style.display = isTCodeV3() ? "none" : "flex";
     toggleFeedbackTwistSettings(userSettings.feedbackTwist);
     if(userSettings.feedbackTwist && !isTCodeV3()) {
         document.getElementById("analogTwistRow").style.display = 'none';

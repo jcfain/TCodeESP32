@@ -19,1153 +19,1155 @@
 	<div id="info" class="info" hidden="true"></div>
 	<div id="requiresRestart" hidden="true" class="restartRequired">Restart required!!</div>
 
-  <h1>Device Settings</h1>
+  <div class="tHeader">
+	<h1>Device Settings</h1>
+</div>
 	<div class="rootTable">
-		<div>
-			<table id="wirelessSettingsTable" class="formTable">
-				<tbody>
-					<tr>
-						<th colspan="2">
-							<h3>Wireless</h3>
-						</th>
-					</tr>
-					<tr>
-						<td>
-							<span title="The ESP32 currently only supports 2.4ghz connections.\nIf you enter a 5ghz ssid here your ESP32 WILL NOT CONNECT!">SSID (2.4ghz only)</span> 
-						</td>
-						<td>
-							<input id="ssid" type="text" maxlength="32" oninput="updateWifiSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Password</span> 
-						</td>
-						<td>
-							<input id="wifiPass" type="password" maxlength="63" oninput="updateWifiSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-						</td>
-						<td>
-							<input type="checkbox" onclick="showWifiPassword()">Show Password</input>
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Static IP</span> 
-						</td>
-						<td>
-							<input id="staticIP" type="checkbox" onclick="updateWifiSettings()"></input>
-						</td>
-					</tr>
-					<tr id="localIP">
-						<td>
-							<span id="localIPLabel">IP</span> 
-						</td>
-						<td>
-							<input id="localIPInput" type="text" maxlength="15" oninput="updateWifiSettings()">
-						</td>
-					</tr>
-					<tr id="gateway" >
-						<td>
-							<span id="gatewayLabel">Gateway</span> 
-						</td>
-						<td>
-							<input id="gatewayInput" type="text" maxlength="15" oninput="updateWifiSettings()">
-						</td>
-					</tr>
-					<tr id="subnet">
-						<td>
-							<span id="subnetLabel">Subnet</span> 
-						</td>
-						<td>
-							<input id="subnetInput" type="text" maxlength="15" oninput="updateWifiSettings()">
-						</td>
-					</tr>
-					<tr id="dns1">
-						<td>
-							<span id="dns1Label">DNS 1</span> 
-						</td>
-						<td>
-							<input id="dns1Input" type="text" maxlength="15" oninput="updateWifiSettings()">
-						</td>
-					</tr>
-					<tr id="dns2">
-						<td>
-							<span id="dns2Label">DNS 2</span> 
-						</td>
-						<td>
-							<input id="dns2Input" type="text" maxlength="15" oninput="updateWifiSettings()">
-						</td>
-					</tr>
-					<!-- <tr> Bluetooth serial just has too many issues. Leaving out for now.
-						<td>
-							<span>Bluetooth enabled</span> 
-						</td>
-						<td>
-							<input id="bluetoothEnabled" type="checkbox" onclick="updateBlueToothSettings()"></input>
-						</td>
-					</tr> -->
-				</tbody>
-			</table>
-			<table id="deviceSettingsTable" class="formTable">
-				<tbody>
-					<tr>
-						<th colspan="3">
-							<h3>General</h3>
-						</th>
-					</tr>
+		<div id="wirelessSettingsTable" class="formTable">
+			<div>
+				<div>
+					<div class="tHeader">
+						<h3>Wireless</h3>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span title="The ESP32 currently only supports 2.4ghz connections.\nIf you enter a 5ghz ssid here your ESP32 WILL NOT CONNECT!">SSID (2.4ghz only)</span> 
+					</div>
+					<div class="tCell">
+						<input id="ssid" type="text" maxlength="32" oninput="updateWifiSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Password</span> 
+					</div>
+					<div class="tCell">
+						<input id="wifiPass" type="password" maxlength="63" oninput="updateWifiSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+					</div>
+					<div class="tCell">
+						<input type="checkbox" onclick="showWifiPassword()">Show Password</input>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Static IP</span> 
+					</div>
+					<div class="tCell">
+						<input id="staticIP" type="checkbox" onclick="updateWifiSettings()"></input>
+					</div>
+				</div>
+				<div class="tRow" id="localIP">
+					<div class="tCell">
+						<span id="localIPLabel">IP</span> 
+					</div>
+					<div class="tCell">
+						<input id="localIPInput" type="text" maxlength="15" oninput="updateWifiSettings()">
+					</div>
+				</div>
+				<div class="tRow" id="gateway" >
+					<div class="tCell">
+						<span id="gatewayLabel">Gateway</span> 
+					</div>
+					<div class="tCell">
+						<input id="gatewayInput" type="text" maxlength="15" oninput="updateWifiSettings()">
+					</div>
+				</div>
+				<div class="tRow" id="subnet">
+					<div class="tCell">
+						<span id="subnetLabel">Subnet</span> 
+					</div>
+					<div class="tCell">
+						<input id="subnetInput" type="text" maxlength="15" oninput="updateWifiSettings()">
+					</div>
+				</div>
+				<div class="tRow" id="dns1">
+					<div class="tCell">
+						<span id="dns1Label">DNS 1</span> 
+					</div>
+					<div class="tCell">
+						<input id="dns1Input" type="text" maxlength="15" oninput="updateWifiSettings()">
+					</div>
+				</div>
+				<div class="tRow" id="dns2">
+					<div class="tCell">
+						<span id="dns2Label">DNS 2</span> 
+					</div>
+					<div class="tCell">
+						<input id="dns2Input" type="text" maxlength="15" oninput="updateWifiSettings()">
+					</div>
+				</div>
+				<!-- <div> Bluetooth serial just has too many issues. Leaving out for now.
+					<div class="tCell">
+						<span>Bluetooth enabled</span> 
+					</div>
+					<div class="tCell">
+						<input id="bluetoothEnabled" type="checkbox" onclick="updateBlueToothSettings()"></input>
+					</div>
+				</div> -->
+			</div>
+		</div>
+		<div id="deviceSettingsTable" class="formTable">
+			<div>
+				<div>
+					<div class="tHeader" colspan="3">
+						<h3>General</h3>
+					</div>
+				</div>
 
-					<!---------------------------------- BLDC -------------------------------------------------->
+				<!---------------------------------- BLDC -------------------------------------------------->
 
-					<tr class="BLDCOnly">
-						<td>
-							<span>Voltage</span> 
-						</td>
-						<td>
-							<input id="BLDC_MotorA_Voltage" type="number" min="0.0" max="2147483647" step="0.01" oninput="updateBLDCSettings()">
-						</td>
-					</tr>
-					<tr class="BLDCOnly">
-						<td>
-							<span>Current</span> 
-						</td>
-						<td>
-							<input id="BLDC_MotorA_Current" type="number" min="0.0" max="2147483647" step="0.01" oninput="updateBLDCSettings()">
-						</td>
-					</tr>
-					<tr class="BLDCOnly">
-						<td>
-							<span>Encoder PIN</span> 
-						</td>
-						<td>
-							<input id="BLDC_Encoder_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr class="BLDCOnly">
-						<td>
-							<span>Enable PIN</span> 
-						</td>
-						<td>
-							<input id="BLDC_Enable_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr class="BLDCOnly">
-						<td>
-							<span>PWMchannel1 PIN</span> 
-						</td>
-						<td>
-							<input id="BLDC_PWMchannel1_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr class="BLDCOnly">
-						<td>
-							<span>PWMchannel2 PIN</span> 
-						</td>
-						<td>
-							<input id="BLDC_PWMchannel2_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr class="BLDCOnly">
-						<td>
-							<span>PWMchannel3 PIN</span> 
-						</td>
-						<td>
-							<input id="BLDC_PWMchannel3_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-					</tr>
-
-
-					<!--------------------------------------- BLDC ----------------------------------------------------->
+				<div class="tRow BLDCOnly">
+					<div class="tCell">
+						<span>Voltage</span> 
+					</div>
+					<div class="tCell">
+						<input id="BLDC_MotorA_Voltage" type="number" min="0.0" max="2147483647" step="0.01" oninput="updateBLDCSettings()">
+					</div>
+				</div>
+				<div class="tRow BLDCOnly">
+					<div class="tCell">
+						<span>Current</span> 
+					</div>
+					<div class="tCell">
+						<input id="BLDC_MotorA_Current" type="number" min="0.0" max="2147483647" step="0.01" oninput="updateBLDCSettings()">
+					</div>
+				</div>
+				<div class="tRow BLDCOnly">
+					<div class="tCell">
+						<span>Encoder PIN</span> 
+					</div>
+					<div class="tCell">
+						<input id="BLDC_Encoder_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+				</div>
+				<div class="tRow BLDCOnly">
+					<div class="tCell">
+						<span>Enable PIN</span> 
+					</div>
+					<div class="tCell">
+						<input id="BLDC_Enable_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+				</div>
+				<div class="tRow BLDCOnly">
+					<div class="tCell">
+						<span>PWMchannel1 PIN</span> 
+					</div>
+					<div class="tCell">
+						<input id="BLDC_PWMchannel1_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+				</div>
+				<div class="tRow BLDCOnly">
+					<div class="tCell">
+						<span>PWMchannel2 PIN</span> 
+					</div>
+					<div class="tCell">
+						<input id="BLDC_PWMchannel2_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+				</div>
+				<div class="tRow BLDCOnly">
+					<div class="tCell">
+						<span>PWMchannel3 PIN</span> 
+					</div>
+					<div class="tCell">
+						<input id="BLDC_PWMchannel3_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+				</div>
 
 
-					<tr class="servoOnly">
-						<td>
-							<span title="Choose the version of TCode you want the firmware to use.">TCode version</span> 
-						</td>
-						<td>
-							<select name="TCodeVersion" id="TCodeVersion" onchange="setTCodeVersion()">
-							</select>
-						</td>
-					</tr>
-					<tr class="servoOnly">
-						<td>
-							<span title="Uncheck this if you are building an OSR">SR6 mode</span> 
-						</td>
-						<td>
-							<input id="sr6Mode" type="checkbox" onclick="setSR6Mode()"></input>
-						</td>
-					</tr>
-					<tr class="servoOnly">
-						<td>
-							<span title="This sets the frequency of the main servos. L/R and Pitch\nif 'Pitch Frequency is different' is NOT checked">Servo Frequency (hz)</span> 
-						</td>
-						<td>
-							<input id="servoFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()" class="servoOnly">
-						</td>
-					</tr>
-					<trclass="servoOnly">
-						<td>
-							<span title="This sets the frequency of the main servos. L/R and Pitch" >Pitch Frequency is different</span> 
-						</td>
-						<td>
-							<input id="pitchFrequencyIsDifferent" type="checkbox" onclick="setPitchFrequencyIsDifferent()"></input>
-						</td>
-					</tr>
-					<tr id="pitchFrequencyRow" class="servoOnly">
-						<td>
-							<span title="This sets the frequency of the pitch servos.">Pitch Frequency (hz)</span> 
-						</td>
-						<td>
-							<input id="pitchFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span title="This sets the frequency of the valve servo.">Valve Frequency (hz)</span> 
-						</td>
-						<td>
-							<input id="valveFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
-						</td>
-					</tr>
-					<tr title="This sets the frequency of the twist servo." class="servoOnly">
-						<td>
-							<span>Twist Frequency (hz)</span> 
-						</td>
-						<td>
-							<input id="twistFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
-						</td>
-					</tr>
-					<tr title="This sets the frequency of the squeeze servo." class="servoOnly">
-						<td>
-							<span>Squeeze Frequency (hz)</span> 
-						</td>
-						<td>
-							<input id="squeezeFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
-						</td>
-					</tr>
-					<tr class="sr6Only servoOnly">
-						<td>
-							<span>Set (&#181;) for 270 degree servos</span> 
-						</td>
-						<td>
-							<input id="msPerRadIs270" type="checkbox" onclick="toggleMsPerRadIs270()"></input>
-						</td>
-					</tr>
-					<tr class="sr6Only servoOnly">
-						<td>
-							<span>Micro seconds per radian (&#181;)</span> 
-						</td>
-						<td>
-							<input id="msPerRad" type="number" min="1" max="2147483647" oninput="updateMSPerRad()">
-						</td>
-					</tr>
-					<tr class="servoHeader">
-						<td>
-							<span>Servo</span> 
-						</td>
-						<td>
-							<span>PIN</span> 
-						</td>
-						<td>
-							<span>ZERO (&#181;)</span> 
-						</td>
-					</tr>
-					<tr class="servoOnly">
-						<td>
-							<span>Right</span> 
-						</td>
-						<td>
-							<input id="RightServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-						<td>
-							<input id="RightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-						</td>
-					</tr>
-					<tr class="servoOnly">
-						<td>
-							<span>Left</span> 
-						</td>
-						<td>
-							<input id="LeftServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-						<td>
-							<input id="LeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-						</td>
-					</tr>
-					<tr class="servoOnly">
-						<td>
-							<span>Pitch</span> 
-						</td>
-						<td>
-							<input id="PitchLeftServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-						<td>
-							<input id="PitchLeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Valve</span> 
-						</td>
-						<td>
-							<input id="ValveServo_PIN" type="number" min="1" max="2147483647" oninput="updatePins()">
-						</td>
-						<td>
-							<input id="ValveServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-						</td>
-					</tr>
-					<tr class="v3Only servoOnly">
-						<td>
-							<span>Squeeze</span> 
-						</td>
-						<td>
-							<input id="Squeeze_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-						<td>
-							<input id="Squeeze_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-						</td>
-					</tr>
-					<tr class="servoOnly">
-						<td>
-							<span>Twist</span> 
-						</td>
-						<td>
-							<input id="TwistServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-						<td>
-							<input id="TwistServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-						</td>
-					</tr>
-					<tr class="feedbackTwistOnly servoOnly">
-						<td>
-							<span>Twist feedback</span> 
-						</td>
-						<td>
-							<input id="TwistFeedBack_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Disable PIN validation</span> 
-						</td>
-						<td>
-							<input id="disablePinValidation" type="checkbox" onchange="disablePinValidation()">
-						</td>
-					</tr>
-					<tr class="pwmAvaliblePinRow">
-						<td colspan="3">
-							<span>
-								PWM availible on: 2,4,5,12-19,21-23,25-27,32,33
-							</span> 
-						</td>
-					</tr>
-				</tbody>
-			</table>
-			<table id="deviceSR6SettingsTable" class="formTable sr6Only servoOnly">
-				<tbody>
-					<tr>
-						<th colspan="3">
-							<h3>SR6</h3>
-						</th>
-					</tr>
-					<tr class="servoHeader">
-						<td>
-							<span>Servo</span> 
-						</td>
-						<td>
-							<span>PIN</span> 
-						</td>
-						<td>
-							<span>ZERO (&#181;)</span> 
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Right upper</span> 
-						</td>
-						<td>
-							<input id="RightUpperServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-						<td>
-							<input id="RightUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Left upper</span> 
-						</td>
-						<td>
-							<input id="LeftUpperServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-						<td>
-							<input id="LeftUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Pitch right</span> 
-						</td>
-						<td>
-							<input id="PitchRightServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-						<td>
-							<input id="PitchRightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-						</td>
-					</tr>
-					<tr class="pwmAvaliblePinRow">
-						<td colspan="3">
-							<span>
-								PWM availible on: 2,4,5,12-19,21-23,25-27,32,33
-							</span> 
-						</td>
-					</tr>
-				</tbody>
-			</table>
-			<table id="otherSettingsTable" class="formTable">
-				<tbody>
-					<tr>
-						<th colspan="2">
-							<h3>Other</h3>
-						</th>
-					</tr>
-					<tr class="v2Only">
-						<td>
-							<span title="This will revert the T-Valve to the original behavior. (Depricated)">Auto T-Valve</span> 
-						</td>
-						<td>
-							<input id="autoValve" type="checkbox" onclick="setAutoValve()"></input>
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span title="Check this if your T-Valve micro servo closes on down stroke. aka:MG90S">Inverse T-Valve</span> 
-						</td>
-						<td>
-							<input id="inverseValve" type="checkbox" onclick="setInverseValve()"></input>
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span title="Check this if your T-Valve micro servo is 90 degrees range instead of 180. aka:MG90S">T-Valve 90 degree servo</span> 
-						</td>
-						<td>
-							<input id="valveServo90Degrees" type="checkbox" onclick="setValveServo90Degrees()"></input>
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Inverse Stroke</span> 
-						</td>
-						<td>
-							<input id="inverseStroke" type="checkbox" onclick="setInverseStroke()"></input>
-						</td>
-					</tr>
-					<tr class="osrOnly">
-						<td>
-							<span>Inverse Pitch</span> 
-						</td>
-						<td>
-							<input id="inversePitch" type="checkbox" onclick="setInversePitch()"></input>
-						</td>
-					</tr>
-					<tr class="servoOnly">
-						<td>
-							<span>Feedback twist</span> 
-						</td>
-						<td>
-							<input id="feedbackTwist" type="checkbox" onchange="updateFeedbackTwist()">
-						</td>
-					</tr>
-					<tr class="feedbackTwistOnly servoOnly">
-						<td>
-							<span>Continuous twist</span> 
-						</td>
-						<td>
-							<input id="continuousTwist" type="checkbox" onchange="updateContinuousTwist()">
-						</td>
-					</tr>
-					<tr id="analogTwistRow" class="v3Only feedbackTwistOnly servoOnly">
-						<td>
-							<span>Analog twist</span> 
-						</td>
-						<td>
-							<input id="analogTwist" type="checkbox" onchange="updateAnalogTwist()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Vibe 1</span> 
-						</td>
-						<td>
-							<input id="Vibe0_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Lube/Vibe 2</span> 
-						</td>
-						<td>
-							<input id="Vibe1_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Vibe 3</span> 
-						</td>
-						<td>
-							<input id="Vibe2_PIN" type="number"  min="0" max="2147483647" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Vibe 4</span> 
-						</td>
-						<td>
-							<input id="Vibe3_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr class="v3Only">
-						<td>
-							<span title="Enable this and the firmware will treat the second vibe channel like the lube channel.">Lube enabled on V2</span> 
-						</td>
-						<td>
-							<input id="lubeEnabled" type="checkbox" onchange="updateLubeEnabled()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Lube button PIN</span> 
-						</td>
-						<td>
-							<input id="LubeButton_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Manual lube speed (1-255)</span> 
-						</td>
-						<td>
-							<input id="lubeAmount" type="number" max="255" min="1" oninput="updateLubeAmount()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span title="The UDP port on which TCode is sent over the network on. Change this if you have a conflict on your local network.
-							Otherwise, just leave it be.">Udp port</span> 
-						</td>
-						<td>
-							<input id="udpServerPort" type="number" max="65,535" min="1" oninput="updateUdpPort()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span title="Web server port used to access this page and websocket input. Change this if you have a conflict on your local network.
-							Otherwise, just leave it be.">Web port</span> 
-						</td>
-						<td>
-							<input id="webServerPort" type="text" max="65,535" oninput="updateWebPort()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span title="This is the name of the device you will use to access this page after WiFi connection. default(tcode.local)
-							Some routers DO NOT support mDNS so you may need to use the IP address anyways.
-							
-							You may also use this address in some apps (XTP) to send TCode over the network.">Host name</span> 
-						</td>
-						<td>
-							<input id="hostname" type="text" maxlength="63" oninput="updateHostName()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Friendly name</span> 
-						</td>
-						<td>
-							<input id="friendlyName" type="text" maxlength="100" oninput="updateFriendlyName()">
-						</td>
-					</tr>
-					<tr class="build_display">
-						<td>
-							<span>Display enabled</span> 
-						</td>
-						<td>
-							<input id="displayEnabled" type="checkbox" onclick="setDisplaySettings()">
-						</td>
-					</tr>
-					<tr class="build_temprature">
-						<td>
-							<span>Sleeve temperature control enabled</span> 
-						</td>
-						<td>
-							<input id="tempSleeveEnabled" type="checkbox" onclick="setTempSettings()"></input>
-						</td>
-					</tr>
-					<tr class="build_temprature internal-temp-build">
-						<td>
-							<span>Internal temperature enabled</span> 
-						</td>
-						<td>
-							<input id="tempInternalEnabled" type="checkbox" onclick="setInternalTempSettings()"></input>
-						</td>
-					</tr>
-						<tr>
-						<td>
-							<span title="This uses the module 'CJMCU-294' That has a 'LTC2944' gas gauge chip on it.">Battery gauge enabled</span> 
-						</td>
-						<td>
-							<input id="batteryLevelEnabled" type="checkbox" onclick="setBatterySettings()" ></input>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-			<table id="tempSettingsDisplayTable" class="formTable">
-				<tbody>
-					<tr>
-						<th colspan="2">
-							<h3>Sleeve temperature</h3>
-						</th>
-					</tr>
-					<tr>
-						<td>
-							<span>Sleeve temp sensor pin</span> 
-						</td>
-						<td>
-							<input id="Temp_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Heater pin</span> 
-						</td>
-						<td>
-							<input id="Heater_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Target Temperature (&#8451;)</span> 
-						</td>
-						<td>
-							<input id="TargetTemp" type="number" step="0.1" max="2147483647" oninput="setTempSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span title="This will be sent to the heater pin when the measured temp is below the 'Target Temperature'">Heat PWM</span> 
-						</td>
-						<td>
-							<input id="HeatPWM" type="text" oninput="setTempSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span title="This will be sent to the heater pin when the measured temp is above the 'Target Temperature' + 'Heater hold threshold'">Hold PWM</span> 
-						</td>
-						<td>
-							<input id="HoldPWM" type="text" oninput="setTempSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span title="The 'Hold PWM' specified above will be sent while the temp less than or equal to:'Target Temperature' + 'Heater hold threshold'">Heater hold threshold (&#8451;)</span> 
-						</td>
-						<td>
-							<input id="heaterThreshold" type="text"  oninput="setTempSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Heater resolution (bit)</span> 
-						</td>
-						<td>
-							<input id="heaterResolution" type="text"  oninput="setTempSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Heater frequency (hz)</span> 
-						</td>
-						<td>
-							<input id="heaterFrequency" type="text"  oninput="setTempSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Sleeve temp (&#8451;)</span> 
-						</td>
-						<td>
-							<input id="currentTemp" type="text" readonly>
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Status</span> 
-						</td>
-						<td>
-							<input id="currentTempStatus" type="text" readonly>
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Play sound</span> 
-						</td>
-						<td>
-							<input id="soundsEnabled" type="checkbox" onclick="toggleSounds()"></input>
-							<button type="button" hidden name="testSoundButton" onclick="playSuccess()">Test target reached</button>
-							<!-- <button type="button" hidden name="testSoundButton" onclick="playFail()">Test fail safe trigger</button> -->
-						</td>
-					</tr>
-				</tbody>
-			</table>
-			<table id="internalTempTable" class="formTable">
-				<tbody>
-					<tr>
-						<th colspan="2">
-							<h3>Internal temperature</h3>
-						</th>
-					</tr>
-					<tr>
-						<td><span>Internal temp PIN</span></td>
-						<td>
-							<input id="Internal_Temp_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr>
-						<td><span>Internal temp (&#8451;)</span></td>
-						<td>
-							<input id="internalTemp" type="text" readonly>
-						</td>
-					</tr>
-					<tr>
-						<td><span>Internal max temp (&#8451;)</span></td>
-						<td>
-							<input id="internalMaxTemp" type="number" step="0.1" oninput="setMaxTemp()" >
-						</td>
-					</tr>
-					<tr class="fan-control-build">
-						<td><span>Fan control enabled</span></td>
-						<td>
-							<input id="fanControlEnabled" type="checkbox" onclick="setFanControl()">
-						</td>
-					</tr>
-					<tr class="fan-control">
-						<td><span>Fan status</span></td>
-						<td>
-							<input id="internalTempStatus" type="text" readonly>
-						</td>
-					</tr>
-					<tr class="fan-control">
-						<td><span>Fan on temp (&#8451;)</span></td>
-						<td>
-							<input id="internalTempForFan" type="number" min="0" max="2147483647" step="0.1" oninput="setFanOnTemp()">
-						</td>
-					</tr>
-					<tr class="fan-control">
-						<td><span>Fan PWM PIN</span></td>
-						<td>
-							<input id="Case_Fan_PIN" type="number" min="0" oninput="updatePins()">
-						</td>
-					</tr>
-					<tr class="fan-control">
-						<td><span>Fan frequency (hz)</span></td>
-						<td>
-							<input id="caseFanFrequency" type="number" min="0" oninput="setInternalTempSettings()">
-						</td>
-					</tr>
-					<tr class="fan-control">
-						<td><span>Fan resolution (bit)</span></td>
-						<td>
-							<input id="caseFanResolution" type="number" min="0" oninput="setInternalTempSettings()">
-						</td>
-					</tr>
-				</tbody>
-			</table>
-			<table id="displaySettingsDisplayTable" class="formTable build_display">
-				<tbody>
-					<tr>
-						<th colspan="2">
-							<h3>Display</h3>
-						</th>
-					</tr>
-					<tr>
-						<td>
-							<span>I2C address</span> 
-						</td>
-						<td>
-							<input id="Display_I2C_Address_text" type="text" oninput="setDisplaySettings()">
-							<select name="Display_I2C_Address" id="Display_I2C_Address" onchange="setDisplayAddress()">
-							</select>
-						</td>
-					</tr>
-			<!-- 		<tr>
-						<td>
-							<span>Display rst PIN</span> 
-						</td>
-						<td>
-							<input id="Display_Rst_PIN" type="text" oninput="setDisplaySettings()">
-						</td>
-					</tr> -->
-					<tr>
-						<td><span>Display is 32px</span></td>
-						<td>
-							<input id="displayIs32Px" type="checkbox" onclick="setDiplayIs32Px()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span> Screen width (px)</span> 
-						</td>
-						<td>
-							<input id="Display_Screen_Width" type="text" oninput="setDisplaySettings()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>Screen height (px)</span> 
-						</td>
-						<td>
-							<input id="Display_Screen_Height" type="text" oninput="setDisplaySettings()">
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span>System version displayed</span> 
-						</td>
-						<td>
-							<input id="versionDisplayed" type="checkbox" onclick="setDisplaySettings()"></input>
-						</td>
-					</tr>
-					<tr id="sleeveTempDisplayedRow">
-						<td>
-							<span>Sleeve temperature displayed</span> 
-						</td>
-						<td>
-							<input id="sleeveTempDisplayed" type="checkbox" onclick="setDisplaySettings()"></input>
-						</td>
-					</tr>
-					<tr id="internalTempDisplayedRow">
-						<td>
-							<span>Internal temperature displayed</span> 
-						</td>
-						<td>
-							<input id="internalTempDisplayed" type="checkbox" onclick="setDisplaySettings()"></input>
-						</td>
-					</tr>
-					
-				</tbody>
-			</table>
-			<table id="batterySettingsTable" class="formTable batteryOnly">
-				<tbody>
-					<tr>
-						<th colspan="2">
-							<h3>Battery</h3>
-						</th>
-					</tr>
-					<!-- <tr>
-						<td><span>Voltage pin (ADC)</span></td>
-						<td>
-							<input id="Battery_Voltage_PIN"  type="number" min="0" max="2147483647" step="1" oninput="updatePins()">
-						</td>
-					</tr> -->
-					<tr>
-						<td><span title="Display as a number instead of bars">Display capacity percentage</span></td>
-						<td>
-							<input id="batteryLevelNumeric" type="checkbox" oninput="setBatterySettings()">
-						</td>
-					</tr>
-					<!-- <tr title="This is used to map 3.3 volts to max voltage">
-						<td><span>Max voltage</span></td>
-						<td>
-							<input id="batteryVoltageMax"  type="number" min="0" step="0.10" max="2147483647" oninput="setBatterySettings()" title="For display calculation only.">
-						</td>
-					</tr> -->
-					<tr>
-						<td><span>Max capacity</span></td>
-						<td>
-							<input id="batteryCapacityMax" type="number" min="0" max="2147483647" step="0.01" oninput="setBatterySettings()">
-						</td>
-					</tr>
-					<tr>
-						<td><span></span></td>
-						<td title="Sets accumulated charge registers to the maximum value set above">
-							<button id="batteryCapacitySetFull" onclick="setBatteryFull()">Set capacity full</button>
-						</td>
-					</tr>
-					<tr>
-						<td><span>Capacity remaining (mAh)</span></td>
-						<td>
-							<input id="batteryCapacityRemaining" type="text" readonly value="Unknown" />
-						</td>
-					</tr>
-					<tr>
-						<td><span>Capacity remaining (%)</span></td>
-						<td>
-							<input id="batteryCapacityRemainingPercentage" type="text" readonly value="Unknown" />
-						</td>
-					</tr>
-					
-					<tr>
-						<td><span>Voltage</span></td>
-						<td>
-							<input id="batteryVoltage" type="text" readonly value="Unknown" />
-						</td>
-					</tr>
-					<tr>
-						<td><span>Temperature (C)</span></td>
-						<td>
-							<input id="batteryTemperature" type="text" readonly value="Unknown" />
-						</td>
-					</tr>
-				</tbody>
-			</table>
-			<table id="motionGeneratorSettingsTable" class="formTable">
-				<tbody>
-					<tr>
-						<th colspan="2">
-							<h3>Motion generator</h3>
-						</th>
-					</tr>
-					<tr>
-						<td></td>
-						<td>
-							<!-- <input id="motionEnabled" type="checkbox" oninput="setMotionEnabledClicked()"> -->
-							<button id="motionEnabledToggle" class="button-toggle-start" onclick="setMotionEnabledClicked()">Start</button>
-						</td>
-					</tr>
-					<tr>
-						<td><span>Profile</span></td>
-						<td>
-							<select id="motionProfiles" onchange="setMotionGeneratorProfile()"></select>
-							<button id="setMotionProfileDefault" onclick="setMotionProfileDefault()">Set default profile</button>
-							<!-- <button id="addMotionProfile" onclick="addMotionProfile()">+</button>
-							<button id="deleteMotionProfile" onclick="deleteMotionProfile()">-</button> -->
-						</td>
-					</tr>
-					<tr>
-						<td><span>Profile name</span></td>
-						<td>
-							<input id="motionProfileName" type="text"  maxlength="31" oninput="setMotionGeneratorName()">
-						</td>
-					</tr>
-					<tr>
-						<td><span tite="This is the time in between updates that gives the system time to process other tasks. (DO NOT SET TOO LOW ON ESP32!)
-							It may be best to just leave at default.">Update rate (ms)</span></td>
-						<td>
-							<input id="motionUpdateGlobal" type="number" min="1" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td><span tite="THis is the time it takes to make a revolution.\nLower is faster movement.">Period (ms)</span></td>
-						<td>
-							<input id="motionPeriodGlobal" type="number" min="0" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td><span>Period random</span></td>
-						<td>
-							<input id="motionPeriodGlobalRandom" type="checkbox" oninput="setMotionPeriodGlobalRandomClicked()">
-						</td>
-					</tr>
-					<tr id="motionPeriodGlobalRandomMinRow">
-						<td><span>Min (ms)</span></td>
-						<td>
-							<input id="motionPeriodGlobalRandomMin" type="number" min="0" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
-						</td>
-					</tr>
-					<tr id="motionPeriodGlobalRandomMaxRow">
-						<td><span>Max (ms)</span></td>
-						<td>
-							<input id="motionPeriodGlobalRandomMax" type="number" min="0" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td><span>Amplitude (%)</span></td>
-						<td>
-							<input id="motionAmplitudeGlobal" type="number" min="0" max="100" step="1" oninput="setMotionGeneratorSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td><span>Amplitude random</span></td>
-						<td>
-							<input id="motionAmplitudeGlobalRandom" type="checkbox" oninput="setMotionAmplitudeGlobalRandomClicked()">
-						</td>
-					</tr>
-					<tr id="motionAmplitudeGlobalRandomMinRow">
-						<td><span>Min (%)</span></td>
-						<td>
-							<input id="motionAmplitudeGlobalRandomMin" type="number" min="0" max="100" step="1" oninput="setMotionGeneratorSettings()">
-						</td>
-					</tr>
-					<tr id="motionAmplitudeGlobalRandomMaxRow">
-						<td><span>Max (%)</span></td>
-						<td>
-							<input id="motionAmplitudeGlobalRandomMax" type="number" min="0" max="100" step="1" oninput="setMotionGeneratorSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td><span>Offset (tcode)</span></td>
-						<td>
-							<input id="motionOffsetGlobal" type="number" min="0" max="9999" step="1" oninput="setMotionGeneratorSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td><span>Offset random</span></td>
-						<td>
-							<input id="motionOffsetGlobalRandom" type="checkbox" oninput="setMotionOffsetGlobalRandomRandomClicked()">
-						</td>
-					</tr>
-					<tr id="motionOffsetGlobalRandomMinRow">
-						<td><span>Min (tcode)</span></td>
-						<td>
-							<input id="motionOffsetGlobalRandomMin" type="number" min="0" max="9999" step="1" oninput="setMotionGeneratorSettings()">
-						</td>
-					</tr>
-					<tr id="motionOffsetGlobalRandomMaxRow">
-						<td><span>Max (tcode)</span></td>
-						<td>
-							<input id="motionOffsetGlobalRandomMax" type="number" min="0" max="9999" step="1" oninput="setMotionGeneratorSettings()">
-						</td>
-					</tr>
-					<!-- <tr>
-						<td><span title="Initial phase in degrees. The phase should ideally be between (offset-amplitude/2) and (offset+amplitude/2)">Phase</span></td>
-						<td>
-							<input id="motionPhaseGlobal" type="number" min="0" step="0.01" oninput="setMotionGeneratorSettings()">
-						</td>
-					</tr> -->
-					<tr id="motionRandomChangeMinRow">
-						<td><span title="Gate the random change period between all attributes in between two values.
-							If this random value time outs and any attribute hasnt timed out yet,
-							it will wait till the next timeout. All attributes get thier own random change value based on the min/max">Random change min (ms)</span></td>
-						<td>
-							<input id="motionRandomChangeMin" type="number" min="1" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
-						</td>
-					</tr>
-					<tr id="motionRandomChangeMaxRow">
-						<td><span title="Gate the random change period between all attributes in between two values.
-							If this random value time outs and any attribute hasnt timed out yet,
-							it will wait till the next timeout. All attributes get thier own random change value based on the min/max">Random change max (ms)</span></td>
-						<td>
-							<input id="motionRandomChangeMax" type="number" min="1" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
-						</td>
-					</tr>
-					<!-- <tr>
-						<td><span>Reverse</span></td>
-						<td>
-							<input id="motionReversedGlobal" type="checkbox" oninput="setMotionGeneratorSettings()">
-						</td>
-					</tr> -->
-					<tr>
-						<td><span></span></td>
-						<td>
-							<button id="motionDefault" onclick="setMotionGeneratorSettingsDefault()">Default</button>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-			<table id="voiceSettingsTable" class="formTable">
-				<tbody>
-					<tr>
-						<th colspan="2">
-							<h3>Voice</h3>
-						</th>
-					</tr>
-					<tr>
-						<td><span title="Requires DF Robot gravity offline speech module">Enabled</span></td>
-						<td>
-							<input id="voiceEnabled" type="checkbox" oninput="toggleVoiceSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td><span title="0 = do not set">Volume (0-7)</span></td>
-						<td>
-							<input id="voiceVolume" type="number" min="0" max="7" step="1" oninput="setVoiceSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td><span>Mute</span></td>
-						<td>
-							<input id="voiceMuted" type="checkbox" oninput="setVoiceSettings()">
-						</td>
-					</tr>
-					<tr>
-						<td><span>Wake time (seconds)</span></td>
-						<td>
-							<input id="voiceWakeTime" type="number" min="0" max="255" step="1" oninput="setVoiceSettings()">
-						</td>
-					</tr>
-				</tbody>
-			</table>
-			<table id="channelTestsTable" class="formTable">
-			</table>
-			<table id="systemInfoTable" class="formTable">
-				<tr>
-					<th colspan="2">
+				<!--------------------------------------- BLDC ----------------------------------------------------->
+
+
+				<div class="tRow servoOnly">
+					<div class="tCell">
+						<span title="Choose the version of TCode you want the firmware to use.">TCode version</span> 
+					</div>
+					<div class="tCell">
+						<select name="TCodeVersion" id="TCodeVersion" onchange="setTCodeVersion()">
+						</select>
+					</div>
+				</div>
+				<div class="tRow servoOnly">
+					<div class="tCell">
+						<span title="Uncheck this if you are building an OSR">SR6 mode</span> 
+					</div>
+					<div class="tCell">
+						<input id="sr6Mode" type="checkbox" onclick="setSR6Mode()"></input>
+					</div>
+				</div>
+				<div class="tRow servoOnly">
+					<div class="tCell">
+						<span title="This sets the frequency of the main servos. L/R and Pitch\nif 'Pitch Frequency is different' is NOT checked">Servo Frequency (hz)</span> 
+					</div>
+					<div class="tCell">
+						<input id="servoFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()" class="servoOnly">
+					</div>
+				</div>
+				<div class="tRow"class="servoOnly">
+					<div class="tCell">
+						<span title="This sets the frequency of the main servos. L/R and Pitch" >Pitch Frequency is different</span> 
+					</div>
+					<div class="tCell">
+						<input id="pitchFrequencyIsDifferent" type="checkbox" onclick="setPitchFrequencyIsDifferent()"></input>
+					</div>
+				</div>
+				<div id="pitchFrequencyRow" class="tRow servoOnly">
+					<div class="tCell">
+						<span title="This sets the frequency of the pitch servos.">Pitch Frequency (hz)</span> 
+					</div>
+					<div class="tCell">
+						<input id="pitchFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span title="This sets the frequency of the valve servo.">Valve Frequency (hz)</span> 
+					</div>
+					<div class="tCell">
+						<input id="valveFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
+					</div>
+				</div>
+				<div title="This sets the frequency of the twist servo." class="tRow servoOnly">
+					<div class="tCell">
+						<span>Twist Frequency (hz)</span> 
+					</div>
+					<div class="tCell">
+						<input id="twistFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
+					</div>
+				</div>
+				<div title="This sets the frequency of the squeeze servo." class="tRow servoOnly">
+					<div class="tCell">
+						<span>Squeeze Frequency (hz)</span> 
+					</div>
+					<div class="tCell">
+						<input id="squeezeFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
+					</div>
+				</div>
+				<div class="tRow sr6Only servoOnly">
+					<div class="tCell">
+						<span>Set (&#181;) for 270 degree servos</span> 
+					</div>
+					<div class="tCell">
+						<input id="msPerRadIs270" type="checkbox" onclick="toggleMsPerRadIs270()"></input>
+					</div>
+				</div>
+				<div class="tRow sr6Only servoOnly">
+					<div class="tCell">
+						<span>Micro seconds per radian (&#181;)</span> 
+					</div>
+					<div class="tCell">
+						<input id="msPerRad" type="number" min="1" max="2147483647" oninput="updateMSPerRad()">
+					</div>
+				</div>
+				<div class="tRow servoHeader">
+					<div class="tCell">
+						<span>Servo</span> 
+					</div>
+					<div class="tCell">
+						<span>PIN</span> 
+					</div>
+					<div class="tCell">
+						<span>ZERO (&#181;)</span> 
+					</div>
+				</div>
+				<div class="tRow servoOnly">
+					<div class="tCell">
+						<span>Right</span> 
+					</div>
+					<div class="tCell">
+						<input id="RightServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+					<div class="tCell">
+						<input id="RightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+					</div>
+				</div>
+				<div class="tRow servoOnly">
+					<div class="tCell">
+						<span>Left</span> 
+					</div>
+					<div class="tCell">
+						<input id="LeftServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+					<div class="tCell">
+						<input id="LeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+					</div>
+				</div>
+				<div class="tRow servoOnly">
+					<div class="tCell">
+						<span>Pitch</span> 
+					</div>
+					<div class="tCell">
+						<input id="PitchLeftServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+					<div class="tCell">
+						<input id="PitchLeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Valve</span> 
+					</div>
+					<div class="tCell">
+						<input id="ValveServo_PIN" type="number" min="1" max="2147483647" oninput="updatePins()">
+					</div>
+					<div class="tCell">
+						<input id="ValveServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+					</div>
+				</div>
+				<div class="tRow v3Only servoOnly">
+					<div class="tCell">
+						<span>Squeeze</span> 
+					</div>
+					<div class="tCell">
+						<input id="Squeeze_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+					<div class="tCell">
+						<input id="Squeeze_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+					</div>
+				</div>
+				<div class="tRow servoOnly">
+					<div class="tCell">
+						<span>Twist</span> 
+					</div>
+					<div class="tCell">
+						<input id="TwistServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+					<div class="tCell">
+						<input id="TwistServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+					</div>
+				</div>
+				<div class="tRow feedbackTwistOnly servoOnly">
+					<div class="tCell">
+						<span>Twist feedback</span> 
+					</div>
+					<div class="tCell">
+						<input id="TwistFeedBack_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Disable PIN validation</span> 
+					</div>
+					<div class="tCell">
+						<input id="disablePinValidation" type="checkbox" onchange="disablePinValidation()">
+					</div>
+				</div>
+				<div class="tRow pwmAvaliblePinRow">
+					<div class="tCell" colspan="3">
+						<span>
+							PWM availible on: 2,4,5,12-19,21-23,25-27,32,33
+						</span> 
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="deviceSR6SettingsTable" class="formTable sr6Only servoOnly">
+			<div>
+				<div>
+					<div class="tHeader" colspan="3">
+						<h3>SR6</h3>
+					</div>
+				</div>
+				<div class="tRow servoHeader">
+					<div class="tCell">
+						<span>Servo</span> 
+					</div>
+					<div class="tCell">
+						<span>PIN</span> 
+					</div>
+					<div class="tCell">
+						<span>ZERO (&#181;)</span> 
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Right upper</span> 
+					</div>
+					<div class="tCell">
+						<input id="RightUpperServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+					<div class="tCell">
+						<input id="RightUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Left upper</span> 
+					</div>
+					<div class="tCell">
+						<input id="LeftUpperServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+					<div class="tCell">
+						<input id="LeftUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Pitch right</span> 
+					</div>
+					<div class="tCell">
+						<input id="PitchRightServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+					<div class="tCell">
+						<input id="PitchRightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+					</div>
+				</div>
+				<div class="tRow pwmAvaliblePinRow">
+					<div class="tCell" colspan="3">
+						<span>
+							PWM availible on: 2,4,5,12-19,21-23,25-27,32,33
+						</span> 
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="otherSettingsTable" class="formTable">
+			<div>
+				<div>
+					<div class="tHeader">
+						<h3>Other</h3>
+					</div>
+				</div>
+				<div class="tRow v2Only">
+					<div class="tCell">
+						<span title="This will revert the T-Valve to the original behavior. (Depricated)">Auto T-Valve</span> 
+					</div>
+					<div class="tCell">
+						<input id="autoValve" type="checkbox" onclick="setAutoValve()"></input>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span title="Check this if your T-Valve micro servo closes on down stroke. aka:MG90S">Inverse T-Valve</span> 
+					</div>
+					<div class="tCell">
+						<input id="inverseValve" type="checkbox" onclick="setInverseValve()"></input>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span title="Check this if your T-Valve micro servo is 90 degrees range instead of 180. aka:MG90S">T-Valve 90 degree servo</span> 
+					</div>
+					<div class="tCell">
+						<input id="valveServo90Degrees" type="checkbox" onclick="setValveServo90Degrees()"></input>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Inverse Stroke</span> 
+					</div>
+					<div class="tCell">
+						<input id="inverseStroke" type="checkbox" onclick="setInverseStroke()"></input>
+					</div>
+				</div>
+				<div class="tRow osrOnly">
+					<div class="tCell">
+						<span>Inverse Pitch</span> 
+					</div>
+					<div class="tCell">
+						<input id="inversePitch" type="checkbox" onclick="setInversePitch()"></input>
+					</div>
+				</div>
+				<div class="tRow servoOnly">
+					<div class="tCell">
+						<span>Feedback twist</span> 
+					</div>
+					<div class="tCell">
+						<input id="feedbackTwist" type="checkbox" onchange="updateFeedbackTwist()">
+					</div>
+				</div>
+				<div class="tRow feedbackTwistOnly servoOnly">
+					<div class="tCell">
+						<span>Continuous twist</span> 
+					</div>
+					<div class="tCell">
+						<input id="continuousTwist" type="checkbox" onchange="updateContinuousTwist()">
+					</div>
+				</div>
+				<div id="analogTwistRow" class="tRow v3Only feedbackTwistOnly servoOnly">
+					<div class="tCell">
+						<span>Analog twist</span> 
+					</div>
+					<div class="tCell">
+						<input id="analogTwist" type="checkbox" onchange="updateAnalogTwist()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Vibe 1</span> 
+					</div>
+					<div class="tCell">
+						<input id="Vibe0_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Lube/Vibe 2</span> 
+					</div>
+					<div class="tCell">
+						<input id="Vibe1_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Vibe 3</span> 
+					</div>
+					<div class="tCell">
+						<input id="Vibe2_PIN" type="number"  min="0" max="2147483647" oninput="updatePins()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Vibe 4</span> 
+					</div>
+					<div class="tCell">
+						<input id="Vibe3_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+				</div>
+				<div class="tRow v3Only">
+					<div class="tCell">
+						<span title="Enable this and the firmware will treat the second vibe channel like the lube channel.">Lube enabled on V2</span> 
+					</div>
+					<div class="tCell">
+						<input id="lubeEnabled" type="checkbox" onchange="updateLubeEnabled()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Lube button PIN</span> 
+					</div>
+					<div class="tCell">
+						<input id="LubeButton_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Manual lube speed (1-255)</span> 
+					</div>
+					<div class="tCell">
+						<input id="lubeAmount" type="number" max="255" min="1" oninput="updateLubeAmount()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span title="The UDP port on which TCode is sent over the network on. Change this if you have a conflict on your local network.
+						Otherwise, just leave it be.">Udp port</span> 
+					</div>
+					<div class="tCell">
+						<input id="udpServerPort" type="number" max="65,535" min="1" oninput="updateUdpPort()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span title="Web server port used to access this page and websocket input. Change this if you have a conflict on your local network.
+						Otherwise, just leave it be.">Web port</span> 
+					</div>
+					<div class="tCell">
+						<input id="webServerPort" type="text" max="65,535" oninput="updateWebPort()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span title="This is the name of the device you will use to access this page after WiFi connection. default(tcode.local)
+						Some routers DO NOT support mDNS so you may need to use the IP address anyways.
+						
+						You may also use this address in some apps (XTP) to send TCode over the network.">Host name</span> 
+					</div>
+					<div class="tCell">
+						<input id="hostname" type="text" maxlength="63" oninput="updateHostName()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Friendly name</span> 
+					</div>
+					<div class="tCell">
+						<input id="friendlyName" type="text" maxlength="100" oninput="updateFriendlyName()">
+					</div>
+				</div>
+				<div class="tRow build_display">
+					<div class="tCell">
+						<span>Display enabled</span> 
+					</div>
+					<div class="tCell">
+						<input id="displayEnabled" type="checkbox" onclick="setDisplaySettings()">
+					</div>
+				</div>
+				<div class="tRow build_temprature">
+					<div class="tCell">
+						<span>Sleeve temperature control enabled</span> 
+					</div>
+					<div class="tCell">
+						<input id="tempSleeveEnabled" type="checkbox" onclick="setTempSettings()"></input>
+					</div>
+				</div>
+				<div class="tRow build_temprature internal-temp-build">
+					<div class="tCell">
+						<span>Internal temperature enabled</span> 
+					</div>
+					<div class="tCell">
+						<input id="tempInternalEnabled" type="checkbox" onclick="setInternalTempSettings()"></input>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span title="This uses the module 'CJMCU-294' That has a 'LTC2944' gas gauge chip on it.">Battery gauge enabled</span> 
+					</div>
+					<div class="tCell">
+						<input id="batteryLevelEnabled" type="checkbox" onclick="setBatterySettings()" ></input>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="tempSettingsDisplayTable" class="formTable">
+			<div>
+				<div>
+					<div class="tHeader">
+						<h3>Sleeve temperature</h3>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Sleeve temp sensor pin</span> 
+					</div>
+					<div class="tCell">
+						<input id="Temp_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Heater pin</span> 
+					</div>
+					<div class="tCell">
+						<input id="Heater_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Target Temperature (&#8451;)</span> 
+					</div>
+					<div class="tCell">
+						<input id="TargetTemp" type="number" step="0.1" max="2147483647" oninput="setTempSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span title="This will be sent to the heater pin when the measured temp is below the 'Target Temperature'">Heat PWM</span> 
+					</div>
+					<div class="tCell">
+						<input id="HeatPWM" type="text" oninput="setTempSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span title="This will be sent to the heater pin when the measured temp is above the 'Target Temperature' + 'Heater hold threshold'">Hold PWM</span> 
+					</div>
+					<div class="tCell">
+						<input id="HoldPWM" type="text" oninput="setTempSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span title="The 'Hold PWM' specified above will be sent while the temp less than or equal to:'Target Temperature' + 'Heater hold threshold'">Heater hold threshold (&#8451;)</span> 
+					</div>
+					<div class="tCell">
+						<input id="heaterThreshold" type="text"  oninput="setTempSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Heater resolution (bit)</span> 
+					</div>
+					<div class="tCell">
+						<input id="heaterResolution" type="text"  oninput="setTempSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Heater frequency (hz)</span> 
+					</div>
+					<div class="tCell">
+						<input id="heaterFrequency" type="text"  oninput="setTempSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Sleeve temp (&#8451;)</span> 
+					</div>
+					<div class="tCell">
+						<input id="currentTemp" type="text" readonly>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Status</span> 
+					</div>
+					<div class="tCell">
+						<input id="currentTempStatus" type="text" readonly>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Play sound</span> 
+					</div>
+					<div class="tCell">
+						<input id="soundsEnabled" type="checkbox" onclick="toggleSounds()"></input>
+						<button type="button" hidden name="testSoundButton" onclick="playSuccess()">Test target reached</button>
+						<!-- <button type="button" hidden name="testSoundButton" onclick="playFail()">Test fail safe trigger</button> -->
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="internalTempTable" class="formTable">
+			<div>
+				<div>
+					<div class="tHeader">
+						<h3>Internal temperature</h3>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Internal temp PIN</span></div>
+					<div class="tCell">
+						<input id="Internal_Temp_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Internal temp (&#8451;)</span></div>
+					<div class="tCell">
+						<input id="internalTemp" type="text" readonly>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Internal max temp (&#8451;)</span></div>
+					<div class="tCell">
+						<input id="internalMaxTemp" type="number" step="0.1" oninput="setMaxTemp()" >
+					</div>
+				</div>
+				<div class="tRow fan-control-build">
+					<div class="tCell"><span>Fan control enabled</span></div>
+					<div class="tCell">
+						<input id="fanControlEnabled" type="checkbox" onclick="setFanControl()">
+					</div>
+				</div>
+				<div class="tRow fan-control">
+					<div class="tCell"><span>Fan status</span></div>
+					<div class="tCell">
+						<input id="internalTempStatus" type="text" readonly>
+					</div>
+				</div>
+				<div class="tRow fan-control">
+					<div class="tCell"><span>Fan on temp (&#8451;)</span></div>
+					<div class="tCell">
+						<input id="internalTempForFan" type="number" min="0" max="2147483647" step="0.1" oninput="setFanOnTemp()">
+					</div>
+				</div>
+				<div class="tRow fan-control">
+					<div class="tCell"><span>Fan PWM PIN</span></div>
+					<div class="tCell">
+						<input id="Case_Fan_PIN" type="number" min="0" oninput="updatePins()">
+					</div>
+				</div>
+				<div class="tRow fan-control">
+					<div class="tCell"><span>Fan frequency (hz)</span></div>
+					<div class="tCell">
+						<input id="caseFanFrequency" type="number" min="0" oninput="setInternalTempSettings()">
+					</div>
+				</div>
+				<div class="tRow fan-control">
+					<div class="tCell"><span>Fan resolution (bit)</span></div>
+					<div class="tCell">
+						<input id="caseFanResolution" type="number" min="0" oninput="setInternalTempSettings()">
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="displaySettingsDisplayTable" class="formTable build_display">
+			<div>
+				<div>
+					<div class="tHeader">
+						<h3>Display</h3>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>I2C address</span> 
+					</div>
+					<div class="tCell">
+						<input id="Display_I2C_Address_text" type="text" oninput="setDisplaySettings()">
+						<select name="Display_I2C_Address" id="Display_I2C_Address" onchange="setDisplayAddress()">
+						</select>
+					</div>
+				</div>
+		<!-- 		<div class="tRow">
+					<div class="tCell">
+						<span>Display rst PIN</span> 
+					</div>
+					<div class="tCell">
+						<input id="Display_Rst_PIN" type="text" oninput="setDisplaySettings()">
+					</div>
+				</div> -->
+				<div class="tRow">
+					<div class="tCell"><span>Display is 32px</span></div>
+					<div class="tCell">
+						<input id="displayIs32Px" type="checkbox" onclick="setDiplayIs32Px()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span> Screen width (px)</span> 
+					</div>
+					<div class="tCell">
+						<input id="Display_Screen_Width" type="text" oninput="setDisplaySettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>Screen height (px)</span> 
+					</div>
+					<div class="tCell">
+						<input id="Display_Screen_Height" type="text" oninput="setDisplaySettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+						<span>System version displayed</span> 
+					</div>
+					<div class="tCell">
+						<input id="versionDisplayed" type="checkbox" onclick="setDisplaySettings()"></input>
+					</div>
+				</div>
+				<div class="tRow" id="sleeveTempDisplayedRow">
+					<div class="tCell">
+						<span>Sleeve temperature displayed</span> 
+					</div>
+					<div class="tCell">
+						<input id="sleeveTempDisplayed" type="checkbox" onclick="setDisplaySettings()"></input>
+					</div>
+				</div>
+				<div class="tRow" id="internalTempDisplayedRow">
+					<div class="tCell">
+						<span>Internal temperature displayed</span> 
+					</div>
+					<div class="tCell">
+						<input id="internalTempDisplayed" type="checkbox" onclick="setDisplaySettings()"></input>
+					</div>
+				</div>
+				
+			</div>
+		</div>
+		<div id="batterySettingsTable" class="formTable batteryOnly">
+			<div>
+				<div>
+					<div class="tHeader">
+						<h3>Battery</h3>
+					</div>
+				</div>
+				<!-- <div>
+					<div class="tCell"><span>Voltage pin (ADC)</span></div>
+					<div class="tCell">
+						<input id="Battery_Voltage_PIN"  type="number" min="0" max="2147483647" step="1" oninput="updatePins()">
+					</div>
+				</div> -->
+				<div class="tRow">
+					<div class="tCell"><span title="Display as a number instead of bars">Display capacity percentage</span></div>
+					<div class="tCell">
+						<input id="batteryLevelNumeric" type="checkbox" oninput="setBatterySettings()">
+					</div>
+				</div>
+				<!-- <div class="tRow" title="This is used to map 3.3 volts to max voltage">
+					<div class="tCell"><span>Max voltage</span></div>
+					<div class="tCell">
+						<input id="batteryVoltageMax"  type="number" min="0" step="0.10" max="2147483647" oninput="setBatterySettings()" title="For display calculation only.">
+					</div>
+				</div> -->
+				<div class="tRow">
+					<div class="tCell"><span>Max capacity</span></div>
+					<div class="tCell">
+						<input id="batteryCapacityMax" type="number" min="0" max="2147483647" step="0.01" oninput="setBatterySettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span></span></div>
+					<div class="tCell" title="Sets accumulated charge registers to the maximum value set above">
+						<button id="batteryCapacitySetFull" onclick="setBatteryFull()">Set capacity full</button>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Capacity remaining (mAh)</span></div>
+					<div class="tCell">
+						<input id="batteryCapacityRemaining" type="text" readonly value="Unknown" />
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Capacity remaining (%)</span></div>
+					<div class="tCell">
+						<input id="batteryCapacityRemainingPercentage" type="text" readonly value="Unknown" />
+					</div>
+				</div>
+				
+				<div class="tRow">
+					<div class="tCell"><span>Voltage</span></div>
+					<div class="tCell">
+						<input id="batteryVoltage" type="text" readonly value="Unknown" />
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Temperature (C)</span></div>
+					<div class="tCell">
+						<input id="batteryTemperature" type="text" readonly value="Unknown" />
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="motionGeneratorSettingsTable" class="formTable">
+			<div>
+				<div>
+					<div class="tHeader">
+						<h3>Motion generator</h3>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"></div>
+					<div class="tCell">
+						<!-- <input id="motionEnabled" type="checkbox" oninput="setMotionEnabledClicked()"> -->
+						<button id="motionEnabledToggle" class="button-toggle-start" onclick="setMotionEnabledClicked()">Start</button>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Profile</span></div>
+					<div class="tCell">
+						<select id="motionProfiles" onchange="setMotionGeneratorProfile()"></select>
+						<button id="setMotionProfileDefault" onclick="setMotionProfileDefault()">Set default profile</button>
+						<!-- <button id="addMotionProfile" onclick="addMotionProfile()">+</button>
+						<button id="deleteMotionProfile" onclick="deleteMotionProfile()">-</button> -->
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Profile name</span></div>
+					<div class="tCell">
+						<input id="motionProfileName" type="text"  maxlength="31" oninput="setMotionGeneratorName()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span tite="This is the time in between updates that gives the system time to process other tasks. (DO NOT SET TOO LOW ON ESP32!)
+						It may be best to just leave at default.">Update rate (ms)</span></div>
+					<div class="tCell">
+						<input id="motionUpdateGlobal" type="number" min="1" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span tite="THis is the time it takes to make a revolution.\nLower is faster movement.">Period (ms)</span></div>
+					<div class="tCell">
+						<input id="motionPeriodGlobal" type="number" min="0" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Period random</span></div>
+					<div class="tCell">
+						<input id="motionPeriodGlobalRandom" type="checkbox" oninput="setMotionPeriodGlobalRandomClicked()">
+					</div>
+				</div>
+				<div class="tRow" id="motionPeriodGlobalRandomMinRow">
+					<div class="tCell"><span>Min (ms)</span></div>
+					<div class="tCell">
+						<input id="motionPeriodGlobalRandomMin" type="number" min="0" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
+					</div>
+				</div>
+				<div class="tRow" id="motionPeriodGlobalRandomMaxRow">
+					<div class="tCell"><span>Max (ms)</span></div>
+					<div class="tCell">
+						<input id="motionPeriodGlobalRandomMax" type="number" min="0" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Amplitude (%)</span></div>
+					<div class="tCell">
+						<input id="motionAmplitudeGlobal" type="number" min="0" max="100" step="1" oninput="setMotionGeneratorSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Amplitude random</span></div>
+					<div class="tCell">
+						<input id="motionAmplitudeGlobalRandom" type="checkbox" oninput="setMotionAmplitudeGlobalRandomClicked()">
+					</div>
+				</div>
+				<div class="tRow" id="motionAmplitudeGlobalRandomMinRow">
+					<div class="tCell"><span>Min (%)</span></div>
+					<div class="tCell">
+						<input id="motionAmplitudeGlobalRandomMin" type="number" min="0" max="100" step="1" oninput="setMotionGeneratorSettings()">
+					</div>
+				</div>
+				<div class="tRow" id="motionAmplitudeGlobalRandomMaxRow">
+					<div class="tCell"><span>Max (%)</span></div>
+					<div class="tCell">
+						<input id="motionAmplitudeGlobalRandomMax" type="number" min="0" max="100" step="1" oninput="setMotionGeneratorSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Offset (tcode)</span></div>
+					<div class="tCell">
+						<input id="motionOffsetGlobal" type="number" min="0" max="9999" step="1" oninput="setMotionGeneratorSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Offset random</span></div>
+					<div class="tCell">
+						<input id="motionOffsetGlobalRandom" type="checkbox" oninput="setMotionOffsetGlobalRandomRandomClicked()">
+					</div>
+				</div>
+				<div class="tRow" id="motionOffsetGlobalRandomMinRow">
+					<div class="tCell"><span>Min (tcode)</span></div>
+					<div class="tCell">
+						<input id="motionOffsetGlobalRandomMin" type="number" min="0" max="9999" step="1" oninput="setMotionGeneratorSettings()">
+					</div>
+				</div>
+				<div class="tRow" id="motionOffsetGlobalRandomMaxRow">
+					<div class="tCell"><span>Max (tcode)</span></div>
+					<div class="tCell">
+						<input id="motionOffsetGlobalRandomMax" type="number" min="0" max="9999" step="1" oninput="setMotionGeneratorSettings()">
+					</div>
+				</div>
+				<!-- <div>
+					<div class="tCell"><span title="Initial phase in degrees. The phase should ideally be between (offset-amplitude/2) and (offset+amplitude/2)">Phase</span></div>
+					<div class="tCell">
+						<input id="motionPhaseGlobal" type="number" min="0" step="0.01" oninput="setMotionGeneratorSettings()">
+					</div>
+				</div> -->
+				<div class="tRow" id="motionRandomChangeMinRow">
+					<div class="tCell"><span title="Gate the random change period between all attributes in between two values.
+						If this random value time outs and any attribute hasnt timed out yet,
+						it will wait till the next timeout. All attributes get thier own random change value based on the min/max">Random change min (ms)</span></div>
+					<div class="tCell">
+						<input id="motionRandomChangeMin" type="number" min="1" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
+					</div>
+				</div>
+				<div class="tRow" id="motionRandomChangeMaxRow">
+					<div class="tCell"><span title="Gate the random change period between all attributes in between two values.
+						If this random value time outs and any attribute hasnt timed out yet,
+						it will wait till the next timeout. All attributes get thier own random change value based on the min/max">Random change max (ms)</span></div>
+					<div class="tCell">
+						<input id="motionRandomChangeMax" type="number" min="1" max="2147483647" step="1" oninput="setMotionGeneratorSettings()">
+					</div>
+				</div>
+				<!-- <div>
+					<div class="tCell"><span>Reverse</span></div>
+					<div class="tCell">
+						<input id="motionReversedGlobal" type="checkbox" oninput="setMotionGeneratorSettings()">
+					</div>
+				</div> -->
+				<div class="tRow">
+					<div class="tCell"><span></span></div>
+					<div class="tCell">
+						<button id="motionDefault" onclick="setMotionGeneratorSettingsDefault()">Default</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="voiceSettingsTable" class="formTable">
+			<div>
+				<div>
+					<div class="tHeader">
+						<h3>Voice</h3>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span title="Requires DF Robot gravity offline speech module">Enabled</span></div>
+					<div class="tCell">
+						<input id="voiceEnabled" type="checkbox" oninput="toggleVoiceSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span title="0 = do not set">Volume (0-7)</span></div>
+					<div class="tCell">
+						<input id="voiceVolume" type="number" min="0" max="7" step="1" oninput="setVoiceSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Mute</span></div>
+					<div class="tCell">
+						<input id="voiceMuted" type="checkbox" oninput="setVoiceSettings()">
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Wake time (seconds)</span></div>
+					<div class="tCell">
+						<input id="voiceWakeTime" type="number" min="0" max="255" step="1" oninput="setVoiceSettings()">
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="channelTestsTable" class="formTable">
+		</div>
+		<div id="systemInfoTable" class="formTable">
+			<div>
+				<div>
+					<div class="tHeader">
 						<h3>System information</h3>
-					</th>
-				</tr>
-				<tr>
-					<td><span>Version</span></td>
-					<td>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Version</span></div>
+					<div class="tCell">
 						<input id="version" type="text" readonly>
-					</td>
-				</tr>
-				<tr>
-					<td><span>IP</span></td>
-					<td>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>IP</span></div>
+					<div class="tCell">
 						<input id="ipAddressSystemInfo" type="text" readonly>
-					</td>
-				</tr>
-				<tr>
-					<td><span>Gateway</span></td>
-					<td>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Gateway</span></div>
+					<div class="tCell">
 						<input id="gatewaySystemInfo" type="text" readonly>
-					</td>
-				</tr>
-				<tr>
-					<td><span>Subnet</span></td>
-					<td>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Subnet</span></div>
+					<div class="tCell">
 						<input id="subnetSystemInfo" type="text" readonly>
-					</td>
-				</tr>
-				<tr>
-					<td><span>DNS</span></td>
-					<td>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>DNS</span></div>
+					<div class="tCell">
 						<input id="dnsSystemInfo" type="text" readonly>
-					</td>
-				</tr>
-				<tr>
-					<td><span>Chip model</span></td>
-					<td>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Chip model</span></div>
+					<div class="tCell">
 						<input id="chipModel" type="text" readonly>
-					</td>
-				</tr>
-				<tr>
-					<td><span>Chip revision</span></td>
-					<td>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Chip revision</span></div>
+					<div class="tCell">
 						<input id="chipRevision" type="text" readonly>
-					</td>
-				</tr>
-				<tr>
-					<td><span>Chip cores</span></td>
-					<td>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Chip cores</span></div>
+					<div class="tCell">
 						<input id="chipCores" type="text" readonly>
-					</td>
-				</tr>
-				<tr>
-					<td><span>Chip ID</span></td>
-					<td>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span>Chip ID</span></div>
+					<div class="tCell">
 						<input id="chipID" type="text" readonly>
-					</td>
-				</tr>
-				<tr title="Set to show output in the serial monitor.">
-					<td>
+					</div>
+				</div>
+				<div class="tRow" title="Set to show output in the serial monitor.">
+					<div class="tCell">
 						<span>Debug</span> 
-					</td>
-					<td>
+					</div>
+					<div class="tCell">
 						<select name="debug" id="debug" onchange="setDebug()">
 							<option value="0">ERROR</option>
 							<option value="1">WARNING</option>
@@ -1174,57 +1176,57 @@
 							<option value="4">VERBOSE</option>
 						</select>
 						<!-- <button onclick="clearLog()">Clear</button> -->
-					</td>
-				</tr>
-				<tr title="Set to includ specific tags output in the serial monitor. (Overrides excludes)">
-					<td>
+					</div>
+				</div>
+				<div class="tRow" title="Set to includ specific tags output in the serial monitor. (Overrides excludes)">
+					<div class="tCell">
 						<span>Included tags</span> 
-					</td>
-					<td>
+					</div>
+					<div class="tCell">
 						<select id="log-include-tags" onchange="setDebug()" multiple>
 						</select>
 						<!-- <button onclick="clearLog()">Clear</button> -->
-					</td>
-				</tr>
-				<tr>
-					<td>
-					</td>
-					<td>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+					</div>
+					<div class="tCell">
 						<button onclick="clearTags('log-include-tags')">Clear included</button>
-					</td>
-				</tr>
-				<tr title="Set to exclude specific tags output in the serial monitor. (Overriden by includes)">
-					<td>
+					</div>
+				</div>
+				<div class="tRow" title="Set to exclude specific tags output in the serial monitor. (Overriden by includes)">
+					<div class="tCell">
 						<span>Excluded tags</span> 
-					</td>
-					<td>
+					</div>
+					<div class="tCell">
 						<select id="log-exclude-tags" onchange="setDebug()" multiple>
 						</select>
 						<!-- <button onclick="clearLog()">Clear</button> -->
-					</td>
-				</tr>
-				<tr>
-					<td>
-					</td>
-					<td>
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell">
+					</div>
+					<div class="tCell">
 						<button onclick="clearTags('log-exclude-tags')">Clear excluded</button>
-					</td>
-				</tr>
-				<!-- <tr id="debugLink">
-					<td colspan="3">
+					</div>
+				</div>
+				<!-- <div class="tRow" id="debugLink">
+					<div class="tCell" colspan="3">
 						<textarea id="debugText" class="log-reader" readonly></textarea>
-					</td>
-				</tr> -->
+					</div>
+				</div> -->
 				
-				<tr>
-					<td>
+				<div class="tRow">
+					<div class="tCell">
 						<span>Last reboot reason</span> 
-					</td>
-					<td>
+					</div>
+					<div class="tCell">
 						<input id="lastRebootReason" type="text" readonly>
-					</td>
-				</tr>
-			</table>
+					</div>
+				</div>
+			</div>
 		</div>
 	</div>
 
