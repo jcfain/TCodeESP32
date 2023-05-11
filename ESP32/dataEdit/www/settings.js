@@ -831,15 +831,16 @@ function updateUserSettings(debounceInMs = 3000)
 }
 
 function showRestartRequired() {
-    document.getElementById('requiresRestart').hidden = false;
-    //document.getElementById('resetBtn').disabled = false;
+    //document.getElementById('requiresRestart').hidden = false;
+    document.getElementById('resetBtn').classList.add("restart-required");
+    document.getElementById('menu-button').classList.add("restart-required");
 }
 
 function hideRestartRequired() {
-    document.getElementById('requiresRestart').hidden = true;
-    //document.getElementById('resetBtn').disabled = true;
+    //document.getElementById('requiresRestart').hidden = true;
+    document.getElementById('resetBtn').classList.remove("restart-required");
+    document.getElementById('menu-button').classList.remove("restart-required");
 }
-
 function showLoading(message) {
     var loadingModal = document.getElementById("loadingModal");
     var loadingStatus = document.getElementById("loadingStatus");
@@ -847,13 +848,19 @@ function showLoading(message) {
     loadingModal.style.visibility = "visible";
     loadingVisible = true;
 }
-
 function hideLoading() {
     var loadingModal = document.getElementById("loadingModal");
     loadingModal.style.visibility = "hidden";
     loadingVisible = false;
 }
-
+function toggleMenu() {
+    var menu = document.getElementById("menu");
+    var menuContent = document.getElementById("menu-content");
+    menuContent.classList.toggle("menu-hidden")
+    menuContent.classList.toggle("menu-shown")
+    menu.classList.toggle("menu-hidden");
+    menu.classList.toggle("menu-shown");
+}
 function clearErrors(name) 
 {
     var errorText = document.getElementById("errorText");
@@ -2323,7 +2330,8 @@ function setMotionOffsetGlobalRandomRandomClicked() {
     toggleMotionRandomMinMaxSettingsSettings();
     updateUserSettings();
 }
-function setMotionGeneratorProfile() {
+function setMotionGeneratorProfile(index) {
+    setSelectedMotionProfileIndex(index);
     sendTCode(`$motion-set-profile:${getMotionProfileSelectedIndex() + 1}`);
     setMotionGeneratorSettingsProfile(getMotionProfileSelectedIndex());
 }
@@ -2331,8 +2339,12 @@ function setMotionProfileDefault() {
     userSettings["motionDefaultProfileIndex"] = getMotionProfileSelectedIndex();
     updateUserSettings(1);
 }
+var selectedMotionProfileIndex = 0;
 function getMotionProfileSelectedIndex() {
-    return parseInt(document.getElementById('motionProfiles').value);
+    return selectedMotionProfileIndex;
+}
+function setSelectedMotionProfileIndex(value) {
+    selectedMotionProfileIndex = parseInt(value);
 }
 var validateGeneratorSettingsDebounce;
 function setMotionGeneratorSettings() {
@@ -2382,18 +2394,29 @@ function setMotionGeneratorName() {
 }
 function addMotionProfileOption(profileIndex, profile, selectNewProfile) {
     const motionProfilesElement = document.getElementById('motionProfiles');
-    var option = document.createElement("option");
-    option.id = profile.motionProfileName;
-    option.value = profileIndex;
-    option.innerText = profile.motionProfileName;
-    motionProfilesElement.appendChild(option);
+    var button = document.createElement("button");
+    button.id = `motionProfile${profileIndex}`;
+    button.name = "motionProfileButton";
+    button.value = profileIndex;
+    button.innerText = profile.motionProfileName;
+    button.onclick = function(event, profileIndex) {
+        setMotionGeneratorProfile(profileIndex);
+    }.bind(profileIndex)
+    motionProfilesElement.appendChild(button);
     if(selectNewProfile) {
-        motionProfilesElement.value = profileName;
+        setMotionGeneratorProfile(profileIndex);
+        //motionProfilesElement.value = profileName;
     }
 }
+function clearMotionProfileSelection() {
+    var motionProfileButtons = document.getElementsByClassName("selectedMotionProfile");
+    if(motionProfileButtons)
+        motionProfileButtons.forEach(x => x.classList.remove("selectedMotionProfile"))
+}
 function selectMotionProfile(profileIndex) {
-    const motionProfilesElement = document.getElementById('motionProfiles');
-    motionProfilesElement.value = profileIndex;
+    clearMotionProfileSelection();
+    const motionProfilesElement = document.getElementById(`motionProfile${profileIndex}`);
+    motionProfilesElement.classList.add("selectedMotionProfile");
     setMotionGeneratorSettingsProfile(profileIndex);
 }
 function updateMotionProfileName(profileIndex) {

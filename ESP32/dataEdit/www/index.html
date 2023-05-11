@@ -18,7 +18,15 @@
 	</div>
 	<div id="info" class="info" hidden="true"></div>
 	<div id="requiresRestart" hidden="true" class="restartRequired">Restart required!!</div>
-
+	<button id="menu-button" class="menu-button" onclick="toggleMenu()">Menu</button>
+	<div id="menu" class="menu menu-hidden">
+		<div id="menu-content" class="menu-content menu-hidden">
+			<button id="resetBtn" class="formButton" name="reset" onclick="onRestartClick()">Restart device</button>
+			<button id="exportBtn" class="formButton" onclick="exportToJsonFile()">Export settings</button>
+			<button id="importBtn" class="formButton" onclick="openImportSettingsFileDialog()">Import settings</button>
+			<button id="resetSettingsBtn" class="formButton resetAllSettings" onclick="onDefaultClick()">Reset ALL settings</button>
+		</div>
+	</div>
   <div class="tHeader">
 	<h1>Device Settings</h1>
 </div>
@@ -263,81 +271,83 @@
 						<input id="msPerRad" type="number" min="1" max="2147483647" oninput="updateMSPerRad()">
 					</div>
 				</div>
-				<div class="tRow servoHeader">
-					<div class="tCell">
-						<span>Servo</span> 
+				<div class="servoTable">
+					<div class="tRow servoHeader">
+						<div class="tCell">
+							<span>Servo</span> 
+						</div>
+						<div class="tCell">
+							<span>PIN</span> 
+						</div>
+						<div class="tCell">
+							<span>ZERO (&#181;)</span> 
+						</div>
 					</div>
-					<div class="tCell">
-						<span>PIN</span> 
+					<div class="tRow servoOnly">
+						<div class="tCell">
+							<span>Right</span> 
+						</div>
+						<div class="tCell">
+							<input id="RightServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+						</div>
+						<div class="tCell">
+							<input id="RightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+						</div>
 					</div>
-					<div class="tCell">
-						<span>ZERO (&#181;)</span> 
+					<div class="tRow servoOnly">
+						<div class="tCell">
+							<span>Left</span> 
+						</div>
+						<div class="tCell">
+							<input id="LeftServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+						</div>
+						<div class="tCell">
+							<input id="LeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+						</div>
 					</div>
-				</div>
-				<div class="tRow servoOnly">
-					<div class="tCell">
-						<span>Right</span> 
+					<div class="tRow servoOnly">
+						<div class="tCell">
+							<span>Pitch</span> 
+						</div>
+						<div class="tCell">
+							<input id="PitchLeftServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+						</div>
+						<div class="tCell">
+							<input id="PitchLeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+						</div>
 					</div>
-					<div class="tCell">
-						<input id="RightServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+					<div class="tRow">
+						<div class="tCell">
+							<span>Valve</span> 
+						</div>
+						<div class="tCell">
+							<input id="ValveServo_PIN" type="number" min="1" max="2147483647" oninput="updatePins()">
+						</div>
+						<div class="tCell">
+							<input id="ValveServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+						</div>
 					</div>
-					<div class="tCell">
-						<input id="RightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+					<div class="tRow v3Only servoOnly">
+						<div class="tCell">
+							<span>Squeeze</span> 
+						</div>
+						<div class="tCell">
+							<input id="Squeeze_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+						</div>
+						<div class="tCell">
+							<input id="Squeeze_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+						</div>
 					</div>
-				</div>
-				<div class="tRow servoOnly">
-					<div class="tCell">
-						<span>Left</span> 
-					</div>
-					<div class="tCell">
-						<input id="LeftServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-					</div>
-					<div class="tCell">
-						<input id="LeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-					</div>
-				</div>
-				<div class="tRow servoOnly">
-					<div class="tCell">
-						<span>Pitch</span> 
-					</div>
-					<div class="tCell">
-						<input id="PitchLeftServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-					</div>
-					<div class="tCell">
-						<input id="PitchLeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-					</div>
-				</div>
-				<div class="tRow">
-					<div class="tCell">
-						<span>Valve</span> 
-					</div>
-					<div class="tCell">
-						<input id="ValveServo_PIN" type="number" min="1" max="2147483647" oninput="updatePins()">
-					</div>
-					<div class="tCell">
-						<input id="ValveServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-					</div>
-				</div>
-				<div class="tRow v3Only servoOnly">
-					<div class="tCell">
-						<span>Squeeze</span> 
-					</div>
-					<div class="tCell">
-						<input id="Squeeze_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-					</div>
-					<div class="tCell">
-						<input id="Squeeze_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-					</div>
-				</div>
-				<div class="tRow servoOnly">
-					<div class="tCell">
-						<span>Twist</span> 
-					</div>
-					<div class="tCell">
-						<input id="TwistServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-					</div>
-					<div class="tCell">
-						<input id="TwistServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+					<div class="tRow servoOnly">
+						<div class="tCell">
+							<span>Twist</span> 
+						</div>
+						<div class="tCell">
+							<input id="TwistServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+						</div>
+						<div class="tCell">
+							<input id="TwistServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+						</div>
 					</div>
 				</div>
 				<div class="tRow feedbackTwistOnly servoOnly">
@@ -372,48 +382,50 @@
 						<h3>SR6</h3>
 					</div>
 				</div>
-				<div class="tRow servoHeader">
-					<div class="tCell">
-						<span>Servo</span> 
+				<div class="servoTable">
+					<div class="tRow servoHeader">
+						<div class="tCell">
+							<span>Servo</span> 
+						</div>
+						<div class="tCell">
+							<span>PIN</span> 
+						</div>
+						<div class="tCell">
+							<span>ZERO (&#181;)</span> 
+						</div>
 					</div>
-					<div class="tCell">
-						<span>PIN</span> 
+					<div class="tRow">
+						<div class="tCell">
+							<span>Right upper</span> 
+						</div>
+						<div class="tCell">
+							<input id="RightUpperServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+						</div>
+						<div class="tCell">
+							<input id="RightUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+						</div>
 					</div>
-					<div class="tCell">
-						<span>ZERO (&#181;)</span> 
+					<div class="tRow">
+						<div class="tCell">
+							<span>Left upper</span> 
+						</div>
+						<div class="tCell">
+							<input id="LeftUpperServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+						</div>
+						<div class="tCell">
+							<input id="LeftUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+						</div>
 					</div>
-				</div>
-				<div class="tRow">
-					<div class="tCell">
-						<span>Right upper</span> 
-					</div>
-					<div class="tCell">
-						<input id="RightUpperServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-					</div>
-					<div class="tCell">
-						<input id="RightUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-					</div>
-				</div>
-				<div class="tRow">
-					<div class="tCell">
-						<span>Left upper</span> 
-					</div>
-					<div class="tCell">
-						<input id="LeftUpperServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-					</div>
-					<div class="tCell">
-						<input id="LeftUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-					</div>
-				</div>
-				<div class="tRow">
-					<div class="tCell">
-						<span>Pitch right</span> 
-					</div>
-					<div class="tCell">
-						<input id="PitchRightServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
-					</div>
-					<div class="tCell">
-						<input id="PitchRightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+					<div class="tRow">
+						<div class="tCell">
+							<span>Pitch right</span> 
+						</div>
+						<div class="tCell">
+							<input id="PitchRightServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+						</div>
+						<div class="tCell">
+							<input id="PitchRightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+						</div>
 					</div>
 				</div>
 				<div class="tRow pwmAvaliblePinRow">
@@ -940,7 +952,15 @@
 				<div class="tRow">
 					<div class="tCell"><span>Profile</span></div>
 					<div class="tCell">
-						<select id="motionProfiles" onchange="setMotionGeneratorProfile()"></select>
+						<div id="motionProfiles"></div>
+						<!-- <select id="motionProfiles" onchange="setMotionGeneratorProfile()"></select> -->
+						<!-- <button id="addMotionProfile" onclick="addMotionProfile()">+</button>
+						<button id="deleteMotionProfile" onclick="deleteMotionProfile()">-</button> -->
+					</div>
+				</div>
+				<div class="tRow">
+					<div class="tCell"><span></span></div>
+					<div class="tCell">
 						<button id="setMotionProfileDefault" onclick="setMotionProfileDefault()">Set default profile</button>
 						<!-- <button id="addMotionProfile" onclick="addMotionProfile()">+</button>
 						<button id="deleteMotionProfile" onclick="deleteMotionProfile()">-</button> -->
@@ -1229,15 +1249,6 @@
 			</div>
 		</div>
 	</div>
-
-  	<button id="resetBtn" class="formButton" name="reset" onclick="onRestartClick()">Restart device</button>
-	<button id="exportBtn" class="formButton" onclick="exportToJsonFile()">Export settings</button>
-	<button id="importBtn" class="formButton" onclick="openImportSettingsFileDialog()">Import settings</button>
-	</br>
-	</br>
-	</br>
-  	<button id="resetSettingsBtn" class="formButton" onclick="onDefaultClick()">Reset ALL settings</button>
-	  
 	<div id="loadingModal" class="loading-modal">
 		<div id="loadingContainer" class="loading-container">
 			<div class="loading-spinner"></div>

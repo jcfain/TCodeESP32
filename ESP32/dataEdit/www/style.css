@@ -5,12 +5,61 @@ html {
   text-align: center; */
 }
 body {
-  background-color: lightgray;
-  color: black;
+  background-color: #071235;
+  color: white;
   /* display: flex;
   align-content: center;
   flex-direction: column;
   align-items: center; */
+}
+.menu-button {
+  position: fixed;
+  border-radius: 25px;
+  width: 64px;
+  height: 32px;
+  top:30px;
+  right: 25px;
+}
+.menu {
+  background-color: black;
+  box-shadow: -1px 1px 5px 0px cornflowerblue, 1px -1px 5px 0px lightblue, 1px 1px 5px 0px lightblue, -1px -1px 5px 0px cornflowerblue;
+  border-radius: 25px;
+  position: fixed;
+  top: 70px;
+  right: 30px;
+  padding: 10px;
+  /* transition: max-height 0.25s ease-in-out; */
+}
+.menu-hidden {
+  /* max-height: 0; */
+  visibility: hidden;
+}
+.menu-shown {
+  /* max-height: 250px; */
+  visibility: visible;
+}
+.menu-content {
+  display: flex;
+  align-items: center;
+  flex-flow: column;
+  /* transition: max-height 0.25s ease-in-out; */
+}
+.menu-content button {
+  max-height: auto;
+  width: 100px;
+}
+.restart-required {
+  box-shadow: -1px 1px 5px 0px green, 1px -1px 5px 0px lightgreen, 1px 1px 5px 0px lightgreen, -1px -1px 5px 0px green;
+}
+.restart-required:hover {
+  background-color: green;
+}
+.resetAllSettings {
+  color: white;
+  background-color: darkred;
+}
+.resetAllSettings:hover {
+  background-color: red;
 }
 p{
   font-size: 1.5rem;
@@ -19,6 +68,7 @@ input:read-only, textarea:read-only {
   background-color: #ccc;
 }
 button {
+  width: 100%;
   border-radius: 5px;
 }
 button:hover {
@@ -36,7 +86,7 @@ button:hover {
   top: 5%;
   left: calc(50vw - 250px);
   opacity: 95%;
-  box-shadow: 5px 5px #888888;
+  box-shadow: -1px 1px 5px 0px red, 1px -1px 5px 0px lightcoral, 1px 1px 5px 0px lightcoral, -1px -1px 5px 0px red;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -71,14 +121,8 @@ button:hover {
 .info {
   color: green;
   position: fixed;
-  top: 10%;
-  right: 5%;
-}
-.version {
-  color: black;
-  position: fixed;
-  top: 5%;
-  right: 5%;
+  top: 3%;
+  right: 8%;
 }
 .systemInfo .tRow > .tCell:first-child {
   text-align: right;
@@ -89,7 +133,7 @@ button:hover {
 .restartRequired {
   color: red;
   position: fixed;
-  top: 12%;
+  top: 5%;
   right: 5%;
 }
 .sliderHeading {
@@ -98,6 +142,7 @@ button:hover {
 .rootTable {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
 }
 /* .rootTable > div {
   display: flex;
@@ -107,15 +152,15 @@ button:hover {
 .formTable {
   display: flex;
   flex-direction: column;
-  background-color: darkgray;
+  background-color: rgb(0, 0, 0);
   border-collapse: separate; 
   border-spacing: 0 5px; 
   border: 1px solid black;
-  box-shadow: 5px 5px #888888;
+  box-shadow: -1px 1px 5px 0px cornflowerblue, 1px -1px 5px 0px lightblue, 1px 1px 5px 0px lightblue, -1px -1px 5px 0px cornflowerblue;
   border-radius: 10px;
   margin: 10px;
   padding: 25px;
-  min-width: 500px;
+  min-width: 30em;
 }
 .formTable h3 {
   text-align: center;
@@ -131,8 +176,6 @@ button:hover {
   margin-bottom: 4px;
 }
 .formTable .tCell {
-  flex-grow: 1;
-  flex-basis: 33%;
 }
 .formTable .tRow,
 .formTable .tCell {
@@ -141,14 +184,18 @@ button:hover {
 .formTable > div > .tRow:not(.servoHeader) > .tCell:last-child {
   justify-content: flex-start;
   margin-left: 4px;
+  flex-basis: 33%;
+  flex-grow: 1;
 }
 .formTable > div > .tRow:not(.servoHeader) > .tCell:first-child {
+  flex-grow: 1;
+  flex-basis: 50%;
   justify-content: flex-end;
 }
 
 .formTable > div > .tRow:not(.servoHeader) > .tCell:first-child span {
-  margin-right: 8px;
 }
+
 .formTable input[type=text],
 .formTable input[type=number],
 .formTable input[type=password],
@@ -169,25 +216,36 @@ button:hover {
   width: 100%;
   min-width: 300px;
 }
+.servoTable .tCell {
+  width: 33%;
+}
+.servoTable .tCell input {
+  width: inherit;
+}
+
+.servoTable .tRow:not(.servoHeader) > .tCell:first-child {
+  justify-content: flex-end;
+}
 .servoHeader {
   text-align: left;
   font-weight: bolder;
+  /* box-shadow: -1px 1px 5px 0px cornflowerblue, 1px -1px 5px 0px lightblue, 1px 1px 5px 0px lightblue, -1px -1px 5px 0px cornflowerblue; */
 }
 .servoHeader > .tCell {
-  background-color: gainsboro;
+  background-color: #3e4a62;
   padding: 5px;
   border: 1px solid transparent;
   border-style: solid none;
 }
 .servoHeader > .tCell:first-child:not(.other) {
   text-align: right;
-  border-right: 1px solid black;
+  border-right: 1px solid rgb(255, 255, 255);
   border-top-left-radius: 10px; 
   border-bottom-left-radius: 10px;
 }
 .servoHeader > .tCell:last-child:not(.other) {
   border-top-right-radius: 10px; 
-  border-left: 1px solid black;
+  border-left: 1px solid rgb(255, 255, 255);
   border-bottom-right-radius: 10px;
 }
 .displaySettingsHeader {
@@ -445,6 +503,10 @@ div[slider] > input[type=range]::-ms-tooltip {
   color: green;
 }
 
+.selectedMotionProfile {
+  background-color: cornflowerblue;
+}
+
 @keyframes loading-spinner {
   0% {
       transform: rotate(0deg);
@@ -454,11 +516,30 @@ div[slider] > input[type=range]::-ms-tooltip {
   }
 }
 
-
-
-@media only screen and (-webkit-min-device-pixel-ratio: 2.75)   {
+@media only screen and (-webkit-min-device-pixel-ratio: 2.75) and (-webkit-min-device-pixel-ratio: 3.75) {
   .formTable {
     width: 85vw;
     min-width: auto;
+  }
+  .formTable > div > .tRow {
+    flex-wrap: wrap;
+  }
+  .formTable > div > .tRow > .tCell {
+    width: 100%;
+  }
+  .formTable > div > .tRow:not(.servoHeader) > .tCell:first-child {
+    justify-content: flex-start;
+  }
+  .formTable > div > .tRow:not(.servoHeader) > .tCell:last-child {
+    margin-left: 0;
+    flex-basis: auto;
+  }
+  input {
+    height: 25px;
+  }
+  button {
+    height: 25px;
+    height: max-content;
+    padding: 8px;
   }
 }
