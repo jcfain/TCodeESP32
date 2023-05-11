@@ -523,7 +523,7 @@ public:
 
             tempSleeveEnabled = json["tempSleeveEnabled"];
             heaterThreshold = json["heaterThreshold"] | 5.0;
-            heaterFrequency = json["heaterFrequency"] | 5000;
+            heaterFrequency = json["heaterFrequency"] | 50;
 #if !CRIMZZON_BUILD
             heaterResolution = json["heaterResolution"] | 8;
 #endif
@@ -604,6 +604,9 @@ public:
     static bool getMotionEnabled()
     {
         return motionEnabled;
+    }
+    static int getMotionDefaultProfileIndex() {
+        return motionDefaultProfileIndex;
     }
     static void setMotionEnabled(const bool& newValue)
     {
@@ -1498,7 +1501,7 @@ private:
     static bool voiceMuted;
     static int voiceWakeTime ;
     static int voiceVolume;
-    
+
     static void sendMessage(const char *group, const char *message)
     {
         if (message_callback)

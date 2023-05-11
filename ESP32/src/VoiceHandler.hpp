@@ -138,29 +138,36 @@ private:
             case 5:
             LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
             sendMessage("$motion-enable");
-            sendMessage("$motion-set-profile:1");
+            char command[22];
+            sprintf(command, "$motion-set-profile:%ld", SettingsHandler::getMotionDefaultProfileIndex() +1);
+            sendMessage(command);
             break;
             case 6:
             LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
             sendMessage("$motion-enable");
-            sendMessage("$motion-set-profile:2");
+            sendMessage("$motion-set-profile:1");
             break;
             case 7:
             LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
             sendMessage("$motion-enable");
-            sendMessage("$motion-set-profile:3");
+            sendMessage("$motion-set-profile:2");
             break;
             case 8:
             LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
             sendMessage("$motion-enable");
-            sendMessage("$motion-set-profile:4");
+            sendMessage("$motion-set-profile:3");
             break;
             case 9:
             LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
             sendMessage("$motion-enable");
-            sendMessage("$motion-set-profile:5");
+            sendMessage("$motion-set-profile:4");
             break;
             case 10:
+            LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
+            sendMessage("$motion-enable");
+            sendMessage("$motion-set-profile:5");
+            break;
+            case 11:
             LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
             sendMessage("$motion-disable");
             break;

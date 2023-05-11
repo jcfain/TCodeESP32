@@ -643,17 +643,14 @@ function setUserSettings()
         excludedElement.options[i].selected = userSettings["log-exclude-tags"].indexOf(excludedElement.options[i].value) >= 0;
     }
     
-    // var motionProfilesElement = document.getElementById('motionProfiles');
+    
+    const motionProfilesElement = document.getElementById('motionProfiles');
+    removeAllChildren(motionProfilesElement);
     userSettings["motionProfiles"].forEach((x, index) => {
-        // var option = document.createElement("option");
-        // option.id = x;
-        // option.value = x;
-        // option.innerText = x;
-        // motionProfilesElement.appendChild(option);
-        addMotionProfileOption(index, x);
+        addMotionProfileOption(index, x, index == userSettings["motionDefaultProfileIndex"]);
     });
 
-    const currentProfileIndex = userSettings["motionSelectedProfileIndex"];
+    const currentProfileIndex = userSettings["motionDefaultProfileIndex"];
     document.getElementById('motionProfiles').value = currentProfileIndex;
 
     document.getElementById('motionProfileName').value = userSettings['motionProfiles'][currentProfileIndex]["motionProfileName"];
@@ -728,7 +725,14 @@ function setUserSettings()
     setupChannelSliders();
     documentLoaded = true;
 }
-
+function removeAllChildren(element) {
+    if(!element) {
+        return;
+    }
+    while (element.firstChild) {
+        element.removeChild(element.lastChild);
+    }
+}
 function toggleBuildOptions() {
     const hasTemp = systemInfo.buildFeatures.includes(BuildFeature.TEMP);
     var tempratureElements = document.getElementsByClassName('build_temprature');
@@ -855,9 +859,11 @@ function hideLoading() {
 }
 function toggleMenu() {
     var menu = document.getElementById("menu");
+    var menuButton = document.getElementById("menu-button");
     var menuContent = document.getElementById("menu-content");
     menuContent.classList.toggle("menu-hidden")
     menuContent.classList.toggle("menu-shown")
+    menuButton.classList.toggle("button-pressed");
     menu.classList.toggle("menu-hidden");
     menu.classList.toggle("menu-shown");
 }
@@ -942,7 +948,7 @@ function setupChannelSliders()
     feedbackCellNode.classList.add("tCell");
     feedbackCellNode.innerText = "TCode input: awaiting user...";
     feedbackCellNode.colSpan = "2";
-    feedbackCellNode.style.textAlign = "left";
+    feedbackCellNode.style.justifyContent = "flex-start";
     feedbackRowNode.appendChild(feedbackCellNode);
     bodyNode.appendChild(feedbackRowNode);
 
@@ -984,6 +990,9 @@ function setupChannelSliders()
 
     var testDeviceModifierValueNode = document.createElement("input");
     testDeviceModifierValueNode.value = testDeviceModifierValue;
+    testDeviceModifierValueNode.type="number"
+    testDeviceModifierValueNode.min="1"
+    testDeviceModifierValueNode.step="1"
     testDeviceModifierValueNode.addEventListener("input", (event) => {
         testDeviceModifierValue = event.target.value;
     });
@@ -2330,11 +2339,6 @@ function setMotionOffsetGlobalRandomRandomClicked() {
     toggleMotionRandomMinMaxSettingsSettings();
     updateUserSettings();
 }
-function setMotionGeneratorProfile(index) {
-    setSelectedMotionProfileIndex(index);
-    sendTCode(`$motion-set-profile:${getMotionProfileSelectedIndex() + 1}`);
-    setMotionGeneratorSettingsProfile(getMotionProfileSelectedIndex());
-}
 function setMotionProfileDefault() {
     userSettings["motionDefaultProfileIndex"] = getMotionProfileSelectedIndex();
     updateUserSettings(1);
@@ -2346,6 +2350,21 @@ function getMotionProfileSelectedIndex() {
 function setSelectedMotionProfileIndex(value) {
     selectedMotionProfileIndex = parseInt(value);
 }
+function clearMotionProfileSelection() {
+    var motionProfileButtons = document.getElementsByName("motionProfileButton");
+    if(motionProfileButtons)
+        motionProfileButtons.forEach(x => x.classList.remove("button-pressed"))
+}
+function selectMotionProfile(profileIndex, sendTCodeCommand) {
+    clearMotionProfileSelection();
+    setSelectedMotionProfileIndex(profileIndex);
+    const motionProfilesElement = document.getElementById(`motionProfile${profileIndex}`);
+    motionProfilesElement.classList.add("button-pressed");
+    setMotionGeneratorSettingsProfile(profileIndex);
+    if(sendTCodeCommand)
+        sendTCode(`$motion-set-profile:${profileIndex + 1}`);
+}
+
 var validateGeneratorSettingsDebounce;
 function setMotionGeneratorSettings() {
     if(validateGeneratorSettingsDebounce) {
@@ -2399,37 +2418,25 @@ function addMotionProfileOption(profileIndex, profile, selectNewProfile) {
     button.name = "motionProfileButton";
     button.value = profileIndex;
     button.innerText = profile.motionProfileName;
-    button.onclick = function(event, profileIndex) {
-        setMotionGeneratorProfile(profileIndex);
-    }.bind(profileIndex)
+    button.onclick = function(profileIndex, event) {
+        selectMotionProfile(profileIndex, true);
+    }.bind(this, profileIndex)
     motionProfilesElement.appendChild(button);
     if(selectNewProfile) {
-        setMotionGeneratorProfile(profileIndex);
+        selectMotionProfile(profileIndex);
         //motionProfilesElement.value = profileName;
     }
 }
-function clearMotionProfileSelection() {
-    var motionProfileButtons = document.getElementsByClassName("selectedMotionProfile");
-    if(motionProfileButtons)
-        motionProfileButtons.forEach(x => x.classList.remove("selectedMotionProfile"))
-}
-function selectMotionProfile(profileIndex) {
-    clearMotionProfileSelection();
-    const motionProfilesElement = document.getElementById(`motionProfile${profileIndex}`);
-    motionProfilesElement.classList.add("selectedMotionProfile");
-    setMotionGeneratorSettingsProfile(profileIndex);
-}
 function updateMotionProfileName(profileIndex) {
-    const motionProfilesElement = document.getElementById('motionProfiles');
-    var optionsIndex = motionProfilesElement.options.selectedIndex;
-    
-    for (var i=0, n=motionProfilesElement.options.length;i<n;i++) {
-        if (motionProfilesElement.options[i].value == profileIndex) {
+    const motionProfilesElements = document.getElementsByName('motionProfileButton');
+    var optionsIndex = getMotionProfileSelectedIndex();
+    for (var i=0; i < motionProfilesElements.length; i++) {
+        if (motionProfilesElements[i].value == profileIndex) {
             optionsIndex = i;
             break;
         }
     }
-    motionProfilesElement.options[optionsIndex].innerText = userSettings['motionProfiles'][profileIndex]["motionProfileName"];
+    motionProfilesElements[optionsIndex].innerText = userSettings['motionProfiles'][profileIndex]["motionProfileName"];
 }
 function setMotionGeneratorSettingsDefault() {
     var profileIndex = getMotionProfileSelectedIndex();

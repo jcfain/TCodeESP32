@@ -7,24 +7,57 @@ html {
 body {
   background-color: #071235;
   color: white;
+  overflow-y: hidden;
   /* display: flex;
   align-content: center;
   flex-direction: column;
   align-items: center; */
 }
+.page-container {
+  display:flex;
+  flex-flow: column;
+  height: 100vh;
+}
+.page-header {
+  background-color: #071235;
+  width: 100%;
+  border-bottom: solid;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+}
+.page-header-item {
+  display: flex;
+  flex-basis: 50%;
+  flex-grow: 1;
+  justify-content: center;
+}
+.page-header-item:first-child {
+  flex-basis: 25%;
+  min-width: 25%;
+  justify-content: flex-start;
+  padding-left: 26px;
+}
+.page-header-item:last-child {
+  flex-basis: 25%;
+  min-width: 25%;
+  justify-content: flex-end;
+  padding-right: 26px;
+}
+.page-body {
+  overflow-y: auto;
+}
 .menu-button {
-  position: fixed;
   border-radius: 25px;
   width: 64px;
   height: 32px;
-  top:30px;
-  right: 25px;
 }
 .menu {
   background-color: black;
   box-shadow: -1px 1px 5px 0px cornflowerblue, 1px -1px 5px 0px lightblue, 1px 1px 5px 0px lightblue, -1px -1px 5px 0px cornflowerblue;
   border-radius: 25px;
   position: fixed;
+  z-index: 76;
   top: 70px;
   right: 30px;
   padding: 10px;
@@ -46,11 +79,26 @@ body {
 }
 .menu-content button {
   max-height: auto;
-  width: 100px;
+  width: 175px;
 }
 .restart-required {
-  box-shadow: -1px 1px 5px 0px green, 1px -1px 5px 0px lightgreen, 1px 1px 5px 0px lightgreen, -1px -1px 5px 0px green;
+  animation: restartNotification 1s infinite;
 }
+@keyframes restartNotification {
+  50% {
+    box-shadow: -1px 1px 8px 0px gold, 1px -1px 8px 0px yellow, 1px 1px 8px 0px yellow, -1px -1px 8px 0px gold;
+  }
+}
+/* .restart-requited-blink {
+  -webkit-animation-name: blinker;
+  -webkit-animation-iteration-count: infinite;
+  -webkit-animation-timing-function: cubic-bezier(.5, 0, 1, 1);
+  -webkit-animation-duration: 1.7s;
+  animation-name: blinker;
+  animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(.5, 0, 1, 1);
+  animation-duration: 1.7s;
+} */
 .restart-required:hover {
   background-color: green;
 }
@@ -71,10 +119,13 @@ button {
   width: 100%;
   border-radius: 5px;
 }
-button:hover {
-  border-color: aqua;
-  background-color: cornflowerblue;
+button:hover {  
+  border-color: black;
+  background-color: cadetblue;
   color: white;
+}
+.button-pressed {
+  background-color: cadetblue;
 }
 .error {
   border-radius: 25px;
@@ -83,6 +134,7 @@ button:hover {
   width: 500px;
   height: auto;
   position: fixed;
+  z-index: 75;
   top: 5%;
   left: calc(50vw - 250px);
   opacity: 95%;
@@ -120,21 +172,12 @@ button:hover {
 }
 .info {
   color: green;
-  position: fixed;
-  top: 3%;
-  right: 8%;
 }
 .systemInfo .tRow > .tCell:first-child {
   text-align: right;
 }
 .systemInfo .tRow > .tCell:last-child {
   text-align: left;
-}
-.restartRequired {
-  color: red;
-  position: fixed;
-  top: 5%;
-  right: 5%;
 }
 .sliderHeading {
   margin-top: 3rem;
@@ -160,7 +203,7 @@ button:hover {
   border-radius: 10px;
   margin: 10px;
   padding: 25px;
-  min-width: 30em;
+  width: 30em;
 }
 .formTable h3 {
   text-align: center;
@@ -448,6 +491,7 @@ div[slider] > input[type=range]::-ms-tooltip {
 .loading-modal {
   visibility: hidden;
   position: fixed;
+  z-index: 100;
   top: 0;
   left: 0;
   width: 100vw;
@@ -470,6 +514,7 @@ div[slider] > input[type=range]::-ms-tooltip {
   width: 80px;
   height: 80px;
   margin-top: 10px;
+
 }
 .loading-spinner:after {
   content: " ";
@@ -503,10 +548,6 @@ div[slider] > input[type=range]::-ms-tooltip {
   color: green;
 }
 
-.selectedMotionProfile {
-  background-color: cornflowerblue;
-}
-
 @keyframes loading-spinner {
   0% {
       transform: rotate(0deg);
@@ -516,7 +557,27 @@ div[slider] > input[type=range]::-ms-tooltip {
   }
 }
 
-@media only screen and (-webkit-min-device-pixel-ratio: 2.75) and (-webkit-min-device-pixel-ratio: 3.75) {
+@media only screen and (-webkit-min-device-pixel-ratio: 2.75) {
+  .page-header {
+    font-size: xx-small;
+  }
+  .menu {
+    right: 5vw;
+    width: 85vw;
+  }
+  .menu-content button {
+    width: 100%;
+  }
+  .error {
+    width: 85vw;
+    z-index: 75;
+    left: calc(50vw - 162px);
+  }
+  .errorButton {
+    padding:0;
+    width: 35px;
+    height: 35px;
+  }
   .formTable {
     width: 85vw;
     min-width: auto;
@@ -534,8 +595,11 @@ div[slider] > input[type=range]::-ms-tooltip {
     margin-left: 0;
     flex-basis: auto;
   }
-  input {
+  input{
     height: 25px;
+  }
+  select:not([multiple]) {
+    height: 33px;
   }
   button {
     height: 25px;
