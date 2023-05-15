@@ -34,7 +34,7 @@ SOFTWARE. */
 #include "../lib/struct/voice.h"
 #include "../lib/struct/motionProfile.h"
 
-#define featureCount 7
+#define featureCount 8
 
 using SETTING_STATE_FUNCTION_PTR_T = void (*)(const char *group, const char *settingNameThatChanged);
 
@@ -54,7 +54,8 @@ enum class BuildFeature
     DA,
     DISPLAY_,
     TEMP,
-    HAS_TCODE_V2
+    HAS_TCODE_V2,
+    HTTPS
 };
 
 enum class BoardType
@@ -285,6 +286,21 @@ public:
         {
             message_callback = f;
         }
+    }
+
+    static void printFree() {
+        LogHandler::debug(_TAG, "xPortGetFreeHeapSize: %u", xPortGetFreeHeapSize());
+        LogHandler::debug(_TAG, "DRAM %u\nIRAM %u\nFREE_HEAP %u\nMIN_FREE_HEAP %u", heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_free_size(MALLOC_CAP_32BIT),  esp_get_free_heap_size(), esp_get_minimum_free_heap_size() );
+    }
+
+    static void printMemory()
+    {
+        LogHandler::debug(_TAG, "Free heap: %u", ESP.getFreeHeap());
+        LogHandler::debug(_TAG, "Total heap: %u", ESP.getHeapSize());
+        LogHandler::debug(_TAG, "Free psram: %u", ESP.getFreePsram());
+        LogHandler::debug(_TAG, "Total Psram: %u", ESP.getPsramSize());
+        LogHandler::debug(_TAG, "SPIFFS used: %i", SPIFFS.usedBytes());
+        LogHandler::debug(_TAG, "SPIFFS total: %i", SPIFFS.totalBytes());
     }
 
     static void defaultAll()
@@ -880,7 +896,9 @@ public:
     //     file.readBytes(bytes, size);
     //     return bytes;
     // }
-
+    static const int getDeserializeSize() {
+        return deserializeSize;
+    }
     static void serialize(char buf[6144])
     {
         LogHandler::debug(_TAG, "Get settings...");
@@ -1245,17 +1263,6 @@ public:
         saving = false;
         return true;
     }
-
-    static void printMemory()
-    {
-        LogHandler::debug(_TAG, "Free heap: %u", ESP.getFreeHeap());
-        LogHandler::debug(_TAG, "Total heap: %u", ESP.getHeapSize());
-        LogHandler::debug(_TAG, "Free psram: %u", ESP.getFreePsram());
-        LogHandler::debug(_TAG, "Total Psram: %u", ESP.getPsramSize());
-        LogHandler::debug(_TAG, "SPIFFS used: %i", SPIFFS.usedBytes());
-        LogHandler::debug(_TAG, "SPIFFS total: %i", SPIFFS.totalBytes());
-    }
-
     static void setBuildFeatures()
     {
         int index = 0;
@@ -1296,6 +1303,11 @@ public:
         buildFeatures[index] = BuildFeature::HAS_TCODE_V2;
         index++;
 #endif
+#if SECURE_WEB
+        LogHandler::debug("setBuildFeatures", "HTTPS");
+        buildFeatures[index] = BuildFeature::HTTPS;
+        index++;
+#endif
         buildFeatures[featureCount - 1] = {};
     }
 
@@ -1322,7 +1334,7 @@ public:
 #endif
     }
 
-    static void processTCodeJson(char *outbuf, char *tcodeJson)
+    static void processTCodeJson(char *outbuf, const char *tcodeJson)
     {
         StaticJsonDocument<512> doc;
         DeserializationError error = deserializeJson(doc, tcodeJson);

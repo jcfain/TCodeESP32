@@ -121,6 +121,8 @@ public:
             }
         	vTaskDelay(1000/portTICK_PERIOD_MS);
         }
+        
+  		vTaskDelete( NULL );
     }
 
     //void setup() {

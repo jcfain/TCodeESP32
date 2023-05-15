@@ -24,6 +24,7 @@ SOFTWARE. */
 
 #include <AsyncJson.h>
 #include <list>
+#include "HTTP/WebSocketBase.h"
 #include "SettingsHandler.h"
 #include "LogHandler.h"
 #include "TagHandler.h"
@@ -38,7 +39,7 @@ class WebSocketCommand {
     const char* message;
 };
 
-class WebSocketHandler {
+class WebSocketHandler : public WebSocketBase {
     public: 
         void setup(AsyncWebServer* server) {
             LogHandler::info(_TAG, "Setting up webSocket");
@@ -58,7 +59,7 @@ class WebSocketHandler {
             isInitialized = true;
         }
         
-        void CommandCallback(const char* in){ //This overwrites the callback for message return
+        void CommandCallback(const char* in) override { //This overwrites the callback for message return
             if(isInitialized && ws.count() > 0)
                 sendCommand(in);
         }
@@ -83,7 +84,7 @@ class WebSocketHandler {
             // }
         // }
 
-        void sendCommand(const char* command, const char* message = 0, AsyncWebSocketClient* client = 0)
+        void sendCommand(const char* command, const char* message = 0) override
         {
             if(isInitialized && command_mtx.try_lock()) {
                 std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
@@ -91,66 +92,66 @@ class WebSocketHandler {
 
                 char commandJson[255];
                 compileCommand(commandJson, command, message);
-                if(client)
-                    client->text(commandJson);
-                else
+                // if(client)
+                //     client->text(commandJson);
+                // else
                     ws.textAll(commandJson);
             }
         }
 
-        // Did not work last I tried it. Gave up.
-        template <size_t N>
-        void sendCommands(WebSocketCommand (&commands)[N], AsyncWebSocketClient* client = 0)
-        {
-            if(isInitialized && command_mtx.try_lock()) {
-                std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
-                m_lastSend = millis();
+        // // Did not work last I tried it. Gave up.
+        // // template <size_t N>
+        // // void sendCommands(WebSocketCommand (&commands)[N], AsyncWebSocketClient* client = 0)
+        // // {
+        // //     if(isInitialized && command_mtx.try_lock()) {
+        // //         std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
+        // //         m_lastSend = millis();
 
-                char commandsJson[255];
-                std::strcat(commandsJson, "[");
-                for (int i = 0; i < N; i++) 
-                {
-                    if(commands[i].command) {
-                        char commandJson[128];
-                        compileCommand(commandJson, commands[i].command, commands[i].message);
-                        Serial.print("compileCommand: ");
-                        Serial.println(commandJson);
-                        std::strcat(commandsJson, commandJson);
-                        if(i < N-1)
-                            std::strcat(commandsJson, ",");
-                    }
-                }
-                std::strcat(commandsJson, "]");
-                Serial.print("commandsJson: ");
-                Serial.println(commandsJson);
-                if(client)
-                    client->text(commandsJson);
-                else
-                    ws.textAll(commandsJson);
-            }
-        }
+        // //         char commandsJson[255];
+        // //         std::strcat(commandsJson, "[");
+        // //         for (int i = 0; i < N; i++) 
+        // //         {
+        // //             if(commands[i].command) {
+        // //                 char commandJson[128];
+        // //                 compileCommand(commandJson, commands[i].command, commands[i].message);
+        // //                 Serial.print("compileCommand: ");
+        // //                 Serial.println(commandJson);
+        // //                 std::strcat(commandsJson, commandJson);
+        // //                 if(i < N-1)
+        // //                     std::strcat(commandsJson, ",");
+        // //             }
+        // //         }
+        // //         std::strcat(commandsJson, "]");
+        // //         Serial.print("commandsJson: ");
+        // //         Serial.println(commandsJson);
+        // //         if(client)
+        // //             client->text(commandsJson);
+        // //         else
+        // //             ws.textAll(commandsJson);
+        // //     }
+        // // }
 
-        void getTCode(char* webSocketData) 
-        {
-            if(tCodeInQueue == NULL)
-            {
-                LogHandler::error(_TAG, "TCode queue was null");
-                return;
-            } 
-			if(xQueueReceive(tCodeInQueue, webSocketData, 0)) 
-            {
-                //tcode->toCharArray(webSocketData, tcode->length() + 1);
-                // Serial.print("Top tcode: ");
-                // Serial.println(webSocketData);
-            }
-            else 
-            {
-      	        webSocketData[0] = {0};
-            }
-            ws.cleanupClients();
-        }
+        // void getTCode(char* webSocketData) 
+        // {
+        //     if(tCodeInQueue == NULL)
+        //     {
+        //         LogHandler::error(_TAG, "TCode queue was null");
+        //         return;
+        //     } 
+		// 	if(xQueueReceive(tCodeInQueue, webSocketData, 0)) 
+        //     {
+        //         //tcode->toCharArray(webSocketData, tcode->length() + 1);
+        //         // Serial.print("Top tcode: ");
+        //         // Serial.println(webSocketData);
+        //     }
+        //     else 
+        //     {
+      	//         webSocketData[0] = {0};
+        //     }
+        //     ws.cleanupClients();
+        // }
 
-        void closeAll() 
+        void closeAll() override
         {
             for (AsyncWebSocketClient *pClient : m_clients)
                 pClient->close();
@@ -158,16 +159,16 @@ class WebSocketHandler {
 
     private:
         bool isInitialized = false;
-        std::mutex serial_mtx;
-        std::mutex command_mtx;
+        // std::mutex serial_mtx;
+        // std::mutex command_mtx;
         const char* _TAG = TagHandler::WebsocketsHandler;
 // unsigned long lastCall;
         std::list<AsyncWebSocketClient *> m_clients;
-        QueueHandle_t tCodeInQueue;
-        static QueueHandle_t debugInQueue;
+        // QueueHandle_t tCodeInQueue;
+        // static QueueHandle_t debugInQueue;
         static int m_lastSend;
-        static TaskHandle_t* emptyQueueHandle;
-        static bool emptyQueueRunning;
+        // static TaskHandle_t* emptyQueueHandle;
+        // static bool emptyQueueRunning;
 
         // static void emptyQueue(void *webSocketHandler) {
         //     while (true) {
@@ -183,81 +184,6 @@ class WebSocketHandler {
         //     }
         //     vTaskDelete(NULL);
         // }
-
-        void compileCommand(char* buf, const char* command, const char* message = 0) {
-            if(LogHandler::getLogLevel() == LogLevel::DEBUG) {
-                if(message)
-                    Serial.printf("Sending WS commands: %s, Message: %s\n", command, message);
-                else
-                    Serial.printf("Sending WS commands: %s\n",command);
-            }
-            if(!message)
-                sprintf(buf, "{ \"command\": \"%s\" }", command);
-            else if(strpbrk(message, "{") != nullptr)
-                sprintf(buf, "{ \"command\": \"%s\" , \"message\": %s }", command, message);
-            else
-                sprintf(buf, "{ \"command\": \"%s\" , \"message\": \"%s\" }", command, message);
-        }
-
-        void processWebSocketTextMessage(char* msg) 
-        {
-            if(strpbrk(msg, "{") == nullptr)  
-            {
-                if(tCodeInQueue == NULL)
-                {
-                    LogHandler::error(_TAG, "TCode queue was null");
-                } 
-                else 
-                {
-                    
-                    LogHandler::verbose(_TAG, "Websocket tcode in: %s", msg);
-                    xQueueSend(tCodeInQueue, msg, 0);
-	// Serial.print("Time between ws calls: ");
-	// Serial.println(millis() - lastCall);
-	// //Serial.println(msg);
-	// lastCall = millis();
-                    //executeTCode(msg);
-                }
-                // if (strcmp(msg, SettingsHandler::HandShakeChannel) == 0) 
-                // {
-                //     sendCommand(SettingsHandler::TCodeVersionName);
-                // }
-            }
-            else
-            {
-                DynamicJsonDocument doc(255);
-                DeserializationError error = deserializeJson(doc, msg);
-                if (error) 
-                {
-                    LogHandler::error(_TAG, "Failed to read websocket json");
-                    return;
-                }
-                JsonObject jsonObj = doc.as<JsonObject>();
-
-                if(!jsonObj["command"].isNull()) 
-                {
-                    String command = jsonObj["command"].as<String>();
-                    String message = jsonObj["message"].as<String>();
-                    if(command == "setBatteryFull") {
-                        BatteryHandler::setBatteryToFull();
-                    }
-                    // String* message = jsonObj["message"];
-                    // Serial.print("Recieved websocket tcode message: ");
-                    // Serial.println(message->c_str());
-                    // if(tCodeInQueue == NULL)return;
-			        // xQueueSend(tCodeInQueue, &message, 0);
-                } 
-                else 
-                {
-                    LogHandler::verbose(_TAG, "Websocket tcode in JSON: %s", msg);
-                    char tcode[255];
-                    SettingsHandler::processTCodeJson(tcode, msg);
-                    // Serial.print("tcode JSON converted:");
-                    // Serial.println(tcode);
-			        xQueueSend(tCodeInQueue, tcode, 0);
-                }
-            }
-        }
 
         void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len)
         {
@@ -367,7 +293,7 @@ class WebSocketHandler {
         }
 };
 
-bool WebSocketHandler::emptyQueueRunning = false;
-QueueHandle_t WebSocketHandler::debugInQueue;
+// bool WebSocketHandler::emptyQueueRunning = false;
+// QueueHandle_t WebSocketHandler::debugInQueue;
 int WebSocketHandler::m_lastSend = 0;
-TaskHandle_t* WebSocketHandler::emptyQueueHandle = NULL;
+// TaskHandle_t* WebSocketHandler::emptyQueueHandle = NULL;

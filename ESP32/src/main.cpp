@@ -57,13 +57,24 @@ SOFTWARE. */
 #if WIFI_TCODE
 	#include "UdpHandler.h"
 	//#include "TcpHandler.h"
-	#include "WebHandler.h"
+	#include "HTTP/HTTPBase.h"
+	#include "HTTP/WebSocketBase.h"
+	#if !SECURE_WEB
+		#include "WebHandler.h"
+	#else
+		#include "HTTP\HTTPSHandler.hpp"
+	#endif
+	#include "MDNSHandler.hpp"
 #endif
 //#include "OTAHandler.h"
 #include "BLEHandler.h"
 
 #if WIFI_TCODE
-	#include "WebSocketHandler.h"
+	#if !SECURE_WEB
+		#include "WebSocketHandler.h"
+	#else
+		#include "HTTP/SecureWebSocketHandler.hpp"
+	#endif
 #endif
 
 #if BLUETOOTH_TCODE
@@ -79,6 +90,7 @@ SOFTWARE. */
 MotorHandler* motorHandler;
 BatteryHandler* batteryHandler;
 TaskHandle_t batteryTask;
+TaskHandle_t httpsTask;
 
 MotionHandler motionHandler;
 VoiceHandler* voiceHandler;
@@ -87,8 +99,10 @@ TaskHandle_t voiceTask;
 #if WIFI_TCODE
 	Udphandler* udpHandler = 0;
 	WifiHandler wifi;
-	WebHandler webHandler;
-	WebSocketHandler* webSocketHandler = 0;
+	MDNSHandler mdnsHandler;
+	HTTPBase* webHandler = 0;
+	WebSocketBase* webSocketHandler = 0;
+	
 #endif
 
 #if TEMP_ENABLED
@@ -194,10 +208,35 @@ void tempStateChangeCallBack(TemperatureType type, const char* state) {
 #endif
 void startWeb(bool apMode) {
 #if WIFI_TCODE
-	if(!webHandler.initialized) {
+
+	if(!webHandler) {
 		displayPrint("Starting web server");
-		webSocketHandler = new WebSocketHandler();
-		webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, apMode);
+		//webSocketHandler = new WebSocketHandler();
+		//webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, apMode);
+		#if !SECURE_WEB
+			webHandler = new WebHandler();
+			webSocketHandler = new WebSocketHandler();
+		#else
+			webHandler = new HTTPSHandler();
+			webSocketHandler = new SecureWebSocketHandler();
+		#endif
+		webHandler->setup(SettingsHandler::webServerPort, webSocketHandler, apMode);
+		mdnsHandler.setup(SettingsHandler::hostname, SettingsHandler::friendlyName);
+		
+		#if SECURE_WEB
+			LogHandler::debug(TagHandler::Main, "Start https task");
+			auto httpsStatus = xTaskCreateUniversal(
+				HTTPSHandler::startLoop,/* Function to implement the task */
+				"HTTPSTask", /* Name of the task */
+				8192 * 3,  /* Stack size in words */
+				webHandler,  /* Task input parameter */
+				3,  /* Priority of the task */
+				&httpsTask,  /* Task handle. */
+				-1); /* Core where the task should run */
+			if(httpsStatus != pdPASS) {
+				LogHandler::error(TagHandler::Main, "Could not start https task.");
+			}
+		#endif
 	}
 #endif
 }
@@ -251,7 +290,7 @@ void startConfigMode(bool withBle= true) {
 
 // After attempting to connect wifi, ble cause crash
 	if(withBle) { 
-		startBLE();
+		//startBLE();
 	}
 }
 
@@ -537,10 +576,10 @@ void setup()
     motorHandler->setup();
 	motionHandler.setup(SettingsHandler::TCodeVersionEnum);
 	loadI2CModules();
-    LogHandler::debug(TagHandler::Main, "xPortGetFreeHeapSize: %u", xPortGetFreeHeapSize());
 	SettingsHandler::setMessageCallback(settingChangeCallback);
 	setupSucceeded = true;
     LogHandler::debug(TagHandler::Main, "Setup finished");
+    SettingsHandler::printFree();
 }
 
 void loop() {

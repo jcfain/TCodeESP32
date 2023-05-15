@@ -62,7 +62,8 @@ const BuildFeature = {
     DA: 4,
     DISPLAY_: 5,
     TEMP: 6,
-    HAS_TCODE_V2: 7
+    HAS_TCODE_V2: 7,
+    HTTPS: 8
 }
 const MotorType = {
     Servo: 0,
@@ -105,7 +106,6 @@ function logdebug(message) {
 function onDocumentLoad() {
 	infoNode = document.getElementById('info');
     getSystemInfo();
-    initWebSocket();
     createImportSettingsInputElement();
     
     // debugTextElement = document.getElementById("debugText");
@@ -139,6 +139,7 @@ function getUserSettings() {
 		} else {
             userSettings = xhr.response;
             setUserSettings()
+            initWebSocket();
 		}
 	};
 	xhr.send();
@@ -146,7 +147,7 @@ function getUserSettings() {
 
 function initWebSocket() {
 	try {
-		var wsUri = "ws://" + window.location.host + "/ws";
+		var wsUri = (hasFeature(BuildFeature.HTTPS) ? "wss://" : "ws://") + window.location.host + "/ws";
 		if (typeof MozWebSocket == 'function')
 			WebSocket = MozWebSocket;
 		if ( websocket && websocket.readyState == 1 )
@@ -733,13 +734,16 @@ function removeAllChildren(element) {
         element.removeChild(element.lastChild);
     }
 }
+function hasFeature(buildFeature) {
+    return systemInfo.buildFeatures.includes(buildFeature);
+}
 function toggleBuildOptions() {
-    const hasTemp = systemInfo.buildFeatures.includes(BuildFeature.TEMP);
+    const hasTemp = hasFeature(BuildFeature.TEMP);
     var tempratureElements = document.getElementsByClassName('build_temprature');
     for(var i=0;i < tempratureElements.length; i++)
         tempratureElements[i].hidden = !hasTemp;
     var displayElements = document.getElementsByClassName('build_display');
-    const hasDisplay = systemInfo.buildFeatures.includes(BuildFeature.DISPLAY_);
+    const hasDisplay = hasFeature(BuildFeature.DISPLAY_);
     for(var i=0;i < displayElements.length; i++)
         displayElements[i].hidden = !hasDisplay;
         
@@ -1064,7 +1068,7 @@ function isTCodeV3() {
     return userSettings["TCodeVersion"] >= TCodeVersion.V3;
 }
 function hasTCodeV2()  {
-    return systemInfo.buildFeatures.includes(BuildFeature.HAS_TCODE_V2);
+    return hasFeature(BuildFeature.HAS_TCODE_V2);
 }
 function isPinsEditable() {
     return systemInfo.boardType === BoardType.DEVKIT;
@@ -2156,7 +2160,7 @@ function toggleDisplaySettings(enabled)
     {
         document.getElementById('displaySettingsDisplayTable').hidden = true;
     }
-    else if(systemInfo.buildFeatures.includes(BuildFeature.DISPLAY_))
+    else if(hasFeature(BuildFeature.DISPLAY_))
     {
         document.getElementById('displaySettingsDisplayTable').hidden = false;
     }
@@ -2172,7 +2176,7 @@ function toggleTempSettings(enabled)
         document.getElementById('tempSettingsDisplayTable').hidden = true;
         document.getElementById('sleeveTempDisplayedRow').hidden = true;
     }
-    else if(systemInfo.buildFeatures.includes(BuildFeature.TEMP))
+    else if(hasFeature(BuildFeature.TEMP))
     {
         document.getElementById('tempSettingsDisplayTable').hidden = false;
         document.getElementById('sleeveTempDisplayedRow').hidden = false;
@@ -2191,7 +2195,7 @@ function toggleInternalTempSettings(enabled)
         document.getElementById('internalTempTable').hidden = true;
         document.getElementById('internalTempDisplayedRow').hidden = true;
     }
-    else if(systemInfo.buildFeatures.includes(BuildFeature.TEMP))
+    else if(hasFeature(BuildFeature.TEMP))
     {
         document.getElementById('internalTempTable').hidden = false;
         document.getElementById('internalTempDisplayedRow').hidden = false;

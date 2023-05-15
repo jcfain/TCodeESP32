@@ -27,29 +27,24 @@ SOFTWARE. */
 #include <ESPAsyncWebserver.h>
 #include <AsyncTCP.h>
 #include <AsyncJson.h>
-#include <ESPmDNS.h>
+#include "HTTP/HTTPBase.h"
 #include "WifiHandler.h"
 #include "WebSocketHandler.h"
 #include "TagHandler.h"
 #include "SystemCommandHandler.h"
-
-AsyncWebServer* server;
-class WebHandler {
+#if !CONFIG_HTTPD_WS_SUPPORT
+#error This example cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
+#endif
+class WebHandler : public HTTPBase {
     public:
-        bool initialized = false;
-        bool MDNSInitialized = false;
-        void setup(int port, char* hostName, char* friendlyName, WebSocketHandler* webSocketHandler, bool apMode = false) {
+        // bool MDNSInitialized = false;
+        void setup(int port, WebSocketBase* webSocketHandler, bool apMode) override {
             stop();
             if (port < 1) 
                 port = 80;
 		    LogHandler::info(_TAG, "Starting web server on port: %i", port);
             server = new AsyncWebServer(port);
-            webSocketHandler->setup(server);
-
-            if(!apMode)
-            {
-                startMDNS(hostName, friendlyName);
-            }
+            ((WebSocketHandler*)webSocketHandler)->setup(server);
 
             server->on("/userSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
@@ -238,25 +233,30 @@ class WebHandler {
             });
 
             //server->rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
-            server->serveStatic("/", SPIFFS, "/www/").setDefaultFile("index-min.html");;
+            server->serveStatic("/", SPIFFS, "/www/").setDefaultFile("index-min.html");
             server->begin();
             initialized = true;
         }
-        void stop() {
+        void stop() override {
             if(initialized) 
             {
                 initialized = false;
                 server->end();
             }
-            if(MDNSInitialized)
-            {
-                 MDNS.end();
-                 MDNSInitialized = false;
-            }
+            // if(MDNSInitialized)
+            // {
+            //      MDNS.end();
+            //      MDNSInitialized = false;
+            // }
         }
-
+        bool isRunning() override {
+            return initialized;
+        }
     private:
+        bool initialized = false;
         const char* _TAG = TagHandler::WebHandler;
+        AsyncWebServer* server;
+
         void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
             if(!index){
                 Serial.printf("UploadStart: %s\n", filename.c_str());
@@ -268,21 +268,21 @@ class WebHandler {
                 Serial.printf("UploadEnd: %s, %u B\n", filename.c_str(), index+len);
             }
         }
-        void startMDNS(char* hostName, char* friendlyName)
-        {
-            if(MDNSInitialized)
-                MDNS.end();
-            Serial.print("hostName: ");
-            Serial.println(hostName);
-            Serial.print("friendlyName: ");
-            Serial.println(friendlyName);
-            if (!MDNS.begin(hostName)) {
-                printf("MDNS Init failed");
-                return;
-            }
-            MDNS.setInstanceName(friendlyName);
-            MDNS.addService("http", "tcp", 80);
-            MDNS.addService("tcode", "udp", SettingsHandler::udpServerPort);
-            MDNSInitialized = true;
-        }
+        // void startMDNS(char* hostName, char* friendlyName)
+        // {
+        //     if(MDNSInitialized)
+        //         MDNS.end();
+        //     Serial.print("hostName: ");
+        //     Serial.println(hostName);
+        //     Serial.print("friendlyName: ");
+        //     Serial.println(friendlyName);
+        //     if (!MDNS.begin(hostName)) {
+        //         printf("MDNS Init failed");
+        //         return;
+        //     }
+        //     MDNS.setInstanceName(friendlyName);
+        //     MDNS.addService("http", "tcp", 80);
+        //     MDNS.addService("tcode", "udp", SettingsHandler::udpServerPort);
+        //     MDNSInitialized = true;
+        // }
 };

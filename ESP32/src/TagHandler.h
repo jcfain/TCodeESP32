@@ -35,6 +35,10 @@ class TagHandler {
     static const char* UdpHandler;
     static const char* WebsocketsHandler;
     static const char* WebHandler;
+    static const char* WebsocketBase;
+    static const char* SecureWebsocketsHandler;
+    static const char* SecureWebsocketClient;
+    static const char* HTTPSHandler;
     static const char* SystemCommandHandler;
     static const char* BLEHandler;
     static const char* BluetoothHandler;
@@ -59,6 +63,10 @@ const char* TagHandler::SettingsHandler = "settings-handler";
 const char* TagHandler::WifiHandler = "wifi-handler";
 const char* TagHandler::UdpHandler = "udp-handler";
 const char* TagHandler::WebsocketsHandler = "websocket-handler";
+const char* TagHandler::WebsocketBase = "websocket-base";
+const char* TagHandler::SecureWebsocketsHandler = "secure-websocket-handler";
+const char* TagHandler::SecureWebsocketClient = "secure-websocket-client";
+const char* TagHandler::HTTPSHandler = "https-handler";
 const char* TagHandler::WebHandler = "web-handler";
 const char* TagHandler::SystemCommandHandler = "system-command-handler";
 const char* TagHandler::BLEHandler = "ble-handler";
@@ -78,8 +86,16 @@ const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::SystemCommandHandler,
     TagHandler::SettingsHandler,
     TagHandler::WifiHandler,
+	#if !SECURE_WEB
     TagHandler::WebHandler,
     TagHandler::WebsocketsHandler,
+    #else
+    TagHandler::HTTPSHandler,
+    TagHandler::SecureWebsocketsHandler,
+    TagHandler::SecureWebsocketClient,
+    #endif
+    TagHandler::WebsocketBase,
+    TagHandler::HTTPSHandler,
     TagHandler::UdpHandler,
     TagHandler::ServoHandler3,
     TagHandler::TCodeHandler,
