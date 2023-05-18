@@ -62,7 +62,7 @@ SOFTWARE. */
 	#if !SECURE_WEB
 		#include "WebHandler.h"
 	#else
-		#include "HTTP\HTTPSHandler.hpp"
+		#include "HTTPS\HTTPSServer.hpp"
 	#endif
 	#include "MDNSHandler.hpp"
 #endif
@@ -70,11 +70,11 @@ SOFTWARE. */
 #include "BLEHandler.h"
 
 #if WIFI_TCODE
-	#if !SECURE_WEB
-		#include "WebSocketHandler.h"
-	#else
-		#include "HTTP/SecureWebSocketHandler.hpp"
-	#endif
+	// #if !SECURE_WEB
+	//	#include "WebSocketHandler.h"
+	// #else
+	// 	#include "HTTP/SecureWebSocketHandler.hpp"
+	// #endif
 #endif
 
 #if BLUETOOTH_TCODE
@@ -217,25 +217,25 @@ void startWeb(bool apMode) {
 			webHandler = new WebHandler();
 			webSocketHandler = new WebSocketHandler();
 		#else
-			webHandler = new HTTPSHandler();
-			webSocketHandler = new SecureWebSocketHandler();
+			webHandler = new HTTPSServer();
+			//webSocketHandler = new WebSocketHandler();
 		#endif
 		webHandler->setup(SettingsHandler::webServerPort, webSocketHandler, apMode);
 		mdnsHandler.setup(SettingsHandler::hostname, SettingsHandler::friendlyName);
 		
 		#if SECURE_WEB
-			LogHandler::debug(TagHandler::Main, "Start https task");
-			auto httpsStatus = xTaskCreateUniversal(
-				HTTPSHandler::startLoop,/* Function to implement the task */
-				"HTTPSTask", /* Name of the task */
-				8192 * 3,  /* Stack size in words */
-				webHandler,  /* Task input parameter */
-				3,  /* Priority of the task */
-				&httpsTask,  /* Task handle. */
-				-1); /* Core where the task should run */
-			if(httpsStatus != pdPASS) {
-				LogHandler::error(TagHandler::Main, "Could not start https task.");
-			}
+			// LogHandler::debug(TagHandler::Main, "Start https task");
+			// auto httpsStatus = xTaskCreateUniversal(
+			// 	HTTPSHandler::startLoop,/* Function to implement the task */
+			// 	"HTTPSTask", /* Name of the task */
+			// 	8192 * 3,  /* Stack size in words */
+			// 	webHandler,  /* Task input parameter */
+			// 	3,  /* Priority of the task */
+			// 	&httpsTask,  /* Task handle. */
+			// 	-1); /* Core where the task should run */
+			// if(httpsStatus != pdPASS) {
+			// 	LogHandler::error(TagHandler::Main, "Could not start https task.");
+			// }
 		#endif
 	}
 #endif
