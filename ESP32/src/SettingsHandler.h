@@ -896,21 +896,6 @@ public:
     //     file.readBytes(bytes, size);
     //     return bytes;
     // }
-    static const bool readFile(char* &buf, const char* path) {
-        if(!SPIFFS.exists(path)) {
-            LogHandler::error(_TAG, "Path did not exist when reading contents: %s", path);
-            return false;
-        }
-        File file = SPIFFS.open(path, "r");
-        printFree();
-        String fileStr = file.readString();
-        //buf = static_cast<char*>(malloc(fileStr.length() + 1));
-        printFree();
-        LogHandler::info(_TAG, "Create buffer: %u", fileStr.length());
-        buf = new char[fileStr.length() + 1];
-        strcpy(buf, fileStr.c_str());
-        return true;
-    }
     static const int getDeserializeSize() {
         return deserializeSize;
     }

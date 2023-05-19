@@ -137,7 +137,7 @@ private:
         httpd_register_uri_handler(this->server, uri_handler);
     }
 
-    static esp_err_t sendResponse(httpd_req_t *req, u_int16_t code, const char* mime, const char* content) {
+    static esp_err_t sendResponse(httpd_req_t *req, const u_int16_t code, const char* mime, const char* content) {
         httpd_resp_set_status(req, getStatus(code));
         httpd_resp_set_type(req, mime);
         httpd_resp_send(req, content, HTTPD_RESP_USE_STRLEN);
@@ -419,10 +419,10 @@ private:
         if (req->method == HTTP_GET) {
             // Redirect / to /index.html
             std::string reqFile = strcmp(req->uri,"/") == 0 ? "/index-min.html" : std::string(req->uri);
-            LogHandler::info(_TAG, "Get File: %s", reqFile.c_str());
 
             // Try to open the file
             std::string filename = std::string("/www") + reqFile;
+            LogHandler::info(_TAG, "Get File: %s", filename.c_str());
 
             // Check if the file exists
             if (!SPIFFS.exists(filename.c_str())) {
