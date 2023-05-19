@@ -208,11 +208,8 @@ void tempStateChangeCallBack(TemperatureType type, const char* state) {
 #endif
 void startWeb(bool apMode) {
 #if WIFI_TCODE
-
 	if(!webHandler) {
 		displayPrint("Starting web server");
-		//webSocketHandler = new WebSocketHandler();
-		//webHandler.setup(SettingsHandler::webServerPort, SettingsHandler::hostname, SettingsHandler::friendlyName, webSocketHandler, apMode);
 		#if !SECURE_WEB
 			webHandler = new WebHandler();
 			webSocketHandler = new WebSocketHandler();
@@ -290,7 +287,7 @@ void startConfigMode(bool withBle= true) {
 
 // After attempting to connect wifi, ble cause crash
 	if(withBle) { 
-		//startBLE();
+		startBLE();
 	}
 }
 
