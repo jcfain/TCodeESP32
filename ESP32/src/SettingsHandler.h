@@ -33,43 +33,13 @@ SOFTWARE. */
 #include "TagHandler.h"
 #include "../lib/struct/voice.h"
 #include "../lib/struct/motionProfile.h"
+#include "../lib/struct/channel.h"
+#include "../lib/enum.h"
+#include "../lib/constants.h"
 
 #define featureCount 8
 
 using SETTING_STATE_FUNCTION_PTR_T = void (*)(const char *group, const char *settingNameThatChanged);
-
-enum class TCodeVersion
-{
-    v0_2,
-    v0_3,
-    v0_5
-};
-
-enum class BuildFeature
-{
-    NONE,
-    DEBUG,
-    WIFI,
-    BLUETOOTH,
-    DA,
-    DISPLAY_,
-    TEMP,
-    HAS_TCODE_V2,
-    HTTPS
-};
-
-enum class BoardType
-{
-    DEVKIT,
-    CRIMZZON,
-    ISAAC
-};
-
-enum class MotorType
-{
-    Servo,
-    BLDC
-};
 
 class SettingsHandler
 {
@@ -80,6 +50,8 @@ public:
     static bool debug;
     static LogLevel logLevel;
 
+    static std::vector<Channel> currentChannels;
+    static std::vector<const char*> motionChannels;
     static BoardType boardType;
     static BuildFeature buildFeatures[featureCount];
     static String TCodeVersionName;
@@ -121,16 +93,6 @@ public:
     static int Vibe3_PIN;
     static int LubeButton_PIN;
     static int Squeeze_PIN;
-    static int StrokeMin;
-    static int StrokeMax;
-    static int RollMin;
-    static int RollMax;
-    static int PitchMin;
-    static int PitchMax;
-    static int SwayMin;
-    static int SwayMax;
-    static int SurgeMin;
-    static int SurgeMax;
     static int msPerRad;
     static int servoFrequency;
     static int pitchFrequency;
@@ -363,6 +325,31 @@ public:
             TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 2);
             TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
 #endif
+#if MOTOR_TYPE == 1
+            for (auto x : ChannelMapBLDC) {
+                currentChannels.push_back(x);
+            }
+#else
+            if(TCodeVersionEnum == TCodeVersion::v0_2) {
+                // for (size_t i = 0; i < (sizeof(ChannelMapV2)/sizeof(Channel)); i++) {
+                //     currentChannels.push_back(ChannelMapV2[i]);
+                // }
+                for (auto x : ChannelMapV2) {
+                    currentChannels.push_back(x);
+                }
+            } else {
+                for (auto x : ChannelMapV3) {
+                    currentChannels.push_back(x);
+                }
+            }  
+#endif
+
+            for (size_t i = 0; i < currentChannels.size(); i++)
+            {
+                currentChannels[i].max = json["channelRanges"][currentChannels[i].Name]["max"] | TCodeVersionEnum == TCodeVersion::v0_2 ? 999 : 9999;
+                currentChannels[i].min = json["channelRanges"][currentChannels[i].Name]["min"] | 1;
+            }
+            
             udpServerPort = json["udpServerPort"] | 8000;
             webServerPort = json["webServerPort"] | 80;
             const char *hostnameTemp = json["hostname"];
@@ -373,12 +360,6 @@ public:
                 strcpy(friendlyName, friendlyNameTemp);
 
             bluetoothEnabled = json["bluetoothEnabled"];
-            StrokeMin = 1;
-            StrokeMax = SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 ? 9999 : 999;
-            RollMin = 1;
-            RollMax = SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 ? 9999 : 999;
-            PitchMin = 1;
-            PitchMax = SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 ? 9999 : 999;
 
             // Servo motors//////////////////////////////////////////////////////////////////////////////////
             pitchFrequencyIsDifferent = json["pitchFrequencyIsDifferent"];
@@ -604,10 +585,17 @@ public:
             setValue(selectedProfile.motionRandomChangeMin, motionRandomChangeMin, "motionGenerator", "motionRandomChangeMin");
             setValue(selectedProfile.motionRandomChangeMax, motionRandomChangeMax, "motionGenerator", "motionRandomChangeMax");
 
+            setValue(json, motionChannels, "motionGenerator", "motionChannels");
+            if(motionChannels.empty()) {
+                motionChannels.push_back("L0");
+            }
+
             setValue(json, voiceEnabled, "voiceHandler", "voiceEnabled", false);
             setValue(json, voiceMuted, "voiceHandler", "voiceMuted", false);
             setValue(json, voiceVolume, "voiceHandler", "voiceVolume", 0);
             setValue(json, voiceWakeTime, "voiceHandler", "voiceWakeTime", 10);
+
+            
 
             lastRebootReason = machine_reset_cause();
             LogHandler::info(_TAG, "Last reset reason: %s", SettingsHandler::lastRebootReason);
@@ -1085,6 +1073,12 @@ public:
         //  tags.push_back(TagHandler::BLDCHandler);
         //  tags.push_back(TagHandler::ServoHandler3);
         // LogHandler::setTags(tags);
+        
+        for (size_t i = 0; i < currentChannels.size(); i++)
+        {
+            doc["channelRanges"][currentChannels[i].Name]["max"] = currentChannels[i].max;
+            doc["channelRanges"][currentChannels[i].Name]["min"] = currentChannels[i].min;
+        }
 
         if (!tempInternalEnabled)
         {
@@ -1563,6 +1557,18 @@ private:
         setValue(newValue, variable, propertyGroup, propertyName);
     }
 
+    static void setValue(JsonObject json, std::vector<const char*> &variable, const char *propertyGroup, const char *propertyName)
+    {
+        variable.clear();
+        if(json[propertyName].isNull()) {
+            return;
+        }
+        JsonArray jsonArray = json[propertyName].as<JsonArray>();
+        for (int i = 0; i < jsonArray.size(); i++)
+        {
+            variable.push_back(jsonArray[i]);
+        }
+    }
     static void setValue(JsonObject json, std::vector<String> &variable, const char *propertyGroup, const char *propertyName)
     {
         variable.clear();
@@ -1609,47 +1615,51 @@ private:
             sendMessage(propertyGroup, propertyName);
     }
 
-    static int calculateRange(const char *channel, int value)
+    static u_int16_t calculateRange(const char *channel, int value)
     {
-        return constrain(value, getchannelMin(channel), getchannelMax(channel));
+        return constrain(value, getChannelMin(channel), getChannelMax(channel));
     }
 
-    // TODO: Need to think this out better.
-    static int getchannelMin(const char *channel)
+    static u_int16_t getChannelMin(const char *channel) 
     {
-        if (strcmp(channel, "L0") == 0)
+        for (size_t i = 0; i < currentChannels.size(); i++)
         {
-            return StrokeMin;
-        }
-        else if (strcmp(channel, "R1") == 0)
-        {
-            return RollMin;
-        }
-        else if (strcmp(channel, "R2") == 0)
-        {
-            return PitchMin;
+            if(strcmp(currentChannels[i].Name, channel) == 0)
+                return currentChannels[i].min;
         }
         return 1;
     }
 
-    static int getchannelMax(const char *channel)
+    static u_int16_t getChannelMax(const char *channel) 
     {
-        if (strcmp(channel, "L0") == 0)
-        {
-            return StrokeMax;
+        for (size_t i = 0; i < currentChannels.size(); i++) {
+            if(strcmp(currentChannels[i].Name, channel) == 0)
+                return currentChannels[i].max;
         }
-        else if (strcmp(channel, "R1") == 0)
-        {
-            return RollMax;
-        }
-        else if (strcmp(channel, "R2") == 0)
-        {
-            return PitchMax;
-        }
-        return 9999;
+        return TCodeVersionEnum == TCodeVersion::v0_2 ? 999 : 9999;
     }
 
-    static String TCodeVersionMapper(TCodeVersion version)
+    static void setChannelMin(const char *channel, u_int16_t value) 
+    {
+        for (size_t i = 0; i < currentChannels.size(); i++) {
+            if(strcmp(currentChannels[i].Name, channel) == 0) {
+                currentChannels[i].min = value;
+                return;
+            }
+        }
+    }
+
+    static void setChannelMax(const char *channel, u_int16_t value) 
+    {
+        for (size_t i = 0; i < currentChannels.size(); i++) {
+            if(strcmp(currentChannels[i].Name, channel) == 0) {
+                currentChannels[i].max = value;
+                return;
+            }
+        }
+    }
+
+    static String TCodeVersionMapper(TCodeVersion version) 
     {
         switch (version)
         {
@@ -1889,6 +1899,7 @@ std::vector<int> SettingsHandler::systemI2CAddresses;
 SETTING_STATE_FUNCTION_PTR_T SettingsHandler::message_callback = 0;
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
+std::vector<Channel> SettingsHandler::currentChannels;
 MotorType SettingsHandler::motorType = MotorType::Servo;
 const char SettingsHandler::ESP32Version[8] = "v0.285b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
@@ -1934,13 +1945,6 @@ int SettingsHandler::Vibe3_PIN;
 // int SettingsHandler::HeatLED_PIN = 32;
 //  pin 25 cannot be servo. Throws error
 bool SettingsHandler::lubeEnabled = true;
-
-int SettingsHandler::StrokeMin = 1;
-int SettingsHandler::StrokeMax = 9999;
-int SettingsHandler::RollMin = 1;
-int SettingsHandler::RollMax = 9999;
-int SettingsHandler::PitchMin = 1;
-int SettingsHandler::PitchMax = 9999;
 
 bool SettingsHandler::pitchFrequencyIsDifferent;
 int SettingsHandler::msPerRad;
@@ -2019,6 +2023,7 @@ bool SettingsHandler::voiceMuted = false;
 int SettingsHandler::voiceWakeTime = 10;
 int SettingsHandler::voiceVolume = 10;
 
+
 bool SettingsHandler::motionEnabled = false;
 //char SettingsHandler::motionSelectedProfileName[maxMotionProfileNameLength];
 int SettingsHandler::motionSelectedProfileIndex = 0;
@@ -2042,3 +2047,4 @@ int SettingsHandler::motionOffsetGlobalRandomMin;
 int SettingsHandler::motionOffsetGlobalRandomMax;
 int SettingsHandler::motionRandomChangeMin;
 int SettingsHandler:: motionRandomChangeMax;
+std::vector<const char*> SettingsHandler::motionChannels;

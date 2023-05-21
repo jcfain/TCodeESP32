@@ -6,6 +6,8 @@
   <title>TCode ESP32</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" type="text/css" href="style-min.css">
+  <link rel="stylesheet" type="text/css" href="range-slider-min.css">
+  <script type="text/javascript" src="range-slider-min.js"></script>
   <script type="text/javascript" src="settings-min.js"></script>
 </head>
 <body>
@@ -1102,6 +1104,8 @@
 						</div>
 					</div>
 				</div>
+				<div id="deviceRangesTable" class="formTable">
+				</div>
 				<div id="voiceSettingsTable" class="formTable">
 					<div>
 						<div>
@@ -1280,84 +1284,3 @@
 	</div>
 </body>
 </html>
- <!--  <h1>TCode Settings</h1>
-  <div style="font-size: small;">(only affects json input)</div>
-  <div class="sliderHeading">Stroke Range</div>
-  <div id="xRangeLabel">100%</div>
-  <div slider id="xRangeSlider">
-    <div>
-      <div id="xInverseMin" inverse-left style="width:0%;"></div>
-      <div id="xInverseMax" inverse-right style="width:100%;"></div>
-      <div id="xRange" range style="left:0%;right:0%;"></div>
-      <span id="xThumbMin" thumb style="left:0%;"></span>
-      <span id="xThumbMax" thumb style="left:100%;"></span>
-      <div id="xSignMin" sign style="left:0%;">
-        <span id="xValueMin">0</span>
-      </div>
-      <div id="xSignMax" sign style="left:100%;">
-        <span id="xValueMax">100</span>
-      </div>
-    </div>
-    <input id="xMin" type="range" tabindex="0" value="0" max="100" min="0" step="1" oninput="onMinInput('x')" />
-    <input id="xMax" type="range" tabindex="0" value="100" max="100" min="0" step="1" oninput="onMaxInput('x')" />
-  </div>
-
-  <div class="sliderHeading">Roll Range</div>
-  <div id="yRollRangeLabel">100%</div>
-  <div slider id="yRollRangeSlider">
-    <div>
-      <div id="yRollInverseMin" inverse-left style="width:0%;"></div>
-      <div id="yRollInverseMax" inverse-right style="width:100%;"></div>
-      <div id="yRollRange" range style="left:0%;right:0%;"></div>
-      <span id="yRollThumbMin" thumb style="left:0%;"></span>
-      <span id="yRollThumbMax" thumb style="left:100%;"></span>
-      <div id="yRollSignMin" sign style="left:0%;">
-        <span id="yRollValueMin">0</span>
-      </div>
-      <div id="yRollSignMax" sign style="left:100%;">
-        <span id="yRollValueMax">100</span>
-      </div>
-    </div>
-    <input id="yRollMin" type="range" tabindex="0" value="0" max="100" min="0" step="1" oninput="onMinInput('yRoll')" />
-    <input id="yRollMax" type="range" tabindex="0" value="100" max="100" min="0" step="1" oninput="onMaxInput('yRoll')" />
-  </div>
-  
-  <div class="sliderHeading">Pitch Range</div>
-  <div id="xRollRangeLabel">100%</div>
-  <div slider id="xRollRangeSlider">
-    <div>
-      <div id="xRollInverseMin" inverse-left style="width:0%;"></div>
-      <div id="xRollInverseMax" inverse-right style="width:100%;"></div>
-      <div id="xRollRange" range style="left:0%;right:0%;"></div>
-      <span id="xRollThumbMin" thumb style="left:0%;"></span>
-      <span id="xRollThumbMax" thumb style="left:100%;"></span>
-      <div id="xRollSignMin" sign style="left:0%;">
-        <span id="xRollValueMin">0</span>
-      </div>
-      <div id="xRollSignMax" sign style="left:100%;">
-        <span id="xRollValueMax">100</span>
-      </div>
-    </div>
-    <input id="xRollMin" type="range" tabindex="0" value="0" max="100" min="0" step="1" oninput="onMinInput('xRoll')" />
-    <input id="xRollMax" type="range" tabindex="0" value="100" max="100" min="0" step="1" oninput="onMaxInput('xRoll')" />
-  </div>
-
-  <div class="sliderHeading">Speed</div>
-  <div id="speedLabel">1000ms</div>
-  <div slider id="speedSlider">
-    <div>
-      <div id="speedInverseMax" inverse-right style="width:50%;"></div>
-      <div id="speedRange" range style="left:0%;right:50%;"></div>
-      <span id="speedThumb" thumb style="left:50%;"></span>
-      <div id="speedSign" sign style="left:50%;">
-        <span id="speedValue">1000</span>
-      </div>
-    </div>
-    <input id="speedInput" type="range" tabindex="0" value="1500" max="4000" min="999" step="1" oninput="onSpeedInput()" list="midSpeed" />
-    <datalist id="midSpeed">
-      <option value="1000">
-      <option value="1500">
-      <option value="2500">
-      <option value="3500">
-    </datalist>
-  </div> -->

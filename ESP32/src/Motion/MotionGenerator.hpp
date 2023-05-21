@@ -5,10 +5,11 @@
 #include "LogHandler.h"
 #include "TagHandler.h"
 
-class MotionHandler {
+class MotionGenerator {
 public:
-    void setup(TCodeVersion version)
+    void setup(TCodeVersion version, const char channel[3])
     {
+        strcpy(m_channel, channel);
         tcodeVersion = version;
         setEnabled(SettingsHandler::getMotionEnabled());
         setAmplitude(SettingsHandler::getMotionAmplitudeGlobal());
@@ -28,7 +29,7 @@ public:
         setOffsetRandomMax(SettingsHandler::getMotionOffsetGlobalRandomMax());
     }
 
-    void getMovement(char buf[255]) {
+    void getMovement(char buf[25]) {
         calculateNext(buf);
     }
 
@@ -85,25 +86,25 @@ public:
         enabled = enable;
         if(enabled)
             updatePhaseIncrement();
-        LogHandler::debug(TagHandler::MotionHandler, "setEnabled: %ld", enable);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setEnabled: %ld", m_channel, enable);
     }
 
     void setUpdate(int value) {
         updateRate = value;
         updatePhaseIncrement();
-        LogHandler::debug(TagHandler::MotionHandler, "setUpdate: %ld", updateRate);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setUpdate: %ld", m_channel, updateRate);
     };
 
     // In miliseconds this is the duty cycle (lower is faster default 2000)
     void setPeriod(int value) {
         period = value; 
         updatePhaseIncrement();
-        LogHandler::debug(TagHandler::MotionHandler, "setPeriod: %ld", value);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setPeriod: %ld", m_channel, value);
     };
 
     void setPeriodRandom(bool value) {
         periodRandomMode = value;
-        LogHandler::debug(TagHandler::MotionHandler, "setPeriodRandom: enabled %ld", value);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setPeriodRandom: enabled %ld", m_channel, value);
         if(value) {
             updatePeriodRandom();
         } else {
@@ -112,14 +113,14 @@ public:
     }
     void setPeriodRandomMin(int min) {
         periodRandomMin = min;
-        LogHandler::debug(TagHandler::MotionHandler, "setPeriodRandomMin: %ld", min);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setPeriodRandomMin: %ld", m_channel, min);
         if(periodRandomMode) {
             updatePeriodRandom();
         }
     }
     void setPeriodRandomMax(int max) {
         periodRandomMax = max;
-        LogHandler::debug(TagHandler::MotionHandler, "setPeriodRandomMax: %ld", max);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setPeriodRandomMax: %ld", m_channel, max);
         if(periodRandomMode) {
             updatePeriodRandom();
         }
@@ -128,26 +129,26 @@ public:
     // Offset from center 0
     void setOffset(int value) {
         mapTCodeToDegrees(value, offset);
-        LogHandler::debug(TagHandler::MotionHandler, "setOffset: %ld", value);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setOffset: %ld", m_channel, value);
     };
 
     void setOffsetRandom(bool value) {
         offsetRandomMode = value;
-        LogHandler::debug(TagHandler::MotionHandler, "setOffsetRandom: enabled %ld", value);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setOffsetRandom: enabled %ld", m_channel, value);
         if(value) {
             updateOffsetRandom();
         }
     }
     void setOffsetRandomMin(int min) {
         mapTCodeToDegrees(min, offsetRandomMin);
-        LogHandler::debug(TagHandler::MotionHandler, "setOffsetRandomMin: %ld", min);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setOffsetRandomMin: %ld", m_channel, min);
         if(offsetRandomMode) {
             updateOffsetRandom();
         }
     }
     void setOffsetRandomMax(int max) {
         mapTCodeToDegrees(max, offsetRandomMax);
-        LogHandler::debug(TagHandler::MotionHandler, "setOffsetRandomMax: %ld", max);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setOffsetRandomMax: %ld", m_channel, max);
         if(offsetRandomMode) {
             updateOffsetRandom();
         }
@@ -156,26 +157,26 @@ public:
     // The amplitude of the motion
     void setAmplitude(int value) {
         amplitude = map(value, 0, 100, 0, 90);
-        LogHandler::debug(TagHandler::MotionHandler, "setAmplitude: %ld", value);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setAmplitude: %ld", m_channel, value);
     };
 
     void setAmplitudeRandom(bool value) {
         amplitudeRandomMode = value;
-        LogHandler::debug(TagHandler::MotionHandler, "setAmplitudeRandom: enabled %ld", value);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setAmplitudeRandom: enabled %ld", m_channel, value);
         if(value) {
             updateAmplitudeRandom();
         }
     }
     void setAmplitudeRandomMin(int min) {
         amplitudeRandomMin = map(min, 0, 100, 0, 90);
-        LogHandler::debug(TagHandler::MotionHandler, "setAmplitudeRandomMin: %ld", min);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setAmplitudeRandomMin: %ld", m_channel, min);
         if(amplitudeRandomMode) {
             updateAmplitudeRandom();
         }
     }
     void setAmplitudeRandomMax(int max) {
         amplitudeRandomMax = map(max, 0, 100, 0, 90);
-        LogHandler::debug(TagHandler::MotionHandler, "setAmplitudeRandomMax: %ld", max);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setAmplitudeRandomMax: %ld", m_channel, max);
         if(amplitudeRandomMode) {
             updateAmplitudeRandom();
         }
@@ -183,7 +184,7 @@ public:
 
     void setMotionRandomChangeMin(int min) {
         motionRandomChangeMin = min;
-        LogHandler::debug(TagHandler::MotionHandler, "setMotionRandomChangeMin: %ld", min);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setMotionRandomChangeMin: %ld", m_channel, min);
         if(amplitudeRandomMode || periodRandomMode || offsetRandomMode) {
             lastExecutionPeriodChange = 0;
             checkUpdateRandomExecutionPeriod();
@@ -191,7 +192,7 @@ public:
     }
     void setMotionRandomChangeMax(int max) {
         motionRandomChangeMax = max;
-        LogHandler::debug(TagHandler::MotionHandler, "setMotionRandomChangeMax: %ld", max);
+        LogHandler::debug(TagHandler::MotionHandler, "%s setMotionRandomChangeMax: %ld", m_channel, max);
         if(amplitudeRandomMode) {
             lastExecutionPeriodChange = 0;
             checkUpdateRandomExecutionPeriod();
@@ -201,24 +202,25 @@ public:
     // Initial phase in degrees. The phase should ideally be between (offset-amplitude/2) and (offset+amplitude/2)
     void setPhase(int value) {
         phase = degreesToRadian(value);
-        LogHandler::debug(TagHandler::MotionHandler, "setPhase: %ld", value);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setPhase: %ld", m_channel, value);
     };
 
     // reverse cycle direction 
     void setReverse(bool value) {
         reversed = value;
-        LogHandler::debug(TagHandler::MotionHandler, "setReverse: %ld", value);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setReverse: %ld", m_channel, value);
     };
 
     void stopAtCycle(float value) {
         stopAt = currentPhase + 2*M_PI*value;
-        LogHandler::debug(TagHandler::MotionHandler, "stopAtCycle: %f, stopAt %f", value, stopAt);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s stopAtCycle: %f, stopAt %f", m_channel, value, stopAt);
     };
 
 private:
     TCodeVersion tcodeVersion;
     bool enabled = false;
     
+    char m_channel[3];
     int updateRate = 100;
     int period = 2000;    
     int periodRandom = 2000;    
@@ -265,15 +267,15 @@ private:
     
     void updateOffsetRandom() {
         offsetRandom = random(offsetRandomMin, offsetRandomMax);
-        LogHandler::debug(TagHandler::MotionHandler, "New random offset %ld", offsetRandom);
+        LogHandler::debug(TagHandler::MotionHandler, "%s New random offset %ld", m_channel, offsetRandom);
     }
     void updateAmplitudeRandom() {
         amplitudeRandom = random(amplitudeRandomMin, amplitudeRandomMax);
-        LogHandler::debug(TagHandler::MotionHandler, "New random amplitude %ld", amplitudeRandom);
+        LogHandler::debug(TagHandler::MotionHandler, "%s New random amplitude %ld", m_channel, amplitudeRandom);
     }
     void updatePeriodRandom() {
         periodRandom = random(periodRandomMin, periodRandomMax);
-        LogHandler::debug(TagHandler::MotionHandler, "New random period %ld", periodRandom);
+        LogHandler::debug(TagHandler::MotionHandler, "%s New random period %ld", m_channel, periodRandom);
         updatePhaseIncrement();
     }
 
@@ -295,7 +297,7 @@ private:
         }
     }
 
-    void calculateNext(char buf[255]) {
+    void calculateNext(char buf[25]) {
         if(!canUpdate()) {
             buf[0] = {0};
             return;
@@ -309,13 +311,15 @@ private:
             int pos = constrain((int)round(getAmplitude() * sin(currentPhase + getPhase()) + getOffset()), -90, 90);
             if (getReverse())
                 pos = -pos;
+                
             if(tcodeVersion == TCodeVersion::v0_2) {
-                sprintf(buf, "L0%03dI%ld\n", map(pos, -90, 90, 0, 999), interval);
+                sprintf(buf, "%s%03dI%ld", m_channel, map(pos, -90, 90, 0, 999), interval);
             } else {
-                sprintf(buf, "L0%04dI%ld\n", map(pos, -90, 90, 0, 9999), interval);
+                sprintf(buf, "%s%04dI%ld", m_channel, map(pos, -90, 90, 0, 9999), interval);
             }
-            LogHandler::verbose(TagHandler::MotionHandler, "pos: %ld" , pos);
-            LogHandler::verbose(TagHandler::MotionHandler, "buf: %s" , buf);
+
+            LogHandler::verbose(TagHandler::MotionHandler, "%s pos: %ld" , m_channel, pos);
+            LogHandler::verbose(TagHandler::MotionHandler, "%s buf: %s" , m_channel, buf);
         }
         currentPhase = currentPhase + phaseIncrement;
 
@@ -329,12 +333,14 @@ private:
         if(enabled) {
             uint32_t now = millis();
 
+            //LogHandler::verbose(TagHandler::MotionHandler, "%s enabled interval %ld lastUpdate  %ld now  %ld" , m_channel, interval, lastUpdate, now);
             interval = now - lastUpdate;
             if(interval > updateRate) {
                 lastUpdate = now;
                 return true;
             }
         }
+        //LogHandler::verbose(TagHandler::MotionHandler, "%s cant update %ld" , m_channel, enabled);
         return false;
     }
 
@@ -362,9 +368,9 @@ private:
     // }
 
     void updatePhaseIncrement() {
-        LogHandler::debug(TagHandler::MotionHandler, "Update phase increment: period '%ld' updateRate '%ld'" , getPeriod(), updateRate);
+        LogHandler::debug(TagHandler::MotionHandler, "%s Update phase increment: period '%ld' updateRate '%ld'" , m_channel, getPeriod(), updateRate);
         phaseIncrement = 2.0*M_PI / ((float)getPeriod() / updateRate);
-        LogHandler::debug(TagHandler::MotionHandler, "New phase increment: %f" , phaseIncrement);
+        LogHandler::debug(TagHandler::MotionHandler, "%s New phase increment: %f" , m_channel, phaseIncrement);
     }
 
     int degreesToRadian(int degrees) {
@@ -403,10 +409,10 @@ void mapTCodeToDegrees(int tcode, int &degreeVariable) {
     // float EaseOut(float t) {
     //     return Flip(Square(Flip(t)));
     // }
-    // float EaseInOut(float t)
-    // {
-    //     return Lerp(EaseIn(t), EaseOut(t), t);
-    // }
+    // // float EaseInOut(float t)
+    // // {
+    // //     return Lerp(EaseIn(t), EaseOut(t), t);
+    // // }
     // float Flip(float x) {
     //     return 1 - x;
     // }

@@ -724,6 +724,7 @@ function setUserSettings()
         {channel: "A2", channelName: "Lube", switch: true, sr6Only: false}
     ]
     setupChannelSliders();
+    loadChannelRanges();
     documentLoaded = true;
 }
 function removeAllChildren(element) {
@@ -925,7 +926,6 @@ function getSliderTCode(channel, sliderValue, useIModifier, modifierValue, disab
     }
     return tcode;
 }
-
 function setupChannelSliders() 
 {
     var channelTestsNode = document.getElementById("channelTestsTable");
@@ -957,7 +957,7 @@ function setupChannelSliders()
     bodyNode.appendChild(feedbackRowNode);
 
     channelSliderList = [];
-    var availibleChannels = systemInfo["motorType"] == MotorType.Servo ? isTCodeV3() ? AvailibleChannelsV3 : AvailibleChannelsV2 : AvailibleChannelsBLDC;
+    var availibleChannels = getChannelMap();
     for(var i=0; i<availibleChannels.length;i++)
     {
         if(userSettings["sr6Mode"] && availibleChannels[i].sr6Only || !availibleChannels[i].sr6Only) {
@@ -1070,9 +1070,15 @@ function isTCodeV3() {
 function hasTCodeV2()  {
     return hasFeature(BuildFeature.HAS_TCODE_V2);
 }
+function getTCodeMax() {
+    return isTCodeV3() ? 9999 : 999;
+}
 function isPinsEditable() {
     return systemInfo.boardType === BoardType.DEVKIT;
 }
+function getChannelMap() {
+    return systemInfo["motorType"] == MotorType.Servo ? isTCodeV3() ? AvailibleChannelsV3 : AvailibleChannelsV2 : AvailibleChannelsBLDC;
+};
 function onChannelSliderInput(channel, value) {
     sendTCode(channel+value.toString().padStart(isTCodeV3() ? 4 : 3, "0") + "S1000");
 }

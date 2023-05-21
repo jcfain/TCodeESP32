@@ -82,7 +82,7 @@ SOFTWARE. */
 #endif
 
 #include "BatteryHandler.h"
-#include "MotionHandler.h"
+#include "Motion/MotionHandler.hpp"
 #include "VoiceHandler.hpp"
 
 
