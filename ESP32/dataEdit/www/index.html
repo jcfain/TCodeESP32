@@ -644,7 +644,7 @@
 						</div>
 						<div class="tRow">
 							<div class="tCell">
-								<span title="This uses the module 'CJMCU-294' That has a 'LTC2944' gas gauge chip on it.">Battery gauge enabled</span> 
+								<span>Battery gauge enabled</span> 
 							</div>
 							<div class="tCell">
 								<input id="batteryLevelEnabled" type="checkbox" onclick="setBatterySettings()" ></input>
@@ -951,6 +951,12 @@
 							</div>
 						</div>
 					</div>
+					
+					<br>
+					<span>Instructions:<br>
+						Developed for a module 'CJMCU-294' That has a 'LTC2944' gas gauge chip on it.<br>
+						Other LTC2944 I2C modules with the address 0x64 may work.<br>
+					</span>
 				</div>
 				<div id="motionGeneratorSettingsTable" class="formTable">
 					<div>
@@ -1103,8 +1109,7 @@
 							</div>
 						</div>
 					</div>
-				</div>
-				<div id="deviceRangesTable" class="formTable">
+					<div id="motionChannels"></div>
 				</div>
 				<div id="voiceSettingsTable" class="formTable">
 					<div>
@@ -1278,6 +1283,8 @@
 							</div>
 						</div>
 					</div>
+				</div>
+				<div id="deviceRangesTable" class="formTable">
 				</div>
 			</div>
 		</div>

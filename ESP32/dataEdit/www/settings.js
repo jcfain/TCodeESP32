@@ -711,7 +711,7 @@ function setUserSettings()
         {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
         {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
         {channel: "A2", channelName: "Lube", switch: true, sr6Only: false},
-        {channel: "A3", channelName: "Squeeze", switch: false, sr6Only: false}
+        {channel: "A3", channelName: "Auxiliary", switch: false, sr6Only: false}
     ]
     AvailibleChannelsBLDC = [
         {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
@@ -724,7 +724,6 @@ function setUserSettings()
         {channel: "A2", channelName: "Lube", switch: true, sr6Only: false}
     ]
     setupChannelSliders();
-    loadChannelRanges();
     documentLoaded = true;
 }
 function removeAllChildren(element) {
@@ -791,7 +790,7 @@ function updateUserSettings(debounceInMs = 3000)
             
             infoNode.hidden = false;
             infoNode.innerText = "Saving...";
-            infoNode.style.color = 'black';
+            infoNode.style.color = 'white';
             var xhr = new XMLHttpRequest();
             var response = {};
             xhr.open("POST", "/settings", true);
@@ -929,9 +928,7 @@ function getSliderTCode(channel, sliderValue, useIModifier, modifierValue, disab
 function setupChannelSliders() 
 {
     var channelTestsNode = document.getElementById("channelTestsTable");
-    while (channelTestsNode.firstChild) {
-        channelTestsNode.removeChild(channelTestsNode.firstChild);
-    }
+    deleteAllChildren(channelTestsNode);
     var bodyNode = document.createElement("div");
     channelTestsNode.appendChild(bodyNode);
     
@@ -960,36 +957,37 @@ function setupChannelSliders()
     var availibleChannels = getChannelMap();
     for(var i=0; i<availibleChannels.length;i++)
     {
-        if(userSettings["sr6Mode"] && availibleChannels[i].sr6Only || !availibleChannels[i].sr6Only) {
-            var channel = availibleChannels[i].channel;
-            var channelName = availibleChannels[i].channelName;
-
-            var rowNode = document.createElement("div");
-            rowNode.classList.add("tRow");
-            var titleCellNode = document.createElement("div");
-            titleCellNode.classList.add("tCell");
-            titleCellNode.innerText = channelName + " ("+channel+")";
-            var inputCellNode = document.createElement("div");
-            inputCellNode.classList.add("tCell");
-            rowNode.appendChild(titleCellNode);
-            rowNode.appendChild(inputCellNode);
-            var sliderNode = document.createElement("input");
-            sliderNode.style.width = "100%";
-            sliderNode.type = "range";
-            sliderNode.id = channel + "TestSlider";
-            sliderNode.min = 0;
-            sliderNode.max = 99;
-            sliderNode.channelModel = availibleChannels[i];
-            sliderNode.value = availibleChannels[i].switch ? 0 : 50;
-            sliderNode.addEventListener("input", function (sliderNode, channel, channelName, feedbackCellNode) {
-                var tcode = getSliderTCode(channel, sliderNode.value, testDeviceUseIModifier, testDeviceModifierValue, testDeviceDisableModifier);
-                sendTCode(tcode);
-                feedbackCellNode.innerText = "TCode input: " + tcode + " ("+channelName+")";
-            }.bind(null, sliderNode, channel, channelName, feedbackCellNode));
-            channelSliderList.push(sliderNode);
-            inputCellNode.appendChild(sliderNode);
-            bodyNode.appendChild(rowNode);
+        if(!userSettings.sr6Mode && availibleChannels[i].sr6Only) {
+            continue;
         }
+        var channel = availibleChannels[i].channel;
+        var channelName = availibleChannels[i].channelName;
+
+        var rowNode = document.createElement("div");
+        rowNode.classList.add("tRow");
+        var titleCellNode = document.createElement("div");
+        titleCellNode.classList.add("tCell");
+        titleCellNode.innerText = channelName + " ("+channel+")";
+        var inputCellNode = document.createElement("div");
+        inputCellNode.classList.add("tCell");
+        rowNode.appendChild(titleCellNode);
+        rowNode.appendChild(inputCellNode);
+        var sliderNode = document.createElement("input");
+        sliderNode.style.width = "100%";
+        sliderNode.type = "range";
+        sliderNode.id = channel + "TestSlider";
+        sliderNode.min = 0;
+        sliderNode.max = 99;
+        sliderNode.channelModel = availibleChannels[i];
+        sliderNode.value = availibleChannels[i].switch ? 0 : 50;
+        sliderNode.addEventListener("input", function (sliderNode, channel, channelName, feedbackCellNode) {
+            var tcode = getSliderTCode(channel, sliderNode.value, testDeviceUseIModifier, testDeviceModifierValue, testDeviceDisableModifier);
+            sendTCode(tcode);
+            feedbackCellNode.innerText = "TCode input: " + tcode + " ("+channelName+")";
+        }.bind(null, sliderNode, channel, channelName, feedbackCellNode));
+        channelSliderList.push(sliderNode);
+        inputCellNode.appendChild(sliderNode);
+        bodyNode.appendChild(rowNode);
     }
 
     var testDeviceModifierValueNode = document.createElement("input");
@@ -1063,6 +1061,95 @@ function setupChannelSliders()
     testDeviceHomeCellNode.appendChild(testDeviceHomeNode);
     testDeviceHomeRowNode.appendChild(testDeviceHomeCellNode);
     bodyNode.appendChild(testDeviceHomeRowNode);
+
+    loadChannelRanges();
+    setupMotionChannels();
+}
+
+var motionChannelPhaseDebounce;
+function setupMotionChannels() {
+    var motionChannelsNode = document.getElementById("motionChannels");
+    deleteAllChildren(motionChannelsNode);
+
+    var channels = getChannelMap();
+    var header = document.createElement("div");
+    header.innerText = "Generate motion on channels:"
+    motionChannelsNode.appendChild(header);
+    for(var i=0; i<channels.length;i++) {
+        var channel = channels[i];
+        if(!userSettings.sr6Mode && channel.sr6Only) {
+            continue;
+        }
+        
+        var row = document.createElement("div");
+        row.classList.add("tRow");
+        var cell1 = document.createElement("div");
+        cell1.classList.add("tCell");
+        var cell2 = document.createElement("div");
+        cell2.classList.add("tCell");
+        var name = channel.channel;
+        var friendlyName = channel.channelName;
+        var motionChannelIndex = userSettings["motionChannels"].findIndex(x => x.name == name);
+        var label = document.createElement("span");
+        label.for = "motionChannelCheckbox" + name;
+        label.innerText = friendlyName +" ("+name+")";
+        var checkbox = document.createElement("input");
+        checkbox.id = "motionChannelCheckbox" + name;
+        checkbox.type = "checkbox";
+        checkbox.value = name;
+        checkbox.checked = motionChannelIndex > -1;
+		checkbox.onclick = function () {
+            var name = this.value;
+            var phaseInput = document.getElementById("motionChannelPhaseInput" + name);
+            phaseInput.readOnly = !this.checked;
+            if(!this.checked) {
+                phaseInput.value = 0;
+            }
+            const index = userSettings["motionChannels"].findIndex(x => x.name == name);
+            var motionChannel = {name: name, phase: 0.0}; 
+            if(index > -1) {
+                motionChannel = userSettings["motionChannels"][index];
+                userSettings["motionChannels"].splice(index, 1);
+            }
+            if(this.checked) {
+                userSettings["motionChannels"].push(motionChannel);
+            }
+            updateUserSettings();
+		};
+        
+        var phaseInput = document.createElement("input");
+        phaseInput.id = "motionChannelPhaseInput" + name;
+        phaseInput.type = "number";
+        phaseInput.min = 0.0;
+        phaseInput.step = 0.01;
+        phaseInput.readOnly = motionChannelIndex == -1;
+        phaseInput.value = motionChannelIndex == -1 ? 0 : userSettings["motionChannels"][motionChannelIndex].phase;
+        phaseInput.name = name;
+		phaseInput.oninput = function () {
+            if(motionChannelPhaseDebounce) {
+                clearTimeout(motionChannelPhaseDebounce);
+            }
+            motionChannelPhaseDebounce = setTimeout(() => {
+                var name = this.name;
+                const index = userSettings["motionChannels"].findIndex(x => x.name == name);
+                if(index > -1) {
+                    userSettings["motionChannels"][index].phase = this.value;
+                }
+                updateUserSettings(1);
+            }, 3000);
+		};
+        cell1.appendChild(label);
+        cell1.appendChild(checkbox);
+        cell2.appendChild(phaseInput);
+        row.appendChild(cell1);
+        row.appendChild(cell2);
+        motionChannelsNode.appendChild(row);
+    }
+}
+function deleteAllChildren(parentNode) {
+    while (parentNode.firstChild) {
+        parentNode.removeChild(parentNode.firstChild);
+    }
 }
 function isTCodeV3() {
     return userSettings["TCodeVersion"] >= TCodeVersion.V3;
@@ -1082,158 +1169,45 @@ function getChannelMap() {
 function onChannelSliderInput(channel, value) {
     sendTCode(channel+value.toString().padStart(isTCodeV3() ? 4 : 3, "0") + "S1000");
 }
-function onMinInput(axis) 
-{
-    var axisName = axis + "Min";
-    var inputAxisMin = document.getElementById(axisName);
-    var inputAxisMax = document.getElementById(axis + "Max"); 
-    inputAxisMin.value = Math.min(inputAxisMin.value, inputAxisMax.value - 2);
-    
-    var value=(100/(parseInt(inputAxisMin.max)-parseInt(inputAxisMin.min)))*parseInt(inputAxisMin.value)-(100/(parseInt(inputAxisMin.max)-parseInt(inputAxisMin.min)))*parseInt(inputAxisMin.min);
-    updateMinUI(axis, value);
-
-    updateRangePercentageLabel(axis, inputAxisMin.value, document.getElementById(""+axis+"Max").value);
-
-    var tcodeValue =  percentageToTcode(inputAxisMin.value);
-    if (tcodeValue < 1) {
-        tcodeValue = 1;
-    }
-    //console.log("Min tcode: " + tcodeValue);
-    userSettings[axisName] = tcodeValue;
-    sendTCode("L0"+tcodeValue.toString().padStart(isTCodeV3() ? 4 : 3, "0") + "S1000");
-    updateUserSettings();
-}
-
-function onMaxInput(axis) 
-{
-    var axisName = axis + "Max";
-    var inputAxisMax = document.getElementById(axisName);
-    var inputAxisMin = document.getElementById(axis + "Min"); 
-    inputAxisMax.value = Math.max(inputAxisMax.value, inputAxisMin.value - (-2));
-
-    var value=(100/(parseInt(inputAxisMax.max)-parseInt(inputAxisMax.min)))*parseInt(inputAxisMax.value)-(100/(parseInt(inputAxisMax.max)-parseInt(inputAxisMax.min)))*parseInt(inputAxisMax.min);
-    updateMaxUI(axis, value);
-
-    updateRangePercentageLabel(axis, document.getElementById(""+axis+"Min").value, inputAxisMax.value);
-
-    var tcodeValue =  percentageToTcode(inputAxisMax.value);
-    //console.log("Max tcode: " + tcodeValue);
-    userSettings[axisName] = tcodeValue;
-    sendTCode("L0"+tcodeValue.toString().padStart(isTCodeV3() ? 4 : 3, "0") + "S1000");
-    updateUserSettings();
-}
-
-function calculateAndUpdateMinUI(axis, tcodeValue) 
-{
-    updateMinUI(axis, tcodeToPercentage(tcodeValue));
-}
-
-function calculateAndUpdateMaxUI(axis, tcodeValue) 
-{
-    updateMaxUI(axis, tcodeToPercentage(tcodeValue));
-}
-
-function updateMinUI(axis, value) 
-{
-    document.getElementById("" + axis + "Min").value =value;
-    document.getElementById("" + axis + "InverseMin").style.width = value + "%";
-    document.getElementById("" + axis + "Range").style.left = value + "%";
-    document.getElementById("" + axis + "ThumbMin").style.left = value + "%";
-    document.getElementById("" + axis + "SignMin").style.left = value + "%";
-    document.getElementById("" + axis + "ValueMin").innerText = value + '%';
-}
-
-function updateMaxUI(axis, value) 
-{
-    document.getElementById("" + axis + "Max").value = value;
-    document.getElementById("" + axis + "InverseMax").style.width = (100-value) + "%";
-    document.getElementById("" + axis + "Range").style.right = (100-value) + "%";
-    document.getElementById("" + axis + "ThumbMax").style.left = value + "%";
-    document.getElementById("" + axis + "SignMax").style.left = value + "%";
-    document.getElementById("" + axis + "ValueMax").innerText = value + '%';
-}
-
-function updateSpeedUI(millisec) 
-{
-    var value = speedToPercentage(millisec);
-    document.getElementById("speedSign").style.left = value + "%";
-    document.getElementById("speedThumb").style.left = value + "%";
-    document.getElementById("speedValue").style.left = value + "%";
-    //document.getElementById("speedInverseMin").style.width = (value) + "%";
-    document.getElementById("speedInverseMax").style.width =  (100-value) + "%";
-    document.getElementById("speedRange").style.right = (100-value) + "%";
-    //document.getElementById("speedRange").style.left = value + "%";
-    if (millisec > 999) 
-    {
-        document.getElementById("speedValue").innerText = millisec;
-        document.getElementById("speedLabel").innerText = millisec + "ms";
-    } 
-    else 
-    {
-        document.getElementById("speedValue").innerText = "off";
-        document.getElementById("speedLabel").innerText = "off";
-    }
-}
-
-function updateRangePercentageLabel(axis, minValue, maxValue) 
-{
-    document.getElementById("" + axis + "RangeLabel").innerText = maxValue - minValue + "%";
-}
 function getTCodeMax() {
     return isTCodeV3() ? 9999 : 999
 }
-function tcodeToPercentage(tcodeValue) 
-{
+function tcodeToPercentage(tcodeValue) {
     return convertRange(0, getTCodeMax(), 0, 99, tcodeValue);
 }
-
-function percentageToTcode(value) 
-{
+function percentageToTcode(value) {
     return convertRange(0, 99, 0, getTCodeMax(), value);
 }
-
-function speedToPercentage(tcodeValue) 
-{
-    return convertRange(999, 4000, 0, 99, tcodeValue);
-}
-
-function convertRange(input_start, input_end, output_start, output_end, value) 
-{
+function convertRange(input_start, input_end, output_start, output_end, value) {
     var slope = (output_end - output_start) / (input_end - input_start);
     return Math.round((output_start + slope * (value - input_start)));
 }
-
-function onSpeedInput() 
-{
+function onSpeedInput() {
     var speedInMillisecs = parseInt(document.getElementById("speedInput").value);
     userSettings["speed"] = speedInMillisecs > 999 ? speedInMillisecs : 0;
     updateSpeedUI(speedInMillisecs);
     updateUserSettings();
 }
 
-function updateUdpPort() 
-{
+function updateUdpPort() {
     userSettings["udpServerPort"] = parseInt(document.getElementById('udpServerPort').value);
     setRestartRequired();
     updateUserSettings();
 }
 
-function updateWebPort() 
-{
+function updateWebPort() {
     userSettings["webServerPort"] = parseInt(document.getElementById('webServerPort').value);
     setRestartRequired();
     updateUserSettings();
 }
 
-function setPitchFrequencyIsDifferent() 
-{
+function setPitchFrequencyIsDifferent() {
     var isChecked = document.getElementById('pitchFrequencyIsDifferent').checked;
     userSettings["pitchFrequencyIsDifferent"] = isChecked;
     togglePitchServoFrequency(isChecked);
 }
 
-function updateServoFrequency() 
-{
+function updateServoFrequency() {
     var servoFrequencyControl = document.getElementById('servoFrequency');
     if(!servoFrequencyControl.checkValidity()) {
         showError(servoFrequencyControl.validationMessage);
@@ -1267,8 +1241,7 @@ function updateServoFrequency()
     setRestartRequired();
     updateUserSettings();
 }
-function updateMSPerRad(userChecked) 
-{
+function updateMSPerRad(userChecked) {
     var control = document.getElementById('msPerRad');
     if(!control.checkValidity()) {
         showError(control.validationMessage);
@@ -1298,8 +1271,7 @@ function toggleMsPerRadIs270() {
     }
 }
 
-function updateContinuousTwist()
-{
+function updateContinuousTwist() {
 	var checked = document.getElementById('continuousTwist').checked;
 	if (checked) 
 	{
@@ -1319,8 +1291,7 @@ function updateContinuousTwist()
 		updateUserSettings();
 	}
 }
-function updateAnalogTwist()
-{
+function updateAnalogTwist() {
 	var checked = document.getElementById('analogTwist').checked;
     userSettings["analogTwist"] = checked;
     
@@ -1337,8 +1308,7 @@ function updateAnalogTwist()
     setRestartRequired();
     updateUserSettings();
 }
-function updateFeedbackTwist()
-{
+function updateFeedbackTwist() {
     var checked = document.getElementById('feedbackTwist').checked;
     userSettings["feedbackTwist"] = checked;
     toggleFeedbackTwistSettings(checked);

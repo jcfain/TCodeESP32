@@ -34,6 +34,7 @@ SOFTWARE. */
 #include "../lib/struct/voice.h"
 #include "../lib/struct/motionProfile.h"
 #include "../lib/struct/channel.h"
+#include "../lib/struct/motionChannel.h"
 #include "../lib/enum.h"
 #include "../lib/constants.h"
 
@@ -51,7 +52,6 @@ public:
     static LogLevel logLevel;
 
     static std::vector<Channel> currentChannels;
-    static std::vector<const char*> motionChannels;
     static BoardType boardType;
     static BuildFeature buildFeatures[featureCount];
     static String TCodeVersionName;
@@ -279,6 +279,7 @@ public:
     static bool update(JsonObject json)
     {
         LogHandler::info(_TAG, "Load settings");
+        LogHandler::debug(_TAG, "Load Json: Memory usage: %u bytes", json.memoryUsage());
         if (json.size() > 0)
         {
             logLevel = (LogLevel)(json["logLevel"] | 2);
@@ -330,6 +331,7 @@ public:
                 currentChannels.push_back(x);
             }
 #else
+            currentChannels.clear();
             if(TCodeVersionEnum == TCodeVersion::v0_2) {
                 // for (size_t i = 0; i < (sizeof(ChannelMapV2)/sizeof(Channel)); i++) {
                 //     currentChannels.push_back(ChannelMapV2[i]);
@@ -344,10 +346,18 @@ public:
             }  
 #endif
 
+            int tcodeMax = TCodeVersionEnum == TCodeVersion::v0_2 ? 999 : 9999;
             for (size_t i = 0; i < currentChannels.size(); i++)
             {
-                currentChannels[i].max = json["channelRanges"][currentChannels[i].Name]["max"] | TCodeVersionEnum == TCodeVersion::v0_2 ? 999 : 9999;
-                currentChannels[i].min = json["channelRanges"][currentChannels[i].Name]["min"] | 1;
+                uint16_t min = json["channelRanges"][currentChannels[i].Name]["min"].as<uint16_t>();
+                uint16_t max = json["channelRanges"][currentChannels[i].Name]["max"].as<uint16_t>();
+                currentChannels[i].min = !min ? 1 : min;
+                currentChannels[i].max = !max ? tcodeMax : max;
+                // LogHandler::debug(_TAG, "update %s min: %i", currentChannels[i].Name, currentChannels[i].min);
+                // LogHandler::debug(_TAG, "update %s max: %i", currentChannels[i].Name, currentChannels[i].max);
+                // LogHandler::debug(_TAG, "update %s maxStored: %i", currentChannels[i].Name, maxStored);
+                // LogHandler::debug(_TAG, "update %s [min]: %i", currentChannels[i].Name, json["channelRanges"][currentChannels[i].Name]["min"].as<uint16_t>());
+                // LogHandler::debug(_TAG, "update %s [max]: %i", currentChannels[i].Name, json["channelRanges"][currentChannels[i].Name]["max"].as<uint16_t>());
             }
             
             udpServerPort = json["udpServerPort"] | 8000;
@@ -585,10 +595,31 @@ public:
             setValue(selectedProfile.motionRandomChangeMin, motionRandomChangeMin, "motionGenerator", "motionRandomChangeMin");
             setValue(selectedProfile.motionRandomChangeMax, motionRandomChangeMax, "motionGenerator", "motionRandomChangeMax");
 
-            setValue(json, motionChannels, "motionGenerator", "motionChannels");
-            if(motionChannels.empty()) {
-                motionChannels.push_back("L0");
+            // setValue(json, motionChannels, "motionGenerator", "motionChannels");
+            // if(motionChannels.empty()) {
+            //     motionChannels.push_back("L0");
+            // }
+            bool motionChannelsChanged = false;
+            JsonArray motionChannelsObj = json["motionChannels"].as<JsonArray>();
+            if(initialized && motionChannelsObj.size() != motionChannels.size()) {
+                motionChannelsChanged = true;
             }
+            motionChannels.clear();
+            if(motionChannelsObj.isNull()) {
+                LogHandler::info(_TAG, "No motion channels stored, loading default");
+                motionChannels.push_back(MotionChannel("L0"));
+            } else {
+                for(int i = 0; i<motionChannelsObj.size(); i++) {
+                    const char* name = motionChannelsObj[i]["name"];
+                    LogHandler::debug(_TAG, "Loading motion channel '%s' from settings", name);
+                    auto channel = MotionChannel(name);
+                    LogHandler::debug(_TAG, "Loading motion channel '%s' from settings", channel.name);
+                    channel.phase = round2(motionChannelsObj[i]["phase"].as<float>());
+                    motionChannels.push_back(channel);
+                }
+            }
+            if(initialized && motionChannelsChanged)
+                sendMessage("motionGenerator", "motionChannels");
 
             setValue(json, voiceEnabled, "voiceHandler", "voiceEnabled", false);
             setValue(json, voiceMuted, "voiceHandler", "voiceMuted", false);
@@ -599,12 +630,16 @@ public:
 
             lastRebootReason = machine_reset_cause();
             LogHandler::info(_TAG, "Last reset reason: %s", SettingsHandler::lastRebootReason);
+
             LogUpdateDebug();
             return true;
         }
         return false;
     }
-
+    static std::vector<MotionChannel> getMotionChannels()
+    {
+        return motionChannels;
+    }
     static bool getMotionEnabled()
     {
         return motionEnabled;
@@ -1076,8 +1111,10 @@ public:
         
         for (size_t i = 0; i < currentChannels.size(); i++)
         {
-            doc["channelRanges"][currentChannels[i].Name]["max"] = currentChannels[i].max;
             doc["channelRanges"][currentChannels[i].Name]["min"] = currentChannels[i].min;
+            doc["channelRanges"][currentChannels[i].Name]["max"] = currentChannels[i].max;
+            // LogHandler::debug(_TAG, "save %s min: %i", currentChannels[i].Name, doc["channelRanges"][currentChannels[i].Name]["min"].as<int>());
+            // LogHandler::debug(_TAG, "save %s max: %i", currentChannels[i].Name, doc["channelRanges"][currentChannels[i].Name]["max"].as<int>());
         }
 
         if (!tempInternalEnabled)
@@ -1214,6 +1251,11 @@ public:
             doc["motionProfiles"][i]["motionRandomChangeMin"] = motionProfiles[i].motionRandomChangeMin;
             doc["motionProfiles"][i]["motionRandomChangeMax"] = motionProfiles[i].motionRandomChangeMax;
         }
+        for (size_t i = 0; i < motionChannels.size(); i++)
+        {
+            doc["motionChannels"][i]["name"] = motionChannels[i].name;
+            doc["motionChannels"][i]["phase"] = round2(motionChannels[i].phase);
+        }
 
         doc["voiceEnabled"] = voiceEnabled;
         doc["voiceMuted"] = voiceMuted;
@@ -1237,7 +1279,9 @@ public:
         LogHandler::debug(_TAG, "Is overflowed: %u", doc.overflowed());
         if (doc.overflowed())
         {
-            LogHandler::error(_TAG, "Document is overflowed! Increase serialize size.");
+            LogHandler::error(_TAG, "Document is overflowed! Increase serialize size: %u", doc.memoryUsage());
+            file.close();
+            saving = false;
             return false;
         }
 
@@ -1245,6 +1289,8 @@ public:
         if (doc.isNull())
         {
             LogHandler::error(_TAG, "Document is null!");
+            file.close();
+            saving = false;
             return false;
         }
 
@@ -1252,6 +1298,8 @@ public:
         if (doc.memoryUsage() == 0)
         {
             LogHandler::error(_TAG, "Document is empty!");
+            file.close();
+            saving = false;
             return false;
         }
         // Stopped working for some reason...
@@ -1262,6 +1310,8 @@ public:
         {
             LogHandler::error(_TAG, "Failed to write to file");
             doc["wifiPass"] = "";
+            file.close();
+            saving = false;
             return false;
         }
         LogHandler::debug(_TAG, "File contents: %s", file.readString().c_str());
@@ -1483,6 +1533,46 @@ public:
 		}
 		return true;
 	}
+    
+    static u_int16_t getChannelMin(const char *channel) 
+    {
+        for (size_t i = 0; i < currentChannels.size(); i++)
+        {
+            if(strcmp(currentChannels[i].Name, channel) == 0)
+                return currentChannels[i].min;
+        }
+        return 1;
+    }
+
+    static u_int16_t getChannelMax(const char *channel) 
+    {
+        for (size_t i = 0; i < currentChannels.size(); i++) {
+            if(strcmp(currentChannels[i].Name, channel) == 0)
+                return currentChannels[i].max;
+        }
+        return TCodeVersionEnum == TCodeVersion::v0_2 ? 999 : 9999;
+    }
+
+    static void setChannelMin(const char *channel, u_int16_t value) 
+    {
+        for (size_t i = 0; i < currentChannels.size(); i++) {
+            if(strcmp(currentChannels[i].Name, channel) == 0) {
+                currentChannels[i].min = value;
+                return;
+            }
+        }
+    }
+
+    static void setChannelMax(const char *channel, u_int16_t value) 
+    {
+        for (size_t i = 0; i < currentChannels.size(); i++) {
+            if(strcmp(currentChannels[i].Name, channel) == 0) {
+                currentChannels[i].max = value;
+                return;
+            }
+        }
+    }
+
 private:
     static const char *_TAG;
     static const char *userSettingsDefaultFilePath;
@@ -1491,7 +1581,7 @@ private:
     // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
     // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
     static const int deserializeSize = 8144;
-    static const int serializeSize = 4072;
+    static const int serializeSize = 4524;
     // 3072
 
     static bool motionEnabled;
@@ -1517,6 +1607,7 @@ private:
     static bool motionReversedGlobal;
     static int motionRandomChangeMin;
     static int motionRandomChangeMax;
+    static std::vector<MotionChannel> motionChannels;
     
     static bool voiceEnabled;
     static bool voiceMuted;
@@ -1568,6 +1659,8 @@ private:
         {
             variable.push_back(jsonArray[i]);
         }
+        if(initialized)
+            sendMessage(propertyGroup, propertyName);
     }
     static void setValue(JsonObject json, std::vector<String> &variable, const char *propertyGroup, const char *propertyName)
     {
@@ -1580,6 +1673,8 @@ private:
         {
             variable.push_back(jsonArray[i]);
         }
+        if(initialized)
+            sendMessage(propertyGroup, propertyName);
     }
 
     static void setValue(bool newValue, bool &variable, const char *propertyGroup, const char *propertyName)
@@ -1618,45 +1713,6 @@ private:
     static u_int16_t calculateRange(const char *channel, int value)
     {
         return constrain(value, getChannelMin(channel), getChannelMax(channel));
-    }
-
-    static u_int16_t getChannelMin(const char *channel) 
-    {
-        for (size_t i = 0; i < currentChannels.size(); i++)
-        {
-            if(strcmp(currentChannels[i].Name, channel) == 0)
-                return currentChannels[i].min;
-        }
-        return 1;
-    }
-
-    static u_int16_t getChannelMax(const char *channel) 
-    {
-        for (size_t i = 0; i < currentChannels.size(); i++) {
-            if(strcmp(currentChannels[i].Name, channel) == 0)
-                return currentChannels[i].max;
-        }
-        return TCodeVersionEnum == TCodeVersion::v0_2 ? 999 : 9999;
-    }
-
-    static void setChannelMin(const char *channel, u_int16_t value) 
-    {
-        for (size_t i = 0; i < currentChannels.size(); i++) {
-            if(strcmp(currentChannels[i].Name, channel) == 0) {
-                currentChannels[i].min = value;
-                return;
-            }
-        }
-    }
-
-    static void setChannelMax(const char *channel, u_int16_t value) 
-    {
-        for (size_t i = 0; i < currentChannels.size(); i++) {
-            if(strcmp(currentChannels[i].Name, channel) == 0) {
-                currentChannels[i].max = value;
-                return;
-            }
-        }
     }
 
     static String TCodeVersionMapper(TCodeVersion version) 
@@ -1901,7 +1957,7 @@ String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
 std::vector<Channel> SettingsHandler::currentChannels;
 MotorType SettingsHandler::motorType = MotorType::Servo;
-const char SettingsHandler::ESP32Version[8] = "v0.285b";
+const char SettingsHandler::ESP32Version[8] = "v0.3b";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char *SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
@@ -2047,4 +2103,4 @@ int SettingsHandler::motionOffsetGlobalRandomMin;
 int SettingsHandler::motionOffsetGlobalRandomMax;
 int SettingsHandler::motionRandomChangeMin;
 int SettingsHandler:: motionRandomChangeMax;
-std::vector<const char*> SettingsHandler::motionChannels;
+std::vector<MotionChannel> SettingsHandler::motionChannels;

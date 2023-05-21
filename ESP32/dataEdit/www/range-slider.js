@@ -4,6 +4,7 @@
 function loadChannelRanges() {
     var channels = getChannelMap();
     var deviceRangesTable = document.getElementById("deviceRangesTable");
+    deleteAllChildren(deviceRangesTable);
     var rangeHeader = document.createElement("div");
     rangeHeader.classList.add("tHeader")
     var rangeTitle = document.createElement("h3");
@@ -16,6 +17,9 @@ function loadChannelRanges() {
     deviceRangesTable.appendChild(rangeHeaderSubtext);
     for(var i = 0; i < channels.length; i++) {
         var channel = channels[i];
+        if(!userSettings.sr6Mode && channel.sr6Only) {
+            continue;
+        }
         var name = channel.channel;
         var friendlyName = channel.channelName;
         var max = userSettings["channelRanges"][name].max;
@@ -31,7 +35,7 @@ function loadChannelRanges() {
         var minSlider = document.createElement("input");
         minSlider.id = "minSlider" + name;
         minSlider.type = "range";
-        minSlider.min = 2;
+        minSlider.min = 1;
         minSlider.max = getTCodeMax();
         minSlider.value = min;
         sliderControl.appendChild(minSlider);
@@ -39,7 +43,7 @@ function loadChannelRanges() {
         maxSlider.id = "maxSlider" + name;
         maxSlider.type = "range";
         maxSlider.min = 1;
-        maxSlider.max = getTCodeMax() - 1;
+        maxSlider.max = getTCodeMax();
         maxSlider.value = max
         sliderControl.appendChild(maxSlider);
 
@@ -58,7 +62,7 @@ function loadChannelRanges() {
         minInput.id = "minInput" + name;
         minInput.type = "number";
         minInput.min = 1;
-        minInput.max = getTCodeMax() - 1;
+        minInput.max = getTCodeMax();
         minInput.value = min;
         formControlContainer.appendChild(minInput);
         
@@ -75,7 +79,7 @@ function loadChannelRanges() {
         var maxInput = document.createElement("input");
         maxInput.id = "maxInput" + name;
         maxInput.type = "number";
-        maxInput.min = 2;
+        maxInput.min = 1;
         maxInput.max = getTCodeMax();
         maxInput.value = max;
         formControlContainer2.appendChild(maxInput);
@@ -98,21 +102,21 @@ function loadChannelRanges() {
         // minInput.oninput = () => controlMinInput(minSlider, minInput, maxInput, maxSlider, name);
         // maxInput.oninput = () => controlMaxInput(minSlider, minInput, maxInput, maxSlider, name);
 
-		minSlider.oninput = function (minSlider, maxSlider, minInput, name) {
-			controlMinSlider(minSlider, maxSlider, minInput, name);
-		}.bind(minSlider, minSlider, maxSlider, minInput, name);
+		minSlider.oninput = function (minSlider, maxSlider, minInput, maxInput, name) {
+			controlMinSlider(minSlider, maxSlider, minInput, maxInput, maxSlider, name);
+		}.bind(minSlider, minSlider, maxSlider, minInput, maxInput, name);
 
-		maxSlider.oninput = function (minSlider, maxSlider, maxInput, name) {
-			controlMaxSlider(minSlider, maxSlider, maxInput, name);
-		}.bind(maxSlider, minSlider, maxSlider, maxInput, name);
+		maxSlider.oninput = function (minSlider, maxSlider, minInput, maxInput, name) {
+			controlMaxSlider(minSlider, maxSlider, minInput, maxInput, maxSlider, name);
+		}.bind(maxSlider, minSlider, maxSlider, minInput, maxInput, name);
 
-		minInput.oninput = function (minSlider, minInput, maxInput, maxSlider, name) {
-			controlMinInput(minSlider, minInput, maxInput, maxSlider, name);
-		}.bind(minInput, minSlider, minInput, maxInput, maxSlider, name);
+		minInput.oninput = function (minSlider, maxSlider, minInput, maxInput, name) {
+			controlMinInput(minSlider, maxSlider, minInput, maxInput, maxSlider, name);
+		}.bind(minInput, minSlider, maxSlider, minInput, maxInput, name);
 
-		maxInput.oninput = function (minSlider, minInput, maxInput, maxSlider, name) {
-			controlMaxInput(minSlider, minInput, maxInput, maxSlider, name);
-		}.bind(maxInput, minSlider, minInput, maxInput, maxSlider, name);
+		maxInput.oninput = function (minSlider, maxSlider, minInput, maxInput, name) {
+			controlMaxInput(minSlider, maxSlider, minInput, maxInput, maxSlider, name);
+		}.bind(maxInput, minSlider, maxSlider, minInput, maxInput, name);
     }
 
 }
@@ -133,36 +137,46 @@ function loadChannelRanges() {
 //     </div>
 // </div>
 
-function controlMinInput(minSlider, minInput, maxInput, controlSlider, channelName) {
+function controlMinInput(minSlider, maxSlider, minInput, maxInput, controlSlider, channelName) {
     const [min, max] = getParsed(minInput, maxInput);
     fillSlider(minInput, maxInput, '#C6C6C6', '#25daa5', controlSlider);
-    if (min > max) {
-        minSlider.value = max;
-        minInput.value = max;
-    } else {
-        minSlider.value = min;
+    maxInput.min = min;
+    minInput.max = max;
+    // if (min > max) {
+    //     minSlider.value = max;
+    //     minInput.value = max;
+    // } else {
+    //     minSlider.value = min;
+    // }
+    if(minInput.checkValidity()) {
+        minSlider.value = minInput.value;
+        setChannelRange(channelName, minSlider.value, max);
+        sendTCode(channelName + minSlider.value + "S1000");
     }
-    setChannelRange(channelName, minSlider.value, max);
-    sendTCode(channelName + minSlider.value + "S1000");
 }
     
-function controlMaxInput(maxSlider, minInput, maxInput, controlSlider, channelName) {
+function controlMaxInput(minSlider, maxSlider, minInput, maxInput, controlSlider, channelName) {
     const [min, max] = getParsed(minInput, maxInput);
     fillSlider(minInput, maxInput, '#C6C6C6', '#25daa5', controlSlider);
     setToggleAccessible(maxInput, maxSlider);
-    if (min <= max) {
-        maxSlider.value = max;
-        maxInput.value = max;
-    } else {
-        maxInput.value = min;
+    maxInput.min = min;
+    minInput.max = max;
+    // if (min <= max) {
+    //     maxSlider.value = max;
+    //     maxInput.value = max;
+    // } else {
+    //     maxInput.value = min;
+    // }
+    if(maxInput.checkValidity()) {
+        maxSlider.value = maxInput.value;
+        setChannelRange(channelName, min, maxInput.value);
+        sendTCode(channelName + maxInput.value + "S1000");
     }
-    setChannelRange(channelName, min, maxInput.value);
-    sendTCode(channelName + maxInput.value + "S1000");
 }
 
-function controlMinSlider(minSlider, maxSlider, minInput, channelName) {
+function controlMinSlider(minSlider, maxSlider, minInput, maxInput, controlSlider, channelName) {
   const [min, max] = getParsed(minSlider, maxSlider);
-  fillSlider(minSlider, maxSlider, '#C6C6C6', '#25daa5', maxSlider);
+  fillSlider(minSlider, maxSlider, '#C6C6C6', '#25daa5', controlSlider);
   if (min > max) {
     minSlider.value = max;
     minInput.value = max;
@@ -173,9 +187,9 @@ function controlMinSlider(minSlider, maxSlider, minInput, channelName) {
   sendTCode(channelName + minInput.value + "S1000");
 }
 
-function controlMaxSlider(minSlider, maxSlider, maxInput, channelName) {
+function controlMaxSlider(minSlider, maxSlider, minInput, maxInput, controlSlider, channelName) {
   const [min, max] = getParsed(minSlider, maxSlider);
-  fillSlider(minSlider, maxSlider, '#C6C6C6', '#25daa5', maxSlider);
+  fillSlider(minSlider, maxSlider, '#C6C6C6', '#25daa5', controlSlider);
   setToggleAccessible(maxSlider, maxSlider);
   if (min <= max) {
     maxSlider.value = max;

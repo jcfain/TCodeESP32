@@ -179,7 +179,7 @@ class WebHandler : public HTTPBase {
                     AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"msg\":\"Could not parse JSON\"}");
                     request->send(response);
                 }
-            }, 6000U );//Bad request? increase the size.
+            }, 10000U );//Bad request? increase the size.
 
             // //To upload through terminal you can use: curl -F "image=@firmware.bin" esp8266-webupdate.local/update
             // server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request){

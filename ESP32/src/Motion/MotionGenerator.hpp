@@ -89,6 +89,11 @@ public:
         LogHandler::verbose(TagHandler::MotionHandler, "%s setEnabled: %ld", m_channel, enable);
     }
 
+    void setRange(uint16_t min, uint16_t max) {
+        m_min = min;
+        m_max = max;
+    }
+
     void setUpdate(int value) {
         updateRate = value;
         updatePhaseIncrement();
@@ -219,7 +224,8 @@ public:
 private:
     TCodeVersion tcodeVersion;
     bool enabled = false;
-    
+    uint16_t m_min;
+    uint16_t m_max;
     char m_channel[3];
     int updateRate = 100;
     int period = 2000;    
@@ -313,9 +319,9 @@ private:
                 pos = -pos;
                 
             if(tcodeVersion == TCodeVersion::v0_2) {
-                sprintf(buf, "%s%03dI%ld", m_channel, map(pos, -90, 90, 0, 999), interval);
+                sprintf(buf, "%s%03dI%u", m_channel, constrain((uint16_t)map(pos, -90, 90, 0, 999), m_min, m_max), interval);
             } else {
-                sprintf(buf, "%s%04dI%ld", m_channel, map(pos, -90, 90, 0, 9999), interval);
+                sprintf(buf, "%s%04dI%u", m_channel, constrain((uint16_t)map(pos, -90, 90, 0, 9999), m_min, m_max), interval);
             }
 
             LogHandler::verbose(TagHandler::MotionHandler, "%s pos: %ld" , m_channel, pos);

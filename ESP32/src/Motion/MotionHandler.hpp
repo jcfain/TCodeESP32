@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <mutex>
 #include "SettingsHandler.h"
 #include "LogHandler.h"
 #include "TagHandler.h"
@@ -10,23 +11,20 @@ class MotionHandler {
 public:
     void setup(TCodeVersion version)
     {
-        motionChannels.clear();
-        for (auto x : SettingsHandler::motionChannels) {
-            MotionGenerator motionChannel;
-            motionChannel.setup(version, x);
-            motionChannels.push_back(motionChannel);
-        }
+        m_tcodeVersion = version;
+        setMotionChannels(SettingsHandler::getMotionChannels());
     }
 
     void getMovement(char buf[255]) {
+		xSemaphoreTake(xMutex, portMAX_DELAY);
         buf[0] = {0};
         LogHandler::verbose(TagHandler::MotionHandler, "getMovement Enter %s" , buf);
-        if(!enabled || !motionChannels.size()) {
+        if(!enabled || !m_motionChannels.size()) {
             return;
         }
-        for (int i = 0; i < motionChannels.size(); i++) {
+        for (int i = 0; i < m_motionChannels.size(); i++) {
             char temp[25];
-            motionChannels[i].getMovement(temp);
+            m_motionChannels[i].getMovement(temp);
             if(strlen(temp) == 0)
                 continue;
             strcat(buf, temp);
@@ -35,6 +33,7 @@ public:
         buf[strlen(buf) - 1] = '\n';
         buf[strlen(buf) - 1] = '\0';
         LogHandler::verbose(TagHandler::MotionHandler, "Exit %s" , buf);
+        xSemaphoreGive(xMutex);
     }
 
     // int getPeriod() {
@@ -86,140 +85,198 @@ public:
     //     return stopAt;
     // };
 
+    void setMotionChannels(const std::vector<MotionChannel> &motionChannels) {
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        bool enabledBak = enabled;
+        enabled = false;
+        m_motionChannels.clear();
+        for (size_t i = 0; i < motionChannels.size(); i++)
+        {
+            LogHandler::debug(TagHandler::MotionHandler, "Setup motion channel: %s", motionChannels[i].name);
+            MotionGenerator motionChannel;
+            motionChannel.setup(m_tcodeVersion, motionChannels[i].name);
+            motionChannel.setPhase(motionChannels[i].phase);
+            motionChannel.setRange(SettingsHandler::getChannelMin(motionChannels[i].name), SettingsHandler::getChannelMax(motionChannels[i].name));
+            m_motionChannels.push_back(motionChannel);
+        }
+        enabled = enabledBak;
+        xSemaphoreGive(xMutex);
+    }
+
     void setEnabled(bool enable) {
+		xSemaphoreTake(xMutex, portMAX_DELAY);
         enabled = enable;
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setEnabled(enable);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setEnabled(enable);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setEnabled: %ld", enable);
+        xSemaphoreGive(xMutex);
     }
 
     void setUpdate(int value) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setUpdate(value);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setUpdate(value);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setUpdate: %ld", value);
+        xSemaphoreGive(xMutex);
     };
 
     // In miliseconds this is the duty cycle (lower is faster default 2000)
     void setPeriod(int value) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setPeriod(value);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setPeriod(value);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setPeriod: %ld", value);
+        xSemaphoreGive(xMutex);
     };
 
     void setPeriodRandom(bool value) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setPeriodRandom(value);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setPeriodRandom(value);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setPeriodRandom: enabled %ld", value);
+        xSemaphoreGive(xMutex);
     }
     void setPeriodRandomMin(int min) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setPeriodRandomMin(min);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setPeriodRandomMin(min);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setPeriodRandomMin: %ld", min);
+        xSemaphoreGive(xMutex);
     }
     void setPeriodRandomMax(int max) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setPeriodRandomMax(max);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setPeriodRandomMax(max);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setPeriodRandomMax: %ld", max);
+        xSemaphoreGive(xMutex);
     }
 
     // Offset from center 0
     void setOffset(int value) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setOffset(value);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setOffset(value);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setOffset: %ld", value);
+        xSemaphoreGive(xMutex);
     };
 
     void setOffsetRandom(bool value) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setOffsetRandom(value);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setOffsetRandom(value);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setOffsetRandom: enabled %ld", value);
+        xSemaphoreGive(xMutex);
     }
     void setOffsetRandomMin(int min) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setOffsetRandomMin(min);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setOffsetRandomMin(min);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setOffsetRandomMin: %ld", min);
+        xSemaphoreGive(xMutex);
     }
     void setOffsetRandomMax(int max) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setOffsetRandomMax(max);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setOffsetRandomMax(max);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setOffsetRandomMax: %ld", max);
+        xSemaphoreGive(xMutex);
     }
 
     // The amplitude of the motion
     void setAmplitude(int value) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setAmplitude(value);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setAmplitude(value);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setAmplitude: %ld", value);
+        xSemaphoreGive(xMutex);
     };
 
     void setAmplitudeRandom(bool value) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setAmplitudeRandom(value);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setAmplitudeRandom(value);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setAmplitudeRandom: enabled %ld", value);
+        xSemaphoreGive(xMutex);
     }
     void setAmplitudeRandomMin(int min) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setAmplitudeRandomMin(min);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setAmplitudeRandomMin(min);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setAmplitudeRandomMin: %ld", min);
+        xSemaphoreGive(xMutex);
     }
     void setAmplitudeRandomMax(int max) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setAmplitudeRandomMax(max);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setAmplitudeRandomMax(max);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setAmplitudeRandomMax: %ld", max);
+        xSemaphoreGive(xMutex);
     }
 
     void setMotionRandomChangeMin(int min) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setMotionRandomChangeMin(min);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setMotionRandomChangeMin(min);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setMotionRandomChangeMin: %ld", min);
+        xSemaphoreGive(xMutex);
     }
     void setMotionRandomChangeMax(int max) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setMotionRandomChangeMax(max);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setMotionRandomChangeMax(max);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setMotionRandomChangeMax: %ld", max);
+        xSemaphoreGive(xMutex);
     }
 
     // Initial phase in degrees. The phase should ideally be between (offset-amplitude/2) and (offset+amplitude/2)
     void setPhase(int value) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setPhase(value);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setPhase(value);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setPhase: %ld", value);
+        xSemaphoreGive(xMutex);
     };
 
     // reverse cycle direction 
     void setReverse(bool value) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].setReverse(value);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].setReverse(value);
         }
         LogHandler::debug(TagHandler::MotionHandler, "setReverse: %ld", value);
+        xSemaphoreGive(xMutex);
     };
 
     void stopAtCycle(float value) {
-        for (int i = 0; i < motionChannels.size(); i++) {
-            motionChannels[i].stopAtCycle(value);
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        for (int i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].stopAtCycle(value);
         }
         LogHandler::debug(TagHandler::MotionHandler, "stopAtCycle: %f", value);
+        xSemaphoreGive(xMutex);
     };
 
 private:
-    std::vector<MotionGenerator> motionChannels;
+    std::vector<MotionGenerator> m_motionChannels;
+    TCodeVersion m_tcodeVersion;
     bool enabled = false;
+	SemaphoreHandle_t xMutex = xSemaphoreCreateMutex();
 };
 
