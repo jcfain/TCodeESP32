@@ -7,4 +7,5 @@ struct MotionChannel {
     }
     char name[3];
     float phase = 0;
+    bool reverse = 0;
 };

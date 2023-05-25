@@ -13,6 +13,9 @@ body {
   flex-direction: column;
   align-items: center; */
 }
+.hidden {
+  display: none !important;
+}
 .page-container {
   display:flex;
   flex-flow: column;
@@ -86,7 +89,7 @@ body {
 }
 @keyframes restartNotification {
   50% {
-    box-shadow: -1px 1px 8px 0px gold, 1px -1px 8px 0px yellow, 1px 1px 8px 0px yellow, -1px -1px 8px 0px gold;
+    box-shadow: -1px 1px 8px 0 red,1px -1px 8px 0 red,1px 1px 8px 0 red,-1px -1px 8px 0 red;
   }
 }
 /* .restart-requited-blink {
@@ -184,14 +187,22 @@ button:hover {
 }
 .rootTable {
   display: flex;
+  /* flex-direction: column; */
   flex-wrap: wrap;
   justify-content: center;
 }
-/* .rootTable > div {
-  display: flex;
-  flex-direction: column;
-  align-content: center;
+/* .rootTable .formTable:nth-child(3n+1) { order: 1; }
+.rootTable .formTable:nth-child(3n+2) { order: 2; }
+.rootTable .formTable:nth-child(3n)   { order: 3; }
+
+.rootTable::before,
+.rootTable::after {
+  content: "";
+  flex-basis: 100%;
+  width: 0;
+  order: 2;
 } */
+
 .formTable {
   display: flex;
   flex-direction: column;

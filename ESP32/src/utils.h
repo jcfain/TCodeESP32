@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <sstream>
 #include <vector>
+#include <math.h>
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
 
@@ -40,7 +41,10 @@ void strtrim(char* buf) {
 }
 
 double round2(const double &value) {
-   return (int)(value * 100 + 0.5) / 100.0;
+    return double(int(value * 100 + 0.5) / 100.0);
+}
+float round2(const float &value) {
+    return float(int(value * 100 + 0.5) / 100.0);
 }
 
 double mapf(const double& x, const double& in_min, const double& in_max, const double& out_min, const double& out_max)

@@ -7,6 +7,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" type="text/css" href="style-min.css">
   <link rel="stylesheet" type="text/css" href="range-slider-min.css">
+  <script type="text/javascript" src="utils-min.js"></script>
+  <script type="text/javascript" src="battery-min.js"></script>
+  <script type="text/javascript" src="motion-generator-min.js"></script>
+  <script type="text/javascript" src="bldc-motor-min.js"></script>
   <script type="text/javascript" src="range-slider-min.js"></script>
   <script type="text/javascript" src="settings-min.js"></script>
 </head>
@@ -618,45 +622,21 @@
 								<input id="friendlyName" type="text" maxlength="100" oninput="updateFriendlyName()">
 							</div>
 						</div>
-						<div class="tRow build_display">
-							<div class="tCell">
-								<span>Display enabled</span> 
-							</div>
-							<div class="tCell">
-								<input id="displayEnabled" type="checkbox" onclick="setDisplaySettings()">
-							</div>
-						</div>
-						<div class="tRow build_temprature">
-							<div class="tCell">
-								<span>Sleeve temperature control enabled</span> 
-							</div>
-							<div class="tCell">
-								<input id="tempSleeveEnabled" type="checkbox" onclick="setTempSettings()"></input>
-							</div>
-						</div>
-						<div class="tRow build_temprature internal-temp-build">
-							<div class="tCell">
-								<span>Internal temperature enabled</span> 
-							</div>
-							<div class="tCell">
-								<input id="tempInternalEnabled" type="checkbox" onclick="setInternalTempSettings()"></input>
-							</div>
-						</div>
-						<div class="tRow">
-							<div class="tCell">
-								<span>Battery gauge enabled</span> 
-							</div>
-							<div class="tCell">
-								<input id="batteryLevelEnabled" type="checkbox" onclick="setBatterySettings()" ></input>
-							</div>
-						</div>
 					</div>
 				</div>
-				<div id="tempSettingsDisplayTable" class="formTable">
+				<div id="tempSettingsDisplayTable" class="formTable build_temprature">
 					<div>
 						<div>
 							<div class="tHeader">
 								<h3>Sleeve temperature</h3>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>Enabled</span> 
+							</div>
+							<div class="tCell">
+								<input id="tempSleeveEnabled" type="checkbox" onclick="setTempSettings()"></input>
 							</div>
 						</div>
 						<div class="tRow">
@@ -751,11 +731,19 @@
 						</div>
 					</div>
 				</div>
-				<div id="internalTempTable" class="formTable">
+				<div id="internalTempTable" class="formTable build_temprature">
 					<div>
 						<div>
 							<div class="tHeader">
 								<h3>Internal temperature</h3>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>Enabled</span> 
+							</div>
+							<div class="tCell">
+								<input id="tempInternalEnabled" type="checkbox" onclick="setInternalTempSettings()"></input>
 							</div>
 						</div>
 						<div class="tRow">
@@ -819,6 +807,14 @@
 						<div>
 							<div class="tHeader">
 								<h3>Display</h3>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>Enabled</span> 
+							</div>
+							<div class="tCell">
+								<input id="displayEnabled" type="checkbox" onclick="setDisplaySettings()">
 							</div>
 						</div>
 						<div class="tRow">
@@ -888,11 +884,19 @@
 						
 					</div>
 				</div>
-				<div id="batterySettingsTable" class="formTable batteryOnly">
+				<div id="batterySettingsTable" class="formTable">
 					<div>
 						<div>
 							<div class="tHeader">
 								<h3>Battery</h3>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>Enabled</span> 
+							</div>
+							<div class="tCell">
+								<input id="batteryLevelEnabled" type="checkbox" onclick="setBatterySettings()" ></input>
 							</div>
 						</div>
 						<!-- <div>

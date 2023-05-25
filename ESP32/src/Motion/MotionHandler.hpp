@@ -97,6 +97,7 @@ public:
             motionChannel.setup(m_tcodeVersion, motionChannels[i].name);
             motionChannel.setPhase(motionChannels[i].phase);
             motionChannel.setRange(SettingsHandler::getChannelMin(motionChannels[i].name), SettingsHandler::getChannelMax(motionChannels[i].name));
+            motionChannel.setReverse(motionChannels[i].reverse);
             m_motionChannels.push_back(motionChannel);
         }
         enabled = enabledBak;

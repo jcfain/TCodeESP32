@@ -576,7 +576,6 @@ public:
                 }
             }
             auto selectedProfile = motionProfiles[motionSelectedProfileIndex];
-            setValue(false, motionEnabled, "motionGenerator", "motionEnabled");
             setValue(selectedProfile.motionUpdateGlobal, motionUpdateGlobal, "motionGenerator", "motionUpdateGlobal");
             setValue(selectedProfile.motionPeriodGlobal, motionPeriodGlobal, "motionGenerator", "motionPeriodGlobal");
             setValue(selectedProfile.motionAmplitudeGlobal, motionAmplitudeGlobal, "motionGenerator", "motionAmplitudeGlobal");
@@ -614,7 +613,14 @@ public:
                     LogHandler::debug(_TAG, "Loading motion channel '%s' from settings", name);
                     auto channel = MotionChannel(name);
                     LogHandler::debug(_TAG, "Loading motion channel '%s' from settings", channel.name);
-                    channel.phase = round2(motionChannelsObj[i]["phase"].as<float>());
+                    float phaseStored = round2(motionChannelsObj[i]["phase"].as<float>());
+                    if(initialized && phaseStored != channel.phase)
+                        motionChannelsChanged = true;
+                    channel.phase = phaseStored;
+                    bool reverseStored = motionChannelsObj[i]["reverse"].as<bool>();
+                    if(initialized && reverseStored != channel.reverse)
+                        motionChannelsChanged = true;
+                    channel.reverse = reverseStored;
                     motionChannels.push_back(channel);
                 }
             }
@@ -1171,6 +1177,7 @@ public:
         doc["BLDC_PWMchannel3_PIN"] = BLDC_PWMchannel3_PIN;
         doc["BLDC_MotorA_Voltage"] = round2(BLDC_MotorA_Voltage);
         doc["BLDC_MotorA_Current"] = round2(BLDC_MotorA_Current);
+        LogHandler::debug(_TAG, "save %s max: %i", "BLDC_MotorA_Voltage", doc["BLDC_MotorA_Current"].as<float>());
 
         doc["staticIP"] = staticIP;
         doc["localIP"] = localIP;
@@ -1255,6 +1262,7 @@ public:
         {
             doc["motionChannels"][i]["name"] = motionChannels[i].name;
             doc["motionChannels"][i]["phase"] = round2(motionChannels[i].phase);
+            doc["motionChannels"][i]["reverse"] = motionChannels[i].reverse;
         }
 
         doc["voiceEnabled"] = voiceEnabled;
@@ -1581,7 +1589,7 @@ private:
     // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
     // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
     static const int deserializeSize = 8144;
-    static const int serializeSize = 4524;
+    static const int serializeSize = 5624;
     // 3072
 
     static bool motionEnabled;

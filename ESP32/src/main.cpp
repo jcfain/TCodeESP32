@@ -67,7 +67,9 @@ SOFTWARE. */
 	#include "MDNSHandler.hpp"
 #endif
 //#include "OTAHandler.h"
+#if BLUETOOTH_TCODE
 #include "BLEHandler.h"
+#endif
 
 #if WIFI_TCODE
 	#if !SECURE_WEB
@@ -109,7 +111,7 @@ TaskHandle_t voiceTask;
 	TemperatureHandler* temperatureHandler = 0;
 #endif
 
-BLEHandler* bleHandler = 0;
+//BLEHandler* bleHandler = 0;
 
 #if DISPLAY_ENABLED
 	DisplayHandler* displayHandler;
@@ -238,6 +240,7 @@ void startWeb(bool apMode) {
 #endif
 }
 
+#if BLUETOOTH_TCODE
 void startBLE() {
 	if(!bleHandler) {
 		displayPrint("Starting BLE");
@@ -247,15 +250,14 @@ void startBLE() {
 }
 
 void startBlueTooth() {
-#if BLUETOOTH_TCODE
 	if(!btHandler) {
 		displayPrint("Starting Bluetooth serial");
 		btHandler = new BluetoothHandler();
 		btHandler->setup();
 	}
 	startBLE();
-#endif
 }
+#endif
 
 void startUDP() {
 #if WIFI_TCODE
@@ -285,10 +287,12 @@ void startConfigMode(bool withBle= true) {
 	}
 #endif
 
+#if BLUETOOTH_TCODE
 // After attempting to connect wifi, ble cause crash
 	if(withBle) { 
 		startBLE();
 	}
+#endif
 }
 
 
@@ -298,10 +302,12 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
         LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiStatus::CONNECTED");
 		if(reason == WiFiReason::AP_MODE) {
         	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AP_MODE");
+#if BLUETOOTH_TCODE
 			#if !ESP32_DA
             if(bleHandler)
               bleHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
 			#endif
+#endif
 		}
 	} else {
 		// wifi.dispose();

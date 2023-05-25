@@ -20,7 +20,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
-
 var userSettings = {};
 var systemInfo = {};
 var upDateTimeout;
@@ -225,16 +224,7 @@ function wsCallBackFunction(evt) {
             //     playFail();
             //     break;
             case "batteryStatus":
-				var status = data["message"];
-				var batteryVoltage = status["batteryVoltage"];
-				var batteryCapacityRemainingPercentage = status["batteryCapacityRemainingPercentage"];
-				var batteryCapacityRemaining = status["batteryCapacityRemaining"];
-				var batteryTemperature = status["batteryTemperature"];
-                
-                document.getElementById("batteryVoltage").value = batteryVoltage;
-                document.getElementById("batteryCapacityRemaining").value = batteryCapacityRemaining;
-                document.getElementById("batteryCapacityRemainingPercentage").value = batteryCapacityRemainingPercentage;
-                document.getElementById("batteryTemperature").value = batteryTemperature;
+                wsBatteryStatus(data);
                 break;
             case "debug":
 				var message = data["message"];
@@ -478,18 +468,9 @@ function setUserSettings()
     toggleStaticIPSettings(userSettings["staticIP"]);
     togglePitchServoFrequency(userSettings["pitchFrequencyIsDifferent"]);
     toggleFeedbackTwistSettings(userSettings["feedbackTwist"]);
-    toggleDisplaySettings(userSettings["displayEnabled"]);
-    toggleTempSettings(userSettings["tempSleeveEnabled"]);
-    if(systemInfo.boardType === BoardType.ISAAC) {
-        setBuildInternalTemp(false);
-        setBuildFanControl(false);
-    } else {
-        toggleInternalTempSettings(userSettings["tempInternalEnabled"]);
-        toggleFanControlSettings(userSettings["fanControlEnabled"]);
-    }
     toggleMotorTypeOptions();
     toggleBatterySettings(userSettings["batteryLevelEnabled"]);
-    setMotionEnabledStatus();
+    MotionGenerator.setEnabledStatus();
     // var xMin = userSettings["xMin"];
     // var xMax = userSettings["xMax"];
     //document.getElementById("xMin").value = xMin;
@@ -550,13 +531,7 @@ function setUserSettings()
 	document.getElementById("LubeButton_PIN").value = userSettings["LubeButton_PIN"];
 	document.getElementById("Squeeze_PIN").value = userSettings["Squeeze_PIN"];
 
-	document.getElementById("BLDC_MotorA_Voltage").value = userSettings["BLDC_MotorA_Voltage"];
-	document.getElementById("BLDC_MotorA_Current").value = userSettings["BLDC_MotorA_Current"];
-	document.getElementById("BLDC_Encoder_PIN").value = userSettings["BLDC_Encoder_PIN"];
-	document.getElementById("BLDC_Enable_PIN").value = userSettings["BLDC_Enable_PIN"];
-	document.getElementById("BLDC_PWMchannel1_PIN").value = userSettings["BLDC_PWMchannel1_PIN"];
-	document.getElementById("BLDC_PWMchannel2_PIN").value = userSettings["BLDC_PWMchannel2_PIN"];
-	document.getElementById("BLDC_PWMchannel3_PIN").value = userSettings["BLDC_PWMchannel3_PIN"];
+    BLDCMotor.setup();
 	
     document.getElementById("RightServo_ZERO").value = userSettings["RightServo_ZERO"];
     document.getElementById("LeftServo_ZERO").value = userSettings["LeftServo_ZERO"];
@@ -627,11 +602,7 @@ function setUserSettings()
     document.getElementById('caseFanResolution').value = userSettings["caseFanResolution"];
     document.getElementById('caseFanFrequency').value = userSettings["caseFanFrequency"];
 
-    document.getElementById('batteryLevelEnabled').checked = userSettings["batteryLevelEnabled"];
-    //document.getElementById('Battery_Voltage_PIN').value = userSettings["Battery_Voltage_PIN"];
-    document.getElementById('batteryLevelNumeric').checked = userSettings["batteryLevelNumeric"];
-    //document.getElementById('batteryVoltageMax').value = userSettings["batteryVoltageMax"];
-    document.getElementById('batteryCapacityMax').value = userSettings["batteryCapacityMax"];
+    batterySetup();
     
     document.getElementById('debug').value = userSettings["logLevel"];
 
@@ -644,39 +615,7 @@ function setUserSettings()
         excludedElement.options[i].selected = userSettings["log-exclude-tags"].indexOf(excludedElement.options[i].value) >= 0;
     }
     
-    
-    const motionProfilesElement = document.getElementById('motionProfiles');
-    removeAllChildren(motionProfilesElement);
-    userSettings["motionProfiles"].forEach((x, index) => {
-        addMotionProfileOption(index, x, index == userSettings["motionDefaultProfileIndex"]);
-    });
-
-    const currentProfileIndex = userSettings["motionDefaultProfileIndex"];
-    document.getElementById('motionProfiles').value = currentProfileIndex;
-
-    document.getElementById('motionProfileName').value = userSettings['motionProfiles'][currentProfileIndex]["motionProfileName"];
-    document.getElementById('motionUpdateGlobal').value = userSettings['motionProfiles'][currentProfileIndex]["motionUpdateGlobal"];
-    document.getElementById('motionPeriodGlobal').value = userSettings['motionProfiles'][currentProfileIndex]["motionPeriodGlobal"];
-    document.getElementById('motionAmplitudeGlobal').value = userSettings['motionProfiles'][currentProfileIndex]["motionAmplitudeGlobal"];
-    document.getElementById('motionOffsetGlobal').value = userSettings['motionProfiles'][currentProfileIndex]["motionOffsetGlobal"];  
-    // document.getElementById('motionPhaseGlobal').value = userSettings["motionPhaseGlobal"];
-    document.getElementById('motionPeriodGlobalRandom').checked = userSettings['motionProfiles'][currentProfileIndex]["motionPeriodGlobalRandom"];
-    document.getElementById('motionAmplitudeGlobalRandom').checked = userSettings['motionProfiles'][currentProfileIndex]["motionAmplitudeGlobalRandom"];
-    document.getElementById('motionOffsetGlobalRandom').checked = userSettings['motionProfiles'][currentProfileIndex]["motionOffsetGlobalRandom"];
-    toggleMotionRandomSettings();
-    document.getElementById('motionPeriodGlobalRandomMin').value = userSettings['motionProfiles'][currentProfileIndex]["motionPeriodGlobalRandomMin"];
-    document.getElementById('motionPeriodGlobalRandomMax').value = userSettings['motionProfiles'][currentProfileIndex]["motionPeriodGlobalRandomMax"];
-    document.getElementById('motionAmplitudeGlobalRandomMin').value = userSettings['motionProfiles'][currentProfileIndex]["motionAmplitudeGlobalRandomMin"];
-    document.getElementById('motionAmplitudeGlobalRandomMax').value = userSettings['motionProfiles'][currentProfileIndex]["motionAmplitudeGlobalRandomMax"];
-    document.getElementById('motionOffsetGlobalRandomMin').value = userSettings['motionProfiles'][currentProfileIndex]["motionOffsetGlobalRandomMin"];
-    document.getElementById('motionOffsetGlobalRandomMax').value = userSettings['motionProfiles'][currentProfileIndex]["motionOffsetGlobalRandomMax"];
-    document.getElementById('motionRandomChangeMax').value = userSettings['motionProfiles'][currentProfileIndex]["motionRandomChangeMax"];
-    document.getElementById('motionRandomChangeMin').value = userSettings['motionProfiles'][currentProfileIndex]["motionRandomChangeMin"];
-    setIntMinAndMax('motionPeriodGlobalRandomMin', 'motionPeriodGlobalRandomMax');
-    setIntMinAndMax('motionAmplitudeGlobalRandomMin', 'motionAmplitudeGlobalRandomMax');
-    setIntMinAndMax('motionOffsetGlobalRandomMin', 'motionOffsetGlobalRandomMax');
-    setIntMinAndMax('motionRandomChangeMin', 'motionRandomChangeMax');
-    //document.getElementById('motionReversedGlobal').checked = userSettings["motionReversedGlobal"];
+    MotionGenerator.setup();
 					
     
     document.getElementById('voiceEnabled').checked = userSettings['voiceEnabled'];
@@ -738,14 +677,12 @@ function hasFeature(buildFeature) {
     return systemInfo.buildFeatures.includes(buildFeature);
 }
 function toggleBuildOptions() {
-    const hasTemp = hasFeature(BuildFeature.TEMP);
-    var tempratureElements = document.getElementsByClassName('build_temprature');
-    for(var i=0;i < tempratureElements.length; i++)
-        tempratureElements[i].hidden = !hasTemp;
-    var displayElements = document.getElementsByClassName('build_display');
-    const hasDisplay = hasFeature(BuildFeature.DISPLAY_);
-    for(var i=0;i < displayElements.length; i++)
-        displayElements[i].hidden = !hasDisplay;
+    var hasTemp = hasFeature(BuildFeature.TEMP);
+    Utils.toggleControlVisibilityByClassName('build_temprature', hasTemp);
+    Utils.toggleControlVisibilityByID('internalTempDisplayedRow', hasTemp);
+    Utils.toggleControlVisibilityByID('sleeveTempDisplayedRow',  hasTemp);
+
+    Utils.toggleControlVisibilityByClassName('build_display', hasFeature(BuildFeature.DISPLAY_));
         
     var tcodeVersionElement = document.getElementById('TCodeVersion');
 
@@ -762,13 +699,9 @@ function toggleBuildOptions() {
 
 function toggleMotorTypeOptions() {
     if(systemInfo.motorType === MotorType.Servo) {
-        var BLDCElements = document.getElementsByClassName('BLDCOnly');
-        for(var i=0;i < BLDCElements.length; i++)
-            BLDCElements[i].style.display = "none";
+        Utils.toggleControlVisibilityByClassName('BLDCOnly', false);
     } else {
-        var servoElements = document.getElementsByClassName('servoOnly');
-        for(var i=0;i < servoElements.length; i++)
-            servoElements[i].style.display = "none";
+        Utils.toggleControlVisibilityByClassName('servoOnly', false);
     }
 }
 
@@ -1062,90 +995,10 @@ function setupChannelSliders()
     testDeviceHomeRowNode.appendChild(testDeviceHomeCellNode);
     bodyNode.appendChild(testDeviceHomeRowNode);
 
-    loadChannelRanges();
-    setupMotionChannels();
+    RangeSlider.setup();
+    MotionGenerator.setupChannels();
 }
 
-var motionChannelPhaseDebounce;
-function setupMotionChannels() {
-    var motionChannelsNode = document.getElementById("motionChannels");
-    deleteAllChildren(motionChannelsNode);
-
-    var channels = getChannelMap();
-    var header = document.createElement("div");
-    header.innerText = "Generate motion on channels:"
-    motionChannelsNode.appendChild(header);
-    for(var i=0; i<channels.length;i++) {
-        var channel = channels[i];
-        if(!userSettings.sr6Mode && channel.sr6Only) {
-            continue;
-        }
-        
-        var row = document.createElement("div");
-        row.classList.add("tRow");
-        var cell1 = document.createElement("div");
-        cell1.classList.add("tCell");
-        var cell2 = document.createElement("div");
-        cell2.classList.add("tCell");
-        var name = channel.channel;
-        var friendlyName = channel.channelName;
-        var motionChannelIndex = userSettings["motionChannels"].findIndex(x => x.name == name);
-        var label = document.createElement("span");
-        label.for = "motionChannelCheckbox" + name;
-        label.innerText = friendlyName +" ("+name+")";
-        var checkbox = document.createElement("input");
-        checkbox.id = "motionChannelCheckbox" + name;
-        checkbox.type = "checkbox";
-        checkbox.value = name;
-        checkbox.checked = motionChannelIndex > -1;
-		checkbox.onclick = function () {
-            var name = this.value;
-            var phaseInput = document.getElementById("motionChannelPhaseInput" + name);
-            phaseInput.readOnly = !this.checked;
-            if(!this.checked) {
-                phaseInput.value = 0;
-            }
-            const index = userSettings["motionChannels"].findIndex(x => x.name == name);
-            var motionChannel = {name: name, phase: 0.0}; 
-            if(index > -1) {
-                motionChannel = userSettings["motionChannels"][index];
-                userSettings["motionChannels"].splice(index, 1);
-            }
-            if(this.checked) {
-                userSettings["motionChannels"].push(motionChannel);
-            }
-            updateUserSettings();
-		};
-        
-        var phaseInput = document.createElement("input");
-        phaseInput.id = "motionChannelPhaseInput" + name;
-        phaseInput.type = "number";
-        phaseInput.min = 0.0;
-        phaseInput.step = 0.01;
-        phaseInput.readOnly = motionChannelIndex == -1;
-        phaseInput.value = motionChannelIndex == -1 ? 0 : userSettings["motionChannels"][motionChannelIndex].phase;
-        phaseInput.name = name;
-		phaseInput.oninput = function () {
-            if(motionChannelPhaseDebounce) {
-                clearTimeout(motionChannelPhaseDebounce);
-            }
-            motionChannelPhaseDebounce = setTimeout(() => {
-                var name = this.name;
-                const index = userSettings["motionChannels"].findIndex(x => x.name == name);
-                if(index > -1) {
-                    userSettings["motionChannels"][index].phase = this.value;
-                }
-                updateUserSettings(1);
-            }, 3000);
-		};
-        cell1.appendChild(label);
-        cell1.appendChild(checkbox);
-        cell2.appendChild(phaseInput);
-        row.appendChild(cell1);
-        row.appendChild(cell2);
-        motionChannelsNode.appendChild(row);
-    }
-}
 function deleteAllChildren(parentNode) {
     while (parentNode.firstChild) {
         parentNode.removeChild(parentNode.firstChild);
@@ -1325,12 +1178,6 @@ function toggleFeedbackTwistSettings(feedbackChecked) {
         document.getElementById("analogTwistRow").style.display = 'none';
     }
 }
-function toggleBatterySettings(batteryEnabled) {
-    var batteryOnly = document.getElementsByClassName('batteryOnly');
-    for(var i=0;i < batteryOnly.length; i++)
-        batteryOnly[i].style.display = batteryEnabled ? "flex" : "none";
-}
-
 function updateHostName() 
 {
     userSettings["hostname"] = document.getElementById('hostname').value;
@@ -2130,53 +1977,6 @@ function updateLubeAmount()
     userSettings["lubeAmount"] = parseInt(document.getElementById('lubeAmount').value);
     updateUserSettings();
 }
-function toggleDisplaySettings(enabled) 
-{
-    if(!enabled) 
-    {
-        document.getElementById('displaySettingsDisplayTable').hidden = true;
-    }
-    else if(hasFeature(BuildFeature.DISPLAY_))
-    {
-        document.getElementById('displaySettingsDisplayTable').hidden = false;
-    }
-    var displayOnly = document.getElementsByClassName('displayOnly');
-    for(var i=0;i < displayOnly.length; i++)
-    displayOnly[i].style.display = displayEnabled ? "flex" : "none";
-}
-
-function toggleTempSettings(enabled) 
-{
-    if(!enabled) 
-    {
-        document.getElementById('tempSettingsDisplayTable').hidden = true;
-        document.getElementById('sleeveTempDisplayedRow').hidden = true;
-    }
-    else if(hasFeature(BuildFeature.TEMP))
-    {
-        document.getElementById('tempSettingsDisplayTable').hidden = false;
-        document.getElementById('sleeveTempDisplayedRow').hidden = false;
-    }
-}
-function setBuildInternalTemp(enabled) {
-    var elements = document.getElementsByClassName('internal-temp-build');
-    for(var i=0;i < elements.length; i++)
-        elements[i].style.display = enabled ? "flex" : "none";
-        toggleInternalTempSettings(enabled);
-}
-function toggleInternalTempSettings(enabled) 
-{
-    if(!enabled) 
-    {
-        document.getElementById('internalTempTable').hidden = true;
-        document.getElementById('internalTempDisplayedRow').hidden = true;
-    }
-    else if(hasFeature(BuildFeature.TEMP))
-    {
-        document.getElementById('internalTempTable').hidden = false;
-        document.getElementById('internalTempDisplayedRow').hidden = false;
-    }
-}
 function setDiplayIs32Px() {
     var heightControl = document.getElementById('Display_Screen_Height');
     if(document.getElementById('displayIs32Px').checked) {
@@ -2191,7 +1991,6 @@ function setDiplayIs32Px() {
 function setDisplaySettings()
 {
     userSettings["displayEnabled"] = document.getElementById('displayEnabled').checked;
-    toggleDisplaySettings(userSettings["displayEnabled"]);
     // userSettings["Display_Screen_Width"] = parseInt(document.getElementById('Display_Screen_Width').value);
     // userSettings["Display_Screen_Height"] = parseInt(document.getElementById('Display_Screen_Height').value);
 
@@ -2213,7 +2012,6 @@ function setDisplayAddress() {
 }
 function setTempSettings() {
     userSettings["tempSleeveEnabled"] = document.getElementById('tempSleeveEnabled').checked;
-    toggleTempSettings(userSettings["tempSleeveEnabled"]);
     userSettings["TargetTemp"] = parseFloat(document.getElementById('TargetTemp').value);
     userSettings["HeatPWM"] = parseInt(document.getElementById('HeatPWM').value);
     userSettings["HoldPWM"] = parseInt(document.getElementById('HoldPWM').value);
@@ -2227,245 +2025,11 @@ function setInternalTempSettings() {
     userSettings["tempInternalEnabled"] = document.getElementById('tempInternalEnabled').checked;
     userSettings["caseFanResolution"] = parseInt(document.getElementById('caseFanResolution').value);
     userSettings["caseFanFrequency"] = parseInt(document.getElementById('caseFanFrequency').value);
-    toggleInternalTempSettings(userSettings["tempInternalEnabled"]);
 
     setRestartRequired();
     updateUserSettings();
 }
-function setBatterySettings() {
-    userSettings["batteryLevelEnabled"] = document.getElementById('batteryLevelEnabled').checked;
-    toggleBatterySettings(userSettings["batteryLevelEnabled"]);
-    userSettings["batteryLevelNumeric"] = document.getElementById('batteryLevelNumeric').checked;
-    //userSettings["batteryVoltageMax"] = parseFloat(document.getElementById('batteryVoltageMax').value);
-    userSettings["batteryCapacityMax"] = parseFloat(document.getElementById('batteryCapacityMax').value);
-    setRestartRequired();
-    updateUserSettings();
-}	
-function setBatteryFull() {
-    sendWebsocketCommand("setBatteryFull");
-}
-function toggleMotionRandomSettings() {
-    var currentProfile = getMotionProfileSelectedIndex();
-    toggleControlVisabilityByID("motionOffsetGlobalRandomMinRow", userSettings['motionProfiles'][currentProfile]["motionOffsetGlobalRandom"]);
-    toggleControlVisabilityByID("motionOffsetGlobalRandomMaxRow", userSettings['motionProfiles'][currentProfile]["motionOffsetGlobalRandom"]);
-    toggleControlVisabilityByID("motionAmplitudeGlobalRandomMinRow", userSettings['motionProfiles'][currentProfile]["motionAmplitudeGlobalRandom"]);
-    toggleControlVisabilityByID("motionAmplitudeGlobalRandomMaxRow", userSettings['motionProfiles'][currentProfile]["motionAmplitudeGlobalRandom"]);
-    toggleControlVisabilityByID("motionPeriodGlobalRandomMinRow", userSettings['motionProfiles'][currentProfile]["motionPeriodGlobalRandom"]);
-    toggleControlVisabilityByID("motionPeriodGlobalRandomMaxRow", userSettings['motionProfiles'][currentProfile]["motionPeriodGlobalRandom"]);
-    toggleMotionRandomMinMaxSettingsSettings();
-}
-function toggleMotionRandomMinMaxSettingsSettings() {
-    var currentProfile = getMotionProfileSelectedIndex();
-    toggleControlVisabilityByID("motionRandomChangeMinRow", userSettings['motionProfiles'][currentProfile]["motionOffsetGlobalRandom"] || userSettings['motionProfiles'][currentProfile]["motionAmplitudeGlobalRandom"] || userSettings['motionProfiles'][currentProfile]["motionPeriodGlobalRandom"]);
-    toggleControlVisabilityByID("motionRandomChangeMaxRow", userSettings['motionProfiles'][currentProfile]["motionOffsetGlobalRandom"] || userSettings['motionProfiles'][currentProfile]["motionAmplitudeGlobalRandom"] || userSettings['motionProfiles'][currentProfile]["motionPeriodGlobalRandom"]);
-}
 
-function setMotionEnabledClicked() {
-    userSettings["motionEnabled"] = !userSettings["motionEnabled"];//document.getElementById('motionEnabled').checked;
-    sendTCode(userSettings["motionEnabled"] ? "$motion-enable" : "$motion-disable");
-    //userSettings["motionEnabled"] ? button.classList.add("button-toggle-stop") : button.classList.remove("button-toggle-stop");
-    setMotionEnabledStatus();
-}
-function setMotionEnabledStatus() {
-    var button = document.getElementById('motionEnabledToggle');
-    button.innerText = userSettings["motionEnabled"] ? "Stop" : "Start"
-    if(userSettings["motionEnabled"]) {
-        button.classList.add("button-toggle-stop");
-        button.classList.remove("button-toggle-start");
-    } else {
-        button.classList.remove("button-toggle-stop");
-        button.classList.add("button-toggle-start");
-    }
-}
-function setMotionPeriodGlobalRandomClicked() {
-    var currentProfile = getMotionProfileSelectedIndex();
-    var motionEnabled = document.getElementById('motionPeriodGlobalRandom').checked;
-    if(motionEnabled) {
-        sendTCode("$motion-period-random-on");
-    } else {
-        sendTCode("$motion-period-random-off");
-    }
-    userSettings['motionProfiles'][currentProfile]["motionPeriodGlobalRandom"] = motionEnabled;
-    toggleControlVisabilityByID("motionPeriodGlobalRandomMinRow", userSettings['motionProfiles'][currentProfile]["motionPeriodGlobalRandom"]);
-    toggleControlVisabilityByID("motionPeriodGlobalRandomMaxRow", userSettings['motionProfiles'][currentProfile]["motionPeriodGlobalRandom"]);
-    toggleMotionRandomMinMaxSettingsSettings();
-    updateUserSettings();
-}
-function setMotionAmplitudeGlobalRandomClicked() {
-    var currentProfile = getMotionProfileSelectedIndex();
-    var motionEnabled = document.getElementById('motionAmplitudeGlobalRandom').checked;
-    if(motionEnabled) {
-        sendTCode("$motion-amplitude-random-on");
-    } else {
-        sendTCode("$motion-amplitude-random-off");
-    }
-    userSettings['motionProfiles'][currentProfile]["motionAmplitudeGlobalRandom"] = motionEnabled;
-    toggleControlVisabilityByID("motionAmplitudeGlobalRandomMinRow", userSettings['motionProfiles'][currentProfile]["motionAmplitudeGlobalRandom"]);
-    toggleControlVisabilityByID("motionAmplitudeGlobalRandomMaxRow", userSettings['motionProfiles'][currentProfile]["motionAmplitudeGlobalRandom"]);
-    toggleMotionRandomMinMaxSettingsSettings();
-    updateUserSettings();
-}
-function setMotionOffsetGlobalRandomRandomClicked() {
-    var currentProfile = getMotionProfileSelectedIndex();
-    var motionEnabled = document.getElementById('motionOffsetGlobalRandom').checked;
-    if(motionEnabled) {
-        sendTCode("$motion-offset-random-on");
-    } else {
-        sendTCode("$motion-offset-random-off");
-    }
-    userSettings['motionProfiles'][currentProfile]["motionOffsetGlobalRandom"] = motionEnabled;
-    toggleControlVisabilityByID("motionOffsetGlobalRandomMinRow", userSettings['motionProfiles'][currentProfile]["motionOffsetGlobalRandom"]);
-    toggleControlVisabilityByID("motionOffsetGlobalRandomMaxRow", userSettings['motionProfiles'][currentProfile]["motionOffsetGlobalRandom"]);
-    toggleMotionRandomMinMaxSettingsSettings();
-    updateUserSettings();
-}
-function setMotionProfileDefault() {
-    userSettings["motionDefaultProfileIndex"] = getMotionProfileSelectedIndex();
-    updateUserSettings(1);
-}
-var selectedMotionProfileIndex = 0;
-function getMotionProfileSelectedIndex() {
-    return selectedMotionProfileIndex;
-}
-function setSelectedMotionProfileIndex(value) {
-    selectedMotionProfileIndex = parseInt(value);
-}
-function clearMotionProfileSelection() {
-    var motionProfileButtons = document.getElementsByName("motionProfileButton");
-    if(motionProfileButtons)
-        motionProfileButtons.forEach(x => x.classList.remove("button-pressed"))
-}
-function selectMotionProfile(profileIndex, sendTCodeCommand) {
-    clearMotionProfileSelection();
-    setSelectedMotionProfileIndex(profileIndex);
-    const motionProfilesElement = document.getElementById(`motionProfile${profileIndex}`);
-    motionProfilesElement.classList.add("button-pressed");
-    setMotionGeneratorSettingsProfile(profileIndex);
-    if(sendTCodeCommand)
-        sendTCode(`$motion-set-profile:${profileIndex + 1}`);
-}
-
-var validateGeneratorSettingsDebounce;
-function setMotionGeneratorSettings() {
-    if(validateGeneratorSettingsDebounce) {
-        clearTimeout(validateGeneratorSettingsDebounce);
-    }
-    validateGeneratorSettingsDebounce = setTimeout(() => {
-        var currentProfileIndex = getMotionProfileSelectedIndex();
-        validateIntControl('motionUpdateGlobal', userSettings['motionProfiles'][currentProfileIndex], "motionUpdateGlobal");
-        validateIntControl('motionPeriodGlobal', userSettings['motionProfiles'][currentProfileIndex], "motionPeriodGlobal");
-        validateIntControl('motionAmplitudeGlobal', userSettings['motionProfiles'][currentProfileIndex], "motionAmplitudeGlobal");
-        validateIntControl('motionOffsetGlobal', userSettings['motionProfiles'][currentProfileIndex], "motionOffsetGlobal");
-        // validateFloatControl('motionPhaseGlobal', userSettings["motionPhaseGlobal"]);
-
-        setIntMinAndMax('motionPeriodGlobalRandomMin', 'motionPeriodGlobalRandomMax');
-        validateIntControl('motionPeriodGlobalRandomMin', userSettings['motionProfiles'][currentProfileIndex], "motionPeriodGlobalRandomMin");
-        validateIntControl('motionPeriodGlobalRandomMax', userSettings['motionProfiles'][currentProfileIndex], "motionPeriodGlobalRandomMax");
-        setIntMinAndMax('motionAmplitudeGlobalRandomMin', 'motionAmplitudeGlobalRandomMax');
-        validateIntControl('motionAmplitudeGlobalRandomMin', userSettings['motionProfiles'][currentProfileIndex], "motionAmplitudeGlobalRandomMin");
-        validateIntControl('motionAmplitudeGlobalRandomMax', userSettings['motionProfiles'][currentProfileIndex], "motionAmplitudeGlobalRandomMax");
-        setIntMinAndMax('motionOffsetGlobalRandomMin', 'motionOffsetGlobalRandomMax');
-        validateIntControl('motionOffsetGlobalRandomMin', userSettings['motionProfiles'][currentProfileIndex], "motionOffsetGlobalRandomMin");
-        validateIntControl('motionOffsetGlobalRandomMax', userSettings['motionProfiles'][currentProfileIndex], "motionOffsetGlobalRandomMax");
-        setIntMinAndMax('motionRandomChangeMin', 'motionRandomChangeMax');
-        validateIntControl('motionRandomChangeMin', userSettings['motionProfiles'][currentProfileIndex], "motionRandomChangeMin");
-        validateIntControl('motionRandomChangeMax', userSettings['motionProfiles'][currentProfileIndex], "motionRandomChangeMax");
-
-        
-        //userSettings["motionReversedGlobal"] = document.getElementById('motionReversedGlobal').checked;
-        updateUserSettings(1);
-    },3000);
-}
-var setMotionGeneratorNameDebounce;
-function setMotionGeneratorName() {
-    if(setMotionGeneratorNameDebounce) {
-        clearTimeout(setMotionGeneratorNameDebounce);
-    }
-    
-    setMotionGeneratorNameDebounce = setTimeout(() => {
-        var currentProfileIndex = getMotionProfileSelectedIndex();
-        if(validateStringControl("motionProfileName", userSettings['motionProfiles'][currentProfileIndex])) {
-            //userSettings['motionProfiles'][currentProfileIndex]["motionProfileName"] = document.getElementById("motionProfileName").value;
-            updateMotionProfileName(currentProfileIndex);
-            updateUserSettings(1);
-        }
-    },3000);
-}
-function addMotionProfileOption(profileIndex, profile, selectNewProfile) {
-    const motionProfilesElement = document.getElementById('motionProfiles');
-    var button = document.createElement("button");
-    button.id = `motionProfile${profileIndex}`;
-    button.name = "motionProfileButton";
-    button.value = profileIndex;
-    button.innerText = profile.motionProfileName;
-    button.onclick = function(profileIndex, event) {
-        selectMotionProfile(profileIndex, true);
-    }.bind(this, profileIndex)
-    motionProfilesElement.appendChild(button);
-    if(selectNewProfile) {
-        selectMotionProfile(profileIndex);
-        //motionProfilesElement.value = profileName;
-    }
-}
-function updateMotionProfileName(profileIndex) {
-    const motionProfilesElements = document.getElementsByName('motionProfileButton');
-    var optionsIndex = getMotionProfileSelectedIndex();
-    for (var i=0; i < motionProfilesElements.length; i++) {
-        if (motionProfilesElements[i].value == profileIndex) {
-            optionsIndex = i;
-            break;
-        }
-    }
-    motionProfilesElements[optionsIndex].innerText = userSettings['motionProfiles'][profileIndex]["motionProfileName"];
-}
-function setMotionGeneratorSettingsDefault() {
-    var profileIndex = getMotionProfileSelectedIndex();
-    if (confirm(`Are you sure you want to set the current profile '${userSettings['motionProfiles'][profileIndex]["motionProfileName"]}' to the default settings?`)) {
-        setProfileMotionGeneratorSettingsDefault(profileIndex);
-        updateUserSettings(1);
-    }
-}
-function setProfileMotionGeneratorSettingsDefault(profileIndex) {
-    userSettings['motionProfiles'][profileIndex]["motionProfileName"] = "Profile "+ profileIndex + 1;
-    userSettings['motionProfiles'][profileIndex]["motionUpdateGlobal"] = 100;
-    userSettings['motionProfiles'][profileIndex]["motionPeriodGlobal"] = 2000;
-    userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobal"] = 60;
-    userSettings['motionProfiles'][profileIndex]["motionOffsetGlobal"] = 5000  
-    userSettings['motionProfiles'][profileIndex]["motionPeriodGlobalRandom"] = false;
-    userSettings['motionProfiles'][profileIndex]["motionPeriodGlobalRandomMin"] = 500;
-    userSettings['motionProfiles'][profileIndex]["motionPeriodGlobalRandomMax"] = 2000;
-    userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobalRandom"] = false;
-    userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobalRandomMin"] = 20;
-    userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobalRandomMax"] = 60;
-    userSettings['motionProfiles'][profileIndex]["motionOffsetGlobalRandom"] = false;
-    userSettings['motionProfiles'][profileIndex]["motionOffsetGlobalRandomMin"] = 3000;
-    userSettings['motionProfiles'][profileIndex]["motionOffsetGlobalRandomMax"] = 7000;
-    userSettings['motionProfiles'][profileIndex]["motionRandomChangeMinDefault"] = 3000;
-    userSettings['motionProfiles'][profileIndex]["motionRandomChangeMaxDefault"] = 30000;
-    userSettings['motionProfiles'][profileIndex]["motionPhaseGlobal"] = 0;
-    userSettings['motionProfiles'][profileIndex]["motionReversedGlobal"] = false;
-    
-    setMotionGeneratorSettingsProfile(profileIndex);
-}
-function setMotionGeneratorSettingsProfile(profileIndex) {
-    document.getElementById('motionProfileName').value = userSettings['motionProfiles'][profileIndex]["motionProfileName"];
-    document.getElementById('motionUpdateGlobal').value = userSettings['motionProfiles'][profileIndex]["motionUpdateGlobal"];
-    document.getElementById('motionPeriodGlobal').value = userSettings['motionProfiles'][profileIndex]["motionPeriodGlobal"];
-    document.getElementById('motionAmplitudeGlobal').value = userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobal"];
-    document.getElementById('motionOffsetGlobal').value = userSettings['motionProfiles'][profileIndex]["motionOffsetGlobal"];  
-    //document.getElementById('motionPhaseGlobal').value = userSettings['motionProfiles'][profileIndex]["motionPhaseGlobal"];
-    //document.getElementById('motionReversedGlobal').checked = userSettings['motionProfiles'][profileIndex]["motionReversedGlobal"];
-    document.getElementById('motionPeriodGlobalRandom').checked = userSettings['motionProfiles'][profileIndex]["motionPeriodGlobalRandom"];
-    document.getElementById('motionPeriodGlobalRandomMin').value = userSettings['motionProfiles'][profileIndex]["motionPeriodGlobalRandomMin"];  
-    document.getElementById('motionPeriodGlobalRandomMax').value = userSettings['motionProfiles'][profileIndex]["motionPeriodGlobalRandomMax"];  
-    document.getElementById('motionAmplitudeGlobalRandom').checked = userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobalRandom"];
-    document.getElementById('motionAmplitudeGlobalRandomMin').value = userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobalRandomMin"];  
-    document.getElementById('motionAmplitudeGlobalRandomMax').value = userSettings['motionProfiles'][profileIndex]["motionAmplitudeGlobalRandomMax"];  
-    document.getElementById('motionOffsetGlobalRandom').checked = userSettings['motionProfiles'][profileIndex]["motionOffsetGlobalRandom"];
-    document.getElementById('motionOffsetGlobalRandomMin').value = userSettings['motionProfiles'][profileIndex]["motionOffsetGlobalRandomMin"];  
-    document.getElementById('motionOffsetGlobalRandomMax').value = userSettings['motionProfiles'][profileIndex]["motionOffsetGlobalRandomMax"];  
-    toggleMotionRandomSettings();
-}
 function toggleVoiceSettings() {
     userSettings['voiceEnabled'] = document.getElementById('voiceEnabled').checked;  
     setRestartRequired();
@@ -2495,13 +2059,13 @@ function setMaxTemp() {
 function setBuildFanControl(enabled) {
     var elements = document.getElementsByClassName('fan-control-build');
     for(var i=0;i < elements.length; i++)
-        elements[i].style.display = enabled ? "flex" : "none";
+        Utils.toggleElementShown(elements[i],  enabled);
     toggleFanControlSettings(enabled);
 }
 function toggleFanControlSettings(enabled) {
     var elements = document.getElementsByClassName('fan-control');
     for(var i=0;i < elements.length; i++)
-        elements[i].style.display = enabled ? "flex" : "none";
+        Utils.toggleElementShown(elements[i], enabled);
 }
 function connectWifi() {
     
@@ -2558,20 +2122,6 @@ function updateWifiSettings() {
 	
 }
 
-function toggleControlVisabilityByID(id, hidden) {
-    var control = document.getElementById(id);
-    control.style.display = hidden ? "flex" : "none";
-}
-function toggleControlVisabilityByName(name, hidden) {
-    var controls = document.getElementByName(name);
-    for(var i=0;i < controls.length; i++)
-        controls[i].style.display = hidden ? "flex" : "none";
-}
-function toggleControlVisabilityByClassName(name, hidden) {
-    var controls = document.getElementByClassName(name);
-    for(var i=0;i < controls.length; i++)
-        controls[i].style.display = hidden ? "flex" : "none";
-}
 
 function togglePitchServoFrequency(isChecked) 
 {

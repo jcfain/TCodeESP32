@@ -65,15 +65,16 @@
 
 .range_container input[type="number"] {
     width: 50px;
-    /* color: #8a8383;
-    width: 50px;
-    height: 30px;
-    font-size: 20px;
-    border: none; */
+    background-color: black;
+    color: white;
 }
 
 .range_container input[type=number]::-webkit-inner-spin-button, 
-.range_container input[type=number]::-webkit-outer-spin-button {  
+.range_container input[type=number]::-webkit-outer-spin-button  {  
+    /* -webkit-appearance: none; */
+    /* background-color: black;
+    color: white; */
+
     opacity: 1;
 }
 
