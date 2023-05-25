@@ -12,6 +12,10 @@ public:
         strcpy(m_channel, channel);
         tcodeVersion = version;
         setEnabled(SettingsHandler::getMotionEnabled());
+        updateProfile();
+    }
+
+    void updateProfile() {
         setAmplitude(SettingsHandler::getMotionAmplitudeGlobal());
         setOffset(SettingsHandler::getMotionOffsetGlobal());
         setPeriod(SettingsHandler::getMotionPeriodGlobal());
@@ -88,7 +92,6 @@ public:
             updatePhaseIncrement();
         LogHandler::verbose(TagHandler::MotionHandler, "%s setEnabled: %ld", m_channel, enable);
     }
-
     void setRange(uint16_t min, uint16_t max) {
         m_min = min;
         m_max = max;

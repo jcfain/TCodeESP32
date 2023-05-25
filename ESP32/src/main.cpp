@@ -350,7 +350,9 @@ void batteryVoltageCallback(float capacityRemainingPercentage, float capacityRem
 void settingChangeCallback(const char* group, const char* settingThatChanged) {
     LogHandler::debug(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
 	if(strcmp(group, "motionGenerator") == 0) {
-		if(strcmp(settingThatChanged, "motionChannels") == 0) 
+		if(strcmp(settingThatChanged, "motionSelectedProfileIndex") == 0) 
+			motionHandler.updateProfiles();
+		else if(strcmp(settingThatChanged, "motionChannels") == 0) 
 			motionHandler.setMotionChannels(SettingsHandler::getMotionChannels());
 		else if(strcmp(settingThatChanged, "motionEnabled") == 0) 
 			motionHandler.setEnabled(SettingsHandler::getMotionEnabled());

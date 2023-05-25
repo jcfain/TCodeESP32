@@ -20,6 +20,7 @@ public:
         buf[0] = {0};
         LogHandler::verbose(TagHandler::MotionHandler, "getMovement Enter %s" , buf);
         if(!enabled || !m_motionChannels.size()) {
+            xSemaphoreGive(xMutex);
             return;
         }
         for (int i = 0; i < m_motionChannels.size(); i++) {
@@ -84,7 +85,11 @@ public:
     // float getStopAtCycle() {
     //     return stopAt;
     // };
-
+    void updateProfiles() {
+        for (size_t i = 0; i < m_motionChannels.size(); i++) {
+            m_motionChannels[i].updateProfile();
+        }
+    }
     void setMotionChannels(const std::vector<MotionChannel> &motionChannels) {
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         bool enabledBak = enabled;
