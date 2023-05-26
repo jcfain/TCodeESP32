@@ -74,6 +74,13 @@ public:
 
     // Initial phase in degrees. The phase should ideally be between (offset-amplitude/2) and (offset+amplitude/2)
     int getPhase() {
+        if(phaseRandomMode) {
+            if(millis() > lastRandomPhaseExecutionChange + randomPhaseExecutionPeriod) {
+                lastRandomPhaseExecutionChange = millis();
+                updatePhaseRandom();
+            }
+            return phaseRandom;
+        }
         return phase;
     };
 
@@ -212,6 +219,27 @@ public:
         phase = degreesToRadian(value);
         LogHandler::verbose(TagHandler::MotionHandler, "%s setPhase: %ld", m_channel, value);
     };
+    void setPhaseRandom(bool value) {
+        phaseRandomMode = value;
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setPhaseRandom: enabled %ld", m_channel, value);
+        if(value) {
+            updatePhaseRandom();
+        }
+    }
+    void setPhaseRandomMin(int min) {
+        phaseRandomMin = min;
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setPhaseRandomMin: %ld", m_channel, min);
+        if(offsetRandomMode) {
+            updatePhaseRandom();
+        }
+    }
+    void setPhaseRandomMax(int max) {
+        phaseRandomMax = max;
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setPhaseRandomMax: %ld", m_channel, max);
+        if(offsetRandomMode) {
+            updatePhaseRandom();
+        }
+    }
 
     // reverse cycle direction 
     void setReverse(bool value) {
@@ -247,6 +275,10 @@ private:
     int offsetRandomMin = 20;
     int offsetRandomMax = 80;
     float phase = 0;  
+    float phaseRandom = 0;
+    bool phaseRandomMode = false;
+    float phaseRandomMin = 0;
+    float phaseRandomMax = 180;
     bool reversed = false;
     
     int motionRandomChangeMin = 3000;
@@ -257,10 +289,12 @@ private:
     int randomPeriodExecutionPeriod = random(motionRandomChangeMin, motionRandomChangeMax);
     int randomAmplitudeExecutionPeriod = random(motionRandomChangeMin, motionRandomChangeMax);
     int randomOffsetExecutionPeriod = random(motionRandomChangeMin, motionRandomChangeMax);
+    int randomPhaseExecutionPeriod = random(motionRandomChangeMin, motionRandomChangeMax);
     long lastExecutionPeriodChange = millis();
     long lastRandomPeriodExecutionChange = millis();
     long lastRandomAmplitudeExecutionChange = millis();
     long lastRandomOffsetExecutionChange = millis();
+    long lastRandomPhaseExecutionChange = millis();
     // The current phase angle (radians)
     float currentPhase = 0.0;    
     // By how much to increment phase on every position update
@@ -287,7 +321,10 @@ private:
         LogHandler::debug(TagHandler::MotionHandler, "%s New random period %ld", m_channel, periodRandom);
         updatePhaseIncrement();
     }
-
+    void updatePhaseRandom() {
+        phaseRandom = random(phaseRandomMin, phaseRandomMax);
+        LogHandler::debug(TagHandler::MotionHandler, "%s New random phase %ld", m_channel, periodRandom);
+    }
     /** Gate the random change period between all attributes in between two values. 
      * If this random value time outs and any attribute hasnt timed out yet,
      * it will wait till the next timeout. */

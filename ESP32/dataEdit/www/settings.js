@@ -2125,33 +2125,15 @@ function updateWifiSettings() {
 
 function togglePitchServoFrequency(isChecked) 
 {
-    if(isChecked) 
-    {
-        document.getElementById('pitchFrequencyRow').hidden = false;
-    } 
-    else
-    {
-        document.getElementById('pitchFrequencyRow').hidden = true;
-    }
+    Utils.toggleControlVisibilityByID('pitchFrequencyRow', isChecked);
 }
-function toggleStaticIPSettings(enabled)
+function toggleStaticIPSettings(isStatic)
 {
-    if(!enabled) 
-    {
-        document.getElementById('localIP').hidden = true;
-        document.getElementById('gateway').hidden = true;
-        document.getElementById('subnet').hidden = true;
-        document.getElementById('dns1').hidden = true;
-        document.getElementById('dns2').hidden = true;
-    } 
-    else
-    {
-        document.getElementById('localIP').hidden = false;
-        document.getElementById('gateway').hidden = false;
-        document.getElementById('subnet').hidden = false;
-        document.getElementById('dns1').hidden = false;
-        document.getElementById('dns2').hidden = false;
-    }
+    Utils.toggleControlVisibilityByID('localIP', isStatic);
+    Utils.toggleControlVisibilityByID('gateway', isStatic);
+    Utils.toggleControlVisibilityByID('subnet', isStatic);
+    Utils.toggleControlVisibilityByID('dns1', isStatic);
+    Utils.toggleControlVisibilityByID('dns2', isStatic);
 }
 function toggleDeviceOptions(sr6Mode)
 {
@@ -2214,7 +2196,7 @@ function toggleSounds() {
 	playSounds = document.getElementById('soundsEnabled').checked;
     var testSoundButtons = document.getElementsByName("testSoundButton");
     testSoundButtons.forEach(element => {
-        element.hidden = !playSounds;
+        Utils.toggleElementShown(element, playSounds);
     });
 }
 
