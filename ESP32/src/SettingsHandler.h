@@ -571,7 +571,7 @@ public:
                     if(i == maxMotionProfileCount) 
                         break;
                     auto profile = MotionProfile();
-                    LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", motionProfilesObj[i]["motionProfileName"].as<String>());
+                    LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", motionProfilesObj[i]["name"].as<String>());
                     profile.fromJson(motionProfilesObj[i].as<JsonObject>());
                     motionProfiles[i] = profile;
                 }
@@ -1224,24 +1224,24 @@ public:
         int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
         for (int i=0; i < len; i++)
         {
-            doc["motionProfiles"][i]["motionProfileName"] = motionProfiles[i].motionProfileName;
-            doc["motionProfiles"][i]["motionUpdateGlobal"] = motionProfiles[i].motionUpdateGlobal;
-            doc["motionProfiles"][i]["motionPeriodGlobal"] = motionProfiles[i].motionPeriodGlobal;
-            doc["motionProfiles"][i]["motionAmplitudeGlobal"] = motionProfiles[i].motionAmplitudeGlobal;
-            doc["motionProfiles"][i]["motionOffsetGlobal"] = motionProfiles[i].motionOffsetGlobal;
-            doc["motionProfiles"][i]["motionPhaseGlobal"] = motionProfiles[i].motionPhaseGlobal;
-            doc["motionProfiles"][i]["motionReversedGlobal"] = motionProfiles[i].motionReversedGlobal;
-            doc["motionProfiles"][i]["motionPeriodGlobalRandom"] = motionProfiles[i].motionPeriodGlobalRandom;
-            doc["motionProfiles"][i]["motionAmplitudeGlobalRandom"] = motionProfiles[i].motionAmplitudeGlobalRandom;
-            doc["motionProfiles"][i]["motionOffsetGlobalRandom"] = motionProfiles[i].motionOffsetGlobalRandom;
-            doc["motionProfiles"][i]["motionPeriodGlobalRandomMin"] = motionProfiles[i].motionPeriodGlobalRandomMin;
-            doc["motionProfiles"][i]["motionPeriodGlobalRandomMax"] = motionProfiles[i].motionPeriodGlobalRandomMax;
-            doc["motionProfiles"][i]["motionAmplitudeGlobalRandomMin"] = motionProfiles[i].motionAmplitudeGlobalRandomMin;
-            doc["motionProfiles"][i]["motionAmplitudeGlobalRandomMax"] = motionProfiles[i].motionAmplitudeGlobalRandomMax;
-            doc["motionProfiles"][i]["motionOffsetGlobalRandomMin"] = motionProfiles[i].motionOffsetGlobalRandomMin;
-            doc["motionProfiles"][i]["motionOffsetGlobalRandomMax"] = motionProfiles[i].motionOffsetGlobalRandomMax;
-            doc["motionProfiles"][i]["motionRandomChangeMin"] = motionProfiles[i].motionRandomChangeMin;
-            doc["motionProfiles"][i]["motionRandomChangeMax"] = motionProfiles[i].motionRandomChangeMax;
+            doc["motionProfiles"][i]["name"] = motionProfiles[i].motionProfileName;
+            doc["motionProfiles"][i]["update"] = motionProfiles[i].motionUpdateGlobal;
+            doc["motionProfiles"][i]["period"] = motionProfiles[i].motionPeriodGlobal;
+            doc["motionProfiles"][i]["amp"] = motionProfiles[i].motionAmplitudeGlobal;
+            doc["motionProfiles"][i]["offset"] = motionProfiles[i].motionOffsetGlobal;
+            doc["motionProfiles"][i]["phase"] = motionProfiles[i].motionPhaseGlobal;
+            doc["motionProfiles"][i]["reverse"] = motionProfiles[i].motionReversedGlobal;
+            doc["motionProfiles"][i]["periodRan"] = motionProfiles[i].motionPeriodGlobalRandom;
+            doc["motionProfiles"][i]["ampRan"] = motionProfiles[i].motionAmplitudeGlobalRandom;
+            doc["motionProfiles"][i]["offsetRan"] = motionProfiles[i].motionOffsetGlobalRandom;
+            doc["motionProfiles"][i]["periodMin"] = motionProfiles[i].motionPeriodGlobalRandomMin;
+            doc["motionProfiles"][i]["periodMax"] = motionProfiles[i].motionPeriodGlobalRandomMax;
+            doc["motionProfiles"][i]["ampMin"] = motionProfiles[i].motionAmplitudeGlobalRandomMin;
+            doc["motionProfiles"][i]["ampMax"] = motionProfiles[i].motionAmplitudeGlobalRandomMax;
+            doc["motionProfiles"][i]["offsetMin"] = motionProfiles[i].motionOffsetGlobalRandomMin;
+            doc["motionProfiles"][i]["offsetMax"] = motionProfiles[i].motionOffsetGlobalRandomMax;
+            doc["motionProfiles"][i]["ranMin"] = motionProfiles[i].motionRandomChangeMin;
+            doc["motionProfiles"][i]["ranMax"] = motionProfiles[i].motionRandomChangeMax;
         }
         for (size_t i = 0; i < motionChannels.size(); i++)
         {
