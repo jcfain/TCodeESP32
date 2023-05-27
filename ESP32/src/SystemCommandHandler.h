@@ -79,42 +79,42 @@ public:
 				}, true);
 			}
 			
-			if(isCommand(in, "$motion-period-random-on")) {
-				return validateBool("Motion amplitude random", true, SettingsHandler::getMotionPeriodGlobalRandom(), [](bool value) -> bool {
-					SettingsHandler::setMotionPeriodGlobalRandom(value);
-					return true;
-				}, true);
-			}
-			if(isCommand(in, "$motion-period-random-off")) {
-				return validateBool("Motion amplitude random", false, SettingsHandler::getMotionPeriodGlobalRandom(), [](bool value) -> bool {
-					SettingsHandler::setMotionPeriodGlobalRandom(value);
-					return true;
-				}, true);
-			}
-			if(isCommand(in, "$motion-amplitude-random-on")) {
-				return validateBool("Motion amplitude random", true, SettingsHandler::getMotionAmplitudeGlobalRandom(), [](bool value) -> bool {
-					SettingsHandler::setMotionAmplitudeGlobalRandom(value);
-					return true;
-				}, true);
-			}
-			if(isCommand(in, "$motion-amplitude-random-off")) {
-				return validateBool("Motion amplitude random", false, SettingsHandler::getMotionAmplitudeGlobalRandom(), [](bool value) -> bool {
-					SettingsHandler::setMotionAmplitudeGlobalRandom(value);
-					return true;
-				}, true);
-			}
-			if(isCommand(in, "$motion-offset-random-on")) {
-				return validateBool("Motion offset random", true, SettingsHandler::getMotionOffsetGlobalRandom(), [](bool value) -> bool {
-					SettingsHandler::setMotionOffsetGlobalRandom(value);
-					return true;
-				}, true);
-			}
-			if(isCommand(in, "$motion-offset-random-off")) {
-				return validateBool("Motion offset random", false, SettingsHandler::getMotionOffsetGlobalRandom(), [](bool value) -> bool {
-					SettingsHandler::setMotionOffsetGlobalRandom(value);
-					return true;
-				}, true);
-			}
+			// if(isCommand(in, "$motion-period-random-on")) {
+			// 	return validateBool("Motion amplitude random", true, SettingsHandler::getMotionPeriodGlobalRandom(), [](bool value) -> bool {
+			// 		SettingsHandler::setMotionPeriodGlobalRandom(value);
+			// 		return true;
+			// 	}, true);
+			// }
+			// if(isCommand(in, "$motion-period-random-off")) {
+			// 	return validateBool("Motion amplitude random", false, SettingsHandler::getMotionPeriodGlobalRandom(), [](bool value) -> bool {
+			// 		SettingsHandler::setMotionPeriodGlobalRandom(value);
+			// 		return true;
+			// 	}, true);
+			// }
+			// if(isCommand(in, "$motion-amplitude-random-on")) {
+			// 	return validateBool("Motion amplitude random", true, SettingsHandler::getMotionAmplitudeGlobalRandom(), [](bool value) -> bool {
+			// 		SettingsHandler::setMotionAmplitudeGlobalRandom(value);
+			// 		return true;
+			// 	}, true);
+			// }
+			// if(isCommand(in, "$motion-amplitude-random-off")) {
+			// 	return validateBool("Motion amplitude random", false, SettingsHandler::getMotionAmplitudeGlobalRandom(), [](bool value) -> bool {
+			// 		SettingsHandler::setMotionAmplitudeGlobalRandom(value);
+			// 		return true;
+			// 	}, true);
+			// }
+			// if(isCommand(in, "$motion-offset-random-on")) {
+			// 	return validateBool("Motion offset random", true, SettingsHandler::getMotionOffsetGlobalRandom(), [](bool value) -> bool {
+			// 		SettingsHandler::setMotionOffsetGlobalRandom(value);
+			// 		return true;
+			// 	}, true);
+			// }
+			// if(isCommand(in, "$motion-offset-random-off")) {
+			// 	return validateBool("Motion offset random", false, SettingsHandler::getMotionOffsetGlobalRandom(), [](bool value) -> bool {
+			// 		SettingsHandler::setMotionOffsetGlobalRandom(value);
+			// 		return true;
+			// 	}, true);
+			// }
 
 			// Commands with values
 			int indexofDelim = getposition(in, strlen(in), ':');
@@ -203,42 +203,42 @@ public:
 					return true;
 				}, true);
 			}
-			if(isCommand(in, "$motion-update")) {
-				return validateGreaterThanNegativeOne("Motion update global", value, [](int valueInt) -> bool {
-					SettingsHandler::setMotionUpdateGlobal(valueInt);
-					return true;
-				}, true);
-			}
-			if(isCommand(in, "$motion-period")) {
-				return validateGreaterThanNegativeOne("Motion period global", value, [](int valueInt) -> bool {
-					SettingsHandler::setMotionPeriodGlobal(valueInt);
-					return true;
-				}, true);
-			}
-			if(isCommand(in, "$motion-amplitude")) {
-				return validateGreaterThanNegativeOne("Motion amplitude global", value, [](int valueInt) -> bool {
-					SettingsHandler::setMotionAmplitudeGlobal(valueInt);
-					return true;
-				}, true);
-			}
-			if(isCommand(in, "$motion-offset")) {
-				return validateGreaterThanNegativeOne("Motion offset global", value, [](int valueInt) -> bool {
-					SettingsHandler::setMotionOffsetGlobal(valueInt);
-					return true;
-				}, true);
-			}
-			if(isCommand(in, "$motion-phase")) {
-				return validateGreaterThanNegativeOne("Motion phase global", value, [](int valueInt) -> bool {
-					SettingsHandler::setMotionPhaseGlobal(valueInt);
-					return true;
-				}, true);
-			}
-			if(isCommand(in, "$motion-reverse")) {
-				return validateGreaterThanNegativeOne("Motion reverse global", value, [](int valueInt) -> bool {
-					SettingsHandler::setMotionReversedGlobal(valueInt);
-					return true;
-				}, true);
-			}
+			// if(isCommand(in, "$motion-update")) {
+			// 	return validateGreaterThanNegativeOne("Motion update global", value, [](int valueInt) -> bool {
+			// 		SettingsHandler::setMotionUpdateGlobal(valueInt);
+			// 		return true;
+			// 	}, true);
+			// }
+			// if(isCommand(in, "$motion-period")) {
+			// 	return validateGreaterThanNegativeOne("Motion period global", value, [](int valueInt) -> bool {
+			// 		SettingsHandler::setMotionPeriodGlobal(valueInt);
+			// 		return true;
+			// 	}, true);
+			// }
+			// if(isCommand(in, "$motion-amplitude")) {
+			// 	return validateGreaterThanNegativeOne("Motion amplitude global", value, [](int valueInt) -> bool {
+			// 		SettingsHandler::setMotionAmplitudeGlobal(valueInt);
+			// 		return true;
+			// 	}, true);
+			// }
+			// if(isCommand(in, "$motion-offset")) {
+			// 	return validateGreaterThanNegativeOne("Motion offset global", value, [](int valueInt) -> bool {
+			// 		SettingsHandler::setMotionOffsetGlobal(valueInt);
+			// 		return true;
+			// 	}, true);
+			// }
+			// if(isCommand(in, "$motion-phase")) {
+			// 	return validateGreaterThanNegativeOne("Motion phase global", value, [](int valueInt) -> bool {
+			// 		SettingsHandler::setMotionPhaseGlobal(valueInt);
+			// 		return true;
+			// 	}, true);
+			// }
+			// if(isCommand(in, "$motion-reverse")) {
+			// 	return validateGreaterThanNegativeOne("Motion reverse global", value, [](int valueInt) -> bool {
+			// 		SettingsHandler::setMotionReversedGlobal(valueInt);
+			// 		return true;
+			// 	}, true);
+			// }
 			if(isCommand(in, "$motion-set-profile")) {
 				return validateGreaterThanZero("Motion profile", value, [](int valueInt) -> bool {
 					int profileAsIndex = valueInt - 1;
@@ -417,18 +417,18 @@ private:
 		Serial.println("$motion-set-profile:value ------ Set the current profile");
 		Serial.printf("    Motion profile values: 1-%ld\n", maxMotionProfileCount);
 		Serial.println("$motion-toggle ----------------- Toggle motion generator");
-		Serial.println("$motion-period-random-on ------- Period random on for the current profile");
-		Serial.println("$motion-period-random-off ------ Period random off for the current profile");
-		Serial.println("$motion-amplitude-random-on ---- Amplitude random on for the current profile");
-		Serial.println("$motion-amplitude-random-off --- Amplitude random off for the current profile");
-		Serial.println("$motion-offset-random-on ------- Offset random on for the current profile");
-		Serial.println("$motion-offset-random-off ------ Offset random off for the current profile");
-		Serial.println("$motion-period:value ----------- Set period for the current profile");
-		Serial.println("$motion-update:value ----------- Set update rate for the current profile");
-		Serial.println("$motion-amplitude:value -------- Set amplitude for the current profile");
-		Serial.println("$motion-offset:value ----------- Set offset for the current profile");
-		Serial.println("$motion-phase:value ------------ Set phase for the current profile");
-		Serial.println("$motion-reverse:value ---------- Set reverse for the current profile");
+		// Serial.println("$motion-period-random-on ------- Period random on for the current profile");
+		// Serial.println("$motion-period-random-off ------ Period random off for the current profile");
+		// Serial.println("$motion-amplitude-random-on ---- Amplitude random on for the current profile");
+		// Serial.println("$motion-amplitude-random-off --- Amplitude random off for the current profile");
+		// Serial.println("$motion-offset-random-on ------- Offset random on for the current profile");
+		// Serial.println("$motion-offset-random-off ------ Offset random off for the current profile");
+		// Serial.println("$motion-period:value ----------- Set period for the current profile");
+		// Serial.println("$motion-update:value ----------- Set update rate for the current profile");
+		// Serial.println("$motion-amplitude:value -------- Set amplitude for the current profile");
+		// Serial.println("$motion-offset:value ----------- Set offset for the current profile");
+		// Serial.println("$motion-phase:value ------------ Set phase for the current profile");
+		// Serial.println("$motion-reverse:value ---------- Set reverse for the current profile");
 	}
 };
 

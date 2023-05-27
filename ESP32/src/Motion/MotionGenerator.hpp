@@ -7,34 +7,43 @@
 
 class MotionGenerator {
 public:
-    void setup(TCodeVersion version, const char channel[3])
+    void setup(TCodeVersion version, const MotionChannel& channel)
     {
-        strcpy(m_channel, channel);
+        strcpy(m_channel, channel.name);
         tcodeVersion = version;
         setEnabled(SettingsHandler::getMotionEnabled());
-        updateProfile();
+        updateProfile(channel);
     }
 
-    void updateProfile() {
-        setAmplitude(SettingsHandler::getMotionAmplitudeGlobal());
-        setOffset(SettingsHandler::getMotionOffsetGlobal());
-        setPeriod(SettingsHandler::getMotionPeriodGlobal());
-        setUpdate(SettingsHandler::getMotionUpdateGlobal());
-        setPhase(SettingsHandler::getMotionPhaseGlobal());
-        setReverse(SettingsHandler::getMotionReversedGlobal());
-        setAmplitudeRandom(SettingsHandler::getMotionAmplitudeGlobalRandom());
-        setAmplitudeRandomMin(SettingsHandler::getMotionAmplitudeGlobalRandomMin());
-        setAmplitudeRandomMax(SettingsHandler::getMotionAmplitudeGlobalRandomMax());
-        setPeriodRandom(SettingsHandler::getMotionPeriodGlobalRandom());
-        setPeriodRandomMin(SettingsHandler::getMotionPeriodGlobalRandomMin());
-        setPeriodRandomMax(SettingsHandler::getMotionPeriodGlobalRandomMax());
-        setOffsetRandom(SettingsHandler::getMotionOffsetGlobalRandom());
-        setOffsetRandomMin(SettingsHandler::getMotionOffsetGlobalRandomMin());
-        setOffsetRandomMax(SettingsHandler::getMotionOffsetGlobalRandomMax());
+    void updateProfile(const MotionChannel& channel) {
+        setRange(SettingsHandler::getChannelMin(channel.name), SettingsHandler::getChannelMax(channel.name));
+
+        setAmplitude(channel.motionAmplitudeGlobal);
+        setOffset(channel.motionOffsetGlobal);
+        setPeriod(channel.motionPeriodGlobal);
+        setUpdate(channel.motionUpdateGlobal);
+        setPhase(channel.motionPhaseGlobal);
+        setReverse(channel.motionReversedGlobal);
+        setAmplitudeRandom(channel.motionAmplitudeGlobalRandom);
+        setAmplitudeRandomMin(channel.motionAmplitudeGlobalRandomMin);
+        setAmplitudeRandomMax(channel.motionAmplitudeGlobalRandomMax);
+        setPeriodRandom(channel.motionPeriodGlobalRandom);
+        setPeriodRandomMin(channel.motionPeriodGlobalRandomMin);
+        setPeriodRandomMax(channel.motionPeriodGlobalRandomMax);
+        setOffsetRandom(channel.motionOffsetGlobalRandom);
+        setOffsetRandomMin(channel.motionOffsetGlobalRandomMin);
+        setOffsetRandomMax(channel.motionOffsetGlobalRandomMax);
+        setPhaseRandom(channel.motionPhaseRandom);
+        setPhaseRandomMin(channel.motionPhaseRandomMin);
+        setPhaseRandomMax(channel.motionPhaseRandomMax);
     }
 
     void getMovement(char buf[25]) {
         calculateNext(buf);
+    }
+
+    void getName(char buf[3]) {
+        strcpy(buf, m_channel);
     }
 
     int getPeriod() {

@@ -351,45 +351,45 @@ void settingChangeCallback(const char* group, const char* settingThatChanged) {
     LogHandler::debug(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
 	if(strcmp(group, "motionGenerator") == 0) {
 		if(strcmp(settingThatChanged, "motionSelectedProfileIndex") == 0) 
-			motionHandler.updateProfiles();
-		else if(strcmp(settingThatChanged, "motionChannels") == 0) 
 			motionHandler.setMotionChannels(SettingsHandler::getMotionChannels());
+		// else if(strcmp(settingThatChanged, "motionChannels") == 0) 
+		// 	motionHandler.setMotionChannels(SettingsHandler::getMotionChannels());
 		else if(strcmp(settingThatChanged, "motionEnabled") == 0) 
 			motionHandler.setEnabled(SettingsHandler::getMotionEnabled());
-		else if(strcmp(settingThatChanged, "motionAmplitudeGlobal") == 0) 
-			motionHandler.setAmplitude(SettingsHandler::getMotionAmplitudeGlobal());
-		else if(strcmp(settingThatChanged, "motionOffsetGlobal") == 0) 
-			motionHandler.setOffset(SettingsHandler::getMotionOffsetGlobal());
-		else if(strcmp(settingThatChanged, "motionPeriodGlobal") == 0) 
-			motionHandler.setPeriod(SettingsHandler::getMotionPeriodGlobal());
-		else if(strcmp(settingThatChanged, "motionUpdateGlobal") == 0) 
-			motionHandler.setUpdate(SettingsHandler::getMotionUpdateGlobal());
-		else if(strcmp(settingThatChanged, "motionPhaseGlobal") == 0) 
-			motionHandler.setPhase(SettingsHandler::getMotionPhaseGlobal());
-		else if(strcmp(settingThatChanged, "motionReversedGlobal") == 0) 
-			motionHandler.setReverse(SettingsHandler::getMotionReversedGlobal());
-		else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandom") == 0) 
-			motionHandler.setAmplitudeRandom(SettingsHandler::getMotionAmplitudeGlobalRandom());
-		else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandomMin") == 0) 
-			motionHandler.setAmplitudeRandomMin(SettingsHandler::getMotionAmplitudeGlobalRandomMin());
-		else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandomMax") == 0) 
-			motionHandler.setAmplitudeRandomMax(SettingsHandler::getMotionAmplitudeGlobalRandomMax());
-		else if(strcmp(settingThatChanged, "motionPeriodGlobalRandom") == 0) 
-			motionHandler.setPeriodRandom(SettingsHandler::getMotionPeriodGlobalRandom());
-		else if(strcmp(settingThatChanged, "motionPeriodGlobalRandomMin") == 0) 
-			motionHandler.setPeriodRandomMin(SettingsHandler::getMotionPeriodGlobalRandomMin());
-		else if(strcmp(settingThatChanged, "motionPeriodGlobalRandomMax") == 0) 
-			motionHandler.setPeriodRandomMax(SettingsHandler::getMotionPeriodGlobalRandomMax());
-		else if(strcmp(settingThatChanged, "motionOffsetGlobalRandom") == 0) 
-			motionHandler.setOffsetRandom(SettingsHandler::getMotionOffsetGlobalRandom());
-		else if(strcmp(settingThatChanged, "motionOffsetGlobalRandomMin") == 0) 
-			motionHandler.setOffsetRandomMin(SettingsHandler::getMotionOffsetGlobalRandomMin());
-		else if(strcmp(settingThatChanged, "motionOffsetGlobalRandomMax") == 0) 
-			motionHandler.setOffsetRandomMax(SettingsHandler::getMotionOffsetGlobalRandomMax());
-		else if(strcmp(settingThatChanged, "motionRandomChangeMin") == 0) 
-			motionHandler.setMotionRandomChangeMin(SettingsHandler::getMotionRandomChangeMin());
-		else if(strcmp(settingThatChanged, "motionRandomChangeMax") == 0) 
-			motionHandler.setMotionRandomChangeMax(SettingsHandler::getMotionRandomChangeMax());
+		// else if(strcmp(settingThatChanged, "motionAmplitudeGlobal") == 0) 
+		// 	motionHandler.setAmplitude(SettingsHandler::getMotionAmplitudeGlobal());
+		// else if(strcmp(settingThatChanged, "motionOffsetGlobal") == 0) 
+		// 	motionHandler.setOffset(SettingsHandler::getMotionOffsetGlobal());
+		// else if(strcmp(settingThatChanged, "motionPeriodGlobal") == 0) 
+		// 	motionHandler.setPeriod(SettingsHandler::getMotionPeriodGlobal());
+		// else if(strcmp(settingThatChanged, "motionUpdateGlobal") == 0) 
+		// 	motionHandler.setUpdate(SettingsHandler::getMotionUpdateGlobal());
+		// else if(strcmp(settingThatChanged, "motionPhaseGlobal") == 0) 
+		// 	motionHandler.setPhase(SettingsHandler::getMotionPhaseGlobal());
+		// else if(strcmp(settingThatChanged, "motionReversedGlobal") == 0) 
+		// 	motionHandler.setReverse(SettingsHandler::getMotionReversedGlobal());
+		// else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandom") == 0) 
+		// 	motionHandler.setAmplitudeRandom(SettingsHandler::getMotionAmplitudeGlobalRandom());
+		// else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandomMin") == 0) 
+		// 	motionHandler.setAmplitudeRandomMin(SettingsHandler::getMotionAmplitudeGlobalRandomMin());
+		// else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandomMax") == 0) 
+		// 	motionHandler.setAmplitudeRandomMax(SettingsHandler::getMotionAmplitudeGlobalRandomMax());
+		// else if(strcmp(settingThatChanged, "motionPeriodGlobalRandom") == 0) 
+		// 	motionHandler.setPeriodRandom(SettingsHandler::getMotionPeriodGlobalRandom());
+		// else if(strcmp(settingThatChanged, "motionPeriodGlobalRandomMin") == 0) 
+		// 	motionHandler.setPeriodRandomMin(SettingsHandler::getMotionPeriodGlobalRandomMin());
+		// else if(strcmp(settingThatChanged, "motionPeriodGlobalRandomMax") == 0) 
+		// 	motionHandler.setPeriodRandomMax(SettingsHandler::getMotionPeriodGlobalRandomMax());
+		// else if(strcmp(settingThatChanged, "motionOffsetGlobalRandom") == 0) 
+		// 	motionHandler.setOffsetRandom(SettingsHandler::getMotionOffsetGlobalRandom());
+		// else if(strcmp(settingThatChanged, "motionOffsetGlobalRandomMin") == 0) 
+		// 	motionHandler.setOffsetRandomMin(SettingsHandler::getMotionOffsetGlobalRandomMin());
+		// else if(strcmp(settingThatChanged, "motionOffsetGlobalRandomMax") == 0) 
+		// 	motionHandler.setOffsetRandomMax(SettingsHandler::getMotionOffsetGlobalRandomMax());
+		// else if(strcmp(settingThatChanged, "motionRandomChangeMin") == 0) 
+		// 	motionHandler.setMotionRandomChangeMin(SettingsHandler::getMotionRandomChangeMin());
+		// else if(strcmp(settingThatChanged, "motionRandomChangeMax") == 0) 
+		// 	motionHandler.setMotionRandomChangeMax(SettingsHandler::getMotionRandomChangeMax());
 	} else if(voiceHandler && strcmp(group, "voiceHandler") == 0) {
 		if(strcmp(settingThatChanged, "voiceMuted") == 0) 
 			voiceHandler->setMuteMode(SettingsHandler::getVoiceMuted());

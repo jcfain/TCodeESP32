@@ -565,6 +565,7 @@ public:
                 LogHandler::info(_TAG, "No motion profiles stored, loading default");
                 for(int i = 0; i < maxMotionProfileCount; i++) {
                     motionProfiles[i] = MotionProfile(i + 1);
+                    motionProfiles[i].addDefaultChannel("L0");
                 }
             } else {
                 for(int i = 0; i<motionProfilesObj.size(); i++) {
@@ -576,57 +577,35 @@ public:
                     motionProfiles[i] = profile;
                 }
             }
-            // auto selectedProfile = motionProfiles[motionSelectedProfileIndex];
-            // setValue(selectedProfile.motionUpdateGlobal, motionUpdateGlobal, "motionGenerator", "motionUpdateGlobal");
-            // setValue(selectedProfile.motionPeriodGlobal, motionPeriodGlobal, "motionGenerator", "motionPeriodGlobal");
-            // setValue(selectedProfile.motionAmplitudeGlobal, motionAmplitudeGlobal, "motionGenerator", "motionAmplitudeGlobal");
-            // setValue(selectedProfile.motionOffsetGlobal, motionOffsetGlobal, "motionGenerator", "motionOffsetGlobal");
-            // setValue(selectedProfile.motionPhaseGlobal, motionPhaseGlobal, "motionGenerator", "motionPhaseGlobal");
-            // setValue(selectedProfile.motionReversedGlobal, motionReversedGlobal, "motionGenerator", "motionReversedGlobal");
-            // setValue(selectedProfile.motionPeriodGlobalRandom, motionPeriodGlobalRandom, "motionGenerator", "motionPeriodGlobalRandom");
-            // setValue(selectedProfile.motionPeriodGlobalRandomMin, motionPeriodGlobalRandomMin, "motionGenerator", "motionPeriodGlobalRandomMin");
-            // setValue(selectedProfile.motionPeriodGlobalRandomMax, motionPeriodGlobalRandomMax, "motionGenerator", "motionPeriodGlobalRandomMax");
-            // setValue(selectedProfile.motionAmplitudeGlobalRandom, motionAmplitudeGlobalRandom, "motionGenerator", "motionAmplitudeGlobalRandom");
-            // setValue(selectedProfile.motionAmplitudeGlobalRandomMin, motionAmplitudeGlobalRandomMin, "motionGenerator", "motionAmplitudeGlobalRandomMin");
-            // setValue(selectedProfile.motionAmplitudeGlobalRandomMax, motionAmplitudeGlobalRandomMax, "motionGenerator", "motionAmplitudeGlobalRandomMax");
-            // setValue(selectedProfile.motionOffsetGlobalRandom, motionOffsetGlobalRandom, "motionGenerator", "motionOffsetGlobalRandom");
-            // setValue(selectedProfile.motionOffsetGlobalRandomMin, motionOffsetGlobalRandomMin, "motionGenerator", "motionOffsetGlobalRandomMin");
-            // setValue(selectedProfile.motionOffsetGlobalRandomMax, motionOffsetGlobalRandomMax, "motionGenerator", "motionOffsetGlobalRandomMax");
-            // setValue(selectedProfile.motionRandomChangeMin, motionRandomChangeMin, "motionGenerator", "motionRandomChangeMin");
-            // setValue(selectedProfile.motionRandomChangeMax, motionRandomChangeMax, "motionGenerator", "motionRandomChangeMax");
 
-            // setValue(json, motionChannels, "motionGenerator", "motionChannels");
-            // if(motionChannels.empty()) {
-            //     motionChannels.push_back("L0");
+            // bool motionChannelsChanged = false;
+            // JsonArray motionChannelsObj = json["motionChannels"].as<JsonArray>();
+            // if(initialized && motionChannelsObj.size() != motionChannels.size()) {
+            //     motionChannelsChanged = true;
             // }
-            bool motionChannelsChanged = false;
-            JsonArray motionChannelsObj = json["motionChannels"].as<JsonArray>();
-            if(initialized && motionChannelsObj.size() != motionChannels.size()) {
-                motionChannelsChanged = true;
-            }
-            motionChannels.clear();
-            if(motionChannelsObj.isNull()) {
-                LogHandler::info(_TAG, "No motion channels stored, loading default");
-                motionChannels.push_back(MotionChannel("L0"));
-            } else {
-                for(int i = 0; i<motionChannelsObj.size(); i++) {
-                    const char* name = motionChannelsObj[i]["name"];
-                    LogHandler::debug(_TAG, "Loading motion channel '%s' from settings", name);
-                    auto channel = MotionChannel(name);
-                    LogHandler::debug(_TAG, "Loading motion channel '%s' from settings", channel.name);
-                    float phaseStored = round2(motionChannelsObj[i]["phase"].as<float>());
-                    if(initialized && phaseStored != channel.phase)
-                        motionChannelsChanged = true;
-                    channel.phase = phaseStored;
-                    bool reverseStored = motionChannelsObj[i]["reverse"].as<bool>();
-                    if(initialized && reverseStored != channel.reverse)
-                        motionChannelsChanged = true;
-                    channel.reverse = reverseStored;
-                    motionChannels.push_back(channel);
-                }
-            }
-            if(initialized && motionChannelsChanged)
-                sendMessage("motionGenerator", "motionChannels");
+            // motionChannels.clear();
+            // if(motionChannelsObj.isNull()) {
+            //     LogHandler::info(_TAG, "No motion channels stored, loading default");
+            //     motionChannels.push_back(MotionChannel("L0"));
+            // } else {
+            //     for(int i = 0; i<motionChannelsObj.size(); i++) {
+            //         const char* name = motionChannelsObj[i]["name"];
+            //         LogHandler::debug(_TAG, "Loading motion channel '%s' from settings", name);
+            //         auto channel = MotionChannel(name);
+            //         LogHandler::debug(_TAG, "Loading motion channel '%s' from settings", channel.name);
+            //         float phaseStored = round2(motionChannelsObj[i]["phase"].as<float>());
+            //         if(initialized && phaseStored != channel.phase)
+            //             motionChannelsChanged = true;
+            //         channel.phase = phaseStored;
+            //         bool reverseStored = motionChannelsObj[i]["reverse"].as<bool>();
+            //         if(initialized && reverseStored != channel.reverse)
+            //             motionChannelsChanged = true;
+            //         channel.reverse = reverseStored;
+            //         motionChannels.push_back(channel);
+            //     }
+            // }
+            // if(initialized && motionChannelsChanged)
+            //     sendMessage("motionGenerator", "motionChannels");
 
             setValue(json, voiceEnabled, "voiceHandler", "voiceEnabled", false);
             setValue(json, voiceMuted, "voiceHandler", "voiceMuted", false);
@@ -662,142 +641,142 @@ public:
     {
         strcpy(motionProfiles[motionSelectedProfileIndex].motionProfileName, newValue);
     }
-    static int getMotionUpdateGlobal()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionUpdateGlobal;
-    }
-    static void setMotionUpdateGlobal(const int& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionUpdateGlobal, "motionGenerator", "motionUpdateGlobal");
-    }
-    static int getMotionPeriodGlobal()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionPeriodGlobal;
-    }
-    static void setMotionPeriodGlobal(const int& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionPeriodGlobal, "motionGenerator", "motionPeriodGlobal");
-    }
-    static int getMotionAmplitudeGlobal()
-     {
-        return motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobal;
-    }
-    static void setMotionAmplitudeGlobal(const int& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobal, "motionGenerator", "motionAmplitudeGlobal");
-    }
-    static int getMotionOffsetGlobal()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionOffsetGlobal;
-    }
-    static void setMotionOffsetGlobal(const int& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionOffsetGlobal, "motionGenerator", "motionOffsetGlobal");
-    }
-    static float getMotionPhaseGlobal()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionPhaseGlobal;
-    }
-    static void setMotionPhaseGlobal(const float& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionPhaseGlobal, "motionGenerator", "motionPhaseGlobal");
-    }
-    static bool getMotionReversedGlobal()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionReversedGlobal;
-    }
-    static void setMotionReversedGlobal(const bool& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionReversedGlobal, "motionGenerator", "motionReversedGlobal");
-    }
-    static bool getMotionPeriodGlobalRandom()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionPeriodGlobalRandom;
-    }
-    static void setMotionPeriodGlobalRandom(const bool& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionPeriodGlobalRandom, "motionGenerator", "motionPeriodGlobalRandom");
-    }
-    static int getMotionPeriodGlobalRandomMin()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionPeriodGlobalRandomMin;
-    }
-    static void setMotionPeriodGlobalRandomMin(const int& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionPeriodGlobalRandomMin, "motionGenerator", "motionPeriodGlobalRandomMin");
-    }
-    static int getMotionPeriodGlobalRandomMax()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionPeriodGlobalRandomMax;
-    }
-    static void setMotionPeriodGlobalRandomMax(const int& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionPeriodGlobalRandomMax, "motionGenerator", "motionPeriodGlobalRandomMax");
-    }
-    static bool getMotionAmplitudeGlobalRandom()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandom ;
-    }
-    static void setMotionAmplitudeGlobalRandom(const bool& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandom, "motionGenerator", "motionAmplitudeGlobalRandom");
-    }
-    static int getMotionAmplitudeGlobalRandomMin()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandomMin;
-    }
-    static void setMotionAmplitudeGlobalRandomMin(const int& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandomMin = newValue, "motionGenerator", "motionAmplitudeGlobalRandomMin");
-    }
-    static int getMotionAmplitudeGlobalRandomMax()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandomMax;
-    }
-    static void setMotionAmplitudeGlobalRandomMax(const int& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandomMax = newValue, "motionGenerator", "motionAmplitudeGlobalRandomMax");
-    }
-    static bool getMotionOffsetGlobalRandom()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandom;
-    }
-    static void setMotionOffsetGlobalRandom(const bool& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandom = newValue, "motionGenerator", "motionOffsetGlobalRandom");
-    }
-    static int getMotionOffsetGlobalRandomMin()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandomMin;
-    }
-    static void setMotionOffsetGlobalRandomMin(const int& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandomMin, "motionGenerator", "motionOffsetGlobalRandomMin");
-    }
-    static int getMotionOffsetGlobalRandomMax()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandomMax;
-    }
-    static void setMotionOffsetGlobalRandomMax(const int& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandomMax = newValue, "motionGenerator", "motionOffsetGlobalRandomMax");
-    }
-    static int getMotionRandomChangeMin()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionRandomChangeMin;
-    }
-    static void setMotionRandomChangeMin(const int& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionRandomChangeMin, "motionGenerator", "motionRandomChangeMin");
-    }
-    static int getMotionRandomChangeMax()
-    {
-        return motionProfiles[motionSelectedProfileIndex].motionRandomChangeMax;
-    }
-    static void setMotionRandomChangeMax(const int& newValue)
-    {
-        setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionRandomChangeMax, "motionGenerator", "motionRandomChangeMax");
-    }
+    // static int getMotionUpdateGlobal(const char name[3])
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionUpdateGlobal;
+    // }
+    // static void setMotionUpdateGlobal(const int& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionUpdateGlobal, "motionGenerator", "motionUpdateGlobal");
+    // }
+    // static int getMotionPeriodGlobal()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionPeriodGlobal;
+    // }
+    // static void setMotionPeriodGlobal(const int& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionPeriodGlobal, "motionGenerator", "motionPeriodGlobal");
+    // }
+    // static int getMotionAmplitudeGlobal()
+    //  {
+    //     return motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobal;
+    // }
+    // static void setMotionAmplitudeGlobal(const int& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobal, "motionGenerator", "motionAmplitudeGlobal");
+    // }
+    // static int getMotionOffsetGlobal()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionOffsetGlobal;
+    // }
+    // static void setMotionOffsetGlobal(const int& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionOffsetGlobal, "motionGenerator", "motionOffsetGlobal");
+    // }
+    // static float getMotionPhaseGlobal()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionPhaseGlobal;
+    // }
+    // static void setMotionPhaseGlobal(const float& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionPhaseGlobal, "motionGenerator", "motionPhaseGlobal");
+    // }
+    // static bool getMotionReversedGlobal()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionReversedGlobal;
+    // }
+    // static void setMotionReversedGlobal(const bool& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionReversedGlobal, "motionGenerator", "motionReversedGlobal");
+    // }
+    // static bool getMotionPeriodGlobalRandom()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionPeriodGlobalRandom;
+    // }
+    // static void setMotionPeriodGlobalRandom(const bool& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionPeriodGlobalRandom, "motionGenerator", "motionPeriodGlobalRandom");
+    // }
+    // static int getMotionPeriodGlobalRandomMin()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionPeriodGlobalRandomMin;
+    // }
+    // static void setMotionPeriodGlobalRandomMin(const int& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionPeriodGlobalRandomMin, "motionGenerator", "motionPeriodGlobalRandomMin");
+    // }
+    // static int getMotionPeriodGlobalRandomMax()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionPeriodGlobalRandomMax;
+    // }
+    // static void setMotionPeriodGlobalRandomMax(const int& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionPeriodGlobalRandomMax, "motionGenerator", "motionPeriodGlobalRandomMax");
+    // }
+    // static bool getMotionAmplitudeGlobalRandom()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandom ;
+    // }
+    // static void setMotionAmplitudeGlobalRandom(const bool& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandom, "motionGenerator", "motionAmplitudeGlobalRandom");
+    // }
+    // static int getMotionAmplitudeGlobalRandomMin()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandomMin;
+    // }
+    // static void setMotionAmplitudeGlobalRandomMin(const int& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandomMin = newValue, "motionGenerator", "motionAmplitudeGlobalRandomMin");
+    // }
+    // static int getMotionAmplitudeGlobalRandomMax()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandomMax;
+    // }
+    // static void setMotionAmplitudeGlobalRandomMax(const int& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionAmplitudeGlobalRandomMax = newValue, "motionGenerator", "motionAmplitudeGlobalRandomMax");
+    // }
+    // static bool getMotionOffsetGlobalRandom()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandom;
+    // }
+    // static void setMotionOffsetGlobalRandom(const bool& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandom = newValue, "motionGenerator", "motionOffsetGlobalRandom");
+    // }
+    // static int getMotionOffsetGlobalRandomMin()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandomMin;
+    // }
+    // static void setMotionOffsetGlobalRandomMin(const int& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandomMin, "motionGenerator", "motionOffsetGlobalRandomMin");
+    // }
+    // static int getMotionOffsetGlobalRandomMax()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandomMax;
+    // }
+    // static void setMotionOffsetGlobalRandomMax(const int& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionOffsetGlobalRandomMax = newValue, "motionGenerator", "motionOffsetGlobalRandomMax");
+    // }
+    // static int getMotionRandomChangeMin()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionRandomChangeMin;
+    // }
+    // static void setMotionRandomChangeMin(const int& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionRandomChangeMin, "motionGenerator", "motionRandomChangeMin");
+    // }
+    // static int getMotionRandomChangeMax()
+    // {
+    //     return motionProfiles[motionSelectedProfileIndex].motionRandomChangeMax;
+    // }
+    // static void setMotionRandomChangeMax(const int& newValue)
+    // {
+    //     setValue(newValue, motionProfiles[motionSelectedProfileIndex].motionRandomChangeMax, "motionGenerator", "motionRandomChangeMax");
+    // }
 
     static int motionProfileExists(const char* profile) {
         int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
@@ -1225,29 +1204,27 @@ public:
         for (int i=0; i < len; i++)
         {
             doc["motionProfiles"][i]["name"] = motionProfiles[i].motionProfileName;
-            doc["motionProfiles"][i]["update"] = motionProfiles[i].motionUpdateGlobal;
-            doc["motionProfiles"][i]["period"] = motionProfiles[i].motionPeriodGlobal;
-            doc["motionProfiles"][i]["amp"] = motionProfiles[i].motionAmplitudeGlobal;
-            doc["motionProfiles"][i]["offset"] = motionProfiles[i].motionOffsetGlobal;
-            doc["motionProfiles"][i]["phase"] = motionProfiles[i].motionPhaseGlobal;
-            doc["motionProfiles"][i]["reverse"] = motionProfiles[i].motionReversedGlobal;
-            doc["motionProfiles"][i]["periodRan"] = motionProfiles[i].motionPeriodGlobalRandom;
-            doc["motionProfiles"][i]["ampRan"] = motionProfiles[i].motionAmplitudeGlobalRandom;
-            doc["motionProfiles"][i]["offsetRan"] = motionProfiles[i].motionOffsetGlobalRandom;
-            doc["motionProfiles"][i]["periodMin"] = motionProfiles[i].motionPeriodGlobalRandomMin;
-            doc["motionProfiles"][i]["periodMax"] = motionProfiles[i].motionPeriodGlobalRandomMax;
-            doc["motionProfiles"][i]["ampMin"] = motionProfiles[i].motionAmplitudeGlobalRandomMin;
-            doc["motionProfiles"][i]["ampMax"] = motionProfiles[i].motionAmplitudeGlobalRandomMax;
-            doc["motionProfiles"][i]["offsetMin"] = motionProfiles[i].motionOffsetGlobalRandomMin;
-            doc["motionProfiles"][i]["offsetMax"] = motionProfiles[i].motionOffsetGlobalRandomMax;
-            doc["motionProfiles"][i]["ranMin"] = motionProfiles[i].motionRandomChangeMin;
-            doc["motionProfiles"][i]["ranMax"] = motionProfiles[i].motionRandomChangeMax;
-        }
-        for (size_t i = 0; i < motionChannels.size(); i++)
-        {
-            doc["motionChannels"][i]["name"] = motionChannels[i].name;
-            doc["motionChannels"][i]["phase"] = round2(motionChannels[i].phase);
-            doc["motionChannels"][i]["reverse"] = motionChannels[i].reverse;
+            for (size_t j = 0; j < motionProfiles[i].channels.size(); j++)
+            {
+                doc["motionProfiles"][i]["channels"][j]["name"] = motionProfiles[i].channels[j].name;
+                doc["motionProfiles"][i]["channels"][j]["update"] = motionProfiles[i].channels[j].motionUpdateGlobal;
+                doc["motionProfiles"][i]["channels"][j]["period"] = motionProfiles[i].channels[j].motionPeriodGlobal;
+                doc["motionProfiles"][i]["channels"][j]["amp"] = motionProfiles[i].channels[j].motionAmplitudeGlobal;
+                doc["motionProfiles"][i]["channels"][j]["offset"] = motionProfiles[i].channels[j].motionOffsetGlobal;
+                doc["motionProfiles"][i]["channels"][j]["phase"] = motionProfiles[i].channels[j].motionPhaseGlobal;
+                doc["motionProfiles"][i]["channels"][j]["reverse"] = motionProfiles[i].channels[j].motionReversedGlobal;
+                doc["motionProfiles"][i]["channels"][j]["periodRan"] = motionProfiles[i].channels[j].motionPeriodGlobalRandom;
+                doc["motionProfiles"][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
+                doc["motionProfiles"][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
+                doc["motionProfiles"][i]["channels"][j]["periodMin"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMin;
+                doc["motionProfiles"][i]["channels"][j]["periodMax"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMax;
+                doc["motionProfiles"][i]["channels"][j]["ampMin"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMin;
+                doc["motionProfiles"][i]["channels"][j]["ampMax"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMax;
+                doc["motionProfiles"][i]["channels"][j]["offsetMin"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMin;
+                doc["motionProfiles"][i]["channels"][j]["offsetMax"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMax;
+                doc["motionProfiles"][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
+                doc["motionProfiles"][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
+            }
         }
 
         doc["voiceEnabled"] = voiceEnabled;
