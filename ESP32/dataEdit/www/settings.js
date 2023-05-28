@@ -72,9 +72,6 @@ const servoDegreeValue180 = 637;
 const servoDegreeValue270 = 425; 
 dubugMessages = [];
 
-var AvailibleChannelsV2;
-var AvailibleChannelsV3;
-var AvailibleChannelsBLDC;
 var testDeviceUseIModifier = false;
 var testDeviceDisableModifier = false;
 var testDeviceModifierValue = "1000";
@@ -89,10 +86,48 @@ var startUpStaticIP;
 var startUpLocalIP;
 
 //PWM availible on: 2,4,5,12-19,21-23,25-27,32-33
-var validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33];
-var inputOnlypins = [34,35,36,39];
-var adc1Pins = [36,37,38,39,32,33,34,35];
-var adc2Pins = [4,0,2,15,13,12,14,27,25,26];
+const validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33];
+const inputOnlypins = [34,35,36,39];
+const adc1Pins = [36,37,38,39,32,33,34,35];
+const adc2Pins = [4,0,2,15,13,12,14,27,25,26];
+
+const AvailibleChannelsV2 = [
+    {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
+    {channel: "L1", channelName: "Surge", switch: false, sr6Only: true},
+    {channel: "L2", channelName: "Sway", switch: false, sr6Only: true},
+    {channel: "L3", channelName: "Suck", switch: false, sr6Only: false},
+    {channel: "R0", channelName: "Twist", switch: false, sr6Only: false},
+    {channel: "R1", channelName: "Roll", switch: false, sr6Only: false},
+    {channel: "R2", channelName: "Pitch", switch: false, sr6Only: false},
+    {channel: "V0", channelName: "Vibe 0", switch: true, sr6Only: false},
+    {channel: "V1", channelName: "Vibe 1/Lube", switch: true, sr6Only: false}
+]
+const AvailibleChannelsV3 = [
+    {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
+    {channel: "L1", channelName: "Surge", switch: false, sr6Only: true},
+    {channel: "L2", channelName: "Sway", switch: false, sr6Only: true},
+    {channel: "R0", channelName: "Twist", switch: false, sr6Only: false},
+    {channel: "R1", channelName: "Roll", switch: false, sr6Only: false},
+    {channel: "R2", channelName: "Pitch", switch: false, sr6Only: false},
+    {channel: "V0", channelName: "Vibe 1", switch: true, sr6Only: false},
+    {channel: "V1", channelName: "Vibe 2", switch: true, sr6Only: false},
+    {channel: "V2", channelName: "Vibe 3", switch: true, sr6Only: false},
+    {channel: "V3", channelName: "Vibe 4", switch: true, sr6Only: false},
+    {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
+    {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
+    {channel: "A2", channelName: "Lube", switch: true, sr6Only: false},
+    {channel: "A3", channelName: "Auxiliary", switch: false, sr6Only: false}
+]
+const AvailibleChannelsBLDC = [
+    {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
+    {channel: "V0", channelName: "Vibe 1", switch: true, sr6Only: false},
+    {channel: "V1", channelName: "Vibe 2", switch: true, sr6Only: false},
+    {channel: "V2", channelName: "Vibe 3", switch: true, sr6Only: false},
+    {channel: "V3", channelName: "Vibe 4", switch: true, sr6Only: false},
+    {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
+    {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
+    {channel: "A2", channelName: "Lube", switch: true, sr6Only: false}
+]
 
 document.addEventListener("DOMContentLoaded", function() {
     onDocumentLoad();
@@ -615,9 +650,6 @@ function setUserSettings()
         excludedElement.options[i].selected = userSettings["log-exclude-tags"].indexOf(excludedElement.options[i].value) >= 0;
     }
     
-    MotionGenerator.setup();
-					
-    
     document.getElementById('voiceEnabled').checked = userSettings['voiceEnabled'];
     document.getElementById('voiceMuted').checked = userSettings['voiceMuted'];
     document.getElementById('voiceVolume').value = userSettings['voiceVolume'];
@@ -625,43 +657,6 @@ function setUserSettings()
 
     //document.getElementById('debugLink').hidden = !userSettings["debug"];
     
-    AvailibleChannelsV2 = [
-        {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
-        {channel: "L1", channelName: "Surge", switch: false, sr6Only: true},
-        {channel: "L2", channelName: "Sway", switch: false, sr6Only: true},
-        {channel: "L3", channelName: "Suck", switch: false, sr6Only: false},
-        {channel: "R0", channelName: "Twist", switch: false, sr6Only: false},
-        {channel: "R1", channelName: "Roll", switch: false, sr6Only: false},
-        {channel: "R2", channelName: "Pitch", switch: false, sr6Only: false},
-        {channel: "V0", channelName: "Vibe 0", switch: true, sr6Only: false},
-        {channel: "V1", channelName: "Vibe 1/Lube", switch: true, sr6Only: false}
-    ]
-    AvailibleChannelsV3 = [
-        {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
-        {channel: "L1", channelName: "Surge", switch: false, sr6Only: true},
-        {channel: "L2", channelName: "Sway", switch: false, sr6Only: true},
-        {channel: "R0", channelName: "Twist", switch: false, sr6Only: false},
-        {channel: "R1", channelName: "Roll", switch: false, sr6Only: false},
-        {channel: "R2", channelName: "Pitch", switch: false, sr6Only: false},
-        {channel: "V0", channelName: "Vibe 1", switch: true, sr6Only: false},
-        {channel: "V1", channelName: "Vibe 2", switch: true, sr6Only: false},
-        {channel: "V2", channelName: "Vibe 3", switch: true, sr6Only: false},
-        {channel: "V3", channelName: "Vibe 4", switch: true, sr6Only: false},
-        {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
-        {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
-        {channel: "A2", channelName: "Lube", switch: true, sr6Only: false},
-        {channel: "A3", channelName: "Auxiliary", switch: false, sr6Only: false}
-    ]
-    AvailibleChannelsBLDC = [
-        {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
-        {channel: "V0", channelName: "Vibe 1", switch: true, sr6Only: false},
-        {channel: "V1", channelName: "Vibe 2", switch: true, sr6Only: false},
-        {channel: "V2", channelName: "Vibe 3", switch: true, sr6Only: false},
-        {channel: "V3", channelName: "Vibe 4", switch: true, sr6Only: false},
-        {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
-        {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
-        {channel: "A2", channelName: "Lube", switch: true, sr6Only: false}
-    ]
     setupChannelSliders();
     documentLoaded = true;
 }
@@ -996,7 +991,7 @@ function setupChannelSliders()
     bodyNode.appendChild(testDeviceHomeRowNode);
 
     RangeSlider.setup();
-    MotionGenerator.setupChannels();
+    MotionGenerator.setup();
 }
 
 function deleteAllChildren(parentNode) {
@@ -1536,8 +1531,12 @@ function setIntMax(id, max) {
 function setIntMinAndMax(minID, maxID) {
     var min = document.getElementById(minID);
     var max = document.getElementById(maxID);
-    min.setAttribute('max', parseInt(max.value) - 1);
-    max.setAttribute('min', parseInt(min.value) + 1);
+    setElementsIntMinAndMax(min, max);
+}
+/** Sets two numeric int controls to not overlap */
+function setElementsIntMinAndMax(minElement, maxElement) {
+    minElement.setAttribute('max', parseInt(maxElement.value) - 1);
+    maxElement.setAttribute('min', parseInt(minElement.value) + 1);
 }
 /** additionalValidations takes a parameter with the value */
 function validateIntControl(controlID, settingsObject, settingVariableName, additionalValidations) {

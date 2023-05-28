@@ -8,6 +8,7 @@
   <link rel="stylesheet" type="text/css" href="style-min.css">
   <link rel="stylesheet" type="text/css" href="range-slider-min.css">
   <script type="text/javascript" src="utils-min.js"></script>
+  <script type="text/javascript" src="modal-component-min.js"></script>
   <script type="text/javascript" src="battery-min.js"></script>
   <script type="text/javascript" src="motion-generator-min.js"></script>
   <script type="text/javascript" src="bldc-motor-min.js"></script>
@@ -963,7 +964,25 @@
 					</span>
 				</div>
 				<div id="motionGeneratorSettingsTable" class="formTable">
-					<motion-generator id="motionGeneratorComponent"></motion-generator>
+					<div>
+						<div>
+							<div class="tHeader">
+								<h3>Motion generator</h3>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"></div>
+							<div class="tCell">
+								<button id="motionEnabledToggle" class="button-toggle-start" onclick="setMotionEnabledClicked()">Start</button>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>Profile</span></div>
+							<div class="tCell">
+								<div id="motionProfiles"></div>
+							</div>
+						</div>
+					</div>
 				</div>
 				<div id="voiceSettingsTable" class="formTable">
 					<div>
@@ -1143,5 +1162,8 @@
 			</div>
 		</div>
 	</div>
+
+	
+	<modal-component id="motionChannelsModal"></modal-component>
 </body>
 </html>

@@ -376,6 +376,16 @@ button:hover {
   color: green;
 }
 
+.motion-profile-edit-channel-header {
+  justify-content: flex-start;
+  font-size: x-large;
+  border-bottom: 1px solid white;
+}
+.motion-profile-edit-channel-header-checkbox {
+  width: 20px;
+  height: 20px;
+  margin-top: 5px;
+}
 @keyframes loading-spinner {
   0% {
       transform: rotate(0deg);
