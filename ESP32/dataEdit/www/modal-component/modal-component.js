@@ -136,7 +136,6 @@ class ModalComponent extends HTMLElement {
     hide() {
         //this.classList.add('modal-hidden');
         this.style = 'display:none;';
-        this.removeAttribute("visible");
     }
 };
 

@@ -22,9 +22,14 @@ MotionGenerator = {
             // title.innerText = "Edit profile";
             //header.appendChild(title);
             channelParent.appendChild(header);
-            let row = Utils.createTextFormRow(0, "Profile name", 'motionProfileName'+profileIndex, x.name, 31, function(profileIndex) {setMotionGeneratorName(profileIndex)}.bind(this, profileIndex));;
-            channelParent.appendChild(row.row);
-            channels.forEach((channel, channelIndex) => {
+            let profileRow = Utils.createTextFormRow(0, "Profile name", 'motionProfileName'+profileIndex, x.name, 31, function(profileIndex) {setMotionGeneratorName(profileIndex)}.bind(this, profileIndex));;
+            channelParent.appendChild(profileRow.row);
+            for(var i = 0; i < channels.length; i++) {
+              const channelIndex = i;
+              var channel = channels[i];
+                if(!userSettings.sr6Mode && channel.sr6Only) {
+                    continue;
+                }
                 var name = channel.channel;
                 var friendlyName = channel.channelName;
                 var motionChannelIndex = userSettings['motionProfiles'][profileIndex]["channels"].findIndex(y => y.name == name);
@@ -225,20 +230,26 @@ MotionGenerator = {
 
                 channelParent.appendChild(channelTable);
                 channelTable.appendChild(channelTableDiv);
-            });
+            };
             rootdiv.appendChild(channelParent);
             channelTemplates.push(rootdiv);
         });
         const defaultMotionProfileButton = document.createElement("button");
-        defaultMotionProfileButton.innerText = "Set selected profile as defualt";
+        defaultMotionProfileButton.innerText = "Set selected profile as default";
         defaultMotionProfileButton.onclick = setMotionProfileDefault;
         motionProfilesElement.appendChild(defaultMotionProfileButton);
-        selectMotionProfile(userSettings["motionDefaultProfileIndex"]);
+        const rangeSliderButton = document.createElement("button");
+        rangeSliderButton.innerText = "Edit device range limits";
+        rangeSliderButton.onclick = DeviceRangeSlider.show;
+        motionProfilesElement.appendChild(rangeSliderButton);
+        
+        selectMotionProfile(systemInfo["motionSelectedProfileIndex"]);
+        this.setEnabledStatus();
     },
     setEnabledStatus() {
         var button = document.getElementById('motionEnabledToggle');
-        button.innerText = userSettings["motionEnabled"] ? "Stop" : "Start"
-        if(userSettings["motionEnabled"]) {
+        button.innerText = systemInfo["motionEnabled"] ? "Stop" : "Start"
+        if(systemInfo["motionEnabled"]) {
             button.classList.add("button-toggle-stop");
             button.classList.remove("button-toggle-start");
         } else {
@@ -277,9 +288,9 @@ function toggleMotionRandomMinMaxSettingsSettings(profileIndex, channelIndex) {
 }
 
 function setMotionEnabledClicked() {
-    userSettings["motionEnabled"] = !userSettings["motionEnabled"];//document.getElementById('motionEnabled').checked;
-    sendTCode(userSettings["motionEnabled"] ? "$motion-enable" : "$motion-disable");
-    //userSettings["motionEnabled"] ? button.classList.add("button-toggle-stop") : button.classList.remove("button-toggle-stop");
+    systemInfo["motionEnabled"] = !systemInfo["motionEnabled"];//document.getElementById('motionEnabled').checked;
+    sendTCode(systemInfo["motionEnabled"] ? "$motion-enable" : "$motion-disable");
+    //systemInfo["motionEnabled"] ? button.classList.add("button-toggle-stop") : button.classList.remove("button-toggle-stop");
     MotionGenerator.setEnabledStatus();
 }
 function setMotionPeriodRandomClicked(profileIndex, channelIndex, channelName) {
@@ -372,7 +383,8 @@ function editMotionProfile(profileIndex) {
     header.innerText = "Edit profile"  
     header.setAttribute("slot", "title");
     modal.appendChild(header);
-    modal.setAttribute("visible", true);
+    //modal.setAttribute("visible", true);
+    modal.show();
 }
 
 var validateGeneratorSettingsDebounce;
@@ -512,7 +524,11 @@ function setMotionGeneratorSettingsProfile(profileIndex) {
     document.getElementById('motionProfileName'+profileIndex).value = userSettings['motionProfiles'][profileIndex]["name"];
     //const channels = userSettings['motionProfiles'][profileIndex]["channels"];
     const channels = getChannelMap();
-    channels.forEach((channel, channelIndex) => {
+    for(var i = 0; i < channels.length; i++) {
+        const channelIndex = i;
+        const channel = channels[i];
+        if (!userSettings.sr6Mode && channel.sr6Only) 
+            continue;
         const motionChannelIndex = getMotionChannelIndex(profileIndex, channel.channel);
         const profileHasChannel = motionChannelIndex > -1;
         const defaultChannel = getDefaultMotionChannel();
@@ -537,5 +553,5 @@ function setMotionGeneratorSettingsProfile(profileIndex) {
         document.getElementById('motionRandomChangeMin'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ranMin"] : defaultChannel["ranMin"];  
         document.getElementById('motionRandomChangeMax'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ranMax"] : defaultChannel["ranMax"];  
         toggleMotionRandomSettings(profileIndex, channelIndex);
-    });
+    };
 }

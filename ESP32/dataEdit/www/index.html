@@ -151,7 +151,7 @@
 
 						<!---------------------------------- BLDC -------------------------------------------------->
 
-						<div class="tRow BLDCOnly">
+						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
 								<span>Voltage</span> 
 							</div>
@@ -159,7 +159,7 @@
 								<input id="BLDC_MotorA_Voltage" type="number" min="0.0" max="2147483647" step="0.01" oninput="updateBLDCSettings()">
 							</div>
 						</div>
-						<div class="tRow BLDCOnly">
+						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
 								<span>Current</span> 
 							</div>
@@ -167,7 +167,7 @@
 								<input id="BLDC_MotorA_Current" type="number" min="0.0" max="2147483647" step="0.01" oninput="updateBLDCSettings()">
 							</div>
 						</div>
-						<div class="tRow BLDCOnly">
+						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
 								<span>Encoder PIN</span> 
 							</div>
@@ -175,7 +175,7 @@
 								<input id="BLDC_Encoder_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
-						<div class="tRow BLDCOnly">
+						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
 								<span>Enable PIN</span> 
 							</div>
@@ -183,7 +183,7 @@
 								<input id="BLDC_Enable_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
-						<div class="tRow BLDCOnly">
+						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
 								<span>PWMchannel1 PIN</span> 
 							</div>
@@ -191,7 +191,7 @@
 								<input id="BLDC_PWMchannel1_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
-						<div class="tRow BLDCOnly">
+						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
 								<span>PWMchannel2 PIN</span> 
 							</div>
@@ -199,7 +199,7 @@
 								<input id="BLDC_PWMchannel2_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
-						<div class="tRow BLDCOnly">
+						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
 								<span>PWMchannel3 PIN</span> 
 							</div>
@@ -212,16 +212,23 @@
 						<!--------------------------------------- BLDC ----------------------------------------------------->
 
 
-						<div class="tRow servoOnly">
+						<div class="tRow servoOnly hidden">
+							<div class="tCell">
+								<span title="Choose the board you have">Board type</span> 
+							</div>
+							<div class="tCell">
+								<select name="boardType" id="boardType" onchange="setBoardType()"> </select>
+							</div>
+						</div>
+						<div class="tRow servoOnly hidden">
 							<div class="tCell">
 								<span title="Choose the version of TCode you want the firmware to use.">TCode version</span> 
 							</div>
 							<div class="tCell">
-								<select name="TCodeVersion" id="TCodeVersion" onchange="setTCodeVersion()">
-								</select>
+								<select name="TCodeVersion" id="TCodeVersion" onchange="setTCodeVersion()"> </select>
 							</div>
 						</div>
-						<div class="tRow servoOnly">
+						<div class="tRow servoOnly hidden">
 							<div class="tCell">
 								<span title="Uncheck this if you are building an OSR">SR6 mode</span> 
 							</div>
@@ -229,7 +236,7 @@
 								<input id="sr6Mode" type="checkbox" onclick="setSR6Mode()"></input>
 							</div>
 						</div>
-						<div class="tRow servoOnly">
+						<div class="tRow servoOnly hidden">
 							<div class="tCell">
 								<span title="This sets the frequency of the main servos. L/R and Pitch\nif 'Pitch Frequency is different' is NOT checked">Servo Frequency (hz)</span> 
 							</div>
@@ -237,7 +244,7 @@
 								<input id="servoFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()" class="servoOnly">
 							</div>
 						</div>
-						<div class="tRow"class="servoOnly">
+						<div class="tRow servoOnly hidden">
 							<div class="tCell">
 								<span title="This sets the frequency of the main servos. L/R and Pitch" >Pitch Frequency is different</span> 
 							</div>
@@ -245,7 +252,7 @@
 								<input id="pitchFrequencyIsDifferent" type="checkbox" onclick="setPitchFrequencyIsDifferent()"></input>
 							</div>
 						</div>
-						<div id="pitchFrequencyRow" class="tRow servoOnly">
+						<div id="pitchFrequencyRow" class="tRow servoOnly hidden">
 							<div class="tCell">
 								<span title="This sets the frequency of the pitch servos.">Pitch Frequency (hz)</span> 
 							</div>
@@ -261,7 +268,7 @@
 								<input id="valveFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
 							</div>
 						</div>
-						<div title="This sets the frequency of the twist servo." class="tRow servoOnly">
+						<div title="This sets the frequency of the twist servo." class="tRow servoOnly hidden">
 							<div class="tCell">
 								<span>Twist Frequency (hz)</span> 
 							</div>
@@ -269,7 +276,7 @@
 								<input id="twistFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
 							</div>
 						</div>
-						<div title="This sets the frequency of the squeeze servo." class="tRow servoOnly">
+						<div title="This sets the frequency of the squeeze servo." class="tRow servoOnly hidden">
 							<div class="tCell">
 								<span>Squeeze Frequency (hz)</span> 
 							</div>
@@ -277,7 +284,7 @@
 								<input id="squeezeFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
 							</div>
 						</div>
-						<div class="tRow sr6Only servoOnly">
+						<div class="tRow sr6Only servoOnly hidden">
 							<div class="tCell">
 								<span>Set (&#181;) for 270 degree servos</span> 
 							</div>
@@ -285,7 +292,7 @@
 								<input id="msPerRadIs270" type="checkbox" onclick="toggleMsPerRadIs270()"></input>
 							</div>
 						</div>
-						<div class="tRow sr6Only servoOnly">
+						<div class="tRow sr6Only servoOnly hidden">
 							<div class="tCell">
 								<span>Micro seconds per radian (&#181;)</span> 
 							</div>
@@ -294,7 +301,7 @@
 							</div>
 						</div>
 						<div class="servoTable">
-							<div class="tRow servoHeader">
+							<div class="tRow servoHeader servoOnly hidden">
 								<div class="tCell">
 									<span>Servo</span> 
 								</div>
@@ -305,7 +312,7 @@
 									<span>ZERO (&#181;)</span> 
 								</div>
 							</div>
-							<div class="tRow servoOnly">
+							<div class="tRow servoOnly hidden">
 								<div class="tCell">
 									<span>Right</span> 
 								</div>
@@ -316,7 +323,7 @@
 									<input id="RightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 								</div>
 							</div>
-							<div class="tRow servoOnly">
+							<div class="tRow servoOnly hidden">
 								<div class="tCell">
 									<span>Left</span> 
 								</div>
@@ -327,7 +334,7 @@
 									<input id="LeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 								</div>
 							</div>
-							<div class="tRow servoOnly">
+							<div class="tRow servoOnly hidden">
 								<div class="tCell">
 									<span>Pitch</span> 
 								</div>
@@ -349,7 +356,7 @@
 									<input id="ValveServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 								</div>
 							</div>
-							<div class="tRow v3Only servoOnly">
+							<div class="tRow v3Only servoOnly hidden">
 								<div class="tCell">
 									<span>Squeeze</span> 
 								</div>
@@ -360,7 +367,7 @@
 									<input id="Squeeze_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 								</div>
 							</div>
-							<div class="tRow servoOnly">
+							<div class="tRow servoOnly hidden">
 								<div class="tCell">
 									<span>Twist</span> 
 								</div>
@@ -372,7 +379,7 @@
 								</div>
 							</div>
 						</div>
-						<div class="tRow feedbackTwistOnly servoOnly">
+						<div class="tRow feedbackTwistOnly servoOnly hidden">
 							<div class="tCell">
 								<span>Twist feedback</span> 
 							</div>
@@ -397,7 +404,7 @@
 						</div>
 					</div>
 				</div>
-				<div id="deviceSR6SettingsTable" class="formTable sr6Only servoOnly">
+				<div id="deviceSR6SettingsTable" class="formTable sr6Only servoOnly hidden">
 					<div>
 						<div>
 							<div class="tHeader" colspan="3">
@@ -1157,13 +1164,18 @@
 						</div>
 					</div>
 				</div>
-				<div id="deviceRangesTable" class="formTable">
-				</div>
 			</div>
 		</div>
 	</div>
 
 	
 	<modal-component id="motionChannelsModal"></modal-component>
+	<modal-component id="deviceRangesModal">
+		<span slot="title">
+			Device ranges
+			<span class="range_container_header_subtext">(only affects motion generator)</span>
+		</span>
+		<div id="deviceRangesTable" class="formTable formTableModal"></div>
+	</modal-component>
 </body>
 </html>

@@ -1,20 +1,10 @@
 // https://medium.com/@predragdavidovic10/native-dual-range-slider-html-css-javascript-91e778134816
 
-RangeSlider = {
+DeviceRangeSlider = {
   setup() {
     var channels = getChannelMap();
     var deviceRangesTable = document.getElementById("deviceRangesTable");
     deleteAllChildren(deviceRangesTable);
-    var rangeHeader = document.createElement("div");
-    rangeHeader.classList.add("tHeader")
-    var rangeTitle = document.createElement("h3");
-    rangeTitle.innerText = "Device ranges";
-    rangeHeader.appendChild(rangeTitle);
-    var rangeHeaderSubtext = document.createElement("div");
-    rangeHeaderSubtext.innerText = "(only affects motion generator)";
-    rangeHeaderSubtext.classList.add("range_container_header_subtext");
-    deviceRangesTable.appendChild(rangeHeader);
-    deviceRangesTable.appendChild(rangeHeaderSubtext);
     for(var i = 0; i < channels.length; i++) {
       var channel = channels[i];
       if(!userSettings.sr6Mode && channel.sr6Only) {
@@ -120,7 +110,10 @@ RangeSlider = {
         this.controlMaxInput(minSlider, maxSlider, minInput, maxInput, maxSlider, name);
       }.bind(this, minSlider, maxSlider, minInput, maxInput, name);
     }
-},
+  },
+  show() {
+    document.getElementById("deviceRangesModal").show();
+  },
 //   <div class="range_container">
 //     <div class="sliders_control">
 //         <input id="fromSlider" type="range" value="10" min="0" max="100"/>

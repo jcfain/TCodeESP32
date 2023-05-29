@@ -116,9 +116,9 @@ TaskHandle_t voiceTask;
 #if DISPLAY_ENABLED
 	DisplayHandler* displayHandler;
 	TaskHandle_t displayTask;
-	#if ISAAC_NEWTONGUE_BUILD
-		TaskHandle_t animationTask;
-	#endif
+	// #if ISAAC_NEWTONGUE_BUILD
+	// 	TaskHandle_t animationTask;
+	// #endif
 #endif
 #if TEMP_ENABLED
 	TaskHandle_t temperatureTask;

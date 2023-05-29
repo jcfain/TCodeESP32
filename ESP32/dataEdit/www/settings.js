@@ -329,9 +329,9 @@ function onDefaultClick()
 {		
 	if (confirm("WARNING! Are you sure you wish to reset ALL settings?")) 
 	{
-		infoNode.hidden = true;
 		infoNode.innerText = "Resetting...";
-		infoNode.style.color = 'black';
+		infoNode.style.color = 'white';
+		infoNode.hidden = false;
 		var xhr = new XMLHttpRequest();
 		xhr.open("POST", "/default", true);
 		xhr.onreadystatechange = function() 
@@ -341,7 +341,7 @@ function onDefaultClick()
                 getUserSettings();
 				infoNode.innerText = "Settings reset!";
                 infoNode.style.color = 'green';
-				document.getElementById('requiresRestart').hidden = false;
+                showRestartRequired();
 				//document.getElementById('resetBtn').disabled = false ;
 				setTimeout(() => 
 				{
@@ -353,7 +353,30 @@ function onDefaultClick()
 		xhr.send();
 	}
 }
-
+function setPinoutDefault(newBoardType) {
+    infoNode.innerText = "Resetting pinout...";
+    infoNode.style.color = 'white';
+    infoNode.hidden = false;
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/pinoutDefault/"+newBoardType, true);
+    xhr.onreadystatechange = function() 
+    {
+        if (xhr.readyState === 4) 
+        {
+            getUserSettings();
+            infoNode.innerText = "Pinout reset!";
+            infoNode.style.color = 'green';
+            showRestartRequired();
+            //document.getElementById('resetBtn').disabled = false ;
+            setTimeout(() => 
+            {
+                infoNode.hidden = true;
+                infoNode.innerText = "";
+            }, 5000)
+        }
+    }
+    xhr.send();
+}
 function onRestartClick() 
 {		
     showLoading("Device restarting...")
@@ -463,31 +486,10 @@ function setSystemInfo() {
         i2cAddressesElement.appendChild(option);
     });
     
+    setupBoardTypes();
     toggleBuildOptions();
+    toggleMotorTypeOptions();
     
-    // const pinsAreEditable = isPinsEditable();
-    // document.getElementById("TwistFeedBack_PIN").readOnly = !pinsAreEditable;
-    // document.getElementById("RightServo_PIN").readOnly = !pinsAreEditable;
-    // document.getElementById("LeftServo_PIN").readOnly = !pinsAreEditable;
-    // document.getElementById("RightUpperServo_PIN").readOnly = !pinsAreEditable
-    // document.getElementById("LeftUpperServo_PIN").readOnly = !pinsAreEditable;
-    // document.getElementById("PitchLeftServo_PIN").readOnly = !pinsAreEditable;
-    // document.getElementById("PitchRightServo_PIN").readOnly = !pinsAreEditable;
-    // document.getElementById("ValveServo_PIN").readOnly = !pinsAreEditable;
-	// document.getElementById("TwistServo_PIN").readOnly = !pinsAreEditable;
-
-    // document.getElementById("Vibe0_PIN").readOnly = !pinsAreEditable;
-    // document.getElementById("Vibe1_PIN").readOnly = !pinsAreEditable;
-    // document.getElementById("Vibe2_PIN").readOnly = !pinsAreEditable;
-    // document.getElementById("Vibe3_PIN").readOnly = !pinsAreEditable;
-
-    //document.getElementById("LubeButton_PIN").readOnly = !pinsAreEditable;
-	// document.getElementById("Temp_PIN").readOnly = !pinsAreEditable;
-	// document.getElementById("Heater_PIN").readOnly = !pinsAreEditable;
-	// document.getElementById("Case_Fan_PIN").readOnly = !pinsAreEditable;
-	// document.getElementById("Squeeze_PIN").readOnly = !pinsAreEditable;
-	//document.getElementById("Internal_Temp_PIN").readOnly = !pinsAreEditable;
-
     //validPWMpins = [17,25,27];
     //validPWMpins = [2,4,5,12,13,14,15,17,21,22,25,27,32];
 
@@ -503,7 +505,6 @@ function setUserSettings()
     toggleStaticIPSettings(userSettings["staticIP"]);
     togglePitchServoFrequency(userSettings["pitchFrequencyIsDifferent"]);
     toggleFeedbackTwistSettings(userSettings["feedbackTwist"]);
-    toggleMotorTypeOptions();
     toggleBatterySettings(userSettings["batteryLevelEnabled"]);
     MotionGenerator.setEnabledStatus();
     // var xMin = userSettings["xMin"];
@@ -532,6 +533,7 @@ function setUserSettings()
 
     //updateSpeedUI(userSettings["speed"]);
     
+    document.getElementById('boardType').value = userSettings["boardType"];
 
     document.getElementById("udpServerPort").value = userSettings["udpServerPort"];
     document.getElementById("webServerPort").value = userSettings["webServerPort"];
@@ -674,8 +676,8 @@ function hasFeature(buildFeature) {
 function toggleBuildOptions() {
     var hasTemp = hasFeature(BuildFeature.TEMP);
     Utils.toggleControlVisibilityByClassName('build_temprature', hasTemp);
-    Utils.toggleControlVisibilityByID('internalTempDisplayedRow', hasTemp);
-    Utils.toggleControlVisibilityByID('sleeveTempDisplayedRow',  hasTemp);
+    Utils.toggleControlVisibilityByID('internalTempDisplayedRow', hasTemp && userSettings["tempInternalEnabled"]);
+    Utils.toggleControlVisibilityByID('sleeveTempDisplayedRow',  hasTemp && userSettings["tempSleeveEnabled"]);
 
     Utils.toggleControlVisibilityByClassName('build_display', hasFeature(BuildFeature.DISPLAY_));
         
@@ -694,9 +696,9 @@ function toggleBuildOptions() {
 
 function toggleMotorTypeOptions() {
     if(systemInfo.motorType === MotorType.Servo) {
-        Utils.toggleControlVisibilityByClassName('BLDCOnly', false);
+        Utils.toggleControlVisibilityByClassName('servoOnly', true);
     } else {
-        Utils.toggleControlVisibilityByClassName('servoOnly', false);
+        Utils.toggleControlVisibilityByClassName('BLDCOnly', true);
     }
 }
 
@@ -990,7 +992,7 @@ function setupChannelSliders()
     testDeviceHomeRowNode.appendChild(testDeviceHomeCellNode);
     bodyNode.appendChild(testDeviceHomeRowNode);
 
-    RangeSlider.setup();
+    DeviceRangeSlider.setup();
     MotionGenerator.setup();
 }
 
@@ -1007,9 +1009,6 @@ function hasTCodeV2()  {
 }
 function getTCodeMax() {
     return isTCodeV3() ? 9999 : 999;
-}
-function isPinsEditable() {
-    return systemInfo.boardType === BoardType.DEVKIT;
 }
 function getChannelMap() {
     return systemInfo["motorType"] == MotorType.Servo ? isTCodeV3() ? AvailibleChannelsV3 : AvailibleChannelsV2 : AvailibleChannelsBLDC;
@@ -1186,13 +1185,30 @@ function updateFriendlyName()
     setRestartRequired();
     updateUserSettings();
 }
-
+function setupBoardTypes() {
+    const boardTypeElement = document.getElementById('boardType');
+    for(let i=0;i<systemInfo.boardTypes.length;i++) {
+        const boardTypeOption = document.createElement("option");
+        boardTypeOption.innerText = systemInfo.boardTypes[i].name;
+        boardTypeOption.value = systemInfo.boardTypes[i].value;
+        boardTypeElement.appendChild(boardTypeOption);
+    }
+}
+function setBoardType() {
+    var element = document.getElementById('boardType');
+    var newBoardType = element.value;
+    if(confirm("This will reset the current pinout to default. Continue?")) {
+        setPinoutDefault(newBoardType);
+    } else {
+        element.value = userSettings["boardType"];
+    }
+}
 function setSR6Mode() {
     userSettings["sr6Mode"] = document.getElementById('sr6Mode').checked;
     toggleDeviceOptions(userSettings["sr6Mode"]);
     setupChannelSliders();
     setRestartRequired();
-	updateUserSettings();
+	updateUserSettings(1);
 }
 
 function setAutoValve() {
@@ -2017,6 +2033,8 @@ function setTempSettings() {
     userSettings["heaterThreshold"] = parseInt(document.getElementById('heaterThreshold').value);
     userSettings["heaterResolution"] = parseInt(document.getElementById('heaterResolution').value);
     userSettings["heaterFrequency"] = parseInt(document.getElementById('heaterFrequency').value);
+
+    Utils.toggleControlVisibilityByID('sleeveTempDisplayedRow', hasFeature(BuildFeature.TEMP) && userSettings["tempSleeveEnabled"]);
     setRestartRequired();
     updateUserSettings();
 }
@@ -2025,6 +2043,7 @@ function setInternalTempSettings() {
     userSettings["caseFanResolution"] = parseInt(document.getElementById('caseFanResolution').value);
     userSettings["caseFanFrequency"] = parseInt(document.getElementById('caseFanFrequency').value);
 
+    Utils.toggleControlVisibilityByID('internalTempDisplayedRow', hasFeature(BuildFeature.TEMP) && userSettings["tempInternalEnabled"]);
     setRestartRequired();
     updateUserSettings();
 }

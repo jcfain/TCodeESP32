@@ -19,32 +19,24 @@ ECHO.
 :MENU
 
 ECHO 1 - Base
-ECHO 2 - Display Temp
-ECHO 3 - Crimzzon
-ECHO 4 - Isaac
-ECHO 5 - Display
-ECHO 6 - Temp
-ECHO 7 - BlueTooth
-ECHO 8 - bldc
-ECHO 9 - bldc display temp
-ECHO 10 - Debug
-ECHO 11 - EXIT
+ECHO 2 - bldc
+ECHO 3 - Display
+ECHO 4 - Temp
+ECHO 5 - BlueTooth
+ECHO 6 - Debug
+ECHO 7 - EXIT
 ECHO.
 
 SET /P M=Build (1):
 IF NOT DEFINED M SET "M=1"
 
 IF %M%==1 SET BUILD_MODIFIER=
-IF %M%==2 SET BUILD_MODIFIER=-display-temp
-IF %M%==3 SET BUILD_MODIFIER=-crimzzon
-IF %M%==4 SET BUILD_MODIFIER=-isaac
-IF %M%==5 SET BUILD_MODIFIER=-display
-IF %M%==6 SET BUILD_MODIFIER=-temperature
-IF %M%==7 SET BUILD_MODIFIER=-bluetooth
-IF %M%==8 SET BUILD_MODIFIER=-bldc
-IF %M%==9 SET BUILD_MODIFIER=-bldc-display-temp
-IF %M%==10 SET BUILD_MODIFIER=-debug
-IF %M%==11 GOTO EOF
+IF %M%==2 SET BUILD_MODIFIER=-bldc
+IF %M%==3 SET BUILD_MODIFIER=-display
+IF %M%==4 SET BUILD_MODIFIER=-temperature
+IF %M%==5 SET BUILD_MODIFIER=-bluetooth
+IF %M%==6 SET BUILD_MODIFIER=-debug
+IF %M%==7 GOTO EOF
 
 SET ESPTOOLDIR="%~dp0bin\esptool-v3.3.2-win64\"
 

@@ -139,6 +139,17 @@ class WebHandler : public HTTPBase {
                 String sensorId = request->pathArg(0);
             });
 
+
+            server->on("^\\/pinoutDefault\\/([0-9]+)$", HTTP_POST, [](AsyncWebServerRequest *request)
+            {
+                auto boardTypeString = request->pathArg(0);
+                int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
+                Serial.println("Settings pinout default");
+                SettingsHandler::boardType = (BoardType)boardType;
+				SettingsHandler::setBoardPinout();
+                SettingsHandler::save();
+            });
+
             // upload a file to /upload
             // server->on("/upload", HTTP_POST, [](AsyncWebServerRequest *request){
             //     request->send(200);
