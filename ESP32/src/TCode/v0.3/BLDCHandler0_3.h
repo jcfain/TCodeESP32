@@ -26,6 +26,17 @@
 #include "../../TagHandler.h"
 
 
+// Control constants
+// (a.k.a. magic numbers for Eve)
+#define RAIL_LENGTH 125           // Physical maximum travel of the receiver (mm)
+#define STROKE_LENGTH 120         // Operating stroke length (mm)
+#define PULLEY_CIRCUMFERENCE 40   // Drive pulley circumference (mm)
+#define P_CONST 0.002             // Motor PID proportional constant
+#define LOW_PASS 0.8              // Low pass filter factor for static noise reduction ( number < 1, 0 = none)
+// Derived constants
+#define ANG_TO_POS (10000*PULLEY_CIRCUMFERENCE)/(2*3.14159*STROKE_LENGTH) // Number to convert a motor angle to a 0-10000 axis position
+#define START_OFFSET 2*3.14159*(RAIL_LENGTH-STROKE_LENGTH)/(2*PULLEY_CIRCUMFERENCE)  // Offset angle from endstop on startup (rad)
+
 // encoder position monitor variables
 volatile int encoderPulseLength = 464;
 volatile int encoderPulseCycle = 920;
@@ -38,49 +49,23 @@ volatile int shortest = 500;
 
 
 // Encoder Interrupt detector
-void IRAM_ATTR encoderChange() {
-    long currentMicros = esp_timer_get_time();
-    if(digitalRead(SettingsHandler::BLDC_Encoder_PIN) == HIGH)
-    {
-        encoderPulseCycle = currentMicros-encoderPulseStart;
-        encoderPulseStart = currentMicros;
-    }
-    else
-    {
-        encoderPulseLength = currentMicros-encoderPulseStart;
-    }
-}
+// void IRAM_ATTR encoderChange() {
+//     long currentMicros = esp_timer_get_time();
+//     if(digitalRead(SettingsHandler::BLDC_Encoder_PIN) == HIGH)
+//     {
+//         encoderPulseCycle = currentMicros-encoderPulseStart;
+//         encoderPulseStart = currentMicros;
+//     }
+//     else
+//     {
+//         encoderPulseLength = currentMicros-encoderPulseStart;
+//     }
+// }
 
 class BLDCHandler0_3 : public MotorHandler {
 
 public:
     BLDCHandler0_3() : MotorHandler(new TCode0_3()) { }
-    //Encoder Interrupt detector
-    static void IRAM_ATTR encoderRising() {
-        attachInterrupt(SettingsHandler::BLDC_Encoder_PIN, encoderFalling, FALLING);
-        encoderPulseCycle = micros()-encoderPulseStart;
-        encoderPulseStart = micros();
-    }
-    static void IRAM_ATTR encoderFalling() {
-        attachInterrupt(SettingsHandler::BLDC_Encoder_PIN, encoderRising, RISING);
-        encoderPulseLength = micros()-encoderPulseStart;
-    }
-    // static void IRAM_ATTR encoderChange() 
-    // {
-    //     if(digitalRead(SettingsHandler::TwistFeedBack_PIN) == HIGH)
-    //     {
-    //         encoderPulseCycle = micros()-encoderPulseStart;
-    //         encoderPulseStart = micros();
-    //     }
-    //     else if (lastEncoderPulseCycle != encoderPulseCycle) 
-    //     {
-    //         int currentPulseLength = micros()-encoderPulseStart;
-    //         if (currentPulseLength <= 1000000/50) {
-    //             encoderPulseLength = currentPulseLength;
-    //             lastEncoderPulseCycle = encoderPulseCycle;
-    //         }
-    //     }
-    // }
 
     static void initEncoder(){
     // do the init
@@ -100,73 +85,85 @@ public:
     }
 
     void setup() override {
+        // Begin tracking encoder
+        LogHandler::debug(_TAG, "Setup BLDC motor on pin: %ld", SettingsHandler::BLDC_Encoder_PIN);
+        // attachInterrupt(SettingsHandler::BLDC_Encoder_PIN, encoderChange, CHANGE);
+        if(SettingsHandler::BLDC_UsePWM) {
+            sensorPWM = new MagneticSensorPWM(SettingsHandler::BLDC_Encoder_PIN, 5, 928);
+        } else {
+            sensorSPI = new MagneticSensorSPI(SettingsHandler::BLDC_ChipSelect_PIN, 14, 0x3FFF);
+        }
+        // BLDC motor & driver instance
+        motorA = new BLDCMotor(11,11.1);
+        // BLDCDriver3PWM driver = BLDCDriver3PWM(pwmA, pwmB, pwmC, Enable(optional));
+        driverA = new BLDCDriver3PWM(SettingsHandler::BLDC_PWMchannel1_PIN, SettingsHandler::BLDC_PWMchannel2_PIN, SettingsHandler::BLDC_PWMchannel3_PIN, SettingsHandler::BLDC_Enable_PIN);
 
-            // Start serial connection and report status
-            m_tcode->setup(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName.c_str());
+        // Start serial connection and report status
+        m_tcode->setup(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName.c_str());
 
-            m_tcode->StringInput("D0");
-            m_tcode->StringInput("D1");
+        m_tcode->StringInput("D0");
+        m_tcode->StringInput("D1");
 
-            // #ESP32# Enable EEPROM
-            //EEPROM.begin(320); Done in TCode class
+        // #ESP32# Enable EEPROM
+        //EEPROM.begin(320); Done in TCode class
 
-            // Register device axes
-            m_tcode->RegisterAxis("L0", "Up");
+        // Register device axes
+        m_tcode->RegisterAxis("L0", "Up");
 
-            // Set Starting state
-            zeroAngle = 0;
-            mode = 0;
-            
-            // Begin tracking encoder
-            LogHandler::debug(_TAG, "Setup BLDC motor on pin: %ld", SettingsHandler::BLDC_Encoder_PIN);
-            attachInterrupt(SettingsHandler::BLDC_Encoder_PIN, encoderChange, CHANGE);
+        // Set Starting state
+        zeroAngle = 0;
+        mode = 0;
+        
+        // initialise encoder hardware
+        if (sensorPWM) { sensorPWM->init(); } else { sensorSPI->init(); }
+        
+        // driver config
+        // power supply voltage [V]
+        LogHandler::debug(_TAG, "Voltage: %f", SettingsHandler::BLDC_MotorA_Voltage);
+        driverA->voltage_power_supply = SettingsHandler::BLDC_MotorA_Voltage;
+        // Max DC voltage allowed - default voltage_power_supply
+        driverA->voltage_limit = 20;
+        // driver init
+        driverA->init();
 
-            // initialise encoder hardware
-            sensorA.init();
-            
-            // driver config
-            // power supply voltage [V]
-            LogHandler::debug(_TAG, "Voltage: %f", SettingsHandler::BLDC_MotorA_Voltage);
-            driverA.voltage_power_supply = SettingsHandler::BLDC_MotorA_Voltage;
-            // Max DC voltage allowed - default voltage_power_supply
-            driverA.voltage_limit = 20;
-            // driver init
-            driverA.init();
+        // limiting motor movements
+        LogHandler::debug(_TAG, "Current: %f", SettingsHandler::BLDC_MotorA_Current);
+        motorA->current_limit = SettingsHandler::BLDC_MotorA_Current;   // [Amps]
 
-            // limiting motor movements
-            LogHandler::debug(_TAG, "Current: %f", SettingsHandler::BLDC_MotorA_Current);
-            motorA.current_limit = SettingsHandler::BLDC_MotorA_Current;   // [Amps]
+        // set control loop type to be used
+        motorA->torque_controller = TorqueControlType::voltage;
+        motorA->controller = MotionControlType::torque;
 
-            // set control loop type to be used
-            motorA.torque_controller = TorqueControlType::voltage;
-            motorA.controller = MotionControlType::torque;
+        // link the motor to the sensor
+        if (sensorPWM) { motorA->linkSensor(sensorPWM); } else { motorA->linkSensor(sensorSPI); }
+        // link the motor and the driver
+        motorA->linkDriver(driverA);
 
-            // link the motor to the sensor
-            motorA.linkSensor(&sensorA);
-            // link the motor and the driver
-            motorA.linkDriver(&driverA);
-            // comment out if not needed
-            motorA.useMonitoring(Serial);
+        // initialize motor
+        motorA->init();
+        if(MotorA_ParametersKnown) {
+            motorA->initFOC(MotorA_ZeroElecAngle, MotorA_SensorDirection);
+        } else {
+            motorA->useMonitoring(Serial);
+            motorA->initFOC();
+        }
+        
+        // Set sensor angle and pre-set zero angle to current angle
+        if (sensorPWM) { 
+            sensorPWM->update(); 
+            zeroAngle = sensorPWM->getAngle();
+        } else { 
+            sensorSPI->update();
+            zeroAngle = sensorSPI->getAngle();
+        }
 
-            // initialize motor
-            motorA.init();
-            if(MotorA_ParametersKnown) {
-                motorA.initFOC(MotorA_ZeroElecAngle, MotorA_SensorDirection);
-            } else {
-                motorA.initFOC();
-            }
-            
-            // Set sensor angle and pre-set zero angle to current angle
-            sensorA.update();
-            zeroAngle = sensorA.getAngle();  
+        // Record start time
+        startTime = millis();
 
-            // Record start time
-            startTime = millis();
+        setupCommon();
 
-            setupCommon();
-
-            // Signal ready to start
-            Serial.println("Ready!");
+        // Signal ready to start
+        LogHandler::info(_TAG, "Ready!");
     }
 
     void read(byte inByte) override {
@@ -185,7 +182,7 @@ public:
     void execute() override {
 
         // Run motor FOC loop
-        motorA.loopFOC();
+        motorA->loopFOC();
 
         // Collect inputs
         // These functions query the t-code object for the position/level at a specified time
@@ -194,31 +191,37 @@ public:
 
 
         // Update sensor position
-        sensorA.update();
-        float angle = sensorA.getAngle();
+        float angle;
+        if (sensorPWM) { 
+            sensorPWM->update();
+            angle = sensorPWM->getAngle();
+        } else {
+            sensorSPI->update();
+            angle = sensorSPI->getAngle();
+        }
         // Determine the linear position of the receiver in (0-10000)
-        xPosition = (angle - zeroAngle)*588; // *10000/17
+        xPosition = (angle - zeroAngle)*ANG_TO_POS; 
 
         // Control by motor voltage
         float motorVoltageNew;
-        // If the device is in startup mode roll downwards for two seconds
-        // and press against bottom stop.   
+        // If the device is in startup mode roll downwards for two seconds and press against bottom stop.
+        // Distance of travel is 12,000 (>10,000) just to make sure that the receiver reaches the bottom.
         if (mode == 0) {
-            xLin  = map(millis()-startTime,0,2000,0,-10000);
+            xLin  = map(millis()-startTime,0,2000,0,-12000);
             if (millis() > (startTime + 2000)) {
             mode = 1;
-            zeroAngle = angle + 0.5;
+            zeroAngle = angle + START_OFFSET;
             }
-            motorVoltageNew = 0.002*(xLin - xPosition);
+            motorVoltageNew = P_CONST*(xLin - xPosition);
             if (motorVoltageNew < -0.5) { motorVoltageNew = -0.5; }
         // Otherwise set motor voltage based on position error     
         } else {
-            motorVoltageNew = 0.002*(xLin - xPosition);
+            motorVoltageNew = P_CONST*(xLin - xPosition);
         }
         // Low pass filter to reduce motor noise
-        motorVoltage = 0.8*motorVoltage + 0.2*motorVoltageNew;  
+        motorVoltage = LOW_PASS*motorVoltage + (1-LOW_PASS)*motorVoltageNew;  
         // Motion control function
-        motorA.move(motorVoltage);
+        motorA->move(motorVoltage);
 
         executeCommon(xLin);
         
@@ -245,15 +248,16 @@ private:
     // This will be displayed in the serial monitor each time the device starts up.
     // If the device is noticably faster in one direction the angle is out of alignment, try increasing or decreasing it by small increments (eg +/- 0.1).
     bool MotorA_ParametersKnown = false;        // Once you know the zero elec angle for the motor enter it below and set this flag to true.
-    float MotorA_ZeroElecAngle = 1.45;                 // This number is the zero angle (in radians) for the motor relative to the encoder.
+    float MotorA_ZeroElecAngle = 0.00;                 // This number is the zero angle (in radians) for the motor relative to the encoder.
     Direction MotorA_SensorDirection = Direction::CW; // Do not change. If the motor is showing CCW rotate the motor connector 180 degrees to reverse the motor.
 
-    GenericSensor sensorA = GenericSensor(readEncoder, initEncoder);
     // BLDC motor & driver instance
-    // BLDCMotor motor = BLDCMotor(pole pair number, phase resistance (optional) );
-    BLDCMotor motorA = BLDCMotor(11,11.1);
+    BLDCMotor* motorA;
     // BLDCDriver3PWM driver = BLDCDriver3PWM(pwmA, pwmB, pwmC, Enable(optional));
-    BLDCDriver3PWM driverA = BLDCDriver3PWM(SettingsHandler::BLDC_PWMchannel1_PIN, SettingsHandler::BLDC_PWMchannel2_PIN, SettingsHandler::BLDC_PWMchannel3_PIN, SettingsHandler::BLDC_Enable_PIN);
+    BLDCDriver3PWM* driverA;
+    // Declare a PWM and an SPI sensor. Only one will be used.
+    MagneticSensorPWM* sensorPWM = 0;
+    MagneticSensorSPI* sensorSPI = 0;
 
     // Position variables
     int xLin;

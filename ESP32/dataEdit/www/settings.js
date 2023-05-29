@@ -835,7 +835,7 @@ function sendTCode(tcode) {
 
 function sendDeviceHome() {
     channelSliderList.forEach(x => x.value = x.channelModel.switch ? 0 : 50);
-    var availibleChannels = systemInfo["motorType"] == MotorType.Servo ? isTCodeV3() ? AvailibleChannelsV3 : AvailibleChannelsV2 : AvailibleChannelsBLDC;
+    var availibleChannels = getChannelMap();
     var tcode = "";
     availibleChannels.forEach((element, index, array) => {
         tcode += getSliderTCode(element.channel, element.switch ? 0 : 50, false, 1000, false);
@@ -1256,33 +1256,7 @@ function disablePinValidation() {
     }
 	updateUserSettings();
 }
-function updateBLDCSettings() {
-    
-    userSettings["BLDC_MotorA_Voltage"] = parseFloat(document.getElementById('BLDC_MotorA_Voltage').value);
-    userSettings["BLDC_MotorA_Current"] = parseFloat(document.getElementById('BLDC_MotorA_Current').value);
-    setRestartRequired();
-    updateUserSettings();
-}
-function updateBLDCPins() {
-    if(upDateTimeout !== null) 
-    {
-        clearTimeout(upDateTimeout);
-    }
-    upDateTimeout = setTimeout(() => 
-    {
-        var pinValues = validateBLDCPins();
-        if(pinValues) {
-            userSettings["BLDC_Encoder_PIN"] = pinValues.BLDC_Encoder_PIN;
-            userSettings["BLDC_Enable_PIN"] = pinValues.BLDC_Enable_PIN;
-            userSettings["BLDC_PWMchannel1_PIN"] = pinValues.BLDC_PWMchannel1_PIN;
-            userSettings["BLDC_PWMchannel2_PIN"] = pinValues.BLDC_PWMchannel2_PIN;
-            userSettings["BLDC_PWMchannel3_PIN"] = pinValues.BLDC_PWMchannel3_PIN;
-            updateCommonPins(pinValues);
-            setRestartRequired();
-            updateUserSettings();
-        }
-    }, 2000);
-}
+
 function updatePins() 
 {
     if(systemInfo.motorType == MotorType.BLDC) {
@@ -1687,73 +1661,7 @@ function validatePins() {
     return pinValues;
 }
 
-function validateBLDCPins() {
-    clearErrors("pinValidation"); 
-    var assignedPins = [];
-    var duplicatePins = [];
-    var pmwErrors = [];
-    var pinValues = getBLDCPinValues();
-    if(userSettings["disablePinValidation"])
-        return pinValues;
 
-    var pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_Encoder_PIN);
-    if(pinDupeIndex > -1)
-        duplicatePins.push("Encoder pin and "+assignedPins[pinDupeIndex].name);
-    assignedPins.push({name:"Encoder", pin:pinValues.BLDC_Encoder_PIN});
-    
-    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_Enable_PIN);
-    if(pinDupeIndex > -1)
-        duplicatePins.push("Enable pin and "+assignedPins[pinDupeIndex].name);
-    assignedPins.push({name:"Enable", pin:pinValues.BLDC_Enable_PIN});
-
-    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel1_PIN);
-    if(pinDupeIndex > -1)
-        duplicatePins.push("PWMchannel1 pin and "+assignedPins[pinDupeIndex].name);
-    if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel1_PIN) == -1)
-        pmwErrors.push("PWMchannel1 pin: "+pinValues.BLDC_PWMchannel1_PIN);
-    assignedPins.push({name:"PWMchannel1", pin:pinValues.BLDC_PWMchannel1_PIN});
-
-    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel2_PIN);
-    if(pinDupeIndex > -1)
-        duplicatePins.push("PWMchannel2 pin and "+assignedPins[pinDupeIndex].name);
-    if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel2_PIN) == -1)
-        pmwErrors.push("PWMchannel2 pin: "+pinValues.BLDC_PWMchannel2_PIN);
-    assignedPins.push({name:"PWMchannel2", pin:pinValues.BLDC_PWMchannel2_PIN});
-
-    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel3_PIN);
-    if(pinDupeIndex > -1)
-        duplicatePins.push("PWMchannel3 pin and "+assignedPins[pinDupeIndex].name);
-    if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel3_PIN) == -1)
-        pmwErrors.push("PWMchannel3pin: "+pinValues.BLDC_PWMchannel3_PIN);
-    assignedPins.push({name:"PWMchannel3", pin:pinValues.BLDC_PWMchannel3_PIN});
-    
-    validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pmwErrors);
-
-    var invalidPins = [];
-    validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues);
-
-    if (duplicatePins.length || pmwErrors.length || invalidPins.length) {
-        var errorString = "<div name='pinValidation'>Pins NOT saved due to invalid input.<br>";
-        if(duplicatePins.length )
-            errorString += "<div style='margin-left: 25px;'>The following pins are duplicated:<br><div style='color: white; margin-left: 25px;'>"+duplicatePins.join("<br>")+"</div></div>";
-        if(invalidPins.length) {
-            if(duplicatePins.length)
-                errorString += "<br>";
-            errorString += "<div style='margin-left: 25px;'>The following pins are invalid:<br><div style='color: white; margin-left: 25px;'>"+invalidPins.join("<br>")+"</div></div>";
-        }
-        if (pmwErrors.length) {
-            if(duplicatePins.length || invalidPins.length) {
-                errorString += "<br>";
-            } 
-            errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pmwErrors.join("<br>")+"</div></div>";
-        }
-        
-        errorString += "</div>";
-        showError(errorString);
-        return undefined;
-    }
-    return pinValues;
-}
 function validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pmwErrors) {
 
     var pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.valveServo);
@@ -1860,16 +1768,6 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
     return true;
 }
 
-function getBLDCPinValues() {
-    var pinValues = {};
-    pinValues.BLDC_Encoder_PIN = parseInt(document.getElementById('BLDC_Encoder_PIN').value);
-    pinValues.BLDC_Enable_PIN = parseInt(document.getElementById('BLDC_Enable_PIN').value);
-    pinValues.BLDC_PWMchannel1_PIN = parseInt(document.getElementById('BLDC_PWMchannel1_PIN').value);
-    pinValues.BLDC_PWMchannel2_PIN = parseInt(document.getElementById('BLDC_PWMchannel2_PIN').value);
-    pinValues.BLDC_PWMchannel3_PIN = parseInt(document.getElementById('BLDC_PWMchannel3_PIN').value);
-    getCommonPinValues(pinValues);
-    return pinValues;
-}
 function getServoPinValues() {
     var pinValues = {};
     pinValues.twistServo = parseInt(document.getElementById('TwistServo_PIN').value);
