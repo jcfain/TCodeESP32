@@ -7,7 +7,7 @@ DeviceRangeSlider = {
     deleteAllChildren(deviceRangesTable);
     for(var i = 0; i < channels.length; i++) {
       var channel = channels[i];
-      if(!userSettings.sr6Mode && channel.sr6Only) {
+      if(!userSettings.sr6Mode && channel.sr6Only || channel.switch) {
           continue;
       }
       var name = channel.channel;
