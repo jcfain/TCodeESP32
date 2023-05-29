@@ -167,6 +167,7 @@ public:
     static const char *lastRebootReason;
 
     static const char *userSettingsFilePath;
+    static const char *wifiPassFilePath;
     static const char *logPath;
     static const char *defaultWifiPass;
     static const char *decoyPass;
@@ -218,6 +219,18 @@ public:
             deserializeJson(doc, file);
             loadingDefault = true;
         }
+        
+        DynamicJsonDocument passwordDoc(100);
+        LogHandler::info(_TAG, "Read password file");
+        if (!SPIFFS.exists(wifiPassFilePath)) {
+            LogHandler::error(_TAG, "Password file did not exist.");
+        } else {
+            File passwordFile = SPIFFS.open(wifiPassFilePath, "r");
+            deserializeJson(passwordDoc, passwordFile);
+            JsonObject passJsonObj = passwordDoc.as<JsonObject>();
+            loadWifiInfo(passJsonObj);
+        }
+
         JsonObject jsonObj = doc.as<JsonObject>();
 
 #if CRIMZZON_BUILD || ISAAC_NEWTONGUE_BUILD
@@ -233,7 +246,7 @@ public:
         //I2CScan();
 
         if (loadingDefault)
-            save();
+            save(loadingDefault);
         initialized = true;
     }
 
@@ -275,7 +288,14 @@ public:
         update(doc.as<JsonObject>());
         save();
     }
-
+    static void loadWifiInfo(JsonObject json) {
+        const char *wifiPassConst = json["wifiPass"] | "YOUR PASSWORD HERE";
+            //LogHandler::error(_TAG, "wifiPassConst: %s", wifiPassConst);
+        if (strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0)
+        {
+            strcpy(wifiPass, wifiPassConst);
+        }
+    }
     static bool update(JsonObject json)
     {
         LogHandler::info(_TAG, "Load settings");
@@ -312,16 +332,13 @@ public:
             setValue(json, excludesVec, "log", "log-exclude-tags");
             LogHandler::setExcludes(excludesVec);
 
-            const char *ssidConst = json["ssid"];
+            const char *ssidConst = json["ssid"] | "YOUR SSID HERE";
             if (ssid != nullptr)
             {
                 strcpy(ssid, ssidConst);
             }
-            const char *wifiPassConst = json["wifiPass"];
-            if (wifiPassConst != nullptr && strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0)
-            {
-                strcpy(wifiPass, wifiPassConst);
-            }
+            if(initialized)
+                loadWifiInfo(json);
 #if !CRIMZZON_BUILD
             TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 2);
             TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
@@ -624,7 +641,7 @@ public:
     }
     static std::vector<MotionChannel> getMotionChannels()
     {
-        return motionChannels;
+        return motionProfiles[motionSelectedProfileIndex].channels;
     }
     static bool getMotionEnabled()
     {
@@ -907,36 +924,40 @@ public:
     static const int getDeserializeSize() {
         return deserializeSize;
     }
-    static void serialize(char buf[6144])
-    {
-        LogHandler::debug(_TAG, "Get settings...");
-        File file = SPIFFS.open(userSettingsFilePath, "r");
-        DynamicJsonDocument doc(deserializeSize);
-        DeserializationError error = deserializeJson(doc, file);
-        if (error)
-        {
-            LogHandler::error("toJson: Error deserializing settings json: %s", file.name());
-            buf[0] = {0};
-            return;
-        }
-        file.close();
-        if (strcmp(doc["wifiPass"], defaultWifiPass) != 0)
-            doc["wifiPass"] = "Too bad haxor!"; // Do not send password if its not default
+    // static void serialize(char buf[40000])
+    // {
+    //     LogHandler::info(_TAG, "Serialize settings...");
+    //     File file = SPIFFS.open(userSettingsFilePath, "r");
+    //     LogHandler::info(_TAG, "Serialize settings...");
+    //     DynamicJsonDocument doc(deserializeSize);
+    //     LogHandler::info(_TAG, "Serialize settings...");
+    //     DeserializationError error = deserializeJson(doc, file);
+    //     if (error)
+    //     {
+    //         LogHandler::error("toJson: Error deserializing settings json: %s", file.name());
+    //         buf[0] = {0};
+    //         return;
+    //     }
+    //     file.close();
+    //     if (strcmp(doc["wifiPass"], defaultWifiPass) != 0)
+    //         doc["wifiPass"] = "Too bad haxor!"; // Do not send password if its not default
 
-        doc["motionEnabled"] = motionEnabled;
-        doc["motionSelectedProfileIndex"] = motionSelectedProfileIndex;
-        String output;
-        serializeJson(doc, output);
-        // serializeJson(doc, Serial);
-        if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
-        {
-            Serial.printf("Settings: %s\n", output.c_str());
-            Serial.printf("Size: %ld\n", strlen(output.c_str()));
-        }
-        // LogHandler::verbose(_TAG, "Output: %s", output.c_str());
-        buf[0] = {0};
-        strcpy(buf, output.c_str());
-    }
+    //     doc["motionEnabled"] = motionEnabled;
+    //     doc["motionSelectedProfileIndex"] = motionSelectedProfileIndex;
+    //     String output;
+    //     serializeJson(doc, output);
+    //     doc.clear();
+    //     // serializeJson(doc, Serial);
+    //     if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
+    //     {
+    //         Serial.printf("Settings: %s\n", output.c_str());
+    //         Serial.printf("Size: %ld\n", strlen(output.c_str()));
+    //     }
+    //     // LogHandler::verbose(_TAG, "Output: %s", output.c_str());
+    //     buf[0] = {0};
+    //     LogHandler::debug(_TAG, "Serialize settings...");
+    //     strcpy(buf, output.c_str());
+    // }
 
     static void getSystemInfo(char buf[1024])
     {
@@ -984,11 +1005,51 @@ public:
 
         String output;
         serializeJson(doc, output);
+        doc.clear();
         if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
             Serial.printf("SystemInfo: %s\n", output.c_str());
         buf[0] = {0};
         strcpy(buf, output.c_str());
     }
+//   static void getMotionSettings(char buf[24576])
+//     {
+//         DynamicJsonDocument doc(24576);
+
+//         int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
+//         for (int i=0; i < len; i++)
+//         {
+//             doc["motionProfiles"][i]["name"] = motionProfiles[i].motionProfileName;
+//             for (size_t j = 0; j < motionProfiles[i].channels.size(); j++)
+//             {
+//                 doc["motionProfiles"][i]["channels"][j]["name"] = motionProfiles[i].channels[j].name;
+//                 doc["motionProfiles"][i]["channels"][j]["update"] = motionProfiles[i].channels[j].motionUpdateGlobal;
+//                 doc["motionProfiles"][i]["channels"][j]["period"] = motionProfiles[i].channels[j].motionPeriodGlobal;
+//                 doc["motionProfiles"][i]["channels"][j]["amp"] = motionProfiles[i].channels[j].motionAmplitudeGlobal;
+//                 doc["motionProfiles"][i]["channels"][j]["offset"] = motionProfiles[i].channels[j].motionOffsetGlobal;
+//                 doc["motionProfiles"][i]["channels"][j]["phase"] = motionProfiles[i].channels[j].motionPhaseGlobal;
+//                 doc["motionProfiles"][i]["channels"][j]["reverse"] = motionProfiles[i].channels[j].motionReversedGlobal;
+//                 doc["motionProfiles"][i]["channels"][j]["periodRan"] = motionProfiles[i].channels[j].motionPeriodGlobalRandom;
+//                 doc["motionProfiles"][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
+//                 doc["motionProfiles"][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
+//                 doc["motionProfiles"][i]["channels"][j]["periodMin"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMin;
+//                 doc["motionProfiles"][i]["channels"][j]["periodMax"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMax;
+//                 doc["motionProfiles"][i]["channels"][j]["ampMin"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMin;
+//                 doc["motionProfiles"][i]["channels"][j]["ampMax"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMax;
+//                 doc["motionProfiles"][i]["channels"][j]["offsetMin"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMin;
+//                 doc["motionProfiles"][i]["channels"][j]["offsetMax"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMax;
+//                 doc["motionProfiles"][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
+//                 doc["motionProfiles"][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
+//             }
+//         }
+
+//         String output;
+//         serializeJson(doc, output);
+//         doc.clear();
+//         if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
+//             Serial.printf("MotionInfo: %s\n", output.c_str());
+//         buf[0] = {0};
+//         strcpy(buf, output.c_str());
+//     }
 
     static bool save(String data)
     {
@@ -1045,7 +1106,7 @@ public:
         return true;
     }
 
-    static bool save()
+    static bool save(bool loadingDefault = false)
     {
         LogHandler::info(_TAG, "Save settings");
         saving = true;
@@ -1100,7 +1161,31 @@ public:
         doc["esp32Version"] = ESP32Version;
         doc["TCodeVersion"] = (int)TCodeVersionEnum;
         doc["ssid"] = ssid;
-        doc["wifiPass"] = wifiPass;
+        
+        if (!SPIFFS.exists(wifiPassFilePath)) {
+            LogHandler::error(_TAG, "Password file did not exist.");
+            saving = false;
+            return false;
+        } else {
+            DynamicJsonDocument passwordDoc(100);
+            LogHandler::info(_TAG, "Save password file");
+            File passwordFile = SPIFFS.open(wifiPassFilePath, FILE_WRITE);
+            passwordDoc["wifiPass"] = wifiPass;
+            if (serializeJson(passwordDoc, passwordFile) == 0)
+            {
+                LogHandler::error(_TAG, "Failed to write to password file");
+                passwordDoc["wifiPass"] = defaultWifiPass;
+                file.close();
+                saving = false;
+                return false;
+            }
+        }
+        if(strcmp(wifiPass, "YOUR PASSWORD HERE") != 0) {
+            doc["wifiPass"] = decoyPass;
+        } else {
+            doc["wifiPass"] = "YOUR PASSWORD HERE";
+        }
+        // doc["wifiPass"] = wifiPass;
         doc["udpServerPort"] = udpServerPort;
         doc["webServerPort"] = webServerPort;
         doc["hostname"] = hostname;
@@ -1214,14 +1299,17 @@ public:
                 doc["motionProfiles"][i]["channels"][j]["phase"] = motionProfiles[i].channels[j].motionPhaseGlobal;
                 doc["motionProfiles"][i]["channels"][j]["reverse"] = motionProfiles[i].channels[j].motionReversedGlobal;
                 doc["motionProfiles"][i]["channels"][j]["periodRan"] = motionProfiles[i].channels[j].motionPeriodGlobalRandom;
-                doc["motionProfiles"][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
-                doc["motionProfiles"][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
                 doc["motionProfiles"][i]["channels"][j]["periodMin"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMin;
                 doc["motionProfiles"][i]["channels"][j]["periodMax"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMax;
+                doc["motionProfiles"][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
                 doc["motionProfiles"][i]["channels"][j]["ampMin"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMin;
                 doc["motionProfiles"][i]["channels"][j]["ampMax"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMax;
+                doc["motionProfiles"][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
                 doc["motionProfiles"][i]["channels"][j]["offsetMin"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMin;
                 doc["motionProfiles"][i]["channels"][j]["offsetMax"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMax;
+                doc["motionProfiles"][i]["channels"][j]["phaseRan"] = motionProfiles[i].channels[j].motionPhaseRandom;
+                doc["motionProfiles"][i]["channels"][j]["phaseMin"] = motionProfiles[i].channels[j].motionPhaseRandomMin;
+                doc["motionProfiles"][i]["channels"][j]["phaseMax"] = motionProfiles[i].channels[j].motionPhaseRandomMax;
                 doc["motionProfiles"][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
                 doc["motionProfiles"][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
             }
@@ -1550,8 +1638,8 @@ private:
     // Use http://arduinojson.org/assistant to compute the capacity.
     // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
     // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
-    static const int deserializeSize = 8144;
-    static const int serializeSize = 5624;
+    static const int deserializeSize = 32768;
+    static const int serializeSize = 24576;
     // 3072
 
     static bool motionEnabled;
@@ -1577,7 +1665,6 @@ private:
     // static bool motionReversedGlobal;
     // static int motionRandomChangeMin;
     // static int motionRandomChangeMax;
-    static std::vector<MotionChannel> motionChannels;
     
     static bool voiceEnabled;
     static bool voiceMuted;
@@ -1932,6 +2019,7 @@ const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char *SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
 const char *SettingsHandler::userSettingsFilePath = "/userSettings.json";
+const char *SettingsHandler::wifiPassFilePath = "/wifiInfo.json";
 const char *SettingsHandler::logPath = "/log.json";
 const char *SettingsHandler::defaultWifiPass = "YOUR PASSWORD HERE";
 const char *SettingsHandler::decoyPass = "Too bad haxor!";
@@ -2073,4 +2161,3 @@ MotionProfile SettingsHandler::motionProfiles[maxMotionProfileCount];
 // int SettingsHandler::motionOffsetGlobalRandomMax;
 // int SettingsHandler::motionRandomChangeMin;
 // int SettingsHandler:: motionRandomChangeMax;
-std::vector<MotionChannel> SettingsHandler::motionChannels;

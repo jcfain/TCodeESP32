@@ -48,25 +48,32 @@ class WebHandler : public HTTPBase {
 
             server->on("/userSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                ////request->send(SPIFFS, "/userSettings.json");
+                request->send(SPIFFS, "/userSettings.json", "application/json");
                 // DynamicJsonDocument doc(SettingsHandler::deserialize);
                 // File file = SPIFFS.open(SettingsHandler::userSettingsFilePath, "r");
                 // DeserializationError error = deserializeJson(doc, file);
-                char settings[6144];
-                SettingsHandler::serialize(settings);
-                if (strlen(settings) == 0) {
-                    AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
-                    request->send(response);
-                    return;
-                }
-                // if(strcmp(doc["wifiPass"], SettingsHandler::defaultWifiPass) != 0 )
-                //     doc["wifiPass"] = "Too bad haxor!";// Do not send password if its not default
-                    
-                // doc["lastRebootReason"] = SettingsHandler::lastRebootReason;
-                // String output;
-                // serializeJson(doc, output);
-                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", settings);
-                request->send(response);
+                // char settings[40000];
+                // SettingsHandler::serialize(settings);
+                // if (strlen(settings) == 0) {
+                //     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
+                //     request->send(response);
+                //     return;
+                // }
+                // AsyncWebServerResponse *response = request->beginResponse(200, "application/json", settings);
+
+            //    AsyncWebServerResponse *response = request->beginResponse("application/json", strlen_P(settings),
+            //         [settings](uint8_t *buffer, size_t maxLen, size_t alreadySent) -> size_t {
+            //             if (strlen_P(settings+alreadySent)>maxLen) {
+            //                 // We have more to read than fits in maxLen Buffer
+            //                 memcpy_P((char*)buffer, settings+alreadySent, maxLen);
+            //                 return maxLen;
+            //             }
+            //             // Ok, last chunk
+            //             memcpy_P((char*)buffer, settings+alreadySent, strlen_P(settings+alreadySent));
+            //             return strlen_P(settings+alreadySent); // Return from here to end
+            //         }
+            //     );
+                // request->send(response);
             });   
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
@@ -179,7 +186,7 @@ class WebHandler : public HTTPBase {
                     AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"msg\":\"Could not parse JSON\"}");
                     request->send(response);
                 }
-            }, 10000U );//Bad request? increase the size.
+            }, 32768U );//Bad request? increase the size.
 
             // //To upload through terminal you can use: curl -F "image=@firmware.bin" esp8266-webupdate.local/update
             // server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request){
@@ -224,11 +231,12 @@ class WebHandler : public HTTPBase {
             
             server->onNotFound([](AsyncWebServerRequest *request) 
 			{
-                Serial.println("Not found...");
+                Serial.printf("AsyncWebServerRequest Not found: %s", request->url());
                 if (request->method() == HTTP_OPTIONS) {
                     request->send(200);
                 } else {
-                    request->send(404);
+                    AsyncWebServerResponse *response = request->beginResponse(404, "application/text", String("AsyncWebServerRequest Not found") + request->url());
+                    request->send(response);
                 }
             });
 

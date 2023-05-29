@@ -16,6 +16,40 @@ body {
 .hidden {
   display: none !important;
 }
+.max-height-transition {
+  max-height: 100vh;
+  transition: max-height 0.25s ease-in-out;
+  visibility: visible;
+}
+.max-height-transition * {
+  max-height: 100vh;
+  transition: max-height 0.15s ease-in-out;
+  visibility: visible;
+}
+.hidden-transition {
+  /* -webkit-transition: max-height 0.25s; 
+  -moz-transition: max-height 0.25s; 
+  -ms-transition: max-height 0.25s; 
+  -o-transition: max-height 0.25s; 
+  transition: max-height 0.25s;   */
+  overflow: hidden;
+  max-height: 0;
+  visibility: hidden;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.hidden-transition * {
+  /* -webkit-transition: max-height 0.15s; 
+  -moz-transition: max-height 0.15s; 
+  -ms-transition: max-height 0.15s; 
+  -o-transition: max-height 0.15s; 
+  transition: max-height 0.15s;   */
+  overflow: hidden;
+  max-height: 0;
+  visibility: hidden;
+  margin: 0 !important;
+  padding: 0 !important;
+}
 .page-container {
   display:flex;
   flex-flow: column;
@@ -92,16 +126,6 @@ body {
     box-shadow: -1px 1px 8px 0 red,1px -1px 8px 0 red,1px 1px 8px 0 red,-1px -1px 8px 0 red;
   }
 }
-/* .restart-requited-blink {
-  -webkit-animation-name: blinker;
-  -webkit-animation-iteration-count: infinite;
-  -webkit-animation-timing-function: cubic-bezier(.5, 0, 1, 1);
-  -webkit-animation-duration: 1.7s;
-  animation-name: blinker;
-  animation-iteration-count: infinite;
-  animation-timing-function: cubic-bezier(.5, 0, 1, 1);
-  animation-duration: 1.7s;
-} */
 .restart-required:hover {
   background-color: green;
 }

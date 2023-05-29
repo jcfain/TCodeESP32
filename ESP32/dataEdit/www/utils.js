@@ -21,26 +21,46 @@ Utils = {
             }, this._debounces[x].delay);
         });
     },
-    toggleElementShown(element, isVisible) {
+    /** If isVisible is undefined the element will be toggled */
+    toggleElementShown(element, isVisible, animate) {
         //element.hidden = !isVisible;// Broken with display:flex
+        let className = "hidden";
+        if(animate) {
+            className = "hidden-transition";
+            if(!element.classList.contains("max-height-transition")) {
+                element.classList.add("max-height-transition")
+            }
+        }
+        if(isVisible == undefined ) {
+            element.classList.toggle(className);
+            return;
+        }
         if(!isVisible)
-            element.classList.add("hidden");
+            element.classList.add(className);
         else
-            element.classList.remove("hidden");
+            element.classList.remove(className);
     },
-    toggleControlVisibilityByID(id, isVisible) {
+    toggleControlVisibilityByID(id, isVisible, animate, elementCallback) {
         var control = document.getElementById(id);
-            this.toggleElementShown(control, isVisible);
+            this.toggleElementShown(control, isVisible, animate);
+            if(elementCallback)
+                elementCallback(control);
     },
-    toggleControlVisibilityByName(name, isVisible) {
+    toggleControlVisibilityByName(name, isVisible, animate, elementCallback) {
         var controls = document.getElementsByName(name);
-        for(var i=0;i < controls.length; i++)
-            this.toggleElementShown(controls[i], isVisible);
+        for(var i=0;i < controls.length; i++) {
+            this.toggleElementShown(controls[i], isVisible, animate);
+            if(elementCallback)
+                elementCallback(controls[i]);
+        }
     },
-    toggleControlVisibilityByClassName(className, isVisible) {
+    toggleControlVisibilityByClassName(className, isVisible, animate, elementCallback) {
         var controls = document.getElementsByClassName(className);
-        for(var i=0;i < controls.length; i++)
-            this.toggleElementShown(controls[i], isVisible);
+        for(var i=0;i < controls.length; i++) {
+            this.toggleElementShown(controls[i], isVisible, animate);
+            if(elementCallback)
+                elementCallback(controls[i]);
+        }
     },
     createFormRow(id) {
         const row = document.createElement("div");
@@ -68,6 +88,7 @@ Utils = {
     },
     createTextInput(id, value, maxLength, callback) {
         const input = document.createElement("input");
+        input.type = "text";
         if(id) {
             input.id = id;
         }

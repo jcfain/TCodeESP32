@@ -1553,7 +1553,7 @@ var validateFloatDebounce;
 function validateFloatControl(controlID, settingsObject, settingVariableName, additionalValidations) {
     var control = document.getElementById(controlID);
     if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
-        settingsObject[settingVariableName] = parseInt(control.value);
+        settingsObject[settingVariableName] = parseFloat(control.value);
         return true;
     }
     showError(`${controlID} is invalid: ${control.errorText}`)

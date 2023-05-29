@@ -223,7 +223,7 @@ private:
             // DynamicJsonDocument doc(SettingsHandler::deserialize);
             // File file = SPIFFS.open(SettingsHandler::userSettingsFilePath, "r");
             // DeserializationError error = deserializeJson(doc, file);
-            char settings[6144];
+            char settings[40000];
             SettingsHandler::serialize(settings);
             if (strlen(settings) == 0) {
                 //AsyncWebServerResponse *response = req->beginResponse(504, "application/text", "Error getting user settings");

@@ -1,7 +1,11 @@
 const modalTemplate = document.createElement("template");
 modalTemplate.innerHTML = `
 <style>
+    .modal-hidden {
+        display: none !important;
+    }
     .modal-overlay {
+        display: flex;
         position: fixed;
         z-index: 50;
         width: 100vw;
@@ -14,7 +18,7 @@ modalTemplate.innerHTML = `
         flex-flow: column !important;
         flex-wrap: nowrap;
         overflow-y: hidden;
-        max-height: 100vh;
+        max-height: 60vh;
         max-width: 85vw;
         margin: auto;
         background-color: black;
@@ -32,6 +36,10 @@ modalTemplate.innerHTML = `
         height: 30px;
         text-align: center;
     }
+    .modal-title {  
+        margin-left: 24px;
+        text-align: center;
+    }
     .modal-body {
         display: flex;
         justify-content: center;
@@ -42,16 +50,29 @@ modalTemplate.innerHTML = `
         flex-flow: row;
         flex-wrap: nowrap;
         justify-content: space-between;
+        box-shadow: -1px 1px 5px 0 cornflowerblue,1px -1px 5px 0 lightblue,1px 1px 5px 0 lightblue,-1px -1px 5px 0 cornflowerblue;
+        min-width: 40vw;
     }
+    
+@media only screen and (-webkit-min-device-pixel-ratio: 2.75) {
+    .modal-container {
+        min-width: 95vw;
+        max-height: 95vh;
+    }
+}
 
 </style>
 <div class="modal-overlay">
     <div class="modal-container">
         <div class="modal-header">
-            <h2>
-                <slot name="title"></slot>
-            </h2>
-            <div><button class="modal-close-button" onclick="this.getRootNode().host.hide()">X</button></div>
+            <div class="modal-title">
+                <h2>
+                    <slot name="title"></slot>
+                </h2>
+            </div>
+            <div>
+                <button class="modal-close-button" onclick="this.getRootNode().host.hide()">X</button>
+            </div>
         </div>
         <div class="modal-body">
             <slot></slot>
@@ -94,6 +115,7 @@ class ModalComponent extends HTMLElement {
         // browser calls this method when the element is added to the document
         // (can be called many times if an element is repeatedly added/removed)
         console.log("connected");
+        this.hide();
     }
 
     disconnectedCallback() {
@@ -109,10 +131,11 @@ class ModalComponent extends HTMLElement {
     }
 
     show() {
-        this.classList.remove('hidden');
+        this.style = 'display:revert;';
     }
     hide() {
-        this.classList.add('hidden');
+        //this.classList.add('modal-hidden');
+        this.style = 'display:none;';
         this.removeAttribute("visible");
     }
 };
