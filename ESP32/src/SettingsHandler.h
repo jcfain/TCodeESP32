@@ -2042,7 +2042,7 @@ String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
 std::vector<Channel> SettingsHandler::currentChannels;
 MotorType SettingsHandler::motorType = MotorType::Servo;
-const char SettingsHandler::ESP32Version[8] = "v0.3b";
+const char SettingsHandler::ESP32Version[8] = "v0.31a";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char *SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";

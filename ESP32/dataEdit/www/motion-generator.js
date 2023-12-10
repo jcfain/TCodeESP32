@@ -289,16 +289,16 @@ function toggleMotionRandomMinMaxSettingsSettings(profileIndex, channelIndex) {
 
 function setMotionEnabledClicked() {
     systemInfo["motionEnabled"] = !systemInfo["motionEnabled"];//document.getElementById('motionEnabled').checked;
-    sendTCode(systemInfo["motionEnabled"] ? "$motion-enable" : "$motion-disable");
+    sendTCode(systemInfo["motionEnabled"] ? "#motion-enable" : "#motion-disable");
     //systemInfo["motionEnabled"] ? button.classList.add("button-toggle-stop") : button.classList.remove("button-toggle-stop");
     MotionGenerator.setEnabledStatus();
 }
 function setMotionPeriodRandomClicked(profileIndex, channelIndex, channelName) {
     var motionEnabled = document.getElementById('motionPeriodRandom'+profileIndex+channelIndex).checked;
     // if(motionEnabled) {
-    //     sendTCode("$motion-period-random-on");
+    //     sendTCode("#motion-period-random-on");
     // } else {
-    //     sendTCode("$motion-period-random-off");
+    //     sendTCode("#motion-period-random-off");
     // }
     const motionChannelIndex = getMotionChannelIndex(profileIndex, channelName);
     userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodRan"] = motionEnabled;
@@ -310,9 +310,9 @@ function setMotionPeriodRandomClicked(profileIndex, channelIndex, channelName) {
 function setMotionAmplitudeRandomClicked(profileIndex, channelIndex, channelName) {
     var motionEnabled = document.getElementById('motionAmplitudeRandom'+profileIndex+channelIndex).checked;
     // if(motionEnabled) {
-    //     sendTCode("$motion-amplitude-random-on");
+    //     sendTCode("#motion-amplitude-random-on");
     // } else {
-    //     sendTCode("$motion-amplitude-random-off");
+    //     sendTCode("#motion-amplitude-random-off");
     // }
     const motionChannelIndex = getMotionChannelIndex(profileIndex, channelName);
     userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ampRan"] = motionEnabled;
@@ -324,9 +324,9 @@ function setMotionAmplitudeRandomClicked(profileIndex, channelIndex, channelName
 function setMotionOffsetRandomClicked(profileIndex, channelIndex, channelName) {
     var motionEnabled = document.getElementById('motionOffsetRandom'+profileIndex+channelIndex).checked;
     // if(motionEnabled) {
-    //     sendTCode("$motion-offset-random-on");
+    //     sendTCode("#motion-offset-random-on");
     // } else {
-    //     sendTCode("$motion-offset-random-off");
+    //     sendTCode("#motion-offset-random-off");
     // }
     const motionChannelIndex = getMotionChannelIndex(profileIndex, channelName);
     userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offsetRan"] = motionEnabled;
@@ -338,9 +338,9 @@ function setMotionOffsetRandomClicked(profileIndex, channelIndex, channelName) {
 function setMotionPhaseRandomClicked(profileIndex, channelIndex, channelName) {
     var motionEnabled = document.getElementById('motionPhaseRandom'+profileIndex+channelIndex).checked;
     // if(motionEnabled) {
-    //     sendTCode("$motion-offset-random-on");
+    //     sendTCode("#motion-offset-random-on");
     // } else {
-    //     sendTCode("$motion-offset-random-off");
+    //     sendTCode("#motion-offset-random-off");
     // }
     const motionChannelIndex = getMotionChannelIndex(profileIndex, channelName);
     userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phaseRan"] = motionEnabled;
@@ -372,7 +372,7 @@ function selectMotionProfile(profileIndex, sendTCodeCommand) {
     const motionProfilesElement = document.getElementById(`motionProfile${profileIndex}`);
     motionProfilesElement.classList.add("button-pressed");
     if(sendTCodeCommand)
-        sendTCode(`$motion-set-profile:${profileIndex + 1}`);
+        sendTCode(`#motion-set-profile:${profileIndex + 1}`);
 }
 function editMotionProfile(profileIndex) {
     const modal = document.getElementById("motionChannelsModal");

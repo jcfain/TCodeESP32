@@ -133,6 +133,27 @@ char udpData[600];
 char webSocketData[600];
 char movement[600];
 
+unsigned long bench[10];
+unsigned long benchLast[10];
+bool benchEnable = false;
+bool benchEnableZero = false;
+unsigned long benchThreshHold = 1300;
+
+void benchStart(int benchNumber) {
+	if(benchEnable || (benchEnableZero && benchNumber == 0))
+		bench[benchNumber] = micros();
+}
+void benchFinish(const char* systemUnderBench, int benchNumber) {
+	if(benchEnable || (benchEnableZero && benchNumber == 0)) {
+		unsigned long timeTaken = micros() - bench[benchNumber];
+		if(timeTaken > benchThreshHold) {
+			Serial.printf("%s:							%lu\n", systemUnderBench, timeTaken);
+			bench[benchNumber] = 0;
+			benchLast[benchNumber] = timeTaken;
+		}
+	}
+}
+
 void displayPrint(String text) {
 	#if DISPLAY_ENABLED
 		displayHandler->println(text);
@@ -142,7 +163,7 @@ void displayPrint(String text) {
 
 void TCodeCommandCallback(const char* in) {
 
-	if(strpbrk("$", in) != nullptr) {
+	if(strpbrk("$", in) != nullptr || strpbrk("#", in) != nullptr) {
 		SystemCommandHandler::process(in);
 	} else {
 		#if BLUETOOTH_TCODE
@@ -409,7 +430,7 @@ void loadI2CModules() {
 			"DisplayTask", /* Name of the task */
 			5000,  /* Stack size in words */
 			displayHandler,  /* Task input parameter */
-			1,  /* Priority of the task */
+			3,  /* Priority of the task */
 			&displayTask,  /* Task handle. */
 			APP_CPU_NUM); /* Core where the task should run */
 			if(displayStatus != pdPASS) {
@@ -426,7 +447,7 @@ void loadI2CModules() {
 				"BatteryTask", /* Name of the task */
 				4028,  /* Stack size in words */
 				batteryHandler,  /* Task input parameter */
-				1,  /* Priority of the task */
+				2,  /* Priority of the task */
 				&batteryTask,  /* Task handle. */
 				APP_CPU_NUM); /* Core where the task should run */
 				if(batteryStatus != pdPASS) {
@@ -445,7 +466,7 @@ void loadI2CModules() {
 				"VoiceTask", /* Name of the task */
 				4028,  /* Stack size in words */
 				voiceHandler,  /* Task input parameter */
-				1,  /* Priority of the task */
+				2,  /* Priority of the task */
 				&voiceTask,  /* Task handle. */
 				APP_CPU_NUM); /* Core where the task should run */
 				if(voiceStatus != pdPASS) {
@@ -528,7 +549,7 @@ void setup()
 			"TempTask", /* Name of the task */
 			5000,  /* Stack size in words */
 			temperatureHandler,  /* Task input parameter */
-			1,  /* Priority of the task */
+			3,  /* Priority of the task */
 			&temperatureTask,  /* Task handle. */
 			APP_CPU_NUM); /* Core where the task should run */
 		if(tempStartStatus != pdPASS) {
@@ -590,6 +611,8 @@ void setup()
 }
 
 void loop() {
+	//LogHandler::verbose(TagHandler::MainLoop, "Enter loop ############################################");
+	benchStart(0);
 	if (SystemCommandHandler::restartRequired || restarting) {  // check the flag here to determine if a restart is required
 		if(!restarting) {
 			LogHandler::info(TagHandler::Main, "Restarting ESP");
@@ -615,20 +638,36 @@ void loop() {
 			//otaHandler.handle();
 			String serialData;
 #if WIFI_TCODE
-			if(webSocketHandler)
+			if(webSocketHandler) {
+				
+				benchStart(1);
 				webSocketHandler->getTCode(webSocketData);
-			if(udpHandler)
+				benchFinish("Websocket get", 1);
+			}
+			if(udpHandler) {
+				benchStart(2);
 				udpHandler->read(udpData);
+				benchFinish("Udp get", 2);
+			}
+			
+			benchStart(7);
+			int serialAvailable = Serial.available();
+			benchFinish("Serial avail", 7);
+			
+			benchStart(3);
 			if (!SettingsHandler::getMotionEnabled() && strlen(webSocketData) > 0) {
-				//LogHandler::debug(TagHandler::MainLoop, "webSocket writing: %s", webSocketData);
+				LogHandler::debug(TagHandler::MainLoop, "webSocket writing: %s", webSocketData);
 				motorHandler->read(webSocketData);
 			} else if (!apMode && !SettingsHandler::getMotionEnabled() && strlen(udpData) > 0) {
+				benchStart(6);
 				LogHandler::verbose(TagHandler::MainLoop, "udp writing: %s", udpData);
 				motorHandler->read(udpData);
+				benchFinish("Udp write", 6);
 			} 
 			else 
 #endif
-			if (!SettingsHandler::getMotionEnabled() && Serial.available() > 0) {
+			if (!SettingsHandler::getMotionEnabled() && serialAvailable > 0) {
+				LogHandler::verbose(TagHandler::MainLoop, "serial writing: %s", udpData);
 				serialData = Serial.readStringUntil('\n');
 				motorHandler->read(serialData);
 			} 
@@ -640,17 +679,20 @@ void loop() {
 			}
 #endif
 			else if (SettingsHandler::getMotionEnabled()) {
-				// Read and process tcode $ commands
-				if(Serial.available() > 0) {
+				// Read and process tcode $ and # commands
+				if(serialAvailable > 0) {
 					serialData = Serial.readStringUntil('\n');
-					if(serialData.startsWith("$"))
+					if(serialData.startsWith("$") || serialData.startsWith("#")) {
 						motorHandler->read(serialData);
+					}
 				}
 #if WIFI_TCODE
-				else if(strlen(udpData) > 0 && strpbrk("$", udpData) != nullptr)
+				else if(strlen(udpData) > 0 && (strpbrk("$", udpData) != nullptr || strpbrk("#", udpData) != nullptr)) {
 					motorHandler->read(udpData);
-				else if(strlen(webSocketData) > 0 && strpbrk("$", webSocketData) != nullptr)
+				}
+				else if(strlen(webSocketData) > 0 && (strpbrk("$", webSocketData) != nullptr || strpbrk("#", webSocketData) != nullptr)) {
 					motorHandler->read(webSocketData);
+				}
 #endif
 #if BLUETOOTH_TCODE
 				else if (SettingsHandler::bluetoothEnabled && btHandler && btHandler->isConnected() && btHandler->available() > 0) {
@@ -665,13 +707,20 @@ void loop() {
 					motorHandler->read(movement);
 				}
 			} 
+			
+			benchFinish("Input check", 3);
 
 			if (strlen(movement) == 0 && strlen(udpData) == 0 && strlen(webSocketData) == 0 && serialData.length() == 0) {// No data from above
+				//LogHandler::verbose(TagHandler::MainLoop, "No data executing");
+				
+				benchStart(4);
 				motorHandler->execute();
+				benchFinish("Execute", 4);
 			}
 		}
 	}
 #if TEMP_ENABLED
+		benchStart(5);
 		if(setupSucceeded && temperatureHandler && temperatureHandler->isRunning()) {
 			if(SettingsHandler::tempSleeveEnabled) {
 				temperatureHandler->setHeaterState();
@@ -680,13 +729,12 @@ void loop() {
 				temperatureHandler->setFanState();
 			}
 		}
+		benchFinish("Temp check", 5);
 #endif
 	if(!setupSucceeded) {
 		LogHandler::error(TagHandler::Main, "There was an issue in setup");
         vTaskDelay(5000/portTICK_PERIOD_MS);
 	}
-	// if(SettingsHandler::saving) {
-	// 	LogHandler::info(TagHandler::Main, "Saving settings, main loop disabled...");
-    //     vTaskDelay(100/portTICK_PERIOD_MS);
-	// }
+	
+	benchFinish("Main loop", 0);
 }

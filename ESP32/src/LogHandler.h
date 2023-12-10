@@ -42,6 +42,12 @@ public:
         //         esp_log_level_set(tag.c_str(), ESP_LOG_ERROR);
         // }
     }
+
+    /// @brief Filters concurrent duplicates on the verbose log output
+    /// @param enabled 
+    static void setFilterDuplicates(bool enabled) {
+        m_filterDuplicates = enabled;
+    }
     
     static LogLevel getLogLevel() {
         return _currentLogLevel;
@@ -132,6 +138,11 @@ public:
             //Serial.println("verbose tryLock");
 		    xSemaphoreTake(xMutex, portMAX_DELAY);
             if(isLogged(tag)) {
+                if(m_filterDuplicates && strcmp(m_lastVerbose, format) == 0) {
+                    xSemaphoreGive(xMutex);
+                    return;
+                }
+                strcpy(m_lastVerbose, format);
                 va_list vArgs;
                 va_start(vArgs, format);
                 parseMessage(format, "VERBOSE", tag, LogLevel::VERBOSE, vArgs);
@@ -147,6 +158,11 @@ public:
             //Serial.println("debug tryLock");
 		    xSemaphoreTake(xMutex, portMAX_DELAY);
             if(isLogged(tag)) {
+                if(m_filterDuplicates && strcmp(m_lastDebug, format) == 0) {
+                    xSemaphoreGive(xMutex);
+                    return;
+                }
+                strcpy(m_lastDebug, format);
                 va_list vArgs;
                 va_start(vArgs, format);
                 parseMessage(format, "DEBUG", tag, LogLevel::DEBUG, vArgs);
@@ -212,6 +228,9 @@ private:
 	static SemaphoreHandle_t xMutex;
     static std::vector<String> m_tags;
     static std::vector<String> m_filters;
+    static char m_lastVerbose[1024];
+    static char m_lastDebug[1024];
+    static bool m_filterDuplicates;
 
     static void parseMessage(const char* valueFormat, const char* level, const char* tag, LogLevel logLevel, va_list vArgs) {
         try {
@@ -300,3 +319,6 @@ std::vector<String> LogHandler::m_tags;
 std::vector<String> LogHandler::m_filters;
 LogLevel LogHandler::_currentLogLevel = LogLevel::INFO;
 LOG_FUNCTION_PTR_T LogHandler::message_callback = 0;
+char LogHandler::m_lastVerbose[1024];
+char LogHandler::m_lastDebug[1024];
+bool LogHandler::m_filterDuplicates = false;

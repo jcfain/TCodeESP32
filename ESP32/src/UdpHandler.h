@@ -81,7 +81,7 @@ class Udphandler
 			packetBuffer[len] = 0;
 			//LogHandler::verbose(_TAG, "Udp in: %s", packetBuffer);
 		}
-		if (SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 && strpbrk(packetBuffer, "$") != nullptr) {
+		if (SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 && (strpbrk(packetBuffer, "$") != nullptr || strpbrk(packetBuffer, "#") != nullptr)) {
 			strcpy(udpData, packetBuffer);
 			LogHandler::info(_TAG, "System command received: %s", udpData);
 			CommandCallback("OK");

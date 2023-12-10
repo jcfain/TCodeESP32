@@ -170,6 +170,7 @@ private:
   
       // Setup commands
       case '$':
+      case '#':
         setupCmd(command);
       break; 
     }

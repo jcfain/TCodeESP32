@@ -2092,7 +2092,7 @@ function setTCodeVersion()
 {
     userSettings["TCodeVersion"] = parseInt(document.getElementById('TCodeVersion').value);
     toggleNonTCodev3Options()
-    setupChannelSliders();
+    // setupChannelSliders();
 	setRestartRequired();
 	updateUserSettings();
 }

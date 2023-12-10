@@ -10,7 +10,7 @@ public:
     static bool restartRequired;
     static bool process(const char* in) {
 		xSemaphoreTake(xMutex, portMAX_DELAY);
-		if(strpbrk("$", in) != nullptr) {
+		if(strpbrk("$", in) != nullptr || strpbrk("#", in) != nullptr) {
 			LogHandler::debug(_TAG, "Enter TCode Command callback %s", in);
 			// Commands with out values
 			if(isCommand(in, "$help")) {
@@ -36,7 +36,7 @@ public:
 				}, false, true);
 			}
 
-			if(isCommand(in, "$restart")) {
+			if(isCommand(in, "#restart")) {
 				return execute([]() -> bool {
 					restart();
 					return true;
@@ -59,19 +59,19 @@ public:
 				}, true);
 			}
 
-			if(isCommand(in, "$motion-enable")) {
+			if(isCommand(in, "#motion-enable")) {
 				return validateBool("Motion", true, SettingsHandler::getMotionEnabled(), [](bool value) -> bool {
 					SettingsHandler::setMotionEnabled(value);
 					return true;
 				}, true);
 			}
-			if(isCommand(in, "$motion-disable")) {
+			if(isCommand(in, "#motion-disable")) {
 				return validateBool("Motion", false, SettingsHandler::getMotionEnabled(), [](bool value) -> bool {
 					SettingsHandler::setMotionEnabled(value);
 					return true;
 				}, true);
 			}
-			if(isCommand(in, "$motion-toggle")) {
+			if(isCommand(in, "#motion-toggle")) {
 				return execute([]() -> bool {
 					SettingsHandler::setMotionEnabled(!SettingsHandler::getMotionEnabled());
 					Serial.println(SettingsHandler::getMotionEnabled() ? "Motion enabled" : "Motion disabled");
@@ -119,13 +119,13 @@ public:
 			// Commands with values
 			int indexofDelim = getposition(in, strlen(in), ':');
 			if(indexofDelim == -1) {
-				Serial.println("Invalid command format: missing colon, correct format is $<command>:<value>");
+				Serial.println("Invalid command format: missing colon, correct format is $|#<command>:<value>");
 				xSemaphoreGive(xMutex);
 				return false;
 			}
 			const char* value = substr(in, indexofDelim +1, strlen(in));
 			if(!strlen(value)) {
-				Serial.println("Invalid command format: missing value, correct format is $<command>:<value>");
+				Serial.println("Invalid command format: missing value, correct format is $|#<command>:<value>");
 				xSemaphoreGive(xMutex);
 				return false;
 			}
@@ -197,7 +197,7 @@ public:
 				}, true);
 			}
 
-			if(isCommand(in, "$motion-profile-name")) {
+			if(isCommand(in, "#motion-profile-name")) {
 				return validateMaxLength("Motion profile name", value, maxMotionProfileNameLength, false, [](const char* value) -> bool {
 					SettingsHandler::setMotionProfileName(value);
 					return true;
@@ -239,7 +239,7 @@ public:
 			// 		return true;
 			// 	}, true);
 			// }
-			if(isCommand(in, "$motion-set-profile")) {
+			if(isCommand(in, "#motion-set-profile")) {
 				return validateGreaterThanZero("Motion profile", value, [](int valueInt) -> bool {
 					int profileAsIndex = valueInt - 1;
 					if(profileAsIndex > maxMotionProfileCount) {
@@ -390,7 +390,7 @@ private:
 		Serial.println("$help ------------------------- Print this.");
 		Serial.println("$save ------------------------- Flush ALL settings to disk.");
 		Serial.println("$defaultAll ------------------- Reset ALL settings to default");
-		Serial.println("$restart ---------------------- Restart the esp");
+		Serial.println("#restart ---------------------- Restart the esp");
 		Serial.println("");
 		Serial.println("Wifi:");
 		Serial.println("$wifi-ssid:value -------------- Change the wifi ssid.");
@@ -412,11 +412,11 @@ private:
 		Serial.println("$clear-log-exclude ------------- Clear all excluded log tags");
 		Serial.println("");
 		Serial.println("Motion generator:");
-		Serial.println("$motion-enable ----------------- Enable motion generator");
-		Serial.println("$motion-disable ---------------- Disable motion generator");
-		Serial.println("$motion-set-profile:value ------ Set the current profile");
+		Serial.println("#motion-enable ----------------- Enable motion generator");
+		Serial.println("#motion-disable ---------------- Disable motion generator");
+		Serial.println("#motion-set-profile:value ------ Set the current profile");
 		Serial.printf("    Motion profile values: 1-%ld\n", maxMotionProfileCount);
-		Serial.println("$motion-toggle ----------------- Toggle motion generator");
+		Serial.println("#motion-toggle ----------------- Toggle motion generator");
 		// Serial.println("$motion-period-random-on ------- Period random on for the current profile");
 		// Serial.println("$motion-period-random-off ------ Period random off for the current profile");
 		// Serial.println("$motion-amplitude-random-on ---- Amplitude random on for the current profile");
