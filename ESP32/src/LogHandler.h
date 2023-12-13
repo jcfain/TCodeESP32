@@ -2,9 +2,6 @@
 
 #include "Arduino.h"
 
-// #define LOG_LOCAL_LEVEL ESP_LOG_ERROR
-// #include "esp_log.h"
-
 #include <mutex>
 #include <vector>
 #include "utils.h"

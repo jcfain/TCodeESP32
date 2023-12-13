@@ -19,6 +19,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
+#if DEBUG_BUILD
+    #define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
+    #include "esp_log.h"
+#endif
 #if BUILD_TYPE == RELEASE
 #include <Arduino.h>
 #endif
@@ -650,13 +654,9 @@ void loop() {
 				benchFinish("Udp get", 2);
 			}
 			
-			benchStart(7);
-			int serialAvailable = Serial.available();
-			benchFinish("Serial avail", 7);
-			
 			benchStart(3);
 			if (!SettingsHandler::getMotionEnabled() && strlen(webSocketData) > 0) {
-				LogHandler::debug(TagHandler::MainLoop, "webSocket writing: %s", webSocketData);
+				LogHandler::verbose(TagHandler::MainLoop, "webSocket writing: %s", webSocketData);
 				motorHandler->read(webSocketData);
 			} else if (!apMode && !SettingsHandler::getMotionEnabled() && strlen(udpData) > 0) {
 				benchStart(6);
@@ -666,7 +666,7 @@ void loop() {
 			} 
 			else 
 #endif
-			if (!SettingsHandler::getMotionEnabled() && serialAvailable > 0) {
+			if (!SettingsHandler::getMotionEnabled() && Serial.available() > 0) {
 				LogHandler::verbose(TagHandler::MainLoop, "serial writing: %s", udpData);
 				serialData = Serial.readStringUntil('\n');
 				motorHandler->read(serialData);
@@ -680,7 +680,7 @@ void loop() {
 #endif
 			else if (SettingsHandler::getMotionEnabled()) {
 				// Read and process tcode $ and # commands
-				if(serialAvailable > 0) {
+				if(Serial.available() > 0) {
 					serialData = Serial.readStringUntil('\n');
 					if(serialData.startsWith("$") || serialData.startsWith("#")) {
 						motorHandler->read(serialData);

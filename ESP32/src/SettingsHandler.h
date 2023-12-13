@@ -48,7 +48,6 @@ public:
     static bool initialized;
     static bool saving;
     static bool fullBuild;
-    static bool debug;
     static LogLevel logLevel;
 
     static std::vector<Channel> currentChannels;
@@ -80,7 +79,11 @@ public:
     static int TwistServo_PIN;
 
     static bool BLDC_UsePWM;
+    static bool BLDC_UseMT6701;
+    static bool BLDC_UseHallSensor;
+    static int BLDC_Pulley_Circumference;
     static int BLDC_Encoder_PIN;
+    static int HallEffect_PIN;
     static int BLDC_ChipSelect_PIN; 
     static int BLDC_Enable_PIN;
     static int BLDC_PWMchannel1_PIN;
@@ -418,6 +421,9 @@ public:
             }
 
             BLDC_UsePWM = json["BLDC_UsePWM"] | false;
+            BLDC_UseMT6701 = json["BLDC_UseMT6701"] | true;
+            BLDC_UseHallSensor = json["BLDC_UseHallSensor"] | false;
+            BLDC_Pulley_Circumference = json["BLDC_Pulley_Circumference"] | 60;
             BLDC_MotorA_Voltage = round2(json["BLDC_MotorA_Voltage"] | 20.0);
             BLDC_MotorA_Current = round2(json["BLDC_MotorA_Current"] | 1.0);
             BLDC_MotorA_ParametersKnown = json["BLDC_MotorA_ParametersKnown"] | false;
@@ -901,6 +907,7 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
     BLDC_Encoder_PIN = json["BLDC_Encoder_PIN"] | 33;
     BLDC_ChipSelect_PIN = json["BLDC_ChipSelect_PIN"] | 5;
     BLDC_Enable_PIN = json["BLDC_Enable_PIN"] | 14;
+    HallEffect_PIN = json["HallEffect_PIN"] | 12;
     BLDC_PWMchannel1_PIN = json["BLDC_PWMchannel1_PIN"] | 27;
     BLDC_PWMchannel2_PIN = json["BLDC_PWMchannel2_PIN"] | 26;
     BLDC_PWMchannel3_PIN = json["BLDC_PWMchannel3_PIN"] | 25;
@@ -1258,9 +1265,13 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         doc["Internal_Temp_PIN"] = Internal_Temp_PIN;
 
         doc["BLDC_UsePWM"] = BLDC_UsePWM;
+        doc["BLDC_UseMT6701"] = BLDC_UseMT6701;
+        doc["BLDC_UseHallSensor"] = BLDC_UseHallSensor;
+        doc["BLDC_Pulley_Circumference"] = BLDC_Pulley_Circumference;
         doc["BLDC_Encoder_PIN"] = BLDC_Encoder_PIN;
         doc["BLDC_ChipSelect_PIN"] = BLDC_ChipSelect_PIN;
         doc["BLDC_Enable_PIN"] = BLDC_Enable_PIN;
+        doc["HallEffect_PIN"] = HallEffect_PIN;
         doc["BLDC_PWMchannel1_PIN"] = BLDC_PWMchannel1_PIN;
         doc["BLDC_PWMchannel2_PIN"] = BLDC_PWMchannel2_PIN;
         doc["BLDC_PWMchannel3_PIN"] = BLDC_PWMchannel3_PIN;
@@ -1438,8 +1449,6 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
 #if DEBUG_BUILD
         LogHandler::debug("setBuildFeatures", "DEBUG_BUILD");
         buildFeatures[index] = BuildFeature::DEBUG;
-        LogHandler::setLogLevel(LogLevel::VERBOSE);
-        debug = true;
         index++;
 #endif
 #if ESP32_DA
@@ -2052,7 +2061,6 @@ const char *SettingsHandler::logPath = "/log.json";
 const char *SettingsHandler::defaultWifiPass = "YOUR PASSWORD HERE";
 const char *SettingsHandler::decoyPass = "Too bad haxor!";
 bool SettingsHandler::bluetoothEnabled = true;
-bool SettingsHandler::debug = false;
 LogLevel SettingsHandler::logLevel = LogLevel::INFO;
 bool SettingsHandler::isTcp = true;
 char SettingsHandler::ssid[32];
@@ -2112,17 +2120,21 @@ int SettingsHandler::LeftUpperServo_ZERO = 1500;
 int SettingsHandler::PitchLeftServo_ZERO = 1500;
 int SettingsHandler::PitchRightServo_ZERO = 1500;
 
-bool SettingsHandler::BLDC_UsePWM = false;   // SPI feedback is now default because it's a lot smoother and quieter! Change this to true if you want to use PWM feedback.
+bool SettingsHandler::BLDC_UsePWM = false;
+bool SettingsHandler::BLDC_UseMT6701 = true;
+bool SettingsHandler::BLDC_UseHallSensor = false;
+int SettingsHandler::BLDC_Pulley_Circumference = 60;
 int SettingsHandler::BLDC_Encoder_PIN = 33;// PWM feedback pin (if used) - P pad on AS5048a
 int SettingsHandler::BLDC_Enable_PIN = 14;// Motor enable - EN on SFOCMini   
+int SettingsHandler::HallEffect_PIN = 12;
 int SettingsHandler::BLDC_PWMchannel1_PIN = 27;
 int SettingsHandler::BLDC_PWMchannel2_PIN = 26;
 int SettingsHandler::BLDC_PWMchannel3_PIN = 25;
 float SettingsHandler::BLDC_MotorA_Voltage = 20.0; // BLDC Motor operating voltage (12-20V)
 float SettingsHandler::BLDC_MotorA_Current = 1;  // BLDC Maximum operating current (Amps)
 int SettingsHandler::BLDC_ChipSelect_PIN = 5;         // SPI chip select pin - CSn on AS5048a (By default on ESP32: MISO = D19, MOSI = D23, CLK = D18)
-bool SettingsHandler::BLDC_MotorA_ParametersKnown = false;     // Once you know the zero elec angle for the motor enter it below and set this flag to true.
-float SettingsHandler::BLDC_MotorA_ZeroElecAngle = 0.00; // This number is the zero angle (in radians) for the motor relative to the encoder.
+bool SettingsHandler::BLDC_MotorA_ParametersKnown = true;     // Once you know the zero elec angle for the motor enter it below and set this flag to true.
+float SettingsHandler::BLDC_MotorA_ZeroElecAngle = 2.23; // This number is the zero angle (in radians) for the motor relative to the encoder.
 
 int SettingsHandler::TwistServo_ZERO = 1500;
 int SettingsHandler::ValveServo_ZERO = 1500;

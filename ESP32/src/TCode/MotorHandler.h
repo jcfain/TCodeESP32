@@ -125,7 +125,7 @@ protected:
         }
     }
 
-    void executeCommon(int xLin) {
+    void executeCommon(const int xLin) {
         if(!m_tcode)
             return;
         vibe0 = m_tcode->AxisRead("V0");
