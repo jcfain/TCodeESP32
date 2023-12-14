@@ -95,6 +95,10 @@ function validateBLDCPins() {
     if(userSettings["disablePinValidation"])
         return pinValues;
 
+    //assignedPins.push({name:"SPI1", pin:5});
+    assignedPins.push({name:"SPI1", pin:18});
+    assignedPins.push({name:"SPI2", pin:19});
+
     var pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_Encoder_PIN);
     if(pinDupeIndex > -1)
         duplicatePins.push("Encoder pin and "+assignedPins[pinDupeIndex].name);
@@ -131,12 +135,12 @@ function validateBLDCPins() {
         pmwErrors.push("PWMchannel3pin: "+pinValues.BLDC_PWMchannel3_PIN);
     assignedPins.push({name:"PWMchannel3", pin:pinValues.BLDC_PWMchannel3_PIN});
 
-    pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_HallEffect_PIN);
-    if(pinDupeIndex > -1)
-        duplicatePins.push("Hall effect pin and "+assignedPins[pinDupeIndex].name);
-    if(validPWMpins.indexOf(pinValues.BLDC_HallEffect_PIN) == -1)
-        pmwErrors.push("HallEffectpin: "+pinValues.BLDC_HallEffect_PIN);
-    assignedPins.push({name:"HallEffect", pin:pinValues.BLDC_HallEffect_PIN});
+    if(userSettings["BLDC_UsePWM"]) {
+        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_HallEffect_PIN);
+        if(pinDupeIndex > -1)
+            duplicatePins.push("Hall effect pin and "+assignedPins[pinDupeIndex].name);
+        assignedPins.push({name:"HallEffect", pin:pinValues.BLDC_HallEffect_PIN});
+    }
     
     validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pmwErrors);
 
