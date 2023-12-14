@@ -37,13 +37,9 @@ public:
         ms_per_rad = SettingsHandler::msPerRad;
         MainServo_Freq = SettingsHandler::servoFrequency;
         PitchServo_Freq = SettingsHandler::pitchFrequency;
-        TwistServo_Freq = SettingsHandler::twistFrequency;
-        SqueezeServo_Freq = SettingsHandler::squeezeFrequency;
 // Servo Pulse intervals
         MainServo_Int = 1000000/MainServo_Freq;
         PitchServo_Int = 1000000/PitchServo_Freq;
-        TwistServo_Int = 1000000/TwistServo_Freq;
-        SqueezeServo_Int = 1000000/SqueezeServo_Freq;
 
         // Set SR6 arms to startup positions
         if (SettingsHandler::sr6Mode) { m_tcode->StringInput("R2750"); }
@@ -89,16 +85,6 @@ public:
         LogHandler::verbose(_TAG, "Connecting pitch servo to pin: %u", SettingsHandler::PitchLeftServo_PIN);
         ledcSetup(LeftPitchServo_PWM,PitchServo_Freq,16);
         ledcAttachPin(SettingsHandler::PitchLeftServo_PIN,LeftPitchServo_PWM);
-       
-         // Twist Servo
-        LogHandler::verbose(_TAG, "Connecting twist servo to pin: %u", SettingsHandler::TwistServo_PIN);
-        ledcSetup(TwistServo_PWM,TwistServo_Freq,16);
-        ledcAttachPin(SettingsHandler::TwistServo_PIN,TwistServo_PWM);
-
-        //Squeeze servo
-        LogHandler::verbose(_TAG, "Connecting squeeze servo to pin: %u", SettingsHandler::Squeeze_PIN);
-        ledcSetup(SqueezeServo_PWM,SqueezeServo_Freq,16);
-        ledcAttachPin(SettingsHandler::Squeeze_PIN,SqueezeServo_PWM);
 
         setupCommon();
         
@@ -134,45 +120,8 @@ public:
             yLin = m_tcode->AxisRead("L1");
             zLin = m_tcode->AxisRead("L2");
         }
-        xRot = m_tcode->AxisRead("R0");
         yRot = m_tcode->AxisRead("R1");
         zRot = m_tcode->AxisRead("R2");
-        squeezeCmd = m_tcode->AxisRead("A3");
-
-
-        if (SettingsHandler::feedbackTwist && !SettingsHandler::continuousTwist) 
-        {
-            float angPos;
-            // Calculate twist position
-            if (!SettingsHandler::analogTwist)
-            {  
-                //noInterrupts();
-                float dutyCycle = twistPulseLength;
-                dutyCycle = dutyCycle/lastTwistPulseCycle;
-                //interrupts();
-                angPos = (dutyCycle - 0.029)/0.942;
-                    //  Serial.print("angPos "); 
-                    //  Serial.println(angPos);
-            }
-            else 
-            {
-                int feedBackValue = analogRead(SettingsHandler::TwistFeedBack_PIN);
-                angPos = feedBackValue / 675.0;
-                // if(feedBackValue != testVar) {
-                //     testVar = feedBackValue;
-                //     Serial.print("feedBackValue: ");
-                //     Serial.println(feedBackValue);
-                //     Serial.print("angPos: ");
-                //     Serial.println(angPos);
-                // }
-            }
-            angPos = constrain(angPos,0,1) - 0.5;
-            if (angPos - twistServoAngPos < - 0.8) { twistTurns += 1; }
-            if (angPos - twistServoAngPos > 0.8) { twistTurns -= 1; }
-            twistServoAngPos = angPos;
-            twistPos = 1000*(angPos + twistTurns);
-        }
-
         // If you want to mix your servos differently, enter your code below:
 
         // OSR2 Kinematics
@@ -250,43 +199,6 @@ public:
             ledcWrite(RightPitchServo_PWM, map(constrain(SettingsHandler::PitchRightServo_ZERO + pitchRightValue, SettingsHandler::PitchRightServo_ZERO - 1000, SettingsHandler::PitchRightServo_ZERO + 600), 0, PitchServo_Int, 0, 65535));
         }
 
-        // Twist and valve
-        int twist;
-        if (SettingsHandler::feedbackTwist && !SettingsHandler::continuousTwist) 
-        {
-            twist  = (xRot - map(twistPos,-1500,1500,9999,0))/5;
-            if(!SettingsHandler::analogTwist) 
-            { 
-                twist  = constrain(twist, -750, 750);
-            }
-            else 
-            {
-                int jitter = 1;
-                twist += jitter;
-                jitter *= -1;
-                twist = -constrain(twist, -500, 500);
-                // if(twist != testVar2) {
-                //     testVar2 = twist;
-                //     Serial.print("twist: ");
-                //     Serial.println(1500 + twist);
-                //     Serial.print("map(twistPos,-1500,1500,9999,0) "); 
-                //     Serial.println(map(twistPos,-1500,1500,9999,0));
-                    // Serial.print("map "); 
-                    // Serial.println(map(SettingsHandler::TwistServo_ZERO + twist,0,TwistServo_Int,0,65535));
-                //}
-            }
-        } 
-        else 
-        {
-            twist  = map(xRot,0,9999,1000,-1000);
-        }
-        int squeeze;
-        squeeze = map(squeezeCmd,0,9999,1000,-1000);
-        
-        // Set Servos
-        ledcWrite(TwistServo_PWM, map(SettingsHandler::TwistServo_ZERO + twist,0,TwistServo_Int,0,65535));
-        ledcWrite(SqueezeServo_PWM, map(SettingsHandler::SqueezeServo_ZERO + squeeze,0,SqueezeServo_Int,0,65535));
-
         executeCommon(xLin);
         // Done with servo channels
 
@@ -296,13 +208,9 @@ private:
     const char* _TAG = TagHandler::ServoHandler3;
     int MainServo_Int;
     int PitchServo_Int;
-    int TwistServo_Int;
-    int SqueezeServo_Int;
 
     int MainServo_Freq;
     int PitchServo_Freq;
-    int TwistServo_Freq;
-    int SqueezeServo_Freq;
 
     // Declare classes
     // This uses the t-code object above
@@ -310,12 +218,7 @@ private:
     // Position variables
     int xLin,yLin,zLin;
     // Rotation variables
-    int xRot,yRot,zRot;
-    int squeezeCmd;
-    // Velocity tracker variables, for valve
-    float twistServoAngPos = 0.5;
-    int twistTurns = 0;
-    float twistPos;
+    int yRot,zRot;
 
     // Function to calculate the angle for the main arm servos
     // Inputs are target x,y coords of receiver pivot in 1/100 of a mm

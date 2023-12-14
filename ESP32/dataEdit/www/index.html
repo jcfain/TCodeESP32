@@ -153,10 +153,42 @@
 
 						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
+								<span title="Check this if you want to use MT6701 SSI">Encoder MT6701 SSI</span> 
+							</div>
+							<div class="tCell">
+								<input id="BLDC_UseMT6701" type="radio" value="BLDC_UseMT6701" name="encoder_type" onclick="updateEncoderType(this.value)"></input>
+							</div>
+						</div>
+						<div class="tRow BLDCOnly hidden">
+							<div class="tCell">
 								<span title="Check this if you want to usePWM">Encoder PWM</span> 
 							</div>
 							<div class="tCell">
-								<input id="BLDC_UsePWM" type="checkbox" onclick="updateBLDCSettings()"></input>
+								<input id="BLDC_UsePWM" type="radio" value="BLDC_UsePWM" name="encoder_type" onclick="updateEncoderType(this.value)"></input>
+							</div>
+						</div>
+						<div class="tRow BLDCOnly hidden">
+							<div class="tCell">
+								<span title="Check this if you want to use SPI">Encoder SPI</span> 
+							</div>
+							<div class="tCell">
+								<input id="BLDC_UseSPI" type="radio" value="BLDC_UseSPI" name="encoder_type" onclick="updateEncoderType(this.value)"></input>
+							</div>
+						</div>
+						<div class="tRow BLDCOnly hidden">
+							<div class="tCell">
+								<span title="Check this if you use a hall effect sensor">Use hall effect</span> 
+							</div>
+							<div class="tCell">
+								<input id="BLDC_UseHallSensor" type="checkbox" name="encoder_type" onclick="updateBLDCSettings()"></input>
+							</div>
+						</div>
+						<div class="tRow BLDCOnly hidden">
+							<div class="tCell">
+								<span>Pulley circumference</span> 
+							</div>
+							<div class="tCell">
+								<input id="BLDC_Pulley_Circumference" type="number" min="0" max="2147483647" oninput="updateBLDCSettings()">
 							</div>
 						</div>
 						<div class="tRow BLDCOnly hidden">
@@ -223,6 +255,14 @@
 								<input id="BLDC_PWMchannel3_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
+						<div id="HallEffect" class="tRow BLDCOnly hidden">
+							<div class="tCell">
+								<span>Hall effect PIN</span> 
+							</div>
+							<div class="tCell">
+								<input id="BLDC_HallEffect_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+							</div>
+						</div>
 						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
 								<span title="Once you know the zero elec angle for the motor enter it below and check this">Parameters known</span> 
@@ -231,7 +271,7 @@
 								<input id="BLDC_MotorA_ParametersKnown" type="checkbox" onclick="updateBLDCSettings()"></input>
 							</div>
 						</div>
-						<div class="tRow BLDCOnly hidden">
+						<div id="ZeroElecAngle" class="tRow BLDCOnly hidden">
 							<div class="tCell" title="This number is the zero angle (in radians) for the motor relative to the encoder">
 								<span>Zero Elec Angle</span> 
 							</div>
@@ -300,7 +340,7 @@
 								<input id="valveFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
 							</div>
 						</div>
-						<div title="This sets the frequency of the twist servo." class="tRow servoOnly hidden">
+						<div title="This sets the frequency of the twist servo." class="tRow">
 							<div class="tCell">
 								<span>Twist Frequency (hz)</span> 
 							</div>
@@ -308,9 +348,9 @@
 								<input id="twistFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
 							</div>
 						</div>
-						<div title="This sets the frequency of the squeeze servo." class="tRow servoOnly hidden">
+						<div title="This sets the frequency of the auxiliary servo." class="tRow">
 							<div class="tCell">
-								<span>Squeeze Frequency (hz)</span> 
+								<span>Aux Frequency (hz)</span> 
 							</div>
 							<div class="tCell">
 								<input id="squeezeFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
@@ -388,7 +428,7 @@
 									<input id="ValveServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 								</div>
 							</div>
-							<div class="tRow servoOnly hidden">
+							<div class="tRow">
 								<div class="tCell">
 									<span>Twist</span> 
 								</div>
@@ -400,9 +440,9 @@
 								</div>
 							</div>
 						</div>
-						<div class="tRow v3Only servoOnly hidden">
+						<div class="tRow v3Only">
 							<div class="tCell">
-								<span>Auxiliary</span> 
+								<span>Aux</span> 
 							</div>
 							<div class="tCell">
 								<input id="Squeeze_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
@@ -411,7 +451,7 @@
 								<input id="Squeeze_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 							</div>
 						</div>
-						<div class="tRow feedbackTwistOnly servoOnly hidden">
+						<div class="tRow feedbackTwistOnly">
 							<div class="tCell">
 								<span>Twist feedback</span> 
 							</div>
@@ -545,7 +585,7 @@
 								<input id="inversePitch" type="checkbox" onclick="setInversePitch()"></input>
 							</div>
 						</div>
-						<div class="tRow servoOnly">
+						<div class="tRow">
 							<div class="tCell">
 								<span>Feedback twist</span> 
 							</div>
@@ -553,7 +593,7 @@
 								<input id="feedbackTwist" type="checkbox" onchange="updateFeedbackTwist()">
 							</div>
 						</div>
-						<div class="tRow feedbackTwistOnly servoOnly">
+						<div class="tRow feedbackTwistOnly">
 							<div class="tCell">
 								<span>Continuous twist</span> 
 							</div>
@@ -561,7 +601,7 @@
 								<input id="continuousTwist" type="checkbox" onchange="updateContinuousTwist()">
 							</div>
 						</div>
-						<div id="analogTwistRow" class="tRow v3Only feedbackTwistOnly servoOnly">
+						<div id="analogTwistRow" class="tRow v3Only feedbackTwistOnly">
 							<div class="tCell">
 								<span>Analog twist</span> 
 							</div>

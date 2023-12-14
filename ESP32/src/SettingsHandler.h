@@ -83,7 +83,7 @@ public:
     static bool BLDC_UseHallSensor;
     static int BLDC_Pulley_Circumference;
     static int BLDC_Encoder_PIN;
-    static int HallEffect_PIN;
+    static int BLDC_HallEffect_PIN;
     static int BLDC_ChipSelect_PIN; 
     static int BLDC_Enable_PIN;
     static int BLDC_PWMchannel1_PIN;
@@ -411,6 +411,15 @@ public:
             PitchLeftServo_ZERO = json["PitchLeftServo_ZERO"] | 1500;
             PitchRightServo_ZERO = json["PitchRightServo_ZERO"] | 1500;
 
+            BLDC_UsePWM = json["BLDC_UsePWM"] | false; // Must be before pinout is set
+            BLDC_UseMT6701 = json["BLDC_UseMT6701"] | true;
+            BLDC_UseHallSensor = json["BLDC_UseHallSensor"] | false;
+            BLDC_Pulley_Circumference = json["BLDC_Pulley_Circumference"] | 60;
+            BLDC_MotorA_Voltage = round2(json["BLDC_MotorA_Voltage"] | 20.0);
+            BLDC_MotorA_Current = round2(json["BLDC_MotorA_Current"] | 1.0);
+            BLDC_MotorA_ParametersKnown = json["BLDC_MotorA_ParametersKnown"] | false;
+            BLDC_MotorA_ZeroElecAngle = round2(json["BLDC_MotorA_ZeroElecAngle"] | 0.00);
+
             setBoardPinout(json);
             
             if(isBoardType(BoardType::CRIMZZON)) {
@@ -419,15 +428,6 @@ public:
                 caseFanFrequency = json["caseFanFrequency"] | 25;
                 Display_Screen_Height = json["Display_Screen_Height"] | 32;
             }
-
-            BLDC_UsePWM = json["BLDC_UsePWM"] | false;
-            BLDC_UseMT6701 = json["BLDC_UseMT6701"] | true;
-            BLDC_UseHallSensor = json["BLDC_UseHallSensor"] | false;
-            BLDC_Pulley_Circumference = json["BLDC_Pulley_Circumference"] | 60;
-            BLDC_MotorA_Voltage = round2(json["BLDC_MotorA_Voltage"] | 20.0);
-            BLDC_MotorA_Current = round2(json["BLDC_MotorA_Current"] | 1.0);
-            BLDC_MotorA_ParametersKnown = json["BLDC_MotorA_ParametersKnown"] | false;
-            BLDC_MotorA_ZeroElecAngle = round2(json["BLDC_MotorA_ZeroElecAngle"] | 0.00);
 
             twistFrequency = json["twistFrequency"] | 50;
             squeezeFrequency = json["squeezeFrequency"] | 50;
@@ -867,16 +867,10 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         Display_Screen_Height = json["Display_Screen_Height"] | 32;
         TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 0;
     }
-    if(!isBoardType(BoardType::ISAAC)) {
+    if(!isBoardType(BoardType::ISAAC)) { // Devkit v1 pins
         if(!isBoardType(BoardType::CRIMZZON)) {
             TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 26;
         }
-        RightServo_PIN = json["RightServo_PIN"] | 13;
-        LeftServo_PIN = json["LeftServo_PIN"] | 15;
-        RightUpperServo_PIN = json["RightUpperServo_PIN"] | 12;
-        LeftUpperServo_PIN = json["LeftUpperServo_PIN"] | 2;
-        PitchLeftServo_PIN = json["PitchLeftServo_PIN"] | 4;
-        PitchRightServo_PIN = json["PitchRightServo_PIN"] | 14;
         // Common motor
         Squeeze_PIN = json["Squeeze_PIN"] | 17;
         LubeButton_PIN = json["LubeButton_PIN"] | 35;
@@ -884,33 +878,47 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
             Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
         }
         Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
+#if MOTOR_TYPE == 0
+        RightServo_PIN = json["RightServo_PIN"] | 13;
+        LeftServo_PIN = json["LeftServo_PIN"] | 15;
+        RightUpperServo_PIN = json["RightUpperServo_PIN"] | 12;
+        LeftUpperServo_PIN = json["LeftUpperServo_PIN"] | 2;
+        PitchLeftServo_PIN = json["PitchLeftServo_PIN"] | 4;
+        PitchRightServo_PIN = json["PitchRightServo_PIN"] | 14;
+
+        Heater_PIN = json["Heater_PIN"] | 33;
+        ValveServo_PIN = json["ValveServo_PIN"] | 25;
+        TwistServo_PIN = json["TwistServo_PIN"] | 27;
+        Sleeve_Temp_PIN = json["Temp_PIN"] | 5;
         Vibe0_PIN = json["Vibe0_PIN"] | 18;
         Vibe1_PIN = json["Vibe1_PIN"] | 19;
         Vibe2_PIN = json["Vibe2_PIN"] | 23;
         if(!isBoardType(BoardType::CRIMZZON)) {
             Vibe3_PIN = json["Vibe3_PIN"] | 32;
         }
-#if MOTOR_TYPE == 0
-        Heater_PIN = json["Heater_PIN"] | 33;
-        ValveServo_PIN = json["ValveServo_PIN"] | 25;
-        TwistServo_PIN = json["TwistServo_PIN"] | 27;
-        Sleeve_Temp_PIN = json["Temp_PIN"] | 5;
-#elif MOTOR_TYPE == 1
+#elif MOTOR_TYPE == 1 // BLDC motor
+        BLDC_Encoder_PIN = json["BLDC_Encoder_PIN"] | 33;
+        BLDC_ChipSelect_PIN = json["BLDC_ChipSelect_PIN"] | 5;
+        BLDC_Enable_PIN = json["BLDC_Enable_PIN"] | 14;
+        BLDC_HallEffect_PIN = json["BLDC_HallEffect_PIN"] | 35;
+        BLDC_PWMchannel1_PIN = json["BLDC_PWMchannel1_PIN"] | 27;
+        BLDC_PWMchannel2_PIN = json["BLDC_PWMchannel2_PIN"] | 26;
+        BLDC_PWMchannel3_PIN = json["BLDC_PWMchannel3_PIN"] | 25;
+
         Heater_PIN = json["Heater_PIN"] | 15;
         ValveServo_PIN = json["ValveServo_PIN"] | 12;
         TwistServo_PIN = json["TwistServo_PIN"] | 13;
         Sleeve_Temp_PIN = json["Temp_PIN"] | 36;
+        
+        Vibe0_PIN = json["Vibe0_PIN"] | BLDC_UsePWM ? 18 : 2;
+        Vibe1_PIN = json["Vibe1_PIN"] | BLDC_UsePWM ? 19 : 22;
+        Vibe2_PIN = json["Vibe2_PIN"] | 23;
+        if(!isBoardType(BoardType::CRIMZZON)) {
+            Vibe3_PIN = json["Vibe3_PIN"] | 32;
+        }
 #endif
         Battery_Voltage_PIN = json["Battery_Voltage_PIN"] | 39;
     }
-    // BLDC motor
-    BLDC_Encoder_PIN = json["BLDC_Encoder_PIN"] | 33;
-    BLDC_ChipSelect_PIN = json["BLDC_ChipSelect_PIN"] | 5;
-    BLDC_Enable_PIN = json["BLDC_Enable_PIN"] | 14;
-    HallEffect_PIN = json["HallEffect_PIN"] | 12;
-    BLDC_PWMchannel1_PIN = json["BLDC_PWMchannel1_PIN"] | 27;
-    BLDC_PWMchannel2_PIN = json["BLDC_PWMchannel2_PIN"] | 26;
-    BLDC_PWMchannel3_PIN = json["BLDC_PWMchannel3_PIN"] | 25;
 }
     // Untested
     /*    static bool parse(const String jsonInput)
@@ -1271,7 +1279,7 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         doc["BLDC_Encoder_PIN"] = BLDC_Encoder_PIN;
         doc["BLDC_ChipSelect_PIN"] = BLDC_ChipSelect_PIN;
         doc["BLDC_Enable_PIN"] = BLDC_Enable_PIN;
-        doc["HallEffect_PIN"] = HallEffect_PIN;
+        doc["BLDC_HallEffect_PIN"] = BLDC_HallEffect_PIN;
         doc["BLDC_PWMchannel1_PIN"] = BLDC_PWMchannel1_PIN;
         doc["BLDC_PWMchannel2_PIN"] = BLDC_PWMchannel2_PIN;
         doc["BLDC_PWMchannel3_PIN"] = BLDC_PWMchannel3_PIN;
@@ -2126,15 +2134,15 @@ bool SettingsHandler::BLDC_UseHallSensor = false;
 int SettingsHandler::BLDC_Pulley_Circumference = 60;
 int SettingsHandler::BLDC_Encoder_PIN = 33;// PWM feedback pin (if used) - P pad on AS5048a
 int SettingsHandler::BLDC_Enable_PIN = 14;// Motor enable - EN on SFOCMini   
-int SettingsHandler::HallEffect_PIN = 12;
+int SettingsHandler::BLDC_HallEffect_PIN = 12;
 int SettingsHandler::BLDC_PWMchannel1_PIN = 27;
 int SettingsHandler::BLDC_PWMchannel2_PIN = 26;
 int SettingsHandler::BLDC_PWMchannel3_PIN = 25;
 float SettingsHandler::BLDC_MotorA_Voltage = 20.0; // BLDC Motor operating voltage (12-20V)
-float SettingsHandler::BLDC_MotorA_Current = 1;  // BLDC Maximum operating current (Amps)
+float SettingsHandler::BLDC_MotorA_Current = 1.0;  // BLDC Maximum operating current (Amps)
 int SettingsHandler::BLDC_ChipSelect_PIN = 5;         // SPI chip select pin - CSn on AS5048a (By default on ESP32: MISO = D19, MOSI = D23, CLK = D18)
 bool SettingsHandler::BLDC_MotorA_ParametersKnown = true;     // Once you know the zero elec angle for the motor enter it below and set this flag to true.
-float SettingsHandler::BLDC_MotorA_ZeroElecAngle = 2.23; // This number is the zero angle (in radians) for the motor relative to the encoder.
+float SettingsHandler::BLDC_MotorA_ZeroElecAngle = 0.00; // This number is the zero angle (in radians) for the motor relative to the encoder.
 
 int SettingsHandler::TwistServo_ZERO = 1500;
 int SettingsHandler::ValveServo_ZERO = 1500;
