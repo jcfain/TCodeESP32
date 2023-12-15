@@ -120,13 +120,15 @@ const AvailibleChannelsV3 = [
 ]
 const AvailibleChannelsBLDC = [
     {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
+    {channel: "R0", channelName: "Twist", switch: false, sr6Only: false},
     {channel: "V0", channelName: "Vibe 1", switch: true, sr6Only: false},
     {channel: "V1", channelName: "Vibe 2", switch: true, sr6Only: false},
     {channel: "V2", channelName: "Vibe 3", switch: true, sr6Only: false},
     {channel: "V3", channelName: "Vibe 4", switch: true, sr6Only: false},
     {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
     {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
-    {channel: "A2", channelName: "Lube", switch: true, sr6Only: false}
+    {channel: "A2", channelName: "Lube", switch: true, sr6Only: false},
+    {channel: "A3", channelName: "Auxiliary", switch: false, sr6Only: false}
 ]
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -568,7 +570,8 @@ function setUserSettings()
 	document.getElementById("LubeButton_PIN").value = userSettings["LubeButton_PIN"];
 	document.getElementById("Squeeze_PIN").value = userSettings["Squeeze_PIN"];
 
-    BLDCMotor.setup();
+    if(systemInfo.motorType === MotorType.BLDC) 
+        BLDCMotor.setup();
 	
     document.getElementById("RightServo_ZERO").value = userSettings["RightServo_ZERO"];
     document.getElementById("LeftServo_ZERO").value = userSettings["LeftServo_ZERO"];

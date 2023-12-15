@@ -90,7 +90,7 @@ public:
         driverA = new BLDCDriver3PWM(SettingsHandler::BLDC_PWMchannel1_PIN, SettingsHandler::BLDC_PWMchannel2_PIN, SettingsHandler::BLDC_PWMchannel3_PIN, SettingsHandler::BLDC_Enable_PIN);
 
         // Start serial connection and report status
-        m_tcode->setup(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName.c_str());
+        m_tcode->setup(SettingsHandler::getFirmwareVersion(), SettingsHandler::TCodeVersionName.c_str());
 
         m_tcode->StringInput("D0");
         m_tcode->StringInput("D1");

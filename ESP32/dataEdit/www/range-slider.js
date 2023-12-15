@@ -14,8 +14,13 @@ DeviceRangeSlider = {
       var friendlyName = channel.channelName;
       if(!userSettings["channelRanges"])
         return;
-      var max = userSettings["channelRanges"][name].max;
-      var min = userSettings["channelRanges"][name].min;
+
+      var min = 1;
+      var max = getTCodeMax();
+      if(userSettings["channelRanges"][name]) {
+        max = userSettings["channelRanges"][name].max;
+        min = userSettings["channelRanges"][name].min;
+      }
 
       var sliderHeader = document.createElement("div");
       sliderHeader.innerText = friendlyName;
