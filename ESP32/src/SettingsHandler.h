@@ -38,6 +38,8 @@ SOFTWARE. */
 #include "../lib/enum.h"
 #include "../lib/constants.h"
 
+//#define FIRMWARE_VERSION 0.32f Not used currently
+#define FIRMWARE_VERSION_NAME "0.32b"
 #define featureCount 8
 
 using SETTING_STATE_FUNCTION_PTR_T = void (*)(const char *group, const char *settingNameThatChanged);
@@ -57,7 +59,6 @@ public:
     static TCodeVersion TCodeVersionEnum;
     static MotorType motorType;
     static std::vector<int> systemI2CAddresses;
-    const static char ESP32Version[8];
     const static char HandShakeChannel[4];
     const static char SettingsChannel[4];
     static bool bluetoothEnabled;
@@ -178,6 +179,10 @@ public:
     static const char *logPath;
     static const char *defaultWifiPass;
     static const char *decoyPass;
+
+    static const char* getFirmwareVersion() {
+        return FIRMWARE_VERSION_NAME;
+    }
 
     static void load()
     {
@@ -1002,7 +1007,7 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
     {
         DynamicJsonDocument doc(1024);
 
-        doc["esp32Version"] = ESP32Version;
+        doc["esp32Version"] = FIRMWARE_VERSION_NAME;
         doc["TCodeVersion"] = (int)TCodeVersionEnum;
         doc["lastRebootReason"] = lastRebootReason;
         
@@ -1211,7 +1216,7 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
             sleeveTempDisplayed = false;
         }
         doc["fullBuild"] = fullBuild;
-        doc["esp32Version"] = ESP32Version;
+        doc["esp32Version"] = FIRMWARE_VERSION_NAME;
         doc["TCodeVersion"] = (int)TCodeVersionEnum;
         doc["ssid"] = ssid;
         
@@ -2059,7 +2064,6 @@ String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
 std::vector<Channel> SettingsHandler::currentChannels;
 MotorType SettingsHandler::motorType = MotorType::Servo;
-const char SettingsHandler::ESP32Version[8] = "v0.32a";
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char *SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";

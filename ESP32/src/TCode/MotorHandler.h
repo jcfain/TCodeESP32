@@ -62,7 +62,7 @@ protected:
         SqueezeServo_Freq = SettingsHandler::squeezeFrequency;
         SqueezeServo_Int = 1000000/SqueezeServo_Freq;
         
-        m_tcode->setup(SettingsHandler::ESP32Version, SettingsHandler::TCodeVersionName.c_str());
+        m_tcode->setup(SettingsHandler::getFirmwareVersion(), SettingsHandler::TCodeVersionName.c_str());
         // report status
         m_tcode->StringInput("D0");
         m_tcode->StringInput("D1");

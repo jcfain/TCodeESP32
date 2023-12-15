@@ -518,7 +518,7 @@ void setup()
 	}
 
 	SettingsHandler::load();
-	LogHandler::info(TagHandler::Main, "Version: %s", SettingsHandler::ESP32Version);
+	LogHandler::info(TagHandler::Main, "Version: %s", SettingsHandler::getFirmwareVersion());
 
 #if MOTOR_TYPE == 0
 	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3) {
@@ -529,13 +529,14 @@ void setup()
 			motorHandler = new ServoHandler0_2();
 	#endif
 		else {
-			LogHandler::error(TagHandler::Main, "No motor type defined!");
+			LogHandler::error(TagHandler::Main, "Invalid TCode version: %ld", SettingsHandler::TCodeVersionEnum);
 			return;
 			//motorHandler = new ServoHandler1_0();
 		}
 #elif MOTOR_TYPE == 1
 	motorHandler = new BLDCHandler0_3();
 #else
+	LogHandler::error(TagHandler::Main, "Invalid motor type defined!");
 	return;
 #endif
 

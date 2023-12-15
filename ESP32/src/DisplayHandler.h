@@ -209,7 +209,7 @@ public:
 					if(SettingsHandler::versionDisplayed) {
 						LogHandler::verbose(_TAG, "Enter versionDisplayed");
 						left(SettingsHandler::TCodeVersionName.c_str());
-						right(SettingsHandler::ESP32Version);
+						right(SettingsHandler::getFirmwareVersion());
 						newLine();
 					}
 					
@@ -226,7 +226,7 @@ public:
 					if(is32() && SettingsHandler::versionDisplayed && !SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed
 						|| SettingsHandler::versionDisplayed) {
 						left(SettingsHandler::TCodeVersionName.c_str());
-						right(SettingsHandler::ESP32Version);
+						right(SettingsHandler::getFirmwareVersion());
 						newLine();
 					} else if(is32()) {
 						left("SSID: TCodeESP32Setup");
