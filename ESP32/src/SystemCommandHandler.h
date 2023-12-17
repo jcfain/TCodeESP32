@@ -13,7 +13,7 @@ public:
 		if(strpbrk("$", in) != nullptr || strpbrk("#", in) != nullptr) {
 			LogHandler::debug(_TAG, "Enter TCode Command callback %s", in);
 			// Commands with out values
-			if(isCommand(in, "$help")) {
+			if(isCommand(in, "#help")) {
 				return execute([]() -> bool {
 					printCommandHelp();
 					return true;
@@ -43,7 +43,7 @@ public:
 				});
 			}
 
-			if(isCommand(in, "$clear-log-include")) {
+			if(isCommand(in, "#clear-log-include")) {
 				return execute([]() -> bool {
 					LogHandler::clearIncludes();
 					Serial.println("Tags cleared");
@@ -51,7 +51,7 @@ public:
 				}, true);
 			}
 
-			if(isCommand(in, "$clear-log-exclude")) {
+			if(isCommand(in, "#clear-log-exclude")) {
 				return execute([]() -> bool {
 					LogHandler::clearExcludes();
 					Serial.println("Tags filters cleared");
@@ -131,19 +131,19 @@ public:
 			}
 
 			//Start value commands
-			if(isCommand(in, "$wifi-ssid")) {
+			if(isCommand(in, "#wifi-ssid")) {
 				return validateMaxLength("Wifi SSID", value, sizeof(SettingsHandler::ssid), false, [](const char* value) -> bool {
 					strcpy(SettingsHandler::ssid, value);
 					return true;
 				}, true, true); 
 			}
-			if(isCommand(in, "$wifi-pass")) {
+			if(isCommand(in, "#wifi-pass")) {
 				return validateMaxLength("Wifi password", value, sizeof(SettingsHandler::wifiPass), true, [](const char* value) -> bool {
 					strcpy(SettingsHandler::wifiPass, value);
 					return true;
 				}, true, true); 
 			}
-			if(isCommand(in, "$log-level")) {
+			if(isCommand(in, "#log-level")) {
 				return executeValue(value, [](const char* value) -> bool {
 					int valueInt = getInt(value);
 					if(valueInt > (int)LogLevel::VERBOSE) {
@@ -156,7 +156,7 @@ public:
 					return true;
 				}, true);
 			}
-			if(isCommand(in, "$add-log-include")) {
+			if(isCommand(in, "#add-log-include")) {
 				return executeValue(value, [](const char* value) -> bool {
 					if(!LogHandler::addInclude(value)) {
 					Serial.printf("Tag already exists: %s\n", value);
@@ -166,7 +166,7 @@ public:
 					return true;
 				}, true);
 			}
-			if(isCommand(in, "$remove-log-include")) {
+			if(isCommand(in, "#remove-log-include")) {
 				return executeValue(value, [](const char* value) -> bool {
 					if(!LogHandler::removeInclude(value)) {
 					Serial.printf("Tag did not exist: %s\n", value);
@@ -176,7 +176,7 @@ public:
 					return true;
 				}, true);
 			}
-			if(isCommand(in, "$add-log-exclude")) {
+			if(isCommand(in, "#add-log-exclude")) {
 				return executeValue(value, [](const char* value) -> bool {
 					if(!LogHandler::addExclude(value)) {
 					Serial.printf("Tag filter already exists: %s\n", value);
@@ -186,7 +186,7 @@ public:
 					return true;
 				}, true);
 			}
-			if(isCommand(in, "$remove-log-exclude")) {
+			if(isCommand(in, "#remove-log-exclude")) {
 				return executeValue(value, [](const char* value) -> bool {
 					if(!LogHandler::removeExclude(value)) {
 						Serial.printf("Tag filter did not exist: %s\n", value);

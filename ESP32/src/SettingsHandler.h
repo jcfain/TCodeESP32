@@ -39,7 +39,7 @@ SOFTWARE. */
 #include "../lib/constants.h"
 
 //#define FIRMWARE_VERSION 0.32f Not used currently
-#define FIRMWARE_VERSION_NAME "0.32b"
+#define FIRMWARE_VERSION_NAME "0.34b"
 #define featureCount 8
 
 using SETTING_STATE_FUNCTION_PTR_T = void (*)(const char *group, const char *settingNameThatChanged);
@@ -94,6 +94,8 @@ public:
     static float BLDC_MotorA_Current; 
     static bool BLDC_MotorA_ParametersKnown;
     static float BLDC_MotorA_ZeroElecAngle;
+    static int BLDC_RailLength;
+    static int BLDC_StrokeLength;
 
     static int Vibe0_PIN;
     static int Vibe1_PIN;
@@ -424,6 +426,8 @@ public:
             BLDC_MotorA_Current = round2(json["BLDC_MotorA_Current"] | 1.0);
             BLDC_MotorA_ParametersKnown = json["BLDC_MotorA_ParametersKnown"] | false;
             BLDC_MotorA_ZeroElecAngle = round2(json["BLDC_MotorA_ZeroElecAngle"] | 0.00);
+            BLDC_RailLength = json["BLDC_RailLength"] | 125;
+            BLDC_StrokeLength = json["BLDC_StrokeLength"] | 120;
 
             setBoardPinout(json);
             
@@ -915,9 +919,9 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         TwistServo_PIN = json["TwistServo_PIN"] | 13;
         Sleeve_Temp_PIN = json["Temp_PIN"] | 36;
         
-        Vibe0_PIN = json["Vibe0_PIN"] | BLDC_UsePWM ? 18 : 2;
-        Vibe1_PIN = json["Vibe1_PIN"] | BLDC_UsePWM ? 19 : 22;
-        Vibe2_PIN = json["Vibe2_PIN"] | 23;
+        Vibe0_PIN = json["Vibe0_PIN"] | 2;
+        Vibe1_PIN = json["Vibe1_PIN"] | 22;
+        Vibe2_PIN = json["Vibe2_PIN"] | 4;
         if(!isBoardType(BoardType::CRIMZZON)) {
             Vibe3_PIN = json["Vibe3_PIN"] | 32;
         }
@@ -1291,7 +1295,9 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         doc["BLDC_MotorA_Voltage"] = round2(BLDC_MotorA_Voltage);
         doc["BLDC_MotorA_Current"] = round2(BLDC_MotorA_Current);
         doc["BLDC_MotorA_ZeroElecAngle"] = round2(BLDC_MotorA_ZeroElecAngle);
-        doc["BLDC_MotorA_ParametersKnown"] = BLDC_MotorA_ParametersKnown;
+        doc["BLDC_RailLength"] = BLDC_RailLength;
+        doc["BLDC_StrokeLength"] = BLDC_StrokeLength;
+        
         LogHandler::debug(_TAG, "save %s max: %f", "BLDC_MotorA_Voltage", doc["BLDC_MotorA_Current"].as<float>());
 
         doc["staticIP"] = staticIP;
@@ -2147,6 +2153,8 @@ float SettingsHandler::BLDC_MotorA_Current = 1.0;  // BLDC Maximum operating cur
 int SettingsHandler::BLDC_ChipSelect_PIN = 5;         // SPI chip select pin - CSn on AS5048a (By default on ESP32: MISO = D19, MOSI = D23, CLK = D18)
 bool SettingsHandler::BLDC_MotorA_ParametersKnown = true;     // Once you know the zero elec angle for the motor enter it below and set this flag to true.
 float SettingsHandler::BLDC_MotorA_ZeroElecAngle = 0.00; // This number is the zero angle (in radians) for the motor relative to the encoder.
+int SettingsHandler::BLDC_RailLength;
+int SettingsHandler::BLDC_StrokeLength;
 
 int SettingsHandler::TwistServo_ZERO = 1500;
 int SettingsHandler::ValveServo_ZERO = 1500;

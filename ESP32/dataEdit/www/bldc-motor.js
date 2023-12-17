@@ -17,6 +17,8 @@ BLDCMotor = {
         document.getElementById("BLDC_HallEffect_PIN").value = userSettings["BLDC_HallEffect_PIN"];
         document.getElementById("BLDC_MotorA_ZeroElecAngle").value = Utils.round2(userSettings["BLDC_MotorA_ZeroElecAngle"]);
         document.getElementById("BLDC_MotorA_ParametersKnown").checked = userSettings["BLDC_MotorA_ParametersKnown"];
+        document.getElementById("BLDC_RailLength").value = userSettings["BLDC_RailLength"];
+        document.getElementById("BLDC_StrokeLength").value = userSettings["BLDC_StrokeLength"];
 
         Utils.toggleControlVisibilityByClassName("BLDCPWM", userSettings["BLDC_UsePWM"]);
         Utils.toggleControlVisibilityByClassName("BLDCSPI", !userSettings["BLDC_UsePWM"]);
@@ -34,6 +36,8 @@ function updateBLDCSettings() {
     userSettings["BLDC_MotorA_Current"] = Utils.round2(parseFloat(document.getElementById('BLDC_MotorA_Current').value));
     userSettings["BLDC_MotorA_ZeroElecAngle"] = Utils.round2(parseFloat(document.getElementById('BLDC_MotorA_ZeroElecAngle').value));
     userSettings["BLDC_MotorA_ParametersKnown"] = document.getElementById("BLDC_MotorA_ParametersKnown").checked;
+    userSettings["BLDC_RailLength"] = parseInt(document.getElementById('BLDC_RailLength').value);
+    userSettings["BLDC_StrokeLength"] = parseInt(document.getElementById('BLDC_StrokeLength').value);
     Utils.toggleControlVisibilityByID("ZeroElecAngle", userSettings["BLDC_MotorA_ParametersKnown"]);
     setRestartRequired();
     updateUserSettings();

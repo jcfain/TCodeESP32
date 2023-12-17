@@ -239,10 +239,10 @@ class WifiHandler
 
       //WiFi.softAPConfig(IPAddress(192, 168, 1, 1), IPAddress(192, 168, 1, 1), IPAddress(255, 255, 255, 0));
       // Set your Static IP address
-      IPAddress local_IP(192, 168, 1, 1);
+      IPAddress local_IP(192, 168, 69, 1);
       IPAddress subnet(255, 255, 255, 0);
       // Set your Gateway IP address
-      IPAddress gateway(192, 168, 1, 254);
+      IPAddress gateway(192, 168, 69, 254);
       if (!WiFi.softAPConfig(local_IP, gateway, subnet)) 
 	    {
         LogHandler::error(_TAG, "AP Failed to configure");

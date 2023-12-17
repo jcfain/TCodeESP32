@@ -30,8 +30,6 @@
 
 // Control constants
 // (a.k.a. magic numbers for Eve)
-#define RAIL_LENGTH 125           // Physical maximum travel of the receiver (mm)
-#define STROKE_LENGTH 120         // Operating stroke length (mm)
 #define P_CONST 0.002             // Motor PID proportional constant
 #define LOW_PASS 0.8              // Low pass filter factor for static noise reduction ( number < 1, 0 = none)
 
@@ -66,11 +64,11 @@ public:
     BLDCHandler0_3() : MotorHandler(new TCode0_3()) { }
 
     void setup() override {
-        ANG_TO_POS = (10000*SettingsHandler::BLDC_Pulley_Circumference)/(2*3.14159*STROKE_LENGTH); // Number to convert a motor angle to a 0-10000 axis position
+        ANG_TO_POS = (10000*SettingsHandler::BLDC_Pulley_Circumference)/(2*3.14159*SettingsHandler::BLDC_StrokeLength); // Number to convert a motor angle to a 0-10000 axis position
         LogHandler::debug(_TAG, "ANG_TO_POS: %f", ANG_TO_POS);
-        TOP_START_OFFSET = 2*3.14156*STROKE_LENGTH/SettingsHandler::BLDC_Pulley_Circumference; // Angle turned by pulley for a full stroke
+        TOP_START_OFFSET = 2*3.14156*SettingsHandler::BLDC_StrokeLength/SettingsHandler::BLDC_Pulley_Circumference; // Angle turned by pulley for a full stroke
         LogHandler::debug(_TAG, "TOP_START_OFFSET: %f", TOP_START_OFFSET);
-        ENDSTOP_START_OFFSET = 2*3.14159*(RAIL_LENGTH-STROKE_LENGTH)/(2*SettingsHandler::BLDC_Pulley_Circumference);  // Offset angle from bottom endstop on startup (rad)
+        ENDSTOP_START_OFFSET = 2*3.14159*(SettingsHandler::BLDC_RailLength-SettingsHandler::BLDC_StrokeLength)/(2*SettingsHandler::BLDC_Pulley_Circumference);  // Offset angle from bottom endstop on startup (rad)
         LogHandler::debug(_TAG, "ENDSTOP_START_OFFSET: %f", ENDSTOP_START_OFFSET);
 
         // Begin tracking encoder

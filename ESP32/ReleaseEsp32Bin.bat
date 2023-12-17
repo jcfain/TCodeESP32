@@ -44,7 +44,8 @@ SET BUILD=esp32doit-devkit-v1%BUILD_MODIFIER%
 SET OUTDIR=%~dp0bin\Release%BUILD_MODIFIER%
 
 XCOPY "..\How to upload binaries.pdf" "%OUTDIR%\How to upload binaries.pdf" /d /Y
-XCOPY "%~dp0flash.bat" "%OUTDIR%\flash.bat" /d /Y
+XCOPY "%~dp0command example.txt" "%OUTDIR%\command example.txt" /d /Y
+XCOPY "%~dp0Flash.exe" "%OUTDIR%\flash.exe" /d /Y
 XCOPY %ESPTOOLDIR%esptool.exe "%OUTDIR%\esptool\esptool.exe" /d /Y
 XCOPY %ESPTOOLDIR%LICENSE "%OUTDIR%\esptool\LICENSE" /d /Y
 XCOPY %ESPTOOLDIR%README.md "%OUTDIR%\esptool\README.md" /d /Y
