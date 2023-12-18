@@ -270,6 +270,17 @@ void MainWindow::on_saveWiFiCredsButton_clicked()
     auto ssid = ui->wifiSSIDInput->text();
     auto password = ui->wifiPassInput->text();
     bool modified = false;
+    if(ssid.contains(" ")) {
+        QMessageBox::critical(this, tr("Invalid form"),
+                              tr("Sorry, but in the current version of TCode spaces are not allowed in commands.\nPlease use the web ui in AP mode (see PDF section 'AP configuration')\nto enter your SSID with spaces.\nThis should be fixed in the next version of TCode."));
+        return;
+    }
+//    QRegularExpression ssidRegex;
+//    ssidRegex.setPattern(R"(^[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ +\]\/"\t]$|^[^ !#;+\]\/"\t]$[ \t]+$)");
+//    if(ssidRegex.match(ssid).hasMatch()) {
+//        QMessageBox::critical(this, tr("Invalid form"),
+//                              tr("SSID has invalid characters"));
+//    }
     if(!ssid.isEmpty()) {
         sendSerial("#wifi-ssid:"+ssid);
         modified = true;

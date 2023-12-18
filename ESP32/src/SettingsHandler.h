@@ -39,7 +39,7 @@ SOFTWARE. */
 #include "../lib/constants.h"
 
 //#define FIRMWARE_VERSION 0.32f Not used currently
-#define FIRMWARE_VERSION_NAME "0.34b"
+#define FIRMWARE_VERSION_NAME "0.341b"
 #define featureCount 8
 
 using SETTING_STATE_FUNCTION_PTR_T = void (*)(const char *group, const char *settingNameThatChanged);
@@ -1294,6 +1294,7 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         doc["BLDC_PWMchannel3_PIN"] = BLDC_PWMchannel3_PIN;
         doc["BLDC_MotorA_Voltage"] = round2(BLDC_MotorA_Voltage);
         doc["BLDC_MotorA_Current"] = round2(BLDC_MotorA_Current);
+        doc["BLDC_MotorA_ParametersKnown"] = BLDC_MotorA_ParametersKnown;
         doc["BLDC_MotorA_ZeroElecAngle"] = round2(BLDC_MotorA_ZeroElecAngle);
         doc["BLDC_RailLength"] = BLDC_RailLength;
         doc["BLDC_StrokeLength"] = BLDC_StrokeLength;
@@ -2151,7 +2152,7 @@ int SettingsHandler::BLDC_PWMchannel3_PIN = 25;
 float SettingsHandler::BLDC_MotorA_Voltage = 20.0; // BLDC Motor operating voltage (12-20V)
 float SettingsHandler::BLDC_MotorA_Current = 1.0;  // BLDC Maximum operating current (Amps)
 int SettingsHandler::BLDC_ChipSelect_PIN = 5;         // SPI chip select pin - CSn on AS5048a (By default on ESP32: MISO = D19, MOSI = D23, CLK = D18)
-bool SettingsHandler::BLDC_MotorA_ParametersKnown = true;     // Once you know the zero elec angle for the motor enter it below and set this flag to true.
+bool SettingsHandler::BLDC_MotorA_ParametersKnown = false;     // Once you know the zero elec angle for the motor enter it below and set this flag to true.
 float SettingsHandler::BLDC_MotorA_ZeroElecAngle = 0.00; // This number is the zero angle (in radians) for the motor relative to the encoder.
 int SettingsHandler::BLDC_RailLength;
 int SettingsHandler::BLDC_StrokeLength;

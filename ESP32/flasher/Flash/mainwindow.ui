@@ -42,21 +42,18 @@
        <attribute name="title">
         <string>Config</string>
        </attribute>
-       <layout class="QFormLayout" name="formLayout_5">
-        <item row="0" column="1">
+       <layout class="QFormLayout" name="formLayout">
+        <item row="1" column="1">
          <widget class="QPushButton" name="refreshComports">
           <property name="text">
            <string>Refresh</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="1">
-         <widget class="QComboBox" name="serialSelectorCombobox"/>
-        </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="label">
+        <item row="2" column="0">
+         <widget class="QLabel" name="serialPortStatus">
           <property name="text">
-           <string>COM port</string>
+           <string>Serial state</string>
           </property>
          </widget>
         </item>
@@ -67,10 +64,13 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="serialPortStatus">
+        <item row="0" column="1">
+         <widget class="QComboBox" name="serialSelectorCombobox"/>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label">
           <property name="text">
-           <string>Serial state</string>
+           <string>Serial port</string>
           </property>
          </widget>
         </item>

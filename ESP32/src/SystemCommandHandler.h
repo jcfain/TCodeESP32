@@ -129,7 +129,7 @@ public:
 				xSemaphoreGive(xMutex);
 				return false;
 			}
-
+			LogHandler::verbose(_TAG, "Value command: %s", value);
 			//Start value commands
 			if(isCommand(in, "#wifi-ssid")) {
 				return validateMaxLength("Wifi SSID", value, sizeof(SettingsHandler::ssid), false, [](const char* value) -> bool {
@@ -251,7 +251,7 @@ public:
 				});
 			}
 			Serial.printf("Invalid command: %s\n", in);
-			printCommandHelp();
+			//printCommandHelp();
 			xSemaphoreGive(xMutex);
 			return false;
 		}

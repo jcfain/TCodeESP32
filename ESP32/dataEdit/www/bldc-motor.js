@@ -28,6 +28,10 @@ BLDCMotor = {
     // TODO: move bldc stuff in to here. Follow this pattern moving forward.
 }
 
+function isBLDCSPI() {
+    return !userSettings["BLDC_UsePWM"] && !userSettings["BLDC_UseMT6701"];
+}
+
 function updateBLDCSettings() {
     userSettings["BLDC_UseHallSensor"] = document.getElementById('BLDC_UseHallSensor').checked;
     Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
@@ -50,8 +54,11 @@ function updateEncoderType(type) {
     userSettings[type] = true;
     Utils.toggleControlVisibilityByClassName("BLDCPWM", userSettings["BLDC_UsePWM"]);
     Utils.toggleControlVisibilityByClassName("BLDCSPI", !userSettings["BLDC_UsePWM"]);
-    setRestartRequired();
-    updateUserSettings();
+    var pinValues = validateBLDCPins();
+    if(pinValues) {
+        setRestartRequired();
+        updateUserSettings();
+    }
 }
 
 function updateBLDCPins() {
@@ -102,6 +109,9 @@ function validateBLDCPins() {
     //assignedPins.push({name:"SPI1", pin:5});
     assignedPins.push({name:"SPI1", pin:18});
     assignedPins.push({name:"SPI2", pin:19});
+    if(isBLDCSPI()) {
+        assignedPins.push({name:"SPI3", pin:23});
+    }
 
     var pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_Encoder_PIN);
     if(pinDupeIndex > -1)

@@ -668,8 +668,8 @@ void loop() {
 			else 
 #endif
 			if (!SettingsHandler::getMotionEnabled() && Serial.available() > 0) {
-				LogHandler::verbose(TagHandler::MainLoop, "serial writing: %s", udpData);
 				serialData = Serial.readStringUntil('\n');
+				LogHandler::verbose(TagHandler::MainLoop, "serial writing: %s", serialData.c_str());
 				motorHandler->read(serialData);
 			} 
 #if BLUETOOTH_TCODE
