@@ -31,10 +31,22 @@ class TCode0_3 : public TCodeBase {
     if ((0 <= channel && channel < CHANNELS)) {
       switch(type) {
         // Axis commands
-        case 'L': Linear[channel].Name = axisName; break;
-        case 'R': Rotation[channel].Name = axisName; break;
-        case 'V': Vibration[channel].Name = axisName; break;
-        case 'A': Auxiliary[channel].Name = axisName; break;
+        case 'L': {
+          Linear[channel].setName(axisName); 
+          break;
+        }
+        case 'R':  {
+          Rotation[channel].setName(axisName);
+          break;
+        }
+        case 'V': { 
+          Vibration[channel].setName(axisName);
+          break;
+        }
+        case 'A': { 
+          Auxiliary[channel].setName(axisName);
+          break;
+        }
       }
     }
   }
@@ -75,19 +87,58 @@ class TCode0_3 : public TCodeBase {
 
   // Function to read the current position of an axis
   int AxisRead(String ID) override {
-    int x = 5000; // This is the return variable
+    int x = -1; // This is the return variable
     char type = ID.charAt(0);
     int channel = ID.charAt(1) - '0';
     if ((0 <= channel && channel < CHANNELS)) {
       switch(type) {
         // Axis commands
-        case 'L': x = Linear[channel].GetPosition(); break;
-        case 'R': x = Rotation[channel].GetPosition(); break;
-        case 'V': x = Vibration[channel].GetPosition(); break;
-        case 'A': x = Auxiliary[channel].GetPosition(); break;
+        case 'L':  {
+          if(Linear[channel].isInitialized())
+            x = Linear[channel].GetPosition(); 
+          break; 
+        }
+        case 'R': { 
+          if(Rotation[channel].isInitialized())
+            x = Rotation[channel].GetPosition(); 
+          break; 
+        }
+        case 'V': { 
+          if(Vibration[channel].isInitialized())
+            x = Vibration[channel].GetPosition(); 
+          break; 
+        }
+        case 'A': { 
+          if(Auxiliary[channel].isInitialized())
+            x = Auxiliary[channel].GetPosition(); 
+          break; 
+        }
       }
     }
     return x;
+  }
+
+  bool IsInitialized(String ID) {
+    char type = ID.charAt(0);
+    int channel = ID.charAt(1) - '0';
+    if ((0 <= channel && channel < CHANNELS)) {
+      switch(type) {
+        // Axis commands
+        case 'L':  {
+          return Linear[channel].isInitialized();
+        }
+        case 'R': { 
+          return Rotation[channel].isInitialized();
+        }
+        case 'V': { 
+          return Vibration[channel].isInitialized(); 
+        }
+        case 'A': { 
+          return Auxiliary[channel].isInitialized();
+        }
+      }
+    }
+    return false;
   }
 
   // Function to query when an axis was last commanded

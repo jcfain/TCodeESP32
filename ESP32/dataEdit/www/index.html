@@ -201,7 +201,7 @@
 						</div>
 						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
-								<span>Current</span> 
+								<span>Current (AMP)</span> 
 							</div>
 							<div class="tCell">
 								<input id="BLDC_MotorA_Current" type="number" min="0.0" max="2147483647" step="0.01" oninput="updateBLDCSettings()">
@@ -212,7 +212,7 @@
 								<span>Encoder PIN</span> 
 							</div>
 							<div class="tCell">
-								<input id="BLDC_Encoder_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="BLDC_Encoder_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow BLDCOnly BLDCSPI hidden">
@@ -220,7 +220,7 @@
 								<span>ChipSelect PIN</span> 
 							</div>
 							<div class="tCell">
-								<input id="BLDC_ChipSelect_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="BLDC_ChipSelect_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow BLDCOnly hidden">
@@ -228,7 +228,7 @@
 								<span>Enable PIN</span> 
 							</div>
 							<div class="tCell">
-								<input id="BLDC_Enable_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="BLDC_Enable_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow BLDCOnly hidden">
@@ -236,7 +236,7 @@
 								<span>PWMchannel1 PIN</span> 
 							</div>
 							<div class="tCell">
-								<input id="BLDC_PWMchannel1_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="BLDC_PWMchannel1_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow BLDCOnly hidden">
@@ -244,7 +244,7 @@
 								<span>PWMchannel2 PIN</span> 
 							</div>
 							<div class="tCell">
-								<input id="BLDC_PWMchannel2_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="BLDC_PWMchannel2_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow BLDCOnly hidden">
@@ -252,7 +252,7 @@
 								<span>PWMchannel3 PIN</span> 
 							</div>
 							<div class="tCell">
-								<input id="BLDC_PWMchannel3_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="BLDC_PWMchannel3_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div id="HallEffect" class="tRow BLDCOnly hidden">
@@ -260,7 +260,7 @@
 								<span>Hall effect PIN</span> 
 							</div>
 							<div class="tCell">
-								<input id="BLDC_HallEffect_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="BLDC_HallEffect_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow BLDCOnly hidden">
@@ -404,7 +404,7 @@
 									<span>Right</span> 
 								</div>
 								<div class="tCell">
-									<input id="RightServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+									<input id="RightServo_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 								</div>
 								<div class="tCell">
 									<input id="RightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
@@ -415,7 +415,7 @@
 									<span>Left</span> 
 								</div>
 								<div class="tCell">
-									<input id="LeftServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+									<input id="LeftServo_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 								</div>
 								<div class="tCell">
 									<input id="LeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
@@ -426,7 +426,7 @@
 									<span>Pitch</span> 
 								</div>
 								<div class="tCell">
-									<input id="PitchLeftServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+									<input id="PitchLeftServo_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 								</div>
 								<div class="tCell">
 									<input id="PitchLeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
@@ -437,7 +437,7 @@
 									<span>Valve</span> 
 								</div>
 								<div class="tCell">
-									<input id="ValveServo_PIN" type="number" min="1" max="2147483647" oninput="updatePins()">
+									<input id="ValveServo_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 								</div>
 								<div class="tCell">
 									<input id="ValveServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
@@ -448,7 +448,7 @@
 									<span>Twist</span> 
 								</div>
 								<div class="tCell">
-									<input id="TwistServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+									<input id="TwistServo_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 								</div>
 								<div class="tCell">
 									<input id="TwistServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
@@ -457,10 +457,10 @@
 						</div>
 						<div class="tRow v3Only">
 							<div class="tCell">
-								<span>Aux</span> 
+								<span>Squeeze</span> 
 							</div>
 							<div class="tCell">
-								<input id="Squeeze_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="Squeeze_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 							<div class="tCell">
 								<input id="Squeeze_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
@@ -471,7 +471,7 @@
 								<span>Twist feedback</span> 
 							</div>
 							<div class="tCell">
-								<input id="TwistFeedBack_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="TwistFeedBack_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow">
@@ -515,7 +515,7 @@
 									<span>Right upper</span> 
 								</div>
 								<div class="tCell">
-									<input id="RightUpperServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+									<input id="RightUpperServo_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 								</div>
 								<div class="tCell">
 									<input id="RightUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
@@ -526,7 +526,7 @@
 									<span>Left upper</span> 
 								</div>
 								<div class="tCell">
-									<input id="LeftUpperServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+									<input id="LeftUpperServo_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 								</div>
 								<div class="tCell">
 									<input id="LeftUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
@@ -537,7 +537,7 @@
 									<span>Pitch right</span> 
 								</div>
 								<div class="tCell">
-									<input id="PitchRightServo_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+									<input id="PitchRightServo_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 								</div>
 								<div class="tCell">
 									<input id="PitchRightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
@@ -629,7 +629,7 @@
 								<span>Vibe 1</span> 
 							</div>
 							<div class="tCell">
-								<input id="Vibe0_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="Vibe0_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow">
@@ -637,7 +637,7 @@
 								<span>Lube/Vibe 2</span> 
 							</div>
 							<div class="tCell">
-								<input id="Vibe1_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="Vibe1_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow">
@@ -645,7 +645,7 @@
 								<span>Vibe 3</span> 
 							</div>
 							<div class="tCell">
-								<input id="Vibe2_PIN" type="number"  min="0" max="2147483647" oninput="updatePins()">
+								<input id="Vibe2_PIN" type="number"  min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow">
@@ -653,7 +653,7 @@
 								<span>Vibe 4</span> 
 							</div>
 							<div class="tCell">
-								<input id="Vibe3_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="Vibe3_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow v3Only">
@@ -669,7 +669,7 @@
 								<span>Lube button PIN</span> 
 							</div>
 							<div class="tCell">
-								<input id="LubeButton_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="LubeButton_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow">
@@ -739,7 +739,7 @@
 								<span>Sleeve temp sensor pin</span> 
 							</div>
 							<div class="tCell">
-								<input id="Temp_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="Temp_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow">
@@ -747,7 +747,7 @@
 								<span>Heater pin</span> 
 							</div>
 							<div class="tCell">
-								<input id="Heater_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="Heater_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow">
@@ -844,7 +844,7 @@
 						<div class="tRow">
 							<div class="tCell"><span>Internal temp PIN</span></div>
 							<div class="tCell">
-								<input id="Internal_Temp_PIN" type="number" min="0" max="2147483647" oninput="updatePins()">
+								<input id="Internal_Temp_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow">
@@ -880,7 +880,7 @@
 						<div class="tRow fan-control">
 							<div class="tCell"><span>Fan PWM PIN</span></div>
 							<div class="tCell">
-								<input id="Case_Fan_PIN" type="number" min="0" oninput="updatePins()">
+								<input id="Case_Fan_PIN" type="number" min="-1" oninput="updatePins()">
 							</div>
 						</div>
 						<div class="tRow fan-control">
@@ -997,7 +997,7 @@
 						<!-- <div>
 							<div class="tCell"><span>Voltage pin (ADC)</span></div>
 							<div class="tCell">
-								<input id="Battery_Voltage_PIN"  type="number" min="0" max="2147483647" step="1" oninput="updatePins()">
+								<input id="Battery_Voltage_PIN"  type="number" min="-1" max="2147483647" step="1" oninput="updatePins()">
 							</div>
 						</div> -->
 						<div class="tRow">

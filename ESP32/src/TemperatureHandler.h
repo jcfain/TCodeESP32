@@ -228,48 +228,52 @@ class TemperatureHandler {
 	}
 
 	void setupSleeveTemp() {
-		LogHandler::info(_TAG, "Starting sleeve temp on pin: %u", SettingsHandler::Sleeve_Temp_PIN);
-		oneWireSleeve.begin(SettingsHandler::Sleeve_Temp_PIN);
-		sensorsSleeve.setOneWire(&oneWireSleeve);
-  		sensorsSleeve.getAddress(sleeveDeviceAddress, 0);
-		sensorsSleeve.begin();
-  		sensorsSleeve.setResolution(sleeveDeviceAddress, resolution);
-		sensorsSleeve.setWaitForConversion(false);
-		requestSleeveTemp();
+		if(SettingsHandler::Sleeve_Temp_PIN > -1) {
+			LogHandler::info(_TAG, "Starting sleeve temp on pin: %u", SettingsHandler::Sleeve_Temp_PIN);
+			oneWireSleeve.begin(SettingsHandler::Sleeve_Temp_PIN);
+			sensorsSleeve.setOneWire(&oneWireSleeve);
+			sensorsSleeve.getAddress(sleeveDeviceAddress, 0);
+			sensorsSleeve.begin();
+			sensorsSleeve.setResolution(sleeveDeviceAddress, resolution);
+			sensorsSleeve.setWaitForConversion(false);
+			requestSleeveTemp();
 
-		// bootTime = true;
-		// bootTimer = millis() + SettingsHandler::WarmUpTime;
-		LogHandler::debug(_TAG, "Starting heat on pin: %u", SettingsHandler::Heater_PIN);
-  		ledcSetup(Heater_PWM, SettingsHandler::heaterFrequency, SettingsHandler::heaterResolution);
-		ledcAttachPin(SettingsHandler::Heater_PIN, Heater_PWM);
-		sleeveTempInitialized = true;
+			// bootTime = true;
+			// bootTimer = millis() + SettingsHandler::WarmUpTime;
+			LogHandler::debug(_TAG, "Starting heat on pin: %u", SettingsHandler::Heater_PIN);
+			ledcSetup(Heater_PWM, SettingsHandler::heaterFrequency, SettingsHandler::heaterResolution);
+			ledcAttachPin(SettingsHandler::Heater_PIN, Heater_PWM);
+			sleeveTempInitialized = true;
+		}
 	}
 
 	void setupInternalTemp() {
-		LogHandler::info(_TAG, "Starting internal temp on pin: %u", SettingsHandler::Internal_Temp_PIN);
-		oneWireInternal.begin(SettingsHandler::Internal_Temp_PIN);
-		sensorsInternal.setOneWire(&oneWireInternal);
-  		sensorsInternal.getAddress(internalDeviceAddress, 0);
-		sensorsInternal.begin();
-  		sensorsInternal.setResolution(internalDeviceAddress, resolution);
-		sensorsInternal.setWaitForConversion(false);
-		//internalPID.setGains(0.12f, 0.0003f, 0);
-		//internalPID.setOutputRange();
-		requestInternalTemp();
+		if(SettingsHandler::Internal_Temp_PIN > -1) {
+			LogHandler::info(_TAG, "Starting internal temp on pin: %u", SettingsHandler::Internal_Temp_PIN);
+			oneWireInternal.begin(SettingsHandler::Internal_Temp_PIN);
+			sensorsInternal.setOneWire(&oneWireInternal);
+			sensorsInternal.getAddress(internalDeviceAddress, 0);
+			sensorsInternal.begin();
+			sensorsInternal.setResolution(internalDeviceAddress, resolution);
+			sensorsInternal.setWaitForConversion(false);
+			//internalPID.setGains(0.12f, 0.0003f, 0);
+			//internalPID.setOutputRange();
+			requestInternalTemp();
 
-		if(SettingsHandler::fanControlEnabled) {
-			LogHandler::debug(_TAG, "Setting up fan, PIN: %i, hz: %i, resolution: %i, MAX PWM: %i", SettingsHandler::Case_Fan_PIN, SettingsHandler::caseFanFrequency, SettingsHandler::caseFanResolution, SettingsHandler::caseFanMaxDuty);
-  			ledcSetup(CaseFan_PWM, SettingsHandler::caseFanFrequency, SettingsHandler::caseFanResolution);
-			ledcAttachPin(SettingsHandler::Case_Fan_PIN, CaseFan_PWM);
-			//LogHandler::debug(_TAG, "Setting up PID: Output max: %i", SettingsHandler::caseFanMaxDuty);
-			//internalPID = new AutoPID(&_currentInternalTemp, &SettingsHandler::internalTempForFan, &m_currentInternalTempDuty, SettingsHandler::caseFanMaxDuty, 0, 0.12, 0.0003, 0.0); 
-			// //if temperature is more than 4 degrees below or above setpoint, OUTPUT will be set to min or max respectively
-			//internalPID->setBangBang(2, 0);
-			// //set PID update interval to 4000ms
-			// internalPID->setTimeStep(4000);
-			fanControlInitialized = true;
+			if(SettingsHandler::fanControlEnabled && SettingsHandler::Case_Fan_PIN > -1) {
+				LogHandler::debug(_TAG, "Setting up fan, PIN: %i, hz: %i, resolution: %i, MAX PWM: %i", SettingsHandler::Case_Fan_PIN, SettingsHandler::caseFanFrequency, SettingsHandler::caseFanResolution, SettingsHandler::caseFanMaxDuty);
+				ledcSetup(CaseFan_PWM, SettingsHandler::caseFanFrequency, SettingsHandler::caseFanResolution);
+				ledcAttachPin(SettingsHandler::Case_Fan_PIN, CaseFan_PWM);
+				//LogHandler::debug(_TAG, "Setting up PID: Output max: %i", SettingsHandler::caseFanMaxDuty);
+				//internalPID = new AutoPID(&_currentInternalTemp, &SettingsHandler::internalTempForFan, &m_currentInternalTempDuty, SettingsHandler::caseFanMaxDuty, 0, 0.12, 0.0003, 0.0); 
+				// //if temperature is more than 4 degrees below or above setpoint, OUTPUT will be set to min or max respectively
+				//internalPID->setBangBang(2, 0);
+				// //set PID update interval to 4000ms
+				// internalPID->setTimeStep(4000);
+				fanControlInitialized = true;
+			}
+			internalTempInitialized = true;
 		}
-		internalTempInitialized = true;
 	}
 
 	static void startLoop(void * parameter) {

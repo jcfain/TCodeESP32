@@ -6,9 +6,6 @@
 // -----------------------------
 class Axis {
 
-private:
-    int MIN_SMOOTH_INTERVAL = 3;
-    int MAX_SMOOTH_INTERVAL = 100;
   public:
   // Setup function
   Axis() {
@@ -66,6 +63,15 @@ private:
     lastT = t;
   }
 
+  void setName(String name) {
+    Name = name;
+    m_initialized = true;
+  }
+
+  bool isInitialized() {
+    return m_initialized;
+  }
+
   // Function to return the current position of this axis
   int GetPosition() {
     int x; // This is the current axis position, 0-9999
@@ -91,10 +97,13 @@ private:
   }
 
   // Public variables
-  String Name;  // Function name of this axis
   unsigned long lastT;  //
+  String Name;  // Function name of this axis
 
   private:
+  int MIN_SMOOTH_INTERVAL = 3;
+  int MAX_SMOOTH_INTERVAL = 100;
+  bool m_initialized = false;
   
   // Movement positions
   int rampStart;

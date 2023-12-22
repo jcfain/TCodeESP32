@@ -39,7 +39,7 @@ SOFTWARE. */
 #include "../lib/constants.h"
 
 //#define FIRMWARE_VERSION 0.32f Not used currently
-#define FIRMWARE_VERSION_NAME "0.341b"
+#define FIRMWARE_VERSION_NAME "0.35b"
 #define featureCount 8
 
 using SETTING_STATE_FUNCTION_PTR_T = void (*)(const char *group, const char *settingNameThatChanged);
@@ -823,6 +823,8 @@ public:
 
 /** If the parameter json is ommited or the pin value doesnt exist on the object then the pins are set to default. */
 static void setBoardPinout(JsonObject json = JsonObject()) {
+    
+#if MOTOR_TYPE == 0
     if(isBoardType(BoardType::ISAAC)) {
         // RightServo_PIN = 2;
         // LeftServo_PIN = 13;
@@ -859,7 +861,6 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         // Vibe2_PIN = json["Vibe2_PIN"] | 23;
         // Vibe3_PIN = json["Vibe3_PIN"] | 32;
         Heater_PIN = json["Heater_PIN"] | 5;
-        Battery_Voltage_PIN = json["Battery_Voltage_PIN"] | 39;
     } else if(isBoardType(BoardType::CRIMZZON)) {
 
         Vibe3_PIN = json["Vibe3_PIN"] | 26;
@@ -887,7 +888,8 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
             Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
         }
         Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
-#if MOTOR_TYPE == 0
+
+        //Stock servo motors
         RightServo_PIN = json["RightServo_PIN"] | 13;
         LeftServo_PIN = json["LeftServo_PIN"] | 15;
         RightUpperServo_PIN = json["RightUpperServo_PIN"] | 12;
@@ -905,29 +907,37 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         if(!isBoardType(BoardType::CRIMZZON)) {
             Vibe3_PIN = json["Vibe3_PIN"] | 32;
         }
-#elif MOTOR_TYPE == 1 // BLDC motor
+    }
+#elif MOTOR_TYPE == 1 
+        // BLDC motor
         BLDC_Encoder_PIN = json["BLDC_Encoder_PIN"] | 33;
         BLDC_ChipSelect_PIN = json["BLDC_ChipSelect_PIN"] | 5;
         BLDC_Enable_PIN = json["BLDC_Enable_PIN"] | 14;
-        BLDC_HallEffect_PIN = json["BLDC_HallEffect_PIN"] | 35;
         BLDC_PWMchannel1_PIN = json["BLDC_PWMchannel1_PIN"] | 27;
         BLDC_PWMchannel2_PIN = json["BLDC_PWMchannel2_PIN"] | 26;
         BLDC_PWMchannel3_PIN = json["BLDC_PWMchannel3_PIN"] | 25;
 
+        // PWM
         Heater_PIN = json["Heater_PIN"] | 15;
+        Sleeve_Temp_PIN = json["Temp_PIN"] | 36;
+        Vibe0_PIN = json["Vibe0_PIN"] | 2;
+        Vibe1_PIN = json["Vibe1_PIN"] | 4;
+        Vibe2_PIN = json["Vibe2_PIN"] | -1;
+        Vibe3_PIN = json["Vibe3_PIN"] | -1;
+        Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
+
+        // PWM servo
         ValveServo_PIN = json["ValveServo_PIN"] | 12;
         TwistServo_PIN = json["TwistServo_PIN"] | 13;
-        Sleeve_Temp_PIN = json["Temp_PIN"] | 36;
-        
-        Vibe0_PIN = json["Vibe0_PIN"] | 2;
-        Vibe1_PIN = json["Vibe1_PIN"] | 22;
-        Vibe2_PIN = json["Vibe2_PIN"] | 4;
-        if(!isBoardType(BoardType::CRIMZZON)) {
-            Vibe3_PIN = json["Vibe3_PIN"] | 32;
-        }
+        Squeeze_PIN = json["Squeeze_PIN"] | 17;
+
+        // Input
+        TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 26;
+        LubeButton_PIN = json["LubeButton_PIN"] | 35;
+        Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
+        BLDC_HallEffect_PIN = json["BLDC_HallEffect_PIN"] | 35;
 #endif
-        Battery_Voltage_PIN = json["Battery_Voltage_PIN"] | 39;
-    }
+    Battery_Voltage_PIN = json["Battery_Voltage_PIN"] | 39;
 }
     // Untested
     /*    static bool parse(const String jsonInput)
@@ -1220,7 +1230,6 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
             sleeveTempDisplayed = false;
         }
         doc["fullBuild"] = fullBuild;
-        doc["esp32Version"] = FIRMWARE_VERSION_NAME;
         doc["TCodeVersion"] = (int)TCodeVersionEnum;
         doc["ssid"] = ssid;
         

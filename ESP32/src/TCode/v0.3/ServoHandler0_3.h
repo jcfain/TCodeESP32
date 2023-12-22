@@ -50,46 +50,79 @@ public:
             m_tcode->RegisterAxis("L1", "Forward");
             m_tcode->RegisterAxis("L2", "Left");
         }
-        m_tcode->RegisterAxis("R0", "Twist");
         m_tcode->RegisterAxis("R1", "Roll");
         m_tcode->RegisterAxis("R2", "Pitch");
         // Setup Servo PWM channels
         // Lower Left Servo
         if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
-            LogHandler::verbose(_TAG, "Connecting left servo to pin: %u", SettingsHandler::LeftServo_PIN);
-            ledcSetup(LowerLeftServo_PWM,MainServo_Freq,16);
-            ledcAttachPin(SettingsHandler::LeftServo_PIN,LowerLeftServo_PWM);
-            // Lower Right Servo
-            LogHandler::verbose(_TAG, "Connecting right servo to pin: %u", SettingsHandler::RightServo_PIN);
-            ledcSetup(LowerRightServo_PWM,MainServo_Freq,16);
-            ledcAttachPin(SettingsHandler::RightServo_PIN,LowerRightServo_PWM);
+        
+            if(SettingsHandler::LeftServo_PIN > -1) {
+                LogHandler::debug(_TAG, "Connecting left servo to pin: %u", SettingsHandler::LeftServo_PIN);
+                ledcSetup(LowerLeftServo_PWM,MainServo_Freq,16);
+                ledcAttachPin(SettingsHandler::LeftServo_PIN,LowerLeftServo_PWM);
+            } else {
+                LogHandler::error(_TAG, "Invalid left servo to pin: %u", SettingsHandler::LeftServo_PIN);
+                m_initFailed = true;
+            }
+            if(SettingsHandler::RightServo_PIN > -1) {
+                // Lower Right Servo
+                LogHandler::debug(_TAG, "Connecting right servo to pin: %u", SettingsHandler::RightServo_PIN);
+                ledcSetup(LowerRightServo_PWM,MainServo_Freq,16);
+                ledcAttachPin(SettingsHandler::RightServo_PIN,LowerRightServo_PWM);
+            } else {
+                LogHandler::error(_TAG, "Invalid right servo to pin: %u", SettingsHandler::RightServo_PIN);
+                m_initFailed = true;
+            }
         }
         if(SettingsHandler::sr6Mode)
         {
-            // Upper Left Servo
-            LogHandler::verbose(_TAG, "Connecting left upper servo to pin: %u", SettingsHandler::LeftUpperServo_PIN);
-            ledcSetup(UpperLeftServo_PWM,MainServo_Freq,16);
-            ledcAttachPin(SettingsHandler::LeftUpperServo_PIN,UpperLeftServo_PWM);
+            if(SettingsHandler::LeftUpperServo_PIN > -1) {
+                // Upper Left Servo
+                LogHandler::debug(_TAG, "Connecting left upper servo to pin: %u", SettingsHandler::LeftUpperServo_PIN);
+                ledcSetup(UpperLeftServo_PWM,MainServo_Freq,16);
+                ledcAttachPin(SettingsHandler::LeftUpperServo_PIN,UpperLeftServo_PWM);
+            } else {
+                LogHandler::error(_TAG, "Invalid left upper servo to pin: %u", SettingsHandler::LeftUpperServo_PIN);
+                m_initFailed = true;
+            }
             if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
-                // Upper Right Servo
-                LogHandler::verbose(_TAG, "Connecting right upper servo to pin: %u", SettingsHandler::RightUpperServo_PIN);
-                ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);
-                ledcAttachPin(SettingsHandler::RightUpperServo_PIN,UpperRightServo_PWM);
-                // Right Pitch Servo
-                LogHandler::verbose(_TAG, "Connecting right pitch servo to pin: %u", SettingsHandler::PitchRightServo_PIN);
-                ledcSetup(RightPitchServo_PWM,PitchServo_Freq,16);
-                ledcAttachPin(SettingsHandler::PitchRightServo_PIN,RightPitchServo_PWM);
+                if(SettingsHandler::RightUpperServo_PIN > -1) {
+                    // Upper Right Servo
+                    LogHandler::debug(_TAG, "Connecting right upper servo to pin: %u", SettingsHandler::RightUpperServo_PIN);
+                    ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);
+                    ledcAttachPin(SettingsHandler::RightUpperServo_PIN,UpperRightServo_PWM);
+                } else {
+                    LogHandler::error(_TAG, "Invalid right upper servo to pin: %u", SettingsHandler::RightUpperServo_PIN);
+                    m_initFailed = true;
+                }
+                if(SettingsHandler::PitchRightServo_PIN > -1) {
+                    // Right Pitch Servo
+                    LogHandler::debug(_TAG, "Connecting right pitch servo to pin: %u", SettingsHandler::PitchRightServo_PIN);
+                    ledcSetup(RightPitchServo_PWM,PitchServo_Freq,16);
+                    ledcAttachPin(SettingsHandler::PitchRightServo_PIN,RightPitchServo_PWM);
+                } else {
+                    LogHandler::error(_TAG, "Invalid right pitch servo to pin: %u", SettingsHandler::PitchRightServo_PIN);
+                    m_initFailed = true;
+                }
             }
         }
-        // Left Pitch Servo
-        LogHandler::verbose(_TAG, "Connecting pitch servo to pin: %u", SettingsHandler::PitchLeftServo_PIN);
-        ledcSetup(LeftPitchServo_PWM,PitchServo_Freq,16);
-        ledcAttachPin(SettingsHandler::PitchLeftServo_PIN,LeftPitchServo_PWM);
+        if(SettingsHandler::PitchLeftServo_PIN > -1) {
+            // Left Pitch Servo
+            LogHandler::debug(_TAG, "Connecting pitch servo to pin: %u", SettingsHandler::PitchLeftServo_PIN);
+            ledcSetup(LeftPitchServo_PWM,PitchServo_Freq,16);
+            ledcAttachPin(SettingsHandler::PitchLeftServo_PIN,LeftPitchServo_PWM);
+        } else {
+            LogHandler::error(_TAG, "Invalid pitch servo to pin: %u", SettingsHandler::PitchLeftServo_PIN);
+            m_initFailed = true;
+        }
 
         setupCommon();
         
         // Signal done
-        m_tcode->sendMessage("Ready!");
+        if(m_initFailed)
+            m_tcode->sendMessage("Init servos error!");
+        else
+            m_tcode->sendMessage("Ready!");
     }
 
     void setMessageCallback(TCODE_FUNCTION_PTR_T function) override {
@@ -112,14 +145,13 @@ public:
 // int testVar = -1;
 // int testVar2 = -1;
     void execute() override {
+        if(m_initFailed) {
+            return;
+        }
         // Collect inputs
         // These functions query the t-code object for the position/level at a specified time
         // Number recieved will be an integer, 0-9999
         xLin = m_tcode->AxisRead("L0");
-        if (SettingsHandler::sr6Mode) {
-            yLin = m_tcode->AxisRead("L1");
-            zLin = m_tcode->AxisRead("L2");
-        }
         yRot = m_tcode->AxisRead("R1");
         zRot = m_tcode->AxisRead("R2");
         // If you want to mix your servos differently, enter your code below:
@@ -155,6 +187,8 @@ public:
         }
         else 
         {
+            yLin = m_tcode->AxisRead("L1");
+            zLin = m_tcode->AxisRead("L2");
             // SR6 Kinematics
             // Calculate arm angles
             int roll,pitch,fwd,thrust,side;
@@ -206,6 +240,7 @@ public:
 
 private:
     const char* _TAG = TagHandler::ServoHandler3;
+    bool m_initFailed = false;
     int MainServo_Int;
     int PitchServo_Int;
 
