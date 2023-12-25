@@ -90,6 +90,7 @@ SOFTWARE. */
 #include "BatteryHandler.h"
 #include "Motion/MotionHandler.hpp"
 #include "VoiceHandler.hpp"
+#include "ButtonHandler.hpp"
 
 
 //TcpHandler tcpHandler;
@@ -100,6 +101,7 @@ TaskHandle_t httpsTask;
 
 MotionHandler motionHandler;
 VoiceHandler* voiceHandler;
+ButtonHandler* buttonHandler = 0;
 TaskHandle_t voiceTask;
 
 #if WIFI_TCODE
@@ -136,6 +138,7 @@ bool restarting = false;
 char udpData[600];
 char webSocketData[600];
 char movement[600];
+char buttonCommand[MAX_COMMAND];
 
 unsigned long bench[10];
 unsigned long benchLast[10];
@@ -422,6 +425,9 @@ void settingChangeCallback(const char* group, const char* settingThatChanged) {
 			voiceHandler->setVolume(SettingsHandler::getVoiceVolume());
 		else if(strcmp(settingThatChanged, "voiceWakeTime") == 0) 
 			voiceHandler->setWakeTime(SettingsHandler::getVoiceWakeTime());
+	} else if(buttonHandler && strcmp(group, "buttonCommand") == 0) {
+		if(strcmp(settingThatChanged, "bootButtonCommand") == 0) 
+			buttonHandler->updateBootButtonCommand(SettingsHandler::bootButtonCommand);
 	}
 }
 void loadI2CModules() {
@@ -609,6 +615,11 @@ void setup()
     motorHandler->setup();
 	motionHandler.setup(SettingsHandler::TCodeVersionEnum);
 	loadI2CModules();
+	buttonHandler = new ButtonHandler();
+
+	ButtonModel buttons[MAX_BUTTONS];
+	buttonHandler->init(SettingsHandler::bootButtonCommand, buttons);
+
 	SettingsHandler::setMessageCallback(settingChangeCallback);
 	setupSucceeded = true;
     LogHandler::debug(TagHandler::Main, "Setup finished");
@@ -641,6 +652,7 @@ void loop() {
 		if(setupSucceeded)
 		{
 			//otaHandler.handle();
+
 			String serialData;
 #if WIFI_TCODE
 			if(webSocketHandler) {
@@ -653,6 +665,12 @@ void loop() {
 				benchStart(2);
 				udpHandler->read(udpData);
 				benchFinish("Udp get", 2);
+			}
+			if(buttonHandler) {
+				buttonHandler->read(buttonCommand);
+				if(strlen(buttonCommand) > 0) {
+					motorHandler->read(buttonCommand);
+				}
 			}
 			
 			benchStart(3);

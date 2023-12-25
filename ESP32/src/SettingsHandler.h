@@ -41,6 +41,8 @@ SOFTWARE. */
 //#define FIRMWARE_VERSION 0.32f Not used currently
 #define FIRMWARE_VERSION_NAME "0.35b"
 #define featureCount 8
+#define MAX_BUTTONS 8
+#define MAX_COMMAND 100
 
 using SETTING_STATE_FUNCTION_PTR_T = void (*)(const char *group, const char *settingNameThatChanged);
 
@@ -171,6 +173,8 @@ public:
     static int heaterFrequency;
     static int caseFanFrequency;
     static int caseFanResolution;
+
+    static char bootButtonCommand[MAX_COMMAND];
 
     static VoiceCommand voiceCommands[147];
 
@@ -511,6 +515,11 @@ public:
             }
             caseFanMaxDuty = pow(2, caseFanResolution) - 1;
 
+            //strcpy(bootButtonCommand, json["bootButtonCommand"] | "#motion-profile-cycle");
+            
+            setValue(json, bootButtonCommand, "buttonCommand", "bootButtonCommand", "#motion-profile-cycle");
+
+
             lubeEnabled = json["lubeEnabled"];
 
             motionDefaultProfileIndex = json["motionDefaultProfileIndex"] | 0;
@@ -775,24 +784,18 @@ public:
             return;
         }
         setValue(profileIndex, motionSelectedProfileIndex, "motionGenerator", "motionSelectedProfileIndex");
-        // setMotionUpdateGlobal(profile.motionUpdateGlobal);
-        // setMotionPeriodGlobal(profile.motionPeriodGlobal);
-        // setMotionAmplitudeGlobal(profile.motionAmplitudeGlobal);
-        // setMotionOffsetGlobal(profile.motionOffsetGlobal);
-        // setMotionPhaseGlobal(profile.motionPhaseGlobal);
-        // setMotionReversedGlobal(profile.motionReversedGlobal);
-        // setMotionPeriodGlobalRandom(profile.motionPeriodGlobalRandom);
-        // setMotionPeriodGlobalRandomMin(profile.motionPeriodGlobalRandomMin);
-        // setMotionPeriodGlobalRandomMax(profile.motionPeriodGlobalRandomMax);
-        // setMotionAmplitudeGlobalRandom(profile.motionAmplitudeGlobalRandom);
-        // setMotionAmplitudeGlobalRandomMin(profile.motionAmplitudeGlobalRandomMin);
-        // setMotionAmplitudeGlobalRandomMax(profile.motionAmplitudeGlobalRandomMax);
-        // setMotionOffsetGlobalRandom(profile.motionOffsetGlobalRandom);
-        // setMotionOffsetGlobalRandomMin(profile.motionOffsetGlobalRandomMin);
-        // setMotionOffsetGlobalRandomMax(profile.motionOffsetGlobalRandomMax);
-        // setMotionRandomChangeMin(profile.motionRandomChangeMin);
-        // setMotionRandomChangeMax(profile.motionRandomChangeMax);
     }
+    
+    static void cycleMotionProfile() {
+        int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
+        motionSelectedProfileIndex++;
+        if(motionSelectedProfileIndex > len - 1) {
+            motionSelectedProfileIndex = 0;
+        }
+        auto newProfile = motionProfiles[motionSelectedProfileIndex];
+        setMotionProfile(newProfile, motionSelectedProfileIndex);
+    }
+
     // static int getMotionSelectedProfileIndex() {
     //     return motionSelectedProfileIndex;
     // }
@@ -1316,6 +1319,7 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         doc["subnet"] = subnet;
         doc["dns1"] = dns1;
         doc["dns2"] = dns2;
+
         doc["sr6Mode"] = sr6Mode;
         doc["RightServo_ZERO"] = RightServo_ZERO;
         doc["LeftServo_ZERO"] = LeftServo_ZERO;
@@ -1401,6 +1405,8 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         doc["voiceMuted"] = voiceMuted;
         doc["voiceWakeTime"] = voiceWakeTime;
         doc["voiceVolume"] = voiceVolume;
+
+        doc["bootButtonCommand"] = bootButtonCommand;
 
         JsonArray includes = doc.createNestedArray("log-include-tags");
         std::vector<String> includesVec = LogHandler::getIncludes();
@@ -1755,7 +1761,8 @@ private:
         bool newValue = json[propertyName] | defaultValue;
         setValue(newValue, variable, propertyGroup, propertyName);
     }
-    static void setValue(JsonObject json, char *&variable, const char *propertyGroup, const char *propertyName, const char *defaultValue)
+    template<size_t n> 
+    static void setValue(JsonObject json, char (&variable)[n], const char *propertyGroup, const char *propertyName, const char *defaultValue)
     {
         const char *newValue = json[propertyName] | defaultValue;
         setValue(newValue, variable, propertyGroup, propertyName);
@@ -1808,7 +1815,9 @@ private:
         if (valueChanged)
             sendMessage(propertyGroup, propertyName);
     }
-    static void setValue(const char *newValue, char *&variable, const char *propertyGroup, const char *propertyName)
+    
+    template<size_t n> 
+    static void setValue(const char *newValue, char (&variable)[n], const char *propertyGroup, const char *propertyName)
     {
         bool valueChanged = initialized && strcmp(variable, newValue) != -1;
         LogHandler::debug(TagHandler::SettingsHandler, "Set char* '%s' oldValue '%s' newValue '%s' changed: '%ld'", propertyName, variable, newValue, valueChanged);
@@ -2211,6 +2220,7 @@ bool SettingsHandler::voiceMuted = false;
 int SettingsHandler::voiceWakeTime = 10;
 int SettingsHandler::voiceVolume = 10;
 
+char SettingsHandler::bootButtonCommand[MAX_COMMAND];
 
 bool SettingsHandler::motionEnabled = false;
 //char SettingsHandler::motionSelectedProfileName[maxMotionProfileNameLength];

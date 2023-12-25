@@ -78,6 +78,15 @@ public:
 					return true;
 				}, true);
 			}
+			if(isCommand(in, "#motion-profile-cycle")) {
+				return execute([]() -> bool {
+					if(!SettingsHandler::getMotionEnabled())
+						SettingsHandler::setMotionEnabled(true);
+					SettingsHandler::cycleMotionProfile();
+					return true;
+				}, true);
+			}
+			
 			
 			// if(isCommand(in, "$motion-period-random-on")) {
 			// 	return validateBool("Motion amplitude random", true, SettingsHandler::getMotionPeriodGlobalRandom(), [](bool value) -> bool {
@@ -417,6 +426,7 @@ private:
 		Serial.println("#motion-set-profile:value ------ Set the current profile");
 		Serial.printf("    Motion profile values: 1-%ld\n", maxMotionProfileCount);
 		Serial.println("#motion-toggle ----------------- Toggle motion generator");
+		Serial.println("#motion-profile-cycle ---------- Cycle through the motion profiles");
 		// Serial.println("$motion-period-random-on ------- Period random on for the current profile");
 		// Serial.println("$motion-period-random-off ------ Period random off for the current profile");
 		// Serial.println("$motion-amplitude-random-on ---- Amplitude random on for the current profile");
