@@ -787,13 +787,18 @@ public:
     }
     
     static void cycleMotionProfile() {
-        int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
-        motionSelectedProfileIndex++;
-        if(motionSelectedProfileIndex > len - 1) {
-            motionSelectedProfileIndex = 0;
+        if(!getMotionEnabled()) {
+            setMotionEnabled(true);
+            return;
         }
-        auto newProfile = motionProfiles[motionSelectedProfileIndex];
-        setMotionProfile(newProfile, motionSelectedProfileIndex);
+        int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
+        uint8_t newProfileIndex = motionSelectedProfileIndex + 1;
+        if(newProfileIndex > len - 1) {
+            newProfileIndex = 0;
+            setMotionEnabled(false);
+        }
+        auto newProfile = motionProfiles[newProfileIndex];
+        setMotionProfile(newProfile, newProfileIndex);
     }
 
     // static int getMotionSelectedProfileIndex() {

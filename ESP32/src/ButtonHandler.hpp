@@ -63,11 +63,13 @@ void initBootbutton(char command[MAX_COMMAND]) {
 }
 
 void updateBootButtonCommand(char bootButtonCommand[MAX_COMMAND]) {
+	xSemaphoreTake(xMutex, portMAX_DELAY);
     if(strlen(bootButtonCommand) > 0) {
         strcpy(m_bootButtonCommand, bootButtonCommand);
     } else {
         m_bootButtonCommand[0] = {0};
     }
+    xSemaphoreGive(xMutex);
 }
 
 void read(char buf[MAX_COMMAND]) {
@@ -80,8 +82,9 @@ void read(char buf[MAX_COMMAND]) {
 }
 
 static void bootButtonInterrupt() {
-    LogHandler::debug(_TAG, "Recieve boot button");
-    xQueueSend(m_buttonQueue, m_bootButtonCommand, 0);
+	xSemaphoreTakeFromISR(xMutex, NULL);
+    xQueueSendFromISR(m_buttonQueue, m_bootButtonCommand, NULL);
+    xSemaphoreGiveFromISR(xMutex, NULL);
 }
 
 static void buttonInterrupt() {
@@ -91,7 +94,7 @@ static void buttonInterrupt() {
             int value = analogRead(m_buttons[i].pin);
             LogHandler::debug(_TAG, "Recieve button analog value: %ld", value);
             if(value > buttonIndexMap[m_buttons[i].index] && value < buttonIndexMap[m_buttons[i].index] + BUTTON_ANALOG_TOL)
-                xQueueSend(m_buttonQueue, m_buttons[i].command, 0);
+                xQueueSendFromISR(m_buttonQueue, m_buttons[i].command, NULL);
         }
     }
 }
@@ -100,6 +103,7 @@ private:
     static const char* _TAG;
     bool m_initialized = false;
 
+	static SemaphoreHandle_t xMutex;
     static char m_bootButtonCommand[MAX_COMMAND];
     static uint16_t buttonIndexMap[MAX_BUTTON_INDEX];
     static ButtonModel m_buttons[MAX_BUTTONS];
@@ -110,3 +114,4 @@ QueueHandle_t ButtonHandler::m_buttonQueue;
 ButtonModel ButtonHandler::m_buttons[MAX_BUTTONS];
 char ButtonHandler::m_bootButtonCommand[MAX_COMMAND];
 uint16_t ButtonHandler::buttonIndexMap[MAX_BUTTON_INDEX];
+SemaphoreHandle_t ButtonHandler::xMutex = xSemaphoreCreateMutex();

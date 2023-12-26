@@ -80,8 +80,6 @@ public:
 			}
 			if(isCommand(in, "#motion-profile-cycle")) {
 				return execute([]() -> bool {
-					if(!SettingsHandler::getMotionEnabled())
-						SettingsHandler::setMotionEnabled(true);
 					SettingsHandler::cycleMotionProfile();
 					return true;
 				}, true);
