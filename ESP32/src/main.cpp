@@ -71,8 +71,8 @@ SOFTWARE. */
 	#include "MDNSHandler.hpp"
 #endif
 //#include "OTAHandler.h"
-#if BLUETOOTH_TCODE
-#include "BLEHandler.h"
+#if BLE_TCODE
+	#include "BLEHandler.hpp"
 #endif
 
 #if WIFI_TCODE
@@ -117,7 +117,9 @@ TaskHandle_t voiceTask;
 	TemperatureHandler* temperatureHandler = 0;
 #endif
 
-//BLEHandler* bleHandler = 0;
+#if BLE_TCODE
+	BLEHandler* bleHandler = 0;
+#endif
 
 #if DISPLAY_ENABLED
 	DisplayHandler* displayHandler;
@@ -137,6 +139,9 @@ bool restarting = false;
 
 char udpData[600];
 char webSocketData[600];
+#if BLE_TCODE
+	char bleData[600];
+#endif
 char movement[600];
 char buttonCommand[MAX_COMMAND];
 
@@ -177,6 +182,9 @@ void TCodeCommandCallback(const char* in) {
 			if (SettingsHandler::bluetoothEnabled && btHandler->isConnected())
 				btHandler->CommandCallback(in);
 		#endif
+		#if BLE_TCODE
+
+		#endif
 		#if WIFI_TCODE
 			if(webSocketHandler)
 				webSocketHandler->CommandCallback(in);
@@ -187,7 +195,9 @@ void TCodeCommandCallback(const char* in) {
 			Serial.println(in);
 	}
 }
-
+void profileChangeCallback(uint8_t profile) {
+	
+}
 void logCallBack(const char* in, LogLevel level) {
 #if WIFI_TCODE
 	// if(webSocketHandler) {
@@ -268,7 +278,8 @@ void startWeb(bool apMode) {
 #endif
 }
 
-#if BLUETOOTH_TCODE
+
+#if BLE_TCODE
 void startBLE() {
 	if(!bleHandler) {
 		displayPrint("Starting BLE");
@@ -276,7 +287,9 @@ void startBLE() {
 		bleHandler->setup();
 	}
 }
+#endif
 
+#if BLUETOOTH_TCODE
 void startBlueTooth() {
 	if(!btHandler) {
 		displayPrint("Starting Bluetooth serial");
@@ -315,7 +328,7 @@ void startConfigMode(bool withBle= true) {
 	}
 #endif
 
-#if BLUETOOTH_TCODE
+#if BLE_TCODE
 // After attempting to connect wifi, ble cause crash
 	if(withBle) { 
 		startBLE();
@@ -666,6 +679,12 @@ void loop() {
 				udpHandler->read(udpData);
 				benchFinish("Udp get", 2);
 			}
+			
+#if BLE_TCODE
+			if(bleHandler) {
+				bleHandler->read(bleData);
+			}
+#endif
 			if(buttonHandler) {
 				buttonHandler->read(buttonCommand);
 				if(strlen(buttonCommand) > 0) {
@@ -683,6 +702,11 @@ void loop() {
 				motorHandler->read(udpData);
 				benchFinish("Udp write", 6);
 			} 
+#if BLE_TCODE
+			else if (!SettingsHandler::getMotionEnabled() && strlen(bleData) > 0) {
+				motorHandler->read(bleData);
+			}
+#endif
 			else 
 #endif
 			if (!SettingsHandler::getMotionEnabled() && Serial.available() > 0) {
@@ -697,6 +721,7 @@ void loop() {
 				servoHandler->read(serialData);
 			}
 #endif
+
 			else if (SettingsHandler::getMotionEnabled()) {
 				// Read and process tcode $ and # commands
 				if(Serial.available() > 0) {

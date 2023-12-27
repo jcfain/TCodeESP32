@@ -182,6 +182,7 @@ public:
 
     static const char *userSettingsFilePath;
     static const char *wifiPassFilePath;
+    static const char *motionProfilesFilePath;
     static const char *logPath;
     static const char *defaultWifiPass;
     static const char *decoyPass;
@@ -237,21 +238,29 @@ public:
             deserializeJson(doc, file);
             loadingDefault = true;
         }
+
+        file.close();
+
+        loadWifiInfo(loadingDefault);
+        loadMotionProfiles(loadingDefault);
         
-        DynamicJsonDocument passwordDoc(100);
-        LogHandler::info(_TAG, "Read password file");
-        if (!SPIFFS.exists(wifiPassFilePath)) {
-            LogHandler::error(_TAG, "Password file did not exist.");
-        } else {
-            File passwordFile = SPIFFS.open(wifiPassFilePath, "r");
-            deserializeJson(passwordDoc, passwordFile);
-            JsonObject passJsonObj = passwordDoc.as<JsonObject>();
-            loadWifiInfo(passJsonObj);
-        }
+
+        // DynamicJsonDocument motionProfileDoc(1000);
+        // LogHandler::info(_TAG, "Read motion Profiles");
+        // if (!SPIFFS.exists(motionProfilesFilePath)) {
+        //     LogHandler::error(_TAG, "Motion profile file did not exist.");
+        // } else {
+        //     File file = SPIFFS.open(motionProfilesFilePath, "r");
+        //     deserializeJson(motionProfileDoc, file);
+        //     JsonObject obj = motionProfileDoc.as<JsonObject>();
+        //     loadMotionProfiles(obj);
+        // }
+        
 
         JsonObject jsonObj = doc.as<JsonObject>();
 
         update(jsonObj);
+
 
         setBuildFeatures();
         setMotorType();
@@ -302,14 +311,145 @@ public:
         update(doc.as<JsonObject>());
         save();
     }
-    static void loadWifiInfo(JsonObject json) {
-        const char *wifiPassConst = json["wifiPass"] | "YOUR PASSWORD HERE";
-            //LogHandler::error(_TAG, "wifiPassConst: %s", wifiPassConst);
-        if (strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0)
-        {
-            strcpy(wifiPass, wifiPassConst);
+    
+    static void loadWifiInfo(bool loadDefault) {
+        
+        DynamicJsonDocument doc(100);
+        LogHandler::info(_TAG, "Read password file");
+        if (!loadDefault && !SPIFFS.exists(wifiPassFilePath)) {
+            LogHandler::error(_TAG, "Password file did not exist.");
+        } else {
+            File file = SPIFFS.open(wifiPassFilePath, "r");
+            deserializeJson(doc, file);
+            JsonObject json = doc.as<JsonObject>();
+            const char *wifiPassConst = json["wifiPass"] | "YOUR PASSWORD HERE";
+                //LogHandler::error(_TAG, "wifiPassConst: %s", wifiPassConst);
+            if (strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0)
+            {
+                strcpy(wifiPass, wifiPassConst);
+            }
+        }
+        if(loadDefault) {
+            saveWifiInfo();
         }
     }
+
+    static bool saveWifiInfo() {
+        saving = true;
+        if (!SPIFFS.exists(wifiPassFilePath)) {
+            LogHandler::error(_TAG, "Password file did not exist.");
+            saving = false;
+            return false;
+        } else {
+            DynamicJsonDocument doc(100);
+            LogHandler::info(_TAG, "Save password file");
+            File file = SPIFFS.open(wifiPassFilePath, FILE_WRITE);
+            doc["wifiPass"] = wifiPass;
+            if (serializeJson(doc, file) == 0)
+            {
+                LogHandler::error(_TAG, "Failed to write to password file");
+                doc["wifiPass"] = defaultWifiPass;
+                file.close();
+                saving = false;
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static bool loadMotionProfiles(bool loadDefault) {
+        if (!loadDefault && !SPIFFS.exists(motionProfilesFilePath)) {
+            LogHandler::error(_TAG, "Motion profile file did not exist.");
+            saving = false;
+            return false;
+        } else {
+            DynamicJsonDocument doc(1000);
+            File file = SPIFFS.open(motionProfilesFilePath, "r");
+            deserializeJson(doc, file);
+            JsonObject json = doc.as<JsonObject>();
+            LogHandler::info(_TAG, "Load motion profiles file");
+            motionDefaultProfileIndex = json["motionDefaultProfileIndex"] | 0;
+            if(!initialized)
+                motionSelectedProfileIndex = motionDefaultProfileIndex;
+                
+            // setValue(json, motionSelectedProfileIndex, "motionGenerator", "motionSelectedProfileIndex", motionDefaultProfileIndex);
+
+            JsonArray motionProfilesObj = json["motionProfiles"].as<JsonArray>();
+            
+            if(motionProfilesObj.isNull()) {
+                LogHandler::info(_TAG, "No motion profiles stored, loading default");
+                for(int i = 0; i < maxMotionProfileCount; i++) {
+                    motionProfiles[i] = MotionProfile(i + 1);
+                    motionProfiles[i].addDefaultChannel("L0");
+                }
+            } else {
+                for(int i = 0; i<motionProfilesObj.size(); i++) {
+                    if(i == maxMotionProfileCount) 
+                        break;
+                    auto profile = MotionProfile();
+                    LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", motionProfilesObj[i]["name"].as<String>());
+                    profile.fromJson(motionProfilesObj[i].as<JsonObject>());
+                    motionProfiles[i] = profile;
+                }
+            }
+        }
+        if(loadDefault) {
+            saveMotionProfiles();
+        }
+        return true;
+    }
+
+    static bool saveMotionProfiles() {
+        saving = true;
+        if (!SPIFFS.exists(motionProfilesFilePath)) {
+            LogHandler::error(_TAG, "Motion profile file did not exist.");
+            saving = false;
+            return false;
+        } else {
+            DynamicJsonDocument doc(1000);
+            LogHandler::info(_TAG, "Save motion profiles file");
+            File file = SPIFFS.open(motionProfilesFilePath, FILE_WRITE);
+            doc["motionDefaultProfileIndex"] = motionDefaultProfileIndex;
+            int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
+            for (int i=0; i < len; i++)
+            {
+                doc["motionProfiles"][i]["name"] = motionProfiles[i].motionProfileName;
+                for (size_t j = 0; j < motionProfiles[i].channels.size(); j++)
+                {
+                    doc["motionProfiles"][i]["channels"][j]["name"] = motionProfiles[i].channels[j].name;
+                    doc["motionProfiles"][i]["channels"][j]["update"] = motionProfiles[i].channels[j].motionUpdateGlobal;
+                    doc["motionProfiles"][i]["channels"][j]["period"] = motionProfiles[i].channels[j].motionPeriodGlobal;
+                    doc["motionProfiles"][i]["channels"][j]["amp"] = motionProfiles[i].channels[j].motionAmplitudeGlobal;
+                    doc["motionProfiles"][i]["channels"][j]["offset"] = motionProfiles[i].channels[j].motionOffsetGlobal;
+                    doc["motionProfiles"][i]["channels"][j]["phase"] = motionProfiles[i].channels[j].motionPhaseGlobal;
+                    doc["motionProfiles"][i]["channels"][j]["reverse"] = motionProfiles[i].channels[j].motionReversedGlobal;
+                    doc["motionProfiles"][i]["channels"][j]["periodRan"] = motionProfiles[i].channels[j].motionPeriodGlobalRandom;
+                    doc["motionProfiles"][i]["channels"][j]["periodMin"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMin;
+                    doc["motionProfiles"][i]["channels"][j]["periodMax"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMax;
+                    doc["motionProfiles"][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
+                    doc["motionProfiles"][i]["channels"][j]["ampMin"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMin;
+                    doc["motionProfiles"][i]["channels"][j]["ampMax"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMax;
+                    doc["motionProfiles"][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
+                    doc["motionProfiles"][i]["channels"][j]["offsetMin"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMin;
+                    doc["motionProfiles"][i]["channels"][j]["offsetMax"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMax;
+                    doc["motionProfiles"][i]["channels"][j]["phaseRan"] = motionProfiles[i].channels[j].motionPhaseRandom;
+                    doc["motionProfiles"][i]["channels"][j]["phaseMin"] = motionProfiles[i].channels[j].motionPhaseRandomMin;
+                    doc["motionProfiles"][i]["channels"][j]["phaseMax"] = motionProfiles[i].channels[j].motionPhaseRandomMax;
+                    doc["motionProfiles"][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
+                    doc["motionProfiles"][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
+                }
+            }
+            if (serializeJson(doc, file) == 0)
+            {
+                LogHandler::error(_TAG, "Failed to write to motion profiles file");
+                file.close();
+                saving = false;
+                return false;
+            }
+        }
+        return true;
+    }
+
     static bool update(JsonObject json)
     {
         LogHandler::info(_TAG, "Load settings");
@@ -522,56 +662,30 @@ public:
 
             lubeEnabled = json["lubeEnabled"];
 
-            motionDefaultProfileIndex = json["motionDefaultProfileIndex"] | 0;
-            if(!initialized)
-                motionSelectedProfileIndex = motionDefaultProfileIndex;
-            JsonArray motionProfilesObj = json["motionProfiles"].as<JsonArray>();
-            
-            if(motionProfilesObj.isNull()) {
-                LogHandler::info(_TAG, "No motion profiles stored, loading default");
-                for(int i = 0; i < maxMotionProfileCount; i++) {
-                    motionProfiles[i] = MotionProfile(i + 1);
-                    motionProfiles[i].addDefaultChannel("L0");
-                }
-            } else {
-                for(int i = 0; i<motionProfilesObj.size(); i++) {
-                    if(i == maxMotionProfileCount) 
-                        break;
-                    auto profile = MotionProfile();
-                    LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", motionProfilesObj[i]["name"].as<String>());
-                    profile.fromJson(motionProfilesObj[i].as<JsonObject>());
-                    motionProfiles[i] = profile;
-                }
-            }
+            // motionDefaultProfileIndex = json["motionDefaultProfileIndex"] | 0;
+            // if(!initialized)
+            //     motionSelectedProfileIndex = motionDefaultProfileIndex;
+                
+            // // setValue(json, motionSelectedProfileIndex, "motionGenerator", "motionSelectedProfileIndex", motionDefaultProfileIndex);
 
-            // bool motionChannelsChanged = false;
-            // JsonArray motionChannelsObj = json["motionChannels"].as<JsonArray>();
-            // if(initialized && motionChannelsObj.size() != motionChannels.size()) {
-            //     motionChannelsChanged = true;
-            // }
-            // motionChannels.clear();
-            // if(motionChannelsObj.isNull()) {
-            //     LogHandler::info(_TAG, "No motion channels stored, loading default");
-            //     motionChannels.push_back(MotionChannel("L0"));
+            // JsonArray motionProfilesObj = json["motionProfiles"].as<JsonArray>();
+            
+            // if(motionProfilesObj.isNull()) {
+            //     LogHandler::info(_TAG, "No motion profiles stored, loading default");
+            //     for(int i = 0; i < maxMotionProfileCount; i++) {
+            //         motionProfiles[i] = MotionProfile(i + 1);
+            //         motionProfiles[i].addDefaultChannel("L0");
+            //     }
             // } else {
-            //     for(int i = 0; i<motionChannelsObj.size(); i++) {
-            //         const char* name = motionChannelsObj[i]["name"];
-            //         LogHandler::debug(_TAG, "Loading motion channel '%s' from settings", name);
-            //         auto channel = MotionChannel(name);
-            //         LogHandler::debug(_TAG, "Loading motion channel '%s' from settings", channel.name);
-            //         float phaseStored = round2(motionChannelsObj[i]["phase"].as<float>());
-            //         if(initialized && phaseStored != channel.phase)
-            //             motionChannelsChanged = true;
-            //         channel.phase = phaseStored;
-            //         bool reverseStored = motionChannelsObj[i]["reverse"].as<bool>();
-            //         if(initialized && reverseStored != channel.reverse)
-            //             motionChannelsChanged = true;
-            //         channel.reverse = reverseStored;
-            //         motionChannels.push_back(channel);
+            //     for(int i = 0; i<motionProfilesObj.size(); i++) {
+            //         if(i == maxMotionProfileCount) 
+            //             break;
+            //         auto profile = MotionProfile();
+            //         LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", motionProfilesObj[i]["name"].as<String>());
+            //         profile.fromJson(motionProfilesObj[i].as<JsonObject>());
+            //         motionProfiles[i] = profile;
             //     }
             // }
-            // if(initialized && motionChannelsChanged)
-            //     sendMessage("motionGenerator", "motionChannels");
 
             setValue(json, voiceEnabled, "voiceHandler", "voiceEnabled", false);
             setValue(json, voiceMuted, "voiceHandler", "voiceMuted", false);
@@ -1241,24 +1355,11 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         doc["TCodeVersion"] = (int)TCodeVersionEnum;
         doc["ssid"] = ssid;
         
-        if (!SPIFFS.exists(wifiPassFilePath)) {
-            LogHandler::error(_TAG, "Password file did not exist.");
-            saving = false;
+        if(!saveWifiInfo()) {
+            file.close();
             return false;
-        } else {
-            DynamicJsonDocument passwordDoc(100);
-            LogHandler::info(_TAG, "Save password file");
-            File passwordFile = SPIFFS.open(wifiPassFilePath, FILE_WRITE);
-            passwordDoc["wifiPass"] = wifiPass;
-            if (serializeJson(passwordDoc, passwordFile) == 0)
-            {
-                LogHandler::error(_TAG, "Failed to write to password file");
-                passwordDoc["wifiPass"] = defaultWifiPass;
-                file.close();
-                saving = false;
-                return false;
-            }
         }
+
         if(strcmp(wifiPass, "YOUR PASSWORD HERE") != 0) {
             doc["wifiPass"] = decoyPass;
         } else {
@@ -1375,36 +1476,41 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         doc["batteryVoltageMax"] = round2(batteryVoltageMax);
         doc["batteryCapacityMax"] = batteryCapacityMax;
 
-        doc["motionDefaultProfileIndex"] = motionDefaultProfileIndex;
-        int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
-        for (int i=0; i < len; i++)
-        {
-            doc["motionProfiles"][i]["name"] = motionProfiles[i].motionProfileName;
-            for (size_t j = 0; j < motionProfiles[i].channels.size(); j++)
-            {
-                doc["motionProfiles"][i]["channels"][j]["name"] = motionProfiles[i].channels[j].name;
-                doc["motionProfiles"][i]["channels"][j]["update"] = motionProfiles[i].channels[j].motionUpdateGlobal;
-                doc["motionProfiles"][i]["channels"][j]["period"] = motionProfiles[i].channels[j].motionPeriodGlobal;
-                doc["motionProfiles"][i]["channels"][j]["amp"] = motionProfiles[i].channels[j].motionAmplitudeGlobal;
-                doc["motionProfiles"][i]["channels"][j]["offset"] = motionProfiles[i].channels[j].motionOffsetGlobal;
-                doc["motionProfiles"][i]["channels"][j]["phase"] = motionProfiles[i].channels[j].motionPhaseGlobal;
-                doc["motionProfiles"][i]["channels"][j]["reverse"] = motionProfiles[i].channels[j].motionReversedGlobal;
-                doc["motionProfiles"][i]["channels"][j]["periodRan"] = motionProfiles[i].channels[j].motionPeriodGlobalRandom;
-                doc["motionProfiles"][i]["channels"][j]["periodMin"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMin;
-                doc["motionProfiles"][i]["channels"][j]["periodMax"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMax;
-                doc["motionProfiles"][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
-                doc["motionProfiles"][i]["channels"][j]["ampMin"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMin;
-                doc["motionProfiles"][i]["channels"][j]["ampMax"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMax;
-                doc["motionProfiles"][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
-                doc["motionProfiles"][i]["channels"][j]["offsetMin"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMin;
-                doc["motionProfiles"][i]["channels"][j]["offsetMax"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMax;
-                doc["motionProfiles"][i]["channels"][j]["phaseRan"] = motionProfiles[i].channels[j].motionPhaseRandom;
-                doc["motionProfiles"][i]["channels"][j]["phaseMin"] = motionProfiles[i].channels[j].motionPhaseRandomMin;
-                doc["motionProfiles"][i]["channels"][j]["phaseMax"] = motionProfiles[i].channels[j].motionPhaseRandomMax;
-                doc["motionProfiles"][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
-                doc["motionProfiles"][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
-            }
+        if(!saveMotionProfiles()) {
+            file.close();
+            return false;
         }
+
+        // doc["motionDefaultProfileIndex"] = motionDefaultProfileIndex;
+        // int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
+        // for (int i=0; i < len; i++)
+        // {
+        //     doc["motionProfiles"][i]["name"] = motionProfiles[i].motionProfileName;
+        //     for (size_t j = 0; j < motionProfiles[i].channels.size(); j++)
+        //     {
+        //         doc["motionProfiles"][i]["channels"][j]["name"] = motionProfiles[i].channels[j].name;
+        //         doc["motionProfiles"][i]["channels"][j]["update"] = motionProfiles[i].channels[j].motionUpdateGlobal;
+        //         doc["motionProfiles"][i]["channels"][j]["period"] = motionProfiles[i].channels[j].motionPeriodGlobal;
+        //         doc["motionProfiles"][i]["channels"][j]["amp"] = motionProfiles[i].channels[j].motionAmplitudeGlobal;
+        //         doc["motionProfiles"][i]["channels"][j]["offset"] = motionProfiles[i].channels[j].motionOffsetGlobal;
+        //         doc["motionProfiles"][i]["channels"][j]["phase"] = motionProfiles[i].channels[j].motionPhaseGlobal;
+        //         doc["motionProfiles"][i]["channels"][j]["reverse"] = motionProfiles[i].channels[j].motionReversedGlobal;
+        //         doc["motionProfiles"][i]["channels"][j]["periodRan"] = motionProfiles[i].channels[j].motionPeriodGlobalRandom;
+        //         doc["motionProfiles"][i]["channels"][j]["periodMin"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMin;
+        //         doc["motionProfiles"][i]["channels"][j]["periodMax"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMax;
+        //         doc["motionProfiles"][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
+        //         doc["motionProfiles"][i]["channels"][j]["ampMin"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMin;
+        //         doc["motionProfiles"][i]["channels"][j]["ampMax"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMax;
+        //         doc["motionProfiles"][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
+        //         doc["motionProfiles"][i]["channels"][j]["offsetMin"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMin;
+        //         doc["motionProfiles"][i]["channels"][j]["offsetMax"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMax;
+        //         doc["motionProfiles"][i]["channels"][j]["phaseRan"] = motionProfiles[i].channels[j].motionPhaseRandom;
+        //         doc["motionProfiles"][i]["channels"][j]["phaseMin"] = motionProfiles[i].channels[j].motionPhaseRandomMin;
+        //         doc["motionProfiles"][i]["channels"][j]["phaseMax"] = motionProfiles[i].channels[j].motionPhaseRandomMax;
+        //         doc["motionProfiles"][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
+        //         doc["motionProfiles"][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
+        //     }
+        // }
 
         doc["voiceEnabled"] = voiceEnabled;
         doc["voiceMuted"] = voiceMuted;
@@ -2099,6 +2205,7 @@ const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char *SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
 const char *SettingsHandler::userSettingsFilePath = "/userSettings.json";
 const char *SettingsHandler::wifiPassFilePath = "/wifiInfo.json";
+const char *SettingsHandler::motionProfilesFilePath = "/motionProfiles.json";
 const char *SettingsHandler::logPath = "/log.json";
 const char *SettingsHandler::defaultWifiPass = "YOUR PASSWORD HERE";
 const char *SettingsHandler::decoyPass = "Too bad haxor!";
