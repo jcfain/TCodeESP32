@@ -572,7 +572,9 @@ function setUserSettings()
 
     if(systemInfo.motorType === MotorType.BLDC) 
         BLDCMotor.setup();
-	
+
+	Buttons.setup();
+    
     document.getElementById("RightServo_ZERO").value = userSettings["RightServo_ZERO"];
     document.getElementById("LeftServo_ZERO").value = userSettings["LeftServo_ZERO"];
     document.getElementById("RightUpperServo_ZERO").value = userSettings["RightUpperServo_ZERO"];
