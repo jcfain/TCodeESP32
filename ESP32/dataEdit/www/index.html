@@ -12,6 +12,7 @@
   <script type="text/javascript" src="battery-min.js"></script>
   <script type="text/javascript" src="motion-generator-min.js"></script>
   <script type="text/javascript" src="bldc-motor-min.js"></script>
+  <script type="text/javascript" src="buttons-min.js"></script>
   <script type="text/javascript" src="range-slider-min.js"></script>
   <script type="text/javascript" src="settings-min.js"></script>
 </head>
@@ -1078,6 +1079,22 @@
 						</div>
 					</div>
 				</div>
+				<div id="buttonsSettingsTable" class="formTable">
+					<div>
+						<div>
+							<div class="tHeader">
+								<h3>Buttons</h3>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span title="The TCode that runs when pressing the boot button after the system is running.">Boot button(TCode)</span></div>
+							<div class="tCell">
+								<textarea id="bootButtonCommand" maxlength="100" type="text" oninput="Buttons.update()" title="Can be multiple TCode commands separated by spaces. Type #help in the Serial monitor for a list of commands."></textarea>
+							</div>
+						</div>
+					</div>
+				</div>
+
 				<div id="voiceSettingsTable" class="formTable">
 					<div>
 						<div>

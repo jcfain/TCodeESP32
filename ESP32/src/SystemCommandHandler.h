@@ -246,7 +246,7 @@ public:
 			// 		return true;
 			// 	}, true);
 			// }
-			if(isCommand(in, "#motion-set-profile")) {
+			if(isCommand(in, "#motion-profile-set")) {
 				return validateGreaterThanZero("Motion profile", value, [](int valueInt) -> bool {
 					int profileAsIndex = valueInt - 1;
 					if(profileAsIndex > maxMotionProfileCount) {
@@ -421,10 +421,10 @@ private:
 		Serial.println("Motion generator:");
 		Serial.println("#motion-enable ----------------- Enable motion generator");
 		Serial.println("#motion-disable ---------------- Disable motion generator");
-		Serial.println("#motion-set-profile:value ------ Set the current profile");
+		Serial.println("#motion-profile-set:value ------ Set the current profile");
 		Serial.printf("    Motion profile values: 1-%ld\n", maxMotionProfileCount);
 		Serial.println("#motion-toggle ----------------- Toggle motion generator");
-		Serial.println("#motion-profile-cycle ---------- Cycle through the motion profiles");
+		Serial.println("#motion-profile-cycle ---------- Toggle and cycle through the motion profiles");
 		// Serial.println("$motion-period-random-on ------- Period random on for the current profile");
 		// Serial.println("$motion-period-random-off ------ Period random off for the current profile");
 		// Serial.println("$motion-amplitude-random-on ---- Amplitude random on for the current profile");
