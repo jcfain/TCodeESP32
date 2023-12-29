@@ -424,7 +424,7 @@ private:
 		Serial.println("#motion-profile-set:value ------ Set the current profile");
 		Serial.printf("    Motion profile values: 1-%ld\n", maxMotionProfileCount);
 		Serial.println("#motion-toggle ----------------- Toggle motion generator");
-		Serial.println("#motion-profile-cycle ---------- Cycle through the motion profiles");
+		Serial.println("#motion-profile-cycle ---------- Toggle and cycle through the motion profiles");
 		// Serial.println("$motion-period-random-on ------- Period random on for the current profile");
 		// Serial.println("$motion-period-random-off ------ Period random off for the current profile");
 		// Serial.println("$motion-amplitude-random-on ---- Amplitude random on for the current profile");
