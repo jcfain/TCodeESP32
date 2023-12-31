@@ -191,83 +191,15 @@ public:
         return FIRMWARE_VERSION_NAME;
     }
 
-    static void load()
+    static void init()
     {
-        DynamicJsonDocument doc(deserializeSize);
-        File file;
-        bool loadingDefault = false;
-        if (!SPIFFS.exists(userSettingsFilePath))
-        {
-            LogHandler::info(_TAG, "Failed to read settings file, using default configuration");
-            LogHandler::info(_TAG, "Read Settings file: %s", userSettingsDefaultFilePath);
-            file = SPIFFS.open(userSettingsDefaultFilePath, "r");
-            loadingDefault = true;
-        }
-        else
-        {
-            LogHandler::info(_TAG, "Read Settings file: %s", userSettingsFilePath);
-            file = SPIFFS.open(userSettingsFilePath, "r");
-        }
-        DeserializationError error = deserializeJson(doc, file);
-        if (error)
-        {
-            LogHandler::error(_TAG, "Error deserializing settings json: %s", file.name());
-            LogHandler::error(_TAG, "Code: ");
-            switch (error.code())
-            {
-            case DeserializationError::Code::Ok:
-                LogHandler::error(_TAG, "Ok");
-                break;
-            case DeserializationError::Code::EmptyInput:
-                LogHandler::error(_TAG, "EmptyInput");
-                break;
-            case DeserializationError::Code::IncompleteInput:
-                LogHandler::error(_TAG, "IncompleteInput");
-                break;
-            case DeserializationError::Code::InvalidInput:
-                LogHandler::error(_TAG, "InvalidInput");
-                break;
-            case DeserializationError::Code::NoMemory:
-                LogHandler::error(_TAG, "NoMemory");
-                break;
-            case DeserializationError::Code::TooDeep:
-                LogHandler::error(_TAG, "TooDeep");
-                break;
-            }
-            file = SPIFFS.open(userSettingsDefaultFilePath, "r");
-            deserializeJson(doc, file);
-            loadingDefault = true;
-        }
-
-        file.close();
-
-        loadWifiInfo(loadingDefault);
-        loadMotionProfiles(loadingDefault);
-        
-
-        // DynamicJsonDocument motionProfileDoc(1000);
-        // LogHandler::info(_TAG, "Read motion Profiles");
-        // if (!SPIFFS.exists(motionProfilesFilePath)) {
-        //     LogHandler::error(_TAG, "Motion profile file did not exist.");
-        // } else {
-        //     File file = SPIFFS.open(motionProfilesFilePath, "r");
-        //     deserializeJson(motionProfileDoc, file);
-        //     JsonObject obj = motionProfileDoc.as<JsonObject>();
-        //     loadMotionProfiles(obj);
-        // }
-        
-
-        JsonObject jsonObj = doc.as<JsonObject>();
-
-        update(jsonObj);
-
+        loadSettings(false);
+        loadWifiInfo(false);
+        loadMotionProfiles(false);
 
         setBuildFeatures();
         setMotorType();
-        //I2CScan();
 
-        if (loadingDefault)
-            save(loadingDefault);
         initialized = true;
     }
 
@@ -283,9 +215,11 @@ public:
             message_callback = f;
         }
     }
+
     static bool isBoardType(BoardType value) {
         return boardType == value;
     }
+
     static void printFree() {
         LogHandler::debug(_TAG, "xPortGetFreeHeapSize: %u", xPortGetFreeHeapSize());
         LogHandler::debug(_TAG, "DRAM %u\nIRAM %u\nFREE_HEAP %u\nMIN_FREE_HEAP %u", heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_free_size(MALLOC_CAP_32BIT),  esp_get_free_heap_size(), esp_get_minimum_free_heap_size() );
@@ -303,424 +237,289 @@ public:
 
     static void defaultAll()
     {
-        DynamicJsonDocument doc(deserializeSize);
-        File file = SPIFFS.open(userSettingsDefaultFilePath, "r");
-        DeserializationError error = deserializeJson(doc, file);
-        if (error)
-            LogHandler::error(_TAG, "Failed to read default settings file, using default configuration");
-        update(doc.as<JsonObject>());
-        save();
+        loadSettings(true);
+        loadMotionProfiles(true);
+        loadWifiInfo(true);
     }
-    
-    static void loadWifiInfo(bool loadDefault) {
-        
-        DynamicJsonDocument doc(100);
-        LogHandler::info(_TAG, "Read password file");
-        if (!loadDefault && !SPIFFS.exists(wifiPassFilePath)) {
-            LogHandler::error(_TAG, "Password file did not exist.");
-        } else {
-            File file = SPIFFS.open(wifiPassFilePath, "r");
-            deserializeJson(doc, file);
-            JsonObject json = doc.as<JsonObject>();
-            const char *wifiPassConst = json["wifiPass"] | "YOUR PASSWORD HERE";
-                //LogHandler::error(_TAG, "wifiPassConst: %s", wifiPassConst);
-            if (strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0)
-            {
-                strcpy(wifiPass, wifiPassConst);
+
+    static void defaultPinout() {
+		setBoardPinout();
+        saveSettings();
+    }
+
+    static bool loadSettings(bool loadDefault, JsonObject json = JsonObject()) {
+        LogHandler::info(_TAG, "Loading setting");
+        bool mutableLoadDefault = loadDefault;
+        DynamicJsonDocument doc(deserializeSize);
+        if(mutableLoadDefault || json.isNull()) {
+		    xSemaphoreTake(m_settingsMutex, portMAX_DELAY);
+            if(!checkForFileAndLoad(userSettingsFilePath, json, doc, mutableLoadDefault)) {
+                saving = false;
+                xSemaphoreGive(m_settingsMutex);
+                return false;
             }
         }
-        if(loadDefault) {
-            saveWifiInfo();
+        if(!update(json)) {
+            xSemaphoreGive(m_settingsMutex);
+            return false;
         }
+        xSemaphoreGive(m_settingsMutex);
+        if(mutableLoadDefault)
+            saveSettings();
+        return true;
+    }
+
+    // static bool save(String data)
+    // {
+    //     LogHandler::debug(_TAG, "Save frome string");
+    //     printMemory();
+    //     DynamicJsonDocument doc(deserializeSize);
+    //
+    //     DeserializationError error = deserializeJson(doc, data);
+    //     if (error)
+    //     {
+    //         LogHandler::error(_TAG, "Settings save: Deserialize error: %s", error.c_str());
+    //         return false;
+    //     }
+    //     if (!update(doc.as<JsonObject>()))
+    //     {
+    //         LogHandler::error(_TAG, "Settings save: update error");
+    //         return false;
+    //     }
+    //     if (!save())
+    //     {
+    //         LogHandler::error(_TAG, "Settings save: save error");
+    //         return false;
+    //     }
+    //     return true;
+    // }
+
+    static bool saveSettings(JsonObject json = JsonObject()) {
+        saving = true;
+        LogHandler::info(_TAG, "Save common settings file");
+		xSemaphoreTake(m_settingsMutex, portMAX_DELAY);
+        if (!SPIFFS.exists(userSettingsFilePath)) {
+            LogHandler::error(_TAG, "Settings file did not exist whan saving.");
+            saving = false;
+            xSemaphoreGive(m_settingsMutex);
+            return false;
+        }
+        if(!json.isNull()) { // If passed in, load the json into memory before flushing it to disk.
+            // WARNING: watchout for the mutex taken in this method. Changing these parameters below may result in hard locks.
+            loadSettings(false, json); // DO NOT PASS loadDefault as true else infinit loop
+        }
+
+        DynamicJsonDocument doc(serializeSize);
+
+        if(!compileCommonJsonDocument(doc)) {
+            doc["wifiPass"] = "";
+            xSemaphoreGive(m_settingsMutex);
+            saving = false;
+            return false;
+        }
+        LogSaveDebug(doc);
+        
+        File file = SPIFFS.open(userSettingsFilePath, FILE_WRITE);
+        if (serializeJson(doc, file) == 0)
+        {
+            LogHandler::error(_TAG, "Failed to write to settings file");
+            file.close();
+            doc["wifiPass"] = "";
+            xSemaphoreGive(m_settingsMutex);
+            saving = false;
+            return false;
+        }
+        LogHandler::debug(_TAG, "File contents: %s", file.readString().c_str());
+        printMemory();
+        doc["wifiPass"] = "";
+        
+        xSemaphoreGive(m_settingsMutex);
+        saving = false;
+        return true;
+    }
+
+    static bool loadWifiInfo(bool loadDefault, JsonObject json = JsonObject()) {
+        LogHandler::info(_TAG, "Loading wifi info");
+        bool mutableLoadDefault = loadDefault;
+        DynamicJsonDocument doc(100);
+        if(mutableLoadDefault || json.isNull()) {
+		    xSemaphoreTake(m_wifiMutex, portMAX_DELAY);
+            if(!checkForFileAndLoad(wifiPassFilePath, json, doc, mutableLoadDefault)) {
+                saving = false;
+                xSemaphoreGive(m_wifiMutex);
+                return false;
+            }
+        }
+        const char *wifiPassConst = json["wifiPass"] | "YOUR PASSWORD HERE";
+        //LogHandler::info(_TAG, "Pass: %s",wifiPassConst);
+        if (strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0)
+        {
+            strcpy(wifiPass, wifiPassConst);
+        }
+        xSemaphoreGive(m_wifiMutex);
+        if(mutableLoadDefault)
+            saveWifiInfo();
+        return true;
     }
 
     static bool saveWifiInfo() {
+        LogHandler::info(_TAG, "Save Wifi info file");
         saving = true;
+		xSemaphoreTake(m_wifiMutex, portMAX_DELAY);
         if (!SPIFFS.exists(wifiPassFilePath)) {
-            LogHandler::error(_TAG, "Password file did not exist.");
+            LogHandler::error(_TAG, "Wifi info file did not exist whan saving.");
+            xSemaphoreGive(m_wifiMutex);
             saving = false;
             return false;
         } else {
             DynamicJsonDocument doc(100);
-            LogHandler::info(_TAG, "Save password file");
             File file = SPIFFS.open(wifiPassFilePath, FILE_WRITE);
+            //LogHandler::info(_TAG, "Pass: %s",wifiPass);
             doc["wifiPass"] = wifiPass;
             if (serializeJson(doc, file) == 0)
             {
                 LogHandler::error(_TAG, "Failed to write to password file");
                 doc["wifiPass"] = defaultWifiPass;
                 file.close();
+                xSemaphoreGive(m_wifiMutex);
                 saving = false;
                 return false;
             }
         }
+        saving = false;
+        xSemaphoreGive(m_wifiMutex);
         return true;
     }
 
-    static bool loadMotionProfiles(bool loadDefault) {
-        if (!loadDefault && !SPIFFS.exists(motionProfilesFilePath)) {
-            LogHandler::error(_TAG, "Motion profile file did not exist.");
-            saving = false;
-            return false;
-        } else {
-            DynamicJsonDocument doc(1000);
-            File file = SPIFFS.open(motionProfilesFilePath, "r");
-            deserializeJson(doc, file);
-            JsonObject json = doc.as<JsonObject>();
-            LogHandler::info(_TAG, "Load motion profiles file");
-            motionDefaultProfileIndex = json["motionDefaultProfileIndex"] | 0;
-            if(!initialized)
-                motionSelectedProfileIndex = motionDefaultProfileIndex;
-                
-            // setValue(json, motionSelectedProfileIndex, "motionGenerator", "motionSelectedProfileIndex", motionDefaultProfileIndex);
-
-            JsonArray motionProfilesObj = json["motionProfiles"].as<JsonArray>();
-            
-            if(motionProfilesObj.isNull()) {
-                LogHandler::info(_TAG, "No motion profiles stored, loading default");
-                for(int i = 0; i < maxMotionProfileCount; i++) {
-                    motionProfiles[i] = MotionProfile(i + 1);
-                    motionProfiles[i].addDefaultChannel("L0");
-                }
-            } else {
-                for(int i = 0; i<motionProfilesObj.size(); i++) {
-                    if(i == maxMotionProfileCount) 
-                        break;
-                    auto profile = MotionProfile();
-                    LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", motionProfilesObj[i]["name"].as<String>());
-                    profile.fromJson(motionProfilesObj[i].as<JsonObject>());
-                    motionProfiles[i] = profile;
-                }
+    static bool loadMotionProfiles(bool loadDefault, JsonObject json = JsonObject()) {
+        LogHandler::info(_TAG, "Loading motion profiles");
+        bool mutableLoadDefault = loadDefault;
+        if(mutableLoadDefault || json.isNull()) {
+		    xSemaphoreTake(m_motionMutex, portMAX_DELAY);
+            DynamicJsonDocument doc(deserializeSize);
+            if(!checkForFileAndLoad(motionProfilesFilePath, json, doc, mutableLoadDefault)) {
+                saving = false;
+                xSemaphoreGive(m_motionMutex);
+                return false;
             }
         }
-        if(loadDefault) {
+        motionDefaultProfileIndex = json["motionDefaultProfileIndex"] | 0;
+        if(!initialized)
+            motionSelectedProfileIndex = motionDefaultProfileIndex;
+
+        JsonArray motionProfilesObj = json["motionProfiles"].as<JsonArray>();
+        
+        if(motionProfilesObj.isNull()) {
+            LogHandler::info(_TAG, "No motion profiles stored, loading default");
+            for(int i = 0; i < maxMotionProfileCount; i++) {
+                motionProfiles[i] = MotionProfile(i + 1);
+                motionProfiles[i].addDefaultChannel("L0");
+            }
+        } else {
+            for(int i = 0; i<motionProfilesObj.size(); i++) {
+                if(i == maxMotionProfileCount) 
+                    break;
+                auto profile = MotionProfile();
+                LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", motionProfilesObj[i]["name"].as<String>());
+                profile.fromJson(motionProfilesObj[i].as<JsonObject>());
+                motionProfiles[i] = profile;
+            }
+        }
+        xSemaphoreGive(m_motionMutex);
+        if(mutableLoadDefault)
             saveMotionProfiles();
-        }
         return true;
     }
 
-    static bool saveMotionProfiles() {
+    static bool saveMotionProfiles(JsonObject json = JsonObject()) {
+        LogHandler::info(_TAG, "Save motion profiles file");
         saving = true;
+		xSemaphoreTake(m_motionMutex, portMAX_DELAY);
         if (!SPIFFS.exists(motionProfilesFilePath)) {
-            LogHandler::error(_TAG, "Motion profile file did not exist.");
+            LogHandler::error(_TAG, "Motion profile file did not exist whan saving.");
+            saving = false;
+            xSemaphoreGive(m_motionMutex);
+            return false;
+        }
+        if(!json.isNull()) { // If passed in, load the json into memory before flushing it to disk.
+            // WARNING: watchout for the mutex taken in this method. Changing these parameters below may result in hard locks.
+            loadMotionProfiles(false, json); // DO NOT PASS loadDefault as true else infinit loop
+        }
+        DynamicJsonDocument doc(serializeSize);
+        doc["motionDefaultProfileIndex"] = motionDefaultProfileIndex;
+        LogHandler::debug(_TAG, "motion profiles index: %ld", motionDefaultProfileIndex);
+        int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
+        LogHandler::debug(_TAG, "motion profiles length: %ld", len);
+        for (int i=0; i < len; i++)
+        {
+            LogHandler::debug(_TAG, "motion profile name: %s", motionProfiles[i].motionProfileName);
+            doc["motionProfiles"][i]["name"] = motionProfiles[i].motionProfileName;
+            for (size_t j = 0; j < motionProfiles[i].channels.size(); j++)
+            {
+                LogHandler::debug(_TAG, "motion profile channel: %s", motionProfiles[i].channels[j].name);
+                doc["motionProfiles"][i]["channels"][j]["name"] = motionProfiles[i].channels[j].name;
+                doc["motionProfiles"][i]["channels"][j]["update"] = motionProfiles[i].channels[j].motionUpdateGlobal;
+                doc["motionProfiles"][i]["channels"][j]["period"] = motionProfiles[i].channels[j].motionPeriodGlobal;
+                doc["motionProfiles"][i]["channels"][j]["amp"] = motionProfiles[i].channels[j].motionAmplitudeGlobal;
+                doc["motionProfiles"][i]["channels"][j]["offset"] = motionProfiles[i].channels[j].motionOffsetGlobal;
+                doc["motionProfiles"][i]["channels"][j]["phase"] = motionProfiles[i].channels[j].motionPhaseGlobal;
+                doc["motionProfiles"][i]["channels"][j]["reverse"] = motionProfiles[i].channels[j].motionReversedGlobal;
+                doc["motionProfiles"][i]["channels"][j]["periodRan"] = motionProfiles[i].channels[j].motionPeriodGlobalRandom;
+                doc["motionProfiles"][i]["channels"][j]["periodMin"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMin;
+                doc["motionProfiles"][i]["channels"][j]["periodMax"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMax;
+                doc["motionProfiles"][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
+                doc["motionProfiles"][i]["channels"][j]["ampMin"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMin;
+                doc["motionProfiles"][i]["channels"][j]["ampMax"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMax;
+                doc["motionProfiles"][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
+                doc["motionProfiles"][i]["channels"][j]["offsetMin"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMin;
+                doc["motionProfiles"][i]["channels"][j]["offsetMax"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMax;
+                doc["motionProfiles"][i]["channels"][j]["phaseRan"] = motionProfiles[i].channels[j].motionPhaseRandom;
+                doc["motionProfiles"][i]["channels"][j]["phaseMin"] = motionProfiles[i].channels[j].motionPhaseRandomMin;
+                doc["motionProfiles"][i]["channels"][j]["phaseMax"] = motionProfiles[i].channels[j].motionPhaseRandomMax;
+                doc["motionProfiles"][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
+                doc["motionProfiles"][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
+            }
+        }
+        File file = SPIFFS.open(motionProfilesFilePath, FILE_WRITE);
+        if (serializeJson(doc, file) == 0)
+        {
+            LogHandler::error(_TAG, "Failed to write to motion profiles file");
+            file.close();
+            xSemaphoreGive(m_motionMutex);
             saving = false;
             return false;
-        } else {
-            DynamicJsonDocument doc(1000);
-            LogHandler::info(_TAG, "Save motion profiles file");
-            File file = SPIFFS.open(motionProfilesFilePath, FILE_WRITE);
-            doc["motionDefaultProfileIndex"] = motionDefaultProfileIndex;
-            int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
-            for (int i=0; i < len; i++)
-            {
-                doc["motionProfiles"][i]["name"] = motionProfiles[i].motionProfileName;
-                for (size_t j = 0; j < motionProfiles[i].channels.size(); j++)
-                {
-                    doc["motionProfiles"][i]["channels"][j]["name"] = motionProfiles[i].channels[j].name;
-                    doc["motionProfiles"][i]["channels"][j]["update"] = motionProfiles[i].channels[j].motionUpdateGlobal;
-                    doc["motionProfiles"][i]["channels"][j]["period"] = motionProfiles[i].channels[j].motionPeriodGlobal;
-                    doc["motionProfiles"][i]["channels"][j]["amp"] = motionProfiles[i].channels[j].motionAmplitudeGlobal;
-                    doc["motionProfiles"][i]["channels"][j]["offset"] = motionProfiles[i].channels[j].motionOffsetGlobal;
-                    doc["motionProfiles"][i]["channels"][j]["phase"] = motionProfiles[i].channels[j].motionPhaseGlobal;
-                    doc["motionProfiles"][i]["channels"][j]["reverse"] = motionProfiles[i].channels[j].motionReversedGlobal;
-                    doc["motionProfiles"][i]["channels"][j]["periodRan"] = motionProfiles[i].channels[j].motionPeriodGlobalRandom;
-                    doc["motionProfiles"][i]["channels"][j]["periodMin"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMin;
-                    doc["motionProfiles"][i]["channels"][j]["periodMax"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMax;
-                    doc["motionProfiles"][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
-                    doc["motionProfiles"][i]["channels"][j]["ampMin"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMin;
-                    doc["motionProfiles"][i]["channels"][j]["ampMax"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMax;
-                    doc["motionProfiles"][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
-                    doc["motionProfiles"][i]["channels"][j]["offsetMin"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMin;
-                    doc["motionProfiles"][i]["channels"][j]["offsetMax"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMax;
-                    doc["motionProfiles"][i]["channels"][j]["phaseRan"] = motionProfiles[i].channels[j].motionPhaseRandom;
-                    doc["motionProfiles"][i]["channels"][j]["phaseMin"] = motionProfiles[i].channels[j].motionPhaseRandomMin;
-                    doc["motionProfiles"][i]["channels"][j]["phaseMax"] = motionProfiles[i].channels[j].motionPhaseRandomMax;
-                    doc["motionProfiles"][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
-                    doc["motionProfiles"][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
-                }
-            }
-            if (serializeJson(doc, file) == 0)
-            {
-                LogHandler::error(_TAG, "Failed to write to motion profiles file");
-                file.close();
-                saving = false;
-                return false;
-            }
         }
+        
+        sendMessage("motionGenerator", "motionProfile");
+        xSemaphoreGive(m_motionMutex);
+        saving = false;
         return true;
     }
 
-    static bool update(JsonObject json)
-    {
-        LogHandler::info(_TAG, "Load settings");
-        LogHandler::debug(_TAG, "Load Json: Memory usage: %u bytes", json.memoryUsage());
-        if (json.size() > 0)
-        {
-            logLevel = (LogLevel)(json["logLevel"] | 2);
-            LogHandler::setLogLevel(logLevel);
-
-            boardType = (BoardType)(json["boardType"] | (uint8_t)BoardType::DEVKIT);
-
-            if(isBoardType(BoardType::CRIMZZON) || isBoardType(BoardType::ISAAC)) {
-                TCodeVersionEnum = TCodeVersion::v0_3;
-                TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
-            }
-            // std::vector<const char*> tags;
-            // //tags.push_back(TagHandler::DisplayHandler);
-            // tags.push_back(TagHandler::BLDCHandler);
-            // tags.push_back(TagHandler::ServoHandler3);
-            // tags.push_back(TagHandler::TCodeHandler);
-            // tags.push_back(TagHandler::Main);
-            // LogHandler::setTags(tags);
-
-            // JsonArray includes = json["log-include-tags"].as<JsonArray>();
-            std::vector<String> includesVec;
-            // for (int i = 0; i < includes.size(); i++)
-            // {
-            //     includesVec.push_back(includes[i]);
-            // }
-            setValue(json, includesVec, "log", "log-include-tags");
-            LogHandler::setIncludes(includesVec);
-
-            // JsonArray excludes = json["log-exclude-tags"].as<JsonArray>();
-            std::vector<String> excludesVec;
-            
-            // for (int i = 0; i < excludes.size(); i++)
-            // {
-            //     excludesVec.push_back(excludes[i]);
-            // }
-            setValue(json, excludesVec, "log", "log-exclude-tags");
-            LogHandler::setExcludes(excludesVec);
-
-            const char *ssidConst = json["ssid"] | "YOUR SSID HERE";
-            if (ssid != nullptr)
-            {
-                strcpy(ssid, ssidConst);
-            }
-            if(initialized)
-                loadWifiInfo(json);
-            if(!isBoardType(BoardType::CRIMZZON)) {
-                TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 2);
-                TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
-            }
-#if MOTOR_TYPE == 1
-            for (auto x : ChannelMapBLDC) {
-                currentChannels.push_back(x);
-            }
-#else
-            currentChannels.clear();
-            if(TCodeVersionEnum == TCodeVersion::v0_2) {
-                // for (size_t i = 0; i < (sizeof(ChannelMapV2)/sizeof(Channel)); i++) {
-                //     currentChannels.push_back(ChannelMapV2[i]);
-                // }
-                for (auto x : ChannelMapV2) {
-                    currentChannels.push_back(x);
-                }
-            } else {
-                for (auto x : ChannelMapV3) {
-                    currentChannels.push_back(x);
-                }
-            }  
-#endif
-
-            int tcodeMax = TCodeVersionEnum == TCodeVersion::v0_2 ? 999 : 9999;
-            for (size_t i = 0; i < currentChannels.size(); i++)
-            {
-                uint16_t min = json["channelRanges"][currentChannels[i].Name]["min"].as<uint16_t>();
-                uint16_t max = json["channelRanges"][currentChannels[i].Name]["max"].as<uint16_t>();
-                currentChannels[i].min = !min ? 1 : min;
-                currentChannels[i].max = !max ? tcodeMax : max;
-                // LogHandler::debug(_TAG, "update %s min: %i", currentChannels[i].Name, currentChannels[i].min);
-                // LogHandler::debug(_TAG, "update %s max: %i", currentChannels[i].Name, currentChannels[i].max);
-                // LogHandler::debug(_TAG, "update %s maxStored: %i", currentChannels[i].Name, maxStored);
-                // LogHandler::debug(_TAG, "update %s [min]: %i", currentChannels[i].Name, json["channelRanges"][currentChannels[i].Name]["min"].as<uint16_t>());
-                // LogHandler::debug(_TAG, "update %s [max]: %i", currentChannels[i].Name, json["channelRanges"][currentChannels[i].Name]["max"].as<uint16_t>());
-            }
-            
-            udpServerPort = json["udpServerPort"] | 8000;
-            webServerPort = json["webServerPort"] | 80;
-            const char *hostnameTemp = json["hostname"];
-            if (hostnameTemp != nullptr)
-                strcpy(hostname, hostnameTemp);
-            const char *friendlyNameTemp = json["friendlyName"];
-            if (friendlyNameTemp != nullptr)
-                strcpy(friendlyName, friendlyNameTemp);
-
-            bluetoothEnabled = json["bluetoothEnabled"];
-
-            // Servo motors//////////////////////////////////////////////////////////////////////////////////
-            pitchFrequencyIsDifferent = json["pitchFrequencyIsDifferent"];
-            msPerRad = json["msPerRad"] | 637;
-            servoFrequency = json["servoFrequency"] | 50;
-            pitchFrequency = json[pitchFrequencyIsDifferent ? "pitchFrequency" : "servoFrequency"] | servoFrequency;
-            sr6Mode = json["sr6Mode"];
-
-            RightServo_ZERO = json["RightServo_ZERO"] | 1500;
-            LeftServo_ZERO = json["LeftServo_ZERO"] | 1500;
-            RightUpperServo_ZERO = json["RightUpperServo_ZERO"] | 1500;
-            LeftUpperServo_ZERO = json["LeftUpperServo_ZERO"] | 1500;
-            PitchLeftServo_ZERO = json["PitchLeftServo_ZERO"] | 1500;
-            PitchRightServo_ZERO = json["PitchRightServo_ZERO"] | 1500;
-
-            BLDC_UsePWM = json["BLDC_UsePWM"] | false; // Must be before pinout is set
-            BLDC_UseMT6701 = json["BLDC_UseMT6701"] | true;
-            BLDC_UseHallSensor = json["BLDC_UseHallSensor"] | false;
-            BLDC_Pulley_Circumference = json["BLDC_Pulley_Circumference"] | 60;
-            BLDC_MotorA_Voltage = round2(json["BLDC_MotorA_Voltage"] | 20.0);
-            BLDC_MotorA_Current = round2(json["BLDC_MotorA_Current"] | 1.0);
-            BLDC_MotorA_ParametersKnown = json["BLDC_MotorA_ParametersKnown"] | false;
-            BLDC_MotorA_ZeroElecAngle = round2(json["BLDC_MotorA_ZeroElecAngle"] | 0.00);
-            BLDC_RailLength = json["BLDC_RailLength"] | 125;
-            BLDC_StrokeLength = json["BLDC_StrokeLength"] | 120;
-
-            setBoardPinout(json);
-            
-            if(isBoardType(BoardType::CRIMZZON)) {
-                heaterResolution = json["heaterResolution"] | 8;
-                caseFanResolution = json["caseFanResolution"] | 10;
-                caseFanFrequency = json["caseFanFrequency"] | 25;
-                Display_Screen_Height = json["Display_Screen_Height"] | 32;
-            }
-
-            twistFrequency = json["twistFrequency"] | 50;
-            squeezeFrequency = json["squeezeFrequency"] | 50;
-            valveFrequency = json["valveFrequency"] | 50;
-            continuousTwist = json["continuousTwist"];
-            feedbackTwist = json["feedbackTwist"];
-            analogTwist = json["analogTwist"];
-            TwistServo_ZERO = json["TwistServo_ZERO"] | 1500;
-            ValveServo_ZERO = json["ValveServo_ZERO"] | 1500;
-            SqueezeServo_ZERO = json["Squeeze_ZERO"] | 1500;
-
-            staticIP = json["staticIP"];
-            const char *localIPTemp = json["localIP"];
-            if (localIPTemp != nullptr)
-                strcpy(localIP, localIPTemp);
-            const char *gatewayTemp = json["gateway"];
-            if (gatewayTemp != nullptr)
-                strcpy(gateway, gatewayTemp);
-            const char *subnetTemp = json["subnet"];
-            if (subnetTemp != nullptr)
-                strcpy(subnet, subnetTemp);
-            const char *dns1Temp = json["dns1"];
-            if (dns1Temp != nullptr)
-                strcpy(dns1, dns1Temp);
-            const char *dns2Temp = json["dns2"];
-            if (dns2Temp != nullptr)
-                strcpy(dns2, dns2Temp);
-
-            autoValve = json["autoValve"];
-            inverseValve = json["inverseValve"];
-            valveServo90Degrees = json["valveServo90Degrees"];
-            inverseStroke = json["inverseStroke"];
-            inversePitch = json["inversePitch"];
-            lubeEnabled = json["lubeEnabled"];
-            lubeAmount = json["lubeAmount"] | 255;
-            displayEnabled = json["displayEnabled"];
-            sleeveTempDisplayed = json["sleeveTempDisplayed"];
-            internalTempDisplayed = json["internalTempDisplayed"];
-            versionDisplayed = json["versionDisplayed"];
-            Display_Screen_Width = json["Display_Screen_Width"] | 128;
-            if(!isBoardType(BoardType::CRIMZZON)) {
-                Display_Screen_Height = json["Display_Screen_Height"] | 64;
-            }
-            const char *Display_I2C_AddressTemp = json["Display_I2C_Address"];
-            if (Display_I2C_AddressTemp != nullptr)
-                Display_I2C_Address = (int)strtol(Display_I2C_AddressTemp, NULL, 0);
-            Display_Rst_PIN = json["Display_Rst_PIN"] | -1;
-
-            tempSleeveEnabled = json["tempSleeveEnabled"];
-            heaterThreshold = json["heaterThreshold"] | 5.0;
-            heaterFrequency = json["heaterFrequency"] | 50;
-            if(!isBoardType(BoardType::CRIMZZON)) {
-                heaterResolution = json["heaterResolution"] | 8;
-            }
-            TargetTemp = json["TargetTemp"] | 40.0;
-            HeatPWM = json["HeatPWM"] | 255;
-            HoldPWM = json["HoldPWM"] | 110;
-
-            tempInternalEnabled = json["tempInternalEnabled"];
-            fanControlEnabled = json["fanControlEnabled"];
-            internalTempForFan = json["internalTempForFan"] | 30.0;
-            internalMaxTemp = json["internalMaxTemp"] | 50.0;
-
-            batteryLevelEnabled = json["batteryLevelEnabled"];
-            batteryLevelNumeric = json["batteryLevelNumeric"];
-            batteryVoltageMax = json["batteryVoltageMax"] | 12.6;
-            batteryCapacityMax = json["batteryCapacityMax"] | 3500;
-
-            if(!isBoardType(BoardType::CRIMZZON)) {
-                caseFanFrequency = json["caseFanFrequency"] | 25;
-                caseFanResolution = json["caseFanResolution"] | 10;
-            }
-            caseFanMaxDuty = pow(2, caseFanResolution) - 1;
-
-            //strcpy(bootButtonCommand, json["bootButtonCommand"] | "#motion-profile-cycle");
-            
-            setValue(json, bootButtonCommand, "buttonCommand", "bootButtonCommand", "#motion-profile-cycle");
-
-
-            lubeEnabled = json["lubeEnabled"];
-
-            // motionDefaultProfileIndex = json["motionDefaultProfileIndex"] | 0;
-            // if(!initialized)
-            //     motionSelectedProfileIndex = motionDefaultProfileIndex;
-                
-            // // setValue(json, motionSelectedProfileIndex, "motionGenerator", "motionSelectedProfileIndex", motionDefaultProfileIndex);
-
-            // JsonArray motionProfilesObj = json["motionProfiles"].as<JsonArray>();
-            
-            // if(motionProfilesObj.isNull()) {
-            //     LogHandler::info(_TAG, "No motion profiles stored, loading default");
-            //     for(int i = 0; i < maxMotionProfileCount; i++) {
-            //         motionProfiles[i] = MotionProfile(i + 1);
-            //         motionProfiles[i].addDefaultChannel("L0");
-            //     }
-            // } else {
-            //     for(int i = 0; i<motionProfilesObj.size(); i++) {
-            //         if(i == maxMotionProfileCount) 
-            //             break;
-            //         auto profile = MotionProfile();
-            //         LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", motionProfilesObj[i]["name"].as<String>());
-            //         profile.fromJson(motionProfilesObj[i].as<JsonObject>());
-            //         motionProfiles[i] = profile;
-            //     }
-            // }
-
-            setValue(json, voiceEnabled, "voiceHandler", "voiceEnabled", false);
-            setValue(json, voiceMuted, "voiceHandler", "voiceMuted", false);
-            setValue(json, voiceVolume, "voiceHandler", "voiceVolume", 0);
-            setValue(json, voiceWakeTime, "voiceHandler", "voiceWakeTime", 10);
-
-            
-
-            lastRebootReason = machine_reset_cause();
-            LogHandler::info(_TAG, "Last reset reason: %s", SettingsHandler::lastRebootReason);
-
-            LogUpdateDebug();
-            return true;
-        }
-        return false;
-    }
     static std::vector<MotionChannel> getMotionChannels()
     {
         return motionProfiles[motionSelectedProfileIndex].channels;
     }
+    
     static bool getMotionEnabled()
     {
         return motionEnabled;
     }
+
     static int getMotionDefaultProfileIndex() {
         return motionDefaultProfileIndex;
     }
+
     static void setMotionEnabled(const bool& newValue)
     {
         setValue(newValue, motionEnabled, "motionGenerator", "motionEnabled");
     }
+
     static void setMotionProfileName(const char newValue[maxMotionProfileNameLength])
     {
         strcpy(motionProfiles[motionSelectedProfileIndex].motionProfileName, newValue);
     }
+
     // static int getMotionUpdateGlobal(const char name[3])
     // {
     //     return motionProfiles[motionSelectedProfileIndex].motionUpdateGlobal;
@@ -882,6 +681,7 @@ public:
         }
         setMotionProfile(index);
     }
+
     static void setMotionProfile(const int& index) {
         int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
         if(index < 0 || index > len - 1) {
@@ -891,6 +691,7 @@ public:
         auto newProfile = motionProfiles[index];
         setMotionProfile(newProfile, index);
     }
+
     static void setMotionProfile(const MotionProfile& profile, int profileIndex) {
         int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
         if(profileIndex < 0 || profileIndex > len - 1) {
@@ -915,177 +716,38 @@ public:
         setMotionProfile(newProfile, newProfileIndex);
     }
 
-    // static int getMotionSelectedProfileIndex() {
-    //     return motionSelectedProfileIndex;
-    // }
     static bool getVoiceEnabled() {
         return voiceEnabled;
     }
+
     static void setVoiceEnabled(bool value) {
         setValue(value, voiceEnabled, "voiceHandler", "voiceEnabled");
     }
+
     static bool getVoiceMuted() {
         return voiceMuted;
     }
+
     static void setVoiceMuted(bool value) {
         setValue(value, voiceMuted, "voiceHandler", "voiceMuted");
     }
+
     static int getVoiceVolume() {
         return voiceVolume;
     }
+
     static void setVoiceVolume(int value) {
         setValue(value, voiceVolume, "voiceHandler", "voiceVolume");
     }
+
     static int getVoiceWakeTime() {
         return voiceWakeTime;
     }
+
     static void setVoiceWakeTime(int value) {
         setValue(value, voiceWakeTime, "voiceHandler", "voiceWakeTime");
     }
 
-/** If the parameter json is ommited or the pin value doesnt exist on the object then the pins are set to default. */
-static void setBoardPinout(JsonObject json = JsonObject()) {
-    
-#if MOTOR_TYPE == 0
-    if(isBoardType(BoardType::ISAAC)) {
-        // RightServo_PIN = 2;
-        // LeftServo_PIN = 13;
-        // PitchLeftServo_PIN = 14;
-        // ValveServo_PIN = 5;
-        // TwistServo_PIN = 27;
-        // TwistFeedBack_PIN = 33;
-        // Vibe0_PIN = 15;
-        // Vibe1_PIN = 16;
-        // LubeButton_PIN = 36;
-        // RightUpperServo_PIN = 4;
-        // LeftUpperServo_PIN = 12;
-        // PitchRightServo_PIN = 17;
-        // Sleeve_Temp_PIN = 25;
-        // Heater_PIN = 19;
-        // Squeeze_PIN = 26;
-        TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 32;
-        RightServo_PIN = json["RightServo_PIN"] | 4;
-        LeftServo_PIN = json["LeftServo_PIN"] | 13;
-        RightUpperServo_PIN = json["RightUpperServo_PIN"] | 16;
-        LeftUpperServo_PIN = json["LeftUpperServo_PIN"] | 27;
-        PitchLeftServo_PIN = json["PitchLeftServo_PIN"] | 26;
-        PitchRightServo_PIN = json["PitchRightServo_PIN"] | 17;
-        ValveServo_PIN = json["ValveServo_PIN"] | 18;
-        TwistServo_PIN = json["TwistServo_PIN"] | 25;
-        // Common motor
-        Squeeze_PIN = json["Squeeze_PIN"] | 19;
-        LubeButton_PIN = json["LubeButton_PIN"] | 34;
-        // Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
-        Sleeve_Temp_PIN = json["Temp_PIN"] | 33;
-        // Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
-        Vibe0_PIN = json["Vibe0_PIN"] | 15;
-        Vibe1_PIN = json["Vibe1_PIN"] | 2;
-        // Vibe2_PIN = json["Vibe2_PIN"] | 23;
-        // Vibe3_PIN = json["Vibe3_PIN"] | 32;
-        Heater_PIN = json["Heater_PIN"] | 5;
-    } else if(isBoardType(BoardType::CRIMZZON)) {
-
-        Vibe3_PIN = json["Vibe3_PIN"] | 26;
-        Internal_Temp_PIN = json["Internal_Temp_PIN"] | 32;
-
-        // EXT
-        //  EXT_Input2_PIN = 34;
-        //  EXT_Input3_PIN = 39;
-        //  EXT_Input4_PIN = 36;
-
-        heaterResolution = json["heaterResolution"] | 8;
-        caseFanResolution = json["caseFanResolution"] | 10;
-        caseFanFrequency = json["caseFanFrequency"] | 25;
-        Display_Screen_Height = json["Display_Screen_Height"] | 32;
-        TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 0;
-    }
-    if(!isBoardType(BoardType::ISAAC)) { // Devkit v1 pins
-        if(!isBoardType(BoardType::CRIMZZON)) {
-            TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 26;
-        }
-        // Common motor
-        Squeeze_PIN = json["Squeeze_PIN"] | 17;
-        LubeButton_PIN = json["LubeButton_PIN"] | 35;
-        if(!isBoardType(BoardType::CRIMZZON)) {
-            Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
-        }
-        Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
-
-        //Stock servo motors
-        RightServo_PIN = json["RightServo_PIN"] | 13;
-        LeftServo_PIN = json["LeftServo_PIN"] | 15;
-        RightUpperServo_PIN = json["RightUpperServo_PIN"] | 12;
-        LeftUpperServo_PIN = json["LeftUpperServo_PIN"] | 2;
-        PitchLeftServo_PIN = json["PitchLeftServo_PIN"] | 4;
-        PitchRightServo_PIN = json["PitchRightServo_PIN"] | 14;
-
-        Heater_PIN = json["Heater_PIN"] | 33;
-        ValveServo_PIN = json["ValveServo_PIN"] | 25;
-        TwistServo_PIN = json["TwistServo_PIN"] | 27;
-        Sleeve_Temp_PIN = json["Temp_PIN"] | 5;
-        Vibe0_PIN = json["Vibe0_PIN"] | 18;
-        Vibe1_PIN = json["Vibe1_PIN"] | 19;
-        Vibe2_PIN = json["Vibe2_PIN"] | 23;
-        if(!isBoardType(BoardType::CRIMZZON)) {
-            Vibe3_PIN = json["Vibe3_PIN"] | 32;
-        }
-    }
-#elif MOTOR_TYPE == 1 
-        // BLDC motor
-        BLDC_Encoder_PIN = json["BLDC_Encoder_PIN"] | 33;
-        BLDC_ChipSelect_PIN = json["BLDC_ChipSelect_PIN"] | 5;
-        BLDC_Enable_PIN = json["BLDC_Enable_PIN"] | 14;
-        BLDC_PWMchannel1_PIN = json["BLDC_PWMchannel1_PIN"] | 27;
-        BLDC_PWMchannel2_PIN = json["BLDC_PWMchannel2_PIN"] | 26;
-        BLDC_PWMchannel3_PIN = json["BLDC_PWMchannel3_PIN"] | 25;
-
-        // PWM
-        Heater_PIN = json["Heater_PIN"] | 15;
-        Sleeve_Temp_PIN = json["Temp_PIN"] | 36;
-        Vibe0_PIN = json["Vibe0_PIN"] | 2;
-        Vibe1_PIN = json["Vibe1_PIN"] | 4;
-        Vibe2_PIN = json["Vibe2_PIN"] | -1;
-        Vibe3_PIN = json["Vibe3_PIN"] | -1;
-        Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
-
-        // PWM servo
-        ValveServo_PIN = json["ValveServo_PIN"] | 12;
-        TwistServo_PIN = json["TwistServo_PIN"] | 13;
-        Squeeze_PIN = json["Squeeze_PIN"] | 17;
-
-        // Input
-        TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 26;
-        LubeButton_PIN = json["LubeButton_PIN"] | 35;
-        Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
-        BLDC_HallEffect_PIN = json["BLDC_HallEffect_PIN"] | 35;
-#endif
-    Battery_Voltage_PIN = json["Battery_Voltage_PIN"] | 39;
-}
-    // Untested
-    /*    static bool parse(const String jsonInput)
-       {
-           DynamicJsonDocument doc(readCapacity);
-           DeserializationError error = deserializeJson(doc, jsonInput);
-           if (error)
-           {
-               Serial.println(F("Failed to deserialize json string"));
-               return false;
-           }
-           update(doc.as<JsonObject>());
-           save();
-           return true;
-       } */
-
-    // static char* getJsonForBLE()
-    // {
-    //     //DynamicJsonDocument doc(readCapacity);
-    //     //DeserializationError error = deserializeJson(doc, jsonInput, sizeof(jsonInput));
-    //     File file = SPIFFS.open(filename, "r");
-    //     size_t size = file.size();
-    //     char* bytes = new char[size];
-    //     file.readBytes(bytes, size);
-    //     return bytes;
-    // }
     static const bool readFile(char* &buf, const char* path) {
         if(!SPIFFS.exists(path)) {
             LogHandler::error(_TAG, "Path did not exist when reading contents: %s", path);
@@ -1101,43 +763,10 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         strcpy(buf, fileStr.c_str());
         return true;
     }
+
     static const int getDeserializeSize() {
         return deserializeSize;
     }
-    // static void serialize(char buf[40000])
-    // {
-    //     LogHandler::info(_TAG, "Serialize settings...");
-    //     File file = SPIFFS.open(userSettingsFilePath, "r");
-    //     LogHandler::info(_TAG, "Serialize settings...");
-    //     DynamicJsonDocument doc(deserializeSize);
-    //     LogHandler::info(_TAG, "Serialize settings...");
-    //     DeserializationError error = deserializeJson(doc, file);
-    //     if (error)
-    //     {
-    //         LogHandler::error("toJson: Error deserializing settings json: %s", file.name());
-    //         buf[0] = {0};
-    //         return;
-    //     }
-    //     file.close();
-    //     if (strcmp(doc["wifiPass"], defaultWifiPass) != 0)
-    //         doc["wifiPass"] = "Too bad haxor!"; // Do not send password if its not default
-
-    //     doc["motionEnabled"] = motionEnabled;
-    //     doc["motionSelectedProfileIndex"] = motionSelectedProfileIndex;
-    //     String output;
-    //     serializeJson(doc, output);
-    //     doc.clear();
-    //     // serializeJson(doc, Serial);
-    //     if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
-    //     {
-    //         Serial.printf("Settings: %s\n", output.c_str());
-    //         Serial.printf("Size: %ld\n", strlen(output.c_str()));
-    //     }
-    //     // LogHandler::verbose(_TAG, "Output: %s", output.c_str());
-    //     buf[0] = {0};
-    //     LogHandler::debug(_TAG, "Serialize settings...");
-    //     strcpy(buf, output.c_str());
-    // }
 
     static void getSystemInfo(char buf[1024])
     {
@@ -1196,6 +825,7 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         }
         doc["chipID"] = chipId;
 
+        doc["decoyPass"] = decoyPass;
         String output;
         serializeJson(doc, output);
         doc.clear();
@@ -1204,121 +834,426 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         buf[0] = {0};
         strcpy(buf, output.c_str());
     }
-//   static void getMotionSettings(char buf[24576])
-//     {
-//         DynamicJsonDocument doc(24576);
 
-//         int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
-//         for (int i=0; i < len; i++)
-//         {
-//             doc["motionProfiles"][i]["name"] = motionProfiles[i].motionProfileName;
-//             for (size_t j = 0; j < motionProfiles[i].channels.size(); j++)
-//             {
-//                 doc["motionProfiles"][i]["channels"][j]["name"] = motionProfiles[i].channels[j].name;
-//                 doc["motionProfiles"][i]["channels"][j]["update"] = motionProfiles[i].channels[j].motionUpdateGlobal;
-//                 doc["motionProfiles"][i]["channels"][j]["period"] = motionProfiles[i].channels[j].motionPeriodGlobal;
-//                 doc["motionProfiles"][i]["channels"][j]["amp"] = motionProfiles[i].channels[j].motionAmplitudeGlobal;
-//                 doc["motionProfiles"][i]["channels"][j]["offset"] = motionProfiles[i].channels[j].motionOffsetGlobal;
-//                 doc["motionProfiles"][i]["channels"][j]["phase"] = motionProfiles[i].channels[j].motionPhaseGlobal;
-//                 doc["motionProfiles"][i]["channels"][j]["reverse"] = motionProfiles[i].channels[j].motionReversedGlobal;
-//                 doc["motionProfiles"][i]["channels"][j]["periodRan"] = motionProfiles[i].channels[j].motionPeriodGlobalRandom;
-//                 doc["motionProfiles"][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
-//                 doc["motionProfiles"][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
-//                 doc["motionProfiles"][i]["channels"][j]["periodMin"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMin;
-//                 doc["motionProfiles"][i]["channels"][j]["periodMax"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMax;
-//                 doc["motionProfiles"][i]["channels"][j]["ampMin"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMin;
-//                 doc["motionProfiles"][i]["channels"][j]["ampMax"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMax;
-//                 doc["motionProfiles"][i]["channels"][j]["offsetMin"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMin;
-//                 doc["motionProfiles"][i]["channels"][j]["offsetMax"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMax;
-//                 doc["motionProfiles"][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
-//                 doc["motionProfiles"][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
-//             }
-//         }
-
-//         String output;
-//         serializeJson(doc, output);
-//         doc.clear();
-//         if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
-//             Serial.printf("MotionInfo: %s\n", output.c_str());
-//         buf[0] = {0};
-//         strcpy(buf, output.c_str());
-//     }
-
-    static bool save(String data)
+    static void processTCodeJson(char *outbuf, const char *tcodeJson)
     {
-        LogHandler::debug(_TAG, "Save frome string");
-        printMemory();
-        DynamicJsonDocument doc(deserializeSize);
-
-        DeserializationError error = deserializeJson(doc, data);
+        StaticJsonDocument<512> doc;
+        DeserializationError error = deserializeJson(doc, tcodeJson);
         if (error)
         {
-            LogHandler::error(_TAG, "Settings save: Deserialize error: %s", error.c_str());
-            return false;
+            LogHandler::error(_TAG, "Failed to read udp jsonobject, using default configuration");
+            outbuf[0] = {0};
+            return;
         }
-        // const char* ssidConst = doc["ssid"];
-        // if( ssid != nullptr)
-        // {
-        //     strcpy(ssid, ssidConst);
-        // }
-        // const char* wifiPassConst = doc["wifiPass"];
-        // if(wifiPassConst != nullptr && strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0)
-        // {
-        //     strcpy(wifiPass, wifiPassConst);
-        // }
-        // staticIP = doc["staticIP"];
-        // servoFrequency = doc["servoFrequency"] | 50;
-        // const char* localIPTemp = doc["localIP"];
-        // if (localIPTemp != nullptr)
-        //     strcpy(localIP, localIPTemp);
-        // const char* gatewayTemp = doc["gateway"];
-        // if (gatewayTemp != nullptr)
-        //     strcpy(gateway, gatewayTemp);
-        // const char* subnetTemp = doc["subnet"];
-        // if (subnetTemp != nullptr)
-        //     strcpy(subnet, subnetTemp);
-        // const char* dns1Temp = doc["dns1"];
-        // if (dns1Temp != nullptr)
-        //     strcpy(dns1, dns1Temp);
-        // const char* dns2Temp = doc["dns2"];
-        // if (dns2Temp != nullptr)
-        //     strcpy(dns2, dns2Temp);
-        // sr6Mode = doc["sr6Mode"];
-        // bluetoothEnabled =  doc["bluetoothEnabled"];
-        // return save();
-        if (!update(doc.as<JsonObject>()))
+        JsonArray arr = doc.as<JsonArray>();
+        char buffer[255] = "";
+        for (JsonObject repo : arr)
         {
-            LogHandler::error(_TAG, "Settings save: update error");
-            return false;
+            const char *channel = repo["c"];
+            int value = repo["v"];
+            if (channel != nullptr && value > 0)
+            {
+                if (buffer[0] == '\0')
+                {
+                    // Serial.println("tcode empty");
+                    strcpy(buffer, channel);
+                }
+                else
+                {
+                    strcat(buffer, channel);
+                }
+                // Serial.print("channel: ");
+                // Serial.print(channel);
+                // Serial.print(" value: ");
+                // Serial.println(value);
+                char integer_string[4];
+                sprintf(integer_string, SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2 ? "%03d" : "%04d", SettingsHandler::calculateRange(channel, value));
+                // pad(integer_string);
+                // sprintf(integer_string, "%d", SettingsHandler::calculateRange(channel, value));
+                // Serial.print("integer_string");
+                // Serial.println(integer_string);
+                strcat(buffer, integer_string);
+                int speed = repo["s"];
+                int interval = repo["i"];
+                if (interval > 0)
+                {
+                    char interval_string[5];
+                    sprintf(interval_string, "%d", interval);
+                    strcat(buffer, "I");
+                    strcat(buffer, interval_string);
+                }
+                else if (speed > 0)
+                {
+                    char speed_string[5];
+                    sprintf(speed_string, "%d", speed);
+                    strcat(buffer, "S");
+                    strcat(buffer, speed_string);
+                }
+                strcat(buffer, " ");
+                // Serial.print("buffer ");
+                // Serial.println(buffer);
+            }
         }
-        if (!save())
-        {
-            LogHandler::error(_TAG, "Settings save: save error");
-            return false;
+        strcpy(outbuf, buffer);
+        strcat(outbuf, "\n");
+        // Serial.print("outbuf ");
+        // Serial.println(outbuf);
+    }
+
+    static bool waitForI2CDevices(const int& i2cAddress = 0) {
+        int tries = 0;
+        while((systemI2CAddresses.size() == 0 || i2cAddress) && tries <= 3) {
+            tries++;
+            I2CScan();
+            if(i2cAddress && std::find(systemI2CAddresses.begin(), systemI2CAddresses.end(), i2cAddress) != systemI2CAddresses.end()) {
+                return true;
+            } else if(i2cAddress) {
+                LogHandler::info(_TAG, "I2c address: %ld not found. trying again...", i2cAddress);
+            } else {
+                LogHandler::info(_TAG, "No I2C devices found in system, trying again...");
+            }
+            if(tries >= 3){
+                if (i2cAddress) {
+                    LogHandler::error(_TAG, "I2c address: %ld timed out.", i2cAddress);
+                } else {
+                    LogHandler::error(_TAG, "No I2C devices found in system");
+                }
+                return false;
+            }
+            vTaskDelay(1000/portTICK_PERIOD_MS);
         }
         return true;
     }
 
-    static bool save(bool loadingDefault = false)
+	static bool I2CScan() 
+	{
+        systemI2CAddresses.clear();
+		byte error, address;
+		int nDevices;
+		LogHandler::info(_TAG, "Scanning for I2C...");
+		nDevices = 0;
+		Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+		for(address = 1; address < 127; address++ ) 
+		{
+			Wire.beginTransmission(address);
+			error = Wire.endTransmission();
+			if (error == 0) 
+			{
+				//Serial.print("I2C device found at address 0x");
+				// if (address<16) 
+				// {
+				// 	Serial.print("0");
+				// }
+				// Serial.println(address,HEX);
+
+                // std::stringstream I2C_Address_String;
+                // I2C_Address_String << "0x" << std::hex << address;
+                // std::string foundAddress = I2C_Address_String.str();
+                
+				char buf[10];
+				hexToString(address, buf);
+				LogHandler::info(_TAG, "I2C device found at address %s, byte %ld", buf, address);
+
+				systemI2CAddresses.push_back(address);
+				nDevices++;
+			}
+			else if (error==4) 
+			{
+				Serial.print("Unknow error at address 0x");
+				if (address<16) 
+				{
+					Serial.print("0");
+				}
+				Serial.println(address,HEX);
+                // std::stringstream I2C_Address_String;
+                // I2C_Address_String << "0x" << std::hex << address;
+                // std::string foundAddress = I2C_Address_String.str();
+				// LogHandler::error(_TAG, "Unknow error at address %s", foundAddress);
+			}    
+		}
+		if (nDevices == 0) {
+			LogHandler::info(_TAG, "No I2C devices found");
+			return false;
+		}
+		return true;
+	}
+    
+    static u_int16_t getChannelMin(const char *channel) 
     {
-        LogHandler::info(_TAG, "Save settings");
-        saving = true;
+        for (size_t i = 0; i < currentChannels.size(); i++)
+        {
+            if(strcmp(currentChannels[i].Name, channel) == 0)
+                return currentChannels[i].min;
+        }
+        return 1;
+    }
+
+    static u_int16_t getChannelMax(const char *channel) 
+    {
+        for (size_t i = 0; i < currentChannels.size(); i++) {
+            if(strcmp(currentChannels[i].Name, channel) == 0)
+                return currentChannels[i].max;
+        }
+        return TCodeVersionEnum == TCodeVersion::v0_2 ? 999 : 9999;
+    }
+
+    static void setChannelMin(const char *channel, u_int16_t value) 
+    {
+        for (size_t i = 0; i < currentChannels.size(); i++) {
+            if(strcmp(currentChannels[i].Name, channel) == 0) {
+                currentChannels[i].min = value;
+                return;
+            }
+        }
+    }
+
+    static void setChannelMax(const char *channel, u_int16_t value) 
+    {
+        for (size_t i = 0; i < currentChannels.size(); i++) {
+            if(strcmp(currentChannels[i].Name, channel) == 0) {
+                currentChannels[i].max = value;
+                return;
+            }
+        }
+    }
+
+private:
+    static const char *_TAG;
+    
+	static SemaphoreHandle_t m_motionMutex;
+	static SemaphoreHandle_t m_wifiMutex;
+	static SemaphoreHandle_t m_settingsMutex;
+    static SETTING_STATE_FUNCTION_PTR_T message_callback;
+    // Use http://arduinojson.org/assistant to compute the capacity.
+    // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
+    // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
+    static const int deserializeSize = 32768;
+    static const int serializeSize = 24576;
+    // 3072
+
+    static bool motionEnabled;
+    static int motionSelectedProfileIndex;
+    static int motionDefaultProfileIndex;
+    static MotionProfile motionProfiles[maxMotionProfileCount];
+    
+    static bool voiceEnabled;
+    static bool voiceMuted;
+    static int voiceWakeTime ;
+    static int voiceVolume;
+
+    static bool update(JsonObject json)
+    {
+        logLevel = (LogLevel)(json["logLevel"] | 2);
+        LogHandler::setLogLevel(logLevel);
+        LogHandler::debug(_TAG, "Load Json: Memory usage: %u bytes", json.memoryUsage());
+
+        boardType = (BoardType)(json["boardType"] | (uint8_t)BoardType::DEVKIT);
+
+        if(isBoardType(BoardType::CRIMZZON) || isBoardType(BoardType::ISAAC)) {
+            TCodeVersionEnum = TCodeVersion::v0_3;
+            TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
+        }
+        std::vector<String> includesVec;
+        setValue(json, includesVec, "log", "log-include-tags");
+        LogHandler::setIncludes(includesVec);
+
+        std::vector<String> excludesVec;
+        setValue(json, excludesVec, "log", "log-exclude-tags");
+        LogHandler::setExcludes(excludesVec);
+
+        const char *ssidConst = json["ssid"] | "YOUR SSID HERE";
+        if (ssid != nullptr)
+        {
+            strcpy(ssid, ssidConst);
+        }
+        if(initialized)
+            loadWifiInfo(false, json);
+        if(!isBoardType(BoardType::CRIMZZON)) {
+            TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 2);
+            TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
+        }
+#if MOTOR_TYPE == 1
+        for (auto x : ChannelMapBLDC) {
+            currentChannels.push_back(x);
+        }
+#else
+        currentChannels.clear();
+        if(TCodeVersionEnum == TCodeVersion::v0_2) {
+            // for (size_t i = 0; i < (sizeof(ChannelMapV2)/sizeof(Channel)); i++) {
+            //     currentChannels.push_back(ChannelMapV2[i]);
+            // }
+            for (auto x : ChannelMapV2) {
+                currentChannels.push_back(x);
+            }
+        } else {
+            for (auto x : ChannelMapV3) {
+                currentChannels.push_back(x);
+            }
+        }  
+#endif
+
+        int tcodeMax = TCodeVersionEnum == TCodeVersion::v0_2 ? 999 : 9999;
+        for (size_t i = 0; i < currentChannels.size(); i++)
+        {
+            uint16_t min = json["channelRanges"][currentChannels[i].Name]["min"].as<uint16_t>();
+            uint16_t max = json["channelRanges"][currentChannels[i].Name]["max"].as<uint16_t>();
+            currentChannels[i].min = !min ? 1 : min;
+            currentChannels[i].max = !max ? tcodeMax : max;
+        }
+        
+        udpServerPort = json["udpServerPort"] | 8000;
+        webServerPort = json["webServerPort"] | 80;
+        const char *hostnameTemp = json["hostname"] | "tcode";
+        if (hostnameTemp != nullptr)
+            strcpy(hostname, hostnameTemp);
+        const char *friendlyNameTemp = json["friendlyName"] | "ESP32 TCode";
+        if (friendlyNameTemp != nullptr)
+            strcpy(friendlyName, friendlyNameTemp);
+
+        bluetoothEnabled = json["bluetoothEnabled"];
+
+        // Servo motors//////////////////////////////////////////////////////////////////////////////////
+        pitchFrequencyIsDifferent = json["pitchFrequencyIsDifferent"];
+        msPerRad = json["msPerRad"] | 637;
+        servoFrequency = json["servoFrequency"] | 50;
+        pitchFrequency = json[pitchFrequencyIsDifferent ? "pitchFrequency" : "servoFrequency"] | servoFrequency;
+        sr6Mode = json["sr6Mode"];
+
+        RightServo_ZERO = json["RightServo_ZERO"] | 1500;
+        LeftServo_ZERO = json["LeftServo_ZERO"] | 1500;
+        RightUpperServo_ZERO = json["RightUpperServo_ZERO"] | 1500;
+        LeftUpperServo_ZERO = json["LeftUpperServo_ZERO"] | 1500;
+        PitchLeftServo_ZERO = json["PitchLeftServo_ZERO"] | 1500;
+        PitchRightServo_ZERO = json["PitchRightServo_ZERO"] | 1500;
+
+        BLDC_UsePWM = json["BLDC_UsePWM"] | false; // Must be before pinout is set
+        BLDC_UseMT6701 = json["BLDC_UseMT6701"] | true;
+        BLDC_UseHallSensor = json["BLDC_UseHallSensor"] | false;
+        BLDC_Pulley_Circumference = json["BLDC_Pulley_Circumference"] | 60;
+        BLDC_MotorA_Voltage = round2(json["BLDC_MotorA_Voltage"] | 20.0);
+        BLDC_MotorA_Current = round2(json["BLDC_MotorA_Current"] | 1.0);
+        BLDC_MotorA_ParametersKnown = json["BLDC_MotorA_ParametersKnown"] | false;
+        BLDC_MotorA_ZeroElecAngle = round2(json["BLDC_MotorA_ZeroElecAngle"] | 0.00);
+        BLDC_RailLength = json["BLDC_RailLength"] | 125;
+        BLDC_StrokeLength = json["BLDC_StrokeLength"] | 120;
+
+        setBoardPinout(json);
+        
+        if(isBoardType(BoardType::CRIMZZON)) {
+            heaterResolution = json["heaterResolution"] | 8;
+            caseFanResolution = json["caseFanResolution"] | 10;
+            caseFanFrequency = json["caseFanFrequency"] | 25;
+            Display_Screen_Height = json["Display_Screen_Height"] | 32;
+        }
+
+        twistFrequency = json["twistFrequency"] | 50;
+        squeezeFrequency = json["squeezeFrequency"] | 50;
+        valveFrequency = json["valveFrequency"] | 50;
+        continuousTwist = json["continuousTwist"];
+        feedbackTwist = json["feedbackTwist"];
+        analogTwist = json["analogTwist"];
+        TwistServo_ZERO = json["TwistServo_ZERO"] | 1500;
+        ValveServo_ZERO = json["ValveServo_ZERO"] | 1500;
+        SqueezeServo_ZERO = json["Squeeze_ZERO"] | 1500;
+
+        staticIP = json["staticIP"];
+        const char *localIPTemp = json["localIP"] | "192.168.0.150";
+        if (localIPTemp != nullptr)
+            strcpy(localIP, localIPTemp);
+        const char *gatewayTemp = json["gateway"] | "192.168.0.1";
+        if (gatewayTemp != nullptr)
+            strcpy(gateway, gatewayTemp);
+        const char *subnetTemp = json["subnet"] | "255.255.255.0";
+        if (subnetTemp != nullptr)
+            strcpy(subnet, subnetTemp);
+        const char *dns1Temp = json["dns1"] | "8.8.8.8";
+        if (dns1Temp != nullptr)
+            strcpy(dns1, dns1Temp);
+        const char *dns2Temp = json["dns2"] | "8.8.4.4";
+        if (dns2Temp != nullptr)
+            strcpy(dns2, dns2Temp);
+
+        autoValve = json["autoValve"];
+        inverseValve = json["inverseValve"];
+        valveServo90Degrees = json["valveServo90Degrees"];
+        inverseStroke = json["inverseStroke"];
+        inversePitch = json["inversePitch"];
+        lubeEnabled = json["lubeEnabled"];
+        lubeAmount = json["lubeAmount"] | 255;
+        displayEnabled = json["displayEnabled"] | true;
+        sleeveTempDisplayed = json["sleeveTempDisplayed"];
+        internalTempDisplayed = json["internalTempDisplayed"];
+        versionDisplayed = json["versionDisplayed"] | true;
+        Display_Screen_Width = json["Display_Screen_Width"] | 128;
+        if(!isBoardType(BoardType::CRIMZZON)) {
+            Display_Screen_Height = json["Display_Screen_Height"] | 64;
+        }
+        const char *Display_I2C_AddressTemp = json["Display_I2C_Address"] | "0";
+        if (Display_I2C_AddressTemp != nullptr)
+            Display_I2C_Address = (int)strtol(Display_I2C_AddressTemp, NULL, 0);
+        Display_Rst_PIN = json["Display_Rst_PIN"] | -1;
+
+        tempSleeveEnabled = json["tempSleeveEnabled"];
+        heaterThreshold = json["heaterThreshold"] | 5.0;
+        heaterFrequency = json["heaterFrequency"] | 50;
+        if(!isBoardType(BoardType::CRIMZZON)) {
+            heaterResolution = json["heaterResolution"] | 8;
+        }
+        TargetTemp = json["TargetTemp"] | 40.0;
+        HeatPWM = json["HeatPWM"] | 255;
+        HoldPWM = json["HoldPWM"] | 110;
+
+        tempInternalEnabled = json["tempInternalEnabled"];
+        fanControlEnabled = json["fanControlEnabled"];
+        internalTempForFan = json["internalTempForFan"] | 30.0;
+        internalMaxTemp = json["internalMaxTemp"] | 50.0;
+
+        batteryLevelEnabled = json["batteryLevelEnabled"];
+        batteryLevelNumeric = json["batteryLevelNumeric"];
+        batteryVoltageMax = json["batteryVoltageMax"] | 12.6;
+        batteryCapacityMax = json["batteryCapacityMax"] | 3500;
+
+        if(!isBoardType(BoardType::CRIMZZON)) {
+            caseFanFrequency = json["caseFanFrequency"] | 25;
+            caseFanResolution = json["caseFanResolution"] | 10;
+        }
+        caseFanMaxDuty = pow(2, caseFanResolution) - 1;
+        
+        setValue(json, bootButtonCommand, "buttonCommand", "bootButtonCommand", "#motion-profile-cycle");
+
+        lubeEnabled = json["lubeEnabled"];
+
+        setValue(json, voiceEnabled, "voiceHandler", "voiceEnabled", false);
+        setValue(json, voiceMuted, "voiceHandler", "voiceMuted", false);
+        setValue(json, voiceVolume, "voiceHandler", "voiceVolume", 0);
+        setValue(json, voiceWakeTime, "voiceHandler", "voiceWakeTime", 10);
+
+        lastRebootReason = machine_reset_cause();
+        LogHandler::info(_TAG, "Last reset reason: %s", SettingsHandler::lastRebootReason);
+
+        LogUpdateDebug();
+        return true;
+    }
+
+    static bool compileCommonJsonDocument(DynamicJsonDocument& doc)
+    {
+        // LogHandler::info(_TAG, "Save settings");
         // Delete existing file, otherwise the configuration is appended to the file
         // Serial.print("SPIFFS used: ");
         // Serial.println(SPIFFS.usedBytes() + "/" + SPIFFS.totalBytes());
-        if (!SPIFFS.remove(userSettingsFilePath))
-        {
-            LogHandler::error(_TAG, "Failed to remove settings file: %s", userSettingsFilePath);
-        }
-        File file = SPIFFS.open(userSettingsFilePath, FILE_WRITE);
-        if (!file)
-        {
-            LogHandler::error(_TAG, "Failed to create settings file: %s", userSettingsFilePath);
-            return false;
-        }
+        // if (!SPIFFS.remove(userSettingsFilePath))
+        // {
+        //     LogHandler::error(_TAG, "Failed to remove settings file: %s", userSettingsFilePath);
+        // }
+        // File file = SPIFFS.open(userSettingsFilePath, FILE_WRITE);
+        // if (!file)
+        // {
+        //     LogHandler::error(_TAG, "Failed to create settings file: %s", userSettingsFilePath);
+        //     return false;
+        // }
 
-        // Allocate a temporary JsonDocument
-        DynamicJsonDocument doc(serializeSize);
+        // // Allocate a temporary docdocument
+        // DynamicdocDocument doc(serializeSize);
 
         doc["boardType"] = (uint8_t)boardType;
         doc["logLevel"] = (int)logLevel;
@@ -1355,8 +1290,8 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         doc["TCodeVersion"] = (int)TCodeVersionEnum;
         doc["ssid"] = ssid;
         
-        if(!saveWifiInfo()) {
-            file.close();
+        if(initialized && !saveWifiInfo()) {
+            // file.close();
             return false;
         }
 
@@ -1476,42 +1411,6 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         doc["batteryVoltageMax"] = round2(batteryVoltageMax);
         doc["batteryCapacityMax"] = batteryCapacityMax;
 
-        if(!saveMotionProfiles()) {
-            file.close();
-            return false;
-        }
-
-        // doc["motionDefaultProfileIndex"] = motionDefaultProfileIndex;
-        // int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
-        // for (int i=0; i < len; i++)
-        // {
-        //     doc["motionProfiles"][i]["name"] = motionProfiles[i].motionProfileName;
-        //     for (size_t j = 0; j < motionProfiles[i].channels.size(); j++)
-        //     {
-        //         doc["motionProfiles"][i]["channels"][j]["name"] = motionProfiles[i].channels[j].name;
-        //         doc["motionProfiles"][i]["channels"][j]["update"] = motionProfiles[i].channels[j].motionUpdateGlobal;
-        //         doc["motionProfiles"][i]["channels"][j]["period"] = motionProfiles[i].channels[j].motionPeriodGlobal;
-        //         doc["motionProfiles"][i]["channels"][j]["amp"] = motionProfiles[i].channels[j].motionAmplitudeGlobal;
-        //         doc["motionProfiles"][i]["channels"][j]["offset"] = motionProfiles[i].channels[j].motionOffsetGlobal;
-        //         doc["motionProfiles"][i]["channels"][j]["phase"] = motionProfiles[i].channels[j].motionPhaseGlobal;
-        //         doc["motionProfiles"][i]["channels"][j]["reverse"] = motionProfiles[i].channels[j].motionReversedGlobal;
-        //         doc["motionProfiles"][i]["channels"][j]["periodRan"] = motionProfiles[i].channels[j].motionPeriodGlobalRandom;
-        //         doc["motionProfiles"][i]["channels"][j]["periodMin"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMin;
-        //         doc["motionProfiles"][i]["channels"][j]["periodMax"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMax;
-        //         doc["motionProfiles"][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
-        //         doc["motionProfiles"][i]["channels"][j]["ampMin"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMin;
-        //         doc["motionProfiles"][i]["channels"][j]["ampMax"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMax;
-        //         doc["motionProfiles"][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
-        //         doc["motionProfiles"][i]["channels"][j]["offsetMin"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMin;
-        //         doc["motionProfiles"][i]["channels"][j]["offsetMax"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMax;
-        //         doc["motionProfiles"][i]["channels"][j]["phaseRan"] = motionProfiles[i].channels[j].motionPhaseRandom;
-        //         doc["motionProfiles"][i]["channels"][j]["phaseMin"] = motionProfiles[i].channels[j].motionPhaseRandomMin;
-        //         doc["motionProfiles"][i]["channels"][j]["phaseMax"] = motionProfiles[i].channels[j].motionPhaseRandomMax;
-        //         doc["motionProfiles"][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
-        //         doc["motionProfiles"][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
-        //     }
-        // }
-
         doc["voiceEnabled"] = voiceEnabled;
         doc["voiceMuted"] = voiceMuted;
         doc["voiceWakeTime"] = voiceWakeTime;
@@ -1536,49 +1435,195 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
         LogHandler::debug(_TAG, "Is overflowed: %u", doc.overflowed());
         if (doc.overflowed())
         {
-            LogHandler::error(_TAG, "Document is overflowed! Increase serialize size: %u", doc.memoryUsage());
-            file.close();
-            saving = false;
+            LogHandler::error(_TAG, "document is overflowed! Increase serialize size: %u", doc.memoryUsage());
+            // file.close();
             return false;
         }
 
         LogHandler::debug(_TAG, "isNull: %u", doc.isNull());
         if (doc.isNull())
         {
-            LogHandler::error(_TAG, "Document is null!");
-            file.close();
-            saving = false;
+            LogHandler::error(_TAG, "document is null!");
+            // file.close();
             return false;
         }
 
         LogHandler::debug(_TAG, "Memory usage: %u bytes", doc.memoryUsage());
         if (doc.memoryUsage() == 0)
         {
-            LogHandler::error(_TAG, "Document is empty!");
-            file.close();
-            saving = false;
+            LogHandler::error(_TAG, "document is empty!");
+            // file.close();
             return false;
         }
-        // Stopped working for some reason...
-        // Printing all defaults
-        LogSaveDebug(doc);
 
-        if (serializeJson(doc, file) == 0)
-        {
-            LogHandler::error(_TAG, "Failed to write to file");
-            doc["wifiPass"] = "";
-            file.close();
-            saving = false;
-            return false;
-        }
-        LogHandler::debug(_TAG, "File contents: %s", file.readString().c_str());
-        printMemory();
-        file.close(); // Task exception here could mean not enough space on SPIFFS.
-
-        doc["wifiPass"] = "";
-        saving = false;
         return true;
     }
+
+    static bool checkForFileAndLoad(const char* path, JsonObject &json, DynamicJsonDocument &doc, bool &loadDefault) {
+        if(loadDefault || !SPIFFS.exists(path)) {
+            loadDefault = true;
+            createDefaultJson(path);
+        }
+        return loadJsonFromFile(path, json, doc);
+    }
+
+    static bool createDefaultJson(const char* path) {
+        LogHandler::info(_TAG, "Creating file %s", path);
+        if(SPIFFS.exists(path)) {
+            LogHandler::info(_TAG, "Deleting existing file for default %s", path);
+            if(!SPIFFS.remove(path)) {
+                LogHandler::error(_TAG, "Error deleting %s!", path);
+                return false;
+            }
+        }
+        File newFile = SPIFFS.open(path, FILE_WRITE, true);
+        newFile.print("{}");
+        newFile.flush();
+        newFile.close();
+        return true;
+    }
+
+    static bool loadJsonFromFile(const char* path, JsonObject &json, DynamicJsonDocument &doc) {
+        LogHandler::info(_TAG, "Loading json file %s", path);
+        if (!SPIFFS.exists(path)) {
+            LogHandler::error(_TAG, "%s did not exist!", path);
+            return false;
+        }
+
+        File file = SPIFFS.open(path, FILE_READ);
+        if(!file) {
+            LogHandler::error(_TAG, "%s failed to open!", path);
+            file.close();
+            return false;
+        }
+        if(LogDeserializationError(deserializeJson(doc, file), file.name())) {
+            file.close();
+            return false;
+        }
+        file.close();
+        json = doc.as<JsonObject>();
+        return true;
+    }
+
+    /** If the parameter json is ommited or the pin value doesnt exist on the object then the pins are set to default. */
+    static void setBoardPinout(JsonObject json = JsonObject()) {
+    
+#if MOTOR_TYPE == 0
+    if(isBoardType(BoardType::ISAAC)) {
+        // RightServo_PIN = 2;
+        // LeftServo_PIN = 13;
+        // PitchLeftServo_PIN = 14;
+        // ValveServo_PIN = 5;
+        // TwistServo_PIN = 27;
+        // TwistFeedBack_PIN = 33;
+        // Vibe0_PIN = 15;
+        // Vibe1_PIN = 16;
+        // LubeButton_PIN = 36;
+        // RightUpperServo_PIN = 4;
+        // LeftUpperServo_PIN = 12;
+        // PitchRightServo_PIN = 17;
+        // Sleeve_Temp_PIN = 25;
+        // Heater_PIN = 19;
+        // Squeeze_PIN = 26;
+        TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 32;
+        RightServo_PIN = json["RightServo_PIN"] | 4;
+        LeftServo_PIN = json["LeftServo_PIN"] | 13;
+        RightUpperServo_PIN = json["RightUpperServo_PIN"] | 16;
+        LeftUpperServo_PIN = json["LeftUpperServo_PIN"] | 27;
+        PitchLeftServo_PIN = json["PitchLeftServo_PIN"] | 26;
+        PitchRightServo_PIN = json["PitchRightServo_PIN"] | 17;
+        ValveServo_PIN = json["ValveServo_PIN"] | 18;
+        TwistServo_PIN = json["TwistServo_PIN"] | 25;
+        // Common motor
+        Squeeze_PIN = json["Squeeze_PIN"] | 19;
+        LubeButton_PIN = json["LubeButton_PIN"] | 34;
+        // Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
+        Sleeve_Temp_PIN = json["Temp_PIN"] | 33;
+        // Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
+        Vibe0_PIN = json["Vibe0_PIN"] | 15;
+        Vibe1_PIN = json["Vibe1_PIN"] | 2;
+        // Vibe2_PIN = json["Vibe2_PIN"] | 23;
+        // Vibe3_PIN = json["Vibe3_PIN"] | 32;
+        Heater_PIN = json["Heater_PIN"] | 5;
+    } else if(isBoardType(BoardType::CRIMZZON)) {
+
+        Vibe3_PIN = json["Vibe3_PIN"] | 26;
+        Internal_Temp_PIN = json["Internal_Temp_PIN"] | 32;
+
+        // EXT
+        //  EXT_Input2_PIN = 34;
+        //  EXT_Input3_PIN = 39;
+        //  EXT_Input4_PIN = 36;
+
+        heaterResolution = json["heaterResolution"] | 8;
+        caseFanResolution = json["caseFanResolution"] | 10;
+        caseFanFrequency = json["caseFanFrequency"] | 25;
+        Display_Screen_Height = json["Display_Screen_Height"] | 32;
+        TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 0;
+    }
+    if(!isBoardType(BoardType::ISAAC)) { // Devkit v1 pins
+        if(!isBoardType(BoardType::CRIMZZON)) {
+            TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 26;
+        }
+        // Common motor
+        Squeeze_PIN = json["Squeeze_PIN"] | 17;
+        LubeButton_PIN = json["LubeButton_PIN"] | 35;
+        if(!isBoardType(BoardType::CRIMZZON)) {
+            Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
+        }
+        Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
+
+        //Stock servo motors
+        RightServo_PIN = json["RightServo_PIN"] | 13;
+        LeftServo_PIN = json["LeftServo_PIN"] | 15;
+        RightUpperServo_PIN = json["RightUpperServo_PIN"] | 12;
+        LeftUpperServo_PIN = json["LeftUpperServo_PIN"] | 2;
+        PitchLeftServo_PIN = json["PitchLeftServo_PIN"] | 4;
+        PitchRightServo_PIN = json["PitchRightServo_PIN"] | 14;
+
+        Heater_PIN = json["Heater_PIN"] | 33;
+        ValveServo_PIN = json["ValveServo_PIN"] | 25;
+        TwistServo_PIN = json["TwistServo_PIN"] | 27;
+        Sleeve_Temp_PIN = json["Temp_PIN"] | 5;
+        Vibe0_PIN = json["Vibe0_PIN"] | 18;
+        Vibe1_PIN = json["Vibe1_PIN"] | 19;
+        Vibe2_PIN = json["Vibe2_PIN"] | 23;
+        if(!isBoardType(BoardType::CRIMZZON)) {
+            Vibe3_PIN = json["Vibe3_PIN"] | 32;
+        }
+    }
+#elif MOTOR_TYPE == 1 
+        // BLDC motor
+        BLDC_Encoder_PIN = json["BLDC_Encoder_PIN"] | 33;
+        BLDC_ChipSelect_PIN = json["BLDC_ChipSelect_PIN"] | 5;
+        BLDC_Enable_PIN = json["BLDC_Enable_PIN"] | 14;
+        BLDC_PWMchannel1_PIN = json["BLDC_PWMchannel1_PIN"] | 27;
+        BLDC_PWMchannel2_PIN = json["BLDC_PWMchannel2_PIN"] | 26;
+        BLDC_PWMchannel3_PIN = json["BLDC_PWMchannel3_PIN"] | 25;
+
+        // PWM
+        Heater_PIN = json["Heater_PIN"] | 15;
+        Sleeve_Temp_PIN = json["Temp_PIN"] | 36;
+        Vibe0_PIN = json["Vibe0_PIN"] | 2;
+        Vibe1_PIN = json["Vibe1_PIN"] | 4;
+        Vibe2_PIN = json["Vibe2_PIN"] | -1;
+        Vibe3_PIN = json["Vibe3_PIN"] | -1;
+        Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
+
+        // PWM servo
+        ValveServo_PIN = json["ValveServo_PIN"] | 12;
+        TwistServo_PIN = json["TwistServo_PIN"] | 13;
+        Squeeze_PIN = json["Squeeze_PIN"] | 17;
+
+        // Input
+        TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 26;
+        LubeButton_PIN = json["LubeButton_PIN"] | 35;
+        Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
+        BLDC_HallEffect_PIN = json["BLDC_HallEffect_PIN"] | 35;
+#endif
+    Battery_Voltage_PIN = json["Battery_Voltage_PIN"] | 39;
+}
+
     static void setBuildFeatures()
     {
         int index = 0;
@@ -1634,226 +1679,6 @@ static void setBoardPinout(JsonObject json = JsonObject()) {
 #endif
     }
 
-    static void processTCodeJson(char *outbuf, const char *tcodeJson)
-    {
-        StaticJsonDocument<512> doc;
-        DeserializationError error = deserializeJson(doc, tcodeJson);
-        if (error)
-        {
-            LogHandler::error(_TAG, "Failed to read udp jsonobject, using default configuration");
-            outbuf[0] = {0};
-            return;
-        }
-        JsonArray arr = doc.as<JsonArray>();
-        char buffer[255] = "";
-        for (JsonObject repo : arr)
-        {
-            const char *channel = repo["c"];
-            int value = repo["v"];
-            if (channel != nullptr && value > 0)
-            {
-                if (buffer[0] == '\0')
-                {
-                    // Serial.println("tcode empty");
-                    strcpy(buffer, channel);
-                }
-                else
-                {
-                    strcat(buffer, channel);
-                }
-                // Serial.print("channel: ");
-                // Serial.print(channel);
-                // Serial.print(" value: ");
-                // Serial.println(value);
-                char integer_string[4];
-                sprintf(integer_string, SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2 ? "%03d" : "%04d", SettingsHandler::calculateRange(channel, value));
-                // pad(integer_string);
-                // sprintf(integer_string, "%d", SettingsHandler::calculateRange(channel, value));
-                // Serial.print("integer_string");
-                // Serial.println(integer_string);
-                strcat(buffer, integer_string);
-                int speed = repo["s"];
-                int interval = repo["i"];
-                if (interval > 0)
-                {
-                    char interval_string[5];
-                    sprintf(interval_string, "%d", interval);
-                    strcat(buffer, "I");
-                    strcat(buffer, interval_string);
-                }
-                else if (speed > 0)
-                {
-                    char speed_string[5];
-                    sprintf(speed_string, "%d", speed);
-                    strcat(buffer, "S");
-                    strcat(buffer, speed_string);
-                }
-                strcat(buffer, " ");
-                // Serial.print("buffer ");
-                // Serial.println(buffer);
-            }
-        }
-        strcpy(outbuf, buffer);
-        strcat(outbuf, "\n");
-        // Serial.print("outbuf ");
-        // Serial.println(outbuf);
-    }
-    static bool waitForI2CDevices(const int& i2cAddress = 0) {
-        int tries = 0;
-        while((systemI2CAddresses.size() == 0 || i2cAddress) && tries <= 3) {
-            tries++;
-            I2CScan();
-            if(i2cAddress && std::find(systemI2CAddresses.begin(), systemI2CAddresses.end(), i2cAddress) != systemI2CAddresses.end()) {
-                return true;
-            } else if(i2cAddress) {
-                LogHandler::info(_TAG, "I2c address: %ld not found. trying again...", i2cAddress);
-            } else {
-                LogHandler::info(_TAG, "No I2C devices found in system, trying again...");
-            }
-            if(tries >= 3){
-                if (i2cAddress) {
-                    LogHandler::error(_TAG, "I2c address: %ld timed out.", i2cAddress);
-                } else {
-                    LogHandler::error(_TAG, "No I2C devices found in system");
-                }
-                return false;
-            }
-            vTaskDelay(1000/portTICK_PERIOD_MS);
-        }
-        return true;
-    }
-	static bool I2CScan() 
-	{
-        systemI2CAddresses.clear();
-		byte error, address;
-		int nDevices;
-		LogHandler::info(_TAG, "Scanning for I2C...");
-		nDevices = 0;
-		Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
-		for(address = 1; address < 127; address++ ) 
-		{
-			Wire.beginTransmission(address);
-			error = Wire.endTransmission();
-			if (error == 0) 
-			{
-				//Serial.print("I2C device found at address 0x");
-				// if (address<16) 
-				// {
-				// 	Serial.print("0");
-				// }
-				// Serial.println(address,HEX);
-
-                // std::stringstream I2C_Address_String;
-                // I2C_Address_String << "0x" << std::hex << address;
-                // std::string foundAddress = I2C_Address_String.str();
-                
-				char buf[10];
-				hexToString(address, buf);
-				LogHandler::info(_TAG, "I2C device found at address %s, byte %ld", buf, address);
-
-				systemI2CAddresses.push_back(address);
-				nDevices++;
-			}
-			else if (error==4) 
-			{
-				Serial.print("Unknow error at address 0x");
-				if (address<16) 
-				{
-					Serial.print("0");
-				}
-				Serial.println(address,HEX);
-                // std::stringstream I2C_Address_String;
-                // I2C_Address_String << "0x" << std::hex << address;
-                // std::string foundAddress = I2C_Address_String.str();
-				// LogHandler::error(_TAG, "Unknow error at address %s", foundAddress);
-			}    
-		}
-		if (nDevices == 0) {
-			LogHandler::info(_TAG, "No I2C devices found");
-			return false;
-		}
-		return true;
-	}
-    
-    static u_int16_t getChannelMin(const char *channel) 
-    {
-        for (size_t i = 0; i < currentChannels.size(); i++)
-        {
-            if(strcmp(currentChannels[i].Name, channel) == 0)
-                return currentChannels[i].min;
-        }
-        return 1;
-    }
-
-    static u_int16_t getChannelMax(const char *channel) 
-    {
-        for (size_t i = 0; i < currentChannels.size(); i++) {
-            if(strcmp(currentChannels[i].Name, channel) == 0)
-                return currentChannels[i].max;
-        }
-        return TCodeVersionEnum == TCodeVersion::v0_2 ? 999 : 9999;
-    }
-
-    static void setChannelMin(const char *channel, u_int16_t value) 
-    {
-        for (size_t i = 0; i < currentChannels.size(); i++) {
-            if(strcmp(currentChannels[i].Name, channel) == 0) {
-                currentChannels[i].min = value;
-                return;
-            }
-        }
-    }
-
-    static void setChannelMax(const char *channel, u_int16_t value) 
-    {
-        for (size_t i = 0; i < currentChannels.size(); i++) {
-            if(strcmp(currentChannels[i].Name, channel) == 0) {
-                currentChannels[i].max = value;
-                return;
-            }
-        }
-    }
-
-private:
-    static const char *_TAG;
-    static const char *userSettingsDefaultFilePath;
-    static SETTING_STATE_FUNCTION_PTR_T message_callback;
-    // Use http://arduinojson.org/assistant to compute the capacity.
-    // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
-    // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
-    static const int deserializeSize = 32768;
-    static const int serializeSize = 24576;
-    // 3072
-
-    static bool motionEnabled;
-    //static char motionSelectedProfileName[maxMotionProfileNameLength];
-    static int motionSelectedProfileIndex;
-    static int motionDefaultProfileIndex;
-    static MotionProfile motionProfiles[maxMotionProfileCount];
-    //static std::map<const char*, MotionProfile*, StrCompare>  motionProfiles;
-    // static int motionUpdateGlobal;
-    // static int motionPeriodGlobal;
-    // static int motionAmplitudeGlobal;
-    // static int motionOffsetGlobal;
-    // static bool motionPeriodGlobalRandom;
-    // static int motionPeriodGlobalRandomMin;
-    // static int motionPeriodGlobalRandomMax;
-    // static bool motionAmplitudeGlobalRandom;
-    // static int motionAmplitudeGlobalRandomMin;
-    // static int motionAmplitudeGlobalRandomMax;
-    // static bool motionOffsetGlobalRandom;
-    // static int motionOffsetGlobalRandomMin;
-    // static int motionOffsetGlobalRandomMax;
-    // static float motionPhaseGlobal;
-    // static bool motionReversedGlobal;
-    // static int motionRandomChangeMin;
-    // static int motionRandomChangeMax;
-    
-    static bool voiceEnabled;
-    static bool voiceMuted;
-    static int voiceWakeTime ;
-    static int voiceVolume;
-
     static void sendMessage(const char *group, const char *message)
     {
         if (message_callback)
@@ -1872,17 +1697,20 @@ private:
         bool newValue = json[propertyName] | defaultValue;
         setValue(newValue, variable, propertyGroup, propertyName);
     }
+
     template<size_t n> 
     static void setValue(JsonObject json, char (&variable)[n], const char *propertyGroup, const char *propertyName, const char *defaultValue)
     {
         const char *newValue = json[propertyName] | defaultValue;
         setValue(newValue, variable, propertyGroup, propertyName);
     }
+
     static void setValue(JsonObject json, int &variable, const char *propertyGroup, const char *propertyName, int defaultValue)
     {
         int newValue = json[propertyName] | defaultValue;
         setValue(newValue, variable, propertyGroup, propertyName);
     }
+
     static void setValue(JsonObject json, float &variable, const char *propertyGroup, const char *propertyName, float defaultValue)
     {
         float newValue = json[propertyName] | defaultValue;
@@ -1903,6 +1731,7 @@ private:
         if(initialized)
             sendMessage(propertyGroup, propertyName);
     }
+
     static void setValue(JsonObject json, std::vector<String> &variable, const char *propertyGroup, const char *propertyName)
     {
         variable.clear();
@@ -1936,6 +1765,7 @@ private:
         if (valueChanged)
             sendMessage(propertyGroup, propertyName);
     }
+
     static void setValue(int newValue, int &variable, const char *propertyGroup, const char *propertyName)
     {
         bool valueChanged = initialized && variable != newValue;
@@ -1944,6 +1774,7 @@ private:
         if (valueChanged)
             sendMessage(propertyGroup, propertyName);
     }
+
     static void setValue(float newValue, float &variable, const char *propertyGroup, const char *propertyName)
     {
         bool valueChanged = initialized && variable != newValue;
@@ -2032,6 +1863,36 @@ private:
             return "";
             break;
         }
+    }
+
+    static bool LogDeserializationError(DeserializationError error, const char* filename) {
+        if (error)
+        {
+            LogHandler::error(_TAG, "Error deserializing json: %s", filename);
+            switch (error.code())
+            {
+            case DeserializationError::Code::Ok:
+                LogHandler::error(_TAG, "Code: Ok");
+                break;
+            case DeserializationError::Code::EmptyInput:
+                LogHandler::error(_TAG, "Code: EmptyInput");
+                break;
+            case DeserializationError::Code::IncompleteInput:
+                LogHandler::error(_TAG, "Code: IncompleteInput");
+                break;
+            case DeserializationError::Code::InvalidInput:
+                LogHandler::error(_TAG, "Code: InvalidInput");
+                break;
+            case DeserializationError::Code::NoMemory:
+                LogHandler::error(_TAG, "Code: NoMemory");
+                break;
+            case DeserializationError::Code::TooDeep:
+                LogHandler::error(_TAG, "Code: TooDeep");
+                break;
+            }
+            return true;
+        }
+        return false;
     }
 
     static void LogSaveDebug(DynamicJsonDocument doc)
@@ -2187,6 +2048,10 @@ private:
         // LogHandler::debug(_TAG, "update bluetoothEnabled: %i", (int)bluetoothEnabled);
     }
 };
+
+SemaphoreHandle_t SettingsHandler::m_motionMutex = xSemaphoreCreateMutex();
+SemaphoreHandle_t SettingsHandler::m_wifiMutex = xSemaphoreCreateMutex();
+SemaphoreHandle_t SettingsHandler::m_settingsMutex = xSemaphoreCreateMutex();
 bool SettingsHandler::initialized = false;
 bool SettingsHandler::saving = false;
 bool SettingsHandler::fullBuild = false;
@@ -2202,7 +2067,6 @@ std::vector<Channel> SettingsHandler::currentChannels;
 MotorType SettingsHandler::motorType = MotorType::Servo;
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
-const char *SettingsHandler::userSettingsDefaultFilePath = "/userSettingsDefault.json";
 const char *SettingsHandler::userSettingsFilePath = "/userSettings.json";
 const char *SettingsHandler::wifiPassFilePath = "/wifiInfo.json";
 const char *SettingsHandler::motionProfilesFilePath = "/motionProfiles.json";

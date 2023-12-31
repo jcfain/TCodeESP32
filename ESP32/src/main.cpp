@@ -361,7 +361,7 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
         	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AUTH");
             LogHandler::warning(TagHandler::Main, "Connection auth failed: Resetting wifi password and restarting");
             strcpy(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass);
-            SettingsHandler::save();
+            SettingsHandler::saveSettings();
             ESP.restart();
 		}  else if(reason == WiFiReason::AP_MODE) {
         	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AP_MODE");
@@ -391,7 +391,7 @@ void batteryVoltageCallback(float capacityRemainingPercentage, float capacityRem
 void settingChangeCallback(const char* group, const char* settingThatChanged) {
     LogHandler::debug(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
 	if(strcmp(group, "motionGenerator") == 0) {
-		if(strcmp(settingThatChanged, "motionSelectedProfileIndex") == 0) 
+		if(strcmp(settingThatChanged, "motionSelectedProfileIndex") == 0 || strcmp(settingThatChanged, "motionProfile") == 0) 
 			motionHandler.setMotionChannels(SettingsHandler::getMotionChannels());
 		// else if(strcmp(settingThatChanged, "motionChannels") == 0) 
 		// 	motionHandler.setMotionChannels(SettingsHandler::getMotionChannels());
@@ -536,7 +536,7 @@ void setup()
 		return;
 	}
 
-	SettingsHandler::load();
+	SettingsHandler::init();
 	LogHandler::info(TagHandler::Main, "Version: %s", SettingsHandler::getFirmwareVersion());
 
 #if MOTOR_TYPE == 0

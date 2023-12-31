@@ -22,6 +22,7 @@ SOFTWARE. */
 
 var userSettings = {};
 var systemInfo = {};
+var motionProviderSettings = {};
 var upDateTimeout;
 var restartRequired = false;
 var documentLoaded = false;
@@ -30,7 +31,10 @@ var debugEnabled = true;
 var playSounds = false;
 var importSettingsInputElement;
 var websocket;
-
+const EndPointType = {
+    Common: {uri: "/settings"},
+    MotionProfile: {uri: "/motionProfiles"}
+}
 const TCodeVersion = {
     V2: 0,
     V3: 1
@@ -133,7 +137,7 @@ const AvailibleChannelsBLDC = [
 
 document.addEventListener("DOMContentLoaded", function() {
     onDocumentLoad();
-  });
+});
 
 function logdebug(message) {
     if(debugEnabled)
@@ -166,7 +170,7 @@ function getSystemInfo() {
 }
 function getUserSettings() {
 	var xhr = new XMLHttpRequest();
-	xhr.open('GET', "/userSettings", true);
+	xhr.open('GET', EndPointType.Common.uri, true);
 	xhr.responseType = 'json';
 	xhr.onload = function() {
         var status = xhr.status;
@@ -174,8 +178,34 @@ function getUserSettings() {
 			showError("Error loading user settings!");
 		} else {
             userSettings = xhr.response;
+            if(!userSettings || !userSettings["TCodeVersion"]) {
+                showError("Error getting user settings!");
+                return;
+            }
             setUserSettings()
+            getMotionProviderSettings();
+		}
+	};
+	xhr.send();
+}
+
+function getMotionProviderSettings() {
+	var xhr = new XMLHttpRequest();
+	xhr.open('GET', EndPointType.MotionProfile.uri, true);
+	xhr.responseType = 'json';
+	xhr.onload = function() {
+        var status = xhr.status;
+        if (status !== 200) {
+			showError("Error loading motion profile settings!");
+		} else {
+            motionProviderSettings = xhr.response;
+            if(!motionProviderSettings || !motionProviderSettings["motionProfiles"]) {
+                showError("Error getting motion provider settings!");
+                return;
+            }
+            setupChannelSliders();
             initWebSocket();
+            documentLoaded = true;
 		}
 	};
 	xhr.send();
@@ -340,7 +370,7 @@ function onDefaultClick()
 		{
 			if (xhr.readyState === 4) 
 			{
-                getUserSettings();
+                getSystemInfo();
 				infoNode.innerText = "Settings reset!";
                 infoNode.style.color = 'green';
                 showRestartRequired();
@@ -499,8 +529,6 @@ function setSystemInfo() {
 }
 function setUserSettings() 
 {
-    if(!userSettings)
-        showError("Error getting user settings!");
     document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
     toggleNonTCodev3Options();
     toggleDeviceOptions(userSettings["sr6Mode"]);
@@ -663,9 +691,6 @@ function setUserSettings()
     document.getElementById('voiceWakeTime').value = userSettings['voiceWakeTime'];
 
     //document.getElementById('debugLink').hidden = !userSettings["debug"];
-    
-    setupChannelSliders();
-    documentLoaded = true;
 }
 function removeAllChildren(element) {
     if(!element) {
@@ -707,9 +732,18 @@ function toggleMotorTypeOptions() {
     }
 }
 
-function updateUserSettings(debounceInMs = 3000) 
+function updateUserSettings(debounceInMs, uri, objectToSave, callback) 
 {
     if (documentLoaded) {
+        if(debounceInMs == null || debounceInMs == undefined) {
+            debounceInMs = 3000;
+        }
+        if(!uri) {
+            uri = "/settings"
+        }
+        if(!objectToSave) {
+            objectToSave = userSettings;
+        }
         if(upDateTimeout !== null) 
         {
             clearTimeout(upDateTimeout);
@@ -728,7 +762,7 @@ function updateUserSettings(debounceInMs = 3000)
             infoNode.style.color = 'white';
             var xhr = new XMLHttpRequest();
             var response = {};
-            xhr.open("POST", "/settings", true);
+            xhr.open("POST", uri, true);
             xhr.onreadystatechange = function() 
             {
                 if (xhr.readyState === 4) 
@@ -750,27 +784,39 @@ function updateUserSettings(debounceInMs = 3000)
                     } 
                     else 
                     {
-                        infoNode.visibility = "visible";
-                        infoNode.innerText = "Settings saved!";
-                        infoNode.style.color = 'green';
                         if (restartRequired) 
                         {
                             showRestartRequired();
                         }
-                        setTimeout(() => 
-                        {
-                            infoNode.hidden = true;
-                            infoNode.innerText = "";
-                        }, 5000)
+                        if(callback) {
+                            callback();
+                        } else {
+                            infoNode.visibility = "visible";
+                            infoNode.innerText = "Settings saved!";
+                            infoNode.style.color = 'green';
+                            setTimeout(() => 
+                            {
+                                infoNode.hidden = true;
+                                infoNode.innerText = "";
+                            }, 5000)
+                        }
                     }
                 }
             }
             xhr.setRequestHeader('Content-Type', 'application/json');
-            var body = JSON.stringify(userSettings);
+            var body = JSON.stringify(objectToSave);
             xhr.send(body);
             upDateTimeout = null;
         }, debounceInMs);
     }
+}
+
+var updateMotionProfileSettings = function() {
+    MotionGenerator.updateSettings(0);
+}
+
+function updateALLUserSettings() {
+    updateUserSettings(0, EndPointType.Common.uri, userSettings, updateMotionProfileSettings)
 }
 
 function showRestartRequired() {
@@ -2044,8 +2090,12 @@ function toggleSounds() {
 
 function exportToJsonFile() {
     alert("Wifi password will NOT be exported!");
-    userSettings["wifiPass"] = "YOUR PASSWORD HERE";
-    let dataStr = JSON.stringify(userSettings);
+    const userSettingsCopy = JSON.parse(JSON.stringify(userSettings));
+    userSettingsCopy["wifiPass"] = "YOUR PASSWORD HERE";
+    userSettingsCopy["motionDefaultProfileIndex"] = motionProviderSettings.motionDefaultProfileIndex;
+    userSettingsCopy["motionProfiles"] = motionProviderSettings.motionProfiles;
+
+    let dataStr = JSON.stringify(userSettingsCopy);
     let dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
 
     let exportFileDefaultName = 'userSettings_'+systemInfo.esp32Version+'.json';
@@ -2066,6 +2116,7 @@ function openImportSettingsFileDialog() {
     importSettingsInputElement.dispatchEvent(new MouseEvent("click")); 
 }
 function importSettings() {
+    alert("Wifi password will NOT be imported!");
     if(importSettingsInputElement.files.length > 0) {
         var json = importSettingsInputElement.files[0];
         var reader = new FileReader();
@@ -2073,6 +2124,8 @@ function importSettings() {
             var text = reader.result;
             var json = JSON.parse(text);
             Object.keys(json).forEach(function(key,index) {
+                if(key === "wifiPass")
+                    return;
                 var importedValue = json[key];
                 var existingValue = userSettings[key];
                 // If the key doesnt exist anymore, dont import it.
@@ -2088,9 +2141,10 @@ function importSettings() {
                 toggleNonTCodev3Options();
             }
             setUserSettings();
+            setupChannelSliders();
             if(validatePins()) {// Do not save if pin values are invalid.
                 setRestartRequired();
-                updateUserSettings();
+                updateALLUserSettings();
             }
         }, false);
 
@@ -2099,7 +2153,15 @@ function importSettings() {
 }
 
 function handleImportRenames(key, value) {
-    if(key == "LubeManual_PIN") {
+    switch(key) {
+        case "LubeManual_PIN": 
         userSettings.LubeButton_PIN = value;
+        break;
+        case "motionProfiles": 
+        motionProviderSettings.motionProfiles = value;
+        break;
+        case "motionDefaultProfileIndex": 
+        motionProviderSettings.motionDefaultProfileIndex = value;
+        break;
     }
 }

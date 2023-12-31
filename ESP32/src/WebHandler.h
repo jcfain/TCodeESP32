@@ -46,34 +46,9 @@ class WebHandler : public HTTPBase {
             server = new AsyncWebServer(port);
             ((WebSocketHandler*)webSocketHandler)->setup(server);
 
-            server->on("/userSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
+            server->on("/settings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                request->send(SPIFFS, "/userSettings.json", "application/json");
-                // DynamicJsonDocument doc(SettingsHandler::deserialize);
-                // File file = SPIFFS.open(SettingsHandler::userSettingsFilePath, "r");
-                // DeserializationError error = deserializeJson(doc, file);
-                // char settings[40000];
-                // SettingsHandler::serialize(settings);
-                // if (strlen(settings) == 0) {
-                //     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
-                //     request->send(response);
-                //     return;
-                // }
-                // AsyncWebServerResponse *response = request->beginResponse(200, "application/json", settings);
-
-            //    AsyncWebServerResponse *response = request->beginResponse("application/json", strlen_P(settings),
-            //         [settings](uint8_t *buffer, size_t maxLen, size_t alreadySent) -> size_t {
-            //             if (strlen_P(settings+alreadySent)>maxLen) {
-            //                 // We have more to read than fits in maxLen Buffer
-            //                 memcpy_P((char*)buffer, settings+alreadySent, maxLen);
-            //                 return maxLen;
-            //             }
-            //             // Ok, last chunk
-            //             memcpy_P((char*)buffer, settings+alreadySent, strlen_P(settings+alreadySent));
-            //             return strlen_P(settings+alreadySent); // Return from here to end
-            //         }
-            //     );
-                // request->send(response);
+                request->send(SPIFFS, SettingsHandler::userSettingsFilePath, "application/json");
             });   
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
@@ -87,6 +62,11 @@ class WebHandler : public HTTPBase {
                 AsyncWebServerResponse *response = request->beginResponse(200, "application/json", systemInfo);
                 request->send(response);
             });   
+            server->on("/motionProfiles", HTTP_GET, [](AsyncWebServerRequest *request) 
+            {
+                request->send(SPIFFS, SettingsHandler::motionProfilesFilePath, "application/json");
+            });   
+            
             
             server->on("/log", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
@@ -120,7 +100,7 @@ class WebHandler : public HTTPBase {
             server->on("/toggleContinousTwist", HTTP_POST, [](AsyncWebServerRequest *request) 
             {
 				SettingsHandler::continuousTwist = !SettingsHandler::continuousTwist;
-				if (SettingsHandler::save()) 
+				if (SettingsHandler::saveSettings()) 
 				{
 					char returnJson[45];
 					sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", SettingsHandler::continuousTwist ? "true" : "false");
@@ -146,8 +126,7 @@ class WebHandler : public HTTPBase {
                 int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
                 Serial.println("Settings pinout default");
                 SettingsHandler::boardType = (BoardType)boardType;
-				SettingsHandler::setBoardPinout();
-                SettingsHandler::save();
+				SettingsHandler::defaultPinout();
             });
 
             // upload a file to /upload
@@ -179,26 +158,34 @@ class WebHandler : public HTTPBase {
 			{
                 Serial.println("API save settings...");
                 JsonObject jsonObj = json.as<JsonObject>();
-                if(SettingsHandler::update(jsonObj))
+                if (SettingsHandler::saveSettings(jsonObj)) 
                 {
-                    if (SettingsHandler::save()) 
-                    {
-                        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
-                        request->send(response);
-                    } 
-                    else 
-                    {
-                        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"Error saving settings\"}");
-                        request->send(response);
-                    }
-                }
-                else
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                    request->send(response);
+                } 
+                else 
                 {
-                    AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"msg\":\"Could not parse JSON\"}");
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving settings\"}");
                     request->send(response);
                 }
             }, 32768U );//Bad request? increase the size.
 
+            AsyncCallbackJsonWebHandler* motionProfileUpdateHandler = new AsyncCallbackJsonWebHandler("/motionProfiles", [](AsyncWebServerRequest *request, JsonVariant &json)
+			{
+                Serial.println("API save motion profiles...");
+                JsonObject jsonObj = json.as<JsonObject>();
+                if (SettingsHandler::saveMotionProfiles(jsonObj)) 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                    request->send(response);
+                } 
+                else 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving motion profiles\"}");
+                    request->send(response);
+                }
+            }, 30000U );//Bad request? increase the size.
+            
             // //To upload through terminal you can use: curl -F "image=@firmware.bin" esp8266-webupdate.local/update
             // server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request){
             //         // the request handler is triggered after the upload has finished... 
@@ -239,6 +226,7 @@ class WebHandler : public HTTPBase {
             // });
 
             server->addHandler(settingsUpdateHandler);
+            server->addHandler(motionProfileUpdateHandler);
             
             server->onNotFound([](AsyncWebServerRequest *request) 
 			{

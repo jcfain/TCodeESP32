@@ -22,7 +22,7 @@ public:
 
 			if(isCommand(in, "$save")) {
 				return execute([]() -> bool {
-					SettingsHandler::save();
+					SettingsHandler::saveSettings();
 					Serial.println("Settings saved!");
 					return true;
 				});

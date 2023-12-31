@@ -5,10 +5,10 @@ MotionGenerator = {
         removeAllChildren(motionProfilesElement);
 
         channelTemplates = [];
-        motionProfilesElement.value = userSettings["motionDefaultProfileIndex"];
+        motionProfilesElement.value = motionProviderSettings["motionDefaultProfileIndex"];
 
         var channels = getChannelMap();
-        userSettings["motionProfiles"].forEach((x, profileIndex) => {
+        motionProviderSettings["motionProfiles"].forEach((x, profileIndex) => {
             addMotionProfileOption(profileIndex, x);
             var rootdiv = document.createElement("div");
             rootdiv.classList.add("formTable");
@@ -32,8 +32,8 @@ MotionGenerator = {
                 }
                 var name = channel.channel;
                 var friendlyName = channel.channelName;
-                var motionChannelIndex = userSettings['motionProfiles'][profileIndex]["channels"].findIndex(y => y.name == name);
-                const motionChannel = userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex];
+                var motionChannelIndex = motionProviderSettings['motionProfiles'][profileIndex]["channels"].findIndex(y => y.name == name);
+                const motionChannel = motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex];
                 
                 var row = document.createElement("div");
                 row.classList.add("tRow")
@@ -58,17 +58,17 @@ MotionGenerator = {
                         if (!confirm(`In order to save memory, this action will set the channel settings for this profile to DEFAULT. Are you sure?`)) {
                             return;
                         }
-                        userSettings['motionProfiles'][properties.profileIndex]["channels"].splice(index, 1);
+                        motionProviderSettings['motionProfiles'][properties.profileIndex]["channels"].splice(index, 1);
                     }
                     if(this.checked) {
-                        userSettings['motionProfiles'][properties.profileIndex]["channels"].push(getDefaultMotionChannel(properties.channelName));
+                        motionProviderSettings['motionProfiles'][properties.profileIndex]["channels"].push(getDefaultMotionChannel(properties.channelName));
                     } else {
                         Utils.toggleControlVisibilityByID("channelTable"+properties.profileIndex+properties.channelIndex, false, true);
                     }
                     const button = document.getElementById("motionChannelEditButton"+properties.profileIndex+properties.channelIndex);
                     Utils.toggleElementShown(button, this.checked);
                     button.disabled = !this.checked;
-                    updateUserSettings();
+                    MotionGenerator.updateSettings();
                 };
                 var button = document.createElement("button");
                 button.id = "motionChannelEditButton" + profileIndex + channelIndex;
@@ -256,6 +256,9 @@ MotionGenerator = {
             button.classList.remove("button-toggle-stop");
             button.classList.add("button-toggle-start");
         }
+    },
+    updateSettings(debounce) {
+        updateUserSettings(debounce, EndPointType.MotionProfile.uri, motionProviderSettings);
     }
 }
 
@@ -301,11 +304,11 @@ function setMotionPeriodRandomClicked(profileIndex, channelIndex, channelName) {
     //     sendTCode("#motion-period-random-off");
     // }
     const motionChannelIndex = getMotionChannelIndex(profileIndex, channelName);
-    userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodRan"] = motionEnabled;
-    Utils.toggleControlVisibilityByID("motionPeriodRandomMinRow"+profileIndex+channelIndex, userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodRan"]);
-    Utils.toggleControlVisibilityByID("motionPeriodRandomMaxRow"+profileIndex+channelIndex, userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodRan"]);
+    motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodRan"] = motionEnabled;
+    Utils.toggleControlVisibilityByID("motionPeriodRandomMinRow"+profileIndex+channelIndex, motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodRan"]);
+    Utils.toggleControlVisibilityByID("motionPeriodRandomMaxRow"+profileIndex+channelIndex, motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodRan"]);
     toggleMotionRandomMinMaxSettingsSettings(profileIndex, channelIndex);
-    updateUserSettings();
+    MotionGenerator.updateSettings();
 }
 function setMotionAmplitudeRandomClicked(profileIndex, channelIndex, channelName) {
     var motionEnabled = document.getElementById('motionAmplitudeRandom'+profileIndex+channelIndex).checked;
@@ -315,11 +318,11 @@ function setMotionAmplitudeRandomClicked(profileIndex, channelIndex, channelName
     //     sendTCode("#motion-amplitude-random-off");
     // }
     const motionChannelIndex = getMotionChannelIndex(profileIndex, channelName);
-    userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ampRan"] = motionEnabled;
+    motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ampRan"] = motionEnabled;
     Utils.toggleControlVisibilityByID("motionAmplitudeRandomMinRow"+profileIndex+channelIndex, motionEnabled);
     Utils.toggleControlVisibilityByID("motionAmplitudeRandomMaxRow"+profileIndex+channelIndex, motionEnabled);
     toggleMotionRandomMinMaxSettingsSettings(profileIndex, channelIndex);
-    updateUserSettings();
+    MotionGenerator.updateSettings();
 }
 function setMotionOffsetRandomClicked(profileIndex, channelIndex, channelName) {
     var motionEnabled = document.getElementById('motionOffsetRandom'+profileIndex+channelIndex).checked;
@@ -329,11 +332,11 @@ function setMotionOffsetRandomClicked(profileIndex, channelIndex, channelName) {
     //     sendTCode("#motion-offset-random-off");
     // }
     const motionChannelIndex = getMotionChannelIndex(profileIndex, channelName);
-    userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offsetRan"] = motionEnabled;
+    motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offsetRan"] = motionEnabled;
     Utils.toggleControlVisibilityByID("motionOffsetRandomMinRow"+profileIndex+channelIndex, motionEnabled);
     Utils.toggleControlVisibilityByID("motionOffsetRandomMaxRow"+profileIndex+channelIndex, motionEnabled);
     toggleMotionRandomMinMaxSettingsSettings(profileIndex, channelIndex);
-    updateUserSettings();
+    MotionGenerator.updateSettings();
 }
 function setMotionPhaseRandomClicked(profileIndex, channelIndex, channelName) {
     var motionEnabled = document.getElementById('motionPhaseRandom'+profileIndex+channelIndex).checked;
@@ -343,16 +346,16 @@ function setMotionPhaseRandomClicked(profileIndex, channelIndex, channelName) {
     //     sendTCode("#motion-offset-random-off");
     // }
     const motionChannelIndex = getMotionChannelIndex(profileIndex, channelName);
-    userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phaseRan"] = motionEnabled;
+    motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phaseRan"] = motionEnabled;
     Utils.toggleControlVisibilityByID("motionPhaseRandomMinRow"+profileIndex+channelIndex, motionEnabled);
     Utils.toggleControlVisibilityByID("motionPhaseRandomMaxRow"+profileIndex+channelIndex, motionEnabled);
     toggleMotionRandomMinMaxSettingsSettings(profileIndex, channelIndex);
-    updateUserSettings();
+    MotionGenerator.updateSettings();
 }
 
 function setMotionProfileDefault() {
-    userSettings["motionDefaultProfileIndex"] = getMotionProfileSelectedIndex();
-    updateUserSettings(1);
+    motionProviderSettings["motionDefaultProfileIndex"] = getMotionProfileSelectedIndex();
+    MotionGenerator.updateSettings(1);
 }
 var selectedMotionProfileIndex = 0;
 function getMotionProfileSelectedIndex() {
@@ -372,7 +375,7 @@ function selectMotionProfile(profileIndex, sendTCodeCommand) {
     const motionProfilesElement = document.getElementById(`motionProfile${profileIndex}`);
     motionProfilesElement.classList.add("button-pressed");
     if(sendTCodeCommand)
-        sendTCode(`#motion-set-profile:${profileIndex + 1}`);
+        sendTCode(`#motion-profile-set:${profileIndex + 1}`);
 }
 function editMotionProfile(profileIndex) {
     const modal = document.getElementById("motionChannelsModal");
@@ -393,12 +396,12 @@ function setMotionGeneratorSettings(profileIndex, channelIndex, channelName) {
         clearTimeout(validateGeneratorSettingsDebounce);
     }
     validateGeneratorSettingsDebounce = setTimeout(function (profileIndex, channelIndex, channelName) {
-        var motionChannelIndex = userSettings['motionProfiles'][profileIndex]["channels"].findIndex(x => x.name == channelName);
+        var motionChannelIndex = motionProviderSettings['motionProfiles'][profileIndex]["channels"].findIndex(x => x.name == channelName);
         if(motionChannel == -1) {
             showError("There was an error finding a channel with name: "+channelName);
             return;
         }
-        var motionChannel = userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex];
+        var motionChannel = motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex];
         validateIntControl('motionUpdate'+profileIndex+channelIndex, motionChannel, "update");
         validateIntControl('motionPeriod'+profileIndex+channelIndex, motionChannel, "period");
         validateIntControl('motionAmplitude'+profileIndex+channelIndex, motionChannel, "amp");
@@ -424,7 +427,7 @@ function setMotionGeneratorSettings(profileIndex, channelIndex, channelName) {
 
         
         //userSettings["motionReversed"] = document.getElementById('motionReversed').checked;
-        updateUserSettings(1);
+        MotionGenerator.updateSettings(1);
     }.bind(this, profileIndex, channelIndex, channelName), 3000);
 }
 var setMotionGeneratorNameDebounce;
@@ -434,9 +437,9 @@ function setMotionGeneratorName(profileIndex) {
     }
     
     setMotionGeneratorNameDebounce = setTimeout(function(profileIndex) {
-        if(validateStringControl("motionProfileName"+profileIndex, userSettings['motionProfiles'][profileIndex], "name")) {
+        if(validateStringControl("motionProfileName"+profileIndex, motionProviderSettings['motionProfiles'][profileIndex], "name")) {
             updateMotionProfileName(profileIndex);
-            updateUserSettings(1);
+            MotionGenerator.updateSettings(1);
         }
     }.bind(this, profileIndex), 3000);
 }
@@ -478,16 +481,16 @@ function updateMotionProfileName(profileIndex) {
             break;
         }
     }
-    motionProfilesElements[optionsIndex].innerText = userSettings['motionProfiles'][profileIndex]["name"];
+    motionProfilesElements[optionsIndex].innerText = motionProviderSettings['motionProfiles'][profileIndex]["name"];
 }
 function setMotionGeneratorSettingsDefault(profileIndex, channelIndex, channelName) {
-    if (confirm(`Are you sure you want to set the current channel '${channelName}' in profile '${userSettings['motionProfiles'][profileIndex]["name"]}' to the default settings?`)) {
+    if (confirm(`Are you sure you want to set the current channel '${channelName}' in profile '${motionProviderSettings['motionProfiles'][profileIndex]["name"]}' to the default settings?`)) {
         setProfileMotionGeneratorSettingsDefault(profileIndex, channelIndex, channelName);
-        updateUserSettings(1);
+        MotionGenerator.updateSettings(1);
     }
 }
 function getMotionChannelIndex(profileIndex, channelName) {
-    return userSettings['motionProfiles'][profileIndex]["channels"].findIndex(x => x.name == channelName);
+    return motionProviderSettings['motionProfiles'][profileIndex]["channels"].findIndex(x => x.name == channelName);
 }
 function getDefaultMotionChannel(name) {
     return {
@@ -515,14 +518,14 @@ function getDefaultMotionChannel(name) {
     }
 }
 function setProfileMotionGeneratorSettingsDefault(profileIndex, channelIndex, channelName) {
-    userSettings['motionProfiles'][profileIndex]["name"] = "Profile "+ (profileIndex + 1);
-    userSettings['motionProfiles'][profileIndex]["channels"][channelIndex] = getDefaultMotionChannel(channelName);
+    motionProviderSettings['motionProfiles'][profileIndex]["name"] = "Profile "+ (profileIndex + 1);
+    motionProviderSettings['motionProfiles'][profileIndex]["channels"][channelIndex] = getDefaultMotionChannel(channelName);
     
     setMotionGeneratorSettingsProfile(profileIndex);
 }
 function setMotionGeneratorSettingsProfile(profileIndex) {
-    document.getElementById('motionProfileName'+profileIndex).value = userSettings['motionProfiles'][profileIndex]["name"];
-    //const channels = userSettings['motionProfiles'][profileIndex]["channels"];
+    document.getElementById('motionProfileName'+profileIndex).value = motionProviderSettings['motionProfiles'][profileIndex]["name"];
+    //const channels = motionProviderSettings['motionProfiles'][profileIndex]["channels"];
     const channels = getChannelMap();
     for(var i = 0; i < channels.length; i++) {
         const channelIndex = i;
@@ -532,26 +535,26 @@ function setMotionGeneratorSettingsProfile(profileIndex) {
         const motionChannelIndex = getMotionChannelIndex(profileIndex, channel.channel);
         const profileHasChannel = motionChannelIndex > -1;
         const defaultChannel = getDefaultMotionChannel();
-        document.getElementById('motionUpdate'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["update"] : defaultChannel["update"];
-        document.getElementById('motionPeriod'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["period"] : defaultChannel["period"];
-        document.getElementById('motionAmplitude'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["amp"] : defaultChannel["amp"];
-        document.getElementById('motionOffset'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offset"] : defaultChannel["offset"];  
-        document.getElementById('motionPhase'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phase"] : defaultChannel["phase"];
-        document.getElementById('motionPhaseRandom'+profileIndex+channelIndex).checked = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phaseRan"] : defaultChannel["phaseRan"];
-        document.getElementById('motionPhaseRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phaseMin"] : defaultChannel["phaseMin"];  
-        document.getElementById('motionPhaseRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phaseMax"] : defaultChannel["phaseMax"];  
-        //document.getElementById('motionReversed'+profileIndex+channelIndex).checked = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["reverse"] : defaultChannel["reverse"];
-        document.getElementById('motionPeriodRandom'+profileIndex+channelIndex).checked = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodRan"] : defaultChannel["periodRan"];
-        document.getElementById('motionPeriodRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodMin"] : defaultChannel["periodMin"];  
-        document.getElementById('motionPeriodRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodMax"] : defaultChannel["periodMax"];  
-        document.getElementById('motionAmplitudeRandom'+profileIndex+channelIndex).checked = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ampRan"] : defaultChannel["ampRan"];
-        document.getElementById('motionAmplitudeRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ampMin"] : defaultChannel["ampMin"];  
-        document.getElementById('motionAmplitudeRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ampMax"] : defaultChannel["ampMax"];  
-        document.getElementById('motionOffsetRandom'+profileIndex+channelIndex).checked = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offsetRan"] : defaultChannel["offsetRan"];
-        document.getElementById('motionOffsetRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offsetMin"] : defaultChannel["offsetMin"];  
-        document.getElementById('motionOffsetRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offsetMax"] : defaultChannel["offsetMax"];  
-        document.getElementById('motionRandomChangeMin'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ranMin"] : defaultChannel["ranMin"];  
-        document.getElementById('motionRandomChangeMax'+profileIndex+channelIndex).value = profileHasChannel ? userSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ranMax"] : defaultChannel["ranMax"];  
+        document.getElementById('motionUpdate'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["update"] : defaultChannel["update"];
+        document.getElementById('motionPeriod'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["period"] : defaultChannel["period"];
+        document.getElementById('motionAmplitude'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["amp"] : defaultChannel["amp"];
+        document.getElementById('motionOffset'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offset"] : defaultChannel["offset"];  
+        document.getElementById('motionPhase'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phase"] : defaultChannel["phase"];
+        document.getElementById('motionPhaseRandom'+profileIndex+channelIndex).checked = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phaseRan"] : defaultChannel["phaseRan"];
+        document.getElementById('motionPhaseRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phaseMin"] : defaultChannel["phaseMin"];  
+        document.getElementById('motionPhaseRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phaseMax"] : defaultChannel["phaseMax"];  
+        //document.getElementById('motionReversed'+profileIndex+channelIndex).checked = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["reverse"] : defaultChannel["reverse"];
+        document.getElementById('motionPeriodRandom'+profileIndex+channelIndex).checked = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodRan"] : defaultChannel["periodRan"];
+        document.getElementById('motionPeriodRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodMin"] : defaultChannel["periodMin"];  
+        document.getElementById('motionPeriodRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodMax"] : defaultChannel["periodMax"];  
+        document.getElementById('motionAmplitudeRandom'+profileIndex+channelIndex).checked = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ampRan"] : defaultChannel["ampRan"];
+        document.getElementById('motionAmplitudeRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ampMin"] : defaultChannel["ampMin"];  
+        document.getElementById('motionAmplitudeRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ampMax"] : defaultChannel["ampMax"];  
+        document.getElementById('motionOffsetRandom'+profileIndex+channelIndex).checked = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offsetRan"] : defaultChannel["offsetRan"];
+        document.getElementById('motionOffsetRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offsetMin"] : defaultChannel["offsetMin"];  
+        document.getElementById('motionOffsetRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offsetMax"] : defaultChannel["offsetMax"];  
+        document.getElementById('motionRandomChangeMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ranMin"] : defaultChannel["ranMin"];  
+        document.getElementById('motionRandomChangeMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ranMax"] : defaultChannel["ranMax"];  
         toggleMotionRandomSettings(profileIndex, channelIndex);
     };
 }
