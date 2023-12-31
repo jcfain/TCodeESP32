@@ -549,7 +549,7 @@ void setup()
 	#endif
 		else {
 			LogHandler::error(TagHandler::Main, "Invalid TCode version: %ld", SettingsHandler::TCodeVersionEnum);
-			return;
+			return;// TODO: this stops apmode and not what we want
 			//motorHandler = new ServoHandler1_0();
 		}
 #elif MOTOR_TYPE == 1

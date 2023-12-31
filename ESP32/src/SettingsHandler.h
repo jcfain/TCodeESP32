@@ -1069,7 +1069,7 @@ private:
         if(initialized)
             loadWifiInfo(false, json);
         if(!isBoardType(BoardType::CRIMZZON)) {
-            TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 2);
+            TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 1);
             TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
         }
 #if MOTOR_TYPE == 1
