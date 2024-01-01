@@ -56,6 +56,7 @@ MotionGenerator = {
                     const index = getMotionChannelIndex(properties.profileIndex, properties.channelName);
                     if(index > -1) {
                         if (!confirm(`In order to save memory, this action will set the channel settings for this profile to DEFAULT. Are you sure?`)) {
+                            this.checked = true;
                             return;
                         }
                         motionProviderSettings['motionProfiles'][properties.profileIndex]["channels"].splice(index, 1);
@@ -68,7 +69,7 @@ MotionGenerator = {
                     const button = document.getElementById("motionChannelEditButton"+properties.profileIndex+properties.channelIndex);
                     Utils.toggleElementShown(button, this.checked);
                     button.disabled = !this.checked;
-                    MotionGenerator.updateSettings();
+                    MotionGenerator.updateSettings(profileIndex, properties.channelIndex);
                 };
                 var button = document.createElement("button");
                 button.id = "motionChannelEditButton" + profileIndex + channelIndex;
@@ -257,8 +258,17 @@ MotionGenerator = {
             button.classList.add("button-toggle-start");
         }
     },
-    updateSettings(debounce) {
+    updateSettings(profileIndex, motionChannelIndex, debounce) {
+        if(profileIndex && motionChannelIndex) {
+            this.setEdited(profileIndex, motionChannelIndex);
+        }
         updateUserSettings(debounce, EndPointType.MotionProfile.uri, motionProviderSettings);
+    },
+    setEdited(profileIndex, motionChannelIndex) {
+        if(profileIndex > -1)
+            motionProviderSettings.motionProfiles[profileIndex]["edited"] = true;
+        if(motionChannelIndex > -1)
+            motionProviderSettings.motionProfiles[profileIndex]["channels"][motionChannelIndex]["edited"] = true;
     }
 }
 
@@ -308,7 +318,7 @@ function setMotionPeriodRandomClicked(profileIndex, channelIndex, channelName) {
     Utils.toggleControlVisibilityByID("motionPeriodRandomMinRow"+profileIndex+channelIndex, motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodRan"]);
     Utils.toggleControlVisibilityByID("motionPeriodRandomMaxRow"+profileIndex+channelIndex, motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodRan"]);
     toggleMotionRandomMinMaxSettingsSettings(profileIndex, channelIndex);
-    MotionGenerator.updateSettings();
+    MotionGenerator.updateSettings(profileIndex, motionChannelIndex);
 }
 function setMotionAmplitudeRandomClicked(profileIndex, channelIndex, channelName) {
     var motionEnabled = document.getElementById('motionAmplitudeRandom'+profileIndex+channelIndex).checked;
@@ -322,7 +332,7 @@ function setMotionAmplitudeRandomClicked(profileIndex, channelIndex, channelName
     Utils.toggleControlVisibilityByID("motionAmplitudeRandomMinRow"+profileIndex+channelIndex, motionEnabled);
     Utils.toggleControlVisibilityByID("motionAmplitudeRandomMaxRow"+profileIndex+channelIndex, motionEnabled);
     toggleMotionRandomMinMaxSettingsSettings(profileIndex, channelIndex);
-    MotionGenerator.updateSettings();
+    MotionGenerator.updateSettings(profileIndex, motionChannelIndex);
 }
 function setMotionOffsetRandomClicked(profileIndex, channelIndex, channelName) {
     var motionEnabled = document.getElementById('motionOffsetRandom'+profileIndex+channelIndex).checked;
@@ -336,7 +346,7 @@ function setMotionOffsetRandomClicked(profileIndex, channelIndex, channelName) {
     Utils.toggleControlVisibilityByID("motionOffsetRandomMinRow"+profileIndex+channelIndex, motionEnabled);
     Utils.toggleControlVisibilityByID("motionOffsetRandomMaxRow"+profileIndex+channelIndex, motionEnabled);
     toggleMotionRandomMinMaxSettingsSettings(profileIndex, channelIndex);
-    MotionGenerator.updateSettings();
+    MotionGenerator.updateSettings(profileIndex, motionChannelIndex);
 }
 function setMotionPhaseRandomClicked(profileIndex, channelIndex, channelName) {
     var motionEnabled = document.getElementById('motionPhaseRandom'+profileIndex+channelIndex).checked;
@@ -350,7 +360,7 @@ function setMotionPhaseRandomClicked(profileIndex, channelIndex, channelName) {
     Utils.toggleControlVisibilityByID("motionPhaseRandomMinRow"+profileIndex+channelIndex, motionEnabled);
     Utils.toggleControlVisibilityByID("motionPhaseRandomMaxRow"+profileIndex+channelIndex, motionEnabled);
     toggleMotionRandomMinMaxSettingsSettings(profileIndex, channelIndex);
-    MotionGenerator.updateSettings();
+    MotionGenerator.updateSettings(profileIndex, motionChannelIndex);
 }
 
 function setMotionProfileDefault() {

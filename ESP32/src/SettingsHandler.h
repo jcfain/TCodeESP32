@@ -319,6 +319,17 @@ public:
         }
         LogSaveDebug(doc);
         
+        if(initialized && !saveWifiInfo()) {
+            // file.close();
+            return false;
+        }
+
+        if(strcmp(wifiPass, "YOUR PASSWORD HERE") != 0) {
+            doc["wifiPass"] = decoyPass;
+        } else {
+            doc["wifiPass"] = "YOUR PASSWORD HERE";
+        }
+        
         File file = SPIFFS.open(userSettingsFilePath, FILE_WRITE);
         if (serializeJson(doc, file) == 0)
         {
@@ -411,6 +422,7 @@ public:
         
         if(motionProfilesObj.isNull()) {
             LogHandler::info(_TAG, "No motion profiles stored, loading default");
+            mutableLoadDefault = true;
             for(int i = 0; i < maxMotionProfileCount; i++) {
                 motionProfiles[i] = MotionProfile(i + 1);
                 motionProfiles[i].addDefaultChannel("L0");
@@ -450,39 +462,45 @@ public:
         LogHandler::debug(_TAG, "motion profiles index: %ld", motionDefaultProfileIndex);
         int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
         LogHandler::debug(_TAG, "motion profiles length: %ld", len);
-        for (int i=0; i < len; i++)
-        {
-            LogHandler::debug(_TAG, "motion profile name: %s", motionProfiles[i].motionProfileName);
-            doc["motionProfiles"][i]["name"] = motionProfiles[i].motionProfileName;
-            for (size_t j = 0; j < motionProfiles[i].channels.size(); j++)
-            {
-                LogHandler::debug(_TAG, "motion profile channel: %s", motionProfiles[i].channels[j].name);
-                doc["motionProfiles"][i]["channels"][j]["name"] = motionProfiles[i].channels[j].name;
-                doc["motionProfiles"][i]["channels"][j]["update"] = motionProfiles[i].channels[j].motionUpdateGlobal;
-                doc["motionProfiles"][i]["channels"][j]["period"] = motionProfiles[i].channels[j].motionPeriodGlobal;
-                doc["motionProfiles"][i]["channels"][j]["amp"] = motionProfiles[i].channels[j].motionAmplitudeGlobal;
-                doc["motionProfiles"][i]["channels"][j]["offset"] = motionProfiles[i].channels[j].motionOffsetGlobal;
-                doc["motionProfiles"][i]["channels"][j]["phase"] = motionProfiles[i].channels[j].motionPhaseGlobal;
-                doc["motionProfiles"][i]["channels"][j]["reverse"] = motionProfiles[i].channels[j].motionReversedGlobal;
-                doc["motionProfiles"][i]["channels"][j]["periodRan"] = motionProfiles[i].channels[j].motionPeriodGlobalRandom;
-                doc["motionProfiles"][i]["channels"][j]["periodMin"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMin;
-                doc["motionProfiles"][i]["channels"][j]["periodMax"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMax;
-                doc["motionProfiles"][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
-                doc["motionProfiles"][i]["channels"][j]["ampMin"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMin;
-                doc["motionProfiles"][i]["channels"][j]["ampMax"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMax;
-                doc["motionProfiles"][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
-                doc["motionProfiles"][i]["channels"][j]["offsetMin"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMin;
-                doc["motionProfiles"][i]["channels"][j]["offsetMax"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMax;
-                doc["motionProfiles"][i]["channels"][j]["phaseRan"] = motionProfiles[i].channels[j].motionPhaseRandom;
-                doc["motionProfiles"][i]["channels"][j]["phaseMin"] = motionProfiles[i].channels[j].motionPhaseRandomMin;
-                doc["motionProfiles"][i]["channels"][j]["phaseMax"] = motionProfiles[i].channels[j].motionPhaseRandomMax;
-                doc["motionProfiles"][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
-                doc["motionProfiles"][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
+        for (int i=0; i < len; i++) {
+            if(!json.isNull() || !initialized || motionProfiles[i].edited) {
+                LogHandler::debug(_TAG, "Edited motion profile name: %s", motionProfiles[i].motionProfileName);
+                doc["motionProfiles"][i]["name"] = motionProfiles[i].motionProfileName;
+                for (size_t j = 0; j < motionProfiles[i].channels.size(); j++) {
+                    if(!json.isNull() || !initialized || motionProfiles[i].channels[j].edited) {
+                        LogHandler::debug(_TAG, "motion profile channel: %s", motionProfiles[i].channels[j].name);
+                        doc["motionProfiles"][i]["channels"][j]["name"] = motionProfiles[i].channels[j].name;
+                        doc["motionProfiles"][i]["channels"][j]["update"] = motionProfiles[i].channels[j].motionUpdateGlobal;
+                        doc["motionProfiles"][i]["channels"][j]["period"] = motionProfiles[i].channels[j].motionPeriodGlobal;
+                        doc["motionProfiles"][i]["channels"][j]["amp"] = motionProfiles[i].channels[j].motionAmplitudeGlobal;
+                        doc["motionProfiles"][i]["channels"][j]["offset"] = motionProfiles[i].channels[j].motionOffsetGlobal;
+                        doc["motionProfiles"][i]["channels"][j]["phase"] = motionProfiles[i].channels[j].motionPhaseGlobal;
+                        doc["motionProfiles"][i]["channels"][j]["reverse"] = motionProfiles[i].channels[j].motionReversedGlobal;
+                        doc["motionProfiles"][i]["channels"][j]["periodRan"] = motionProfiles[i].channels[j].motionPeriodGlobalRandom;
+                        doc["motionProfiles"][i]["channels"][j]["periodMin"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMin;
+                        doc["motionProfiles"][i]["channels"][j]["periodMax"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMax;
+                        doc["motionProfiles"][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
+                        doc["motionProfiles"][i]["channels"][j]["ampMin"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMin;
+                        doc["motionProfiles"][i]["channels"][j]["ampMax"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMax;
+                        doc["motionProfiles"][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
+                        doc["motionProfiles"][i]["channels"][j]["offsetMin"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMin;
+                        doc["motionProfiles"][i]["channels"][j]["offsetMax"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMax;
+                        doc["motionProfiles"][i]["channels"][j]["phaseRan"] = motionProfiles[i].channels[j].motionPhaseRandom;
+                        doc["motionProfiles"][i]["channels"][j]["phaseMin"] = motionProfiles[i].channels[j].motionPhaseRandomMin;
+                        doc["motionProfiles"][i]["channels"][j]["phaseMax"] = motionProfiles[i].channels[j].motionPhaseRandomMax;
+                        doc["motionProfiles"][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
+                        doc["motionProfiles"][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
+                        motionProfiles[i].channels[j].edited = false;
+                    }
+                }
+                if(initialized && motionSelectedProfileIndex == i) {
+                    sendMessage("motionGenerator", "motionProfile");
+                }
+                motionProfiles[i].edited = false;
             }
         }
         File file = SPIFFS.open(motionProfilesFilePath, FILE_WRITE);
-        if (serializeJson(doc, file) == 0)
-        {
+        if (serializeJson(doc, file) == 0) {
             LogHandler::error(_TAG, "Failed to write to motion profiles file");
             file.close();
             xSemaphoreGive(m_motionMutex);
@@ -490,7 +508,6 @@ public:
             return false;
         }
         
-        sendMessage("motionGenerator", "motionProfile");
         xSemaphoreGive(m_motionMutex);
         saving = false;
         return true;
@@ -1290,16 +1307,6 @@ private:
         doc["TCodeVersion"] = (int)TCodeVersionEnum;
         doc["ssid"] = ssid;
         
-        if(initialized && !saveWifiInfo()) {
-            // file.close();
-            return false;
-        }
-
-        if(strcmp(wifiPass, "YOUR PASSWORD HERE") != 0) {
-            doc["wifiPass"] = decoyPass;
-        } else {
-            doc["wifiPass"] = "YOUR PASSWORD HERE";
-        }
         // doc["wifiPass"] = wifiPass;
         doc["udpServerPort"] = udpServerPort;
         doc["webServerPort"] = webServerPort;

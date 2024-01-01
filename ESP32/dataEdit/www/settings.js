@@ -423,7 +423,7 @@ function onRestartClick()
             if(xhr.status == 200) {
                 var response = xhr.response;
                 logdebug("Restart succeed!");
-                if(response.apMode && userSettings.ssid !== "YOUR SSID HERE" && userSettings.wifiPass != "YOUR PASSWORD HERE") {
+                if(response.apMode && userSettings.ssid !== "YOUR SSID HERE" && userSettings.wifiPass != "YOUR PASSWORD HERE" && userSettings.wifiPass != systemInfo.decoyPass) {
                     restartingAndChangingAddress = true;
                 }
                 
@@ -812,7 +812,7 @@ function updateUserSettings(debounceInMs, uri, objectToSave, callback)
 }
 
 var updateMotionProfileSettings = function() {
-    MotionGenerator.updateSettings(0);
+    MotionGenerator.updateSettings(null, null, 0);
 }
 
 function updateALLUserSettings() {
@@ -2159,6 +2159,10 @@ function handleImportRenames(key, value) {
         break;
         case "motionProfiles": 
         motionProviderSettings.motionProfiles = value;
+        motionProviderSettings.motionProfiles.forEach(x => {
+            x.edited = true;
+            x.channels.forEach(y => y.edited = true);
+        });
         break;
         case "motionDefaultProfileIndex": 
         motionProviderSettings.motionDefaultProfileIndex = value;

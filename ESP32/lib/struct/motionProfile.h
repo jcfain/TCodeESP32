@@ -35,6 +35,7 @@ struct MotionProfile {
         snprintf(motionProfileName, sizeof(motionProfileName), "Profile %ld", profileNumber);
     }
     char motionProfileName[maxMotionProfileNameLength] = motionDefaultProfileName;
+    bool edited = false;
     std::vector<MotionChannel> channels;
 
     void addDefaultChannel(const char name[3]) {
@@ -53,6 +54,7 @@ struct MotionProfile {
 
     void toJson(JsonObject &obj) {
         obj["name"] = motionProfileName;
+        obj["edited"] = edited;
         for (size_t i = 0; i < channels.size(); i++)
         {
             channels[i].toJson(obj["channels"][i]);
@@ -63,6 +65,7 @@ struct MotionProfile {
     void fromJson(JsonObject obj) {
         const char* motionProfileNameTemp  = obj["name"] | "Profile";
         strcpy(motionProfileName, motionProfileNameTemp);
+        edited = obj["edited"];
         channels.clear();
         JsonArray array = obj["channels"].as<JsonArray>();
         for (size_t i = 0; i < array.size(); i++)

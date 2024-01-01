@@ -27,6 +27,7 @@ struct MotionChannel {
         strcpy(name, nameIn);
     }
     char name[3];
+    bool edited = false;
     // const int motionUpdateGlobalDefault = 100;
     // const int motionPeriodGlobalDefault = 2000;
     // const int motionAmplitudeGlobalDefault = 60;
@@ -68,6 +69,7 @@ struct MotionChannel {
 
     void toJson(JsonObject obj) {
         obj["name"] = name;
+        obj["edited"] = edited;
         obj["update"] = motionUpdateGlobal;
         obj["period"] = motionPeriodGlobal;
         obj["amp"] = motionAmplitudeGlobal;
@@ -93,6 +95,7 @@ struct MotionChannel {
     void fromJson(JsonObject obj) {
         const char* motionProfileNameTemp  = obj["name"] | "X0";
         strcpy(name, motionProfileNameTemp);
+        edited = obj["edited"] | false;
         // Serial.print("IN motionUpdateGlobal: ");
         // Serial.println(motionUpdateGlobal);
         motionUpdateGlobal = obj["update"] | motionUpdateGlobalDefault;
