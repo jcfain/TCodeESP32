@@ -193,8 +193,8 @@ public:
 
     static void init()
     {
-        loadSettings(false);
         loadWifiInfo(false);
+        loadSettings(false);
         loadMotionProfiles(false);
 
         setBuildFeatures();
@@ -237,9 +237,9 @@ public:
 
     static void defaultAll()
     {
+        loadWifiInfo(true);
         loadSettings(true);
         loadMotionProfiles(true);
-        loadWifiInfo(true);
     }
 
     static void defaultPinout() {
@@ -254,7 +254,6 @@ public:
         if(mutableLoadDefault || json.isNull()) {
 		    xSemaphoreTake(m_settingsMutex, portMAX_DELAY);
             if(!checkForFileAndLoad(userSettingsFilePath, json, doc, mutableLoadDefault)) {
-                saving = false;
                 xSemaphoreGive(m_settingsMutex);
                 return false;
             }
@@ -263,6 +262,10 @@ public:
             xSemaphoreGive(m_settingsMutex);
             return false;
         }
+        // if(initialized && !loadWifiInfo(false, json)){
+        //     xSemaphoreGive(m_settingsMutex);
+        //     return false;
+        // }
         xSemaphoreGive(m_settingsMutex);
         if(mutableLoadDefault)
             saveSettings();
@@ -319,17 +322,18 @@ public:
         }
         LogSaveDebug(doc);
         
-        if(initialized && !saveWifiInfo()) {
-            // file.close();
+        if(initialized && !saveWifiInfo(json)) {
+            xSemaphoreGive(m_settingsMutex);
+            saving = false;
             return false;
         }
 
-        if(strcmp(wifiPass, "YOUR PASSWORD HERE") != 0) {
-            doc["wifiPass"] = decoyPass;
+        if(strcmp(wifiPass, defaultWifiPass) != 0) {
+            doc["wifiPass"] = decoyPass; // Never set common settings to actual password
         } else {
-            doc["wifiPass"] = "YOUR PASSWORD HERE";
+            doc["wifiPass"] = defaultWifiPass; // Copy default pass to Settings file
         }
-        
+
         File file = SPIFFS.open(userSettingsFilePath, FILE_WRITE);
         if (serializeJson(doc, file) == 0)
         {
@@ -356,12 +360,11 @@ public:
         if(mutableLoadDefault || json.isNull()) {
 		    xSemaphoreTake(m_wifiMutex, portMAX_DELAY);
             if(!checkForFileAndLoad(wifiPassFilePath, json, doc, mutableLoadDefault)) {
-                saving = false;
                 xSemaphoreGive(m_wifiMutex);
                 return false;
             }
         }
-        const char *wifiPassConst = json["wifiPass"] | "YOUR PASSWORD HERE";
+        const char *wifiPassConst = json["wifiPass"] | defaultWifiPass;
         //LogHandler::info(_TAG, "Pass: %s",wifiPassConst);
         if (strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0)
         {
@@ -373,7 +376,7 @@ public:
         return true;
     }
 
-    static bool saveWifiInfo() {
+    static bool saveWifiInfo(JsonObject json = JsonObject()) {
         LogHandler::info(_TAG, "Save Wifi info file");
         saving = true;
 		xSemaphoreTake(m_wifiMutex, portMAX_DELAY);
@@ -383,6 +386,10 @@ public:
             saving = false;
             return false;
         } else {
+            if(!json.isNull()) { // If passed in, load the json into memory before flushing it to disk.
+                // WARNING: watchout for the mutex taken in this method. Changing these parameters below may result in hard locks.
+                loadWifiInfo(false, json); // DO NOT PASS loadDefault as true else infinit loop
+            }
             DynamicJsonDocument doc(100);
             File file = SPIFFS.open(wifiPassFilePath, FILE_WRITE);
             //LogHandler::info(_TAG, "Pass: %s",wifiPass);
@@ -1083,8 +1090,6 @@ private:
         {
             strcpy(ssid, ssidConst);
         }
-        if(initialized)
-            loadWifiInfo(false, json);
         if(!isBoardType(BoardType::CRIMZZON)) {
             TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 1);
             TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
