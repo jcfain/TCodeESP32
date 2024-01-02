@@ -1,3 +1,25 @@
+/* MIT License
+
+Copyright (c) 2024 Jason C. Fain
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE. */
+
 MotionGenerator = {
     channelTemplates: [],
     setup() {
@@ -53,13 +75,14 @@ MotionGenerator = {
                 checkbox.checked = motionChannelIndex > -1;
                 checkbox.onclick = function () {
                     var properties = JSON.parse(this.value);
-                    const index = getMotionChannelIndex(properties.profileIndex, properties.channelName);
+                    let index = getMotionChannelIndex(properties.profileIndex, properties.channelName);
                     if(index > -1) {
                         if (!confirm(`In order to save memory, this action will set the channel settings for this profile to DEFAULT. Are you sure?`)) {
                             this.checked = true;
                             return;
                         }
                         motionProviderSettings['motionProfiles'][properties.profileIndex]["channels"].splice(index, 1);
+                        index = -1;
                     }
                     if(this.checked) {
                         motionProviderSettings['motionProfiles'][properties.profileIndex]["channels"].push(getDefaultMotionChannel(properties.channelName));
@@ -69,7 +92,7 @@ MotionGenerator = {
                     const button = document.getElementById("motionChannelEditButton"+properties.profileIndex+properties.channelIndex);
                     Utils.toggleElementShown(button, this.checked);
                     button.disabled = !this.checked;
-                    MotionGenerator.updateSettings(profileIndex, properties.channelIndex);
+                    MotionGenerator.updateSettings(profileIndex, index > -1 ? properties.channelIndex : -1);
                 };
                 var button = document.createElement("button");
                 button.id = "motionChannelEditButton" + profileIndex + channelIndex;

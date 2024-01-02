@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2023 Jason C. Fain
+Copyright (c) 2024 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
+
 #if DEBUG_BUILD
     #define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
     #include "esp_log.h"
@@ -133,7 +134,6 @@ TaskHandle_t voiceTask;
 #endif
 // This has issues running with the webserver.
 //OTAHandler otaHandler;
-bool apMode = false;
 bool setupSucceeded = false;
 bool restarting = false;
 
@@ -312,7 +312,7 @@ void startUDP() {
 
 void startConfigMode(bool withBle= true) {
 #if WIFI_TCODE
-	apMode = true;
+	SettingsHandler::apMode = true;
 	LogHandler::info(TagHandler::Main, "Starting in APMode");
 	displayPrint("Starting in APMode");
 	if (wifi.startAp()) 
@@ -696,7 +696,7 @@ void loop() {
 			if (!SettingsHandler::getMotionEnabled() && strlen(webSocketData) > 0) {
 				LogHandler::verbose(TagHandler::MainLoop, "webSocket writing: %s", webSocketData);
 				motorHandler->read(webSocketData);
-			} else if (!apMode && !SettingsHandler::getMotionEnabled() && strlen(udpData) > 0) {
+			} else if (!SettingsHandler::apMode && !SettingsHandler::getMotionEnabled() && strlen(udpData) > 0) {
 				benchStart(6);
 				LogHandler::verbose(TagHandler::MainLoop, "udp writing: %s", udpData);
 				motorHandler->read(udpData);

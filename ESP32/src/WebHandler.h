@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2023 Jason C. Fain
+Copyright (c) 2024 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -148,10 +148,15 @@ class WebHandler : public HTTPBase {
                 SystemCommandHandler::restart();
             });
 
-            server->on("/default", HTTP_POST, [](AsyncWebServerRequest *request)
+            server->on("/default", HTTP_POST, [this](AsyncWebServerRequest *request)
             {
                 Serial.println("Settings default");
-				SettingsHandler::defaultAll();
+                if(SettingsHandler::defaultAll()) {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                    request->send(response);
+                } else {
+                    sendError(request);
+                }
             });
 
             AsyncCallbackJsonWebHandler* settingsUpdateHandler = new AsyncCallbackJsonWebHandler("/settings", [](AsyncWebServerRequest *request, JsonVariant &json)
@@ -274,6 +279,14 @@ class WebHandler : public HTTPBase {
             if(final){
                 Serial.printf("UploadEnd: %s, %u B\n", filename.c_str(), index+len);
             }
+        }
+        void sendError(AsyncWebServerRequest *request, int code = 500) {
+            char lastError[1024];
+            LogHandler::getLastError(lastError);
+            char responseMessage[1024];
+            sprintf(responseMessage, "{\"msg\":\"Error setting default: %s\"}", strlen(lastError) > 0 ? lastError : "Unknown error");
+            AsyncWebServerResponse *response = request->beginResponse(code, "application/json", responseMessage);
+            request->send(response);
         }
         // void startMDNS(char* hostName, char* friendlyName)
         // {

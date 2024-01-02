@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2023 Jason C. Fain
+Copyright (c) 2024 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -238,7 +238,11 @@ function initWebSocket() {
 			logdebug("DISCONNECTED");
             
             if(!serverPollingTimeOut && !restartingAndChangingAddress) {
-                showLoading("Server disconnected, waiting for restart...");
+                let message = "Server disconnected, waiting for restart...";
+                if(systemInfo.apMode) {
+                    message += "\n(Hint: Make sure you are connected to the AP in wifi networks."
+                }
+                showLoading(message);
                 checkForServer();
             }
             //alert('Web socket disconnected: To use some features you need to make sure the device is on and connected and refresh the page.');
@@ -359,7 +363,7 @@ function playSuccess() {
 // }
 function onDefaultClick() 
 {		
-	if (confirm("WARNING! Are you sure you wish to reset ALL settings?")) 
+	if (confirm("WARNING! Are you sure you wish to reset ALL settings?\nThis will restart your device and you may need to reconfigure your WiFi settings!")) 
 	{
 		infoNode.innerText = "Resetting...";
 		infoNode.style.color = 'white';
@@ -370,16 +374,18 @@ function onDefaultClick()
 		{
 			if (xhr.readyState === 4) 
 			{
-                getSystemInfo();
-				infoNode.innerText = "Settings reset!";
-                infoNode.style.color = 'green';
-                showRestartRequired();
-				//document.getElementById('resetBtn').disabled = false ;
-				setTimeout(() => 
-				{
-                    infoNode.hidden = true;
-                    infoNode.innerText = "";
-				}, 5000)
+                if (xhr.status !== 200) {
+                    showError("Error setting default!");
+                } else {
+                    infoNode.innerText = "Settings reset!";
+                    infoNode.style.color = 'green';
+                    onRestartClick("\nYou may need to reconfigure your wifi with the instructions provided in the zip.");
+                    setTimeout(() => 
+                    {
+                        infoNode.hidden = true;
+                        infoNode.innerText = "";
+                    }, 5000)
+                }
 			}
 		}
 		xhr.send();
@@ -395,23 +401,32 @@ function setPinoutDefault(newBoardType) {
     {
         if (xhr.readyState === 4) 
         {
-            getUserSettings();
-            infoNode.innerText = "Pinout reset!";
-            infoNode.style.color = 'green';
-            showRestartRequired();
-            //document.getElementById('resetBtn').disabled = false ;
-            setTimeout(() => 
-            {
-                infoNode.hidden = true;
-                infoNode.innerText = "";
-            }, 5000)
+            if (xhr.status !== 200) {
+                showError("Error setting pinout default!");
+            } else {
+                getUserSettings();
+                infoNode.innerText = "Pinout reset!";
+                infoNode.style.color = 'green';
+                showRestartRequired();
+                //document.getElementById('resetBtn').disabled = false ;
+                setTimeout(() => 
+                {
+                    infoNode.hidden = true;
+                    infoNode.innerText = "";
+                }, 5000)
+            }
         }
     }
     xhr.send();
 }
-function onRestartClick() 
+
+function onRestartClick(optionalMessage) 
 {		
-    showLoading("Device restarting...")
+    var warningmessage = "Device restarting...";
+    if(optionalMessage) {
+        warningmessage += optionalMessage;
+    }
+    showLoading(warningmessage);
     restartClicked = true;
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "/restart", true);

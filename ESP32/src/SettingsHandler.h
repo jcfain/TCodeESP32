@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2023 Jason C. Fain
+Copyright (c) 2024 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -186,6 +186,7 @@ public:
     static const char *logPath;
     static const char *defaultWifiPass;
     static const char *decoyPass;
+    static bool apMode;
 
     static const char* getFirmwareVersion() {
         return FIRMWARE_VERSION_NAME;
@@ -235,16 +236,82 @@ public:
         LogHandler::debug(_TAG, "SPIFFS total: %i", SPIFFS.totalBytes());
     }
 
-    static void defaultAll()
+    static bool defaultAll()
     {
-        loadWifiInfo(true);
-        loadSettings(true);
-        loadMotionProfiles(true);
+        return loadWifiInfo(true) &&  loadSettings(true) && loadMotionProfiles(true);
     }
 
     static void defaultPinout() {
 		setBoardPinout();
         saveSettings();
+    }
+
+    static void getSystemInfo(char buf[1024])
+    {
+        DynamicJsonDocument doc(1024);
+
+        doc["esp32Version"] = FIRMWARE_VERSION_NAME;
+        doc["TCodeVersion"] = (int)TCodeVersionEnum;
+        doc["lastRebootReason"] = lastRebootReason;
+        
+        JsonArray boardTypes = doc.createNestedArray("boardTypes");
+        JsonObject devkit = boardTypes.createNestedObject();
+        devkit["name"] = "Devkit/NexusPRO";
+        devkit["value"] = (uint8_t)BoardType::DEVKIT;
+        JsonObject SR6MB = boardTypes.createNestedObject();
+        SR6MB["name"] = "SR6MB";
+        SR6MB["value"] = (uint8_t)BoardType::CRIMZZON;
+        JsonObject INControl = boardTypes.createNestedObject();
+        INControl["name"] = "IN-Control";
+        INControl["value"] = (uint8_t)BoardType::ISAAC;
+        
+        doc["motorType"] = (int)motorType;
+        JsonArray buildFeaturesJsonArray = doc.createNestedArray("buildFeatures");
+        for (BuildFeature value : buildFeatures)
+        {
+            buildFeaturesJsonArray.add((int)value);
+        }
+
+        JsonArray availableTagsJsonArray = doc.createNestedArray("availableTags");
+        for (const char *tag : TagHandler::AvailableTags)
+        {
+            availableTagsJsonArray.add(tag);
+        }
+        JsonArray systemI2CAddressesJsonArray = doc.createNestedArray("systemI2CAddresses");
+        systemI2CAddressesJsonArray.add("0x0");
+        for (int value : systemI2CAddresses) {
+			char buf[10];
+            hexToString(value, buf);
+            systemI2CAddressesJsonArray.add(buf);
+        }
+        doc["motionEnabled"] = motionEnabled;
+        doc["motionSelectedProfileIndex"] = motionSelectedProfileIndex;
+        
+        doc["localIP"] = localIP;
+        doc["gateway"] = gateway;
+        doc["subnet"] = subnet;
+        doc["dns1"] = dns1;
+        doc["dns2"] = dns2;
+
+        doc["chipModel"] = ESP.getChipModel();
+        doc["chipRevision"] = ESP.getChipRevision();
+        doc["chipCores"] = ESP.getChipCores();
+        uint32_t chipId = 0;
+        for (int i = 0; i < 17; i = i + 8)
+        {
+            chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
+        }
+        doc["chipID"] = chipId;
+
+        doc["decoyPass"] = decoyPass;
+        doc["apMode"] = apMode;
+        String output;
+        serializeJson(doc, output);
+        doc.clear();
+        if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
+            Serial.printf("SystemInfo: %s\n", output.c_str());
+        buf[0] = {0};
+        strcpy(buf, output.c_str());
     }
 
     static bool loadSettings(bool loadDefault, JsonObject json = JsonObject()) {
@@ -470,11 +537,11 @@ public:
         int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
         LogHandler::debug(_TAG, "motion profiles length: %ld", len);
         for (int i=0; i < len; i++) {
-            if(!json.isNull() || !initialized || motionProfiles[i].edited) {
+            //if(motionProfiles[i].edited) { // TODO: this does not work because doc is empty and needs to be loaded from disk first bedore modifying sections of it.
                 LogHandler::debug(_TAG, "Edited motion profile name: %s", motionProfiles[i].motionProfileName);
                 doc["motionProfiles"][i]["name"] = motionProfiles[i].motionProfileName;
                 for (size_t j = 0; j < motionProfiles[i].channels.size(); j++) {
-                    if(!json.isNull() || !initialized || motionProfiles[i].channels[j].edited) {
+                    //if(motionProfiles[i].channels[j].edited) {
                         LogHandler::debug(_TAG, "motion profile channel: %s", motionProfiles[i].channels[j].name);
                         doc["motionProfiles"][i]["channels"][j]["name"] = motionProfiles[i].channels[j].name;
                         doc["motionProfiles"][i]["channels"][j]["update"] = motionProfiles[i].channels[j].motionUpdateGlobal;
@@ -498,13 +565,13 @@ public:
                         doc["motionProfiles"][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
                         doc["motionProfiles"][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
                         motionProfiles[i].channels[j].edited = false;
-                    }
+                    //}
                 }
                 if(initialized && motionSelectedProfileIndex == i) {
                     sendMessage("motionGenerator", "motionProfile");
                 }
                 motionProfiles[i].edited = false;
-            }
+            //}
         }
         File file = SPIFFS.open(motionProfilesFilePath, FILE_WRITE);
         if (serializeJson(doc, file) == 0) {
@@ -790,73 +857,6 @@ public:
 
     static const int getDeserializeSize() {
         return deserializeSize;
-    }
-
-    static void getSystemInfo(char buf[1024])
-    {
-        DynamicJsonDocument doc(1024);
-
-        doc["esp32Version"] = FIRMWARE_VERSION_NAME;
-        doc["TCodeVersion"] = (int)TCodeVersionEnum;
-        doc["lastRebootReason"] = lastRebootReason;
-        
-        JsonArray boardTypes = doc.createNestedArray("boardTypes");
-        JsonObject devkit = boardTypes.createNestedObject();
-        devkit["name"] = "Devkit/NexusPRO";
-        devkit["value"] = (uint8_t)BoardType::DEVKIT;
-        JsonObject SR6MB = boardTypes.createNestedObject();
-        SR6MB["name"] = "SR6MB";
-        SR6MB["value"] = (uint8_t)BoardType::CRIMZZON;
-        JsonObject INControl = boardTypes.createNestedObject();
-        INControl["name"] = "IN-Control";
-        INControl["value"] = (uint8_t)BoardType::ISAAC;
-        
-        doc["motorType"] = (int)motorType;
-        JsonArray buildFeaturesJsonArray = doc.createNestedArray("buildFeatures");
-        for (BuildFeature value : buildFeatures)
-        {
-            buildFeaturesJsonArray.add((int)value);
-        }
-
-        JsonArray availableTagsJsonArray = doc.createNestedArray("availableTags");
-        for (const char *tag : TagHandler::AvailableTags)
-        {
-            availableTagsJsonArray.add(tag);
-        }
-        JsonArray systemI2CAddressesJsonArray = doc.createNestedArray("systemI2CAddresses");
-        systemI2CAddressesJsonArray.add("0x0");
-        for (int value : systemI2CAddresses) {
-			char buf[10];
-            hexToString(value, buf);
-            systemI2CAddressesJsonArray.add(buf);
-        }
-        doc["motionEnabled"] = motionEnabled;
-        doc["motionSelectedProfileIndex"] = motionSelectedProfileIndex;
-        
-        doc["localIP"] = localIP;
-        doc["gateway"] = gateway;
-        doc["subnet"] = subnet;
-        doc["dns1"] = dns1;
-        doc["dns2"] = dns2;
-
-        doc["chipModel"] = ESP.getChipModel();
-        doc["chipRevision"] = ESP.getChipRevision();
-        doc["chipCores"] = ESP.getChipCores();
-        uint32_t chipId = 0;
-        for (int i = 0; i < 17; i = i + 8)
-        {
-            chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
-        }
-        doc["chipID"] = chipId;
-
-        doc["decoyPass"] = decoyPass;
-        String output;
-        serializeJson(doc, output);
-        doc.clear();
-        if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
-            Serial.printf("SystemInfo: %s\n", output.c_str());
-        buf[0] = {0};
-        strcpy(buf, output.c_str());
     }
 
     static void processTCodeJson(char *outbuf, const char *tcodeJson)
@@ -1480,7 +1480,6 @@ private:
     }
 
     static bool createDefaultJson(const char* path) {
-        LogHandler::info(_TAG, "Creating file %s", path);
         if(SPIFFS.exists(path)) {
             LogHandler::info(_TAG, "Deleting existing file for default %s", path);
             if(!SPIFFS.remove(path)) {
@@ -1488,6 +1487,7 @@ private:
                 return false;
             }
         }
+        LogHandler::info(_TAG, "Creating file %s", path);
         File newFile = SPIFFS.open(path, FILE_WRITE, true);
         newFile.print("{}");
         newFile.flush();
@@ -2067,6 +2067,7 @@ SemaphoreHandle_t SettingsHandler::m_settingsMutex = xSemaphoreCreateMutex();
 bool SettingsHandler::initialized = false;
 bool SettingsHandler::saving = false;
 bool SettingsHandler::fullBuild = false;
+bool SettingsHandler::apMode = false;
 
 BoardType SettingsHandler::boardType = BoardType::DEVKIT;
 BuildFeature SettingsHandler::buildFeatures[featureCount];

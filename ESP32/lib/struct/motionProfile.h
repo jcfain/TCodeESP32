@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2023 Jason C. Fain
+Copyright (c) 2024 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,10 @@ struct MotionProfile {
     std::vector<MotionChannel> channels;
 
     void addDefaultChannel(const char name[3]) {
-        channels.push_back(MotionChannel(name));
+        edited = true;
+        auto channel = MotionChannel(name);
+        channel.edited = true;
+        channels.push_back(channel);
     }
 
     int getMotionChannelIndex(const char name[3]) {
