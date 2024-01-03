@@ -438,9 +438,8 @@ function onRestartClick(optionalMessage)
             if(xhr.status == 200) {
                 var response = xhr.response;
                 logdebug("Restart succeed!");
-                if(response.apMode && userSettings.ssid !== "YOUR SSID HERE" && userSettings.wifiPass != "YOUR PASSWORD HERE" && userSettings.wifiPass != systemInfo.decoyPass) {
-                    restartingAndChangingAddress = true;
-                }
+
+                checkRestartRedirect();
                 
                 if(restartingAndChangingAddress) {
                     var isIPStatic = userSettings["staticIP"];
@@ -765,12 +764,7 @@ function updateUserSettings(debounceInMs, uri, objectToSave, callback)
         }
         upDateTimeout = setTimeout(() => 
         {
-            if(startUpWebPort !== userSettings["webServerPort"] || 
-                startUpHostName !== userSettings["hostname"] || 
-                startUpStaticIP !== userSettings["staticIP"] ||
-                startUpLocalIP !== userSettings["localIP"]) {
-                restartingAndChangingAddress = true;
-            }
+            checkRestartRedirect();
             
             infoNode.hidden = false;
             infoNode.innerText = "Saving...";
@@ -823,6 +817,24 @@ function updateUserSettings(debounceInMs, uri, objectToSave, callback)
             xhr.send(body);
             upDateTimeout = null;
         }, debounceInMs);
+    }
+}
+
+function checkRestartRedirect() {
+    if(startUpWebPort !== userSettings["webServerPort"] || 
+        startUpHostName !== userSettings["hostname"] || 
+        startUpStaticIP !== userSettings["staticIP"] ||
+        startUpLocalIP !== userSettings["localIP"]) {
+        restartingAndChangingAddress = true;
+    }
+    const isPort80 = window.location.port.length == 0;
+    const isUserPort80 = userSettings["webServerPort"] == 80;
+    const port80Changed = isPort80 && !isUserPort80 || !isPort80 && isUserPort80;
+    const portChanged = port80Changed || (!isPort80 && window.location.port != userSettings["webServerPort"]);
+    if((window.location.hostname != userSettings["hostname"] || portChanged)
+        && (userSettings.ssid !== "YOUR SSID HERE" && userSettings.wifiPass != "YOUR PASSWORD HERE" && userSettings.wifiPass != systemInfo.decoyPass))
+        {
+        restartingAndChangingAddress = true;
     }
 }
 

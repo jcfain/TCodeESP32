@@ -248,7 +248,7 @@ public:
 
     static void getSystemInfo(char buf[1024])
     {
-        DynamicJsonDocument doc(1024);
+        DynamicJsonDocument doc(1256);
 
         doc["esp32Version"] = FIRMWARE_VERSION_NAME;
         doc["TCodeVersion"] = (int)TCodeVersionEnum;
@@ -315,7 +315,7 @@ public:
     }
 
     static bool loadSettings(bool loadDefault, JsonObject json = JsonObject()) {
-        LogHandler::info(_TAG, "Loading setting");
+        LogHandler::info(_TAG, "Loading common settings");
         bool mutableLoadDefault = loadDefault;
         DynamicJsonDocument doc(deserializeSize);
         if(mutableLoadDefault || json.isNull()) {
@@ -1481,7 +1481,7 @@ private:
 
     static bool createDefaultJson(const char* path) {
         if(SPIFFS.exists(path)) {
-            LogHandler::info(_TAG, "Deleting existing file for default %s", path);
+            LogHandler::debug(_TAG, "Deleting existing file for default %s", path);
             if(!SPIFFS.remove(path)) {
                 LogHandler::error(_TAG, "Error deleting %s!", path);
                 return false;
