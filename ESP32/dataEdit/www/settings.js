@@ -81,9 +81,11 @@ var testDeviceDisableModifier = false;
 var testDeviceModifierValue = "1000";
 var restartClicked = false;
 var serverPollingTimeOut = null;
+var staticIPAddressTimeout = null;
 var websocketRetryCount = 0;
 var channelSliderList = [];
 var restartingAndChangingAddress = false;
+var resettingAllToDefault = false;
 var startUpHostName;
 var startUpWebPort;
 var startUpStaticIP;
@@ -379,6 +381,7 @@ function onDefaultClick()
                 } else {
                     infoNode.innerText = "Settings reset!";
                     infoNode.style.color = 'green';
+                    resettingAllToDefault = true;
                     onRestartClick("\nYou may need to reconfigure your wifi with the instructions provided in the zip.");
                     setTimeout(() => 
                     {
@@ -439,7 +442,11 @@ function onRestartClick(optionalMessage)
                 var response = xhr.response;
                 logdebug("Restart succeed!");
 
-                checkRestartRedirect();
+                if(!resettingAllToDefault) {// There redirect should be to the default IP address.
+                    checkRestartRedirect();
+                } else {
+                    restartingAndChangingAddress = true;
+                }
                 
                 if(restartingAndChangingAddress) {
                     var isIPStatic = userSettings["staticIP"];
@@ -448,16 +455,22 @@ function onRestartClick(optionalMessage)
                     var hostname = userSettings["hostname"];
                     var url = "http://"+hostname+".local";
                     url += webServerPort === 80 ? "" : ":"+webServerPort;
+                    if(resettingAllToDefault) {
+                        url = "http://"+systemInfo.defaultIP+"/";
+                        isIPStatic = false;
+                    }
                     var staticIPUrl = "http://"+localIP;
                     staticIPUrl += webServerPort === 80 ? "" : ":"+webServerPort;
-                    var message = "Device restarting, the page will redirect to<br><a href='"+url+"'>"+url+"</a> in 15 seconds<br>";
-                    message += isIPStatic ? "If this doesnt work, you can try using this url<br><a href='"+staticIPUrl+"'>"+staticIPUrl+"</a> when the device reboots." 
-                        : "If this doesnt work, you will need<br>to find the dymanic ip address of the esp32."
+                    var message = "Device restarting, the page will redirect to<br><a href='"+url+"'>"+url+"</a> in 10 seconds<br>";
+                    if(!resettingAllToDefault) {
+                        message += isIPStatic ? "If this doesnt work, you can try using this url<br><a href='"+staticIPUrl+"'>"+staticIPUrl+"</a> when the device reboots." 
+                            : "If this doesnt work, you will need<br>to find the dymanic ip address of the esp32."
+                    }
                     showLoading(message);
                     setTimeout(() => {
                         logdebug("Redirecting to: " + url)
                         window.location.href = url;
-                    }, 15000);
+                    }, 10000);
                 }
                 hideRestartRequired();
             } else {
@@ -821,21 +834,39 @@ function updateUserSettings(debounceInMs, uri, objectToSave, callback)
 }
 
 function checkRestartRedirect() {
-    if(startUpWebPort !== userSettings["webServerPort"] || 
-        startUpHostName !== userSettings["hostname"] || 
-        startUpStaticIP !== userSettings["staticIP"] ||
-        startUpLocalIP !== userSettings["localIP"]) {
-        restartingAndChangingAddress = true;
-    }
-    const isPort80 = window.location.port.length == 0;
-    const isUserPort80 = userSettings["webServerPort"] == 80;
-    const port80Changed = isPort80 && !isUserPort80 || !isPort80 && isUserPort80;
-    const portChanged = port80Changed || (!isPort80 && window.location.port != userSettings["webServerPort"]);
-    if((window.location.hostname != userSettings["hostname"] || portChanged)
-        && (userSettings.ssid !== "YOUR SSID HERE" && userSettings.wifiPass != "YOUR PASSWORD HERE" && userSettings.wifiPass != systemInfo.decoyPass))
-        {
-        restartingAndChangingAddress = true;
-    }
+    // if(startUpWebPort !== userSettings["webServerPort"] || 
+    //     startUpHostName !== userSettings["hostname"] || 
+    //     startUpStaticIP !== userSettings["staticIP"] ||
+    //     startUpLocalIP !== userSettings["localIP"]) {
+    //     restartingAndChangingAddress = true;
+    // }
+    // if(!restartingAndChangingAddress) {
+        // Apmode configuration
+        const passwordChanged = userSettings.ssid !== "YOUR SSID HERE" && userSettings.wifiPass != "YOUR PASSWORD HERE" && userSettings.wifiPass != systemInfo.decoyPass;
+        const wifiConfiguredAndNOTConnected = systemInfo.apMode && passwordChanged;
+
+        if(wifiConfiguredAndNOTConnected) {
+            restartingAndChangingAddress = true;
+        } else {// Connect to wifi configuration
+            //Uri change
+            const isPort80 = window.location.port.length == 0;
+            const isUserPort80 = userSettings["webServerPort"] == 80;
+            const port80Changed = isPort80 && !isUserPort80 || !isPort80 && isUserPort80;
+            const portChanged = port80Changed || (!isPort80 && window.location.port != userSettings["webServerPort"]);
+            const connectedAndPortChanged = !systemInfo.apMode && portChanged; 
+            //Not using IP address and hostname change
+            const isCurrentIPAddress = isValidIP(window.location.hostname);
+            const connectedAndHostnameChanged = !isCurrentIPAddress && !systemInfo.apMode && window.location.hostname != userSettings["hostname"];
+
+            if(connectedAndPortChanged || connectedAndHostnameChanged) {
+                restartingAndChangingAddress = true;
+            }
+        }
+    // }
+}
+
+function isValidIP(ip) {
+    return ip && ip.match(/^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/);
 }
 
 var updateMotionProfileSettings = function() {
@@ -2013,24 +2044,62 @@ function showWifiPassword() {
 }
 
 function updateWifiSettings() {
-    userSettings["ssid"] = document.getElementById('ssid').value;
-    userSettings["wifiPass"] = document.getElementById('wifiPass').value;
-	var staticIP = document.getElementById('staticIP').checked;
-	var localIP = document.getElementById('localIPInput').value;
-	var gateway = document.getElementById('gatewayInput').value;
-	var subnet = document.getElementById('subnetInput').value;
-	var dns1 = document.getElementById('dns1Input').value;
-	var dns2 = document.getElementById('dns2Input').value;
-    userSettings["staticIP"] = staticIP;
+    if(staticIPAddressTimeout !== null) 
+    {
+        clearTimeout(staticIPAddressTimeout);
+    }
+    var staticIP = document.getElementById('staticIP').checked;
     toggleStaticIPSettings(staticIP);
-    userSettings["localIP"] = localIP;
-    userSettings["gateway"] = gateway;
-    userSettings["subnet"] = subnet;
-    userSettings["dns1"] = dns1;
-    userSettings["dns2"] = dns2;
-	setRestartRequired();
-	updateUserSettings();
-	
+    staticIPAddressTimeout = setTimeout(() => 
+    {
+        userSettings["ssid"] = document.getElementById('ssid').value;
+        userSettings["wifiPass"] = document.getElementById('wifiPass').value;
+        var ips = {};
+        ips.localIP = document.getElementById('localIPInput').value;
+        ips.gateway = document.getElementById('gatewayInput').value;
+        ips.subnet = document.getElementById('subnetInput').value;
+        ips.dns1 = document.getElementById('dns1Input').value;
+        ips.dns2 = document.getElementById('dns2Input').value;
+        if(validateStaticIPAddresses(ips)) {
+            userSettings["staticIP"] = staticIP;
+            userSettings["localIP"] = ips.localIP;
+            userSettings["gateway"] = ips.gateway;
+            userSettings["subnet"] = ips.subnet;
+            userSettings["dns1"] = ips.dns1;
+            userSettings["dns2"] = ips.dns2;
+            setRestartRequired();
+            updateUserSettings(0);
+        }
+    }, 3000);
+}
+
+function validateStaticIPAddresses(ips) {
+    var invalidIPS = [];
+    clearErrors("staticIPValidation");
+    if(!isValidIP(ips.localIP)) {
+        invalidIPS.push("Invalid static IP address");
+    }
+    if(!isValidIP(ips.gateway)) {
+        invalidIPS.push("Invalid static gateway address");
+    }
+    if(!isValidIP(ips.subnet)) {
+        invalidIPS.push("Invalid static subnet address");
+    }
+    if(ips.dns1 && ips.dns1.length > 0 && !isValidIP(ips.dns1)) {
+        invalidIPS.push("Invalid static dns1 address");
+    }
+    if(ips.dns1 && ips.dns2.length > 0 && !isValidIP(ips.dns1)) {
+        invalidIPS.push("Invalid static dns2 address");
+    }
+    if(invalidIPS.length) {
+        var errorString = "<div name='staticIPValidation'>Static Ip settings not saved due to invalid IP addresses<br>";
+            errorString += "<div style='margin-left: 25px;'>The following addreses are invalid:<br><div style='color: white; margin-left: 25px;'>"+invalidIPS.join("<br>")+"</div></div>"
+        
+        errorString += "</div>";
+        showError(errorString);
+        return false;
+    }
+    return true;
 }
 
 

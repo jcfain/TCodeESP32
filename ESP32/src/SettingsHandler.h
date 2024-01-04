@@ -61,6 +61,9 @@ public:
     static TCodeVersion TCodeVersionEnum;
     static MotorType motorType;
     static std::vector<int> systemI2CAddresses;
+    static const char defaultIP[15];
+    static const char defaultGateWay[15];
+    static const char defaultSubnet[15];
     const static char HandShakeChannel[4];
     const static char SettingsChannel[4];
     static bool bluetoothEnabled;
@@ -246,7 +249,7 @@ public:
         saveSettings();
     }
 
-    static void getSystemInfo(char buf[1024])
+    static void getSystemInfo(char buf[1256])
     {
         DynamicJsonDocument doc(1256);
 
@@ -305,6 +308,7 @@ public:
 
         doc["decoyPass"] = decoyPass;
         doc["apMode"] = apMode;
+        doc["defaultIP"] = defaultIP;
         String output;
         serializeJson(doc, output);
         doc.clear();
@@ -2086,6 +2090,9 @@ const char *SettingsHandler::motionProfilesFilePath = "/motionProfiles.json";
 const char *SettingsHandler::logPath = "/log.json";
 const char *SettingsHandler::defaultWifiPass = "YOUR PASSWORD HERE";
 const char *SettingsHandler::decoyPass = "Too bad haxor!";
+const char SettingsHandler::defaultIP[15] = "192.168.69.1";
+const char SettingsHandler::defaultGateWay[15] = "192.168.69.254";
+const char SettingsHandler::defaultSubnet[15] = "255.255.255.0";
 bool SettingsHandler::bluetoothEnabled = true;
 LogLevel SettingsHandler::logLevel = LogLevel::INFO;
 bool SettingsHandler::isTcp = true;

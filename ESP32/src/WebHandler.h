@@ -52,7 +52,7 @@ class WebHandler : public HTTPBase {
             });   
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                char systemInfo[1024];
+                char systemInfo[1256];
                 SettingsHandler::getSystemInfo(systemInfo);
                 if (strlen(systemInfo) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
