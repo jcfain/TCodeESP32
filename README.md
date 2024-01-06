@@ -7,20 +7,29 @@ This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). I
   https://github.com/jcfain/TCodeESP32/releases
   ### FROM SOURCE
   First You need to install the dev environment for the ESP32 and arduino.
-  Some good placees to start 
+  It actually easier than you may think.
+  1. Install VSCode
+  2. Install the platformIO extension in VSCode
+  3. Point VSCode to the directory containing platformio.ini
+  4. Select the build you want from the bottom toolbar
+  5. Select Upload button on the bottom toolbat. Has an arror pointing right.
+  6. On the left side of VSCode there should be an alien head. Select it and find Upload file system.
+  7. Profit
+  For more infor here are some good placees:
   - https://platformio.org/install/ide?install=vscode 
   - https://docs.platformio.org/en/latest//integration/ide/vscode.html#quick-start
   - https://github.com/espressif/arduino-esp32#installation-instructions
   #### LIBRARIES 
     Depending on the build you select, you will need a few additional libraries to build this sketch. 
-    If platformIO is installed with the correct directory selected (platformio.ini), it should download these automatically on first build.
+    If platformIO is installed with the correct directory selected (platformio.ini),
+    these should download automatically on first build.
     - ESP32Servo
     - ESP Async Webserver
     - EAsyncTCP
     - ArduinoJson
-    - paulstoffregen/OneWire@^2.3.5
-    - milesburton/DallasTemperature@^3.9.1
-    - adafruit/Adafruit SSD1306@^2.4.3
+    - paulstoffregen/OneWire
+    - milesburton/DallasTemperature@
+    - adafruit/Adafruit SSD1306
     - Adafruit GFX Library
     - Adafruit BusIO
     - SPI
@@ -30,9 +39,7 @@ This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). I
     I believe the sketch could be built in the Arduino IDE with the correct libraries but I have not tested.
     
   #### FILE SYSTEM
-    Modify /data/userSettingsDefault.json with your wifi ssid and password etc.
+    Modify /SettingsHandler.h with your wifi ssid and password etc.
     Flash the code and upload the filesystem image. Then start the monitor on the COM port to see the ip address if dynamic.
     
-    You can also set the wifi settings via the web interface in AP mode on first boot.
-    Or you can use the Android configurator app I wrote found here:
-    https://www.patreon.com/posts/tcodeconfig-0-5a-72658342
+    You can also set the wifi settings via the web interface in AP mode or via the commands via serial monitoe on first boot.
