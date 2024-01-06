@@ -7,14 +7,15 @@ This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). I
   https://github.com/jcfain/TCodeESP32/releases
   ### FROM SOURCE
   First You need to install the dev environment for the ESP32 and arduino.
-  It actually easier than you may think.
+  It's actually easier than you may think.
   1. Install VSCode
   2. Install the platformIO extension in VSCode
   3. Point VSCode to the directory containing platformio.ini
   4. Select the build you want from the bottom toolbar
-  5. Select Upload button on the bottom toolbat. Has an arror pointing right.
-  6. On the left side of VSCode there should be an alien head. Select it and find Upload file system.
+  5. Select Upload button on the bottom toolbar. (Has an arrow pointing right)
+  6. On the left side of VSCode, there should be an alien head. Select it and execute "Upload file system".
   7. Profit
+     
   For more infor here are some good placees:
   - https://platformio.org/install/ide?install=vscode 
   - https://docs.platformio.org/en/latest//integration/ide/vscode.html#quick-start
