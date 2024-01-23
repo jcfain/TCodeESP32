@@ -107,6 +107,12 @@ public:
 					return true;
 				}, true);
 			}
+			if(isCommand(in, "#pause-toggle")) {
+				return execute([]() -> bool {
+					SettingsHandler::motionPaused = !SettingsHandler::motionPaused;
+					return true;
+				}, true);
+			}
 			
 			
 			// if(isCommand(in, "$motion-period-random-on")) {

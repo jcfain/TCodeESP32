@@ -65,7 +65,7 @@ struct MotionProfile {
         
     }
 
-    void fromJson(JsonObject obj) {
+    void fromJson(const JsonObject& obj) {
         const char* motionProfileNameTemp  = obj["name"] | "Profile";
         strcpy(motionProfileName, motionProfileNameTemp);
         edited = obj["edited"];

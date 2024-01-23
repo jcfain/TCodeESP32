@@ -35,14 +35,10 @@ SOFTWARE. */
 #include "../lib/struct/motionProfile.h"
 #include "../lib/struct/channel.h"
 #include "../lib/struct/motionChannel.h"
+#include "../lib/struct/buttonSet.h"
 #include "../lib/enum.h"
 #include "../lib/constants.h"
-
-//#define FIRMWARE_VERSION 0.32f Not used currently
-#define FIRMWARE_VERSION_NAME "0.35b"
-#define featureCount 8
-#define MAX_BUTTONS 8
-#define MAX_COMMAND 100
+#include "../lib/channelMap.hpp"
 
 using SETTING_STATE_FUNCTION_PTR_T = void (*)(const char *group, const char *settingNameThatChanged);
 
@@ -51,9 +47,11 @@ class SettingsHandler
 public:
     static bool initialized;
     static bool saving;
+    static bool motionPaused;
     static bool fullBuild;
     static LogLevel logLevel;
 
+    static ChannelMap channelMap;
     static std::vector<Channel> currentChannels;
     static BoardType boardType;
     static BuildFeature buildFeatures[featureCount];
@@ -125,6 +123,7 @@ public:
     static char dns1[15];
     static char dns2[15];
     static bool sr6Mode;
+    static DeviceType deviceType;
     static int RightServo_ZERO;
     static int LeftServo_ZERO;
     static int RightUpperServo_ZERO;
@@ -178,6 +177,7 @@ public:
     static int caseFanResolution;
 
     static char bootButtonCommand[MAX_COMMAND];
+    static ButtonSet buttonSets[MAX_BUTTON_SETS];
 
     static VoiceCommand voiceCommands[147];
 
@@ -185,6 +185,7 @@ public:
 
     static const char *userSettingsFilePath;
     static const char *wifiPassFilePath;
+    static const char *buttonsFilePath;
     static const char *motionProfilesFilePath;
     static const char *logPath;
     static const char *defaultWifiPass;
@@ -197,12 +198,13 @@ public:
 
     static void init()
     {
+        setBuildFeatures();
+        setMotorType();
+
         loadWifiInfo(false);
         loadSettings(false);
         loadMotionProfiles(false);
-
-        setBuildFeatures();
-        setMotorType();
+        loadButtons(false);
 
         initialized = true;
     }
@@ -287,6 +289,23 @@ public:
             hexToString(value, buf);
             systemI2CAddressesJsonArray.add(buf);
         }
+
+        JsonArray deviceTypes = doc.createNestedArray("deviceTypes");
+        JsonObject defaultDevice = deviceTypes.createNestedObject();
+    #if MOTOR_TYPE == 0
+        defaultDevice["name"] = "OSR";
+        defaultDevice["value"] = (uint8_t)DeviceType::OSR;
+        JsonObject SR6 = deviceTypes.createNestedObject();
+        SR6["name"] = "SR6";
+        SR6["value"] = (uint8_t)DeviceType::SR6;
+    #elif MOTOR_TYPE == 1
+        defaultDevice["name"] = "BLDC";
+        defaultDevice["value"] = (uint8_t)DeviceType::SSR1;
+    #endif
+
+        JsonArray availableChannels = doc.createNestedArray("availableChannels");
+        channelMap.serialize(availableChannels);
+
         doc["motionEnabled"] = motionEnabled;
         doc["motionSelectedProfileIndex"] = motionSelectedProfileIndex;
         
@@ -320,27 +339,31 @@ public:
 
     static bool loadSettings(bool loadDefault, JsonObject json = JsonObject()) {
         LogHandler::info(_TAG, "Loading common settings");
-        bool mutableLoadDefault = loadDefault;
-        DynamicJsonDocument doc(deserializeSize);
-        if(mutableLoadDefault || json.isNull()) {
-		    xSemaphoreTake(m_settingsMutex, portMAX_DELAY);
-            if(!checkForFileAndLoad(userSettingsFilePath, json, doc, mutableLoadDefault)) {
-                xSemaphoreGive(m_settingsMutex);
-                return false;
-            }
-        }
-        if(!update(json)) {
-            xSemaphoreGive(m_settingsMutex);
-            return false;
-        }
-        // if(initialized && !loadWifiInfo(false, json)){
+        // bool mutableLoadDefault = loadDefault;
+        // DynamicJsonDocument doc(deserializeSize);
+        // if(mutableLoadDefault || json.isNull()) {
+		//     xSemaphoreTake(m_settingsMutex, portMAX_DELAY);
+        //     if(!checkForFileAndLoad(userSettingsFilePath, json, doc, mutableLoadDefault)) {
+        //         xSemaphoreGive(m_settingsMutex);
+        //         return false;
+        //     }
+        // }
+        // if(!update(json)) {
         //     xSemaphoreGive(m_settingsMutex);
         //     return false;
         // }
-        xSemaphoreGive(m_settingsMutex);
-        if(mutableLoadDefault)
-            saveSettings();
-        return true;
+        // // if(initialized && !loadWifiInfo(false, json)){
+        // //     xSemaphoreGive(m_settingsMutex);
+        // //     return false;
+        // // }
+        // xSemaphoreGive(m_settingsMutex);
+        // if(mutableLoadDefault)
+        //     saveSettings();
+        // return true;
+        
+        return loadSettingsJson(userSettingsFilePath, loadDefault, m_settingsMutex, deserializeSize, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
+            return update(json);
+        }, saveSettings, json);
     }
 
     // static bool save(String data)
@@ -371,57 +394,83 @@ public:
     static bool saveSettings(JsonObject json = JsonObject()) {
         saving = true;
         LogHandler::info(_TAG, "Save common settings file");
-		xSemaphoreTake(m_settingsMutex, portMAX_DELAY);
-        if (!SPIFFS.exists(userSettingsFilePath)) {
-            LogHandler::error(_TAG, "Settings file did not exist whan saving.");
-            saving = false;
-            xSemaphoreGive(m_settingsMutex);
-            return false;
-        }
-        if(!json.isNull()) { // If passed in, load the json into memory before flushing it to disk.
-            // WARNING: watchout for the mutex taken in this method. Changing these parameters below may result in hard locks.
-            loadSettings(false, json); // DO NOT PASS loadDefault as true else infinit loop
-        }
 
-        DynamicJsonDocument doc(serializeSize);
-
-        if(!compileCommonJsonDocument(doc)) {
-            doc["wifiPass"] = "";
-            xSemaphoreGive(m_settingsMutex);
-            saving = false;
-            return false;
-        }
-        LogSaveDebug(doc);
-        
+        //TODO: move wifi to its own API call.
+        xSemaphoreTake(m_settingsMutex, portMAX_DELAY);
         if(initialized && !saveWifiInfo(json)) {
             xSemaphoreGive(m_settingsMutex);
             saving = false;
             return false;
         }
 
-        if(strcmp(wifiPass, defaultWifiPass) != 0) {
-            doc["wifiPass"] = decoyPass; // Never set common settings to actual password
-        } else {
-            doc["wifiPass"] = defaultWifiPass; // Copy default pass to Settings file
-        }
+        uint16_t docSize = 1000;
+        return saveSettingsJson(userSettingsFilePath, m_settingsMutex, serializeSize, [](DynamicJsonDocument& doc) -> bool {
+            if(!compileCommonJsonDocument(doc)) {
+                return false;
+            }
+            LogSaveDebug(doc);
 
-        File file = SPIFFS.open(userSettingsFilePath, FILE_WRITE);
-        if (serializeJson(doc, file) == 0)
-        {
-            LogHandler::error(_TAG, "Failed to write to settings file");
-            file.close();
-            doc["wifiPass"] = "";
-            xSemaphoreGive(m_settingsMutex);
-            saving = false;
-            return false;
-        }
-        LogHandler::debug(_TAG, "File contents: %s", file.readString().c_str());
-        printMemory();
-        doc["wifiPass"] = "";
+            //TODO: move wifi to its own API call.
+            if(strcmp(wifiPass, defaultWifiPass) != 0) {
+                doc["wifiPass"] = decoyPass; // Never set common settings to actual password
+            } else {
+                doc["wifiPass"] = defaultWifiPass; // Copy default pass to Settings file
+            }
+
+            return true;
+        }, loadSettings, json);
+
+		// xSemaphoreTake(m_settingsMutex, portMAX_DELAY);
+        // if (!SPIFFS.exists(userSettingsFilePath)) {
+        //     LogHandler::error(_TAG, "Settings file did not exist whan saving.");
+        //     saving = false;
+        //     xSemaphoreGive(m_settingsMutex);
+        //     return false;
+        // }
+        // if(!json.isNull()) { // If passed in, load the json into memory before flushing it to disk.
+        //     // WARNING: watchout for the mutex taken in this method. Changing these parameters below may result in hard locks.
+        //     loadSettings(false, json); // DO NOT PASS loadDefault as true else infinit loop
+        // }
+
+        // DynamicJsonDocument doc(serializeSize);
+
+        // if(!compileCommonJsonDocument(doc)) {
+        //     doc["wifiPass"] = "";
+        //     xSemaphoreGive(m_settingsMutex);
+        //     saving = false;
+        //     return false;
+        // }
+        // LogSaveDebug(doc);
         
-        xSemaphoreGive(m_settingsMutex);
-        saving = false;
-        return true;
+        // if(initialized && !saveWifiInfo(json)) {
+        //     xSemaphoreGive(m_settingsMutex);
+        //     saving = false;
+        //     return false;
+        // }
+
+        // if(strcmp(wifiPass, defaultWifiPass) != 0) {
+        //     doc["wifiPass"] = decoyPass; // Never set common settings to actual password
+        // } else {
+        //     doc["wifiPass"] = defaultWifiPass; // Copy default pass to Settings file
+        // }
+
+        // File file = SPIFFS.open(userSettingsFilePath, FILE_WRITE);
+        // if (serializeJson(doc, file) == 0)
+        // {
+        //     LogHandler::error(_TAG, "Failed to write to settings file");
+        //     file.close();
+        //     doc["wifiPass"] = "";
+        //     xSemaphoreGive(m_settingsMutex);
+        //     saving = false;
+        //     return false;
+        // }
+        // LogHandler::debug(_TAG, "File contents: %s", file.readString().c_str());
+        // printMemory();
+        // doc["wifiPass"] = "";
+        
+        // xSemaphoreGive(m_settingsMutex);
+        // saving = false;
+        // return true;
     }
 
     static bool loadWifiInfo(bool loadDefault, JsonObject json = JsonObject()) {
@@ -478,6 +527,48 @@ public:
         saving = false;
         xSemaphoreGive(m_wifiMutex);
         return true;
+    }
+
+    static bool loadButtons(bool loadDefault, JsonObject json = JsonObject()) {
+        LogHandler::info(_TAG, "Loading buttons");
+        bool mutableLoadDefault = loadDefault;
+        uint16_t docSize = 1000;
+        return loadSettingsJson(buttonsFilePath, mutableLoadDefault, m_buttonsMutex, docSize, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
+            JsonArray buttonSetsObj = json["buttonSets"].as<JsonArray>();
+            
+            if(buttonSetsObj.isNull()) {
+                LogHandler::info(_TAG, "No button profiles stored, loading default");
+                mutableLoadDefault = true;
+                for(int i = 0; i < MAX_BUTTON_SETS; i++) {
+                    for(int j = 0; j < MAX_BUTTONS; j++) {
+                        buttonSets[i].buttons[j] = ButtonModel();
+                        buttonSets[i].buttons[j].loadDefault(i);
+                    }
+                }
+            } else {
+                for(int i = 0; i < MAX_BUTTON_SETS; i++) {
+                    auto set = ButtonSet();
+                    LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", buttonSetsObj[i]["name"].as<String>());
+                    set.fromJson(buttonSetsObj[i].as<JsonObject>());
+                    buttonSets[i] = set;
+                }
+            }
+            return true;
+        }, saveButtons, json);
+    }
+
+    static bool saveButtons(JsonObject json = JsonObject()) {
+        LogHandler::info(_TAG, "Save buttons file");
+        uint16_t docSize = 1000;
+        return saveSettingsJson(buttonsFilePath, m_buttonsMutex, docSize, [](DynamicJsonDocument& doc) -> bool {
+            for (size_t i = 0; i < MAX_BUTTON_SETS; i++)
+            {
+                JsonObject obj;
+                buttonSets[i].toJson(obj);
+                doc["buttonSets"][i] = obj;
+            }
+            return true;
+        }, loadButtons, json);
     }
 
     static bool loadMotionProfiles(bool loadDefault, JsonObject json = JsonObject()) {
@@ -1050,6 +1141,7 @@ private:
     
 	static SemaphoreHandle_t m_motionMutex;
 	static SemaphoreHandle_t m_wifiMutex;
+    static SemaphoreHandle_t m_buttonsMutex;
 	static SemaphoreHandle_t m_settingsMutex;
     static SETTING_STATE_FUNCTION_PTR_T message_callback;
     // Use http://arduinojson.org/assistant to compute the capacity.
@@ -1098,6 +1190,9 @@ private:
             TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 1);
             TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
         }
+
+        channelMap.init(TCodeVersionEnum, motorType);
+
 #if MOTOR_TYPE == 1
         for (auto x : ChannelMapBLDC) {
             currentChannels.push_back(x);
@@ -1117,6 +1212,7 @@ private:
             }
         }  
 #endif
+
 
         int tcodeMax = TCodeVersionEnum == TCodeVersion::v0_2 ? 999 : 9999;
         for (size_t i = 0; i < currentChannels.size(); i++)
@@ -1472,6 +1568,77 @@ private:
             return false;
         }
 
+        return true;
+    }
+
+    /// @brief Locks the mutex checks for an existing file and creates  it if it doesnt exist. Calls the callback function and gives the mutex.
+    /// @param filepath 
+    /// @param mutableLoadDefault 
+    /// @param mutex 
+    /// @param jsonSize 
+    /// @param loadFunction 
+    /// @param json 
+    /// @return 
+    static bool loadSettingsJson(const char* filepath, bool loadDefault, SemaphoreHandle_t& mutex, const int jsonSize, std::function<bool(const JsonObject, bool& mutableLoadDefault)> loadFunction, std::function<bool(JsonObject)> saveFunction, JsonObject json = JsonObject()) {
+        DynamicJsonDocument doc(jsonSize);
+        bool mutableLoadDefault = loadDefault;
+        if(mutableLoadDefault || json.isNull()) {
+		    xSemaphoreTake(mutex, portMAX_DELAY);
+            if(!checkForFileAndLoad(filepath, json, doc, mutableLoadDefault)) {
+                xSemaphoreGive(mutex);
+                return false;
+            }
+        }
+        if(!loadFunction(json, mutableLoadDefault)) {
+            xSemaphoreGive(mutex);
+            return false;
+        }
+        xSemaphoreGive(mutex);
+        if(mutableLoadDefault)
+            saveFunction(JsonObject());
+        return true;
+    }
+
+    /// @brief Locks the mutex and validates the file exists. calls the calback and serializes the data in a file to disk. Releases the mutex.
+    /// @param filepath 
+    /// @param mutex 
+    /// @param jsonSize 
+    /// @param saveFunction 
+    /// @param json 
+    /// @return 
+    static bool saveSettingsJson(const char* filepath, SemaphoreHandle_t& mutex, int jsonSize, std::function<bool(DynamicJsonDocument&)> saveFunction, std::function<bool(bool, JsonObject)> loadFunction, JsonObject json = JsonObject()) {
+        saving = true;
+		xSemaphoreTake(mutex, portMAX_DELAY);
+        bool loadBeforeSetting = false;
+        if (!SPIFFS.exists(filepath)) {
+            LogHandler::error(_TAG, "File did not exist whan saving: %s", filepath);
+            xSemaphoreGive(mutex);
+            saving = false;
+            return false;
+        } else {
+            if(!json.isNull()) {
+                loadFunction(false, json);
+            }
+            DynamicJsonDocument doc(jsonSize);
+            if(!saveFunction(doc)) {
+                xSemaphoreGive(mutex);
+                saving = false;
+                return false;
+            }
+            File file = SPIFFS.open(filepath, FILE_WRITE);
+            if (serializeJson(doc, file) == 0)
+            {
+                LogHandler::error(_TAG, "Failed to write to file: %s", filepath);
+                file.close();
+                xSemaphoreGive(mutex);
+                saving = false;
+                return false;
+            }
+            LogHandler::debug(_TAG, "File \n%s\ncontents: %s", filepath, file.readString().c_str());
+            printMemory();
+        }
+        saving = false;
+        xSemaphoreGive(mutex);
         return true;
     }
 
@@ -2067,9 +2234,11 @@ private:
 
 SemaphoreHandle_t SettingsHandler::m_motionMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_wifiMutex = xSemaphoreCreateMutex();
+SemaphoreHandle_t SettingsHandler::m_buttonsMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_settingsMutex = xSemaphoreCreateMutex();
 bool SettingsHandler::initialized = false;
 bool SettingsHandler::saving = false;
+bool SettingsHandler::motionPaused = false;
 bool SettingsHandler::fullBuild = false;
 bool SettingsHandler::apMode = false;
 
@@ -2080,12 +2249,14 @@ std::vector<int> SettingsHandler::systemI2CAddresses;
 SETTING_STATE_FUNCTION_PTR_T SettingsHandler::message_callback = 0;
 String SettingsHandler::TCodeVersionName;
 TCodeVersion SettingsHandler::TCodeVersionEnum;
+ChannelMap SettingsHandler::channelMap;
 std::vector<Channel> SettingsHandler::currentChannels;
 MotorType SettingsHandler::motorType = MotorType::Servo;
 const char SettingsHandler::HandShakeChannel[4] = "D1\n";
 const char SettingsHandler::SettingsChannel[4] = "D2\n";
 const char *SettingsHandler::userSettingsFilePath = "/userSettings.json";
 const char *SettingsHandler::wifiPassFilePath = "/wifiInfo.json";
+const char *SettingsHandler::buttonsFilePath = "/buttons.json";
 const char *SettingsHandler::motionProfilesFilePath = "/motionProfiles.json";
 const char *SettingsHandler::logPath = "/log.json";
 const char *SettingsHandler::defaultWifiPass = "YOUR PASSWORD HERE";
@@ -2223,6 +2394,7 @@ bool SettingsHandler::motionEnabled = false;
 int SettingsHandler::motionSelectedProfileIndex = 0;
 int SettingsHandler::motionDefaultProfileIndex = 0;
 MotionProfile SettingsHandler::motionProfiles[maxMotionProfileCount];
+ButtonSet SettingsHandler::buttonSets[MAX_BUTTON_SETS];
 //std::map<const char*, MotionProfile*, StrCompare> SettingsHandler::motionProfiles;
 // int SettingsHandler::motionUpdateGlobal;
 // int SettingsHandler::motionPeriodGlobal;

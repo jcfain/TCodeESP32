@@ -122,7 +122,7 @@ const AvailibleChannelsV3 = [
     {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
     {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
     {channel: "A2", channelName: "Lube", switch: true, sr6Only: false},
-    {channel: "A3", channelName: "Auxiliary", switch: false, sr6Only: false}
+    {channel: "A3", channelName: "Squeeze", switch: false, sr6Only: false}
 ]
 const AvailibleChannelsBLDC = [
     {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
@@ -134,7 +134,7 @@ const AvailibleChannelsBLDC = [
     {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
     {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
     {channel: "A2", channelName: "Lube", switch: true, sr6Only: false},
-    {channel: "A3", channelName: "Auxiliary", switch: false, sr6Only: false}
+    {channel: "A3", channelName: "Squeeze", switch: false, sr6Only: false}
 ]
 
 document.addEventListener("DOMContentLoaded", function() {

@@ -630,8 +630,7 @@ void setup()
 	loadI2CModules();
 	buttonHandler = new ButtonHandler();
 
-	ButtonModel buttons[MAX_BUTTONS];
-	buttonHandler->init(SettingsHandler::bootButtonCommand, buttons);
+	buttonHandler->init(SettingsHandler::bootButtonCommand, SettingsHandler::buttonSets);
 
 	SettingsHandler::setMessageCallback(settingChangeCallback);
 	setupSucceeded = true;
@@ -640,6 +639,10 @@ void setup()
 }
 
 void loop() {
+	if(setupSucceeded && (SettingsHandler::motionPaused || SettingsHandler::saving)) {
+		motorHandler->execute();
+		return;
+	}
 	//LogHandler::verbose(TagHandler::MainLoop, "Enter loop ############################################");
 	benchStart(0);
 	if (SystemCommandHandler::restartRequired || restarting) {  // check the flag here to determine if a restart is required

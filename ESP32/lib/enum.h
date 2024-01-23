@@ -32,3 +32,10 @@ enum class MotorType
     Servo,
     BLDC
 };
+
+enum class DeviceType
+{
+    OSR,
+    SR6,
+    SSR1
+};
