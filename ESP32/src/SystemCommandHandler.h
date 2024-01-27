@@ -45,7 +45,7 @@ public:
 
 			if(isCommand(in, "$save")) {
 				return execute([]() -> bool {
-					SettingsHandler::saveSettings();
+					SettingsHandler::saveAll();
 					Serial.println("Settings saved!");
 					return true;
 				});

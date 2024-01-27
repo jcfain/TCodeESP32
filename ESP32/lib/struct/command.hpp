@@ -20,12 +20,19 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
-Buttons = {
-    setup() {
-        document.getElementById("bootButtonCommand").value = buttonSettings["bootButtonCommand"].replace(" ", "\n");
-    },
-    update() {
-        buttonSettings["bootButtonCommand"] = document.getElementById('bootButtonCommand').value.replace("\n", " ");;
-        updateUserSettings(undefined, EndPointType.Buttons.uri, buttonSettings);
-    }
-}
+
+#pragma once
+
+#include <Arduino.h>
+enum class CommandValueType {
+    NONE,
+    NUMBER,
+    STRING
+};
+class Command {
+    char* name;
+    char* command;
+    char* description;
+    CommandValueType valueType;
+    std::function<bool()> callback;
+};

@@ -21,8 +21,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 var userSettings = {};
+var wifiSettings = {};
 var systemInfo = {};
 var motionProviderSettings = {};
+var buttonSettings = {};
 var upDateTimeout;
 var restartRequired = false;
 var documentLoaded = false;
@@ -32,8 +34,11 @@ var playSounds = false;
 var importSettingsInputElement;
 var websocket;
 const EndPointType = {
+    System: { uri: "/systemInfo"},
     Common: {uri: "/settings"},
-    MotionProfile: {uri: "/motionProfiles"}
+    Wifi: {uri: "/wifiSettings"},
+    MotionProfile: {uri: "/motionProfiles"},
+    Buttons: {uri: "/buttonSettings"}
 }
 const TCodeVersion = {
     V2: 0,
@@ -145,6 +150,23 @@ function logdebug(message) {
     if(debugEnabled)
         console.log(message);
 }
+function get(name, uri, callback, callbackFail) {
+	var xhr = new XMLHttpRequest();
+	xhr.open('GET', uri, true);
+	xhr.responseType = 'json';
+	xhr.onload = function() {
+        var status = xhr.status;
+        if (status !== 200) {
+			showError("Error loading "+name+"!");
+            if(callbackFail) 
+                callbackFail(xhr);
+		} else {
+            if(callback)
+                callback(xhr);
+		}
+	};
+	xhr.send();
+}
 function onDocumentLoad() {
 	infoNode = document.getElementById('info');
     getSystemInfo();
@@ -155,62 +177,89 @@ function onDocumentLoad() {
 }
 
 function getSystemInfo() {
-	var xhr = new XMLHttpRequest();
-	xhr.open('GET', "/systemInfo", true);
-	xhr.responseType = 'json';
-	xhr.onload = function() {
-        var status = xhr.status;
-        if (status !== 200) {
-			showError("Error loading system info!");
-		} else {
-            systemInfo = xhr.response;
-            setSystemInfo();
-            getUserSettings();
-		}
-	};
-	xhr.send();
+    get("system info", EndPointType.System.uri, function(xhr) {
+        systemInfo = xhr.response;
+        if(!systemInfo) {
+            showError("Error getting system info!");
+            return;
+        }
+        setSystemInfo();
+        getWifiSettings();
+    });
 }
-function getUserSettings() {
-	var xhr = new XMLHttpRequest();
-	xhr.open('GET', EndPointType.Common.uri, true);
-	xhr.responseType = 'json';
-	xhr.onload = function() {
-        var status = xhr.status;
-        if (status !== 200) {
-			showError("Error loading user settings!");
-		} else {
-            userSettings = xhr.response;
-            if(!userSettings || !userSettings["TCodeVersion"]) {
-                showError("Error getting user settings!");
-                return;
-            }
-            setUserSettings()
-            getMotionProviderSettings();
-		}
-	};
-	xhr.send();
+
+function getWifiSettings() {
+    get("wifi settings", EndPointType.Wifi.uri, function(xhr) {
+        wifiSettings = xhr.response;
+        if(!wifiSettings || !wifiSettings["ssid"]) {
+            showError("Error getting wifi settings!");
+            return;
+        }
+        getMotionProviderSettings();
+    });
 }
 
 function getMotionProviderSettings() {
-	var xhr = new XMLHttpRequest();
-	xhr.open('GET', EndPointType.MotionProfile.uri, true);
-	xhr.responseType = 'json';
-	xhr.onload = function() {
-        var status = xhr.status;
-        if (status !== 200) {
-			showError("Error loading motion profile settings!");
-		} else {
-            motionProviderSettings = xhr.response;
-            if(!motionProviderSettings || !motionProviderSettings["motionProfiles"]) {
-                showError("Error getting motion provider settings!");
-                return;
-            }
-            setupChannelSliders();
-            initWebSocket();
-            documentLoaded = true;
-		}
-	};
-	xhr.send();
+    get("motion settings", EndPointType.MotionProfile.uri, function(xhr) {
+        motionProviderSettings = xhr.response;
+        if(!motionProviderSettings || !motionProviderSettings["motionProfiles"]) {
+            showError("Error getting motion provider settings!");
+            return;
+        }
+        getButtonSettings();
+    });
+}
+
+function getButtonSettings() {
+    get("button settings", EndPointType.Buttons.uri, function(xhr) {
+        buttonSettings = xhr.response;
+        if(!buttonSettings || !buttonSettings["bootButtonCommand"]) {
+            showError("Error getting button settings!");
+            return;
+        }
+        getUserSettings();
+    });
+}
+
+function postCommonSettings(debounce, callback) {
+    updateUserSettings(debounce, EndPointType.Common.uri, userSettings, callback);
+}
+function postWifiSettings(debounce, callback) {
+    updateUserSettings(debounce, EndPointType.Wifi.uri, wifiSettings, callback);
+}
+function postButtonSettings(debounce, callback) {
+    updateUserSettings(debounce, EndPointType.Buttons.uri, buttonSettings, callback);
+}
+function postMotionProfileSettings(debounce) {
+    MotionGenerator.updateSettings(debounce, null, 0);
+}
+
+function updateALLUserSettings() {
+    postCommonSettings(0, updateWifiSettingsChain);
+}
+var updateWifiSettingsChain = function() {
+    postWifiSettings(0, updateButtonSettingsChain);
+}
+var updateButtonSettingsChain = function() {
+    postButtonSettings(0, updateMotionProfileSettings);
+}
+var updateMotionProfileSettings = function() {
+    postMotionProfileSettings();
+}
+
+// ALWAYS CALL setUserSettings/getUserSettings LAST! 
+// This is so it can set all the values from the various sources and other
+// methods can call a single method instead of all of them.
+function getUserSettings() {
+    get("common settings", EndPointType.Common.uri, function(xhr) {
+        userSettings = xhr.response;
+        if(!userSettings || !userSettings["TCodeVersion"]) {
+            showError("Error getting user settings!");
+            return;
+        }
+        setUserSettings();
+        initWebSocket();
+    });
 }
 
 function initWebSocket() {
@@ -554,6 +603,10 @@ function setSystemInfo() {
 
     document.getElementById('lastRebootReason').value = systemInfo.lastRebootReason;
 }
+function setWifiSettings() {
+    document.getElementById("ssid").value = wifiSettings["ssid"];
+    document.getElementById("wifiPass").value = wifiSettings["wifiPass"];
+}
 function setUserSettings() 
 {
     document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
@@ -674,8 +727,7 @@ function setUserSettings()
 	document.getElementById("heaterResolution").value = userSettings["heaterResolution"];
 	document.getElementById("heaterFrequency").value = userSettings["heaterFrequency"];
 	
-    document.getElementById("ssid").value = userSettings["ssid"];
-    document.getElementById("wifiPass").value = userSettings["wifiPass"];
+    setWifiSettings();
     document.getElementById("staticIP").checked = userSettings["staticIP"];
     startUpStaticIP = userSettings["staticIP"];
     document.getElementById("localIPInput").value = userSettings["localIP"];
@@ -717,6 +769,9 @@ function setUserSettings()
     document.getElementById('voiceVolume').value = userSettings['voiceVolume'];
     document.getElementById('voiceWakeTime').value = userSettings['voiceWakeTime'];
 
+    setupChannelSliders();
+    
+    documentLoaded = true;
     //document.getElementById('debugLink').hidden = !userSettings["debug"];
 }
 function removeAllChildren(element) {
@@ -842,7 +897,7 @@ function checkRestartRedirect() {
     // }
     // if(!restartingAndChangingAddress) {
         // Apmode configuration
-        const passwordChanged = userSettings.ssid !== "YOUR SSID HERE" && userSettings.wifiPass != "YOUR PASSWORD HERE" && userSettings.wifiPass != systemInfo.decoyPass;
+        const passwordChanged = wifiSettings.ssid !== "YOUR SSID HERE" && wifiSettings.wifiPass != "YOUR PASSWORD HERE" && wifiSettings.wifiPass != systemInfo.decoyPass;
         const wifiConfiguredAndNOTConnected = systemInfo.apMode && passwordChanged;
 
         if(wifiConfiguredAndNOTConnected) {
@@ -867,14 +922,6 @@ function checkRestartRedirect() {
 
 function isValidIP(ip) {
     return ip && ip.match(/^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/);
-}
-
-var updateMotionProfileSettings = function() {
-    MotionGenerator.updateSettings(null, null, 0);
-}
-
-function updateALLUserSettings() {
-    updateUserSettings(0, EndPointType.Common.uri, userSettings, updateMotionProfileSettings)
 }
 
 function showRestartRequired() {
@@ -2043,6 +2090,13 @@ function showWifiPassword() {
     }
 }
 
+function updateWifiLoginSettings() {
+    wifiSettings["ssid"] = document.getElementById('ssid').value;
+    wifiSettings["wifiPass"] = document.getElementById('wifiPass').value;
+    setRestartRequired();
+    postWifiSettings();
+}
+
 function updateWifiSettings() {
     if(staticIPAddressTimeout !== null) 
     {
@@ -2052,8 +2106,6 @@ function updateWifiSettings() {
     toggleStaticIPSettings(staticIP);
     staticIPAddressTimeout = setTimeout(() => 
     {
-        userSettings["ssid"] = document.getElementById('ssid').value;
-        userSettings["wifiPass"] = document.getElementById('wifiPass').value;
         var ips = {};
         ips.localIP = document.getElementById('localIPInput').value;
         ips.gateway = document.getElementById('gatewayInput').value;
@@ -2187,9 +2239,12 @@ function toggleSounds() {
 function exportToJsonFile() {
     alert("Wifi password will NOT be exported!");
     const userSettingsCopy = JSON.parse(JSON.stringify(userSettings));
-    userSettingsCopy["wifiPass"] = "YOUR PASSWORD HERE";
+    //userSettingsCopy["wifiPass"] = "YOUR PASSWORD HERE";
+    userSettingsCopy["wifiSettings"] = wifiSettings;
+    userSettingsCopy["wifiSettings"].wifiPass = "YOUR PASSWORD HERE";
     userSettingsCopy["motionDefaultProfileIndex"] = motionProviderSettings.motionDefaultProfileIndex;
     userSettingsCopy["motionProfiles"] = motionProviderSettings.motionProfiles;
+    userSettingsCopy["buttonSettings"] = buttonSettings;
 
     let dataStr = JSON.stringify(userSettingsCopy);
     let dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
@@ -2237,7 +2292,6 @@ function importSettings() {
                 toggleNonTCodev3Options();
             }
             setUserSettings();
-            setupChannelSliders();
             if(validatePins()) {// Do not save if pin values are invalid.
                 setRestartRequired();
                 updateALLUserSettings();
@@ -2262,6 +2316,18 @@ function handleImportRenames(key, value) {
         break;
         case "motionDefaultProfileIndex": 
         motionProviderSettings.motionDefaultProfileIndex = value;
+        break;
+        case "ssid": 
+        wifiSettings.ssid = value;
+        break;
+        case "bootButtonCommand":
+        buttonSettings.bootButtonCommand = value;
+        break;
+        case "wifiSettings": 
+        wifiSettings = value;
+        break;
+        case "buttonSettings": 
+        buttonSettings = value;
         break;
     }
 }

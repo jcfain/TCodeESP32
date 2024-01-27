@@ -1,1 +1,1 @@
-Buttons={setup(){document.getElementById("bootButtonCommand").value=userSettings.bootButtonCommand.replace(" ","\n")},update(){userSettings.bootButtonCommand=document.getElementById("bootButtonCommand").value.replace("\n"," "),updateUserSettings()}};
+Buttons={setup(){document.getElementById("bootButtonCommand").value=buttonSettings.bootButtonCommand.replace(" ","\n")},update(){buttonSettings.bootButtonCommand=document.getElementById("bootButtonCommand").value.replace("\n"," "),updateUserSettings(void 0,EndPointType.Buttons.uri,buttonSettings)}};

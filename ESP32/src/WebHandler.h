@@ -46,13 +46,27 @@ class WebHandler : public HTTPBase {
             server = new AsyncWebServer(port);
             ((WebSocketHandler*)webSocketHandler)->setup(server);
 
+            server->on("/wifiSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
+            {
+                char info[100];
+                SettingsHandler::getWifiInfo(info);
+                if (strlen(info) == 0) {
+                    AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting wifi settings");
+                    request->send(response);
+                    return;
+                }
+                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", info);
+                request->send(response);
+            });  
+
             server->on("/settings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 request->send(SPIFFS, SettingsHandler::userSettingsFilePath, "application/json");
             });   
+
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                char systemInfo[1256];
+                char systemInfo[3000];
                 SettingsHandler::getSystemInfo(systemInfo);
                 if (strlen(systemInfo) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
@@ -61,11 +75,17 @@ class WebHandler : public HTTPBase {
                 }
                 AsyncWebServerResponse *response = request->beginResponse(200, "application/json", systemInfo);
                 request->send(response);
-            });   
+            }); 
+
             server->on("/motionProfiles", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 request->send(SPIFFS, SettingsHandler::motionProfilesFilePath, "application/json");
             });   
+
+            server->on("/buttonSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
+            {
+                request->send(SPIFFS, SettingsHandler::buttonsFilePath, "application/json");
+            });  
             
             
             server->on("/log", HTTP_GET, [](AsyncWebServerRequest *request) 
@@ -175,6 +195,22 @@ class WebHandler : public HTTPBase {
                 }
             }, 32768U );//Bad request? increase the size.
 
+            AsyncCallbackJsonWebHandler* wifiUpdateHandler = new AsyncCallbackJsonWebHandler("/wifiSettings", [](AsyncWebServerRequest *request, JsonVariant &json)
+			{
+                Serial.println("API save wifi settings...");
+                JsonObject jsonObj = json.as<JsonObject>();
+                if (SettingsHandler::saveWifiInfo(jsonObj)) 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                    request->send(response);
+                } 
+                else 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving wifi settings\"}");
+                    request->send(response);
+                }
+            }, 100U );//Bad request? increase the size.
+
             AsyncCallbackJsonWebHandler* motionProfileUpdateHandler = new AsyncCallbackJsonWebHandler("/motionProfiles", [](AsyncWebServerRequest *request, JsonVariant &json)
 			{
                 Serial.println("API save motion profiles...");
@@ -191,6 +227,21 @@ class WebHandler : public HTTPBase {
                 }
             }, 30000U );//Bad request? increase the size.
             
+            AsyncCallbackJsonWebHandler* buttonsUpdateHandler = new AsyncCallbackJsonWebHandler("/buttonSettings", [](AsyncWebServerRequest *request, JsonVariant &json)
+			{
+                Serial.println("API save button settings...");
+                JsonObject jsonObj = json.as<JsonObject>();
+                if (SettingsHandler::saveButtons(jsonObj)) 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                    request->send(response);
+                } 
+                else 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving button settings\"}");
+                    request->send(response);
+                }
+            }, 10000U );//Bad request? increase the size.
             // //To upload through terminal you can use: curl -F "image=@firmware.bin" esp8266-webupdate.local/update
             // server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request){
             //         // the request handler is triggered after the upload has finished... 
@@ -231,7 +282,9 @@ class WebHandler : public HTTPBase {
             // });
 
             server->addHandler(settingsUpdateHandler);
+            server->addHandler(wifiUpdateHandler);
             server->addHandler(motionProfileUpdateHandler);
+            server->addHandler(buttonsUpdateHandler);
             
             server->onNotFound([](AsyncWebServerRequest *request) 
 			{

@@ -62,9 +62,11 @@ public:
             m_buttonSets[i] = ButtonSet(buttonSet);
             if(buttonPin > -1) {
                 if(buttonSet.pullMode == gpio_pull_mode_t::GPIO_PULLDOWN_ONLY) {
+                    LogHandler::info(_TAG, "Setting up pull down button set %ld on pin: %ld", i +1, buttonPin);
                     pinMode(buttonPin, INPUT_PULLDOWN);
                     attachInterrupt(digitalPinToInterrupt(buttonPin), buttonInterrupt, RISING);
                 } else {
+                    LogHandler::info(_TAG, "Setting up pull up button set %ld on pin: %ld", i +1, buttonPin);
                     pinMode(buttonPin, INPUT_PULLUP);
                     attachInterrupt(digitalPinToInterrupt(buttonPin), buttonInterrupt, FALLING);
                 }
@@ -109,7 +111,6 @@ public:
             if(m_buttonSets[i].pin > -1) {
                 for(int j = 0; j < MAX_BUTTONS; j++) {
                     int value = analogRead(m_buttonSets[i].pin);
-                    LogHandler::debug(_TAG, "Recieve button analog value: %ld", value);
                     auto index = m_buttonSets[i].buttons[j].index;
                     if(value > buttonIndexMap[index] - BUTTON_ANALOG_TOL && value < buttonIndexMap[index] + BUTTON_ANALOG_TOL) {
                         xSemaphoreTakeFromISR(xMutex, NULL);

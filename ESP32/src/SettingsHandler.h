@@ -148,7 +148,7 @@ public:
     static bool tempInternalEnabled;
     static bool fanControlEnabled;
     static bool batteryLevelEnabled;
-    static int Battery_Voltage_PIN;
+    //static int Battery_Voltage_PIN;
     static bool batteryLevelNumeric;
     static double batteryVoltageMax;
     static int batteryCapacityMax;
@@ -243,7 +243,14 @@ public:
 
     static bool defaultAll()
     {
-        return loadWifiInfo(true) &&  loadSettings(true) && loadMotionProfiles(true);
+        return loadWifiInfo(true) && loadSettings(true) && loadMotionProfiles(true) && loadButtons(true); 
+    }
+    
+    static void saveAll() {
+        saveSettings();
+        saveWifiInfo();
+        saveMotionProfiles();
+        saveButtons();
     }
 
     static void defaultPinout() {
@@ -251,9 +258,30 @@ public:
         saveSettings();
     }
 
-    static void getSystemInfo(char buf[1256])
+    static void getWifiInfo(char buf[100])
     {
-        DynamicJsonDocument doc(1256);
+        DynamicJsonDocument doc(100);
+
+        doc["ssid"] = ssid;
+        
+        if(strcmp(wifiPass, defaultWifiPass) != 0) {
+            doc["wifiPass"] = decoyPass; // Never set to actual password
+        } else {
+            doc["wifiPass"] = defaultWifiPass;
+        }
+
+        String output;
+        serializeJson(doc, output);
+        doc.clear();
+        if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
+            Serial.printf("WifiInfo: %s\n", output.c_str());
+        buf[0] = {0};
+        strcpy(buf, output.c_str());
+    }
+
+    static void getSystemInfo(char buf[3000])
+    {
+        DynamicJsonDocument doc(3000);
 
         doc["esp32Version"] = FIRMWARE_VERSION_NAME;
         doc["TCodeVersion"] = (int)TCodeVersionEnum;
@@ -339,28 +367,6 @@ public:
 
     static bool loadSettings(bool loadDefault, JsonObject json = JsonObject()) {
         LogHandler::info(_TAG, "Loading common settings");
-        // bool mutableLoadDefault = loadDefault;
-        // DynamicJsonDocument doc(deserializeSize);
-        // if(mutableLoadDefault || json.isNull()) {
-		//     xSemaphoreTake(m_settingsMutex, portMAX_DELAY);
-        //     if(!checkForFileAndLoad(userSettingsFilePath, json, doc, mutableLoadDefault)) {
-        //         xSemaphoreGive(m_settingsMutex);
-        //         return false;
-        //     }
-        // }
-        // if(!update(json)) {
-        //     xSemaphoreGive(m_settingsMutex);
-        //     return false;
-        // }
-        // // if(initialized && !loadWifiInfo(false, json)){
-        // //     xSemaphoreGive(m_settingsMutex);
-        // //     return false;
-        // // }
-        // xSemaphoreGive(m_settingsMutex);
-        // if(mutableLoadDefault)
-        //     saveSettings();
-        // return true;
-        
         return loadSettingsJson(userSettingsFilePath, loadDefault, m_settingsMutex, deserializeSize, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
             return update(json);
         }, saveSettings, json);
@@ -394,83 +400,14 @@ public:
     static bool saveSettings(JsonObject json = JsonObject()) {
         saving = true;
         LogHandler::info(_TAG, "Save common settings file");
-
-        //TODO: move wifi to its own API call.
-        xSemaphoreTake(m_settingsMutex, portMAX_DELAY);
-        if(initialized && !saveWifiInfo(json)) {
-            xSemaphoreGive(m_settingsMutex);
-            saving = false;
-            return false;
-        }
-
-        uint16_t docSize = 1000;
         return saveSettingsJson(userSettingsFilePath, m_settingsMutex, serializeSize, [](DynamicJsonDocument& doc) -> bool {
             if(!compileCommonJsonDocument(doc)) {
                 return false;
             }
             LogSaveDebug(doc);
 
-            //TODO: move wifi to its own API call.
-            if(strcmp(wifiPass, defaultWifiPass) != 0) {
-                doc["wifiPass"] = decoyPass; // Never set common settings to actual password
-            } else {
-                doc["wifiPass"] = defaultWifiPass; // Copy default pass to Settings file
-            }
-
             return true;
         }, loadSettings, json);
-
-		// xSemaphoreTake(m_settingsMutex, portMAX_DELAY);
-        // if (!SPIFFS.exists(userSettingsFilePath)) {
-        //     LogHandler::error(_TAG, "Settings file did not exist whan saving.");
-        //     saving = false;
-        //     xSemaphoreGive(m_settingsMutex);
-        //     return false;
-        // }
-        // if(!json.isNull()) { // If passed in, load the json into memory before flushing it to disk.
-        //     // WARNING: watchout for the mutex taken in this method. Changing these parameters below may result in hard locks.
-        //     loadSettings(false, json); // DO NOT PASS loadDefault as true else infinit loop
-        // }
-
-        // DynamicJsonDocument doc(serializeSize);
-
-        // if(!compileCommonJsonDocument(doc)) {
-        //     doc["wifiPass"] = "";
-        //     xSemaphoreGive(m_settingsMutex);
-        //     saving = false;
-        //     return false;
-        // }
-        // LogSaveDebug(doc);
-        
-        // if(initialized && !saveWifiInfo(json)) {
-        //     xSemaphoreGive(m_settingsMutex);
-        //     saving = false;
-        //     return false;
-        // }
-
-        // if(strcmp(wifiPass, defaultWifiPass) != 0) {
-        //     doc["wifiPass"] = decoyPass; // Never set common settings to actual password
-        // } else {
-        //     doc["wifiPass"] = defaultWifiPass; // Copy default pass to Settings file
-        // }
-
-        // File file = SPIFFS.open(userSettingsFilePath, FILE_WRITE);
-        // if (serializeJson(doc, file) == 0)
-        // {
-        //     LogHandler::error(_TAG, "Failed to write to settings file");
-        //     file.close();
-        //     doc["wifiPass"] = "";
-        //     xSemaphoreGive(m_settingsMutex);
-        //     saving = false;
-        //     return false;
-        // }
-        // LogHandler::debug(_TAG, "File contents: %s", file.readString().c_str());
-        // printMemory();
-        // doc["wifiPass"] = "";
-        
-        // xSemaphoreGive(m_settingsMutex);
-        // saving = false;
-        // return true;
     }
 
     static bool loadWifiInfo(bool loadDefault, JsonObject json = JsonObject()) {
@@ -483,6 +420,11 @@ public:
                 xSemaphoreGive(m_wifiMutex);
                 return false;
             }
+        }
+        const char *ssidConst = json["ssid"] | "YOUR SSID HERE";
+        if (ssid != nullptr)
+        {
+            strcpy(ssid, ssidConst);
         }
         const char *wifiPassConst = json["wifiPass"] | defaultWifiPass;
         //LogHandler::info(_TAG, "Pass: %s",wifiPassConst);
@@ -506,13 +448,19 @@ public:
             saving = false;
             return false;
         } else {
-            if(!json.isNull()) { // If passed in, load the json into memory before flushing it to disk.
-                // WARNING: watchout for the mutex taken in this method. Changing these parameters below may result in hard locks.
-                loadWifiInfo(false, json); // DO NOT PASS loadDefault as true else infinit loop
+            if(!json.isNull()) {
+                xSemaphoreGive(m_wifiMutex);
+                if(!loadWifiInfo(false, json)){
+                    LogHandler::error(_TAG, "File loading wifi input json failed");
+                    return false;
+                }
+		        xSemaphoreTake(m_wifiMutex, portMAX_DELAY);
             }
+
             DynamicJsonDocument doc(100);
             File file = SPIFFS.open(wifiPassFilePath, FILE_WRITE);
             //LogHandler::info(_TAG, "Pass: %s",wifiPass);
+            doc["ssid"] = ssid;
             doc["wifiPass"] = wifiPass;
             if (serializeJson(doc, file) == 0)
             {
@@ -523,6 +471,7 @@ public:
                 saving = false;
                 return false;
             }
+            file.close();
         }
         saving = false;
         xSemaphoreGive(m_wifiMutex);
@@ -531,26 +480,42 @@ public:
 
     static bool loadButtons(bool loadDefault, JsonObject json = JsonObject()) {
         LogHandler::info(_TAG, "Loading buttons");
+        LogHandler::setLogLevel(LogLevel::VERBOSE);
         bool mutableLoadDefault = loadDefault;
         uint16_t docSize = 1000;
         return loadSettingsJson(buttonsFilePath, mutableLoadDefault, m_buttonsMutex, docSize, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
+
+            setValue(json, bootButtonCommand, "buttonCommand", "bootButtonCommand", "#motion-profile-cycle");
+
             JsonArray buttonSetsObj = json["buttonSets"].as<JsonArray>();
-            
             if(buttonSetsObj.isNull()) {
-                LogHandler::info(_TAG, "No button profiles stored, loading default");
+                LogHandler::info(_TAG, "No button sets stored, loading default");
                 mutableLoadDefault = true;
                 for(int i = 0; i < MAX_BUTTON_SETS; i++) {
+                    buttonSets[i] = ButtonSet();
+                    if(i==0)
+                        buttonSets[i].pin = 39;
+                    LogHandler::debug(_TAG, "Default buttonset index: %u, pin: %u/n", i, buttonSets[i].pin);
                     for(int j = 0; j < MAX_BUTTONS; j++) {
                         buttonSets[i].buttons[j] = ButtonModel();
                         buttonSets[i].buttons[j].loadDefault(i);
+                        LogHandler::debug(_TAG, "Default button index: %u, command: %u/n", i, buttonSets[i].buttons[j].command);
+
                     }
                 }
             } else {
                 for(int i = 0; i < MAX_BUTTON_SETS; i++) {
                     auto set = ButtonSet();
-                    LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", buttonSetsObj[i]["name"].as<String>());
+                    LogHandler::debug(_TAG, "Loading button set '%s' from settings", buttonSetsObj[i]["name"].as<String>());
                     set.fromJson(buttonSetsObj[i].as<JsonObject>());
                     buttonSets[i] = set;
+                    for(int i = 0; i < MAX_BUTTON_SETS; i++) {
+                        for(int j = 0; j < MAX_BUTTONS; j++) {
+                            buttonSets[i].buttons[j] = ButtonModel();
+                            buttonSets[i].buttons[j].loadDefault(i);
+                            LogHandler::debug(_TAG, "Loaded button index: %u, command: %u/n", i, buttonSets[i].buttons[j].command);
+                        }
+                    }
                 }
             }
             return true;
@@ -561,6 +526,7 @@ public:
         LogHandler::info(_TAG, "Save buttons file");
         uint16_t docSize = 1000;
         return saveSettingsJson(buttonsFilePath, m_buttonsMutex, docSize, [](DynamicJsonDocument& doc) -> bool {
+            doc["bootButtonCommand"] = bootButtonCommand;
             for (size_t i = 0; i < MAX_BUTTON_SETS; i++)
             {
                 JsonObject obj;
@@ -1181,11 +1147,6 @@ private:
         setValue(json, excludesVec, "log", "log-exclude-tags");
         LogHandler::setExcludes(excludesVec);
 
-        const char *ssidConst = json["ssid"] | "YOUR SSID HERE";
-        if (ssid != nullptr)
-        {
-            strcpy(ssid, ssidConst);
-        }
         if(!isBoardType(BoardType::CRIMZZON)) {
             TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 1);
             TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
@@ -1341,8 +1302,6 @@ private:
         }
         caseFanMaxDuty = pow(2, caseFanResolution) - 1;
         
-        setValue(json, bootButtonCommand, "buttonCommand", "bootButtonCommand", "#motion-profile-cycle");
-
         lubeEnabled = json["lubeEnabled"];
 
         setValue(json, voiceEnabled, "voiceHandler", "voiceEnabled", false);
@@ -1410,9 +1369,7 @@ private:
         }
         doc["fullBuild"] = fullBuild;
         doc["TCodeVersion"] = (int)TCodeVersionEnum;
-        doc["ssid"] = ssid;
         
-        // doc["wifiPass"] = wifiPass;
         doc["udpServerPort"] = udpServerPort;
         doc["webServerPort"] = webServerPort;
         doc["hostname"] = hostname;
@@ -1518,7 +1475,7 @@ private:
         doc["tempInternalEnabled"] = tempInternalEnabled;
 
         doc["batteryLevelEnabled"] = batteryLevelEnabled;
-        doc["Battery_Voltage_PIN"] = Battery_Voltage_PIN;
+        //doc["Battery_Voltage_PIN"] = Battery_Voltage_PIN;
         doc["batteryLevelNumeric"] = batteryLevelNumeric;
         doc["batteryVoltageMax"] = round2(batteryVoltageMax);
         doc["batteryCapacityMax"] = batteryCapacityMax;
@@ -1528,7 +1485,6 @@ private:
         doc["voiceWakeTime"] = voiceWakeTime;
         doc["voiceVolume"] = voiceVolume;
 
-        doc["bootButtonCommand"] = bootButtonCommand;
 
         JsonArray includes = doc.createNestedArray("log-include-tags");
         std::vector<String> includesVec = LogHandler::getIncludes();
@@ -1617,10 +1573,17 @@ private:
             return false;
         } else {
             if(!json.isNull()) {
-                loadFunction(false, json);
+                LogHandler::info(_TAG, "Loading from input json: %s", filepath);
+                xSemaphoreGive(mutex);
+                if(!loadFunction(false, json)){
+                    LogHandler::error(_TAG, "File loading input json failed: %s", filepath);
+                    return false;
+                }
+		        xSemaphoreTake(mutex, portMAX_DELAY);
             }
             DynamicJsonDocument doc(jsonSize);
             if(!saveFunction(doc)) {
+                LogHandler::error(_TAG, "Failed to compile JSON object: %s", filepath);
                 xSemaphoreGive(mutex);
                 saving = false;
                 return false;
@@ -1804,7 +1767,7 @@ private:
         Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
         BLDC_HallEffect_PIN = json["BLDC_HallEffect_PIN"] | 35;
 #endif
-    Battery_Voltage_PIN = json["Battery_Voltage_PIN"] | 39;
+    //Battery_Voltage_PIN = json["Battery_Voltage_PIN"] | 39;
 }
 
     static void setBuildFeatures()
@@ -2078,7 +2041,7 @@ private:
         return false;
     }
 
-    static void LogSaveDebug(DynamicJsonDocument doc)
+    static void LogSaveDebug(const DynamicJsonDocument doc)
     {
         LogHandler::debug(_TAG, "save TCodeVersionEnum: %i", doc["TCodeVersion"].as<int>());
         LogHandler::debug(_TAG, "save ssid: %s", doc["ssid"].as<String>());
@@ -2360,7 +2323,7 @@ bool SettingsHandler::tempSleeveEnabled = false;
 bool SettingsHandler::tempInternalEnabled = false;
 bool SettingsHandler::fanControlEnabled = false;
 bool SettingsHandler::batteryLevelEnabled = true;
-int SettingsHandler::Battery_Voltage_PIN = 32;
+//int SettingsHandler::Battery_Voltage_PIN = 32;
 bool SettingsHandler::batteryLevelNumeric = false;
 double SettingsHandler::batteryVoltageMax = 12.6;
 int SettingsHandler::batteryCapacityMax;

@@ -42,7 +42,7 @@ struct ButtonSet {
 
     void toJson(JsonObject& obj) {
         obj["pin"] = pin;
-        //obj["pullMode"] = (uint8_t)pullMode;
+        obj["pullMode"] = (uint8_t)pullMode;
         auto array = obj.createNestedArray("buttons");
         for(int i = 0; i<MAX_BUTTONS; i++) {
             JsonObject buttonOBJ;
@@ -55,7 +55,7 @@ struct ButtonSet {
         pin = obj["pin"] | -1;
         pullMode = (gpio_pull_mode_t)(obj["pullMode"] | (uint8_t)gpio_pull_mode_t::GPIO_PULLDOWN_ONLY);
         JsonArray buttonProfilesObj = obj["buttons"].as<JsonArray>();
-        for(int i = 0; i<MAX_BUTTON_SETS; i++) {
+        for(int i = 0; i<MAX_BUTTONS; i++) {
             auto profile = ButtonModel();
             profile.fromJson(buttonProfilesObj[i].as<JsonObject>());
             buttons[i] = profile;
