@@ -27,25 +27,31 @@ SOFTWARE. */
 #include "../constants.h"
 
 struct ButtonModel {
+    char name[15];
     uint8_t index;
     char command[MAX_COMMAND];
 
     ButtonModel() { }
     ButtonModel(const ButtonModel &model) {
+        strcpy(name, model.name);
         index = model.index;
         strcpy(command, model.command);
     }
     
     void loadDefault(uint8_t argIndex) {
+        sprintf(name, "Button %u", argIndex + 1);
         index = argIndex;
         sprintf(command, "#motion-profile-set:%u #motion-enable", index + 1);
     }
 
     void toJson(JsonObject& obj) {
+        obj["name"] = name;
         obj["index"] = index;
         obj["command"] = command;
     }
-    void fromJson(const JsonObject& obj) {
+    void fromJson(const JsonObject obj) {
+        const char* nameTemp  = obj["name"] | "Default";
+        strcpy(name, nameTemp);
         index = obj["index"];
         const char* commandTemp  = obj["command"] | "\0";
         strcpy(command, commandTemp);

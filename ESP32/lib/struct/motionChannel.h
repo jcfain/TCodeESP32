@@ -89,7 +89,7 @@ struct MotionChannel {
     int motionRandomChangeMin = motionRandomChangeMinDefault;
     int motionRandomChangeMax = motionRandomChangeMaxDefault;
 
-    void toJson(JsonObject obj) {
+    void toJson(JsonObject &obj) {
         obj["name"] = name;
         obj["edited"] = edited;
         obj["update"] = motionUpdateGlobal;

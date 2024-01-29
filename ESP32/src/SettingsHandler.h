@@ -480,10 +480,8 @@ public:
 
     static bool loadButtons(bool loadDefault, JsonObject json = JsonObject()) {
         LogHandler::info(_TAG, "Loading buttons");
-        LogHandler::setLogLevel(LogLevel::VERBOSE);
-        bool mutableLoadDefault = loadDefault;
-        uint16_t docSize = 1000;
-        return loadSettingsJson(buttonsFilePath, mutableLoadDefault, m_buttonsMutex, docSize, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
+        uint16_t docSize = 3000;
+        return loadSettingsJson(buttonsFilePath, loadDefault, m_buttonsMutex, docSize, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
 
             setValue(json, bootButtonCommand, "buttonCommand", "bootButtonCommand", "#motion-profile-cycle");
 
@@ -495,26 +493,22 @@ public:
                     buttonSets[i] = ButtonSet();
                     if(i==0)
                         buttonSets[i].pin = 39;
-                    LogHandler::debug(_TAG, "Default buttonset index: %u, pin: %u/n", i, buttonSets[i].pin);
+                    LogHandler::debug(_TAG, "Default buttonset name: %s, index: %u, pin: %ld", buttonSets[i].name, i, buttonSets[i].pin);
                     for(int j = 0; j < MAX_BUTTONS; j++) {
                         buttonSets[i].buttons[j] = ButtonModel();
-                        buttonSets[i].buttons[j].loadDefault(i);
-                        LogHandler::debug(_TAG, "Default button index: %u, command: %u/n", i, buttonSets[i].buttons[j].command);
+                        buttonSets[i].buttons[j].loadDefault(j);
+                        LogHandler::debug(_TAG, "Default button name: %s, index: %u, command: %s", buttonSets[i].name, buttonSets[i].buttons[j].index, buttonSets[i].buttons[j].command);
 
                     }
                 }
             } else {
                 for(int i = 0; i < MAX_BUTTON_SETS; i++) {
                     auto set = ButtonSet();
-                    LogHandler::debug(_TAG, "Loading button set '%s' from settings", buttonSetsObj[i]["name"].as<String>());
                     set.fromJson(buttonSetsObj[i].as<JsonObject>());
+                    LogHandler::debug(_TAG, "Loaded button set '%s', pin: %u", set.name, set.pin);
                     buttonSets[i] = set;
-                    for(int i = 0; i < MAX_BUTTON_SETS; i++) {
-                        for(int j = 0; j < MAX_BUTTONS; j++) {
-                            buttonSets[i].buttons[j] = ButtonModel();
-                            buttonSets[i].buttons[j].loadDefault(i);
-                            LogHandler::debug(_TAG, "Loaded button index: %u, command: %u/n", i, buttonSets[i].buttons[j].command);
-                        }
+                    for(int j = 0; j < MAX_BUTTONS; j++) {
+                        LogHandler::debug(_TAG, "Loaded button, name: %s,  index: %u, command: %s", buttonSets[i].name, buttonSets[i].buttons[j].index, buttonSets[i].buttons[j].command);
                     }
                 }
             }
@@ -524,14 +518,30 @@ public:
 
     static bool saveButtons(JsonObject json = JsonObject()) {
         LogHandler::info(_TAG, "Save buttons file");
-        uint16_t docSize = 1000;
+        uint16_t docSize = 2000;
+        // for(int i = 0; i < MAX_BUTTON_SETS; i++) {
+        //     LogHandler::debug(_TAG, "Save buttonSets[i] '%s', pin: %ld",  buttonSets[i].name, buttonSets[i].pin);
+        //     for(int j = 0; j < MAX_BUTTONS; j++) {
+        //         LogHandler::debug(_TAG, "Save buttonSets[i].buttons, name: %s,  index: %ld, command: %s", buttonSets[i].name, buttonSets[i].buttons[j].index, buttonSets[i].buttons[j].command);
+        //     }
+        // }
         return saveSettingsJson(buttonsFilePath, m_buttonsMutex, docSize, [](DynamicJsonDocument& doc) -> bool {
             doc["bootButtonCommand"] = bootButtonCommand;
+            //auto buttonSetArray = doc.createNestedArray("buttonSets");
             for (size_t i = 0; i < MAX_BUTTON_SETS; i++)
             {
-                JsonObject obj;
-                buttonSets[i].toJson(obj);
-                doc["buttonSets"][i] = obj;
+                //JsonObject obj;
+                doc["buttonSets"][i]["name"] = buttonSets[i].name;
+                doc["buttonSets"][i]["pin"] = buttonSets[i].pin;
+                doc["buttonSets"][i]["pullMode"] = (uint8_t)buttonSets[i].pullMode;
+                LogHandler::debug(_TAG, "Saving button set '%s' from settings, pin: %ld",  doc["buttonSets"][i]["name"].as<const  char*>(), doc["buttonSets"][i]["pin"].as<int>());
+                for(size_t j = 0; j < MAX_BUTTONS; j++) {
+                    doc["buttonSets"][i]["buttons"][j]["name"] = buttonSets[i].buttons[j].name;
+                    doc["buttonSets"][i]["buttons"][j]["index"] = buttonSets[i].buttons[j].index;
+                    doc["buttonSets"][i]["buttons"][j]["command"] = buttonSets[i].buttons[j].command;
+                    LogHandler::debug(_TAG, "Saving button, name: %s, index: %u, command: %s", doc["buttonSets"][i]["buttons"][j]["name"].as<const char*>(), doc["buttonSets"][i]["buttons"][j]["index"].as<int>(), doc["buttonSets"][i]["buttons"][j]["command"].as<const char*>());
+                }
+                //buttonSetArray.add(obj);
             }
             return true;
         }, loadButtons, json);
@@ -1565,6 +1575,7 @@ private:
     static bool saveSettingsJson(const char* filepath, SemaphoreHandle_t& mutex, int jsonSize, std::function<bool(DynamicJsonDocument&)> saveFunction, std::function<bool(bool, JsonObject)> loadFunction, JsonObject json = JsonObject()) {
         saving = true;
 		xSemaphoreTake(mutex, portMAX_DELAY);
+        LogHandler::info(_TAG, "Saving File: %s", filepath);
         bool loadBeforeSetting = false;
         if (!SPIFFS.exists(filepath)) {
             LogHandler::error(_TAG, "File did not exist whan saving: %s", filepath);
@@ -1588,6 +1599,9 @@ private:
                 saving = false;
                 return false;
             }
+            LogHandler::debug(_TAG, "Doc overflowed: %u", doc.overflowed());
+            LogHandler::debug(_TAG, "Doc memory: %u", doc.memoryUsage());
+            LogHandler::debug(_TAG, "Doc capacity: %u", doc.capacity());
             File file = SPIFFS.open(filepath, FILE_WRITE);
             if (serializeJson(doc, file) == 0)
             {
@@ -1597,7 +1611,8 @@ private:
                 saving = false;
                 return false;
             }
-            LogHandler::debug(_TAG, "File \n%s\ncontents: %s", filepath, file.readString().c_str());
+            LogHandler::debug(_TAG, "File contents: %s", file.readString().c_str());
+            file.close();
             printMemory();
         }
         saving = false;

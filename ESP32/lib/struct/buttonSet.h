@@ -27,11 +27,13 @@ SOFTWARE. */
 #include "../constants.h"
 
 struct ButtonSet {
+    char name[15] = "Default";
     int8_t pin = -1;
     gpio_pull_mode_t pullMode = gpio_pull_mode_t::GPIO_PULLDOWN_ONLY;
     ButtonModel buttons[MAX_BUTTONS];
     ButtonSet() { }
     ButtonSet(const ButtonSet &set) {
+        strcpy(name, set.name);
         pin = set.pin;
         pullMode = set.pullMode;
         for (size_t i = 0; i < MAX_BUTTONS; i++)
@@ -40,7 +42,9 @@ struct ButtonSet {
         }
     }
 
+//Doesnt work
     void toJson(JsonObject& obj) {
+        obj["name"] = name;
         obj["pin"] = pin;
         obj["pullMode"] = (uint8_t)pullMode;
         auto array = obj.createNestedArray("buttons");
@@ -49,15 +53,20 @@ struct ButtonSet {
             buttons[i].toJson(buttonOBJ);
             array.add(buttonOBJ);
         }
+        // for(size_t i = 0; i<MAX_BUTTONS; i++) {
+        //     buttons[i].toJson(obj["buttons"][i]);
+        // }
     }
 
     void fromJson(const JsonObject& obj) {
+        const char* nameTemp  = obj["name"] | "Default";
+        strcpy(name, nameTemp);
         pin = obj["pin"] | -1;
         pullMode = (gpio_pull_mode_t)(obj["pullMode"] | (uint8_t)gpio_pull_mode_t::GPIO_PULLDOWN_ONLY);
-        JsonArray buttonProfilesObj = obj["buttons"].as<JsonArray>();
+        JsonArray array = obj["buttons"].as<JsonArray>();
         for(int i = 0; i<MAX_BUTTONS; i++) {
             auto profile = ButtonModel();
-            profile.fromJson(buttonProfilesObj[i].as<JsonObject>());
+            profile.fromJson(array[i].as<JsonObject>());
             buttons[i] = profile;
         }
     }

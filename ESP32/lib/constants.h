@@ -7,7 +7,7 @@
 #define featureCount 8
 #define MAX_BUTTON_SETS 4
 #define MAX_BUTTONS 4
-#define MAX_COMMAND 100
+#define MAX_COMMAND 255
 
 const Channel ChannelMapV2[9] = {
     {"L0","Stroke",0,500,999,false,false},

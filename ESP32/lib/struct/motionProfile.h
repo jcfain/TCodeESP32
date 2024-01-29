@@ -55,14 +55,16 @@ struct MotionProfile {
         return -1;
     }
 
+//Doesnt work
     void toJson(JsonObject &obj) {
         obj["name"] = motionProfileName;
         obj["edited"] = edited;
-        for (size_t i = 0; i < channels.size(); i++)
-        {
-            channels[i].toJson(obj["channels"][i]);
+        auto array = obj.createNestedArray("channels");
+        for(size_t i = 0; i<channels.size(); i++) {
+            JsonObject channelObj;
+            channels[i].toJson(channelObj);
+            array.add(channelObj);
         }
-        
     }
 
     void fromJson(const JsonObject& obj) {
