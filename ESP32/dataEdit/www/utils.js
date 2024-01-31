@@ -126,6 +126,23 @@ Utils = {
         }
         return input;
     },
+    createTextAreaInput(id, value, maxLength, callback) {
+        const input = document.createElement("textarea");
+        input.type = "text";
+        if(id) {
+            input.id = id;
+        }
+        if(value) {
+            input.value = value;
+        }
+        if(maxLength) {
+            input.maxLength = maxLength;
+        }
+        if(callback) {
+            input.oninput = callback;
+        }
+        return input;
+    },
     createCheckboxInput(id, checked, callback) {
         const input = document.createElement("input");
         input.type = "checkbox";
@@ -165,6 +182,16 @@ Utils = {
         const nameCell = this.createFormCell(0, name);
         const valueCell = this.createFormCell();
         const input = this.createTextInput(textInputID, value, maxLength, callback);
+        valueCell.appendChild(input);
+        row.appendChild(nameCell);
+        row.appendChild(valueCell);
+        return {row: row, input: input, nameCell: nameCell, valueCell: valueCell};
+    },
+    createTextAreaFormRow(rowID, name, textInputID, value, maxLength, callback) {
+        const row = this.createFormRow(rowID);
+        const nameCell = this.createFormCell(0, name);
+        const valueCell = this.createFormCell();
+        const input = this.createTextAreaInput(textInputID, value, maxLength, callback);
         valueCell.appendChild(input);
         row.appendChild(nameCell);
         row.appendChild(valueCell);

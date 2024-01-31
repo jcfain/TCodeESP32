@@ -21,11 +21,179 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 Buttons = {
+    templates: [],
+    setNameDebounce: undefined,
+    updateDebounce: undefined,
     setup() {
         document.getElementById("bootButtonCommand").value = buttonSettings["bootButtonCommand"].replace(" ", "\n");
+        removeByClass("buttonSetRow");
+        buttonSettings["buttonSets"].forEach((buttonSet, setIndex) => {
+            
+            const buttons = buttonSet["buttons"];
+
+            //Main UI template
+            const buttonSetsDiv = document.getElementById("buttonControls");
+            
+            let buttonSetNameRow = Utils.createTextFormRow(0, "Name", 'buttonSetName'+setIndex, buttonSet.name, 25, function(setIndex) {this.update(setIndex)}.bind(this, setIndex));
+            buttonSetNameRow.input.required = true;
+            let buttonSetPinRow = Utils.createNumericFormRow(0, "Pin", 'buttonSetPin'+setIndex, buttonSet.pin, -1, 255, function(setIndex) {this.update(setIndex)}.bind(this, setIndex));
+            buttonSetPinRow.input.name = "buttonSetPins"
+            buttonSetPinRow.title = `The pin this button set is on`
+
+            var buttonSetEditButton = document.createElement("div");
+            buttonSetEditButton.classList.add("tRow");
+            //buttonSetEditButton.classList.add("motion-profile-edit-channel-header");
+            var cell1 = document.createElement("div");
+            cell1.classList.add("tCell");
+            var cell2 = document.createElement("div");
+            cell2.classList.add("tCell");
+            var label = document.createElement("span");
+            label.innerText = "";//buttonSet["name"];
+            var button = document.createElement("button");
+            button.id = "ButtonSetEditButton" + setIndex;
+            button.innerText = "Edit";
+            button.onclick = function(setIndex) {
+                this.editButtonSet(setIndex);
+            }.bind(this, setIndex);
+            cell1.appendChild(label);
+            cell2.appendChild(button);
+            buttonSetEditButton.appendChild(cell1);
+            buttonSetEditButton.appendChild(cell2);
+
+            buttonSetNameRow.row.classList.add("buttonSetRow");
+            buttonSetPinRow.row.classList.add("buttonSetRow");
+            buttonSetEditButton.classList.add("buttonSetRow");
+
+            buttonSetsDiv.appendChild(buttonSetNameRow.row);
+            buttonSetsDiv.appendChild(buttonSetPinRow.row);
+            buttonSetsDiv.appendChild(buttonSetEditButton);
+
+            
+            //Modal Template
+            var modalRootdiv = document.createElement("div");
+            modalRootdiv.classList.add("formTable");
+            modalRootdiv.style = "box-shadow: none; width: 100%;"
+            modalRootdiv.id = "buttonContainer"+setIndex;
+            modalRootdiv.name = "buttonContainer";
+            var modalParent = document.createElement("div");
+            var modalheader = document.createElement("div");
+            modalheader.classList.add("tHeader")
+            modalParent.appendChild(modalheader);
+
+            const buttonTable = document.createElement("div");
+            buttonTable.id = "buttonTable" + setIndex;
+            buttonTable.setAttribute("name", "buttonTable");
+            buttonTable.classList.add("formTable");
+            buttonTable.style = "box-shadow: none; width: auto; margin: 0; padding: 0;"
+            const buttonTableDiv = document.createElement("div");
+            for(var i = 0; i < buttons.length; i++) {
+                const buttonIndex = i;
+
+
+                let buttonRow = Utils.createTextFormRow(0, "Name", 'buttonName'+setIndex+buttonIndex, buttons[i].name, 25, function(setIndex, buttonIndex) {
+                    if(validateStringControl("buttonName"+setIndex+buttonIndex, buttonSettings['buttonSets'][setIndex]["buttons"][buttonIndex], "name")) {
+                        this.update(setIndex)
+                    }
+                }.bind(this, setIndex, buttonIndex));
+                buttonRow.title = `Name of the button`
+                buttonRow.input.required = true;
+                buttonTableDiv.appendChild(buttonRow.row);
+
+                buttonRow = Utils.createTextAreaFormRow(0, "Command", 'buttonCommand'+setIndex+buttonIndex, buttons[i].command, 255, function(setIndex, buttonIndex) {
+                    if(validateStringControl("buttonCommand"+setIndex+buttonIndex, buttonSettings['buttonSets'][setIndex]["buttons"][buttonIndex], "command")) {
+                        this.update(setIndex)
+                    }
+                }.bind(this, setIndex, buttonIndex));
+                buttonRow.title = `This is the TCode command executed when the button is pressed`
+                buttonTableDiv.appendChild(buttonRow.row);
+
+                // buttonRow = Utils.createNumericFormRow(0, "Index", 'buttonIndex'+setIndex+buttonIndex, buttons[i].index, 0, buttons.length - 1, this.update);
+                // buttonRow.title = `This is the index the button is physically on in the resistor ladder.`
+                // buttonTableDiv.appendChild(buttonRow.row);
+
+            };
+            
+            modalParent.appendChild(buttonTable);
+            buttonTable.appendChild(buttonTableDiv);
+            modalRootdiv.appendChild(modalParent);
+            this.templates.push(modalRootdiv);
+
+        });
     },
-    update() {
-        buttonSettings["bootButtonCommand"] = document.getElementById('bootButtonCommand').value.replace("\n", " ");;
-        updateUserSettings(undefined, EndPointType.Buttons.uri, buttonSettings);
+    update(setIndex) {
+        if(this.updateDebounce) {
+            clearTimeout(this.updateDebounce);
+        }
+        this.updateDebounce = setTimeout(function(setIndex) {
+            buttonSettings["bootButtonCommand"] = document.getElementById('bootButtonCommand').value.replace("\n", " ");;
+            if(setIndex != undefined) {
+                let valid = true;
+                if(validateStringControl("buttonSetName"+setIndex, buttonSettings['buttonSets'][setIndex], "name")) {
+                    buttonSettings["buttonSets"][setIndex]["name"] = document.getElementById('buttonSetName'+setIndex).value;
+                } else {
+                    valid = false;
+                }
+                if(validatePins()) {
+                    this.updatebuttonSet(setIndex);
+                } else {
+                    valid = false;
+                }
+                if(valid)
+                    postButtonSettings(0);
+            }
+        }.bind(this, setIndex), 3000);
+        // if(setIndex != undefined) {
+        //     this.updatebuttonSet(setIndex);
+        // }
+        // updateUserSettings(0, EndPointType.Buttons.uri, buttonSettings);
+    },
+    editButtonSet(index) {
+        const modal = document.getElementById("buttonSetsModal");
+        removeAllChildren(modal);
+        modal.appendChild(this.templates[index]);
+        this.setbuttonSet(index);
+        const header = document.createElement("span");
+        header.innerText = "Edit"  
+        header.setAttribute("slot", "title");
+        modal.appendChild(header);
+        modal.show();
+    },
+    setbuttonSet(setIndex) {
+        const buttons = buttonSettings["buttonSets"][setIndex]["buttons"];
+        for(var i = 0; i < buttons.length; i++) {
+            const buttonIndex = i;
+            const button = buttons[i];
+            document.getElementById('buttonName'+setIndex+buttonIndex).value = button.name;
+            document.getElementById('buttonCommand'+setIndex+buttonIndex).value = button.command;  
+            // document.getElementById('buttonIndex'+setIndex+buttonIndex).value = button[i].index;
+        };
+    },
+    updatebuttonSet(setIndex) {
+        buttonSettings["buttonSets"][setIndex]["name"] = document.getElementById('buttonSetName'+setIndex).value;
+        buttonSettings["buttonSets"][setIndex]["pin"] = parseInt(document.getElementById('buttonSetPin'+setIndex).value);  
+        const buttons = buttonSettings["buttonSets"][setIndex]["buttons"];
+        for(var i = 0; i < buttons.length; i++) {
+            const buttonIndex = i;
+            //const button = buttons[i];
+            const nameNode = document.getElementById('buttonName'+setIndex+buttonIndex);
+            if(nameNode) {
+                buttonSettings["buttonSets"][setIndex]["buttons"][i]["name"] = document.getElementById('buttonName'+setIndex+buttonIndex).value;
+                buttonSettings["buttonSets"][setIndex]["buttons"][i]["command"] = document.getElementById('buttonCommand'+setIndex+buttonIndex).value.replace("\n", " ");  
+            }
+            // document.getElementById('buttonIndex'+setIndex+buttonIndex).value = button[i].index;
+        };
+    },
+    
+    setButtonSetName(profileIndex) {
+        if(this.setNameDebounce) {
+            clearTimeout(this.setNameDebounce);
+        }
+        
+        this.setNameDebounce = setTimeout(function(profileIndex) {
+            if(validateStringControl("buttonSetName"+profileIndex, buttonSettings['buttonSets'][profileIndex], "name")) {
+                //updateMotionProfileName(profileIndex);
+                postButtonSettings(0);
+            }
+        }.bind(this, profileIndex), 3000);
     }
 }

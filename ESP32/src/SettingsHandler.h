@@ -178,6 +178,7 @@ public:
 
     static char bootButtonCommand[MAX_COMMAND];
     static ButtonSet buttonSets[MAX_BUTTON_SETS];
+    static uint8_t defaultButtonSetPin;
 
     static VoiceCommand voiceCommands[147];
 
@@ -279,9 +280,9 @@ public:
         strcpy(buf, output.c_str());
     }
 
-    static void getSystemInfo(char buf[3000])
+    static void getSystemInfo(char buf[3500])
     {
-        DynamicJsonDocument doc(3000);
+        DynamicJsonDocument doc(3500);
 
         doc["esp32Version"] = FIRMWARE_VERSION_NAME;
         doc["TCodeVersion"] = (int)TCodeVersionEnum;
@@ -492,7 +493,7 @@ public:
                 for(int i = 0; i < MAX_BUTTON_SETS; i++) {
                     buttonSets[i] = ButtonSet();
                     if(i==0)
-                        buttonSets[i].pin = 39;
+                        buttonSets[i].pin = defaultButtonSetPin;
                     LogHandler::debug(_TAG, "Default buttonset name: %s, index: %u, pin: %ld", buttonSets[i].name, i, buttonSets[i].pin);
                     for(int j = 0; j < MAX_BUTTONS; j++) {
                         buttonSets[i].buttons[j] = ButtonModel();
@@ -508,7 +509,7 @@ public:
                     LogHandler::debug(_TAG, "Loaded button set '%s', pin: %u", set.name, set.pin);
                     buttonSets[i] = set;
                     for(int j = 0; j < MAX_BUTTONS; j++) {
-                        LogHandler::debug(_TAG, "Loaded button, name: %s,  index: %u, command: %s", buttonSets[i].name, buttonSets[i].buttons[j].index, buttonSets[i].buttons[j].command);
+                        LogHandler::debug(_TAG, "Loaded button, name: %s, index: %u, command: %s", buttonSets[i].name, buttonSets[i].buttons[j].index, buttonSets[i].buttons[j].command);
                     }
                 }
             }
@@ -1510,14 +1511,6 @@ private:
             excludes.add(excludesVec[i]);
         }
 
-        LogHandler::debug(_TAG, "Is overflowed: %u", doc.overflowed());
-        if (doc.overflowed())
-        {
-            LogHandler::error(_TAG, "document is overflowed! Increase serialize size: %u", doc.memoryUsage());
-            // file.close();
-            return false;
-        }
-
         LogHandler::debug(_TAG, "isNull: %u", doc.isNull());
         if (doc.isNull())
         {
@@ -1530,6 +1523,14 @@ private:
         if (doc.memoryUsage() == 0)
         {
             LogHandler::error(_TAG, "document is empty!");
+            // file.close();
+            return false;
+        }
+
+        LogHandler::debug(_TAG, "Is overflowed: %u", doc.overflowed());
+        if (doc.overflowed())
+        {
+            LogHandler::error(_TAG, "document is overflowed! Increase serialize size: %u", doc.memoryUsage());
             // file.close();
             return false;
         }
@@ -1592,6 +1593,7 @@ private:
                 }
 		        xSemaphoreTake(mutex, portMAX_DELAY);
             }
+            LogHandler::debug(_TAG, "jsonSize: %ld", jsonSize);
             DynamicJsonDocument doc(jsonSize);
             if(!saveFunction(doc)) {
                 LogHandler::error(_TAG, "Failed to compile JSON object: %s", filepath);
@@ -1782,7 +1784,7 @@ private:
         Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
         BLDC_HallEffect_PIN = json["BLDC_HallEffect_PIN"] | 35;
 #endif
-    //Battery_Voltage_PIN = json["Battery_Voltage_PIN"] | 39;
+    defaultButtonSetPin = 39;
 }
 
     static void setBuildFeatures()
@@ -2373,6 +2375,7 @@ int SettingsHandler::motionSelectedProfileIndex = 0;
 int SettingsHandler::motionDefaultProfileIndex = 0;
 MotionProfile SettingsHandler::motionProfiles[maxMotionProfileCount];
 ButtonSet SettingsHandler::buttonSets[MAX_BUTTON_SETS];
+uint8_t SettingsHandler::defaultButtonSetPin;
 //std::map<const char*, MotionProfile*, StrCompare> SettingsHandler::motionProfiles;
 // int SettingsHandler::motionUpdateGlobal;
 // int SettingsHandler::motionPeriodGlobal;

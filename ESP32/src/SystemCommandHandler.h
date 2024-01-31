@@ -86,33 +86,34 @@ public:
 				return validateBool("Motion", true, SettingsHandler::getMotionEnabled(), [](bool value) -> bool {
 					SettingsHandler::setMotionEnabled(value);
 					return true;
-				}, true);
+				}, false);
 			}
 			if(isCommand(in, "#motion-disable")) {
 				return validateBool("Motion", false, SettingsHandler::getMotionEnabled(), [](bool value) -> bool {
 					SettingsHandler::setMotionEnabled(value);
 					return true;
-				}, true);
+				}, false);
 			}
 			if(isCommand(in, "#motion-toggle")) {
 				return execute([]() -> bool {
 					SettingsHandler::setMotionEnabled(!SettingsHandler::getMotionEnabled());
 					Serial.println(SettingsHandler::getMotionEnabled() ? "Motion enabled" : "Motion disabled");
 					return true;
-				}, true);
+				}, false);
 			}
 			if(isCommand(in, "#motion-profile-cycle")) {
 				return execute([]() -> bool {
 					SettingsHandler::cycleMotionProfile();
 					return true;
-				}, true);
+				}, false);
 			}
-			if(isCommand(in, "#pause-toggle")) {
-				return execute([]() -> bool {
-					SettingsHandler::motionPaused = !SettingsHandler::motionPaused;
-					return true;
-				}, true);
-			}
+			//Need a way to reenable this. Need a way to filter all the movement TCode commands. Or seperate the external commands from the TCode processor.
+			// if(isCommand(in, "#pause-all")) {
+			// 	return execute([]() -> bool {
+			// 		SettingsHandler::motionPaused = !SettingsHandler::motionPaused;
+			// 		return true;
+			// 	}, false);
+			// }
 			
 			
 			// if(isCommand(in, "$motion-period-random-on")) {
@@ -237,7 +238,7 @@ public:
 				return validateMaxLength("Motion profile name", value, maxMotionProfileNameLength, false, [](const char* value) -> bool {
 					SettingsHandler::setMotionProfileName(value);
 					return true;
-				}, true);
+				}, false);
 			}
 			// if(isCommand(in, "$motion-update")) {
 			// 	return validateGreaterThanNegativeOne("Motion update global", value, [](int valueInt) -> bool {
@@ -286,13 +287,26 @@ public:
 					return true;
 				});
 			}
-			Serial.printf("Invalid command: %s\n", in);
+			LogHandler::error(_TAG, "Unknown command: %s\n", in);
+			// if(m_otherCommandCallback) {
+			// 	LogHandler::debug(_TAG, "Unknown command, sending ");
+			// 	m_otherCommandCallback(in);
+			// }
 			//printCommandHelp();
 			xSemaphoreGive(xMutex);
 			return false;
 		}
+		
+		if(strpbrk("@", in) != nullptr) {
+			if(m_otherCommandCallback)
+				m_otherCommandCallback(in);
+		}
 		xSemaphoreGive(xMutex);
 		return false;
+	}
+
+	static void registerOtherCommandCallback(std::function<void(const char*)> callback) {
+		m_otherCommandCallback = callback;
 	}
 
 	static void restart() {
@@ -305,6 +319,8 @@ public:
 private: 
 	static SemaphoreHandle_t xMutex;
 	static const char* _TAG;
+	static std::function<void(const char*)> m_otherCommandCallback;
+
 	static bool isCommand(const char* in, const char* command) {
 		return strstr(in, command) != nullptr;
 	}
@@ -312,7 +328,7 @@ private:
 		return (int)(String(value).toInt());
 	}
 
-	static bool execute(bool (*function)(), bool isSaveRequired = false, bool isRestartRequired = false) {
+	static bool execute(std::function<bool()> function, bool isSaveRequired = false, bool isRestartRequired = false) {
 		bool subValidate = function();
 		if(subValidate) {
 			printComplete(isRestartRequired, isSaveRequired);
@@ -471,4 +487,5 @@ private:
 
 SemaphoreHandle_t SystemCommandHandler::xMutex = xSemaphoreCreateMutex();
 const char* SystemCommandHandler::_TAG = TagHandler::SystemCommandHandler;
+std::function<void(const char*)> SystemCommandHandler::m_otherCommandCallback = 0;
 bool SystemCommandHandler::restartRequired = false;

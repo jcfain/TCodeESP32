@@ -27,7 +27,7 @@ SOFTWARE. */
 #include "../constants.h"
 
 struct ButtonSet {
-    char name[15] = "Default";
+    char name[26] = "Default";
     int8_t pin = -1;
     gpio_pull_mode_t pullMode = gpio_pull_mode_t::GPIO_PULLDOWN_ONLY;
     ButtonModel buttons[MAX_BUTTONS];

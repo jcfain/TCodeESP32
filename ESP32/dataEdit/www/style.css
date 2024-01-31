@@ -304,6 +304,7 @@ button:hover {
 }
 
 .formTable input[type=text],
+.formTable textarea,
 .formTable input[type=number],
 .formTable input[type=password],
 .formTable select {
@@ -311,6 +312,7 @@ button:hover {
   border-radius: 5px;
 }
 .formTable input[type=text]:invalid,
+.formTable textarea:invalid,
 .formTable input[type=number]:invalid,
 .formTable input[type=password]:invalid {
   border-color: red;

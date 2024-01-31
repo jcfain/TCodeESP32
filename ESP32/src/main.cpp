@@ -560,6 +560,7 @@ void setup()
 #endif
 
 	motorHandler->setMessageCallback(TCodeCommandCallback);
+	SystemCommandHandler::registerOtherCommandCallback(TCodeCommandCallback);
 
 #if TEMP_ENABLED
 	if(SettingsHandler::tempSleeveEnabled || SettingsHandler::tempInternalEnabled) {
@@ -639,10 +640,11 @@ void setup()
 }
 
 void loop() {
-	if(setupSucceeded && (SettingsHandler::motionPaused || SettingsHandler::saving)) {
-		motorHandler->execute();
-		return;
-	}
+	// if(setupSucceeded && SettingsHandler::saving) {
+	// 	motorHandler->execute();
+	// 	vTaskDelay(250/portTICK_PERIOD_MS);
+	// 	return;
+	// }
 	//LogHandler::verbose(TagHandler::MainLoop, "Enter loop ############################################");
 	benchStart(0);
 	if (SystemCommandHandler::restartRequired || restarting) {  // check the flag here to determine if a restart is required

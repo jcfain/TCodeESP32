@@ -782,6 +782,33 @@ function removeAllChildren(element) {
         element.removeChild(element.lastChild);
     }
 }
+function removeByName(name) {
+    if(!name) {
+        return;
+    }
+    let nodes = document.getElementsByName(name);
+    if(!nodes.length) {
+        console.warn("WARNING: No elemnts found when removing children by name")
+        return;
+    }
+    while(nodes[0]) {
+        nodes[0].parentNode.removeChild(nodes[0]);
+    }
+}
+function removeByClass(name) {
+    if(!name) {
+        return;
+    }
+    let nodes = document.getElementsByClassName(name);
+    if(!nodes.length) {
+        console.warn("WARNING: No elemnts found when removing children by class")
+        return;
+    }
+    while(nodes[0]) {
+        nodes[0].parentNode.removeChild(nodes[0]);
+    }​
+}
+
 function hasFeature(buildFeature) {
     return systemInfo.buildFeatures.includes(buildFeature);
 }
@@ -1828,6 +1855,19 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
             assignedPins.push({name:"Twist feed back", pin:pinValues.twistFeedBack});
         }
     }
+    
+    for(var i=0; i<pinValues.buttonSets.length; i++) {
+        var buttonSetPin = pinValues.buttonSets[i];
+        if(buttonSetPin > -1) {
+            if(validPWMpins.indexOf(buttonSetPin) == -1 && inputOnlypins.indexOf(buttonSetPin) == -1)
+                invalidPins.push("Invalid button set: "+i+" pin: "+buttonSetPin);
+            pinDupeIndex = assignedPins.findIndex(x => x.pin === buttonSetPin);
+            if(pinDupeIndex > -1)
+                duplicatePins.push("Button set pin "+i+" and "+assignedPins[pinDupeIndex].name);
+            assignedPins.push({name:"Button set: "+i, pin:pinDupeIndex});
+        }
+    }
+
     if(duplicatePins.length || invalidPins.length) 
         return false;
     return true;
@@ -1864,6 +1904,12 @@ function getCommonPinValues(pinValues) {
     pinValues.temp = parseInt(document.getElementById('Temp_PIN').value);
     pinValues.internalTemp = parseInt(document.getElementById('Internal_Temp_PIN').value);
     pinValues.twistFeedBack = parseInt(document.getElementById('TwistFeedBack_PIN').value);
+
+    var buttonSetPins = document.getElementsByName('buttonSetPins');
+    pinValues.buttonSets = [];
+    buttonSetPins.forEach((node, index) => {
+        pinValues.buttonSets[index] = parseInt(document.getElementById('buttonSetPin'+index).value);;
+    });
 }
 
 function updateZeros() 

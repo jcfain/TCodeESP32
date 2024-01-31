@@ -27,7 +27,7 @@ SOFTWARE. */
 #include "../constants.h"
 
 struct ButtonModel {
-    char name[15];
+    char name[26];
     uint8_t index;
     char command[MAX_COMMAND];
 
@@ -39,9 +39,20 @@ struct ButtonModel {
     }
     
     void loadDefault(uint8_t argIndex) {
-        sprintf(name, "Button %u", argIndex + 1);
         index = argIndex;
-        sprintf(command, "#motion-profile-set:%u #motion-enable", index + 1);
+        if(argIndex == 0) {
+            sprintf(name, "Toggle motion");
+            sprintf(command, "#motion-toggle");
+        } else if(argIndex == 1) {
+            sprintf(name, "Cycle motion profile");
+            sprintf(command, "#motion-profile-cycle");
+        } else if(argIndex == 2) {
+            sprintf(name, "Set motion profile 3");
+            sprintf(command, "#motion-profile-set:%u #motion-enable", 3);
+        } else {
+            sprintf(name, "Set motion profile 4");
+            sprintf(command, "#motion-profile-set:%u #motion-enable", 4);
+        }
     }
 
     void toJson(JsonObject& obj) {

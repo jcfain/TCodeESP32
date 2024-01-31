@@ -66,7 +66,7 @@ class WebHandler : public HTTPBase {
 
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                char systemInfo[3000];
+                char systemInfo[3500];
                 SettingsHandler::getSystemInfo(systemInfo);
                 if (strlen(systemInfo) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
@@ -183,7 +183,7 @@ class WebHandler : public HTTPBase {
 			{
                 Serial.println("API save settings...");
                 JsonObject jsonObj = json.as<JsonObject>();
-                if (SettingsHandler::saveSettings(jsonObj)) 
+                if (SettingsHandler::loadSettings(false, jsonObj)) 
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
