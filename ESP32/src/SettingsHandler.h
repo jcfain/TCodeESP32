@@ -255,9 +255,12 @@ public:
         saveButtons();
     }
 
-    static void defaultPinout() {
+    static bool defaultPinout() {
 		setBoardPinout();
-        saveSettings();
+        for(int i = 0; i < MAX_BUTTON_SETS; i++) {
+            buttonSets[i].pin = i==0 ? defaultButtonSetPin : -1;
+        }
+        return saveSettings();
     }
 
     static void getWifiInfo(char buf[100])

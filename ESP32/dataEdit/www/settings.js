@@ -2287,7 +2287,7 @@ function exportToJsonFile() {
     const userSettingsCopy = JSON.parse(JSON.stringify(userSettings));
     //userSettingsCopy["wifiPass"] = "YOUR PASSWORD HERE";
     userSettingsCopy["wifiSettings"] = wifiSettings;
-    userSettingsCopy["wifiSettings"].wifiPass = "YOUR PASSWORD HERE";
+    //userSettingsCopy["wifiSettings"].wifiPass = "YOUR PASSWORD HERE";
     userSettingsCopy["motionDefaultProfileIndex"] = motionProviderSettings.motionDefaultProfileIndex;
     userSettingsCopy["motionProfiles"] = motionProviderSettings.motionProfiles;
     userSettingsCopy["buttonSettings"] = buttonSettings;
@@ -2363,14 +2363,14 @@ function handleImportRenames(key, value) {
         case "motionDefaultProfileIndex": 
         motionProviderSettings.motionDefaultProfileIndex = value;
         break;
+        case "wifiSettings": 
+        wifiSettings.ssid = value.ssid;
+        break;
         case "ssid": 
         wifiSettings.ssid = value;
         break;
         case "bootButtonCommand":
         buttonSettings.bootButtonCommand = value;
-        break;
-        case "wifiSettings": 
-        wifiSettings = value;
         break;
         case "buttonSettings": 
         buttonSettings = value;

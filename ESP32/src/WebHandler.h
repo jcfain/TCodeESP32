@@ -146,7 +146,16 @@ class WebHandler : public HTTPBase {
                 int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
                 Serial.println("Settings pinout default");
                 SettingsHandler::boardType = (BoardType)boardType;
-				SettingsHandler::defaultPinout();
+				if (SettingsHandler::defaultPinout())
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                    request->send(response);
+                } 
+                else 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error defaulting pinout settings\"}");
+                    request->send(response);
+                }
             });
 
             // upload a file to /upload
