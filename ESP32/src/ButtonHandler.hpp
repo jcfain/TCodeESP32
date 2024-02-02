@@ -98,6 +98,7 @@ public:
         xSemaphoreGive(xMutex);
     }
 
+    void updateAnalogButtonCommands(ButtonSet buttonSets[MAX_BUTTON_SETS]) {
         xSemaphoreTake(xMutex, portMAX_DELAY);
         for(int i = 0; i < MAX_BUTTON_SETS; i++) {
             m_buttonSets[i] = ButtonSet(buttonSets[i]);
