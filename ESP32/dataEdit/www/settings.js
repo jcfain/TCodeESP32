@@ -1860,11 +1860,11 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
         var buttonSetPin = pinValues.buttonSets[i];
         if(buttonSetPin > -1) {
             if(validPWMpins.indexOf(buttonSetPin) == -1 && inputOnlypins.indexOf(buttonSetPin) == -1)
-                invalidPins.push("Invalid button set: "+i+" pin: "+buttonSetPin);
+                invalidPins.push("Invalid button set "+i+" pin: "+buttonSetPin);
             pinDupeIndex = assignedPins.findIndex(x => x.pin === buttonSetPin);
             if(pinDupeIndex > -1)
-                duplicatePins.push("Button set pin "+i+" and "+assignedPins[pinDupeIndex].name);
-            assignedPins.push({name:"Button set: "+i, pin:pinDupeIndex});
+                duplicatePins.push("Button set "+i+" pin and "+assignedPins[pinDupeIndex].name);
+            assignedPins.push({name:"Button set "+i, pin:pinDupeIndex});
         }
     }
 

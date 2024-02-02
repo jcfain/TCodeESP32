@@ -290,8 +290,7 @@ void MainWindow::on_saveWiFiCredsButton_clicked()
         modified = true;
     }
     if(modified) {
-        sendSerial("$save");
-        sendSerial("#restart");
+        sendSerial("$save #restart");
         ui->tabWidget->setCurrentIndex(3);
     } else {
         QMessageBox::warning(this, tr("Warning"), tr("Nothing to modify"));

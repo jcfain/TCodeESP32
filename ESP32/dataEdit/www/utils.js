@@ -216,5 +216,13 @@ Utils = {
         row.appendChild(nameCell);
         row.appendChild(valueCell);
         return {row: row, input: input, nameCell: nameCell, valueCell: valueCell};
+    },
+    createLabelFormRow(rowID, name) {
+        const row = this.createFormRow(rowID);
+        const nameCell = this.createFormCell(0, name);
+        const valueCell = this.createFormCell();
+        row.appendChild(nameCell);
+        row.appendChild(valueCell);
+        return {row: row, input: undefined, nameCell: nameCell, valueCell: valueCell};
     }
 }

@@ -29,8 +29,6 @@ SOFTWARE. */
 #include "../lib/constants.h"
 #include "../lib/struct/buttonSet.h"
 
-#define BUTTON_ANALOG_TOL 150
-#define BUTTON_ANALOG_DEBOUNCE 250
 
 class ButtonHandler {
 
@@ -43,10 +41,11 @@ public:
         buttonIndexMap[3] = 4096;
     }
 
-    void init(char bootButtonCommand[MAX_COMMAND], ButtonSet buttonSets[MAX_BUTTON_SETS]) {
+    void init(uint16_t analogDebounce, char bootButtonCommand[MAX_COMMAND], ButtonSet buttonSets[MAX_BUTTON_SETS]) {
         if(m_initialized) {
             return;
         }
+        buttonAnalogDebounce = analogDebounce;
         m_buttonQueue = xQueueCreate(MAX_BUTTONS, sizeof(char[MAX_COMMAND]));
         if(m_buttonQueue == NULL) {
             LogHandler::error(_TAG, "Error creating the debug queue");
@@ -67,7 +66,7 @@ public:
                     LogHandler::error(_TAG, "Invalid interupt button pin: %ld", buttonPin);
                     continue;
                 };    
-                xTaskCreate(&button_task, "buttonTask", 3096, this, 5, &buttonTask);
+                xTaskCreate(&analog_button_task, "buttonTask", 3096, this, 5, &buttonTask);
                 return;
                 // LogHandler::debug(_TAG, "Checking button set: %s, pin: %ld", buttonSet.name, buttonPin);
                 // if(buttonSet.pullMode == gpio_pull_mode_t::GPIO_PULLDOWN_ONLY) {
@@ -99,6 +98,17 @@ public:
         xSemaphoreGive(xMutex);
     }
 
+        xSemaphoreTake(xMutex, portMAX_DELAY);
+        for(int i = 0; i < MAX_BUTTON_SETS; i++) {
+            m_buttonSets[i] = ButtonSet(buttonSets[i]);
+        }
+        xSemaphoreGive(xMutex);
+    }
+
+    void updateAnalogDebounce(uint16_t debounce) {
+        buttonAnalogDebounce = debounce;
+    }
+
     void read(char buf[MAX_COMMAND]) {
         // if(m_enterInterupt) {
         //     LogHandler::info(_TAG, "Enter interupt");
@@ -120,32 +130,35 @@ public:
         xSemaphoreGiveFromISR(xMutex, NULL);
     }
 
-    static void buttonInterrupt() {
-        if(!m_enterInterupt && millis() - m_lastDebounce > BUTTON_ANALOG_DEBOUNCE) {
-            m_enterInterupt = true;    
-        }
-    }
+    // static void buttonInterrupt() {
+    //     if(!m_enterInterupt && millis() - m_lastDebounce > buttonAnalogDebounce) {
+    //         m_enterInterupt = true;    
+    //     }
+    // }
 
 private: 
     static const char* _TAG;
     bool m_initialized = false;
 
 
-    static int m_lastDebounce;
+    static long m_lastDebounce;
     static volatile bool m_enterInterupt;
 	static SemaphoreHandle_t xMutex;
     static char m_bootButtonCommand[MAX_COMMAND];
     static uint16_t buttonIndexMap[MAX_BUTTONS];
     static ButtonSet m_buttonSets[MAX_BUTTON_SETS];
     static QueueHandle_t m_buttonQueue;
+    static uint8_t buttonAnalogTolorance;
+    static uint16_t buttonAnalogDebounce;
 
     TaskHandle_t buttonTask = NULL;
-    static void button_task(void* arg) {
+    static void analog_button_task(void* arg) {
         for(;;) {
-            if(readButtons()) {
-
+            if(millis() - m_lastDebounce > buttonAnalogDebounce) {
+                m_lastDebounce = millis();
+                readButtons();
             }
-            vTaskDelay(BUTTON_ANALOG_DEBOUNCE/portTICK_PERIOD_MS);
+            vTaskDelay(10/portTICK_PERIOD_MS);
         }
     }
     static bool readButtons() {
@@ -156,7 +169,7 @@ private:
                     auto value = analogRead(m_buttonSets[i].pin);
                     auto index = m_buttonSets[i].buttons[j].index;
                     LogHandler::verbose(_TAG, "readButtons value: %ld, index: %ld, index value: %ld", value, index, buttonIndexMap[index]);
-                    if(value >= buttonIndexMap[index] - BUTTON_ANALOG_TOL && value <= buttonIndexMap[index] + BUTTON_ANALOG_TOL) {
+                    if(value >= buttonIndexMap[index] - buttonAnalogTolorance && value <= buttonIndexMap[index] + buttonAnalogTolorance) {
                         LogHandler::verbose(_TAG, "send message");
                         xSemaphoreTake(xMutex, portMAX_DELAY);
                         xQueueSend(m_buttonQueue, m_buttonSets[i].buttons[j].command, portMAX_DELAY);
@@ -170,10 +183,12 @@ private:
     }
 };
 const char*  ButtonHandler::_TAG = TagHandler::ButtonHandler;
+uint8_t ButtonHandler::buttonAnalogTolorance = 150;
+uint16_t ButtonHandler::buttonAnalogDebounce = 150;
 QueueHandle_t ButtonHandler::m_buttonQueue;
 ButtonSet ButtonHandler::m_buttonSets[MAX_BUTTON_SETS];
 char ButtonHandler::m_bootButtonCommand[MAX_COMMAND];
 uint16_t ButtonHandler::buttonIndexMap[MAX_BUTTONS];
 SemaphoreHandle_t ButtonHandler::xMutex = xSemaphoreCreateMutex();
 volatile bool ButtonHandler::m_enterInterupt = false;
-int ButtonHandler::m_lastDebounce = millis();
+long ButtonHandler::m_lastDebounce = millis();

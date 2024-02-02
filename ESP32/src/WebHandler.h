@@ -183,7 +183,7 @@ class WebHandler : public HTTPBase {
 			{
                 Serial.println("API save settings...");
                 JsonObject jsonObj = json.as<JsonObject>();
-                if (SettingsHandler::loadSettings(false, jsonObj)) 
+                if (SettingsHandler::loadSettings(false, jsonObj) && SettingsHandler::saveSettings()) 
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);

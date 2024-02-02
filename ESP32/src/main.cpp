@@ -441,7 +441,13 @@ void settingChangeCallback(const char* group, const char* settingThatChanged) {
 	} else if(buttonHandler && strcmp(group, "buttonCommand") == 0) {
 		if(strcmp(settingThatChanged, "bootButtonCommand") == 0) 
 			buttonHandler->updateBootButtonCommand(SettingsHandler::bootButtonCommand);
+		else if(strcmp(settingThatChanged, "analogButtonCommands") == 0) {
+			buttonHandler->updateAnalogButtonCommands(SettingsHandler::buttonSets);
+		} else if(strcmp(settingThatChanged, "buttonAnalogDebounce") == 0) {
+			buttonHandler->updateAnalogDebounce(SettingsHandler::buttonAnalogDebounce);
+		}
 	}
+	
 }
 void loadI2CModules() {
 #if DISPLAY_ENABLED
@@ -560,7 +566,7 @@ void setup()
 #endif
 
 	motorHandler->setMessageCallback(TCodeCommandCallback);
-	SystemCommandHandler::registerOtherCommandCallback(TCodeCommandCallback);
+	//SystemCommandHandler::registerOtherCommandCallback(TCodeCommandCallback);
 
 #if TEMP_ENABLED
 	if(SettingsHandler::tempSleeveEnabled || SettingsHandler::tempInternalEnabled) {
@@ -631,7 +637,7 @@ void setup()
 	loadI2CModules();
 	buttonHandler = new ButtonHandler();
 
-	buttonHandler->init(SettingsHandler::bootButtonCommand, SettingsHandler::buttonSets);
+	buttonHandler->init(SettingsHandler::buttonAnalogDebounce, SettingsHandler::bootButtonCommand, SettingsHandler::buttonSets);
 
 	SettingsHandler::setMessageCallback(settingChangeCallback);
 	setupSucceeded = true;

@@ -26,6 +26,7 @@ Buttons = {
     updateDebounce: undefined,
     setup() {
         document.getElementById("bootButtonCommand").value = buttonSettings["bootButtonCommand"].replace(" ", "\n");
+        document.getElementById("buttonAnalogDebounce").value = buttonSettings["buttonAnalogDebounce"];
         removeByClass("buttonSetRow");
         buttonSettings["buttonSets"].forEach((buttonSet, setIndex) => {
             
@@ -35,9 +36,10 @@ Buttons = {
             const buttonSetsDiv = document.getElementById("buttonControls");
             
             let buttonSetNameRow = Utils.createTextFormRow(0, "Name", 'buttonSetName'+setIndex, buttonSet.name, 25, function(setIndex) {this.update(setIndex)}.bind(this, setIndex));
-            buttonSetNameRow.input.required = true;
+            buttonSetNameRow.input.setAttribute("readonly", true);
             let buttonSetPinRow = Utils.createNumericFormRow(0, "Pin", 'buttonSetPin'+setIndex, buttonSet.pin, -1, 255, function(setIndex) {this.update(setIndex)}.bind(this, setIndex));
             buttonSetPinRow.input.name = "buttonSetPins"
+            buttonSetPinRow.input.setAttribute("readonly", true);
             buttonSetPinRow.title = `The pin this button set is on`
 
             var buttonSetEditButton = document.createElement("div");
@@ -86,6 +88,23 @@ Buttons = {
             buttonTable.classList.add("formTable");
             buttonTable.style = "box-shadow: none; width: auto; margin: 0; padding: 0;"
             const buttonTableDiv = document.createElement("div");
+
+            let buttonSetNameRowEdit = Utils.createTextFormRow(0, "Name", 'buttonSetNameEdit'+setIndex, buttonSet.name, 25, function(setIndex) {
+                this.update(setIndex);
+            }.bind(this, setIndex));
+            buttonSetNameRowEdit.input.required = true;
+            let buttonSetPinRowEdit  = Utils.createNumericFormRow(0, "Pin", 'buttonSetPinEdit'+setIndex, buttonSet.pin, -1, 255, function(setIndex) {
+                this.update(setIndex);
+            }.bind(this, setIndex));
+            buttonSetPinRowEdit.input.required = true;
+            buttonSetPinRowEdit.title = `The pin this button set is on`
+            
+            buttonTableDiv.appendChild(buttonSetNameRowEdit.row);
+            buttonTableDiv.appendChild(buttonSetPinRowEdit.row);
+
+            const buttonsRow = Utils.createLabelFormRow(0, "Set Buttons");
+            buttonTableDiv.appendChild(buttonsRow.row);
+
             for(var i = 0; i < buttons.length; i++) {
                 const buttonIndex = i;
 
@@ -120,16 +139,31 @@ Buttons = {
 
         });
     },
-    update(setIndex) {
+    update(setIndex, debounce) {
         if(this.updateDebounce) {
             clearTimeout(this.updateDebounce);
         }
         this.updateDebounce = setTimeout(function(setIndex) {
-            buttonSettings["bootButtonCommand"] = document.getElementById('bootButtonCommand').value.replace("\n", " ");;
+            let valid = true;
+            buttonSettings["bootButtonCommand"] = document.getElementById('bootButtonCommand').value.replace("\n", " ");
+            if(validateIntControl("buttonAnalogDebounce", buttonSettings, "buttonAnalogDebounce")) {
+                buttonSettings["buttonAnalogDebounce"] = parseInt(document.getElementById("buttonAnalogDebounce").value);
+            } else {
+                valid = false;
+            }
             if(setIndex != undefined) {
-                let valid = true;
+                if(validateIntControl("buttonSetNameEdit"+setIndex, buttonSettings['buttonSets'][setIndex]["name"], "name")) {
+                    document.getElementById('buttonSetName'+setIndex).value = document.getElementById('buttonSetNameEdit'+setIndex).value;
+                } else {
+                    valid = false;
+                }
+                if(validateStringControl("buttonSetPinEdit"+setIndex, buttonSettings['buttonSets'][setIndex]["pin"], "pin")) {
+                    document.getElementById('buttonSetPin'+setIndex).value = document.getElementById('buttonSetPinEdit'+setIndex).value;
+                } else {
+                    valid = false;
+                }
                 if(validateStringControl("buttonSetName"+setIndex, buttonSettings['buttonSets'][setIndex], "name")) {
-                    buttonSettings["buttonSets"][setIndex]["name"] = document.getElementById('buttonSetName'+setIndex).value;
+                    buttonSettings["buttonSets"][setIndex]["name"] = document.getElementById('buttonSetNameEdit'+setIndex).value;
                 } else {
                     valid = false;
                 }
@@ -138,10 +172,10 @@ Buttons = {
                 } else {
                     valid = false;
                 }
-                if(valid)
-                    postButtonSettings(0);
             }
-        }.bind(this, setIndex), 3000);
+            if(valid)
+                postButtonSettings(0);
+        }.bind(this, setIndex), debounce ? debounce : 3000);
         // if(setIndex != undefined) {
         //     this.updatebuttonSet(setIndex);
         // }
@@ -153,7 +187,7 @@ Buttons = {
         modal.appendChild(this.templates[index]);
         this.setbuttonSet(index);
         const header = document.createElement("span");
-        header.innerText = "Edit"  
+        header.innerText = "Edit button set"  
         header.setAttribute("slot", "title");
         modal.appendChild(header);
         modal.show();
@@ -169,8 +203,8 @@ Buttons = {
         };
     },
     updatebuttonSet(setIndex) {
-        buttonSettings["buttonSets"][setIndex]["name"] = document.getElementById('buttonSetName'+setIndex).value;
-        buttonSettings["buttonSets"][setIndex]["pin"] = parseInt(document.getElementById('buttonSetPin'+setIndex).value);  
+        buttonSettings["buttonSets"][setIndex]["name"] = document.getElementById('buttonSetNameEdit'+setIndex).value;
+        buttonSettings["buttonSets"][setIndex]["pin"] = parseInt(document.getElementById('buttonSetPinEdit'+setIndex).value);  
         const buttons = buttonSettings["buttonSets"][setIndex]["buttons"];
         for(var i = 0; i < buttons.length; i++) {
             const buttonIndex = i;

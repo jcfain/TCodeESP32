@@ -107,6 +107,11 @@ public:
 					return true;
 				}, false);
 			}
+			
+			if(isCommand(in, "#edge") || isCommand(in, "#left") || isCommand(in, "#right") || isCommand(in, "#left")) {
+				if(m_otherCommandCallback)
+					m_otherCommandCallback(in);
+			}
 			//Need a way to reenable this. Need a way to filter all the movement TCode commands. Or seperate the external commands from the TCode processor.
 			// if(isCommand(in, "#pause-all")) {
 			// 	return execute([]() -> bool {
@@ -287,20 +292,17 @@ public:
 					return true;
 				});
 			}
+			
 			LogHandler::error(_TAG, "Unknown command: %s\n", in);
-			// if(m_otherCommandCallback) {
-			// 	LogHandler::debug(_TAG, "Unknown command, sending ");
-			// 	m_otherCommandCallback(in);
-			// }
 			//printCommandHelp();
 			xSemaphoreGive(xMutex);
 			return false;
 		}
 		
-		if(strpbrk("@", in) != nullptr) {
-			if(m_otherCommandCallback)
-				m_otherCommandCallback(in);
-		}
+		// if(strpbrk("@", in) != nullptr) {
+		// 	if(m_otherCommandCallback)
+		// 		m_otherCommandCallback(in);
+		// }
 		xSemaphoreGive(xMutex);
 		return false;
 	}
