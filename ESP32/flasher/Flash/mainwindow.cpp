@@ -46,10 +46,12 @@ MainWindow::~MainWindow()
 
 void MainWindow::sendSerial(QString data)
 {
-    auto currentCom = ui->serialSelectorCombobox->currentData().toString();
-    checkAndConnectSerial(currentCom);
+    if(!checkAndConnectSerial()) {
+        return;
+    }
     if(m_serialPort->isOpen()) {
         m_serialPort->write(data.toUtf8() + '\n');
+        m_serialPort->flush();
         //m_serialPort->waitForBytesWritten();
     } else {
         QMessageBox::critical(this, tr("Error"),
@@ -57,17 +59,18 @@ void MainWindow::sendSerial(QString data)
     }
 }
 
-void MainWindow::checkAndConnectSerial(QString portName)
+bool MainWindow::checkAndConnectSerial()
 {
+    auto portName = ui->serialSelectorCombobox->currentData().toString();
     if(!m_serialPort->isOpen() || (m_serialPort->isOpen() && m_serialPort->portName() != portName)) {
         closeSerial();
         ui->serialOutputTextEdit->clear();
         m_serialPort->setPortName(portName);
-        m_serialPort->setBaudRate(115200);
-        //        m_serialPort->setDataBits(8);
-        //        m_serialPort->setParity(p.parity);
-        //        m_serialPort->setStopBits(p.stopBits);
-        //        m_serialPort->setFlowControl(p.flowControl);
+        m_serialPort->setBaudRate(QSerialPort::BaudRate::Baud115200);
+        m_serialPort->setDataBits(QSerialPort::DataBits::Data8);
+        m_serialPort->setParity(QSerialPort::NoParity);
+        m_serialPort->setStopBits(QSerialPort::StopBits::OneStop);
+        m_serialPort->setFlowControl(QSerialPort::FlowControl::SoftwareControl);
         if(m_serialPort->open(QIODevice::ReadWrite)) {
             appendToSerialOutput("Connected to: "+portName +"\n");
             ui->sterialStateInput->setText("Connected to: "+portName);
@@ -75,8 +78,10 @@ void MainWindow::checkAndConnectSerial(QString portName)
             QMessageBox::critical(this, tr("Error"),
                                   tr("Error connecting to:\n") + portName + ": "+m_serialPort->errorString());
             ui->sterialStateInput->setText("Error connecting to: " + portName + ": "+m_serialPort->errorString());
+            return false;
         }
     }
+    return true;
 }
 
 void MainWindow::closeSerial()
@@ -230,6 +235,7 @@ void MainWindow::on_flashUpdate()
 void MainWindow::on_serailReadyRead()
 {
     QString appendText(m_serialPort->readAll());
+    m_serialPort->flush();
     if(!appendText.isEmpty())
         appendToSerialOutput(appendText);
 }
@@ -238,12 +244,24 @@ void MainWindow::on_serailReadyRead()
 
 void MainWindow::on_refreshComports_clicked()
 {
+
+    disconnect(ui->serialSelectorCombobox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::on_serialSelectorCombobox_indexChanged);
+    int currentIndex = 0;
+    int esp32Index = -1;
     ui->serialSelectorCombobox->clear();
+
     foreach (const QSerialPortInfo &serialPortInfo, QSerialPortInfo::availablePorts())
     {
         QVariant comport(serialPortInfo.portName());
         ui->serialSelectorCombobox->addItem(serialPortInfo.portName() + " - " + serialPortInfo.description(), comport);
+        if(serialPortInfo.description().contains("CP210x", Qt::CaseInsensitive) || serialPortInfo.description().contains("CH340", Qt::CaseInsensitive)) {
+            esp32Index = currentIndex;
+        }
+        currentIndex++;
     }
+    ui->serialSelectorCombobox->setCurrentIndex(esp32Index > -1 ? esp32Index : 0);
+    on_serialSelectorCombobox_indexChanged(esp32Index);
+    connect(ui->serialSelectorCombobox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::on_serialSelectorCombobox_indexChanged);
 }
 
 
@@ -270,6 +288,9 @@ void MainWindow::on_saveWiFiCredsButton_clicked()
     auto ssid = ui->wifiSSIDInput->text();
     auto password = ui->wifiPassInput->text();
     bool modified = false;
+    if(!checkAndConnectSerial()) {
+        return;
+    }
     if(ssid.contains(" ")) {
         QMessageBox::critical(this, tr("Invalid form"),
                               tr("Sorry, but in the current version of TCode spaces are not allowed in commands.\nPlease use the web ui in AP mode (see PDF section 'AP configuration')\nto enter your SSID with spaces.\nThis should be fixed in the next version of TCode."));
@@ -312,10 +333,9 @@ void MainWindow::on_serialCommandInput_returnPressed()
     on_sendSerialButton_clicked();
 }
 
-void MainWindow::on_serialSelectorCombobox_currentIndexChanged(int index)
+void MainWindow::on_serialSelectorCombobox_indexChanged(int index)
 {
-    auto currentCom = ui->serialSelectorCombobox->currentData().toString();
-    checkAndConnectSerial(currentCom);
+    checkAndConnectSerial();
 }
 
 void MainWindow::on_tabWidget_currentChanged(int index)

@@ -13,7 +13,7 @@
 //#include <QNetworkConfigurationManager>
 //#include <QNetworkSession>
 
-#define VERSION 0.11f
+#define VERSION 0.12f
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -46,7 +46,7 @@ private slots:
 
     void on_saveWiFiCredsButton_clicked();
 
-    void on_serialSelectorCombobox_currentIndexChanged(int index);
+    void on_serialSelectorCombobox_indexChanged(int index);
 
     void on_sendSerialButton_clicked();
 
@@ -64,7 +64,7 @@ private:
     QSerialPort* m_serialPort = 0;
 
     void sendSerial(QString data);
-    void checkAndConnectSerial(QString portName);
+    bool checkAndConnectSerial();
     void closeSerial();
     void appendToSerialOutput(QString value);
     void appendToFlashOutput(QString value);
