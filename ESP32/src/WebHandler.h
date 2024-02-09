@@ -174,7 +174,7 @@ class WebHandler : public HTTPBase {
                 request->send(response);
                 delay(2000);
                 webSocketHandler->closeAll();
-                SystemCommandHandler::restart();
+                SettingsHandler::restart();
             });
 
             server->on("/default", HTTP_POST, [this](AsyncWebServerRequest *request)

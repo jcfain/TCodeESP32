@@ -93,6 +93,7 @@ SOFTWARE. */
 #include "VoiceHandler.hpp"
 #include "ButtonHandler.hpp"
 
+SystemCommandHandler* systemCommandHandler;
 
 //TcpHandler tcpHandler;
 MotorHandler* motorHandler;
@@ -176,7 +177,7 @@ void displayPrint(String text) {
 void TCodeCommandCallback(const char* in) {
 
 	if(strpbrk("$", in) != nullptr || strpbrk("#", in) != nullptr) {
-		SystemCommandHandler::process(in);
+		systemCommandHandler->process(in);
 	} else {
 		#if BLUETOOTH_TCODE
 			if (SettingsHandler::bluetoothEnabled && btHandler->isConnected())
@@ -545,6 +546,8 @@ void setup()
 	SettingsHandler::init();
 	LogHandler::info(TagHandler::Main, "Version: %s", SettingsHandler::getFirmwareVersion());
 
+	systemCommandHandler = new SystemCommandHandler();
+
 #if MOTOR_TYPE == 0
 	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3) {
 		motorHandler = new ServoHandler0_3();
@@ -653,7 +656,7 @@ void loop() {
 	// }
 	//LogHandler::verbose(TagHandler::MainLoop, "Enter loop ############################################");
 	benchStart(0);
-	if (SystemCommandHandler::restartRequired || restarting) {  // check the flag here to determine if a restart is required
+	if (SettingsHandler::restartRequired || restarting) {  // check the flag here to determine if a restart is required
 		if(!restarting) {
 			LogHandler::info(TagHandler::Main, "Restarting ESP");
 			ESP.restart();

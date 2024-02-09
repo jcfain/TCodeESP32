@@ -66,12 +66,37 @@ bool MainWindow::checkAndConnectSerial()
         closeSerial();
         ui->serialOutputTextEdit->clear();
         m_serialPort->setPortName(portName);
-        m_serialPort->setBaudRate(QSerialPort::BaudRate::Baud115200);
-        m_serialPort->setDataBits(QSerialPort::DataBits::Data8);
-        m_serialPort->setParity(QSerialPort::NoParity);
-        m_serialPort->setStopBits(QSerialPort::StopBits::OneStop);
-        m_serialPort->setFlowControl(QSerialPort::FlowControl::SoftwareControl);
         if(m_serialPort->open(QIODevice::ReadWrite)) {
+            if(!m_serialPort->setBaudRate(QSerialPort::BaudRate::Baud115200)) {
+                QMessageBox::critical(this, tr("Error"),
+                                      tr("Error setting baud:\n115200") +m_serialPort->errorString());
+                closeSerial();
+                return false;
+            }
+            // if(!m_serialPort->setDataBits(QSerialPort::DataBits::Data8)) {
+            //     QMessageBox::critical(this, tr("Error"),
+            //                           tr("Error setting databit:\n8") +m_serialPort->errorString());
+            //     closeSerial();
+            //     return false;
+            // }
+            // if(!m_serialPort->setParity(QSerialPort::NoParity)) {
+            //     QMessageBox::critical(this, tr("Error"),
+            //                           tr("Error setting databit:\n8") +m_serialPort->errorString());
+            //     closeSerial();
+            //     return false;
+            // }
+            // if(!m_serialPort->setStopBits(QSerialPort::StopBits::OneStop)) {
+            //     QMessageBox::critical(this, tr("Error"),
+            //                           tr("Error setting stopbits:\nOneStop") +m_serialPort->errorString());
+            //     closeSerial();
+            //     return false;
+            // }
+            // if(!m_serialPort->setFlowControl(QSerialPort::FlowControl::SoftwareControl)) {
+            //     QMessageBox::critical(this, tr("Error"),
+            //                           tr("Error setting flow control:\nsoftware") +m_serialPort->errorString());
+            //     closeSerial();
+            //     return false;
+            // }
             appendToSerialOutput("Connected to: "+portName +"\n");
             ui->sterialStateInput->setText("Connected to: "+portName);
         } else {
@@ -139,6 +164,7 @@ void MainWindow::flashFirmware(QString esptoolPath, QString firmwarePath, QStrin
         firmwarePath
     };
     closeSerial();
+    setFlashMode(true);
     flashProcess->start(esptoolPath, args);
     //QFileInfo espToolInfo(esptool);
     //process.setWorkingDirectory(QApplication::applicationDirPath());
@@ -279,7 +305,6 @@ void MainWindow::on_flashNowButton_clicked()
                               tr(message));
         return;
     }
-    setFlashMode(true);
     flashFirmware(esptool, firmwareBinPath, comport);
 }
 

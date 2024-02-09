@@ -29,10 +29,30 @@ enum class CommandValueType {
     NUMBER,
     STRING
 };
-class Command {
-    char* name;
-    char* command;
-    char* description;
-    CommandValueType valueType;
+enum class SaveRequired {
+    NO,
+    YES
+};
+enum class RestartRequired {
+    NO,
+    YES
+};
+struct Command {
+    const char* name;
+    const char* command;
+    const char* description;
+    const SaveRequired isSaveRequired;
+    const RestartRequired isRestartRequired;
+    const CommandValueType valueType;
     std::function<bool()> callback;
+};
+template<typename T>
+struct CommandValue {
+    const char* name;
+    const char* command;
+    const char* description;
+    const SaveRequired isSaveRequired;
+    const RestartRequired isRestartRequired;
+    const CommandValueType valueType;
+    std::function<bool(T value)> callback;
 };

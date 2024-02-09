@@ -46,6 +46,7 @@ class SettingsHandler
 {
 public:
     static bool initialized;
+    static bool restartRequired;
     static bool saving;
     static bool motionPaused;
     static bool fullBuild;
@@ -232,6 +233,13 @@ public:
         LogHandler::debug(_TAG, "xPortGetFreeHeapSize: %u", xPortGetFreeHeapSize());
         LogHandler::debug(_TAG, "DRAM %u\nIRAM %u\nFREE_HEAP %u\nMIN_FREE_HEAP %u", heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_free_size(MALLOC_CAP_32BIT),  esp_get_free_heap_size(), esp_get_minimum_free_heap_size() );
     }
+
+	static void restart() {
+		LogHandler::info(_TAG, "Schedule device restart...");
+		//ESP.restart();
+		restartRequired = true;
+		delay(1000);
+	}
 
     static void printMemory()
     {
@@ -2266,6 +2274,7 @@ SemaphoreHandle_t SettingsHandler::m_wifiMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_buttonsMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_settingsMutex = xSemaphoreCreateMutex();
 bool SettingsHandler::initialized = false;
+bool SettingsHandler::restartRequired = false;
 bool SettingsHandler::saving = false;
 bool SettingsHandler::motionPaused = false;
 bool SettingsHandler::fullBuild = false;

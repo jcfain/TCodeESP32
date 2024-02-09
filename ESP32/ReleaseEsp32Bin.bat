@@ -43,8 +43,7 @@ SET ESPTOOLDIR="%~dp0bin\esptool-v4.5.1-win64\"
 SET BUILD=esp32doit-devkit-v1%BUILD_MODIFIER%
 SET OUTDIR=%~dp0bin\Release%BUILD_MODIFIER%
 
-rem %userprofile%\.platformio\penv\Scripts
-platformio.exe run --environment %BUILD%
+%userprofile%\.platformio\penv\Scripts\platformio.exe run --environment %BUILD%
 if %ERRORLEVEL% NEQ 0  ( 
 	echo Error building firmware
 	GOTO MENU 
