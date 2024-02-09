@@ -1,5 +1,23 @@
 # TCodeESP32
-This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). It adds Network Tcode capabilities, Modcase temperature control, internal temperature control, OLED display and WiFi/BLE configuration.
+This is a fork of Tempests TCode sketch. 
+It adds the following features: 
+- Network TCode capabilities
+- Motion generator
+- Modcase temperature control
+- Internal temperature control
+- OLED display support 
+- WiFi/Serial configuration.
+- Voice control
+- Battery gas guage
+- Custom device commands
+- Boot button command
+- Bug fixes and more
+
+![Settings configuration](/images/main_page.jpg)
+![Flashing binaries](/images/flashing.jpg)
+![Serial tester](/images/serial_test_device.jpg)
+![Built in motion generator](/images/motion_generator.jpg)
+![Voice support (Requires additional hardware)](/images/voice.jpg)
 
 ## INSTALLATION:
   ### FROM BINARIES (RECOMMENDED for most users)
@@ -40,7 +58,7 @@ This is an ESP32 fork of Tempests TCode sketch (repository doesnt exists yet). I
     I believe the sketch could be built in the Arduino IDE with the correct libraries but I have not tested.
     
   #### FILE SYSTEM
-    Modify /SettingsHandler.h with your wifi ssid and password etc.
+    Modify /SettingsHandler.h with your wifi ssid and password etc. (NOT RECOMMENDED)
     Flash the code and upload the filesystem image. Then start the monitor on the COM port to see the ip address if dynamic.
     
     You can also set the wifi settings via the web interface in AP mode or via the commands via serial monitoe on first boot.
