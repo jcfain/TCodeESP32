@@ -23,6 +23,7 @@ SOFTWARE. */
 #pragma once
 #include <ESPmDNS.h>
 #include "SettingsHandler.h"
+#include "LogHandler.h"
 class MDNSHandler {
     public:
         void setup(char* hostName, char* friendlyName) {
@@ -35,22 +36,24 @@ class MDNSHandler {
                  MDNSInitialized = false;
             }
         }
-       private: 
-       bool MDNSInitialized = false;
+        private: 
+        const char* _TAG = TagHandler::WebHandler;
+        bool MDNSInitialized = false;
         void startMDNS(char* hostName, char* friendlyName)
         {
+            LogHandler::info(_TAG, "Setting up MDNS");
             if(MDNSInitialized)
                 MDNS.end();
-            Serial.print("hostName: ");
-            Serial.println(hostName);
-            Serial.print("friendlyName: ");
-            Serial.println(friendlyName);
             if (!MDNS.begin(hostName)) {
                 printf("MDNS Init failed");
                 return;
             }
+            char hostLen = strlen(hostName) + 7;
+            char domainName[hostLen];
+            sprintf(domainName, "%s.local", hostName);
+            SettingsHandler::printWebAddress(domainName);
             MDNS.setInstanceName(friendlyName);
-            MDNS.addService("http", "tcp", 80);
+            MDNS.addService("http", "tcp", SettingsHandler::webServerPort);
             MDNS.addService("https", "tcp", 443);
             MDNS.addService("tcode", "udp", SettingsHandler::udpServerPort);
             MDNSInitialized = true;

@@ -136,6 +136,7 @@ class WifiHandler
       }
       IPAddress ipAddress = ip();
       LogHandler::info(_TAG, "Connected IP: %s", ip().toString().c_str());
+      SettingsHandler::printWebAddress(ip().toString().c_str());
       _apMode = false;
       return true;
     }
@@ -264,7 +265,8 @@ class WifiHandler
         return false;
       }
 	    _apMode = true;
-      LogHandler::info(_TAG, "Wifi APMode IP: %s", WiFi.softAPIP().toString().c_str());//TODO: fix this.. 
+      LogHandler::info(_TAG, "Wifi APMode IP: %s", WiFi.softAPIP().toString().c_str());
+      SettingsHandler::printWebAddress(WiFi.softAPIP().toString().c_str());
       return true;
     }
 	void setWiFiStatusCallback(WIFI_STATUS_FUNCTION_PTR_T f)

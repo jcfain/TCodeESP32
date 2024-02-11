@@ -5,6 +5,7 @@
 #include <QMainWindow>
 #include <QProcess>
 #include <QSerialPort>
+#include <QRegularExpression>
 //#include <QTimer>
 //#include <QStandardItemModel>
 //#include <QNetworkSession>
@@ -62,6 +63,7 @@ private:
     Ui::MainWindow *ui;
     QProcess* flashProcess = 0;
     QSerialPort* m_serialPort = 0;
+    QRegularExpression urlRegex;
 
     void sendSerial(QString data);
     bool checkAndConnectSerial();

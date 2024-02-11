@@ -251,6 +251,12 @@ public:
         LogHandler::debug(_TAG, "SPIFFS total: %i", SPIFFS.totalBytes());
     }
 
+    static void printWebAddress(const char* hostAddress) {
+        char webServerportString[6];
+        sprintf(webServerportString, ":%ld", webServerPort);
+        LogHandler::info(_TAG, "Web address: http://%s%s", hostAddress, webServerPort == 80 ? "" : webServerportString);
+    }
+
     static bool defaultAll()
     {
         return loadWifiInfo(true) && loadSettings(true) && loadMotionProfiles(true) && loadButtons(true); 
@@ -1022,6 +1028,8 @@ public:
 
     static bool waitForI2CDevices(const int& i2cAddress = 0) {
         int tries = 0;
+        if(i2cAddress)
+            LogHandler::info(_TAG, "Looking for I2c address: %ld", i2cAddress);
         while((systemI2CAddresses.size() == 0 || i2cAddress) && tries <= 3) {
             tries++;
             I2CScan();
@@ -1029,7 +1037,7 @@ public:
                 return true;
             } else if(i2cAddress) {
                 LogHandler::info(_TAG, "I2c address: %ld not found. trying again...", i2cAddress);
-            } else {
+            } else if(systemI2CAddresses.size() == 0) {
                 LogHandler::info(_TAG, "No I2C devices found in system, trying again...");
             }
             if(tries >= 3){
@@ -1074,7 +1082,7 @@ public:
 				hexToString(address, buf);
 				LogHandler::info(_TAG, "I2C device found at address %s, byte %ld", buf, address);
 
-				systemI2CAddresses.push_back(address);
+				systemI2CAddresses.push_back((int)address);
 				nDevices++;
 			}
 			else if (error==4) 
@@ -1306,7 +1314,7 @@ private:
         if(!isBoardType(BoardType::CRIMZZON)) {
             Display_Screen_Height = json["Display_Screen_Height"] | 64;
         }
-        const char *Display_I2C_AddressTemp = json["Display_I2C_Address"] | "0";
+        const char *Display_I2C_AddressTemp = json["Display_I2C_Address"] | "0x3c";
         if (Display_I2C_AddressTemp != nullptr)
             Display_I2C_Address = (int)strtol(Display_I2C_AddressTemp, NULL, 0);
         Display_Rst_PIN = json["Display_Rst_PIN"] | -1;
@@ -2410,7 +2418,7 @@ double SettingsHandler::internalMaxTemp = 50.0;
 int SettingsHandler::TargetTemp = 40;
 int SettingsHandler::HeatPWM = 255;
 int SettingsHandler::HoldPWM = 110;
-int SettingsHandler::Display_I2C_Address = 0; // = 0x3C;
+int SettingsHandler::Display_I2C_Address = 0x3C;
 int SettingsHandler::Display_Rst_PIN = -1;
 // long SettingsHandler::heaterFailsafeTime = 60000;
 float SettingsHandler::heaterThreshold = 5.0;

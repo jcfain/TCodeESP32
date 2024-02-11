@@ -15,7 +15,8 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow),
     flashProcess(new QProcess(this)),
-    m_serialPort(new QSerialPort(this))
+    m_serialPort(new QSerialPort(this)),
+    urlRegex(R"/((([A-Za-z]{3,9}:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+|(?:www.|[-;:&=\+\$,\w]+@)[A-Za-z0-9.-]+)((?:\/[\+~%\/.\w-_]*)?\??(?:[-\+=&;%@.\w_]*)#?(?:[\w]*))?)/")
 {
     ui->setupUi(this);
     on_refreshComports_clicked();
@@ -64,7 +65,7 @@ bool MainWindow::checkAndConnectSerial()
     auto portName = ui->serialSelectorCombobox->currentData().toString();
     if(!m_serialPort->isOpen() || (m_serialPort->isOpen() && m_serialPort->portName() != portName)) {
         closeSerial();
-        ui->serialOutputTextEdit->clear();
+        ui->serialOutputTextBrowser->clear();
         m_serialPort->setPortName(portName);
         if(m_serialPort->open(QIODevice::ReadWrite)) {
             if(!m_serialPort->setBaudRate(QSerialPort::BaudRate::Baud115200)) {
@@ -119,9 +120,9 @@ void MainWindow::closeSerial()
 
 void MainWindow::appendToSerialOutput(QString value)
 {
-    ui->serialOutputTextEdit->moveCursor (QTextCursor::End);
-    ui->serialOutputTextEdit->insertPlainText (value);
-    ui->serialOutputTextEdit->moveCursor (QTextCursor::End);
+    ui->serialOutputTextBrowser->moveCursor (QTextCursor::End);
+    ui->serialOutputTextBrowser->insertPlainText (value);
+    ui->serialOutputTextBrowser->moveCursor (QTextCursor::End);
 }
 
 void MainWindow::appendToFlashOutput(QString value)
@@ -350,7 +351,7 @@ void MainWindow::on_sendSerialButton_clicked()
         sendSerial(command);
         ui->serialCommandInput->clear();
     } else
-        ui->serialOutputTextEdit->append("Nothing to send!");
+        ui->serialOutputTextBrowser->append("Nothing to send!");
 }
 
 void MainWindow::on_serialCommandInput_returnPressed()
