@@ -24,7 +24,7 @@ SOFTWARE. */
 
 #include <Arduino.h>
 #include <SPIFFS.h>
-#include <ESPAsyncWebserver.h>
+#include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
 #include <AsyncJson.h>
 #include "HTTP/HTTPBase.h"
