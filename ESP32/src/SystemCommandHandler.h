@@ -57,6 +57,14 @@ public:
 					return true;
 				}
 			}
+			for(auto command : commandPassthrough) {
+				if(isCommand(in, command.command)) {
+					command.callback(in);
+					xSemaphoreGive(xMutex);
+					return true;
+				}
+			}
+			
 
 			// Commands with values
 			int indexofDelim = getposition(in, strlen(in), DELEMITER_VALUE);
@@ -257,22 +265,22 @@ private:
 			return true;
 		});
 	}};
-    const CommandValue<const char*> EDGE{{"Edge", "#edge", "Outputs the edge command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
+    const CommandValue<const char*> EDGE{{"Edge", "#edge", "Outputs the edge pressed command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
 		if(m_otherCommandCallback)
 			m_otherCommandCallback(in);
 		return true;
 	}};
-    const CommandValue<const char*> LEFT{{"Left", "#left", "Outputs the left command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
+    const CommandValue<const char*> LEFT{{"Left", "#left", "Outputs the left pressed command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
 		if(m_otherCommandCallback)
 			m_otherCommandCallback(in);
 		return true;
 	}};
-    const CommandValue<const char*> RIGHT{{"Right", "#right", "Outputs the right command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
+    const CommandValue<const char*> RIGHT{{"Right", "#right", "Outputs the right pressed command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
 		if(m_otherCommandCallback)
 			m_otherCommandCallback(in);
 		return true;
 	}};
-    const CommandValue<const char*> OK{{"Ok", "#ok", "Outputs the ok command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
+    const CommandValue<const char*> OK{{"Ok", "#ok", "Outputs the ok pressed command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
 		if(m_otherCommandCallback)
 			m_otherCommandCallback(in);
 		return true;

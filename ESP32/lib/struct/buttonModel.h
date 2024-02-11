@@ -67,4 +67,17 @@ struct ButtonModel {
         const char* commandTemp  = obj["command"] | "\0";
         strcpy(command, commandTemp);
     }
-};
+
+    void press() {
+        pressed = true;
+    }
+    void release() {
+        pressed = false;
+    }
+    bool isPressed() {
+        return pressed;
+    }
+
+private: 
+    bool pressed = false;
+} buttonModelRef;

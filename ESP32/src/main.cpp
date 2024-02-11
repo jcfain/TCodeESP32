@@ -196,6 +196,25 @@ void TCodeCommandCallback(const char* in) {
 			Serial.println(in);
 	}
 }
+void TCodePassthroughCommandCallback(const char* in) {
+	if(strpbrk("$", in) != nullptr || strpbrk("#", in) != nullptr) {
+		#if BLUETOOTH_TCODE
+			if (SettingsHandler::bluetoothEnabled && btHandler->isConnected())
+				btHandler->CommandCallback(in);
+		#endif
+		#if BLE_TCODE
+
+		#endif
+		#if WIFI_TCODE
+			if(webSocketHandler)
+				webSocketHandler->CommandCallback(in);
+			if(udpHandler)
+				udpHandler->CommandCallback(in);
+		#endif
+		if(Serial)
+			Serial.println(in);
+	}
+}
 void profileChangeCallback(uint8_t profile) {
 	
 }
@@ -547,6 +566,7 @@ void setup()
 	LogHandler::info(TagHandler::Main, "Version: %s", SettingsHandler::getFirmwareVersion());
 
 	systemCommandHandler = new SystemCommandHandler();
+	systemCommandHandler->registerOtherCommandCallback(TCodePassthroughCommandCallback);
 
 #if MOTOR_TYPE == 0
 	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3) {
