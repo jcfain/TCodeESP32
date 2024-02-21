@@ -33,17 +33,17 @@ class ToyComms : public TCodeBase {
 	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
   void setup(const char* firmware, const char* tcode) override {};
 	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
-	void RegisterAxis(String ID, String axisName) override {};
+	void RegisterAxis(const String &ID, String axisName) override {};
 	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
 	void ByteInput(byte inByte) override {};
 	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
-	void StringInput(String inString) override {};
+	void StringInput(const String &input) override {};
 	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
-	void AxisInput(String ID, int magnitude, char extension, long extMagnitude) override {};
+	void AxisInput(const String &ID, int magnitude, char extension, long extMagnitude) override {};
 	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
-	int AxisRead(String ID) override { return -1;  };
+	int AxisRead(const String &ID) override { return -1;  };
 	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
-	unsigned long AxisLast(String ID) override { return -1; };
+	unsigned long AxisLast(const String &ID) override { return -1; };
 	/** V0.3+ only. DO NOT USE. FOR BACKWARDS COMPATIBILITY ONLY! */
 	void getDeviceSettings(char* settings) override {};
 

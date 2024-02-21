@@ -69,15 +69,15 @@ struct ButtonModel {
     }
 
     void press() {
-        pressed = true;
+        pressed_ = true;
     }
     void release() {
-        pressed = false;
+        pressed_ = false;
     }
     bool isPressed() {
-        return pressed;
+        return pressed_;
     }
 
 private: 
-    bool pressed = false;
+    bool pressed_ = false;
 } buttonModelRef;

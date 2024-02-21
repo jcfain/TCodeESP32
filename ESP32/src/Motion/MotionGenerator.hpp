@@ -1,3 +1,26 @@
+/* MIT License
+
+Copyright (c) 2024 Jason C. Fain
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE. */
+
+
 #pragma once
 
 #include <Arduino.h>
@@ -16,8 +39,8 @@ public:
     }
 
     void updateProfile(const MotionChannel& channel) {
-        setRange(SettingsHandler::getChannelMin(channel.name), SettingsHandler::getChannelMax(channel.name));
-
+        //setRange(SettingsHandler::getChannelMin(channel.name), SettingsHandler::getChannelMax(channel.name));
+        updateRange();
         setAmplitude(channel.motionAmplitudeGlobal);
         setOffset(channel.motionOffsetGlobal);
         setPeriod(channel.motionPeriodGlobal);
@@ -38,6 +61,9 @@ public:
         setPhaseRandomMax(channel.motionPhaseRandomMax);
     }
 
+    void updateRange() {
+        setRange(SettingsHandler::getChannelMin(m_channel), SettingsHandler::getChannelMax(m_channel));
+    }
     void getMovement(char buf[25]) {
         calculateNext(buf);
     }
@@ -153,7 +179,7 @@ public:
     // Offset from center 0
     void setOffset(int value) {
         mapTCodeToDegrees(value, offset);
-        LogHandler::verbose(TagHandler::MotionHandler, "%s setOffset: %ld", m_channel, value);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setOffset: %ld calculated degree: %ld", m_channel, value, offset);
     };
 
     void setOffsetRandom(bool value) {
@@ -165,14 +191,14 @@ public:
     }
     void setOffsetRandomMin(int min) {
         mapTCodeToDegrees(min, offsetRandomMin);
-        LogHandler::verbose(TagHandler::MotionHandler, "%s setOffsetRandomMin: %ld", m_channel, min);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setOffsetRandomMin: %ld calculated degree: %ld", m_channel, min, offsetRandomMin);
         if(offsetRandomMode) {
             updateOffsetRandom();
         }
     }
     void setOffsetRandomMax(int max) {
         mapTCodeToDegrees(max, offsetRandomMax);
-        LogHandler::verbose(TagHandler::MotionHandler, "%s setOffsetRandomMax: %ld", m_channel, max);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setOffsetRandomMax: %ld calculated degree: %ld", m_channel, max, offsetRandomMax);
         if(offsetRandomMode) {
             updateOffsetRandom();
         }
@@ -181,7 +207,7 @@ public:
     // The amplitude of the motion
     void setAmplitude(int value) {
         amplitude = map(value, 0, 100, 0, 90);
-        LogHandler::verbose(TagHandler::MotionHandler, "%s setAmplitude: %ld", m_channel, value);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setAmplitude: %ld calculated: %ld", m_channel, value, amplitude);
     };
 
     void setAmplitudeRandom(bool value) {
@@ -193,14 +219,14 @@ public:
     }
     void setAmplitudeRandomMin(int min) {
         amplitudeRandomMin = map(min, 0, 100, 0, 90);
-        LogHandler::verbose(TagHandler::MotionHandler, "%s setAmplitudeRandomMin: %ld", m_channel, min);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setAmplitudeRandomMin: %ld calculated: %ld", m_channel, min, amplitudeRandomMin);
         if(amplitudeRandomMode) {
             updateAmplitudeRandom();
         }
     }
     void setAmplitudeRandomMax(int max) {
         amplitudeRandomMax = map(max, 0, 100, 0, 90);
-        LogHandler::verbose(TagHandler::MotionHandler, "%s setAmplitudeRandomMax: %ld", m_channel, max);
+        LogHandler::verbose(TagHandler::MotionHandler, "%s setAmplitudeRandomMax: %ld calculated: %ld", m_channel, max, amplitudeRandomMax);
         if(amplitudeRandomMode) {
             updateAmplitudeRandom();
         }

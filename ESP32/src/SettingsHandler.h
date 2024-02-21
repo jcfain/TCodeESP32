@@ -262,11 +262,31 @@ public:
         return loadWifiInfo(true) && loadSettings(true) && loadMotionProfiles(true) && loadButtons(true); 
     }
     
-    static void saveAll() {
-        saveSettings();
-        saveWifiInfo();
-        saveMotionProfiles();
-        saveButtons();
+    static bool saveAll(JsonObject obj = JsonObject()) {
+        if(!saveSettings(obj) || !saveWifiInfo(obj) || !saveMotionProfiles(obj) || !saveButtons(obj))
+            return false;
+        return true;
+    }
+    
+    static bool saveAll(const String& data)
+    {
+        LogHandler::debug(_TAG, "Save frome string");
+        printMemory();
+        DynamicJsonDocument doc(deserializeSize);
+    
+        DeserializationError error = deserializeJson(doc, data);
+        if (error)
+        {
+            LogHandler::error(_TAG, "Settings save: Deserialize error: %s", error.c_str());
+            return false;
+        }
+        JsonObject obj = doc.as<JsonObject>();
+        if (!saveAll(obj))
+        {
+            LogHandler::error(_TAG, "Settings save: save error");
+            return false;
+        }
+        return true;
     }
 
     static bool defaultPinout() {
@@ -394,31 +414,6 @@ public:
             return true;
         }, saveSettings, json);
     }
-
-    // static bool save(String data)
-    // {
-    //     LogHandler::debug(_TAG, "Save frome string");
-    //     printMemory();
-    //     DynamicJsonDocument doc(deserializeSize);
-    //
-    //     DeserializationError error = deserializeJson(doc, data);
-    //     if (error)
-    //     {
-    //         LogHandler::error(_TAG, "Settings save: Deserialize error: %s", error.c_str());
-    //         return false;
-    //     }
-    //     if (!update(doc.as<JsonObject>()))
-    //     {
-    //         LogHandler::error(_TAG, "Settings save: update error");
-    //         return false;
-    //     }
-    //     if (!save())
-    //     {
-    //         LogHandler::error(_TAG, "Settings save: save error");
-    //         return false;
-    //     }
-    //     return true;
-    // }
 
     static bool saveSettings(JsonObject json = JsonObject()) {
         saving = true;
@@ -1227,6 +1222,8 @@ private:
             currentChannels[i].max = !max ? tcodeMax : max;
         }
         
+        sendMessage("channelRanges", "channelRanges");// TODO: channelranges should be in its own json
+
         udpServerPort = json["udpServerPort"] | 8000;
         webServerPort = json["webServerPort"] | 80;
         const char *hostnameTemp = json["hostname"] | "tcode";
@@ -1236,7 +1233,7 @@ private:
         if (friendlyNameTemp != nullptr)
             strcpy(friendlyName, friendlyNameTemp);
 
-        bluetoothEnabled = json["bluetoothEnabled"];
+        bluetoothEnabled = json["bluetoothEnabled"] | true;
 
         // Servo motors//////////////////////////////////////////////////////////////////////////////////
         pitchFrequencyIsDifferent = json["pitchFrequencyIsDifferent"];

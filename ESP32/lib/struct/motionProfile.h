@@ -67,7 +67,7 @@ struct MotionProfile {
         }
     }
 
-    void fromJson(const JsonObject& obj) {
+    void fromJson(const JsonObject &obj) {
         const char* motionProfileNameTemp  = obj["name"] | "Profile";
         strcpy(motionProfileName, motionProfileNameTemp);
         edited = obj["edited"];
@@ -75,7 +75,7 @@ struct MotionProfile {
         JsonArray array = obj["channels"].as<JsonArray>();
         for (size_t i = 0; i < array.size(); i++)
         {
-            auto channel = MotionChannel(array[i]["name"].as<const char*>());
+            auto channel = MotionChannel();
             channel.fromJson(array[i].as<JsonObject>());
             channels.push_back(channel);
         }

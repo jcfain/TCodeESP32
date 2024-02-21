@@ -33,10 +33,10 @@ class SystemCommandHandler {
 public: 
     bool process(const char* in) {
 		xSemaphoreTake(xMutex, portMAX_DELAY);
-		if(strpbrk(DELEMITER_SAVE, in) != nullptr) {
+		if(isSaveCommand(in)) {
 			LogHandler::debug(_TAG, "Enter TCode save command callback %s", in);
 			for(Command command : saveCommands) {
-				if(isCommand(in, command.command)) {
+				if(match(in, command.command)) {
 					command.callback();
 					xSemaphoreGive(xMutex);
 					return true;
@@ -47,19 +47,12 @@ public:
 			xSemaphoreGive(xMutex);
 			return false;
 
-		} else if(strpbrk(DELEMITER, in) != nullptr) {
+		} else if(isOtherCommand(in)) {
 			LogHandler::debug(_TAG, "Enter TCode command callback %s", in);
 
 			for(Command command : commands) {
-				if(isCommand(in, command.command)) {
+				if(match(in, command.command)) {
 					command.callback();
-					xSemaphoreGive(xMutex);
-					return true;
-				}
-			}
-			for(auto command : commandPassthrough) {
-				if(isCommand(in, command.command)) {
-					command.callback(in);
 					xSemaphoreGive(xMutex);
 					return true;
 				}
@@ -82,7 +75,7 @@ public:
 
 			LogHandler::verbose(_TAG, "Value command: %s", value);
 			for(auto command : commandCharValues) {
-				if(isCommand(in, command.command)) {
+				if(match(in, command.command)) {
 					command.callback(value);
 					xSemaphoreGive(xMutex);
 					return true;
@@ -90,7 +83,7 @@ public:
 			}
 
 			for(auto command : commandNumberValues) {
-				if(isCommand(in, command.command)) {
+				if(match(in, command.command)) {
 					int valueInt = getInt(value);
 					command.callback(valueInt);
 					xSemaphoreGive(xMutex);
@@ -106,6 +99,35 @@ public:
 		return false;
 	}
 
+	bool process(ButtonModel* button, char buf[MAX_COMMAND]) {
+		for(auto command : commandButton) {
+			if(match(button->command, command.command)) {
+				strlcpy(buf, button->command, MAX_COMMAND);
+				button->isPressed() ? strcat(buf, ":1\n") : strcat(buf, ":0\n");
+				return true;
+			}
+		}
+		if(!button->isPressed()) {// Filter out other commands button release event for now.
+			strlcpy(buf, button->command, MAX_COMMAND);
+		} else {
+			buf[0] = {0};
+		}
+		return false;
+	}
+
+	bool isCommand(const char* in) {
+		return isSaveCommand(in) || isOtherCommand(in);
+		//return strpbrk(DELEMITER_SAVE, in) != nullptr || strpbrk(DELEMITER, in) != nullptr;
+	}
+	
+	bool isSaveCommand(const char* in) {
+		return startsWith(in, DELEMITER_SAVE);
+	}
+
+	bool isOtherCommand(const char* in) {
+		return startsWith(in, DELEMITER);
+	}
+	
 	void registerOtherCommandCallback(std::function<void(const char*)> callback) {
 		m_otherCommandCallback = callback;
 	}
@@ -177,13 +199,28 @@ private:
 			return true;
 		});
 	}};
+    const Command MOTION_HOME{{"Motion home", "#device-home", "Sends all axis' to its home position", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this]() -> bool {
+		//if(m_otherCommandCallback) {
+			char buf[MAX_COMMAND];
+			SettingsHandler::channelMap.tCodeHome(buf);
+			Serial.printf("Device home: %s\n", buf);
+			// m_otherCommandCallback(buf); incorrect call
+		//}
+		return true;
+	}};
     const Command MOTION_PROFILE_CYCLE{{"Motion profile cycle", "#motion-profile-cycle", "Cycles the motion generator profiles stopping after last profile", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			SettingsHandler::cycleMotionProfile();
 			return true;
 		});
 	}};
-    //const Command PAUSE_TOGGLE{"Wifi ssid", "#pause-toggle", "Pauses all motion of the device", CommandValueType::NONE, [this]() -> bool{}};
+    const Command PAUSE_TOGGLE{{"Pause", "#pause-toggle", "Pauses all motion of the device", SaveRequired::YES, RestartRequired::YES, CommandValueType::NONE}, [this]() -> bool {	
+		return execute([this]() -> bool {
+			SettingsHandler::motionPaused = !SettingsHandler::motionPaused;
+			return true;
+		});
+		return true;
+	}};
     const CommandValue<const char*>WIFI_SSID{{"Wifi ssid", "#wifi-ssid", "Sets the ssid of the wifi AP", SaveRequired::YES, RestartRequired::YES, CommandValueType::STRING}, [this](const char* value) -> bool {
 		return validateMaxLength("Wifi SSID", value, sizeof(SettingsHandler::ssid), false, [](const char* value) -> bool {
 			strcpy(SettingsHandler::ssid, value);
@@ -291,7 +328,7 @@ private:
         DEFAULT_ALL,
 	};
 
-    Command commands[8] = {
+    Command commands[10] = {
         HELP,
         RESTART,
         CLEAR_LOGS_INCLUDE,
@@ -300,7 +337,8 @@ private:
         MOTION_DISABLE,
         MOTION_TOGGLE,
         MOTION_PROFILE_CYCLE,
-        //PAUSE_TOGGLE,
+        PAUSE_TOGGLE,
+		MOTION_HOME
     };
 
     CommandValue<const int> commandNumberValues[2] = {
@@ -317,16 +355,13 @@ private:
         REMOVE_LOG_EXCLUDE,
         MOTION_PROFILE_NAME
     };
-    CommandValue<const char*> commandPassthrough[4] = {
+    CommandValue<const char*> commandButton[4] = {
         EDGE,
         LEFT,
         RIGHT,
         OK
     };
 
-	bool isCommand(const char* in, const char* command) {
-		return strstr(in, command) != nullptr;
-	}
 	int getInt(const char* value) {
 		return (int)(String(value).toInt());
 	}
@@ -464,7 +499,7 @@ private:
 			formatCommand(command, buf);
 		}
 
-		for(auto command : commandPassthrough) {
+		for(auto command : commandButton) {
 			formatCommand(command, buf);
 		}
 		// Serial.println("Wifi:");

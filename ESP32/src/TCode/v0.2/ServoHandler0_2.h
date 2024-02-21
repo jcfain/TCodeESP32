@@ -305,7 +305,7 @@ public:
         toy.setMessageCallback(function);
     }
 
-    void read(String input) override
+    void read(const String &input) override
     {
 		for (int x = 0; x < sizeof(input.length() + 1); x++) { 
 			read(input[x]); 

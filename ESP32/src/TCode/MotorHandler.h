@@ -36,7 +36,7 @@ public:
     }
     virtual void setup() = 0;
     virtual void read(byte inByte) = 0;
-    virtual void read(String inString) = 0;
+    virtual void read(const String &input) = 0;
     virtual void execute() = 0;
     virtual void setMessageCallback(TCODE_FUNCTION_PTR_T function) = 0;
 

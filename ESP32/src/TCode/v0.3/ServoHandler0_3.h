@@ -129,7 +129,7 @@ public:
         m_tcode->setMessageCallback(function);
     }
 
-    void read(String input) override
+    void read(const String &input) override
     {
         m_tcode->StringInput(input);
     }

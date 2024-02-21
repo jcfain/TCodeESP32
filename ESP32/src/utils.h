@@ -108,8 +108,21 @@ void hexToString(const int &inByte, char* buf) {
     addressString << "0x" << std::hex << inByte;
     strcpy(buf, addressString.str().c_str());
 }
+
 int stringToHex(std::string buff) {
     return (int)strtol(buff.c_str(), NULL, 0);
+}
+
+bool startsWith(const char* value, const char* startsWith) {
+    auto startsWithLen = strlen(startsWith);
+    if (startsWithLen && startsWithLen <= strlen(value) && ( strncmp(startsWith,value,startsWithLen) == 0 )) {
+        return true;
+    }
+    return false;
+}
+
+bool match(const char* in, const char* match) {
+    return strstr(in, match) != nullptr;
 }
 
 struct StrCompare

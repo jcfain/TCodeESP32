@@ -224,5 +224,17 @@ Utils = {
         row.appendChild(nameCell);
         row.appendChild(valueCell);
         return {row: row, input: undefined, nameCell: nameCell, valueCell: valueCell};
+    },
+    createInstructionRow(rowID, instruction) {
+        const row = this.createFormRow(rowID);
+        const nameCell = this.createFormCell();
+        const valueCell = this.createFormCell();
+        const span = document.createElement("span");
+        span.classList.add("instruction-text")
+        span.innerHTML = instruction
+        valueCell.appendChild(span);
+        row.appendChild(nameCell);
+        row.appendChild(valueCell);
+        return {row: row, input: undefined, nameCell: nameCell, valueCell: valueCell};
     }
 }

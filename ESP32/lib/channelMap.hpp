@@ -99,6 +99,41 @@ public:
         }
         serializeServo(arr);
     }
+
+    void tCodeHome(char buf[MAX_COMMAND]) {
+        buf[0] = {0};
+        if(m_motorType == MotorType::BLDC) {
+            for(auto channel : ChannelListBLDCV3) {
+                char bufTemp[MAX_COMMAND];
+                formatTCodeChannel(channel, bufTemp, channel.isSwitch ? channel.min : channel.mid, 1000);
+                strcat(buf, bufTemp);
+                strcat(buf, " ");
+            }
+            return;
+        }
+        switch (m_version) {
+            case TCodeVersion::v0_2:
+                for(auto channel : ChannelListV2) {
+                    char bufTemp[MAX_COMMAND];
+                    formatTCodeChannel(channel, bufTemp, channel.isSwitch ? channel.min : channel.mid, 1000);
+                    strcat(buf, bufTemp);
+                    strcat(buf, " ");
+                }
+                break;
+            case TCodeVersion::v0_3:
+                for(auto channel : ChannelListV3) {
+                    char bufTemp[MAX_COMMAND];
+                    formatTCodeChannel(channel, bufTemp, channel.isSwitch ? channel.min : channel.mid, 1000);
+                    strcat(buf, bufTemp);
+                    strcat(buf, " ");
+                }
+                break;
+            case TCodeVersion::v0_5:// Not supported yet
+                //v5ToJson(arr);
+                break;
+        }
+        strcat(buf, "\n");
+    }
 private:
     TCodeVersion m_version;
     MotorType m_motorType;
@@ -121,7 +156,18 @@ private:
     //         channel.toJson(obj);
     //     }
     // }
-
+    void formatTCodeChannel(const Channel& channel, char* buf, int value, int iValue = -1) {
+        if(value < 0) {
+            value = channel.isSwitch ? channel.min : channel.mid;
+        }
+        char valueString[5];
+        sprintf(valueString, m_version == TCodeVersion::v0_2 ? "%03d" : "%04d", value);
+        if(iValue < 1) {
+            sprintf(buf, "%s%s", channel.Name, valueString);
+            return;
+        }
+        sprintf(buf, "%s%sI%ld", channel.Name, valueString, iValue);
+    }
     void setChannelLimits() {
         for (Channel channel : ChannelListV2) {
             channel.min = 0;

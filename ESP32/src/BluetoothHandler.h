@@ -24,7 +24,7 @@ SOFTWARE. */
 #pragma once
 
 #include <BluetoothSerial.h>
-#include <BLEHandler.h>
+//#include <BLEHandler.h>
 #include "SettingsHandler.h"
 #include "LogHandler.h"
 #include "TagHandler.h"

@@ -46,7 +46,7 @@ public:
             return;
         }
         buttonAnalogDebounce = analogDebounce;
-        m_buttonQueue = xQueueCreate(MAX_BUTTONS, sizeof(char[MAX_COMMAND]));
+        m_buttonQueue = xQueueCreate(MAX_BUTTON_SETS * MAX_BUTTONS, sizeof(struct ButtonModel*));
         if(m_buttonQueue == NULL) {
             LogHandler::error(_TAG, "Error creating the debug queue");
         }
@@ -110,7 +110,7 @@ public:
         buttonAnalogDebounce = debounce;
     }
 
-    void read(char buf[MAX_COMMAND]) {
+    void read(ButtonModel* &buf) {
         // if(m_enterInterupt) {
         //     LogHandler::info(_TAG, "Enter interupt");
         //     readButtons();
@@ -118,10 +118,12 @@ public:
         //     m_enterInterupt = false;
         // }
         //String command;
-        if(xQueueReceive(m_buttonQueue, buf, 0)) {
-            LogHandler::debug(_TAG, "Recieve command: %s", buf);
+        void* recieve;
+        if(xQueueReceive(m_buttonQueue, &(recieve), 0)) {
+            buf = (ButtonModel*)recieve;
+            LogHandler::debug(_TAG, "Recieve command: %s:%s", buf->name, buf->command);
         } else {
-            buf[0] = {0};
+            buf = 0;
         }
     }
 
@@ -170,12 +172,20 @@ private:
                     auto value = analogRead(m_buttonSets[i].pin);
                     auto index = m_buttonSets[i].buttons[j].index;
                     LogHandler::verbose(_TAG, "readButtons value: %ld, index: %ld, index value: %ld", value, index, buttonIndexMap[index]);
-                    if(value >= buttonIndexMap[index] - buttonAnalogTolorance && value <= buttonIndexMap[index] + buttonAnalogTolorance) {
-                        LogHandler::verbose(_TAG, "send message");
-                        xSemaphoreTake(xMutex, portMAX_DELAY);
-                        xQueueSend(m_buttonQueue, m_buttonSets[i].buttons[j].command, portMAX_DELAY);
-                        xSemaphoreGive(xMutex);
+                    bool isPressedValue = value >= buttonIndexMap[index] - buttonAnalogTolorance && value <= buttonIndexMap[index] + buttonAnalogTolorance;
+                    if(!m_buttonSets[i].buttons[j].isPressed() && isPressedValue) {
+                        LogHandler::debug(_TAG, "Button '%s' pressed: %u, set index: %u button index: %u", m_buttonSets[i].buttons[j].name, value, i, j);
+                        // xSemaphoreTake(xMutex, portMAX_DELAY);
+                        m_buttonSets[i].buttons[j].press();
+                        struct ButtonModel *pxMessage = &(m_buttonSets[i].buttons[j]);// Why did I have to do all this!?
+                        xQueueSend(m_buttonQueue, ( void * ) &pxMessage, portMAX_DELAY);
+                        // xSemaphoreGive(xMutex);
                         return true;
+                    } else if(m_buttonSets[i].buttons[j].isPressed() && !isPressedValue) {
+                        LogHandler::debug(_TAG, "Button '%s' released", m_buttonSets[i].buttons[j].name);
+                        m_buttonSets[i].buttons[j].release();
+                        struct ButtonModel *pxMessage = &(m_buttonSets[i].buttons[j]);// Why did I have to do all this!?
+                        xQueueSend(m_buttonQueue, ( void * ) &pxMessage, portMAX_DELAY);
                     }
                 }
             }

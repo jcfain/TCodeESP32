@@ -381,6 +381,20 @@ public:
         xSemaphoreGive(xMutex);
     };
 
+    void updateChannelRanges(const char* name = 0, int min = -1, int max = -1) {
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        if(min > -1 && max > -1 && name) {
+            auto index = getMotionGeneratorIndex(name);
+            if(index > -1)
+                m_motionGenerators[index].setRange(min, max);
+        } else {
+            for (int i = 0; i < m_motionGenerators.size(); i++) {
+                m_motionGenerators[i].updateRange();
+            }
+        }
+        xSemaphoreGive(xMutex);
+    }
+
 private:
     std::vector<MotionGenerator> m_motionGenerators;
     TCodeVersion m_tcodeVersion;

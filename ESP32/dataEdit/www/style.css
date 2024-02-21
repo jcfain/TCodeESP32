@@ -112,6 +112,9 @@ body {
   width: 64px;
   height: 32px;
 }
+.instruction-text {
+  font-size: 0.8rem;
+}
 .menu {
   background-color: black;
   box-shadow: -1px 1px 5px 0px cornflowerblue, 1px -1px 5px 0px lightblue, 1px 1px 5px 0px lightblue, -1px -1px 5px 0px cornflowerblue;

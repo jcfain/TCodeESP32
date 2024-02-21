@@ -219,8 +219,8 @@ public:
         m_tcode->ByteInput(inByte);
     }
 
-    void read(String inString) override {
-        m_tcode->StringInput(inString);
+    void read(const String &input) override {
+        m_tcode->StringInput(input);
     }
 
     void setMessageCallback(TCODE_FUNCTION_PTR_T function) override {

@@ -45,8 +45,10 @@ SOFTWARE. */
 #define motionRandomChangeMaxDefault 30000
 
 struct MotionChannel {
+    MotionChannel() { }
     MotionChannel(const char nameIn[3]) { 
         strcpy(name, nameIn);
+        name[2] = '\0';
     }
     char name[3];
     bool edited = false;
@@ -117,6 +119,7 @@ struct MotionChannel {
     void fromJson(JsonObject obj) {
         const char* motionProfileNameTemp  = obj["name"] | "X0";
         strcpy(name, motionProfileNameTemp);
+        //Serial.printf("Loading channel: %s\n", name);
         edited = obj["edited"] | false;
         // Serial.print("IN motionUpdateGlobal: ");
         // Serial.println(motionUpdateGlobal);

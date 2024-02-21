@@ -24,11 +24,14 @@ SOFTWARE. */
 /* This works but we cant use Bluetooth and Wifi at the same time with out performance loss due to them having the same radio....
 We need all the performance we can get in wifi so commenting this out. Maybe oneday they will launch a new board with them seperate. 
 For now this is only for first configs */
+#include <Arduino.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
 #include <sstream>
+#include "SettingsHandler.h"
+#include "LogHandler.h"
 #include "TagHandler.h"
 
 
@@ -80,7 +83,7 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
             {
                 // Save json
                 LogHandler::debug(_TAG, "Done: %s", recievedJsonConfiguration);
-                if(SettingsHandler::save(recievedJsonConfiguration)) 
+                if(SettingsHandler::saveAll(recievedJsonConfiguration)) 
                 {
                     pCharacteristic->setValue(">>f<<"); // Finish saving
                     pCharacteristic->notify();
