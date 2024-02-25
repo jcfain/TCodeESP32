@@ -967,7 +967,7 @@ public:
             return;
         }
         JsonArray arr = doc.as<JsonArray>();
-        char buffer[255] = "";
+        char buffer[MAX_COMMAND] = "";
         for (JsonObject repo : arr)
         {
             const char *channel = repo["c"];

@@ -135,11 +135,9 @@ Buttons = {
             span.classList.add("instruction-text")
             span.innerHTML = `
             Instructions:<br>
-            You can enter any combination of TCode commands in the inputs above with a few exceptions noted below.<br>
-            Button commands such as #left, #right, #edge and #ok will only work as a single command in the command blocks above.<br>
-            Hard coding the button state may simulate a button release depending on the application. For example:<br>
-            &nbsp&nbsp<i>#ok:0 #othercommand</i><br>
-            Otherwise, enter the command alone. example: <i>#edge</i>
+            You can enter any combination of TCode commands separated by spaces in the inputs above.
+            For example: '#motion-disable #resume #device-home #ok'
+            NOTE: There is currently no way to delay between the command execution.
             `
             
             modalParent.appendChild(buttonTable);

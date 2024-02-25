@@ -31,10 +31,16 @@ SOFTWARE. */
 
 class SystemCommandHandler {
 public: 
+	SystemCommandHandler() {
+		tCodeQueue = xQueueCreate(10, sizeof(char[MAX_COMMAND]));
+		if(tCodeQueue == NULL) {
+			LogHandler::error(_TAG, "Error creating the tcode queue");
+		}
+	}
     bool process(const char* in) {
 		xSemaphoreTake(xMutex, portMAX_DELAY);
 		if(isSaveCommand(in)) {
-			LogHandler::debug(_TAG, "Enter TCode save command callback %s", in);
+			LogHandler::debug(_TAG, "Enter process save command: %s", in);
 			for(Command command : saveCommands) {
 				if(match(in, command.command)) {
 					command.callback();
@@ -48,7 +54,7 @@ public:
 			return false;
 
 		} else if(isOtherCommand(in)) {
-			LogHandler::debug(_TAG, "Enter TCode command callback %s", in);
+			LogHandler::debug(_TAG, "Enter process other command: %s", in);
 
 			for(Command command : commands) {
 				if(match(in, command.command)) {
@@ -57,12 +63,25 @@ public:
 					return true;
 				}
 			}
-			
 
+			for(auto command : commandExternal) {
+				if(startsWith(in, command.command)) {
+					command.callback(in);
+					xSemaphoreGive(xMutex);
+					return true;
+				}
+			}
+			
 			// Commands with values
 			int indexofDelim = getposition(in, strlen(in), DELEMITER_VALUE);
 			if(indexofDelim == -1) {
 				Serial.println("Invalid command format: missing colon, correct format is #<command>:<value>");
+				xSemaphoreGive(xMutex);
+				return false;
+			}
+			const char* commandAlone = substr(in, 0, indexofDelim);
+			if(!strlen(commandAlone)) {
+				Serial.println("Invalid command format: missing command, correct format is #<command>:<value>");
 				xSemaphoreGive(xMutex);
 				return false;
 			}
@@ -73,9 +92,9 @@ public:
 				return false;
 			}
 
-			LogHandler::verbose(_TAG, "Value command: %s", value);
+			LogHandler::debug(_TAG, "Value command: %s:%s", commandAlone, value);
 			for(auto command : commandCharValues) {
-				if(match(in, command.command)) {
+				if(match(commandAlone, command.command)) {
 					command.callback(value);
 					xSemaphoreGive(xMutex);
 					return true;
@@ -83,7 +102,7 @@ public:
 			}
 
 			for(auto command : commandNumberValues) {
-				if(match(in, command.command)) {
+				if(match(commandAlone, command.command)) {
 					int valueInt = getInt(value);
 					command.callback(valueInt);
 					xSemaphoreGive(xMutex);
@@ -99,18 +118,52 @@ public:
 		return false;
 	}
 
+	// bool process(ButtonModel* button, char buf[MAX_COMMAND]) {
+	// 	buf[0] = {0};
+	// 	for(auto command : commandExternal) {
+	// 		if(match(button->command, command.command)) {
+	// 			strlcpy(buf, button->command, MAX_COMMAND);
+	// 			button->isPressed() ? strcat(buf, ":1\n") : strcat(buf, ":0\n");
+	// 			return true;
+	// 		}
+	// 	}
+	// 	if(!button->isPressed()) {// Filter out other commands button release event for now.
+	// 		strlcpy(buf, button->command, MAX_COMMAND);
+	// 	} 
+	// 	return false;
+	// }
+
+	/// @brief This function is mainly for concatenating the button state for commands sent externally.
+	/// @param button 
+	/// @param buf 
+	/// @return true if any commands where added.
 	bool process(ButtonModel* button, char buf[MAX_COMMAND]) {
-		for(auto command : commandButton) {
-			if(match(button->command, command.command)) {
-				strlcpy(buf, button->command, MAX_COMMAND);
-				button->isPressed() ? strcat(buf, ":1\n") : strcat(buf, ":0\n");
-				return true;
+		LogHandler::debug(_TAG, "Enter process button command: %s", button->command);
+		char temp[MAX_COMMAND];
+		strlcpy(temp, button->command, MAX_COMMAND);
+   		char *token = strtok(temp, " ");//Split incoming at TCode delemiter "space"
+		buf[0] = {0};
+		while( token != NULL ) {// Specify if the button is pressed or released only for externaly sent commands.
+			LogHandler::debug(_TAG, "Searching command: %s", token);
+			bool externalFound = false;
+			for(auto command : commandExternal) {
+				if(match(command.command, token)) {
+					strcat(buf, token);
+					button->isPressed() ? strcat(buf, ":1") : strcat(buf, ":0");
+					externalFound = true;
+					break;
+				}
 			}
+			if(!externalFound && !button->isPressed()) {// Add other commands only if the button has been released for now.
+				strcat(buf, token);
+			}
+			strcat(buf, " ");
+      		token = strtok(NULL, " ");
 		}
-		if(!button->isPressed()) {// Filter out other commands button release event for now.
-			strlcpy(buf, button->command, MAX_COMMAND);
-		} else {
-			buf[0] = {0};
+		if(strlen(buf)) {
+			strcat(buf, "\n");
+			LogHandler::debug(_TAG, "Finish process button command: %s", buf);
+			return true;
 		}
 		return false;
 	}
@@ -127,14 +180,32 @@ public:
 	bool isOtherCommand(const char* in) {
 		return startsWith(in, DELEMITER);
 	}
-	
-	void registerOtherCommandCallback(std::function<void(const char*)> callback) {
-		m_otherCommandCallback = callback;
+
+	bool isValueCommand(const char* in) {
+		 return contains(in, (&DELEMITER_VALUE));
 	}
+	
+	void registerExternalCommandCallback(std::function<void(const char*)> callback) {
+		m_externalCommandCallback = callback;
+	}
+
+    bool getTCode(char* buf) 
+    {
+        if(!tCodeQueue) {
+            return false;
+        } 
+        if(!xQueueReceive(tCodeQueue, buf, 0)) {
+            buf[0] = {0};
+			return false;
+        }
+		return true;
+    }
 
 private: 
 	SemaphoreHandle_t xMutex = xSemaphoreCreateMutex();
+    QueueHandle_t tCodeQueue;
 	const char* _TAG = TagHandler::SystemCommandHandler;
+	std::function<void(const char*)> m_externalCommandCallback = 0;
 	std::function<void(const char*)> m_otherCommandCallback = 0;
 
     const char* DELEMITER = "#";
@@ -200,12 +271,10 @@ private:
 		});
 	}};
     const Command MOTION_HOME{{"Motion home", "#device-home", "Sends all axis' to its home position", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this]() -> bool {
-		//if(m_otherCommandCallback) {
-			char buf[MAX_COMMAND];
-			SettingsHandler::channelMap.tCodeHome(buf);
-			Serial.printf("Device home: %s\n", buf);
-			// m_otherCommandCallback(buf); incorrect call
-		//}
+		char buf[MAX_COMMAND];
+		SettingsHandler::channelMap.tCodeHome(buf);
+		LogHandler::debug(_TAG, "Device home: %s", buf);
+		writeTCode(buf);
 		return true;
 	}};
     const Command MOTION_PROFILE_CYCLE{{"Motion profile cycle", "#motion-profile-cycle", "Cycles the motion generator profiles stopping after last profile", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this]() -> bool {
@@ -214,11 +283,35 @@ private:
 			return true;
 		});
 	}};
-    const Command PAUSE_TOGGLE{{"Pause", "#pause-toggle", "Pauses all motion of the device", SaveRequired::YES, RestartRequired::YES, CommandValueType::NONE}, [this]() -> bool {	
+    const Command PAUSE{{"Pause", "#pause", "Pauses all motion of the device", SaveRequired::YES, RestartRequired::YES, CommandValueType::NONE}, [this]() -> bool {	
 		return execute([this]() -> bool {
-			SettingsHandler::motionPaused = !SettingsHandler::motionPaused;
+			SettingsHandler::motionPaused = true;
+			LogHandler::debug(_TAG, "Device paused");
 			return true;
 		});
+		return true;
+	}};
+    const Command RESUME{{"Resume", "#resume", "Resumes all motion of the device", SaveRequired::YES, RestartRequired::YES, CommandValueType::NONE}, [this]() -> bool {	
+		return execute([this]() -> bool {
+			SettingsHandler::motionPaused = false;
+			LogHandler::debug(_TAG, "Device resumed");
+			return true;
+		});
+		return true;
+	}};
+    const Command PAUSE_TOGGLE{{"Pause toggle", "#pause-toggle", "Pauses all motion of the device", SaveRequired::YES, RestartRequired::YES, CommandValueType::NONE}, [this]() -> bool {	
+		return execute([this]() -> bool {
+			SettingsHandler::motionPaused = !SettingsHandler::motionPaused;
+			LogHandler::debug(_TAG, SettingsHandler::motionPaused ? "Device paused" : "Device resumed");
+			return true;
+		});
+		return true;
+	}};
+    const CommandValue<const int> MOTION_HOME_SPEED{{"Motion home", "#device-home", "Sends all axis' to its home position at specified speed (S)", SaveRequired::NO, RestartRequired::NO, CommandValueType::NUMBER}, [this](const int value) -> bool {
+		char buf[MAX_COMMAND];
+		SettingsHandler::channelMap.tCodeHome(buf, value);
+		LogHandler::debug(_TAG, "Device home speed: %s", buf);
+		writeTCode(buf);
 		return true;
 	}};
     const CommandValue<const char*>WIFI_SSID{{"Wifi ssid", "#wifi-ssid", "Sets the ssid of the wifi AP", SaveRequired::YES, RestartRequired::YES, CommandValueType::STRING}, [this](const char* value) -> bool {
@@ -303,23 +396,27 @@ private:
 		});
 	}};
     const CommandValue<const char*> EDGE{{"Edge", "#edge", "Outputs the edge pressed command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
-		if(m_otherCommandCallback)
-			m_otherCommandCallback(in);
+		if(m_externalCommandCallback) {
+			m_externalCommandCallback(in);
+		}
 		return true;
 	}};
     const CommandValue<const char*> LEFT{{"Left", "#left", "Outputs the left pressed command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
-		if(m_otherCommandCallback)
-			m_otherCommandCallback(in);
+		if(m_externalCommandCallback) {
+			m_externalCommandCallback(in);
+		}
 		return true;
 	}};
     const CommandValue<const char*> RIGHT{{"Right", "#right", "Outputs the right pressed command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
-		if(m_otherCommandCallback)
-			m_otherCommandCallback(in);
+		if(m_externalCommandCallback) {
+			m_externalCommandCallback(in);
+		}
 		return true;
 	}};
     const CommandValue<const char*> OK{{"Ok", "#ok", "Outputs the ok pressed command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
-		if(m_otherCommandCallback)
-			m_otherCommandCallback(in);
+		if(m_externalCommandCallback) {
+			m_externalCommandCallback(in);
+		}
 		return true;
 	}};
 
@@ -328,7 +425,7 @@ private:
         DEFAULT_ALL,
 	};
 
-    Command commands[10] = {
+    Command commands[12] = {
         HELP,
         RESTART,
         CLEAR_LOGS_INCLUDE,
@@ -337,13 +434,16 @@ private:
         MOTION_DISABLE,
         MOTION_TOGGLE,
         MOTION_PROFILE_CYCLE,
+		PAUSE,
+		RESUME,
         PAUSE_TOGGLE,
 		MOTION_HOME
     };
 
-    CommandValue<const int> commandNumberValues[2] = {
+    CommandValue<const int> commandNumberValues[3] = {
         LOG_LEVEL,
-        MOTION_PROFILE_SET
+        MOTION_PROFILE_SET,
+		MOTION_HOME_SPEED
     };
 
     CommandValue<const char*> commandCharValues[7] = {
@@ -355,12 +455,17 @@ private:
         REMOVE_LOG_EXCLUDE,
         MOTION_PROFILE_NAME
     };
-    CommandValue<const char*> commandButton[4] = {
+    CommandValue<const char*> commandExternal[4] = {
         EDGE,
         LEFT,
         RIGHT,
         OK
     };
+
+	void writeTCode(char tcode[MAX_COMMAND]) {
+		if(tCodeQueue)
+        	xQueueSend(tCodeQueue, tcode, 0);
+	}
 
 	int getInt(const char* value) {
 		return (int)(String(value).toInt());
@@ -471,11 +576,11 @@ private:
 			Serial.println("Restart is required after save");
 	}
 	void printCommandHelp() {
-		char buf[2048];
+		char buf[2500];
 		printCommandHelp(buf);
 		Serial.println(buf);
 	}
-	void printCommandHelp(char buf[2048]) {
+	void printCommandHelp(char* buf) {
 		// Serial.println("");
 		// Serial.println("");
 		// Serial.println("");
@@ -499,7 +604,7 @@ private:
 			formatCommand(command, buf);
 		}
 
-		for(auto command : commandButton) {
+		for(auto command : commandExternal) {
 			formatCommand(command, buf);
 		}
 		// Serial.println("Wifi:");
@@ -547,7 +652,7 @@ private:
 		// Serial.println("#motion-reverse:value ---------- Set reverse for the current profile");
 	}
 	void formatCommand(CommandBase command, char* buf) {
-		char temp[255];
+		char temp[MAX_COMMAND];
 		sprintf(temp, "%s%s", command.command, command.valueType == CommandValueType::NONE ? "" : command.valueType == CommandValueType::NUMBER ? ":<int>" : ":<string>");
 		sprintf(temp, "%-40s", temp);
     	std::replace(temp, temp + strlen(temp), ' ', '-');

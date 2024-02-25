@@ -28,7 +28,6 @@ var buttonSettings = {};
 var upDateTimeout;
 var restartRequired = false;
 var documentLoaded = false;
-var infoNode;
 var debugEnabled = true;
 var playSounds = false;
 var importSettingsInputElement;
@@ -168,7 +167,6 @@ function get(name, uri, callback, callbackFail) {
 	xhr.send();
 }
 function onDocumentLoad() {
-	infoNode = document.getElementById('info');
     getSystemInfo();
     createImportSettingsInputElement();
     
@@ -416,9 +414,7 @@ function onDefaultClick()
 {		
 	if (confirm("WARNING! Are you sure you wish to reset ALL settings?\nThis will restart your device and you may need to reconfigure your WiFi settings!")) 
 	{
-		infoNode.innerText = "Resetting...";
-		infoNode.style.color = 'white';
-		infoNode.hidden = false;
+        showInfo("Resetting...");
 		var xhr = new XMLHttpRequest();
 		xhr.open("POST", "/default", true);
 		xhr.onreadystatechange = function() 
@@ -428,15 +424,9 @@ function onDefaultClick()
                 if (xhr.status !== 200) {
                     showError("Error setting default!");
                 } else {
-                    infoNode.innerText = "Settings reset!";
-                    infoNode.style.color = 'green';
+                    showInfoSuccess("Settings reset!");
                     resettingAllToDefault = true;
                     onRestartClick("\nYou may need to reconfigure your wifi with the instructions provided in the zip.");
-                    setTimeout(() => 
-                    {
-                        infoNode.hidden = true;
-                        infoNode.innerText = "";
-                    }, 5000)
                 }
 			}
 		}
@@ -444,9 +434,7 @@ function onDefaultClick()
 	}
 }
 function setPinoutDefault(newBoardType) {
-    infoNode.innerText = "Resetting pinout...";
-    infoNode.style.color = 'white';
-    infoNode.hidden = false;
+    showInfo("Resetting pinout...");
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "/pinoutDefault/"+newBoardType, true);
     xhr.onreadystatechange = function() 
@@ -457,15 +445,9 @@ function setPinoutDefault(newBoardType) {
                 showError("Error setting pinout default!");
             } else {
                 getUserSettings();
-                infoNode.innerText = "Pinout reset!";
-                infoNode.style.color = 'green';
+                showInfoSuccess("Pinout reset!");
                 showRestartRequired();
                 //document.getElementById('resetBtn').disabled = false ;
-                setTimeout(() => 
-                {
-                    infoNode.hidden = true;
-                    infoNode.innerText = "";
-                }, 5000)
             }
         }
     }
@@ -861,9 +843,7 @@ function updateUserSettings(debounceInMs, uri, objectToSave, callback)
         {
             checkRestartRedirect();
             
-            infoNode.hidden = false;
-            infoNode.innerText = "Saving...";
-            infoNode.style.color = 'white';
+            showInfo("Saving...");
             var xhr = new XMLHttpRequest();
             var response = {};
             xhr.open("POST", uri, true);
@@ -881,8 +861,7 @@ function updateUserSettings(debounceInMs, uri, objectToSave, callback)
                     }
                     if (response["msg"] !== "done") 
                     {
-                        infoNode.hidden = true;
-                        infoNode.innerText = "";
+                        hideInfo();
                         showError("Error saving: " + response["msg"]);
                         getUserSettings();
                     } 
@@ -895,14 +874,7 @@ function updateUserSettings(debounceInMs, uri, objectToSave, callback)
                         if(callback) {
                             callback();
                         } else {
-                            infoNode.visibility = "visible";
-                            infoNode.innerText = "Settings saved!";
-                            infoNode.style.color = 'green';
-                            setTimeout(() => 
-                            {
-                                infoNode.hidden = true;
-                                infoNode.innerText = "";
-                            }, 5000)
+                            showInfoSuccess("Settings saved!");
                         }
                     }
                 }
@@ -1006,6 +978,51 @@ function showError(message)
 {
     document.getElementById("errorText").innerHTML += message;
     document.getElementById("errorMessage").hidden = false;
+}
+
+function showInfo(message) {
+	const infoNode = document.getElementById('info');
+    infoNode.innerText = message;
+    infoNode.style.color = "white";
+	const modals = document.getElementsByTagName('modal-component');
+    for(let i=0;i<modals.length;i++) {
+        if(modals[i].visible()) {
+            const node = modals[i].shadowRoot.querySelector(".info");
+            node.innerText = message;
+            node.style.color = "white";
+        }
+    }
+}
+
+function showInfoSuccess(message) {
+	const infoNode = document.getElementById('info');
+    infoNode.innerText = message;
+    infoNode.style.color = "green";
+	const modals = document.getElementsByTagName('modal-component');
+    for(let i=0;i<modals.length;i++) {
+        if(modals[i].visible()) {
+            const node = modals[i].shadowRoot.querySelector(".info");
+            node.innerText = message;
+            node.style.color = "green";
+        }
+    }
+    setTimeout(() => {
+        hideInfo();
+    }, 5000);
+}
+
+function hideInfo() {
+	const infoNode = document.getElementById('info');
+    infoNode.innerText = "";
+    infoNode.style.color = "";
+	const modals = document.getElementsByTagName('modal-component');
+    for(let i=0;i<modals.length;i++) {
+        if(modals[i].visible()) {
+            const node = modals[i].shadowRoot.querySelector(".info");
+            node.innerText = "";
+            node.style.color = "";
+        }
+    }
 }
 
 function sendWebsocketCommand(command, message) {

@@ -84,16 +84,17 @@ public:
 
     void initBootbutton(char command[MAX_COMMAND]) {
         pinMode(0, INPUT_PULLDOWN);
-        attachInterrupt(digitalPinToInterrupt(0), bootButtonInterrupt, RISING);
+        attachInterrupt(digitalPinToInterrupt(0), bootButtonInterrupt, CHANGE);
+        sprintf(bootButtonModel.name, "Boot button");
         updateBootButtonCommand(command);
     }
 
     void updateBootButtonCommand(char bootButtonCommand[MAX_COMMAND]) {
         xSemaphoreTake(xMutex, portMAX_DELAY);
         if(strlen(bootButtonCommand) > 0) {
-            strcpy(m_bootButtonCommand, bootButtonCommand);
+            strcpy(bootButtonModel.command, bootButtonCommand);
         } else {
-            m_bootButtonCommand[0] = {0};
+            bootButtonModel.command[0] = {0};
         }
         xSemaphoreGive(xMutex);
     }
@@ -121,7 +122,7 @@ public:
         void* recieve;
         if(xQueueReceive(m_buttonQueue, &(recieve), 0)) {
             buf = (ButtonModel*)recieve;
-            LogHandler::debug(_TAG, "Recieve command: %s:%s", buf->name, buf->command);
+            LogHandler::debug(_TAG, "Recieve command in button queue: %s: %s", buf->name, buf->command);
         } else {
             buf = 0;
         }
@@ -129,7 +130,9 @@ public:
 
     static void bootButtonInterrupt() {
         xSemaphoreTakeFromISR(xMutex, NULL);
-        xQueueSendFromISR(m_buttonQueue, m_bootButtonCommand, NULL);
+        digitalRead(digitalPinToInterrupt(0)) == HIGH ? bootButtonModel.press() : bootButtonModel.release();
+        struct ButtonModel *pxMessage = &(bootButtonModel);// Why did I have to do all this!?
+        xQueueSend(m_buttonQueue, ( void * ) &pxMessage, portMAX_DELAY);
         xSemaphoreGiveFromISR(xMutex, NULL);
     }
 
@@ -147,12 +150,12 @@ private:
     static long m_lastDebounce;
     static volatile bool m_enterInterupt;
 	static SemaphoreHandle_t xMutex;
-    static char m_bootButtonCommand[MAX_COMMAND];
     static uint16_t buttonIndexMap[MAX_BUTTONS];
     static ButtonSet m_buttonSets[MAX_BUTTON_SETS];
     static QueueHandle_t m_buttonQueue;
     static uint8_t buttonAnalogTolorance;
     static uint16_t buttonAnalogDebounce;
+    static ButtonModel bootButtonModel;
 
     TaskHandle_t buttonTask = NULL;
     static void analog_button_task(void* arg) {
@@ -198,7 +201,7 @@ uint8_t ButtonHandler::buttonAnalogTolorance = 150;
 uint16_t ButtonHandler::buttonAnalogDebounce = 150;
 QueueHandle_t ButtonHandler::m_buttonQueue;
 ButtonSet ButtonHandler::m_buttonSets[MAX_BUTTON_SETS];
-char ButtonHandler::m_bootButtonCommand[MAX_COMMAND];
+ButtonModel ButtonHandler::bootButtonModel;
 uint16_t ButtonHandler::buttonIndexMap[MAX_BUTTONS];
 SemaphoreHandle_t ButtonHandler::xMutex = xSemaphoreCreateMutex();
 volatile bool ButtonHandler::m_enterInterupt = false;

@@ -42,9 +42,9 @@ class Udphandler
 		udpInitialized = true;
     }
 
-	void CommandCallback(const char* in){ //This overwrites the callback for message return
+	void CommandCallback(const char* in) { //This overwrites the callback for message return
 		if(udpInitialized && _lastConnectedPort > 0) {
-			LogHandler::info(_TAG, "Sending udp to client: %s", in);
+			LogHandler::debug(_TAG, "Sending udp to client: %s", in);
 			wifiUdp.beginPacket(_lastConnectedIP, _lastConnectedPort);
 			int i = 0;
 			while (in[i] != 0)
@@ -101,6 +101,6 @@ class Udphandler
 	IPAddress _lastConnectedIP;
 	int _lastConnectedPort = 0;
     bool udpInitialized = false;
-    char packetBuffer[255];; //buffer to hold incoming packet
+    char packetBuffer[MAX_COMMAND];; //buffer to hold incoming packet
     char jsonIdentifier[2] = "{";
 };

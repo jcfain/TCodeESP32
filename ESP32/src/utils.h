@@ -121,8 +121,12 @@ bool startsWith(const char* value, const char* startsWith) {
     return false;
 }
 
+bool contains(const char* in, const char* contains) {
+    return strstr(in, contains) != nullptr;
+}
+
 bool match(const char* in, const char* match) {
-    return strstr(in, match) != nullptr;
+    return strcmp(in, match) == 0;
 }
 
 struct StrCompare

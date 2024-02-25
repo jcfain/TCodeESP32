@@ -43,7 +43,7 @@ public:
     const Channel Lube = {Name: "A2", FriendlyName: "Lube", isSwitch: true, sr6Only: false};
     const Channel Squeeze = {Name: "A3", FriendlyName: "Squeeze", isSwitch: false, sr6Only: false};
 
-    const Channel ChannelListV2[9] = {
+    Channel ChannelListV2[9] = {
         Stroke,
         Surge,
         Sway,
@@ -55,7 +55,7 @@ public:
         {Name: "V1", FriendlyName: "Vibe 1/Lube", isSwitch: true, sr6Only: false}
     };
 
-    const Channel ChannelListV3[14] = {
+    Channel ChannelListV3[14] = {
         Stroke,
         Surge,
         Sway,
@@ -72,7 +72,7 @@ public:
         Squeeze
     };
 
-    const Channel ChannelListBLDCV3[10] = {
+    Channel ChannelListBLDCV3[10] = {
         Stroke,
         Twist,
         Vibe1,
@@ -100,12 +100,12 @@ public:
         serializeServo(arr);
     }
 
-    void tCodeHome(char buf[MAX_COMMAND]) {
+    void tCodeHome(char buf[MAX_COMMAND], uint16_t speed = 1000) {
         buf[0] = {0};
         if(m_motorType == MotorType::BLDC) {
             for(auto channel : ChannelListBLDCV3) {
                 char bufTemp[MAX_COMMAND];
-                formatTCodeChannel(channel, bufTemp, channel.isSwitch ? channel.min : channel.mid, 1000);
+                formatTCodeChannel(channel, bufTemp, channel.isSwitch ? channel.min : channel.mid, speed);
                 strcat(buf, bufTemp);
                 strcat(buf, " ");
             }
@@ -115,7 +115,7 @@ public:
             case TCodeVersion::v0_2:
                 for(auto channel : ChannelListV2) {
                     char bufTemp[MAX_COMMAND];
-                    formatTCodeChannel(channel, bufTemp, channel.isSwitch ? channel.min : channel.mid, 1000);
+                    formatTCodeChannel(channel, bufTemp, channel.isSwitch ? channel.min : channel.mid, speed);
                     strcat(buf, bufTemp);
                     strcat(buf, " ");
                 }
@@ -123,7 +123,7 @@ public:
             case TCodeVersion::v0_3:
                 for(auto channel : ChannelListV3) {
                     char bufTemp[MAX_COMMAND];
-                    formatTCodeChannel(channel, bufTemp, channel.isSwitch ? channel.min : channel.mid, 1000);
+                    formatTCodeChannel(channel, bufTemp, channel.isSwitch ? channel.min : channel.mid, speed);
                     strcat(buf, bufTemp);
                     strcat(buf, " ");
                 }
@@ -156,30 +156,30 @@ private:
     //         channel.toJson(obj);
     //     }
     // }
-    void formatTCodeChannel(const Channel& channel, char* buf, int value, int iValue = -1) {
+    void formatTCodeChannel(const Channel& channel, char* buf, int value, int speed = -1) {
         if(value < 0) {
             value = channel.isSwitch ? channel.min : channel.mid;
         }
         char valueString[5];
         sprintf(valueString, m_version == TCodeVersion::v0_2 ? "%03d" : "%04d", value);
-        if(iValue < 1) {
+        if(speed < 1) {
             sprintf(buf, "%s%s", channel.Name, valueString);
             return;
         }
-        sprintf(buf, "%s%sI%ld", channel.Name, valueString, iValue);
+        sprintf(buf, "%s%sS%ld", channel.Name, valueString, speed);
     }
     void setChannelLimits() {
-        for (Channel channel : ChannelListV2) {
+        for (Channel &channel : ChannelListV2) {
             channel.min = 0;
             channel.mid = 500;
             channel.max = 999;
         }
-        for (Channel channel : ChannelListV3) {
+        for (Channel &channel : ChannelListV3) {
             channel.min = 0;
             channel.mid = 5000;
             channel.max = 9999;
         }
-        for (Channel channel : ChannelListBLDCV3) {
+        for (Channel &channel : ChannelListBLDCV3) {
             channel.min = 0;
             channel.mid = 5000;
             channel.max = 9999;

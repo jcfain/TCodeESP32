@@ -52,6 +52,11 @@ modalTemplate.innerHTML = `
         display: flex;
         justify-content: space-between;
     }
+    .modal-header-info {
+        text-align: left;
+        width: 100%;
+        margin: auto;
+    }
     .modal-close-button {
         margin: 16px;
         border-radius: 25px;
@@ -93,6 +98,7 @@ modalTemplate.innerHTML = `
                     <slot name="title"></slot>
                 </h2>
             </div>
+            <div id="info" class="info modal-header-info"></div>
             <div>
                 <button class="modal-close-button" onclick="this.getRootNode().host.hide()">X</button>
             </div>
@@ -120,6 +126,7 @@ class ModalComponent extends HTMLElement {
         
         //this.classList.add('hidden');
     }
+    isVisible = false
     
     static get observedAttributes () {
         return ["visible"];
@@ -155,10 +162,15 @@ class ModalComponent extends HTMLElement {
 
     show() {
         this.style = 'display:revert;';
+        this.isVisible = true;
     }
     hide() {
         //this.classList.add('modal-hidden');
         this.style = 'display:none;';
+        this.isVisible = false;
+    }
+    visible() {
+        return this.isVisible;
     }
 };
 

@@ -47,11 +47,11 @@ class WebSocketHandler : public WebSocketBase {
                 onWsEvent(server, client, type, arg, data, len);
             });
             server->addHandler(&ws);
-            tCodeInQueue = xQueueCreate(5, sizeof(char[255]));
+            tCodeInQueue = xQueueCreate(5, sizeof(char[MAX_COMMAND]));
             if(tCodeInQueue == NULL) {
                 LogHandler::error(_TAG, "Error creating the tcode queue");
             }
-            // debugInQueue = xQueueCreate(10, sizeof(char[255]));
+            // debugInQueue = xQueueCreate(10, sizeof(char[MAX_COMMAND]));
             // if(debugInQueue == NULL) {
             //     LogHandler::error(_TAG, "Error creating the debug queue");
             // }
@@ -67,7 +67,7 @@ class WebSocketHandler : public WebSocketBase {
         // void sendDebug(const char* message, LogLevel level) {
             // if (level != LogLevel::VERBOSE && isInitialized && debugInQueue != NULL && uxQueueMessagesWaiting(debugInQueue) < 10 && serial_mtx.try_lock()) {
             //     std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
-            //         // char messageToSend[255];
+            //         // char messageToSend[MAX_COMMAND];
             //         // if(sizeof(message) > 253) {
             //         //     strncpy(messageToSend, message, 253);
             //         //     messageToSend[254] = '\0';
@@ -90,7 +90,7 @@ class WebSocketHandler : public WebSocketBase {
                 std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
                 m_lastSend = millis();
 
-                char commandJson[255];
+                char commandJson[MAX_COMMAND];
                 compileCommand(commandJson, command, message);
                 // if(client)
                 //     client->text(commandJson);
@@ -107,7 +107,7 @@ class WebSocketHandler : public WebSocketBase {
         // //         std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
         // //         m_lastSend = millis();
 
-        // //         char commandsJson[255];
+        // //         char commandsJson[MAX_COMMAND];
         // //         std::strcat(commandsJson, "[");
         // //         for (int i = 0; i < N; i++) 
         // //         {
@@ -173,7 +173,7 @@ class WebSocketHandler : public WebSocketBase {
         // static void emptyQueue(void *webSocketHandler) {
         //     while (true) {
         //         if(ws.count() > 0 && millis() - m_lastSend > 50 && uxQueueMessagesWaiting(debugInQueue)) {
-		// 		    char lastMessage[255];
+		// 		    char lastMessage[MAX_COMMAND];
         //             if(xQueueReceive(debugInQueue, lastMessage, 0)) {
         //                 if(LogHandler::getLogLevel() == LogLevel::VERBOSE)
         //                     Serial.printf("read from q: %s\n", lastMessage);

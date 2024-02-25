@@ -103,7 +103,7 @@ protected:
             else 
             {
                 LogHandler::verbose(_TAG, "Websocket tcode in JSON: %s", msg);
-                char tcode[255];
+                char tcode[MAX_COMMAND];
                 SettingsHandler::processTCodeJson(tcode, msg);
                 // Serial.print("tcode JSON converted:");
                 // Serial.println(tcode);

@@ -139,6 +139,7 @@ bool setupSucceeded = false;
 bool restarting = false;
 
 String serialData;
+char commandTCodeData[MAX_COMMAND];
 char udpData[MAX_COMMAND];
 char webSocketData[MAX_COMMAND];
 #if BLE_TCODE
@@ -204,21 +205,27 @@ void TCodeCommandCallback(const char* in) {
 }
 void TCodePassthroughCommandCallback(const char* in) {
 	if(systemCommandHandler->isCommand(in)) {
+		// This seems wrong but sense we are only calling this from one place its fine for now.
+		char temp[strlen(in) +2];
+		temp[0] = {0};
+		strcpy(temp, in);
+		strcat(temp, "\n");
+		//////////////////////////////////////////////////////////////////////////////////////
 		#if BLUETOOTH_TCODE
 			if (SettingsHandler::bluetoothEnabled && btHandler && btHandler->isConnected())
-				btHandler->CommandCallback(in);
+				btHandler->CommandCallback(temp);
 		#endif
 		#if BLE_TCODE
 
 		#endif
 		#if WIFI_TCODE
 			if(webSocketHandler)
-				webSocketHandler->CommandCallback(in);
+				webSocketHandler->CommandCallback(temp);
 			if(udpHandler)
-				udpHandler->CommandCallback(in);
+				udpHandler->CommandCallback(temp);
 		#endif
 		if(Serial)
-			Serial.println(in);
+			Serial.println(temp);
 	}
 }
 void profileChangeCallback(uint8_t profile) {
@@ -487,7 +494,7 @@ void loadI2CModules() {
 			"DisplayTask", /* Name of the task */
 			5000,  /* Stack size in words */
 			displayHandler,  /* Task input parameter */
-			3,  /* Priority of the task */
+			1,  /* Priority of the task */
 			&displayTask,  /* Task handle. */
 			APP_CPU_NUM); /* Core where the task should run */
 			if(displayStatus != pdPASS) {
@@ -504,7 +511,7 @@ void loadI2CModules() {
 				"BatteryTask", /* Name of the task */
 				4028,  /* Stack size in words */
 				batteryHandler,  /* Task input parameter */
-				2,  /* Priority of the task */
+				1,  /* Priority of the task */
 				&batteryTask,  /* Task handle. */
 				APP_CPU_NUM); /* Core where the task should run */
 				if(batteryStatus != pdPASS) {
@@ -523,7 +530,7 @@ void loadI2CModules() {
 				"VoiceTask", /* Name of the task */
 				4028,  /* Stack size in words */
 				voiceHandler,  /* Task input parameter */
-				2,  /* Priority of the task */
+				1,  /* Priority of the task */
 				&voiceTask,  /* Task handle. */
 				APP_CPU_NUM); /* Core where the task should run */
 				if(voiceStatus != pdPASS) {
@@ -574,7 +581,7 @@ void setup()
 	LogHandler::info(TagHandler::Main, "Version: %s", SettingsHandler::getFirmwareVersion());
 
 	systemCommandHandler = new SystemCommandHandler();
-	systemCommandHandler->registerOtherCommandCallback(TCodePassthroughCommandCallback);
+	systemCommandHandler->registerExternalCommandCallback(TCodePassthroughCommandCallback);
 
 #if MOTOR_TYPE == 0
 	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3) {
@@ -611,7 +618,7 @@ void setup()
 			"TempTask", /* Name of the task */
 			5000,  /* Stack size in words */
 			temperatureHandler,  /* Task input parameter */
-			3,  /* Priority of the task */
+			1,  /* Priority of the task */
 			&temperatureTask,  /* Task handle. */
 			APP_CPU_NUM); /* Core where the task should run */
 		if(tempStartStatus != pdPASS) {
@@ -677,26 +684,21 @@ void setup()
 }
 
 // Main loop functions/////////////////////////////////////////////////
-void readTCode(const String& tcode) {
+void readTCode(String& tcode) {
 	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2)
 		tcodeV2Recieved = true;
-	if(motorHandler)
+	if(motorHandler) {
 		motorHandler->read(tcode);
+		tcode.clear();
+	}
 }
 
-void readTCode(const char* tcode) {
+void readTCode(char* tcode) {
 	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2)
 		tcodeV2Recieved = true;
-	if(motorHandler)
+	if(motorHandler) {
 		motorHandler->read(tcode);
-}
-
-void executeTCode() {
-	if (!tcodeV2Recieved) {// No data from above
-		benchStart(4);
-		if(motorHandler)
-			motorHandler->execute();
-		benchFinish("Execute", 4);
+		tcode[0] = {0};
 	}
 }
 
@@ -705,7 +707,7 @@ void processButton() {
 		buttonHandler->read(buttonCommand);
 		if(buttonCommand) {
 			char command[MAX_COMMAND];
-			systemCommandHandler->process(buttonCommand, command);// Not sure I like this but for now, bypass tcode in this method for external commands only.
+			systemCommandHandler->process(buttonCommand, command);
 			if(strlen(command) > 0) {
 				readTCode(command);
 			}
@@ -714,32 +716,35 @@ void processButton() {
 }
 
 void getTCodeInput() {
-			if(Serial.available() > 0) {
-				serialData = Serial.readStringUntil('\n');
-			} else if(serialData.length()) {
-				serialData.clear();
-			}
+	if(Serial.available() > 0) {
+		serialData = Serial.readStringUntil('\n');
+	} else if(serialData.length()) {
+		serialData.clear();
+	}
+	if(systemCommandHandler) {
+		systemCommandHandler->getTCode(commandTCodeData);
+	}
 #if BLUETOOTH_TCODE
-			if (btHandler && btHandler->isConnected() && btHandler->available() > 0) {
-				bluetoothData = btHandler->readStringUntil('\n');
-			}
+	if (btHandler && btHandler->isConnected() && btHandler->available() > 0) {
+		bluetoothData = btHandler->readStringUntil('\n');
+	}
 #endif
 #if WIFI_TCODE
-			if(webSocketHandler) {
-				benchStart(1);
-				webSocketHandler->getTCode(webSocketData);
-				benchFinish("Websocket get", 1);
-			}
-			if(udpHandler) {
-				benchStart(2);
-				udpHandler->read(udpData);
-				benchFinish("Udp get", 2);
-			}
+	if(webSocketHandler) {
+		benchStart(1);
+		webSocketHandler->getTCode(webSocketData);
+		benchFinish("Websocket get", 1);
+	}
+	if(udpHandler) {
+		benchStart(2);
+		udpHandler->read(udpData);
+		benchFinish("Udp get", 2);
+	}
 #endif
 #if BLE_TCODE
-			if(bleHandler) {
-				bleHandler->read(bleData);
-			}
+	if(bleHandler) {
+		bleHandler->read(bleData);
+	}
 #endif
 }
 
@@ -798,7 +803,8 @@ void loop() {
 	} 
 #if TEMP_ENABLED
 	else if (SettingsHandler::tempInternalEnabled && temperatureHandler && temperatureHandler->isMaxTempTriggered()) {
-		readTCode("DSTOP\n");
+		char stop[7] = "DSTOP\n";
+		readTCode(stop);
 		LogHandler::error(TagHandler::Main, "Internal temp has reached maximum user set. Main loop disabled! Restart system to enable the loop.");
 			if(SettingsHandler::fanControlEnabled) {
 				temperatureHandler->setFanState();
@@ -822,10 +828,13 @@ void loop() {
 				benchStart(3);
 				if (SettingsHandler::getMotionEnabled()) {// Motion overrides all other input
 					processMotionHandlerMovement();
+				} else if (strlen(commandTCodeData) > 0) {
+					LogHandler::verbose(TagHandler::MainLoop, "system command tcode writing: %s", commandTCodeData);
+					readTCode(commandTCodeData);
 				} else if (serialData.length() > 0) {
 					LogHandler::verbose(TagHandler::MainLoop, "serial writing: %s", serialData.c_str());
 					readTCode(serialData);
-				}  else if (strlen(webSocketData) > 0) {
+				} else if (strlen(webSocketData) > 0) {
 					LogHandler::verbose(TagHandler::MainLoop, "webSocket writing: %s", webSocketData);
 					readTCode(webSocketData);
 				} else if (!SettingsHandler::apMode && strlen(udpData) > 0) {
@@ -851,7 +860,8 @@ void loop() {
 				// udpData[0] = {0};
 				// webSocketData[0] = {0};
 				// serialData.clear();
-				readTCode("DSTOP\n");
+				char stop[7] = "DSTOP\n";
+				readTCode(stop);
 				dStopped = true;
 				tcodeV2Recieved = false;
 #if BLE_TCODE
@@ -862,7 +872,10 @@ void loop() {
 #endif
 			}
 
-			executeTCode();
+			benchStart(4);
+			if(motorHandler)
+				motorHandler->execute();
+			benchFinish("Execute", 4);
 
 #if TEMP_ENABLED
 			benchStart(5);
