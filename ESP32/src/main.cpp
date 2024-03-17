@@ -673,9 +673,11 @@ void setup()
     motorHandler->setup();
 	motionHandler.setup(SettingsHandler::TCodeVersionEnum);
 	loadI2CModules();
-	buttonHandler = new ButtonHandler();
-
-	buttonHandler->init(SettingsHandler::buttonAnalogDebounce, SettingsHandler::bootButtonCommand, SettingsHandler::buttonSets);
+	
+	if(SettingsHandler::bootButtonEnabled || SettingsHandler::buttonSetsEnabled) {
+		buttonHandler = new ButtonHandler();
+		buttonHandler->init(SettingsHandler::buttonAnalogDebounce, SettingsHandler::bootButtonCommand, SettingsHandler::buttonSets);
+	}
 
 	SettingsHandler::setMessageCallback(settingChangeCallback);
 	setupSucceeded = true;

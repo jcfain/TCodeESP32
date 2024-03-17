@@ -26,6 +26,7 @@ SOFTWARE. */
 #include <Arduino.h>
 #include "LogHandler.h"
 #include "TagHandler.h"
+#include "SettingsHandler.h"
 #include "../lib/constants.h"
 #include "../lib/struct/buttonSet.h"
 
@@ -50,8 +51,10 @@ public:
         if(m_buttonQueue == NULL) {
             LogHandler::error(_TAG, "Error creating the debug queue");
         }
-        initBootbutton(bootButtonCommand);
-        initAnalogButtons(buttonSets);
+        if(SettingsHandler::bootButtonEnabled)
+            initBootbutton(bootButtonCommand);
+        if(SettingsHandler::buttonSetsEnabled)
+            initAnalogButtons(buttonSets);
         m_initialized = true;
     }
 
@@ -112,13 +115,6 @@ public:
     }
 
     void read(ButtonModel* &buf) {
-        // if(m_enterInterupt) {
-        //     LogHandler::info(_TAG, "Enter interupt");
-        //     readButtons();
-        //     m_lastDebounce = millis();
-        //     m_enterInterupt = false;
-        // }
-        //String command;
         void* recieve;
         if(xQueueReceive(m_buttonQueue, &(recieve), 0)) {
             buf = (ButtonModel*)recieve;
@@ -135,12 +131,6 @@ public:
         xQueueSend(m_buttonQueue, ( void * ) &pxMessage, portMAX_DELAY);
         xSemaphoreGiveFromISR(xMutex, NULL);
     }
-
-    // static void buttonInterrupt() {
-    //     if(!m_enterInterupt && millis() - m_lastDebounce > buttonAnalogDebounce) {
-    //         m_enterInterupt = true;    
-    //     }
-    // }
 
 private: 
     static const char* _TAG;

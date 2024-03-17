@@ -1004,7 +1004,7 @@
 						<div class="tRow">
 							<div class="tCell"><span title="Display as a number instead of bars">Display capacity percentage</span></div>
 							<div class="tCell">
-								<input id="batteryLevelNumeric" type="checkbox" oninput="setBatterySettings()">
+								<input id="batteryLevelNumeric" type="checkbox" onclick="setBatterySettings()">
 							</div>
 						</div>
 						<!-- <div class="tRow" title="This is used to map 3.3 volts to max voltage">
@@ -1087,6 +1087,12 @@
 							</div>
 						</div>
 						<div class="tRow">
+							<div class="tCell"><span title="Choose to enable button commands">Boot button enabled</span></div>
+							<div class="tCell">
+								<input id="bootButtonEnabled" type="checkbox" onclick="Buttons.update()">
+							</div>
+						</div>
+						<div class="tRow">
 							<div class="tCell"><span title="The TCode that runs when pressing the boot button after the system is running.">Boot button(TCode)</span></div>
 							<div class="tCell">
 								<textarea id="bootButtonCommand" maxlength="255" type="text" oninput="Buttons.update()" title="Can be multiple TCode commands separated by spaces. Type #help in the Serial monitor for a list of commands."></textarea>
@@ -1098,10 +1104,11 @@
 								<input id="buttonAnalogDebounce" min="1" max="65535" type="number" oninput="Buttons.update()"></input>
 							</div>
 						</div>
-						
 						<div class="tRow">
-							<div class="tCell"><span>Button sets</span></div>	
-							<div class="tCell"></div>
+							<div class="tCell"><span title="Choose to enable button command sets">Button sets enabled</span></div>
+							<div class="tCell">
+								<input id="buttonSetsEnabled" type="checkbox" onclick="Buttons.update()">
+							</div>
 						</div>
 					</div>
 				</div>

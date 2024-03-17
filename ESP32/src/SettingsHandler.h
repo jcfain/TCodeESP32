@@ -177,6 +177,8 @@ public:
     static int caseFanFrequency;
     static int caseFanResolution;
 
+    static bool bootButtonEnabled;
+    static bool buttonSetsEnabled;
     static char bootButtonCommand[MAX_COMMAND];
     static ButtonSet buttonSets[MAX_BUTTON_SETS];
     static uint8_t defaultButtonSetPin;
@@ -499,7 +501,8 @@ public:
         LogHandler::info(_TAG, "Loading buttons");
         uint16_t docSize = 3000;
         return loadSettingsJson(buttonsFilePath, loadDefault, m_buttonsMutex, docSize, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
-
+            setValue(json, bootButtonEnabled, "buttonCommand", "bootButtonEnabled", false);
+            setValue(json, buttonSetsEnabled, "buttonCommand", "buttonSetsEnabled", false);
             setValue(json, bootButtonCommand, "buttonCommand", "bootButtonCommand", "#motion-profile-cycle");
             setValue(json, buttonAnalogDebounce, "buttonCommand", "buttonAnalogDebounce", 200);
 
@@ -550,6 +553,8 @@ public:
         //     }
         // }
         return saveSettingsJson(buttonsFilePath, m_buttonsMutex, docSize, [](DynamicJsonDocument& doc) -> bool {
+            doc["bootButtonEnabled"] = bootButtonEnabled;
+            doc["buttonSetsEnabled"] = buttonSetsEnabled;
             doc["bootButtonCommand"] = bootButtonCommand;
             doc["buttonAnalogDebounce"] = buttonAnalogDebounce;
             
@@ -2430,6 +2435,8 @@ bool SettingsHandler::voiceMuted = false;
 int SettingsHandler::voiceWakeTime = 10;
 int SettingsHandler::voiceVolume = 10;
 
+bool SettingsHandler::bootButtonEnabled;
+bool SettingsHandler::buttonSetsEnabled;
 char SettingsHandler::bootButtonCommand[MAX_COMMAND];
 
 bool SettingsHandler::motionEnabled = false;

@@ -25,6 +25,8 @@ Buttons = {
     setNameDebounce: undefined,
     updateDebounce: undefined,
     setup() {
+        document.getElementById("bootButtonEnabled").checked = buttonSettings["bootButtonEnabled"];
+        document.getElementById("buttonSetsEnabled").checked = buttonSettings["buttonSetsEnabled"];
         document.getElementById("bootButtonCommand").value = buttonSettings["bootButtonCommand"].replace(" ", "\n");
         document.getElementById("buttonAnalogDebounce").value = buttonSettings["buttonAnalogDebounce"];
         removeByClass("buttonSetRow");
@@ -154,6 +156,17 @@ Buttons = {
         }
         this.updateDebounce = setTimeout(function(setIndex) {
             let valid = true;
+            const enabled = document.getElementById('bootButtonEnabled').checked;
+            if(buttonSettings["bootButtonEnabled"] != enabled) {
+                buttonSettings["bootButtonEnabled"] = enabled;
+                showRestartRequired();
+            }
+            const setsEnabled = document.getElementById('buttonSetsEnabled').checked;
+            if(buttonSettings["buttonSetsEnabled"] != setsEnabled) {
+                buttonSettings["buttonSetsEnabled"] = setsEnabled;
+                showRestartRequired();
+            }
+            
             buttonSettings["bootButtonCommand"] = document.getElementById('bootButtonCommand').value.replace("\n", " ");
             if(validateIntControl("buttonAnalogDebounce", buttonSettings, "buttonAnalogDebounce")) {
                 buttonSettings["buttonAnalogDebounce"] = parseInt(document.getElementById("buttonAnalogDebounce").value);
