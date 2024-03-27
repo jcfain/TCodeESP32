@@ -121,6 +121,17 @@ bool startsWith(const char* value, const char* startsWith) {
     return false;
 }
 
+bool endsWith(const char *str, const char *suffix)
+{
+    if (!str || !suffix)
+        return false;
+    size_t lenstr = strlen(str);
+    size_t lensuffix = strlen(suffix);
+    if (lensuffix >  lenstr)
+        return false;
+    return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
+}
+
 bool contains(const char* in, const char* contains) {
     return strstr(in, contains) != nullptr;
 }

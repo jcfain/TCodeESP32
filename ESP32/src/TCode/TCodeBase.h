@@ -56,6 +56,16 @@ public:
 		}
 	}
     void sendMessage(const char* input) {
+		size_t inputLength = strlen(input);
+		if(!inputLength)
+			return;
+		if(!endsWith(input, "\n")) {
+			char buf[inputLength + 1];
+			strlcpy(buf, input, inputLength + 1);
+			strcat(buf, "\n");
+        	message_callback(buf);
+			return;
+		}
         message_callback(input);
     }
 protected: 
