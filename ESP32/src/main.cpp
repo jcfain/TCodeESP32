@@ -205,7 +205,7 @@ void TCodeCommandCallback(const char* in) {
 }
 void TCodePassthroughCommandCallback(const char* in) {
 	if(systemCommandHandler->isCommand(in)) {
-		// This seems wrong but sense we are only calling this from one place its fine for now.
+		// This seems wrong but since we are only calling this from one place its fine for now.
 		char temp[strlen(in) +2];
 		temp[0] = {0};
 		strcpy(temp, in);
@@ -847,13 +847,13 @@ void loop() {
 				} 
 #if BLE_TCODE
 				else if (strlen(bleData) > 0) {
-					executeTCode(bleData);
+					readTCode(bleData);
 				}
 #endif
 #if BLUETOOTH_TCODE
 				else if (!SettingsHandler::getMotionEnabled() && bluetoothData.length() > 0) {
 					LogHandler::verbose(TagHandler::MainLoop, "bluetooth writing: %s", bluetoothData);
-					executeTCode(bluetoothData);
+					readTCode(bluetoothData);
 				}
 #endif
 				benchFinish("Input check", 3);

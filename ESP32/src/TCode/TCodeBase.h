@@ -59,13 +59,15 @@ public:
 		size_t inputLength = strlen(input);
 		if(!inputLength)
 			return;
-		if(!endsWith(input, "\n")) {
-			char buf[inputLength + 1];
-			strlcpy(buf, input, inputLength + 1);
-			strcat(buf, "\n");
-        	message_callback(buf);
-			return;
-		}
+		// // Commened out because commands  that arent external do not match the system command handler.
+		// // This will probably need to be changed in the next tcode version.
+		// if(!endsWith(input, "\n")) {
+		// 	char buf[inputLength + 1];
+		// 	strlcpy(buf, input, inputLength + 1);
+		// 	strcat(buf, "\n");
+        // 	message_callback(buf);
+		// 	return;
+		// }
         message_callback(input);
     }
 protected: 

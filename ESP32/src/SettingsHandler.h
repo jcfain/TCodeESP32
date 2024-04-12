@@ -2025,16 +2025,16 @@ private:
         switch (version)
         {
         case TCodeVersion::v0_2:
-            return "TCode v0.2";
+            return "TCode v0.2\n";
             break;
         case TCodeVersion::v0_3:
-            return "TCode v0.3";
+            return "TCode v0.3\n";
             break;
         case TCodeVersion::v0_5:
-            return "TCode v0.5";
+            return "TCode v0.5\n";
             break;
         default:
-            return "TCode v?";
+            return "TCode v?\n";
             break;
         }
     }

@@ -74,8 +74,11 @@ public:
 private: 
     static const char* _TAG;
     const char* BLE_DEVICE_NAME = "TCode ESP32";
-    const char* BLE_TCODE_SERVICE_UUID = "ff1b451d-3070-4276-9c81-5dc5ea1043bc";
-    const char* BLE_TCODE_CHARACTERISTIC_UUID = "c5f1543e-338d-47a0-8525-01e3c621359d";
+    // const char* BLE_TCODE_SERVICE_UUID = "ff1b451d-3070-4276-9c81-5dc5ea1043bc";
+    // const char* BLE_TCODE_CHARACTERISTIC_UUID = "c5f1543e-338d-47a0-8525-01e3c621359d";
+    //const char* BLE_TCODE_SERVICE_UUID = "00002A05-0000-1000-8000-00805F9B34FB";
+    const char* BLE_TCODE_SERVICE_UUID = "00002902-0000-1000-8000-00805F9B34FB";
+    const char* BLE_TCODE_CHARACTERISTIC_UUID = "00002B29-0000-1000-8000-00805F9B34FB";
     BLECharacteristic* m_tcodeCharacteristic;
     static QueueHandle_t m_TCodeQueue;
 

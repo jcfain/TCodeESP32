@@ -56,7 +56,7 @@ public:
 		} else if(isOtherCommand(in)) {
 			LogHandler::debug(_TAG, "Enter process other command: %s", in);
 
-			for(Command command : commands) {
+			for(auto command : commands) {
 				if(match(in, command.command)) {
 					command.callback();
 					xSemaphoreGive(xMutex);
@@ -75,19 +75,19 @@ public:
 			// Commands with values
 			int indexofDelim = getposition(in, strlen(in), DELEMITER_VALUE);
 			if(indexofDelim == -1) {
-				Serial.println("Invalid command format: missing colon, correct format is #<command>:<value>");
+				LogHandler::error(_TAG, "Invalid command format: '%s' missing colon, correct format is #<command>:<value>", in);
 				xSemaphoreGive(xMutex);
 				return false;
 			}
 			const char* commandAlone = substr(in, 0, indexofDelim);
 			if(!strlen(commandAlone)) {
-				Serial.println("Invalid command format: missing command, correct format is #<command>:<value>");
+				LogHandler::error(_TAG, "Invalid command format: '%s' missing command, correct format is #<command>:<value>", in);
 				xSemaphoreGive(xMutex);
 				return false;
 			}
 			const char* value = substr(in, indexofDelim +1, strlen(in));
 			if(!strlen(value)) {
-				Serial.println("Invalid command format: missing value, correct format is #<command>:<value>");
+				LogHandler::error(_TAG, "Invalid command format: '%s' missing value, correct format is #<command>:<value>", in);
 				xSemaphoreGive(xMutex);
 				return false;
 			}
@@ -110,7 +110,7 @@ public:
 				}
 			}
 
-			LogHandler::error(_TAG, "Unknown command: %s\n", in);
+			LogHandler::error(_TAG, "Unknown command: %s", in);
 			xSemaphoreGive(xMutex);
 			return false;
 		}

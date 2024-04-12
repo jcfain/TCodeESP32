@@ -140,6 +140,14 @@ bool match(const char* in, const char* match) {
     return strcmp(in, match) == 0;
 }
 
+void appendNewline(char* out, const char* input) {
+    strcpy(out, input);
+    if(!endsWith(out, "\n")) {;
+        strcat(out, "\n");
+    }
+}
+
+
 struct StrCompare
 {
    bool operator()(char const *a, char const *b) const
