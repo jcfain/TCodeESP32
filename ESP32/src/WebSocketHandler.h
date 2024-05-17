@@ -23,6 +23,7 @@ SOFTWARE. */
 #pragma once
 
 #include <AsyncJson.h>
+#include <mutex>
 #include <list>
 #include "HTTP/WebSocketBase.h"
 #include "SettingsHandler.h"
@@ -31,10 +32,8 @@ SOFTWARE. */
 #include "BatteryHandler.h"
 
 AsyncWebSocket ws("/ws");
-#include <mutex>
 
-class WebSocketCommand {
-    public:
+struct WebSocketCommand {
     const char* command;
     const char* message;
 };
