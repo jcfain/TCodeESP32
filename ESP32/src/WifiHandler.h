@@ -21,8 +21,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 #pragma once
+
+#if ESP8266 == 1
+#include <ESP8266WiFi.h>
+#else
 #include <WiFi.h>
 #include <esp_wifi.h>
+#endif
 #include "LogHandler.h"
 #include "SettingsHandler.h"
 #include "TagHandler.h"

@@ -23,7 +23,7 @@ SOFTWARE. */
 #pragma once
 
 #include <sstream>
-#include <SPIFFS.h>
+#include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <vector>
 #include <map>
@@ -249,8 +249,8 @@ public:
         LogHandler::debug(_TAG, "Total heap: %u", ESP.getHeapSize());
         LogHandler::debug(_TAG, "Free psram: %u", ESP.getFreePsram());
         LogHandler::debug(_TAG, "Total Psram: %u", ESP.getPsramSize());
-        LogHandler::debug(_TAG, "SPIFFS used: %i", SPIFFS.usedBytes());
-        LogHandler::debug(_TAG, "SPIFFS total: %i", SPIFFS.totalBytes());
+        LogHandler::debug(_TAG, "LittleFS used: %i", LittleFS.usedBytes());
+        LogHandler::debug(_TAG, "LittleFS total: %i", LittleFS.totalBytes());
     }
 
     static void printWebAddress(const char* hostAddress) {
@@ -461,7 +461,7 @@ public:
         LogHandler::info(_TAG, "Save Wifi info file");
         saving = true;
 		xSemaphoreTake(m_wifiMutex, portMAX_DELAY);
-        if (!SPIFFS.exists(wifiPassFilePath)) {
+        if (!LittleFS.exists(wifiPassFilePath)) {
             LogHandler::error(_TAG, "Wifi info file did not exist whan saving.");
             xSemaphoreGive(m_wifiMutex);
             saving = false;
@@ -477,7 +477,7 @@ public:
             }
 
             DynamicJsonDocument doc(100);
-            File file = SPIFFS.open(wifiPassFilePath, FILE_WRITE);
+            File file = LittleFS.open(wifiPassFilePath, FILE_WRITE);
             //LogHandler::info(_TAG, "Pass: %s",wifiPass);
             doc["ssid"] = ssid;
             doc["wifiPass"] = wifiPass;
@@ -623,7 +623,7 @@ public:
         LogHandler::info(_TAG, "Save motion profiles file");
         saving = true;
 		xSemaphoreTake(m_motionMutex, portMAX_DELAY);
-        if (!SPIFFS.exists(motionProfilesFilePath)) {
+        if (!LittleFS.exists(motionProfilesFilePath)) {
             LogHandler::error(_TAG, "Motion profile file did not exist whan saving.");
             saving = false;
             xSemaphoreGive(m_motionMutex);
@@ -675,7 +675,7 @@ public:
                 motionProfiles[i].edited = false;
             //}
         }
-        File file = SPIFFS.open(motionProfilesFilePath, FILE_WRITE);
+        File file = LittleFS.open(motionProfilesFilePath, FILE_WRITE);
         if (serializeJson(doc, file) == 0) {
             LogHandler::error(_TAG, "Failed to write to motion profiles file");
             file.close();
@@ -942,11 +942,11 @@ public:
     }
 
     static const bool readFile(char* &buf, const char* path) {
-        if(!SPIFFS.exists(path)) {
+        if(!LittleFS.exists(path)) {
             LogHandler::error(_TAG, "Path did not exist when reading contents: %s", path);
             return false;
         }
-        File file = SPIFFS.open(path, "r");
+        File file = LittleFS.open(path, "r");
         printFree();
         String fileStr = file.readString();
         //buf = static_cast<char*>(malloc(fileStr.length() + 1));
@@ -1365,13 +1365,13 @@ private:
     {
         // LogHandler::info(_TAG, "Save settings");
         // Delete existing file, otherwise the configuration is appended to the file
-        // Serial.print("SPIFFS used: ");
-        // Serial.println(SPIFFS.usedBytes() + "/" + SPIFFS.totalBytes());
-        // if (!SPIFFS.remove(userSettingsFilePath))
+        // Serial.print("LittleFS used: ");
+        // Serial.println(LittleFS.usedBytes() + "/" + LittleFS.totalBytes());
+        // if (!LittleFS.remove(userSettingsFilePath))
         // {
         //     LogHandler::error(_TAG, "Failed to remove settings file: %s", userSettingsFilePath);
         // }
-        // File file = SPIFFS.open(userSettingsFilePath, FILE_WRITE);
+        // File file = LittleFS.open(userSettingsFilePath, FILE_WRITE);
         // if (!file)
         // {
         //     LogHandler::error(_TAG, "Failed to create settings file: %s", userSettingsFilePath);
@@ -1612,7 +1612,7 @@ private:
 		xSemaphoreTake(mutex, portMAX_DELAY);
         LogHandler::debug(_TAG, "Saving File: %s", filepath);
         bool loadBeforeSetting = false;
-        if (!SPIFFS.exists(filepath)) {
+        if (!LittleFS.exists(filepath)) {
             LogHandler::error(_TAG, "File did not exist whan saving: %s", filepath);
             xSemaphoreGive(mutex);
             saving = false;
@@ -1638,7 +1638,7 @@ private:
             LogHandler::debug(_TAG, "Doc overflowed: %u", doc.overflowed());
             LogHandler::debug(_TAG, "Doc memory: %u", doc.memoryUsage());
             LogHandler::debug(_TAG, "Doc capacity: %u", doc.capacity());
-            File file = SPIFFS.open(filepath, FILE_WRITE);
+            File file = LittleFS.open(filepath, FILE_WRITE);
             if (serializeJson(doc, file) == 0)
             {
                 LogHandler::error(_TAG, "Failed to write to file: %s", filepath);
@@ -1657,7 +1657,7 @@ private:
     }
 
     static bool checkForFileAndLoad(const char* path, JsonObject &json, DynamicJsonDocument &doc, bool &loadDefault) {
-        if(!SPIFFS.exists(path)) {
+        if(!LittleFS.exists(path)) {
             loadDefault = true;
         }
         if(loadDefault) {
@@ -1668,15 +1668,15 @@ private:
 
     static bool defaultJsonFile(const char* path) {
         LogHandler::debug(_TAG, "Defaulting file %s", path);
-        if(SPIFFS.exists(path)) {
+        if(LittleFS.exists(path)) {
             LogHandler::debug(_TAG, "Deleting file %s", path);
-            if(!SPIFFS.remove(path)) {
+            if(!LittleFS.remove(path)) {
                 LogHandler::error(_TAG, "Error deleting %s!", path);
                 return false;
             }
         }
         LogHandler::debug(_TAG, "Creating file %s", path);
-        File newFile = SPIFFS.open(path, FILE_WRITE, true);
+        File newFile = LittleFS.open(path, FILE_WRITE, true);
         if(!newFile) {
             LogHandler::error(_TAG, "Error creating %s!", path);
             return false;
@@ -1689,12 +1689,12 @@ private:
 
     static bool loadJsonFromFile(const char* path, JsonObject &json, DynamicJsonDocument &doc) {
         LogHandler::debug(_TAG, "Loading json file %s", path);
-        if (!SPIFFS.exists(path)) {
+        if (!LittleFS.exists(path)) {
             LogHandler::error(_TAG, "%s did not exist!", path);
             return false;
         }
 
-        File file = SPIFFS.open(path, FILE_READ);
+        File file = LittleFS.open(path, FILE_READ);
         if(!file) {
             LogHandler::error(_TAG, "%s failed to open!", path);
             return false;

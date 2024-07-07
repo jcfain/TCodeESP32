@@ -107,8 +107,9 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
         LogHandler::verbose(_TAG, "*** BLE onRead");
         // char* sentValue = SettingsHandler::getJsonForBLE();
         if(sendJsonConfiguration.empty()) {
-            char settings[2048];
-            SettingsHandler::serialize(settings);
+            char settings[2048] = {0};
+            #warning need to send settings somehow
+            //SettingsHandler::ser(settings); 
             LogHandler::debug(_TAG, "BLE Get wifi settings: %s", settings);
             if (strlen(settings) == 0) {
                 LogHandler::error(_TAG, "*** BLE onRead empty");
@@ -232,7 +233,7 @@ private:
     const char* _TAG = TagHandler::BLEHandler;
 };
 
-class BLEHandler 
+class BLEConfigurationHandler 
 {
     private:
         const char* _TAG = TagHandler::BLEHandler;

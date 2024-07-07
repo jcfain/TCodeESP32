@@ -36,18 +36,31 @@ class BLETCodeControlCallback;
 class BLEHandler {
 public:
     void setup () {
-        m_TCodeQueue = xQueueCreate(600, sizeof(const char*));
+        LogHandler::info(_TAG, "Setting up BLE Tcode handler");
+        m_TCodeQueue = xQueueCreate(MAX_COMMAND, sizeof(const char*));
 
-        BLEDevice::init(BLE_DEVICE_NAME);
+        BLEDevice::init(m_isHC ? BLE_DEVICE_NAME_HC : BLE_DEVICE_NAME);
         BLEServer *pServer = BLEDevice::createServer();
         pServer->setCallbacks(new ServerCallbacks());
 
-        m_tcodeCharacteristic = new BLECharacteristic(BLE_TCODE_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ  | BLECharacteristic::PROPERTY_WRITE_NR);
-        m_tcodeCharacteristic->setValue("");
+        if(m_isHC) {
+            m_tcodeCharacteristic = new BLECharacteristic(BLE_TCODE_CHARACTERISTIC_UUID_HC, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR);
+            m_tcodeCharacteristic2 = new BLECharacteristic(BLE_TCODE_CHARACTERISTIC_UUID2_HC, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR);
+        } else {
+            m_tcodeCharacteristic = new BLECharacteristic(BLE_TCODE_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE_NR);
+        }
+        //m_tcodeCharacteristic->setValue("");
         m_tcodeCharacteristic->setCallbacks(new BLETCodeControlCallback());
+        if(m_isHC) {
+            m_tcodeCharacteristic2->setCallbacks(new BLETCodeControlCallback());
+        }
 
-        BLEService *pService = pServer->createService(BLE_TCODE_SERVICE_UUID);
+        BLEService *pService = pServer->createService(m_isHC ? BLE_TCODE_SERVICE_UUID_HC : BLE_TCODE_SERVICE_UUID);
         pService->addCharacteristic(m_tcodeCharacteristic);
+        
+        if(m_isHC) {
+            pService->addCharacteristic(m_tcodeCharacteristic2);
+        }
 
         pService->start();
 
@@ -73,13 +86,19 @@ public:
 
 private: 
     static const char* _TAG;
-    const char* BLE_DEVICE_NAME = "TCode ESP32";
-    // const char* BLE_TCODE_SERVICE_UUID = "ff1b451d-3070-4276-9c81-5dc5ea1043bc";
-    // const char* BLE_TCODE_CHARACTERISTIC_UUID = "c5f1543e-338d-47a0-8525-01e3c621359d";
-    //const char* BLE_TCODE_SERVICE_UUID = "00002A05-0000-1000-8000-00805F9B34FB";
-    const char* BLE_TCODE_SERVICE_UUID = "00002902-0000-1000-8000-00805F9B34FB";
-    const char* BLE_TCODE_CHARACTERISTIC_UUID = "00002B29-0000-1000-8000-00805F9B34FB";
+    const char* BLE_DEVICE_NAME = "TCODE-ESP32";
+    const char* BLE_TCODE_SERVICE_UUID = "ff1b451d-3070-4276-9c81-5dc5ea1043bc";
+    const char* BLE_TCODE_CHARACTERISTIC_UUID = "c5f1543e-338d-47a0-8525-01e3c621359d";
+
+    bool m_isHC = true;
+    // Haptics connect UUID's
+    const char* BLE_DEVICE_NAME_HC = "OSR-ESP32";
+    const char* BLE_TCODE_SERVICE_UUID_HC = "00004000-0000-1000-8000-0000101A2B3C";
+    const char* BLE_TCODE_CHARACTERISTIC_UUID_HC = "00002000-0001-1000-8000-0000101A2B3C";
+    const char* BLE_TCODE_CHARACTERISTIC_UUID2_HC = "00002000-0002-1000-8000-0000101A2B3C";
+
     BLECharacteristic* m_tcodeCharacteristic;
+    BLECharacteristic* m_tcodeCharacteristic2;
     static QueueHandle_t m_TCodeQueue;
 
     // ----------------------------------------
@@ -87,22 +106,53 @@ private:
     //-----------------------------------------
     class BLETCodeControlCallback: public BLECharacteristicCallbacks {
         void onWrite(BLECharacteristic *pCharacteristic) {
-            const char* input = pCharacteristic->getValue().c_str();
-            const int length = strlen(input);
+            uint16_t handle = pCharacteristic->getHandle();
+            uint8_t* rxValue = pCharacteristic->getData();
+            size_t rxLength = pCharacteristic->getLength();
+            std::string rxString = pCharacteristic->getValue();
+            //esp_gatt_char_prop_t  prop = pCharacteristic->;
+            //Serial.println(*rxValue,HEX);
+    //00F418713F41
+        // uint8_t x;
+        // sscanf(rxValue, "%x", &x);
+        //int value = (int)strtol(rxValue, NULL, 0);
+            // LogHandler::info(_TAG, "rxValue: %u", *rxValue);
+            LogHandler::info(_TAG, "handle: %ld", handle);
+            LogHandler::info(_TAG, "rxLength: %ld", rxLength);
+            // LogHandler::info(_TAG, "rxString: %s", rxString);
 
-            xQueueSend(m_TCodeQueue, input, 0);
-            for (int i = 0; i < length; i++) {
+            // xQueueSend(m_TCodeQueue, input, 0);
+            Serial.println();
+            for (int i = 0; i < rxLength; i++) {
                 //tcode.ByteInput(input[i]);
+                Serial.print(rxValue[i],HEX);
+                if(i<rxLength)
+                    Serial.print(":");
             }
+            Serial.println();
         }
     };
 
     class ServerCallbacks: public BLEServerCallbacks {
-        void onConnect(BLEServer* pServer) {
-            LogHandler::info(_TAG, "A client has connected via BLE.");
+        void onConnect(BLEServer* pServer, esp_ble_gatts_cb_param_t *param) {
+            LogHandler::info(_TAG, "A client has connected via BLE: %.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
+                param->connect.remote_bda[0],
+                param->connect.remote_bda[1],
+                param->connect.remote_bda[2],
+                param->connect.remote_bda[3],
+                param->connect.remote_bda[4],
+                param->connect.remote_bda[5]
+            );
         };
-        void onDisconnect(BLEServer* pServer) {
-            LogHandler::info(_TAG, ("A client has disconnected from BLE."));
+        void onDisconnect(BLEServer* pServer, esp_ble_gatts_cb_param_t *param) {
+            LogHandler::info(_TAG, "A client has disconnected from BLE: %.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
+                param->connect.remote_bda[0],
+                param->connect.remote_bda[1],
+                param->connect.remote_bda[2],
+                param->connect.remote_bda[3],
+                param->connect.remote_bda[4],
+                param->connect.remote_bda[5]
+            );
             pServer->startAdvertising(); 
         }
     };

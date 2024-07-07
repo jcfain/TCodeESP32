@@ -41,6 +41,7 @@ class TagHandler {
     static const char* HTTPSHandler;
     static const char* SystemCommandHandler;
     static const char* BLEHandler;
+    static const char* BLEConfigurationHandler;
     static const char* BluetoothHandler;
     static const char* ServoHandler3;
     static const char* ServoHandler2;
@@ -71,6 +72,7 @@ const char* TagHandler::HTTPSHandler = "https-handler";
 const char* TagHandler::WebHandler = "web-handler";
 const char* TagHandler::SystemCommandHandler = "system-command-handler";
 const char* TagHandler::BLEHandler = "ble-handler";
+const char* TagHandler::BLEConfigurationHandler = "ble-config-handler";
 const char* TagHandler::BluetoothHandler = "bluetooth-handler";
 const char* TagHandler::ServoHandler3 = "servo-3-handler";
 const char* TagHandler::ServoHandler2 = "servo-2-handler";
@@ -109,6 +111,7 @@ const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::BatteryHandler,
     TagHandler::WebHandler,
     TagHandler::BLEHandler,
+    TagHandler::BLEConfigurationHandler,
     TagHandler::BluetoothHandler,
     TagHandler::MotorHandler,
     TagHandler::MotionHandler,

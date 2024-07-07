@@ -21,7 +21,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 #pragma once
+#if ESP8266 == 1
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <ESP8266HTTPClient.h>
+#include <ESP8266HTTPUpdateServer.h>
+#include <ESP8266WebServer.h>
+#else
 #include <ESPmDNS.h>
+#endif
 #include "SettingsHandler.h"
 #include "LogHandler.h"
 class MDNSHandler {

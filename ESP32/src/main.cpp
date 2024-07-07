@@ -28,8 +28,16 @@ SOFTWARE. */
 #include <Arduino.h>
 #endif
 
+#if ESP8266 == 1
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <ESP8266HTTPClient.h>
+#include <ESP8266HTTPUpdateServer.h>
+#include <ESP8266WebServer.h>
+#endif
+
 #include "utils.h"
-#include <SPIFFS.h>
+#include <LittleFS.h>
 #include "LogHandler.h"
 #include "SettingsHandler.h"
 #include "SystemCommandHandler.h"
@@ -47,7 +55,7 @@ SOFTWARE. */
 	#include "BluetoothHandler.h"
 #endif
 #include "TCode/MotorHandler.h"
-
+#include "BLEConfigurationHandler.h"
 #if MOTOR_TYPE == 0
 	#if TCODE_V2//Too much memory needed with debug
 		#include "TCode/v0.2/ServoHandler0_2.h"
@@ -84,14 +92,13 @@ SOFTWARE. */
 	#endif
 #endif
 
-
 #include "BatteryHandler.h"
 #include "Motion/MotionHandler.hpp"
 #include "VoiceHandler.hpp"
 #include "ButtonHandler.hpp"
 
 SystemCommandHandler* systemCommandHandler;
-
+BLEConfigurationHandler* bleConfigurationHandler;
 //TcpHandler tcpHandler;
 MotorHandler* motorHandler;
 BatteryHandler* batteryHandler;
@@ -112,7 +119,6 @@ TaskHandle_t voiceTask;
 	MDNSHandler mdnsHandler;
 	HTTPBase* webHandler = 0;
 	WebSocketBase* webSocketHandler = 0;
-	
 #endif
 
 #if TEMP_ENABLED
@@ -309,9 +315,16 @@ void startWeb(bool apMode) {
 			}
 		#endif
 	}
-#endif
 }
+#endif
 
+void startBLEConfig() {
+	// if(!bleConfigurationHandler) {
+	// 	displayPrint("Starting BLE config");
+	// 	bleConfigurationHandler = new BLEConfigurationHandler();
+	// 	bleConfigurationHandler->setup();
+	// }
+}
 
 #if BLE_TCODE
 void startBLE() {
@@ -343,8 +356,8 @@ void startUDP() {
 #endif
 }
 
-void startConfigMode(bool withBle= true) {
 #if WIFI_TCODE
+void startConfigMode(bool withBle= true) {
 	SettingsHandler::apMode = true;
 	LogHandler::info(TagHandler::Main, "Starting in APMode");
 	displayPrint("Starting in APMode");
@@ -359,16 +372,13 @@ void startConfigMode(bool withBle= true) {
 		LogHandler::error(TagHandler::Main, "APMode start failed");
 		displayPrint("APMode start failed");
 	}
-#endif
 
-#if BLE_TCODE
 // After attempting to connect wifi, ble cause crash
 	if(withBle) { 
-		startBLE();
+		startBLEConfig();
 	}
-#endif
 }
-
+#endif
 
 #if WIFI_TCODE
 void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
@@ -376,11 +386,8 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
         LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiStatus::CONNECTED");
 		if(reason == WiFiReason::AP_MODE) {
         	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AP_MODE");
-// #if BLUETOOTH_TCODE
-//             if(bleHandler)
-//               bleHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
-// 			#endif
-// #endif
+            if(bleConfigurationHandler)
+              bleConfigurationHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
 		}
 	} else {
 		// wifi.dispose();
@@ -398,8 +405,8 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
 		}  else if(reason == WiFiReason::AP_MODE) {
         	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AP_MODE");
 			// #if !ESP32_DA
-			// if(bleHandler)
-			// 	bleHandler->setup();
+			// if(bleConfigurationHandler)
+			// 	bleConfigurationHandler->setup();
 			// #endif
 		}
 	}
@@ -570,9 +577,9 @@ void setup()
 	// LogHandler::warning("main", "this is warning");
 	// LogHandler::error("main", "this is error");
 
-	if(!SPIFFS.begin(true))
+	if(!LittleFS.begin(true))
 	{
-		LogHandler::error(TagHandler::Main, "An Error has occurred while mounting SPIFFS");
+		LogHandler::error(TagHandler::Main, "An Error has occurred while mounting LittleFS");
 		setupSucceeded = false;
 		return;
 	}
@@ -667,6 +674,10 @@ void setup()
 		if(!SettingsHandler::apMode && SettingsHandler::bluetoothEnabled) {
 			startBlueTooth();
 		} 
+	#endif
+
+	#if BLE_TCODE
+		startBLE();
 	#endif
     //otaHandler.setup();
 	displayPrint("Setting up motor");

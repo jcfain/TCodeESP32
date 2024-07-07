@@ -26,8 +26,10 @@ SOFTWARE. */
 #include <sstream>
 #include <vector>
 #include <math.h>
+#ifdef ESP32
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
+#endif
 
 int getposition(const char *array, const size_t& size, const char& c)
 {
@@ -73,6 +75,7 @@ double mapf(const double& x, const double& in_min, const double& in_max, const d
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
+#ifdef ESP32
 adc1_channel_t gpioToADC1(const int& gpioPin) {
     switch(gpioPin) {
         case 36:
@@ -94,6 +97,7 @@ adc1_channel_t gpioToADC1(const int& gpioPin) {
         default: return ADC1_CHANNEL_MAX;
     }
 }
+#endif
 
 bool contains_duplicate(const std::vector<const char*>& values ) {
     for( std::size_t i = 0 ; i < values.size() ; ++i )

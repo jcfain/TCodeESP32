@@ -23,18 +23,22 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
-#include <SPIFFS.h>
+#include <LittleFS.h>
 #include <ESPAsyncWebServer.h>
+#if ESP8266 == 1
+#include <ESPAsyncTCP.h>
+#else
 #include <AsyncTCP.h>
+#endif
 #include <AsyncJson.h>
 #include "HTTP/HTTPBase.h"
 #include "WifiHandler.h"
 #include "WebSocketHandler.h"
 #include "TagHandler.h"
 #include "SystemCommandHandler.h"
-#if !CONFIG_HTTPD_WS_SUPPORT
-#error This example cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
-#endif
+// #if !CONFIG_HTTPD_WS_SUPPORT
+// #error This example cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
+// #endif
 class WebHandler : public HTTPBase {
     public:
         // bool MDNSInitialized = false;
@@ -61,7 +65,7 @@ class WebHandler : public HTTPBase {
 
             server->on("/settings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                request->send(SPIFFS, SettingsHandler::userSettingsFilePath, "application/json");
+                request->send(LittleFS, SettingsHandler::userSettingsFilePath, "application/json");
             });   
 
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
@@ -79,19 +83,19 @@ class WebHandler : public HTTPBase {
 
             server->on("/motionProfiles", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                request->send(SPIFFS, SettingsHandler::motionProfilesFilePath, "application/json");
+                request->send(LittleFS, SettingsHandler::motionProfilesFilePath, "application/json");
             });   
 
             server->on("/buttonSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                request->send(SPIFFS, SettingsHandler::buttonsFilePath, "application/json");
+                request->send(LittleFS, SettingsHandler::buttonsFilePath, "application/json");
             });  
             
             
             server->on("/log", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 Serial.println("Get log...");
-                request->send(SPIFFS, SettingsHandler::logPath);
+                request->send(LittleFS, SettingsHandler::logPath);
             });   
 
             server->on("/connectWifi", HTTP_POST, [](AsyncWebServerRequest *request) 
@@ -307,7 +311,7 @@ class WebHandler : public HTTPBase {
             });
 
             //server->rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
-            server->serveStatic("/", SPIFFS, "/www/").setDefaultFile("index-min.html");
+            server->serveStatic("/", LittleFS, "/www/").setDefaultFile("index-min.html");
             server->begin();
             initialized = true;
         }
