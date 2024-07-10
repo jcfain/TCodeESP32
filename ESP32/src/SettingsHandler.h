@@ -39,6 +39,7 @@ SOFTWARE. */
 #include "../lib/enum.h"
 #include "../lib/constants.h"
 #include "../lib/channelMap.hpp"
+#include "../lib/settingMap.h"
 
 using SETTING_STATE_FUNCTION_PTR_T = void (*)(const char *group, const char *settingNameThatChanged);
 

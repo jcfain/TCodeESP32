@@ -58,8 +58,12 @@ public:
         
             if(SettingsHandler::LeftServo_PIN > -1) {
                 LogHandler::debug(_TAG, "Connecting left servo to pin: %u", SettingsHandler::LeftServo_PIN);
+                #ifdef ESP_ARDUINO3
+                ledcAttach(SettingsHandler::LeftServo_PIN,MainServo_Freq,8);
+                #else
                 ledcSetup(LowerLeftServo_PWM,MainServo_Freq,16);
                 ledcAttachPin(SettingsHandler::LeftServo_PIN,LowerLeftServo_PWM);
+                #endif
             } else {
                 LogHandler::error(_TAG, "Invalid left servo to pin: %u", SettingsHandler::LeftServo_PIN);
                 m_initFailed = true;
@@ -67,8 +71,12 @@ public:
             if(SettingsHandler::RightServo_PIN > -1) {
                 // Lower Right Servo
                 LogHandler::debug(_TAG, "Connecting right servo to pin: %u", SettingsHandler::RightServo_PIN);
+                #ifdef ESP_ARDUINO3
+                ledcAttach(SettingsHandler::RightServo_PIN,MainServo_Freq,8);
+                #else
                 ledcSetup(LowerRightServo_PWM,MainServo_Freq,16);
                 ledcAttachPin(SettingsHandler::RightServo_PIN,LowerRightServo_PWM);
+                #endif
             } else {
                 LogHandler::error(_TAG, "Invalid right servo to pin: %u", SettingsHandler::RightServo_PIN);
                 m_initFailed = true;
@@ -79,8 +87,12 @@ public:
             if(SettingsHandler::LeftUpperServo_PIN > -1) {
                 // Upper Left Servo
                 LogHandler::debug(_TAG, "Connecting left upper servo to pin: %u", SettingsHandler::LeftUpperServo_PIN);
+                #ifdef ESP_ARDUINO3
+                ledcAttach(SettingsHandler::LeftUpperServo_PIN,MainServo_Freq,8);
+                #else
                 ledcSetup(UpperLeftServo_PWM,MainServo_Freq,16);
                 ledcAttachPin(SettingsHandler::LeftUpperServo_PIN,UpperLeftServo_PWM);
+                #endif
             } else {
                 LogHandler::error(_TAG, "Invalid left upper servo to pin: %u", SettingsHandler::LeftUpperServo_PIN);
                 m_initFailed = true;
@@ -89,8 +101,12 @@ public:
                 if(SettingsHandler::RightUpperServo_PIN > -1) {
                     // Upper Right Servo
                     LogHandler::debug(_TAG, "Connecting right upper servo to pin: %u", SettingsHandler::RightUpperServo_PIN);
+                    #ifdef ESP_ARDUINO3
+                    ledcAttach(SettingsHandler::RightUpperServo_PIN,MainServo_Freq,8);
+                    #else
                     ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);
                     ledcAttachPin(SettingsHandler::RightUpperServo_PIN,UpperRightServo_PWM);
+                    #endif
                 } else {
                     LogHandler::error(_TAG, "Invalid right upper servo to pin: %u", SettingsHandler::RightUpperServo_PIN);
                     m_initFailed = true;
@@ -98,8 +114,12 @@ public:
                 if(SettingsHandler::PitchRightServo_PIN > -1) {
                     // Right Pitch Servo
                     LogHandler::debug(_TAG, "Connecting right pitch servo to pin: %u", SettingsHandler::PitchRightServo_PIN);
+                    #ifdef ESP_ARDUINO3
+                    ledcAttach(SettingsHandler::PitchRightServo_PIN,PitchServo_Freq,8);
+                    #else
                     ledcSetup(RightPitchServo_PWM,PitchServo_Freq,16);
                     ledcAttachPin(SettingsHandler::PitchRightServo_PIN,RightPitchServo_PWM);
+                    #endif
                 } else {
                     LogHandler::error(_TAG, "Invalid right pitch servo to pin: %u", SettingsHandler::PitchRightServo_PIN);
                     m_initFailed = true;
@@ -109,8 +129,12 @@ public:
         if(SettingsHandler::PitchLeftServo_PIN > -1) {
             // Left Pitch Servo
             LogHandler::debug(_TAG, "Connecting pitch servo to pin: %u", SettingsHandler::PitchLeftServo_PIN);
+            #ifdef ESP_ARDUINO3
+            ledcAttach(SettingsHandler::PitchLeftServo_PIN,PitchServo_Freq,8);
+            #else
             ledcSetup(LeftPitchServo_PWM,PitchServo_Freq,16);
             ledcAttachPin(SettingsHandler::PitchLeftServo_PIN,LeftPitchServo_PWM);
+            #endif
         } else {
             LogHandler::error(_TAG, "Invalid pitch servo to pin: %u", SettingsHandler::PitchLeftServo_PIN);
             m_initFailed = true;

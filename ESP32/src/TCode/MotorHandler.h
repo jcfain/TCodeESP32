@@ -72,30 +72,46 @@ protected:
             m_tcode->RegisterAxis("A1", "Suck");
             m_tcode->RegisterAxis("A0", "Valve");
             LogHandler::debug(_TAG, "Connecting valve servo to pin: %ld @ freq: %ld", SettingsHandler::ValveServo_PIN, SettingsHandler::valveFrequency);
+            #ifdef ESP_ARDUINO3
+            ledcAttach(Vibe1_PWM,ValveServo_Freq,8);
+            #else
             ledcSetup(ValveServo_PWM,ValveServo_Freq,16);
             ledcAttachPin(SettingsHandler::ValveServo_PIN,ValveServo_PWM);
+            #endif
         }
 
         if(SettingsHandler::TwistServo_PIN > -1) {
             m_tcode->RegisterAxis("R0", "Twist");
             LogHandler::debug(_TAG, "Connecting twist servo to pin: %ld @ freq: %ld", SettingsHandler::TwistServo_PIN, SettingsHandler::twistFrequency);
+            #ifdef ESP_ARDUINO3
+            ledcAttach(SettingsHandler::TwistServo_PIN,TwistServo_Freq,8);
+            #else
             ledcSetup(TwistServo_PWM,TwistServo_Freq,16);
             ledcAttachPin(SettingsHandler::TwistServo_PIN,TwistServo_PWM);
+            #endif
         }
 
         if(SettingsHandler::Squeeze_PIN > -1) {
             m_tcode->RegisterAxis("A3", "Squeeze");
             LogHandler::debug(_TAG, "Connecting squeeze servo to pin: %ld @ freq: %ld", SettingsHandler::Squeeze_PIN, SettingsHandler::squeezeFrequency);
+            #ifdef ESP_ARDUINO3
+            ledcAttach(SettingsHandler::Squeeze_PIN,SqueezeServo_Freq,8);
+            #else
             ledcSetup(SqueezeServo_PWM,SqueezeServo_Freq,16);
             ledcAttachPin(SettingsHandler::Squeeze_PIN,SqueezeServo_PWM);
+            #endif
         }
 
         if (SettingsHandler::lubeEnabled && SettingsHandler::LubeButton_PIN > -1 && SettingsHandler::Vibe1_PIN > -1) {
             m_tcode->RegisterAxis("A2", "Lube");
             m_tcode->AxisInput("A2",0,' ',0);
             pinMode(SettingsHandler::LubeButton_PIN,INPUT);
+            #ifdef ESP_ARDUINO3
+            ledcAttach(SettingsHandler::Vibe1_PIN,VibePWM_Freq,8);
+            #else
             ledcSetup(Vibe1_PWM,VibePWM_Freq,8);
             ledcAttachPin(SettingsHandler::Vibe1_PIN,Vibe1_PWM); 
+            #endif
             lubeRegistered = true;
         }
 
@@ -103,26 +119,42 @@ protected:
         if(SettingsHandler::Vibe0_PIN > -1) {
             m_tcode->RegisterAxis("V0", "Vibe1");
             LogHandler::debug(_TAG, "Connecting vib 1 to pin: %ld @ freq: %ld", SettingsHandler::Vibe0_PIN, VibePWM_Freq);
+            #ifdef ESP_ARDUINO3
+            ledcAttach(SettingsHandler::Vibe0_PIN,VibePWM_Freq,8);
+            #else
             ledcSetup(Vibe0_PWM,VibePWM_Freq,8);
             ledcAttachPin(SettingsHandler::Vibe0_PIN,Vibe0_PWM);
+            #endif
         }
         if(!lubeRegistered && SettingsHandler::Vibe1_PIN > -1) {
             m_tcode->RegisterAxis("V1", "Vibe2");
             LogHandler::debug(_TAG, "Connecting lube/vib 2 to pin: %ld @ freq: %ld", SettingsHandler::Vibe1_PIN, VibePWM_Freq);
+            #ifdef ESP_ARDUINO3
+            ledcAttach(SettingsHandler::Vibe1_PIN,VibePWM_Freq,8);
+            #else
             ledcSetup(Vibe1_PWM,VibePWM_Freq,8);
             ledcAttachPin(SettingsHandler::Vibe1_PIN,Vibe1_PWM); 
+            #endif
         }
         if(SettingsHandler::Vibe2_PIN > -1) {
             m_tcode->RegisterAxis("V2", "Vibe3");
             LogHandler::debug(_TAG, "Connecting vib 3 to pin: %ld @ freq: %ld", SettingsHandler::Vibe2_PIN, VibePWM_Freq);
+            #ifdef ESP_ARDUINO3
+            ledcAttach(SettingsHandler::Vibe2_PIN,VibePWM_Freq,8);
+            #else
             ledcSetup(Vibe2_PWM,VibePWM_Freq,8);
             ledcAttachPin(SettingsHandler::Vibe2_PIN,Vibe2_PWM); 
+            #endif
         }
         if(SettingsHandler::Vibe3_PIN > -1) {
             m_tcode->RegisterAxis("V3", "Vibe4");
             LogHandler::debug(_TAG, "Connecting vib 4 to pin: %ld @ freq: %ld", SettingsHandler::Vibe3_PIN, VibePWM_Freq);
+            #ifdef ESP_ARDUINO3
+            ledcAttach(SettingsHandler::Vibe3_PIN,VibePWM_Freq,8);
+            #else
             ledcSetup(Vibe3_PWM,VibePWM_Freq,8);
             ledcAttachPin(SettingsHandler::Vibe3_PIN,Vibe3_PWM); 
+            #endif
         }
 
         if(SettingsHandler::feedbackTwist)

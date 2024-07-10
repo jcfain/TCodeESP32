@@ -41,7 +41,12 @@ For now this is only for first configs */
 class CharacteristicCallbacks: public BLECharacteristicCallbacks 
 {
     String recievedJsonConfiguration = "";
-    std::string sendJsonConfiguration = "";
+    
+    #ifdef ESP_ARDUINO3
+        String sendJsonConfiguration = "";
+    #else
+        std::string sendJsonConfiguration = "";
+    #endif
     unsigned sendChunkIndex = 0;
     bool sentLength = false;
     int sendMaxLen = 499;
@@ -51,7 +56,11 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
     {
         SettingsHandler::printMemory();
         LogHandler::verbose(_TAG, "*** BLE onWrite");
-        std::string rxValue = pCharacteristic->getValue();
+        #ifdef ESP_ARDUINO3
+            String rxValue = pCharacteristic->getValue();
+        #else
+            std::string rxValue = pCharacteristic->getValue();
+        #endif
 
         if (rxValue.length() > 0) 
         {

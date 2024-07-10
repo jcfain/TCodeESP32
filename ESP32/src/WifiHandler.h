@@ -247,7 +247,7 @@ class WifiHandler
     }
 
     bool startAp() {
-      WiFi.disconnect(true, true);
+      //WiFi.disconnect(true, true);
       WiFi.mode(WIFI_AP);
       //WiFi.setHostname("TCodeESP32");
       WiFi.softAP(ssid);

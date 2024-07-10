@@ -55,7 +55,7 @@ SOFTWARE. */
 	#include "BluetoothHandler.h"
 #endif
 #include "TCode/MotorHandler.h"
-#include "BLEConfigurationHandler.h"
+//#include "BLEConfigurationHandler.h"
 #if MOTOR_TYPE == 0
 	#if TCODE_V2//Too much memory needed with debug
 		#include "TCode/v0.2/ServoHandler0_2.h"
@@ -98,7 +98,7 @@ SOFTWARE. */
 #include "ButtonHandler.hpp"
 
 SystemCommandHandler* systemCommandHandler;
-BLEConfigurationHandler* bleConfigurationHandler;
+//BLEConfigurationHandler* bleConfigurationHandler;
 //TcpHandler tcpHandler;
 MotorHandler* motorHandler;
 BatteryHandler* batteryHandler;
@@ -245,48 +245,48 @@ void logCallBack(const char* in, LogLevel level) {
 #endif
 }
 #if TEMP_ENABLED
-void tempChangeCallBack(TemperatureType type, const char* message, float temp) {
-#if WIFI_TCODE
-	if(webSocketHandler) {
-		if (strpbrk(message, "{") == nullptr) {
-			webSocketHandler->sendCommand(message);
-		} else {
-			if(type == TemperatureType::SLEEVE) {
-				webSocketHandler->sendCommand("sleeveTempStatus", message);
+	void tempChangeCallBack(TemperatureType type, const char* message, float temp) {
+	#if WIFI_TCODE
+		if(webSocketHandler) {
+			if (strpbrk(message, "{") == nullptr) {
+				webSocketHandler->sendCommand(message);
 			} else {
-				webSocketHandler->sendCommand("internalTempStatus", message);
+				if(type == TemperatureType::SLEEVE) {
+					webSocketHandler->sendCommand("sleeveTempStatus", message);
+				} else {
+					webSocketHandler->sendCommand("internalTempStatus", message);
+				}
 			}
 		}
-	}
-#endif
-#if DISPLAY_ENABLED
-	if(displayHandler) {
-		if(type == TemperatureType::SLEEVE) {
-			displayHandler->setSleeveTemp(temp);
-		} else {
-			displayHandler->setInternalTemp(temp);
+	#endif
+	#if DISPLAY_ENABLED
+		if(displayHandler) {
+			if(type == TemperatureType::SLEEVE) {
+				displayHandler->setSleeveTemp(temp);
+			} else {
+				displayHandler->setInternalTemp(temp);
+			}
 		}
+	#endif
 	}
-#endif
-}
-void tempStateChangeCallBack(TemperatureType type, const char* state) {
-#if DISPLAY_ENABLED
-	if(displayHandler) {
-		if(type == TemperatureType::SLEEVE) {
-			LogHandler::verbose(TagHandler::Main, "tempStateChangeCallBack heat: %s", state);
-			displayHandler->setHeateState(state);
-			if(temperatureHandler)
-				displayHandler->setHeateStateShort(temperatureHandler->getShortSleeveControlStatus(state));
-		} else {
-			LogHandler::verbose(TagHandler::Main, "tempStateChangeCallBack fan: %s", state);
-			displayHandler->setFanState(state);
+	void tempStateChangeCallBack(TemperatureType type, const char* state) {
+	#if DISPLAY_ENABLED
+		if(displayHandler) {
+			if(type == TemperatureType::SLEEVE) {
+				LogHandler::verbose(TagHandler::Main, "tempStateChangeCallBack heat: %s", state);
+				displayHandler->setHeateState(state);
+				if(temperatureHandler)
+					displayHandler->setHeateStateShort(temperatureHandler->getShortSleeveControlStatus(state));
+			} else {
+				LogHandler::verbose(TagHandler::Main, "tempStateChangeCallBack fan: %s", state);
+				displayHandler->setFanState(state);
+			}
 		}
+	#endif
 	}
 #endif
-}
-#endif
-void startWeb(bool apMode) {
 #if WIFI_TCODE
+void startWeb(bool apMode) {
 	if(!webHandler) {
 		displayPrint("Starting web server");
 		#if !SECURE_WEB
@@ -346,15 +346,15 @@ void startBlueTooth() {
 }
 #endif
 
-void startUDP() {
 #if WIFI_TCODE
+void startUDP() {
 	if(!udpHandler) {
 		displayPrint("Starting UDP");
 		udpHandler = new Udphandler();
 		udpHandler->setup(SettingsHandler::udpServerPort);
 	}
-#endif
 }
+#endif
 
 #if WIFI_TCODE
 void startConfigMode(bool withBle= true) {
@@ -386,8 +386,8 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
         LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiStatus::CONNECTED");
 		if(reason == WiFiReason::AP_MODE) {
         	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AP_MODE");
-            if(bleConfigurationHandler)
-              bleConfigurationHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
+            // if(bleConfigurationHandler)
+            //   bleConfigurationHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
 		}
 	} else {
 		// wifi.dispose();
@@ -847,6 +847,7 @@ void loop() {
 				} else if (serialData.length() > 0) {
 					LogHandler::verbose(TagHandler::MainLoop, "serial writing: %s", serialData.c_str());
 					readTCode(serialData);
+#if WIFI_TCODE == 1
 				} else if (strlen(webSocketData) > 0) {
 					LogHandler::verbose(TagHandler::MainLoop, "webSocket writing: %s", webSocketData);
 					readTCode(webSocketData);
@@ -855,18 +856,18 @@ void loop() {
 					LogHandler::verbose(TagHandler::MainLoop, "udp writing: %s", udpData);
 					readTCode(udpData);
 					benchFinish("Udp write", 6);
-				} 
+#endif
 #if BLE_TCODE
-				else if (strlen(bleData) > 0) {
+				} else if (strlen(bleData) > 0) {
+					LogHandler::verbose(TagHandler::MainLoop, "BLE writing: %s", bleData);
 					readTCode(bleData);
-				}
 #endif
 #if BLUETOOTH_TCODE
-				else if (!SettingsHandler::getMotionEnabled() && bluetoothData.length() > 0) {
+				} else if (!SettingsHandler::getMotionEnabled() && bluetoothData.length() > 0) {
 					LogHandler::verbose(TagHandler::MainLoop, "bluetooth writing: %s", bluetoothData);
 					readTCode(bluetoothData);
-				}
 #endif
+				}
 				benchFinish("Input check", 3);
 			} else if(!dStopped) {//All motion is paused execute stop.
 				// movement[0] = {0};

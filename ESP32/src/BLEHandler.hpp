@@ -37,24 +37,29 @@ class BLEHandler {
 public:
     void setup () {
         LogHandler::info(_TAG, "Setting up BLE Tcode handler");
-        m_TCodeQueue = xQueueCreate(MAX_COMMAND, sizeof(const char*));
+        m_TCodeQueue = xQueueCreate(25, MAX_COMMAND);
 
+        LogHandler::debug(_TAG, "Setting up BLE init device");
         BLEDevice::init(m_isHC ? BLE_DEVICE_NAME_HC : BLE_DEVICE_NAME);
+        LogHandler::debug(_TAG, "Setting up BLE Create server");
         BLEServer *pServer = BLEDevice::createServer();
         pServer->setCallbacks(new ServerCallbacks());
 
+        LogHandler::debug(_TAG, "Setting up BLE Characteristics");
         if(m_isHC) {
             m_tcodeCharacteristic = new BLECharacteristic(BLE_TCODE_CHARACTERISTIC_UUID_HC, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR);
             m_tcodeCharacteristic2 = new BLECharacteristic(BLE_TCODE_CHARACTERISTIC_UUID2_HC, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR);
         } else {
             m_tcodeCharacteristic = new BLECharacteristic(BLE_TCODE_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE_NR);
         }
+        LogHandler::debug(_TAG, "Setting up BLE Callbacks");
         //m_tcodeCharacteristic->setValue("");
         m_tcodeCharacteristic->setCallbacks(new BLETCodeControlCallback());
         if(m_isHC) {
             m_tcodeCharacteristic2->setCallbacks(new BLETCodeControlCallback());
         }
 
+        LogHandler::debug(_TAG, "Setting up BLE Service");
         BLEService *pService = pServer->createService(m_isHC ? BLE_TCODE_SERVICE_UUID_HC : BLE_TCODE_SERVICE_UUID);
         pService->addCharacteristic(m_tcodeCharacteristic);
         
@@ -62,6 +67,7 @@ public:
             pService->addCharacteristic(m_tcodeCharacteristic2);
         }
 
+        LogHandler::debug(_TAG, "Starting BLE Service");
         pService->start();
 
         BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
@@ -72,6 +78,8 @@ public:
         // https://github.com/nkolban/esp32-snippets/issues/768
         pAdvertising->setMinPreferred(0x06);  
         pAdvertising->setMaxPreferred(0x12);
+        
+        LogHandler::debug(_TAG, "Starting BLE Advertising");
         BLEDevice::startAdvertising();
         LogHandler::info(_TAG, "Started BLE Server.");
     }
@@ -90,7 +98,7 @@ private:
     const char* BLE_TCODE_SERVICE_UUID = "ff1b451d-3070-4276-9c81-5dc5ea1043bc";
     const char* BLE_TCODE_CHARACTERISTIC_UUID = "c5f1543e-338d-47a0-8525-01e3c621359d";
 
-    bool m_isHC = true;
+    bool m_isHC = false;
     // Haptics connect UUID's
     const char* BLE_DEVICE_NAME_HC = "OSR-ESP32";
     const char* BLE_TCODE_SERVICE_UUID_HC = "00004000-0000-1000-8000-0000101A2B3C";
@@ -106,30 +114,24 @@ private:
     //-----------------------------------------
     class BLETCodeControlCallback: public BLECharacteristicCallbacks {
         void onWrite(BLECharacteristic *pCharacteristic) {
-            uint16_t handle = pCharacteristic->getHandle();
+            // uint16_t handle = pCharacteristic->getHandle();
             uint8_t* rxValue = pCharacteristic->getData();
             size_t rxLength = pCharacteristic->getLength();
-            std::string rxString = pCharacteristic->getValue();
-            //esp_gatt_char_prop_t  prop = pCharacteristic->;
-            //Serial.println(*rxValue,HEX);
-    //00F418713F41
-        // uint8_t x;
-        // sscanf(rxValue, "%x", &x);
-        //int value = (int)strtol(rxValue, NULL, 0);
-            // LogHandler::info(_TAG, "rxValue: %u", *rxValue);
-            LogHandler::info(_TAG, "handle: %ld", handle);
-            LogHandler::info(_TAG, "rxLength: %ld", rxLength);
-            // LogHandler::info(_TAG, "rxString: %s", rxString);
+            
+            // LogHandler::info(_TAG, "handle: %ld", handle);
+            // LogHandler::info(_TAG, "rxLength: %ld", rxLength);
 
-            // xQueueSend(m_TCodeQueue, input, 0);
-            Serial.println();
+            char tcode[MAX_COMMAND];
+            //Serial.println();
             for (int i = 0; i < rxLength; i++) {
-                //tcode.ByteInput(input[i]);
-                Serial.print(rxValue[i],HEX);
-                if(i<rxLength)
-                    Serial.print(":");
+                //Serial.print(rxValue[i],HEX);
+                if(i < MAX_COMMAND)
+                    tcode[i]=rxValue[i];
+                // if(i<rxLength)
+                //     Serial.print(":");
             }
-            Serial.println();
+            xQueueSend(m_TCodeQueue, tcode, 0);
+            //Serial.println();
         }
     };
 
