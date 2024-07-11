@@ -1,9 +1,33 @@
+/* MIT License
+
+Copyright (c) 2024 Jason C. Fain
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE. */
+
 #pragma once
 #include <algorithm>
+#include <ArduinoJson.h>
 #include "setting.h"
 
 class SettingMap
 {
+public:
     const char* ssid = "ssid";
     const char* wifiPass = "wifiPass";
     const char* boardType = "boardType";
@@ -116,120 +140,119 @@ class SettingMap
     const char* logIncludeTags = "log-include-tags";
     const char* logExcludeTags = "log-exclude-tags";
     const std::vector<Setting> settings = {
-        {ssid, "Wifi ssid", SettingType::String, {SettingProfile::Wifi}},
-        {wifiPass, "Wifi pass",SettingType::String, {SettingProfile::Wifi}},
-        {boardType, "Board type", SettingType::Number, {SettingProfile::System}},
-        {logLevel, "Log level", SettingType::Number, {SettingProfile::System}},
-        {fullBuild, "Full build", SettingType::Boolean, {SettingProfile::System}},
-        {TCodeVersion, "TCode version", SettingType::Number, {SettingProfile::System}},
-        {udpServerPort, "Udp port", SettingType::Number, {SettingProfile::Wifi}},
-        {webServerPort, "Web port", SettingType::Number, {SettingProfile::Wifi}},
-        {hostname, "Hostname", SettingType::String, {SettingProfile::Wifi}},
-        {friendlyName, "Friendly name", SettingType::String, {SettingProfile::Wifi}},
-        {bluetoothEnabled, "Bluetooth enabled", SettingType::Boolean, {SettingProfile::Bluetooth}},
-        {pitchFrequencyIsDifferent, "Pitch frewuency is different", SettingType::Boolean, {SettingProfile::Servo}},
-        {msPerRad, "Ms per rad", SettingType::Number, {SettingProfile::Servo}},
-        {servoFrequency, "Servo frequency", SettingType::Number, {SettingProfile::Servo}},
-        {pitchFrequency, "Pitch frequency", SettingType::Number, {SettingProfile::Servo}},
-        {valveFrequency, "Valve frequency", SettingType::Number, {SettingProfile::Servo}},
-        {twistFrequency, "Twist frequency", SettingType::Number, {SettingProfile::Servo}},
-        {squeezeFrequency, "Squeeze frequency", SettingType::Number, {SettingProfile::Servo}},
-        {continuousTwist, "Continous twist", SettingType::Boolean, {SettingProfile::Servo}},
-        {feedbackTwist, "Feedback twist", SettingType::Boolean, {SettingProfile::Servo}},
-        {analogTwist, "Analog twist", SettingType::Boolean, {SettingProfile::Servo}},
-        {TwistFeedBack_PIN, "Twist feedback PIN", SettingType::Number, {SettingProfile::Pin}},
-        {RightServo_PIN, "Right servo PIN", SettingType::Number, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-        {LeftServo_PIN, "LEft servo PIN", SettingType::Number, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-        {RightUpperServo_PIN, "Right upper servo PIN", SettingType::Number, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-        {LeftUpperServo_PIN, "Left upper servo PIN", SettingType::Number, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-        {PitchLeftServo_PIN, "Pitch left servo PIN", SettingType::Number, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-        {PitchRightServo_PIN, "Pitch right servo PIN", SettingType::Number, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-        {ValveServo_PIN, "Valve servo PIN", SettingType::Number, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-        {TwistServo_PIN, "Twist servo PIN", SettingType::Number, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-        {Squeeze_PIN, "Squeeze servo PIN", SettingType::Number, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-        {Vibe0_PIN, "Vibe1 PIN", SettingType::Number, {SettingProfile::PWM, SettingProfile::Pin}},
-        {Vibe1_PIN, "Vibe2 PIN", SettingType::Number, {SettingProfile::PWM, SettingProfile::Pin}},
-        {Vibe2_PIN, "Vibe3 PIN", SettingType::Number, {SettingProfile::PWM, SettingProfile::Pin}},
-        {Vibe3_PIN, "Vibe4 PIN", SettingType::Number, {SettingProfile::PWM, SettingProfile::Pin}},
-        {Case_Fan_PIN, "Case fan PIN", SettingType::Number, {SettingProfile::PWM, SettingProfile::Pin}},
-        {LubeButton_PIN, "Lube button PIN", SettingType::Number, {SettingProfile::PWM, SettingProfile::Pin}},
-        {Internal_Temp_PIN, "Internal temp PIN", SettingType::Number, {SettingProfile::Analog, SettingProfile::Pin}},
-        {BLDC_UsePWM, "Use PWM", SettingType::Boolean, {SettingProfile::Bldc}},
-        {BLDC_UseMT6701, "Use MT6701", SettingType::Boolean, {SettingProfile::Bldc}},
-        {BLDC_UseHallSensor, "Wifi pass", SettingType::Boolean, {SettingProfile::Bldc}},
-        {BLDC_Pulley_Circumference, "Use hall sensor", SettingType::Number, {SettingProfile::Bldc}},
-        {BLDC_Encoder_PIN, "Encoder PIN", SettingType::Number, {SettingProfile::Bldc, SettingProfile::Pin}},
-        {BLDC_ChipSelect_PIN, "Chipselect PIN", SettingType::Number, {SettingProfile::Bldc, SettingProfile::Pin}},
-        {BLDC_Enable_PIN, "Enable PIN", SettingType::Number, {SettingProfile::Bldc, SettingProfile::Pin}},
-        {BLDC_HallEffect_PIN, "Halleffect PIN", SettingType::Number, {SettingProfile::Bldc, SettingProfile::Pin}},
-        {BLDC_PWMchannel1_PIN, "PWM channel1 PIN", SettingType::Number, {SettingProfile::Bldc, SettingProfile::Pin}},
-        {BLDC_PWMchannel2_PIN, "PWM channel2 PIN", SettingType::Number, {SettingProfile::Bldc, SettingProfile::Pin}},
-        {BLDC_PWMchannel3_PIN, "PWM channel3 PIN", SettingType::Number, {SettingProfile::Bldc, SettingProfile::Pin}},
-        {BLDC_MotorA_Voltage, "Motor A voltage", SettingType::Float, {SettingProfile::Bldc}},
-        {BLDC_MotorA_Current, "Motor A current", SettingType::Float, {SettingProfile::Bldc}},
-        {BLDC_MotorA_ParametersKnown, "Motor A parameters known", SettingType::Boolean, {SettingProfile::Bldc}},
-        {BLDC_MotorA_ZeroElecAngle, "Motor A ZeroElecAngle", SettingType::Float, {SettingProfile::Bldc}},
-        {BLDC_RailLength, "Rail length", SettingType::Number, {SettingProfile::Bldc}},
-        {BLDC_StrokeLength, "Stroke length", SettingType::Number, {SettingProfile::Bldc}},
-        {staticIP, "Static IP", SettingType::Boolean, {SettingProfile::Wifi}},
-        {localIP, "Local IP", SettingType::String, {SettingProfile::Wifi}},
-        {gateway, "Gateway", SettingType::String, {SettingProfile::Wifi}},
-        {subnet, "Subnet", SettingType::String, {SettingProfile::Wifi}},
-        {dns1, "DNS1", SettingType::String, {SettingProfile::Wifi}},
-        {dns2, "DSN2", SettingType::String, {SettingProfile::Wifi}},
-        {sr6Mode, "SR6 m,ode", SettingType::Boolean, {SettingProfile::System}},
-        {RightServo_ZERO, "Right servo zero", SettingType::Number, {SettingProfile::Servo}},
-        {LeftServo_ZERO, "LEft servo zero", SettingType::Number, {SettingProfile::Servo}},
-        {RightUpperServo_ZERO, "Right upper servo zero", SettingType::Number, {SettingProfile::Servo}},
-        {LeftUpperServo_ZERO, "Left upper servo zero", SettingType::Number, {SettingProfile::Servo}},
-        {PitchLeftServo_ZERO, "Pitch left servo zero", SettingType::Number, {SettingProfile::Servo}},
-        {PitchRightServo_ZERO, "Pitch right servo zero", SettingType::Number, {SettingProfile::Servo}},
-        {TwistServo_ZERO, "Twist servo zero", SettingType::Number, {SettingProfile::Servo}},
-        {ValveServo_ZERO, "Valve servo zero", SettingType::Number, {SettingProfile::Servo}},
-        {Squeeze_ZERO, "Squeeze servo zero", SettingType::Number, {SettingProfile::Servo}},
-        {autoValve, "Auto valve", SettingType::Boolean, {SettingProfile::Servo}},
-        {inverseValve, "Inverse valve", SettingType::Boolean, {SettingProfile::Servo}},
-        {valveServo90Degrees, "Valve 90 degree servo", SettingType::Boolean, {SettingProfile::Servo}},
-        {inverseStroke, "Inverse stroke", SettingType::Boolean, {SettingProfile::Servo}},
-        {inversePitch, "Inverse pitch", SettingType::Boolean, {SettingProfile::Servo}},
-        {lubeAmount, "Lube amount", SettingType::Number, {SettingProfile::System}},
-        {lubeEnabled, "Lube enabled", SettingType::Boolean, {SettingProfile::System}},
-        {displayEnabled, "Display enabled", SettingType::Boolean, {SettingProfile::Display}},
-        {sleeveTempDisplayed, "Sleeve temp displayed", SettingType::Boolean, {SettingProfile::Display}},
-        {versionDisplayed, "Version displayed", SettingType::Boolean, {SettingProfile::Display}},
-        {internalTempDisplayed, "Internal temp displayed", SettingType::Boolean, {SettingProfile::Display}},
-        {tempSleeveEnabled, "Temp sleeve enabled", SettingType::Boolean, {SettingProfile::Temperature}},
-        {Display_Screen_Width, "Display screen width", SettingType::Number, {SettingProfile::Display}},
-        {Display_Screen_Height, "Display screen height", SettingType::Number, {SettingProfile::Display}},
-        {TargetTemp, "Target temp", SettingType::Float, {SettingProfile::Temperature}},
-        {HeatPWM, "Heat PWM", SettingType::Number, {SettingProfile::Temperature}},
-        {HoldPWM, "Hold PWM", SettingType::Number, {SettingProfile::Temperature}},
-        {Display_I2C_Address, "Display I2C address", SettingType::String, {SettingProfile::Display}},
-        {Display_Rst_PIN, "Display Rst PIN", SettingType::Number, {SettingProfile::Display, SettingProfile::Pin}},
-        {Temp_PIN, "Temp pin", SettingType::Number, {SettingProfile::Pin}},
-        {Heater_PIN, "Heater PIN", SettingType::Number, {SettingProfile::Temperature, SettingProfile::Pin}},
-        {heaterThreshold, "Heater thresh hold", SettingType::Float, {SettingProfile::Temperature}},
-        {heaterResolution, "Heater resolution", SettingType::Number, {SettingProfile::Temperature}},
-        {heaterFrequency, "Heater frequency", SettingType::Number, {SettingProfile::Temperature}},
-        {fanControlEnabled, "Fan control enabled", SettingType::Boolean, {SettingProfile::Temperature}},
-        {caseFanFrequency, "Case fan frequency", SettingType::Number, {SettingProfile::Temperature}},
-        {caseFanResolution, "case fan resolution", SettingType::Number, {SettingProfile::Temperature}},
-        {internalTempForFan, "Internal temp for fan", SettingType::Number, {SettingProfile::Temperature}},
-        {internalMaxTemp, "Internal max temp", SettingType::Number, {SettingProfile::Temperature}},
-        {tempInternalEnabled, "Temp Internal enabled", SettingType::Boolean, {SettingProfile::Temperature}},
-        {batteryLevelEnabled, "Battery level enabled", SettingType::Boolean, {SettingProfile::Battery}},
-        {batteryLevelNumeric, "Battery level numeric", SettingType::Number, {SettingProfile::Battery}},
-        {batteryVoltageMax, "Battery voltage max", SettingType::Float, {SettingProfile::Battery}},
-        {batteryCapacityMax, "Battery capcity max", SettingType::Number, {SettingProfile::Battery}},
-        {voiceEnabled, "Voice enabled", SettingType::Boolean, {SettingProfile::Voice}},
-        {voiceMuted, "Voice muted", SettingType::Boolean, {SettingProfile::Voice}},
-        {voiceWakeTime, "Voice wake time", SettingType::Number, {SettingProfile::Voice}},
-        {voiceVolume, "Voice volume", SettingType::Number, {SettingProfile::Voice}},
-        {logIncludeTags, "Log included tags", SettingType::Array, {SettingProfile::System}},
-        {logExcludeTags, "Log excluded tags", SettingType::Array, {SettingProfile::System}},
+        {ssid, "Wifi ssid", "The ssid of the WiFi AP", SettingType::String, RestartRequired::YES, {SettingProfile::Wifi}},
+        {wifiPass, "Wifi pass", "The password for the WiFi AP", SettingType::String, RestartRequired::YES, {SettingProfile::Wifi}},
+        {boardType, "Board type", "The physical board type", SettingType::Number, RestartRequired::YES, {SettingProfile::System}},
+        {logLevel, "Log level", "The loglevel that will output", SettingType::Number, RestartRequired::NO, {SettingProfile::System}},
+        //{fullBuild, "Full build", "", SettingType::Boolean, RestartRequired::YES, {SettingProfile::System}},
+        {TCodeVersion, "TCode version", "The version of TCode", SettingType::Number, RestartRequired::YES, {SettingProfile::System}},
+        {udpServerPort, "Udp port", "The UDP port for TCode input", SettingType::Number, RestartRequired::YES, {SettingProfile::Wifi}},
+        {webServerPort, "Web port", "The Web port for the web server", SettingType::Number, RestartRequired::YES, {SettingProfile::Wifi}},
+        {hostname, "Hostname", "The hostname for network com", SettingType::String, RestartRequired::YES, {SettingProfile::Wifi}},
+        {friendlyName, "Friendly name", "The friendly name displayed when connecting", SettingType::String, RestartRequired::YES, {SettingProfile::Wifi}},
+        {bluetoothEnabled, "BLE enabled", "BLE tcode", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Bluetooth}},
+        {pitchFrequencyIsDifferent, "Pitch frewuency is different", "", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Servo}},
+        {msPerRad, "Ms per rad", "Micro seconds per radian for servos", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {servoFrequency, "Servo frequency", "Base servo frequenbcy", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {pitchFrequency, "Pitch frequency", "Pitch servo frequency if different than base", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {valveFrequency, "Valve frequency", "Valve servo frequency", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {twistFrequency, "Twist frequency", "Twist servo frequency if different than base", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {squeezeFrequency, "Squeeze frequency", "Squeeze servo frequency if different than base", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {continuousTwist, "Continous twist", "Ignores any feedback signal", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Servo}},
+        {feedbackTwist, "Feedback twist", "For feed back servos", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Servo}},
+        {analogTwist, "Analog twist", "Analog feedback servo", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Servo}},
+        {TwistFeedBack_PIN, "Twist feedback PIN", "Feedback servo pin", SettingType::Number, RestartRequired::YES, {SettingProfile::Pin}},
+        {RightServo_PIN, "Right servo PIN", "Pin the right servo is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+        {LeftServo_PIN, "Left servo PIN", "Pin the left servo is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+        {RightUpperServo_PIN, "Right upper servo PIN", "Pin the right upper servo is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+        {LeftUpperServo_PIN, "Left upper servo PIN", "Pin the left servo is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+        {PitchLeftServo_PIN, "Pitch left servo PIN", "Pin the pitch left servo is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+        {PitchRightServo_PIN, "Pitch right servo PIN", "Pin the pitch right servo is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+        {ValveServo_PIN, "Valve servo PIN", "Pin the valve servo is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+        {TwistServo_PIN, "Twist servo PIN", "Pin the twist servo is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+        {Squeeze_PIN, "Squeeze servo PIN", "Pin the squeeze servo is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+        {Vibe0_PIN, "Vibe1 PIN", "Pin the vibe 1 is on", SettingType::Number, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
+        {Vibe1_PIN, "Vibe2 PIN", "Pin the vibe 2 is on", SettingType::Number, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
+        {Vibe2_PIN, "Vibe3 PIN", "Pin the vibe 3 is on", SettingType::Number, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
+        {Vibe3_PIN, "Vibe4 PIN", "Pin the vibe 4 is on", SettingType::Number, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
+        {Case_Fan_PIN, "Case fan PIN", "Pin the case fan is on", SettingType::Number, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
+        {LubeButton_PIN, "Lube button PIN", "Pin the lube button is on", SettingType::Number, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
+        {Internal_Temp_PIN, "Internal temp PIN", "Pin the internal temp sensor is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Analog, SettingProfile::Pin}},
+        {BLDC_UsePWM, "Use PWM", "Use PWM for BLDC sensor", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Bldc}},
+        {BLDC_UseMT6701, "Use MT6701", "Use MT6701 for BLDC sensor", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Bldc}},
+        {BLDC_UseHallSensor, "Use hall sensor", "Use Hall sensor for BLDC sensor", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Bldc}},
+        {BLDC_Pulley_Circumference, "Pull circumference", "The pulley circumference for BLDC motor", SettingType::Number, RestartRequired::YES, {SettingProfile::Bldc}},
+        {BLDC_Encoder_PIN, "Encoder PIN", "Pin the BLDC encoder is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+        {BLDC_ChipSelect_PIN, "Chipselect PIN", "Pin the BLDC chip select is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+        {BLDC_Enable_PIN, "Enable PIN", "Pin the BLDC enable is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+        {BLDC_HallEffect_PIN, "Halleffect PIN", "Pin the hall effect is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+        {BLDC_PWMchannel1_PIN, "PWM channel1 PIN", "Pin for the BLDC PWM 1", SettingType::Number, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+        {BLDC_PWMchannel2_PIN, "PWM channel2 PIN", "Pin for the BLDC PWM 2", SettingType::Number, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+        {BLDC_PWMchannel3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+        {BLDC_MotorA_Voltage, "Motor A voltage", "BLDC Motor A voltage", SettingType::Float, RestartRequired::YES, {SettingProfile::Bldc}},
+        {BLDC_MotorA_Current, "Motor A current", "BLDC Motor A current", SettingType::Float, RestartRequired::YES, {SettingProfile::Bldc}},
+        {BLDC_MotorA_ParametersKnown, "Motor A parameters known", "BLDC Motor A params known", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Bldc}},
+        {BLDC_MotorA_ZeroElecAngle, "Motor A ZeroElecAngle", "BLDC Motor A ZeroElecAngle", SettingType::Float, RestartRequired::YES, {SettingProfile::Bldc}},
+        {BLDC_RailLength, "Rail length", "SSR1 rail length", SettingType::Number, RestartRequired::YES, {SettingProfile::Bldc}},
+        {BLDC_StrokeLength, "Stroke length", "SSR1 stroke length", SettingType::Number, RestartRequired::YES, {SettingProfile::Bldc}},
+        {staticIP, "Static IP", "Enable static IP for this device", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Wifi}},
+        {localIP, "Local IP", "The static IP of this device", SettingType::String, RestartRequired::YES, {SettingProfile::Wifi}},
+        {gateway, "Gateway", "The networks gateway", SettingType::String, RestartRequired::YES, {SettingProfile::Wifi}},
+        {subnet, "Subnet", "The networks subnet", SettingType::String, RestartRequired::YES, {SettingProfile::Wifi}},
+        {dns1, "DNS1", "The networks first DNS", SettingType::String, RestartRequired::YES, {SettingProfile::Wifi}},
+        {dns2, "DSN2", "The networks second DNS", SettingType::String, RestartRequired::YES, {SettingProfile::Wifi}},
+        {sr6Mode, "SR6 mode", "The current device mode", SettingType::Boolean, RestartRequired::YES, {SettingProfile::System}},
+        {RightServo_ZERO, "Right servo zero", "The zero calibration for the right servo", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {LeftServo_ZERO, "Left servo zero", "The zero calibration for the left servo", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {RightUpperServo_ZERO, "Right upper servo zero", "The zero calibration for the right upper servo", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {LeftUpperServo_ZERO, "Left upper servo zero", "The zero calibration for the left upper servo", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {PitchLeftServo_ZERO, "Pitch left servo zero", "The zero calibration for the pitch left servo", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {PitchRightServo_ZERO, "Pitch right servo zero", "The zero calibration for the pitch right servo", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {TwistServo_ZERO, "Twist servo zero", "The zero calibration for the twist servo", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {ValveServo_ZERO, "Valve servo zero", "The zero calibration for the valve servo", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {Squeeze_ZERO, "Squeeze servo zero", "The zero calibration for the squeeze servo", SettingType::Number, RestartRequired::YES, {SettingProfile::Servo}},
+        {autoValve, "Auto valve", "Enable valve auto behavior", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Servo}},
+        {inverseValve, "Inverse valve", "Inverse the valve movement", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Servo}},
+        {valveServo90Degrees, "Valve 90 degree servo", "The valve is 90 degrees max", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Servo}},
+        {inverseStroke, "Inverse stroke", "Inverse stroke", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Servo}},
+        {inversePitch, "Inverse pitch", "Inverse pitch", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Servo}},
+        {lubeAmount, "Lube amount", "Amount of lube in PWM", SettingType::Number, RestartRequired::YES, {SettingProfile::System}},
+        {lubeEnabled, "Lube enabled", "Enable lube", SettingType::Boolean, RestartRequired::YES, {SettingProfile::System}},
+        {displayEnabled, "Display enabled", "Enable the OLED display", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Display}},
+        {sleeveTempDisplayed, "Sleeve temp displayed", "Display the sleeve temp on the OLED", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Display}},
+        {versionDisplayed, "Version displayed", "Display the version on the OLED", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Display}},
+        {internalTempDisplayed, "Internal temp displayed", "Display the internal temp on the OLED", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Display}},
+        {tempSleeveEnabled, "Temp sleeve enabled", "Enable sleeve temp", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Temperature}},
+        {Display_Screen_Width, "Display screen width", "Screen width of the OLED", SettingType::Number, RestartRequired::YES, {SettingProfile::Display}},
+        {Display_Screen_Height, "Display screen height", "Screen height of the OLED", SettingType::Number, RestartRequired::YES, {SettingProfile::Display}},
+        {TargetTemp, "Target sleeve temp", "Target temp for the sleeve", SettingType::Float, RestartRequired::YES, {SettingProfile::Temperature}},
+        {HeatPWM, "Heat PWM", "PWM when the sleeve needs heating", SettingType::Number, RestartRequired::YES, {SettingProfile::Temperature}},
+        {HoldPWM, "Hold PWM", "PWM when the sleeve is at target", SettingType::Number, RestartRequired::YES, {SettingProfile::Temperature}},
+        {Display_I2C_Address, "Display I2C address", "I2C address of the display", SettingType::String, RestartRequired::YES, {SettingProfile::Display}},
+        {Display_Rst_PIN, "Display Rst PIN", "Reset pin for the display", SettingType::Number, RestartRequired::YES, {SettingProfile::Display, SettingProfile::Pin}},
+        {Temp_PIN, "Temp pin", "Pin the sleeve temperture is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Pin, SettingProfile::Analog}},
+        {Heater_PIN, "Heater PIN", "Pin the heater is on", SettingType::Number, RestartRequired::YES, {SettingProfile::Temperature, SettingProfile::Pin, SettingProfile::PWM}},
+        {heaterThreshold, "Heater thresh hold", "", SettingType::Float, RestartRequired::YES, {SettingProfile::Temperature}},// TODo: what is this exactly
+        {heaterResolution, "Heater resolution", "Resolution for the Heater PWM", SettingType::Number, RestartRequired::YES, {SettingProfile::Temperature}},
+        {heaterFrequency, "Heater frequency", "Frequence for the heater PWM", SettingType::Number, RestartRequired::YES, {SettingProfile::Temperature}},
+        {fanControlEnabled, "Fan control enabled", "Enable PWM fan", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Temperature}},
+        {caseFanFrequency, "Fan frequency", "Fan frequency", SettingType::Number, RestartRequired::YES, {SettingProfile::Temperature}},
+        {caseFanResolution, "Fan resolution", "Fan resolution", SettingType::Number, RestartRequired::YES, {SettingProfile::Temperature}},
+        {internalTempForFan, "Internal temp for fan", "Fan temp sensor", SettingType::Double, RestartRequired::YES, {SettingProfile::Temperature}},
+        {internalMaxTemp, "Internal max temp", "Max temp for the fan temp", SettingType::Double, RestartRequired::YES, {SettingProfile::Temperature}},
+        {tempInternalEnabled, "Temp Internal enabled", "Enable the internal temp sensor", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Temperature}},
+        {batteryLevelEnabled, "Battery level enabled", "Enable the battery level", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Battery}},
+        {batteryLevelNumeric, "Battery level numeric", "", SettingType::Number, RestartRequired::YES, {SettingProfile::Battery}},// TODO what is this exactly?
+        {batteryVoltageMax, "Battery voltage max", "The max voltage for the battery", SettingType::Double, RestartRequired::YES, {SettingProfile::Battery}},
+        {batteryCapacityMax, "Battery capcity max", "The battery max capacity", SettingType::Number, RestartRequired::YES, {SettingProfile::Battery}},
+        {voiceEnabled, "Voice enabled", "Enable voice control", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Voice}},
+        {voiceMuted, "Voice muted", "Voice talk back muted", SettingType::Boolean, RestartRequired::YES, {SettingProfile::Voice}},
+        {voiceWakeTime, "Voice wake time", "How long to keep the voice module awake listening for commands", SettingType::Number, RestartRequired::YES, {SettingProfile::Voice}},
+        {voiceVolume, "Voice volume", "The volume of the voice talk back", SettingType::Number, RestartRequired::YES, {SettingProfile::Voice}},
+        {logIncludeTags, "Log included tags", "Log tags to be included in the output", SettingType::Array, RestartRequired::YES, {SettingProfile::System}},
+        {logExcludeTags, "Log excluded tags", "Log tags to be excluded in the output", SettingType::Array, RestartRequired::YES, {SettingProfile::System}}
     };
-
-    const Setting* findSetting(const char* name)
+    const Setting* getSetting(const char* name)
     {
         std::vector<Setting>::const_iterator it = 
                 std::find_if(settings.begin(), settings.end(), 
@@ -241,4 +264,44 @@ class SettingMap
         }
         return 0;
     }
+
+    const bool hasProfile(const char* name, const SettingProfile profile, const Setting* setting = 0)
+    {
+        if(!setting)
+            setting = getSetting(name);
+        if(!setting)
+            return false;
+        return std::find_if(setting->profile.begin(), setting->profile.end(), 
+                            [profile](const SettingProfile &profileIn) {
+                                return profile == profileIn;
+        }) != setting->profile.end();
+    }
+    template<typename T>
+    const void getValue(const char* name, T &value)
+    {
+        if(systemInfoDoc.containsKey(name))
+            value = systemInfoDoc[name].to<T>();
+        else if (wifiDoc.containsKey(name))
+            value = wifiDoc[name].to<T>();
+        else if (commonDoc.containsKey(name))
+            value = commonDoc[name].to<T>();
+        //else
+    }
+    template<typename T>
+    const void setValue(const char* name, const T &value)
+    {
+        if(systemInfoDoc.containsKey(name))
+            systemInfoDoc[name] = value;
+        else if (wifiDoc.containsKey(name))
+            wifiDoc[name] = value;
+        else if (commonDoc.containsKey(name))
+            commonDoc[name] = value;
+        //else
+    }
+private:
+    const int commonDeserializeSize = 32768;
+    const int commonSerializeSize = 24576;
+    StaticJsonDocument<3500> systemInfoDoc;
+    StaticJsonDocument<100> wifiDoc;
+    StaticJsonDocument<32768> commonDoc;
 };

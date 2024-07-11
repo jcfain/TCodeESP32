@@ -24,34 +24,19 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
-enum class CommandValueType {
-    NONE,
-    NUMBER,
-    STRING
-};
+#include "setting.h"
 enum class SaveRequired {
-    NO,
-    YES
-};
-enum class RestartRequired {
     NO,
     YES
 };
 struct CommandBase {
     public:
-    // CommandBase(const char* name_, const char* command_, const char* description_, const SaveRequired isSaveRequired_, const RestartRequired isRestartRequired_, const CommandValueType valueType_) :  
-    //     name(name_), 
-    //     command(command_), 
-    //     description(description_), 
-    //     isSaveRequired(isSaveRequired_), 
-    //     isRestartRequired(isRestartRequired_), 
-    //     valueType(valueType_) {}
     const char* name;
     const char* command;
     const char* description;
     const SaveRequired isSaveRequired;
     const RestartRequired isRestartRequired;
-    const CommandValueType valueType;
+    const SettingType valueType;
 };
 struct Command : CommandBase {
     Command(CommandBase commandbase_, std::function<bool()> callback_) :  
@@ -62,13 +47,6 @@ struct Command : CommandBase {
 template<typename T>
 struct CommandValue: CommandBase {
     CommandValue(CommandBase commandbase_, std::function<bool(T value)> callback_) :
-    // CommandValue(const char* name_, const char* command_, const char* description_, const SaveRequired isSaveRequired_, const RestartRequired isRestartRequired_, const CommandValueType valueType_, std::function<bool(T value)> callback_) :  
-    // CommandBase(name_, 
-    // command_, 
-    // description_, 
-    // isSaveRequired_, 
-    // isRestartRequired_, 
-    // valueType_),
     CommandBase(commandbase_),
     callback(callback_) {}
     std::function<bool(T value)> callback;

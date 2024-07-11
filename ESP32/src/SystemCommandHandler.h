@@ -211,79 +211,79 @@ private:
     const char* DELEMITER = "#";
     const char* DELEMITER_SAVE = "$"; 
     const char DELEMITER_VALUE = ':'; 
-    const Command HELP{{"Help", "#help", "Print the help screen", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this]() -> bool {
+    const Command HELP{{"Help", "#help", "Print the help screen", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			printCommandHelp();
 			return true;
 		});
 	}};
-    const Command SAVE{{"Save", "$save", "Saves all settings", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this]() -> bool {
+    const Command SAVE{{"Save", "$save", "Saves all settings", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			SettingsHandler::saveAll();
 			Serial.println("Settings saved!");
 			return true;
 		});
 	}};
-    const Command DEFAULT_ALL{{"Default all", "$defaultAll", "Saves all settings to default", SaveRequired::NO, RestartRequired::YES, CommandValueType::NONE}, [this]() -> bool {
+    const Command DEFAULT_ALL{{"Default all", "$defaultAll", "Saves all settings to default", SaveRequired::NO, RestartRequired::YES, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			SettingsHandler::defaultAll();
 			Serial.println("All settings reset to default!");
 			return true;
 		}, SaveRequired::NO, RestartRequired::YES);
 	}};
-    const Command RESTART{{"Restart", "#restart", "Restart the system", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this]() -> bool {
+    const Command RESTART{{"Restart", "#restart", "Restart the system", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([]() -> bool {
 			SettingsHandler::restart();
 			return true;
 		});
 	}};
-    const Command CLEAR_LOGS_INCLUDE{{"Clear log include", "#clear-log-include", "Clears all the log included tags", SaveRequired::YES, RestartRequired::NO, CommandValueType::NONE}, [this]() -> bool {
+    const Command CLEAR_LOGS_INCLUDE{{"Clear log include", "#clear-log-include", "Clears all the log included tags", SaveRequired::YES, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			LogHandler::clearIncludes();
 			Serial.println("Tags cleared");
 			return true;
 		}, SaveRequired::YES);
 	}};
-    const Command CLEAR_LOGS_EXCLUDE{{"Clear log exclude", "#clear-log-exclude", "Clears all the log excluded tags", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this]() -> bool {
+    const Command CLEAR_LOGS_EXCLUDE{{"Clear log exclude", "#clear-log-exclude", "Clears all the log excluded tags", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			LogHandler::clearExcludes();
 			Serial.println("Tags filters cleared");
 			return true;
 		}, SaveRequired::NO);
 	}};
-    const Command MOTION_ENABLE{{"Motion enable", "#motion-enable", "Enables the motion generator", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this]() -> bool {
+    const Command MOTION_ENABLE{{"Motion enable", "#motion-enable", "Enables the motion generator", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return validateBool("Motion", true, SettingsHandler::getMotionEnabled(), [](bool value) -> bool {
 			SettingsHandler::setMotionEnabled(value);
 			return true;
 		});
 	}};
-    const Command MOTION_DISABLE{{"Motion disable", "#motion-disable", "Disables the motion generator", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this]() -> bool {
+    const Command MOTION_DISABLE{{"Motion disable", "#motion-disable", "Disables the motion generator", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return validateBool("Motion", false, SettingsHandler::getMotionEnabled(), [](bool value) -> bool {
 			SettingsHandler::setMotionEnabled(value);
 			return true;
 		});
 	}};
-    const Command MOTION_TOGGLE{{"Motion toggle", "#motion-toggle", "Toggles the motion generator", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this]() -> bool {
+    const Command MOTION_TOGGLE{{"Motion toggle", "#motion-toggle", "Toggles the motion generator", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			SettingsHandler::setMotionEnabled(!SettingsHandler::getMotionEnabled());
 			Serial.println(SettingsHandler::getMotionEnabled() ? "Motion enabled" : "Motion disabled");
 			return true;
 		});
 	}};
-    const Command MOTION_HOME{{"Motion home", "#device-home", "Sends all axis' to its home position", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this]() -> bool {
+    const Command MOTION_HOME{{"Motion home", "#device-home", "Sends all axis' to its home position", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		char buf[MAX_COMMAND];
 		SettingsHandler::channelMap.tCodeHome(buf);
 		LogHandler::debug(_TAG, "Device home: %s", buf);
 		writeTCode(buf);
 		return true;
 	}};
-    const Command MOTION_PROFILE_CYCLE{{"Motion profile cycle", "#motion-profile-cycle", "Cycles the motion generator profiles stopping after last profile", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this]() -> bool {
+    const Command MOTION_PROFILE_CYCLE{{"Motion profile cycle", "#motion-profile-cycle", "Cycles the motion generator profiles stopping after last profile", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			SettingsHandler::cycleMotionProfile();
 			return true;
 		});
 	}};
-    const Command PAUSE{{"Pause", "#pause", "Pauses all motion of the device", SaveRequired::YES, RestartRequired::YES, CommandValueType::NONE}, [this]() -> bool {	
+    const Command PAUSE{{"Pause", "#pause", "Pauses all motion of the device", SaveRequired::YES, RestartRequired::YES, SettingType::NONE}, [this]() -> bool {	
 		return execute([this]() -> bool {
 			SettingsHandler::motionPaused = true;
 			LogHandler::debug(_TAG, "Device paused");
@@ -291,7 +291,7 @@ private:
 		});
 		return true;
 	}};
-    const Command RESUME{{"Resume", "#resume", "Resumes all motion of the device", SaveRequired::YES, RestartRequired::YES, CommandValueType::NONE}, [this]() -> bool {	
+    const Command RESUME{{"Resume", "#resume", "Resumes all motion of the device", SaveRequired::YES, RestartRequired::YES, SettingType::NONE}, [this]() -> bool {	
 		return execute([this]() -> bool {
 			SettingsHandler::motionPaused = false;
 			LogHandler::debug(_TAG, "Device resumed");
@@ -299,7 +299,7 @@ private:
 		});
 		return true;
 	}};
-    const Command PAUSE_TOGGLE{{"Pause toggle", "#pause-toggle", "Pauses all motion of the device", SaveRequired::YES, RestartRequired::YES, CommandValueType::NONE}, [this]() -> bool {	
+    const Command PAUSE_TOGGLE{{"Pause toggle", "#pause-toggle", "Pauses all motion of the device", SaveRequired::YES, RestartRequired::YES, SettingType::NONE}, [this]() -> bool {	
 		return execute([this]() -> bool {
 			SettingsHandler::motionPaused = !SettingsHandler::motionPaused;
 			LogHandler::debug(_TAG, SettingsHandler::motionPaused ? "Device paused" : "Device resumed");
@@ -307,26 +307,26 @@ private:
 		});
 		return true;
 	}};
-    const CommandValue<const int> MOTION_HOME_SPEED{{"Motion home", "#device-home", "Sends all axis' to its home position at specified speed (S)", SaveRequired::NO, RestartRequired::NO, CommandValueType::NUMBER}, [this](const int value) -> bool {
+    const CommandValue<const int> MOTION_HOME_SPEED{{"Motion home", "#device-home", "Sends all axis' to its home position at specified speed (S)", SaveRequired::NO, RestartRequired::NO, SettingType::Number}, [this](const int value) -> bool {
 		char buf[MAX_COMMAND];
 		SettingsHandler::channelMap.tCodeHome(buf, value);
 		LogHandler::debug(_TAG, "Device home speed: %s", buf);
 		writeTCode(buf);
 		return true;
 	}};
-    const CommandValue<const char*>WIFI_SSID{{"Wifi ssid", "#wifi-ssid", "Sets the ssid of the wifi AP", SaveRequired::YES, RestartRequired::YES, CommandValueType::STRING}, [this](const char* value) -> bool {
+    const CommandValue<const char*>WIFI_SSID{{"Wifi ssid", "#wifi-ssid", "Sets the ssid of the wifi AP", SaveRequired::YES, RestartRequired::YES, SettingType::String}, [this](const char* value) -> bool {
 		return validateMaxLength("Wifi SSID", value, sizeof(SettingsHandler::ssid), false, [](const char* value) -> bool {
 			strcpy(SettingsHandler::ssid, value);
 			return true;
 		}, SaveRequired::YES, RestartRequired::YES); 
 	}};
-    const CommandValue<const char*>WIFI_PASS{{"Wifi pass", "#wifi-pass", "Sets the password of the wifi AP", SaveRequired::YES, RestartRequired::YES, CommandValueType::STRING}, [this](const char* value) -> bool {
+    const CommandValue<const char*>WIFI_PASS{{"Wifi pass", "#wifi-pass", "Sets the password of the wifi AP", SaveRequired::YES, RestartRequired::YES, SettingType::String}, [this](const char* value) -> bool {
 		return validateMaxLength("Wifi password", value, sizeof(SettingsHandler::wifiPass), true, [](const char* value) -> bool {
 			strcpy(SettingsHandler::wifiPass, value);
 			return true;
 		}, SaveRequired::YES, RestartRequired::YES); 
 	}};
-    const CommandValue<const int>LOG_LEVEL{{"Log level", "#log-level", "Sets system log level", SaveRequired::YES, RestartRequired::NO, CommandValueType::NUMBER}, [this](const int value) -> bool {
+    const CommandValue<const int>LOG_LEVEL{{"Log level", "#log-level", "Sets system log level", SaveRequired::YES, RestartRequired::NO, SettingType::Number}, [this](const int value) -> bool {
 		return executeValue<const int>(value, [this](const int value) -> bool {
 			if(value > (int)LogLevel::VERBOSE) {
 				LogHandler::error(_TAG, "Invalid value: %ld. Valid log levels are 0-4", value);
@@ -338,7 +338,7 @@ private:
 			return true;
 		}, SaveRequired::YES);
 	}};
-    const CommandValue<const char*>ADD_LOG_INCLUDE{{"Add log include", "#add-log-include", "Adds a tag to the log includes", SaveRequired::YES, RestartRequired::NO, CommandValueType::STRING}, [this](const char* value) -> bool {
+    const CommandValue<const char*>ADD_LOG_INCLUDE{{"Add log include", "#add-log-include", "Adds a tag to the log includes", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
 		return executeValue<const char*>(value, [](const char* value) -> bool {
 			if(!LogHandler::addInclude(value)) {
 			Serial.printf("Tag already exists: %s\n", value);
@@ -348,7 +348,7 @@ private:
 			return true;
 		}, SaveRequired::YES);
 	}};
-    const CommandValue<const char*>REMOVE_LOG_INCLUDE{{"Remove log include", "#remove-log-include", "Removes a tag from the log includes", SaveRequired::YES, RestartRequired::NO, CommandValueType::STRING}, [this](const char* value) -> bool {
+    const CommandValue<const char*>REMOVE_LOG_INCLUDE{{"Remove log include", "#remove-log-include", "Removes a tag from the log includes", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
 		return executeValue<const char*>(value, [](const char* value) -> bool {
 			if(!LogHandler::removeInclude(value)) {
 			Serial.printf("Tag did not exist: %s\n", value);
@@ -358,7 +358,7 @@ private:
 			return true;
 		}, SaveRequired::YES);
 	}};
-    const CommandValue<const char*>ADD_LOG_EXCLUDE{{"Add log exclude", "#add-log-exclude", "Adds a tag to the log excludes", SaveRequired::YES, RestartRequired::NO, CommandValueType::STRING}, [this](const char* value) -> bool {
+    const CommandValue<const char*>ADD_LOG_EXCLUDE{{"Add log exclude", "#add-log-exclude", "Adds a tag to the log excludes", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
 		return executeValue<const char*>(value, [](const char* value) -> bool {
 			if(!LogHandler::addExclude(value)) {
 			Serial.printf("Tag filter already exists: %s\n", value);
@@ -368,7 +368,7 @@ private:
 			return true;
 		}, SaveRequired::YES);
 	}};
-    const CommandValue<const char*>REMOVE_LOG_EXCLUDE{{"Remove log exclude", "#remove-log-exclude", "Removes a tag from the log excludes", SaveRequired::YES, RestartRequired::NO, CommandValueType::STRING}, [this](const char* value) -> bool {
+    const CommandValue<const char*>REMOVE_LOG_EXCLUDE{{"Remove log exclude", "#remove-log-exclude", "Removes a tag from the log excludes", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
 		return executeValue<const char*>(value, [](const char* value) -> bool {
 			if(!LogHandler::removeExclude(value)) {
 				Serial.printf("Tag filter did not exist: %s\n", value);
@@ -378,13 +378,13 @@ private:
 			return true;
 		}, SaveRequired::YES);
 	}};
-    const CommandValue<const char*>MOTION_PROFILE_NAME{{"Motion profile set by name", "#motion-profile-name", "Sets the current running profile by name", SaveRequired::NO, RestartRequired::NO, CommandValueType::STRING}, [this](const char* value) -> bool {
+    const CommandValue<const char*>MOTION_PROFILE_NAME{{"Motion profile set by name", "#motion-profile-name", "Sets the current running profile by name", SaveRequired::NO, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
 		return validateMaxLength("Motion profile name", value, maxMotionProfileNameLength, false, [](const char* value) -> bool {
 			SettingsHandler::setMotionProfileName(value);
 			return true;
 		});
 	}};
-    const CommandValue<const int>MOTION_PROFILE_SET{{"Motion profile set by number", "#motion-profile-set", "Sets the current running profile by number", SaveRequired::NO, RestartRequired::NO, CommandValueType::NUMBER}, [this](const int value) -> bool {
+    const CommandValue<const int>MOTION_PROFILE_SET{{"Motion profile set by number", "#motion-profile-set", "Sets the current running profile by number", SaveRequired::NO, RestartRequired::NO, SettingType::Number}, [this](const int value) -> bool {
 		return validateGreaterThanZero("Motion profile", value, [this](int value) -> bool {
 			int profileAsIndex = value - 1;
 			if(profileAsIndex > maxMotionProfileCount) {
@@ -395,25 +395,25 @@ private:
 			return true;
 		});
 	}};
-    const CommandValue<const char*> EDGE{{"Edge", "#edge", "Outputs the edge pressed command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
+    const CommandValue<const char*> EDGE{{"Edge", "#edge", "Outputs the edge pressed command to external application", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this](const char* in) -> bool {
 		if(m_externalCommandCallback) {
 			m_externalCommandCallback(in);
 		}
 		return true;
 	}};
-    const CommandValue<const char*> LEFT{{"Left", "#left", "Outputs the left pressed command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
+    const CommandValue<const char*> LEFT{{"Left", "#left", "Outputs the left pressed command to external application", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this](const char* in) -> bool {
 		if(m_externalCommandCallback) {
 			m_externalCommandCallback(in);
 		}
 		return true;
 	}};
-    const CommandValue<const char*> RIGHT{{"Right", "#right", "Outputs the right pressed command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
+    const CommandValue<const char*> RIGHT{{"Right", "#right", "Outputs the right pressed command to external application", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this](const char* in) -> bool {
 		if(m_externalCommandCallback) {
 			m_externalCommandCallback(in);
 		}
 		return true;
 	}};
-    const CommandValue<const char*> OK{{"Ok", "#ok", "Outputs the ok pressed command to external application", SaveRequired::NO, RestartRequired::NO, CommandValueType::NONE}, [this](const char* in) -> bool {
+    const CommandValue<const char*> OK{{"Ok", "#ok", "Outputs the ok pressed command to external application", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this](const char* in) -> bool {
 		if(m_externalCommandCallback) {
 			m_externalCommandCallback(in);
 		}
@@ -653,7 +653,25 @@ private:
 	}
 	void formatCommand(CommandBase command, char* buf) {
 		char temp[MAX_COMMAND];
-		sprintf(temp, "%s%s", command.command, command.valueType == CommandValueType::NONE ? "" : command.valueType == CommandValueType::NUMBER ? ":<int>" : ":<string>");
+		switch(command.valueType)
+		{
+			case SettingType::Number:
+			case SettingType::Boolean:
+				sprintf(temp, "%s%s", command.command, "<int>");
+				break;
+			case SettingType::String:
+				sprintf(temp, "%s%s", command.command, "<string>");
+				break;
+			case SettingType::Double:
+				sprintf(temp, "%s%s", command.command, "<double>");
+				break;
+			case SettingType::Float:
+				sprintf(temp, "%s%s", command.command, "<float>");
+				break;
+			default:
+				sprintf(temp, "%s%s", command.command, "");
+				break;
+		}
 		sprintf(temp, "%-40s", temp);
     	std::replace(temp, temp + strlen(temp), ' ', '-');
 		strcat(buf, temp);
