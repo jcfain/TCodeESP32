@@ -86,7 +86,7 @@ public:
 
     void read(char* buf) {
         if(xQueueReceive(m_TCodeQueue, buf, 0)) {
-            LogHandler::verbose(_TAG, "Recieve tcode: %s", buf);
+            //LogHandler::verbose(_TAG, "Recieve tcode: %s", buf);
         } else {
             buf[0] = {0};
         }
@@ -121,7 +121,7 @@ private:
             // LogHandler::info(_TAG, "handle: %ld", handle);
             // LogHandler::info(_TAG, "rxLength: %ld", rxLength);
 
-            char tcode[MAX_COMMAND];
+            char tcode[MAX_COMMAND] = {0};
             //Serial.println();
             for (int i = 0; i < rxLength; i++) {
                 //Serial.print(rxValue[i],HEX);
