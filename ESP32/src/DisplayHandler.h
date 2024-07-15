@@ -27,9 +27,11 @@ SOFTWARE. */
 #include "../lib/Ext/Adafruit_SSD1306_RSB.h"
 #include "SettingsHandler.h"
 #include "LogHandler.h"
+#if WIFI_TCODE
 #include "WifiHandler.h"
+#endif
 #include <vector>
-#if TEMP_ENABLED
+#if BUILD_TEMP
 #include "TemperatureHandler.h"
 #endif
 #include "BatteryHandler.h"
@@ -174,6 +176,7 @@ public:
 				// Serial.print("Display Core: ");
 				// Serial.println(xPortGetCoreID());
 
+#if WIFI_TCODE
 				if(WifiHandler::isConnected()) {
 					LogHandler::verbose(_TAG, "Enter wifi connected");
 					startLine(headerPadding);
@@ -236,7 +239,8 @@ public:
 					display.print("Wifi error");
 					drawBatteryLevel();
 				}
-#if TEMP_ENABLED
+#endif
+#if BUILD_TEMP
 				if(SettingsHandler::sleeveTempDisplayed || SettingsHandler::internalTempDisplayed) {
 					is32() ? draw32Temp() : draw64Temp();
 				}
@@ -518,15 +522,19 @@ private:
 	}
 
 	void drawBatteryLevel() {
+		bool wifiConnected = false;
+#if WIFI_TCODE
+		wifiConnected = WifiHandler::isConnected();
+#endif
 		if(BatteryHandler::connected()) {
     		LogHandler::verbose(_TAG, "Enter draw battery");
 			if(SettingsHandler::batteryLevelNumeric) {
 				//double voltageNumber = mapf(m_batteryVoltage, 0.0, 3.3, 0.0, SettingsHandler::batteryVoltageMax);
 				if (false) {//Display voltage
-					display.setCursor((SettingsHandler::Display_Screen_Width - (m_batteryVoltage < 10.0 ? 3 : 4) * charWidth) - (WifiHandler::isConnected() ? 3 : 0) * charWidth, currentLine);
+					display.setCursor((SettingsHandler::Display_Screen_Width - (m_batteryVoltage < 10.0 ? 3 : 4) * charWidth) - (wifiConnected ? 3 : 0) * charWidth, currentLine);
 					display.print(m_batteryVoltage, 1);
 				} else {
-					display.setCursor((SettingsHandler::Display_Screen_Width - (m_batteryCapacityRemainingPercentage < 10.0 ? 3 : 4) * charWidth) - (WifiHandler::isConnected() ? 3 : 0) * charWidth, currentLine);
+					display.setCursor((SettingsHandler::Display_Screen_Width - (m_batteryCapacityRemainingPercentage < 10.0 ? 3 : 4) * charWidth) - (wifiConnected ? 3 : 0) * charWidth, currentLine);
 					display.print(m_batteryCapacityRemainingPercentage, 1);
 					display.print("%");
 				}
@@ -563,14 +571,14 @@ private:
 				}
 				for (int b=0; b < batteryBars; b++) {
 					display.fillRect(
-						(SettingsHandler::Display_Screen_Width - (!WifiHandler::isConnected() ? 20 : 37)) + (b*3), 
+						(SettingsHandler::Display_Screen_Width - (!wifiConnected ? 20 : 37)) + (b*3), 
 						2, 
 						2, 
 						lineHeight - 4, 
 						WHITE); 
 				}
 				display.drawRect(
-					SettingsHandler::Display_Screen_Width - (!WifiHandler::isConnected() ? 23 : 40),
+					SettingsHandler::Display_Screen_Width - (!wifiConnected ? 23 : 40),
 					1, 
 					20, 
 					lineHeight-2, 

@@ -257,7 +257,7 @@ private:
     static char m_lastError[1024];
 
     static void parseMessage(const char* valueFormat, const char* level, const char* tag, LogLevel logLevel, va_list vArgs) {
-        try {
+        // try {
             if(strlen(valueFormat) > 1024) {
                 Serial.println("Log value too big for buffer");
                 return;
@@ -281,10 +281,10 @@ private:
                 if(message_callback)
                     message_callback(temp, logLevel);
             }
-        } catch (...) {
-            Serial.print("Error processing log message.");
-            Serial.println(valueFormat);
-        }
+        // } catch (...) {
+        //     Serial.print("Error processing log message.");
+        //     Serial.println(valueFormat);
+        // }
 
         
             // char loc_buf[64];

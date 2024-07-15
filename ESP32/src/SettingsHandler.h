@@ -163,9 +163,9 @@ public:
     static double internalTempForFan; // C
     static double internalMaxTemp;    // C
     static int Heater_PIN;
-    static int HeatLED_PIN;
-    static int I2C_SDA_PIN;
-    static int I2C_SCL_PIN;
+    //static int HeatLED_PIN;
+    static int I2C_SDA_PIN_obsolete;
+    static int I2C_SCL_PIN_obsolete;
     static int TargetTemp; // Desired Temp in degC
     static int HeatPWM;    // Heating PWM setting 0-255
     static int HoldPWM;    // Hold heat PWM setting 0-255
@@ -233,8 +233,18 @@ public:
     }
 
     static void printFree() {
-        LogHandler::debug(_TAG, "xPortGetFreeHeapSize: %u", xPortGetFreeHeapSize());
-        LogHandler::debug(_TAG, "DRAM %u\nIRAM %u\nFREE_HEAP %u\nMIN_FREE_HEAP %u", heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_free_size(MALLOC_CAP_32BIT),  esp_get_free_heap_size(), esp_get_minimum_free_heap_size() );
+        //https://esp32.com/viewtopic.php?t=27780
+        //https://github.com/espressif/esp-idf/blob/master/components/heap/include/esp_heap_caps.h#L20-L37
+        uint32_t freeHEap = ESP.getFreeHeap();
+        uint32_t heapSize = ESP.getHeapSize();
+        //esp_get_free_internal_heap_size
+        LogHandler::debug(_TAG, "Used heap INTERNAL: %u/%u Free: %u", heapSize - freeHEap, heapSize, freeHEap);
+        //LogHandler::debug(_TAG, "Used Psram: %u/%u", ESP.getPsramSize() - ESP.getFreePsram(), ESP.getPsramSize());
+        LogHandler::debug(_TAG, "Used sketch size: %u/%u", ESP.getSketchSize(), ESP.getSketchSize() + ESP.getFreeSketchSpace());
+        LogHandler::debug(_TAG, "DRAM %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(_TAG, "IRAM %u", heap_caps_get_free_size(MALLOC_CAP_32BIT));
+        LogHandler::debug(_TAG, "FREE_HEAP Default %u", esp_get_free_heap_size());
+        LogHandler::debug(_TAG, "MIN_FREE_HEAP %u", esp_get_minimum_free_heap_size() );
     }
 
 	static void restart() {
@@ -321,7 +331,7 @@ public:
         strcpy(buf, output.c_str());
     }
 
-    static void getSystemInfo(char buf[3500])
+    static void getSystemInfo(String &buf)
     {
         DynamicJsonDocument doc(3500);
 
@@ -398,13 +408,13 @@ public:
         doc["decoyPass"] = decoyPass;
         doc["apMode"] = apMode;
         doc["defaultIP"] = defaultIP;
-        String output;
-        serializeJson(doc, output);
+        //String output;
+        serializeJson(doc, buf);
         doc.clear();
         if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
-            Serial.printf("SystemInfo: %s\n", output.c_str());
-        buf[0] = {0};
-        strcpy(buf, output.c_str());
+            Serial.printf("SystemInfo: %s\n", buf.c_str());
+        // buf[0] = {0};
+        // strcpy(buf, output.c_str());
     }
 
     static bool loadSettings(bool loadDefault, JsonObject json = JsonObject()) {
@@ -1061,7 +1071,7 @@ public:
 		int nDevices;
 		LogHandler::info(_TAG, "Scanning for I2C...");
 		nDevices = 0;
-		Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+		Wire.begin(I2C_SDA_PIN_obsolete, I2C_SCL_PIN_obsolete);
 		for(address = 1; address < 127; address++ ) 
 		{
 			Wire.beginTransmission(address);
@@ -1239,7 +1249,7 @@ private:
         if (friendlyNameTemp != nullptr)
             strcpy(friendlyName, friendlyNameTemp);
 
-        bluetoothEnabled = json["bluetoothEnabled"] | true;
+        bluetoothEnabled = json["bluetoothEnabled"] | false;
 
         // Servo motors//////////////////////////////////////////////////////////////////////////////////
         pitchFrequencyIsDifferent = json["pitchFrequencyIsDifferent"];
@@ -1709,6 +1719,35 @@ private:
         return true;
     }
 
+    static bool LogDeserializationError(DeserializationError error, const char* filename) {
+        if (error)
+        {
+            LogHandler::error(_TAG, "Error deserializing json: %s", filename);
+            switch (error.code())
+            {
+            case DeserializationError::Code::Ok:
+                LogHandler::error(_TAG, "Code: Ok");
+                break;
+            case DeserializationError::Code::EmptyInput:
+                LogHandler::error(_TAG, "Code: EmptyInput");
+                break;
+            case DeserializationError::Code::IncompleteInput:
+                LogHandler::error(_TAG, "Code: IncompleteInput");
+                break;
+            case DeserializationError::Code::InvalidInput:
+                LogHandler::error(_TAG, "Code: InvalidInput");
+                break;
+            case DeserializationError::Code::NoMemory:
+                LogHandler::error(_TAG, "Code: NoMemory");
+                break;
+            case DeserializationError::Code::TooDeep:
+                LogHandler::error(_TAG, "Code: TooDeep");
+                break;
+            }
+            return true;
+        }
+        return false;
+    }
     /** If the parameter json is ommited or the pin value doesnt exist on the object then the pins are set to default. */
     static void setBoardPinout(JsonObject json = JsonObject()) {
     
@@ -1851,13 +1890,13 @@ private:
         buildFeatures[index] = BuildFeature::DA;
         index++;
 #endif
-#if TEMP_ENABLED
-        LogHandler::debug("setBuildFeatures", "TEMP_ENABLED");
+#if BUILD_TEMP
+        LogHandler::debug("setBuildFeatures", "BUILD_TEMP");
         buildFeatures[index] = BuildFeature::TEMP;
         index++;
 #endif
-#if DISPLAY_ENABLED
-        LogHandler::debug("setBuildFeatures", "DISPLAY_ENABLED");
+#if BUILD_DISPLAY
+        LogHandler::debug("setBuildFeatures", "BUILD_DISPLAY");
         buildFeatures[index] = BuildFeature::DISPLAY_;
         index++;
 #endif
@@ -2097,35 +2136,35 @@ private:
         }
     }
 
-    static bool LogDeserializationError(DeserializationError error, const char* filename) {
-        if (error)
-        {
-            LogHandler::error(_TAG, "Error deserializing json: %s", filename);
-            switch (error.code())
-            {
-            case DeserializationError::Code::Ok:
-                LogHandler::error(_TAG, "Code: Ok");
-                break;
-            case DeserializationError::Code::EmptyInput:
-                LogHandler::error(_TAG, "Code: EmptyInput");
-                break;
-            case DeserializationError::Code::IncompleteInput:
-                LogHandler::error(_TAG, "Code: IncompleteInput");
-                break;
-            case DeserializationError::Code::InvalidInput:
-                LogHandler::error(_TAG, "Code: InvalidInput");
-                break;
-            case DeserializationError::Code::NoMemory:
-                LogHandler::error(_TAG, "Code: NoMemory");
-                break;
-            case DeserializationError::Code::TooDeep:
-                LogHandler::error(_TAG, "Code: TooDeep");
-                break;
-            }
-            return true;
-        }
-        return false;
-    }
+    // static bool LogDeserializationError(DeserializationError error, const char* filename) {
+    //     if (error)
+    //     {
+    //         LogHandler::error(_TAG, "Error deserializing json: %s", filename);
+    //         switch (error.code())
+    //         {
+    //         case DeserializationError::Code::Ok:
+    //             LogHandler::error(_TAG, "Code: Ok");
+    //             break;
+    //         case DeserializationError::Code::EmptyInput:
+    //             LogHandler::error(_TAG, "Code: EmptyInput");
+    //             break;
+    //         case DeserializationError::Code::IncompleteInput:
+    //             LogHandler::error(_TAG, "Code: IncompleteInput");
+    //             break;
+    //         case DeserializationError::Code::InvalidInput:
+    //             LogHandler::error(_TAG, "Code: InvalidInput");
+    //             break;
+    //         case DeserializationError::Code::NoMemory:
+    //             LogHandler::error(_TAG, "Code: NoMemory");
+    //             break;
+    //         case DeserializationError::Code::TooDeep:
+    //             LogHandler::error(_TAG, "Code: TooDeep");
+    //             break;
+    //         }
+    //         return true;
+    //     }
+    //     return false;
+    // }
 
     static void LogSaveDebug(const DynamicJsonDocument doc)
     {
@@ -2336,8 +2375,8 @@ int SettingsHandler::Vibe1_PIN;
 int SettingsHandler::LubeButton_PIN;
 int SettingsHandler::Sleeve_Temp_PIN;
 int SettingsHandler::Heater_PIN;
-int SettingsHandler::I2C_SDA_PIN = 21;
-int SettingsHandler::I2C_SCL_PIN = 22;
+int SettingsHandler::I2C_SDA_PIN_obsolete = 21;
+int SettingsHandler::I2C_SCL_PIN_obsolete = 22;
 
 int SettingsHandler::Internal_Temp_PIN;
 int SettingsHandler::Case_Fan_PIN;

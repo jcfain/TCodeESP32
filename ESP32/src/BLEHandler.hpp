@@ -22,11 +22,14 @@ SOFTWARE. */
 
 #pragma once
 
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
+#include <NimBLEDevice.h>
+#include <NimBLEServer.h>
+#include <NimBLEUtils.h>
+//#include <NimBLE2902.h>
+#include <queue>
 #include <sstream>
+#include "esp_coexist.h"
+#include "../lib/constants.h"
 #include "LogHandler.h"
 #include "TagHandler.h"
 
@@ -43,20 +46,20 @@ public:
         BLEDevice::init(m_isHC ? BLE_DEVICE_NAME_HC : BLE_DEVICE_NAME);
         LogHandler::debug(_TAG, "Setting up BLE Create server");
         BLEServer *pServer = BLEDevice::createServer();
-        pServer->setCallbacks(new ServerCallbacks());
+        pServer->setCallbacks(getServerCallbacks());
 
         LogHandler::debug(_TAG, "Setting up BLE Characteristics");
         if(m_isHC) {
-            m_tcodeCharacteristic = new BLECharacteristic(BLE_TCODE_CHARACTERISTIC_UUID_HC, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR);
-            m_tcodeCharacteristic2 = new BLECharacteristic(BLE_TCODE_CHARACTERISTIC_UUID2_HC, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR);
+            m_tcodeCharacteristic = new BLECharacteristic(BLE_TCODE_CHARACTERISTIC_UUID_HC, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
+            m_tcodeCharacteristic2 = new BLECharacteristic(BLE_TCODE_CHARACTERISTIC_UUID2_HC, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
         } else {
-            m_tcodeCharacteristic = new BLECharacteristic(BLE_TCODE_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE_NR);
+            m_tcodeCharacteristic = new BLECharacteristic(BLE_TCODE_CHARACTERISTIC_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
         }
         LogHandler::debug(_TAG, "Setting up BLE Callbacks");
         //m_tcodeCharacteristic->setValue("");
-        m_tcodeCharacteristic->setCallbacks(new BLETCodeControlCallback());
+        m_tcodeCharacteristic->setCallbacks(getCaracteristicCallbacks());
         if(m_isHC) {
-            m_tcodeCharacteristic2->setCallbacks(new BLETCodeControlCallback());
+            m_tcodeCharacteristic2->setCallbacks(getCaracteristicCallbacks());
         }
 
         LogHandler::debug(_TAG, "Setting up BLE Service");
@@ -76,12 +79,25 @@ public:
 
         // Functions that help with iPhone connections issue
         // https://github.com/nkolban/esp32-snippets/issues/768
-        pAdvertising->setMinPreferred(0x06);  
-        pAdvertising->setMaxPreferred(0x12);
+        // pAdvertising->setMinPreferred(0x06);  
+        // pAdvertising->setMaxPreferred(0x12);
         
         LogHandler::debug(_TAG, "Starting BLE Advertising");
-        BLEDevice::startAdvertising();
-        LogHandler::info(_TAG, "Started BLE Server.");
+        if(BLEDevice::startAdvertising())
+            LogHandler::info(_TAG, "Started BLE Server.");
+        else
+            LogHandler::info(_TAG, "Failed to start BLE advertising.");
+        // //https://github.com/espressif/esp-idf/issues/12434
+        // // Before sending BLE command
+        // esp_coex_status_bit_set(ESP_COEX_ST_TYPE_BLE, ESP_COEX_BLE_ST_MESH_CONFIG);
+
+        // // After sending
+        // esp_coex_status_bit_clear(ESP_COEX_ST_TYPE_BLE, ESP_COEX_BLE_ST_MESH_CONFIG);
+        // Before sending BLE command
+        //esp_coex_preference_set(ESP_COEX_PREFER_BT);
+
+        //After sending
+        //esp_coex_preference_set(ESP_COEX_PREFER_WIFI);
     }
 
     void read(char* buf) {
@@ -112,53 +128,92 @@ private:
     // ----------------------------------------
     // Functions to handle Bluetooth LE Setup.
     //-----------------------------------------
-    class BLETCodeControlCallback: public BLECharacteristicCallbacks {
-        void onWrite(BLECharacteristic *pCharacteristic) {
+    class BLETCodeControlCallback: public NimBLECharacteristicCallbacks   {
+        void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) {
             // uint16_t handle = pCharacteristic->getHandle();
-            uint8_t* rxValue = pCharacteristic->getData();
-            size_t rxLength = pCharacteristic->getLength();
+            // const uint8_t* rxData = rxValue.data();
+            // size_t rxLength = rxValue.length();
             
-            // LogHandler::info(_TAG, "handle: %ld", handle);
-            // LogHandler::info(_TAG, "rxLength: %ld", rxLength);
+            // LogHandler::verbose(_TAG, "rxData: %ld", rxData);
+            // LogHandler::verbose(_TAG, "rxLength: %ld", rxLength);
 
-            char tcode[MAX_COMMAND] = {0};
+            // char tcode[MAX_COMMAND] = {0};
+            // //Serial.println();
+            // for (int i = 0; i < rxLength; i++) {
+            //     //Serial.print(rxValue[i],HEX);
+            //     if(i < MAX_COMMAND)
+            //         tcode[i]=rxData[i];
+            //     // if(i<rxLength)
+            //     //     Serial.print(":");
+            // }
+            // LogHandler::verbose(_TAG, "Recieve tcode: %s", rxValue.c_str());
+            NimBLEAttValue rxValue = pCharacteristic->getValue();
+            xQueueSend(m_TCodeQueue, rxValue.c_str(), 0);
             //Serial.println();
-            for (int i = 0; i < rxLength; i++) {
-                //Serial.print(rxValue[i],HEX);
-                if(i < MAX_COMMAND)
-                    tcode[i]=rxValue[i];
-                // if(i<rxLength)
-                //     Serial.print(":");
+        };
+        
+        void onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo){
+            Serial.print(pCharacteristic->getUUID().toString().c_str());
+            Serial.print(": onRead(), value: ");
+            Serial.println(pCharacteristic->getValue().c_str());
+        };
+        void onNotify(NimBLECharacteristic* pCharacteristic) {
+            Serial.println("Sending notification to clients");
+        };
+
+
+        /**
+         *  The value returned in code is the NimBLE host return code.
+         */
+        void onStatus(NimBLECharacteristic* pCharacteristic, int code) {
+            String str = ("Notification/Indication return code: ");
+            str += code;
+            str += ", ";
+            str += NimBLEUtils::returnCodeToString(code);
+            Serial.println(str);
+        };
+
+        void onSubscribe(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue) {
+            String str = "Client ID: ";
+            str += connInfo.getConnHandle();
+            str += " Address: ";
+            str += connInfo.getAddress().toString().c_str();
+            if(subValue == 0) {
+                str += " Unsubscribed to ";
+            }else if(subValue == 1) {
+                str += " Subscribed to notfications for ";
+            } else if(subValue == 2) {
+                str += " Subscribed to indications for ";
+            } else if(subValue == 3) {
+                str += " Subscribed to notifications and indications for ";
             }
-            xQueueSend(m_TCodeQueue, tcode, 0);
-            //Serial.println();
-        }
+            str += std::string(pCharacteristic->getUUID()).c_str();
+
+            Serial.println(str);
+        };
     };
 
-    class ServerCallbacks: public BLEServerCallbacks {
-        void onConnect(BLEServer* pServer, esp_ble_gatts_cb_param_t *param) {
-            LogHandler::info(_TAG, "A client has connected via BLE: %.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
-                param->connect.remote_bda[0],
-                param->connect.remote_bda[1],
-                param->connect.remote_bda[2],
-                param->connect.remote_bda[3],
-                param->connect.remote_bda[4],
-                param->connect.remote_bda[5]
+    class ServerCallbacks: public NimBLEServerCallbacks {
+        void onConnect(BLEServer* pServer, NimBLEConnInfo& param) {
+            LogHandler::info(_TAG, "A client has connected via BLE: %s",
+                param.getAddress().toString().c_str()
             );
         };
-        void onDisconnect(BLEServer* pServer, esp_ble_gatts_cb_param_t *param) {
-            LogHandler::info(_TAG, "A client has disconnected from BLE: %.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
-                param->connect.remote_bda[0],
-                param->connect.remote_bda[1],
-                param->connect.remote_bda[2],
-                param->connect.remote_bda[3],
-                param->connect.remote_bda[4],
-                param->connect.remote_bda[5]
+        void onDisconnect(BLEServer* pServer, NimBLEConnInfo& param) {
+            LogHandler::info(_TAG, "A client has disconnected from BLE: %s",
+                param.getAddress().toString().c_str()
             );
             pServer->startAdvertising(); 
         }
     };
-    
+    ServerCallbacks* getServerCallbacks() {
+        static ServerCallbacks callbacks;
+        return &callbacks;
+    };
+    BLETCodeControlCallback* getCaracteristicCallbacks() {
+        static BLETCodeControlCallback callbacks;
+        return &callbacks;
+    };
 };
 QueueHandle_t BLEHandler::m_TCodeQueue;
 const char*  BLEHandler::_TAG = TagHandler::BLEHandler;

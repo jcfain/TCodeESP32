@@ -45,10 +45,10 @@ SOFTWARE. */
 	#include "WifiHandler.h"
 #endif
 
-#if TEMP_ENABLED
+#if BUILD_TEMP
 	#include "TemperatureHandler.h"
 #endif
-#if DISPLAY_ENABLED
+#if BUILD_DISPLAY
 	#include "DisplayHandler.h"
 #endif
 #if BLUETOOTH_TCODE
@@ -121,7 +121,7 @@ TaskHandle_t voiceTask;
 	WebSocketBase* webSocketHandler = 0;
 #endif
 
-#if TEMP_ENABLED
+#if BUILD_TEMP
 	TemperatureHandler* temperatureHandler = 0;
 #endif
 
@@ -129,14 +129,14 @@ TaskHandle_t voiceTask;
 	BLEHandler* bleHandler = 0;
 #endif
 
-#if DISPLAY_ENABLED
+#if BUILD_DISPLAY
 	DisplayHandler* displayHandler;
 	TaskHandle_t displayTask;
 	// #if ISAAC_NEWTONGUE_BUILD
 	// 	TaskHandle_t animationTask;
 	// #endif
 #endif
-#if TEMP_ENABLED
+#if BUILD_TEMP
 	TaskHandle_t temperatureTask;
 #endif
 // This has issues running with the webserver.
@@ -181,7 +181,7 @@ void benchFinish(const char* systemUnderBench, int benchNumber) {
 }
 
 void displayPrint(String text) {
-	#if DISPLAY_ENABLED
+	#if BUILD_DISPLAY
 		displayHandler->println(text);
 	#endif
 }
@@ -244,7 +244,7 @@ void logCallBack(const char* in, LogLevel level) {
 	// }
 #endif
 }
-#if TEMP_ENABLED
+#if BUILD_TEMP
 	void tempChangeCallBack(TemperatureType type, const char* message, float temp) {
 	#if WIFI_TCODE
 		if(webSocketHandler) {
@@ -259,7 +259,7 @@ void logCallBack(const char* in, LogLevel level) {
 			}
 		}
 	#endif
-	#if DISPLAY_ENABLED
+	#if BUILD_DISPLAY
 		if(displayHandler) {
 			if(type == TemperatureType::SLEEVE) {
 				displayHandler->setSleeveTemp(temp);
@@ -270,7 +270,7 @@ void logCallBack(const char* in, LogLevel level) {
 	#endif
 	}
 	void tempStateChangeCallBack(TemperatureType type, const char* state) {
-	#if DISPLAY_ENABLED
+	#if BUILD_DISPLAY
 		if(displayHandler) {
 			if(type == TemperatureType::SLEEVE) {
 				LogHandler::verbose(TagHandler::Main, "tempStateChangeCallBack heat: %s", state);
@@ -298,7 +298,7 @@ void startWeb(bool apMode) {
 		#endif
 		webHandler->setup(SettingsHandler::webServerPort, webSocketHandler, apMode);
 		if(!apMode)
-		mdnsHandler.setup(SettingsHandler::hostname, SettingsHandler::friendlyName);
+			mdnsHandler.setup(SettingsHandler::hostname, SettingsHandler::friendlyName);
 		
 		#if SECURE_WEB
 			LogHandler::debug(TagHandler::Main, "Start https task");
@@ -414,7 +414,7 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
 #endif
 
 void batteryVoltageCallback(float capacityRemainingPercentage, float capacityRemaining, float voltage, float temperature) {
-	#if DISPLAY_ENABLED
+	#if BUILD_DISPLAY
 		if(displayHandler) {
 			displayHandler->setBatteryInformation(capacityRemainingPercentage, voltage, temperature);
 		}
@@ -492,7 +492,7 @@ void settingChangeCallback(const char* group, const char* settingThatChanged) {
 	
 }
 void loadI2CModules() {
-#if DISPLAY_ENABLED
+#if BUILD_DISPLAY
 	if(SettingsHandler::displayEnabled)
 	{
     	LogHandler::debug(TagHandler::Main, "Start Display task");
@@ -561,14 +561,19 @@ void setup()
 		wifi.setWiFiStatusCallback(wifiStatusCallBack);
 	#endif
 
+	Serial.println();
+ 	LogHandler::info(TagHandler::Main, "TCode esp version: %s", FIRMWARE_VERSION_NAME);
+ 	//LogHandler::info(TagHandler::Main, "Esp arduino version: %s", ESP_ARDUINO_VERSION_STR);
+ 	LogHandler::info(TagHandler::Main, "ESP IDF version: %s", esp_get_idf_version());
 	uint32_t chipId = 0;
 	for(int i=0; i<17; i=i+8) {
 	  chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
 	}
+	LogHandler::info(TagHandler::Main, "ESP32 Chip model = %s Rev %d", ESP.getChipModel(), ESP.getChipRevision());
+	LogHandler::info(TagHandler::Main, "This chip has %d cores", ESP.getChipCores());
+ 	LogHandler::info(TagHandler::Main, "Chip ID: %u", chipId);
 	Serial.println();
-	LogHandler::info(TagHandler::Main, "ESP32 Chip model = %s Rev %d\n", ESP.getChipModel(), ESP.getChipRevision());
-	LogHandler::info(TagHandler::Main, "This chip has %d cores\n", ESP.getChipCores());
- 	LogHandler::info(TagHandler::Main, "Chip ID: %u\n", chipId);
+	
 
     // esp_log_level_set("*", ESP_LOG_VERBOSE);
 	// LogHandler::debug("main", "this is verbose");
@@ -613,7 +618,7 @@ void setup()
 	motorHandler->setMessageCallback(TCodeCommandCallback);
 	//SystemCommandHandler::registerOtherCommandCallback(TCodeCommandCallback);
 
-#if TEMP_ENABLED
+#if BUILD_TEMP
 	if(SettingsHandler::tempSleeveEnabled || SettingsHandler::tempInternalEnabled) {
 		temperatureHandler = new TemperatureHandler();
 		temperatureHandler->setup();
@@ -634,7 +639,7 @@ void setup()
 	}
 	
 #endif
-#if DISPLAY_ENABLED
+#if BUILD_DISPLAY
 	displayHandler = new DisplayHandler();
 	if(SettingsHandler::displayEnabled)
 	{
@@ -653,6 +658,7 @@ void setup()
 #endif
 
 	
+
 	#if WIFI_TCODE
 		if (strcmp(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass) != 0 && SettingsHandler::ssid != nullptr) {
 			displayPrint("Setting up wifi...");
@@ -660,13 +666,13 @@ void setup()
 			displayPrint(SettingsHandler::ssid);
 			if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) { 
 				displayPrint("Connected IP: " + wifi.ip().toString());
-		#if DISPLAY_ENABLED
+		#if BUILD_DISPLAY
 			displayHandler->setLocalIPAddress(wifi.ip());
 		#endif
 				startUDP();
 				startWeb(false);
 			} 
-		} else {
+		} else { 
 			startConfigMode();
 		}
 	#endif
@@ -675,7 +681,6 @@ void setup()
 			startBlueTooth();
 		} 
 	#endif
-
 	#if BLE_TCODE
 		startBLE();
 	#endif
@@ -814,7 +819,7 @@ void loop() {
 		}
         vTaskDelay(1000/portTICK_PERIOD_MS);
 	} 
-#if TEMP_ENABLED
+#if BUILD_TEMP
 	else if (SettingsHandler::tempInternalEnabled && temperatureHandler && temperatureHandler->isMaxTempTriggered()) {
 		char stop[7] = "DSTOP\n";
 		readTCode(stop);
@@ -891,7 +896,7 @@ void loop() {
 				motorHandler->execute();
 			benchFinish("Execute", 4);
 
-#if TEMP_ENABLED
+#if BUILD_TEMP
 			benchStart(5);
 			if(temperatureHandler && temperatureHandler->isRunning()) {
 				if(SettingsHandler::tempSleeveEnabled) {

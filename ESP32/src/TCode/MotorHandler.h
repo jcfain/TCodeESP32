@@ -73,7 +73,7 @@ protected:
             m_tcode->RegisterAxis("A0", "Valve");
             LogHandler::debug(_TAG, "Connecting valve servo to pin: %ld @ freq: %ld", SettingsHandler::ValveServo_PIN, SettingsHandler::valveFrequency);
             #ifdef ESP_ARDUINO3
-            ledcAttach(Vibe1_PWM,ValveServo_Freq,8);
+            ledcAttach(SettingsHandler::ValveServo_PIN, ValveServo_Freq, 16);
             #else
             ledcSetup(ValveServo_PWM,ValveServo_Freq,16);
             ledcAttachPin(SettingsHandler::ValveServo_PIN,ValveServo_PWM);
@@ -84,7 +84,7 @@ protected:
             m_tcode->RegisterAxis("R0", "Twist");
             LogHandler::debug(_TAG, "Connecting twist servo to pin: %ld @ freq: %ld", SettingsHandler::TwistServo_PIN, SettingsHandler::twistFrequency);
             #ifdef ESP_ARDUINO3
-            ledcAttach(SettingsHandler::TwistServo_PIN,TwistServo_Freq,8);
+            ledcAttach(SettingsHandler::TwistServo_PIN, TwistServo_Freq, 16);
             #else
             ledcSetup(TwistServo_PWM,TwistServo_Freq,16);
             ledcAttachPin(SettingsHandler::TwistServo_PIN,TwistServo_PWM);
@@ -95,7 +95,7 @@ protected:
             m_tcode->RegisterAxis("A3", "Squeeze");
             LogHandler::debug(_TAG, "Connecting squeeze servo to pin: %ld @ freq: %ld", SettingsHandler::Squeeze_PIN, SettingsHandler::squeezeFrequency);
             #ifdef ESP_ARDUINO3
-            ledcAttach(SettingsHandler::Squeeze_PIN,SqueezeServo_Freq,8);
+            ledcAttach(SettingsHandler::Squeeze_PIN, SqueezeServo_Freq, 16);
             #else
             ledcSetup(SqueezeServo_PWM,SqueezeServo_Freq,16);
             ledcAttachPin(SettingsHandler::Squeeze_PIN,SqueezeServo_PWM);

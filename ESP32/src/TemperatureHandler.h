@@ -22,6 +22,7 @@ SOFTWARE. */
 
 #pragma once
 
+#include <soc/gpio_struct.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 //#include <AutoPID.h>
@@ -241,8 +242,12 @@ class TemperatureHandler {
 			// bootTime = true;
 			// bootTimer = millis() + SettingsHandler::WarmUpTime;
 			LogHandler::debug(_TAG, "Starting heat on pin: %u", SettingsHandler::Heater_PIN);
+			#ifdef ESP_ARDUINO3
+			ledcAttach(SettingsHandler::Heater_PIN, SettingsHandler::heaterFrequency, SettingsHandler::heaterResolution);
+			#else
 			ledcSetup(Heater_PWM, SettingsHandler::heaterFrequency, SettingsHandler::heaterResolution);
 			ledcAttachPin(SettingsHandler::Heater_PIN, Heater_PWM);
+			#endif
 			sleeveTempInitialized = true;
 		}
 	}
@@ -262,8 +267,13 @@ class TemperatureHandler {
 
 			if(SettingsHandler::fanControlEnabled && SettingsHandler::Case_Fan_PIN > -1) {
 				LogHandler::debug(_TAG, "Setting up fan, PIN: %i, hz: %i, resolution: %i, MAX PWM: %i", SettingsHandler::Case_Fan_PIN, SettingsHandler::caseFanFrequency, SettingsHandler::caseFanResolution, SettingsHandler::caseFanMaxDuty);
+				
+				#ifdef ESP_ARDUINO3
+				ledcAttach(SettingsHandler::Case_Fan_PIN, SettingsHandler::caseFanFrequency, SettingsHandler::caseFanResolution);
+				#else
 				ledcSetup(CaseFan_PWM, SettingsHandler::caseFanFrequency, SettingsHandler::caseFanResolution);
 				ledcAttachPin(SettingsHandler::Case_Fan_PIN, CaseFan_PWM);
+				#endif
 				//LogHandler::debug(_TAG, "Setting up PID: Output max: %i", SettingsHandler::caseFanMaxDuty);
 				//internalPID = new AutoPID(&_currentInternalTemp, &SettingsHandler::internalTempForFan, &m_currentInternalTempDuty, SettingsHandler::caseFanMaxDuty, 0, 0.12, 0.0003, 0.0); 
 				// //if temperature is more than 4 degrees below or above setpoint, OUTPUT will be set to min or max respectively

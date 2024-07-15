@@ -70,14 +70,14 @@ class WebHandler : public HTTPBase {
 
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                char systemInfo[3500];
+                String systemInfo;
                 SettingsHandler::getSystemInfo(systemInfo);
-                if (strlen(systemInfo) == 0) {
+                if (!systemInfo.length()) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
                     request->send(response);
                     return;
                 }
-                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", systemInfo);
+                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", systemInfo.c_str());
                 request->send(response);
             }); 
 

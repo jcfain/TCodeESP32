@@ -45,7 +45,7 @@ class MDNSHandler {
             }
         }
         private: 
-        const char* _TAG = TagHandler::WebHandler;
+        const char* _TAG = TagHandler::MdnsHandler;
         bool MDNSInitialized = false;
         void startMDNS(char* hostName, char* friendlyName)
         {

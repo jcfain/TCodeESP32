@@ -22,6 +22,7 @@ SOFTWARE. */
 
 #pragma once
 #include <vector>
+#include <variant>
 enum class SettingType
 {
     NONE,
@@ -59,12 +60,14 @@ enum class RestartRequired {
     YES
 };
 
+
 struct Setting
 {
     const char* name;
     const char* friendlyName;
     const char* description;
     SettingType type;
+    std::variant<const int, const char*, const float, const double, const bool> value;
     RestartRequired isRestartRequired;
     std::vector<SettingProfile> profile;
 };
