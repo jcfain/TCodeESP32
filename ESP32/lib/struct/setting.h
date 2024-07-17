@@ -22,7 +22,10 @@ SOFTWARE. */
 
 #pragma once
 #include <vector>
-#include <variant>
+//#include <variant>
+#include <mpark/variant.hpp>
+//#include <variant.hpp>
+
 enum class SettingType
 {
     NONE,
@@ -67,7 +70,7 @@ struct Setting
     const char* friendlyName;
     const char* description;
     SettingType type;
-    std::variant<const int, const char*, const float, const double, const bool> value;
+    mpark::variant<const int, const char*, const float, const double, const bool> value;
     RestartRequired isRestartRequired;
     std::vector<SettingProfile> profile;
 };

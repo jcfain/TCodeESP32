@@ -204,7 +204,7 @@ public:
     }
     bool loadWifi()
     {
-        return load(wifiPassFilePath, m_wifiDoc);
+        return load(wifiFilePath, m_wifiDoc);
     }
 
     bool saveCommon(JsonObject fromJson = JsonObject())
@@ -213,7 +213,15 @@ public:
     }
     bool saveWifi(JsonObject fromJson = JsonObject())
     {
-        return save(wifiPassFilePath, m_wifiDoc, fromJson);
+        return save(wifiFilePath, m_wifiDoc, fromJson);
+    }
+    bool resetCommon()
+    {
+        return resetDefault(userSettingsFilePath, m_commonDoc);
+    }
+    bool resetWiFi()
+    {
+        return resetDefault(wifiFilePath, m_wifiDoc);
     }
     // bool defaultCommon(JsonObject fromJson = JsonObject())
     // {
@@ -231,7 +239,7 @@ private:
     const int m_commonSerializeSize = 24576;
     
     const char *userSettingsFilePath = "/userSettings.json";
-    const char *wifiPassFilePath = "/wifiInfo.json";
+    const char *wifiFilePath = "/wifiInfo.json";
     const char *buttonsFilePath = "/buttons.json";
     const char *motionProfilesFilePath = "/motionProfiles.json";
     StaticJsonDocument<100> m_wifiDoc;
@@ -257,6 +265,46 @@ private:
         file.close();
         //json = doc.as<JsonObject>();
         return true;
+    }
+
+    template <unsigned int N>
+    bool resetDefault(const char* path, StaticJsonDocument<N> &doc)
+    {
+        bool fileExists = LittleFS.exists(path);
+        if(!fileExists)
+        {
+            LogHandler::info(m_TAG, "File %s did not exist, creating..", path);
+        }
+        for(int i=0;i<settings.size();i++)
+        {
+            const Setting* setting = &settings[i];
+            if(doc.containsKey(setting->name))
+            {
+                switch(setting->type)
+                {
+                    case SettingType::Boolean:
+                        doc[setting->name] = mpark::get<const bool>(setting->value);
+                    break;
+                    case SettingType::Number:
+                        doc[setting->name] = mpark::get<const int>(setting->value);
+                    break;
+                    case SettingType::Double:
+                        doc[setting->name] = mpark::get<const double>(setting->value);
+                    break;
+                    case SettingType::Float:
+                        doc[setting->name] = mpark::get<const float>(setting->value);
+                    break;
+                    case SettingType::String:
+                        doc[setting->name] = mpark::get<const char*>(setting->value);
+                    break;
+                    case SettingType::Array:
+                        // int[]
+                        // doc[setting->name] = mpark::get<Array>(setting->value);
+                    break;
+                }
+            }
+        }
+        return save(path, doc);
     }
 
     template <unsigned int N>
