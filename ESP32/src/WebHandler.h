@@ -53,7 +53,7 @@ class WebHandler : public HTTPBase {
             server->on("/wifiSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 char info[100];
-                SettingsHandler::getWifiInfo(info);
+                SettingsHandler::getGetWifiInfo(info);
                 if (strlen(info) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting wifi settings");
                     request->send(response);
@@ -65,13 +65,13 @@ class WebHandler : public HTTPBase {
 
             server->on("/settings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                request->send(LittleFS, SettingsHandler::userSettingsFilePath, "application/json");
+                request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
             });   
 
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 String systemInfo;
-                SettingsHandler::getSystemInfo(systemInfo);
+                SettingsHandler::getGetSystemInfo()(systemInfo);
                 if (!systemInfo.length()) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
                     request->send(response);
@@ -83,19 +83,19 @@ class WebHandler : public HTTPBase {
 
             server->on("/motionProfiles", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                request->send(LittleFS, SettingsHandler::motionProfilesFilePath, "application/json");
+                request->send(LittleFS, MOTION_PROFILE_SETTINGS_PATH, "application/json");
             });   
 
             server->on("/buttonSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                request->send(LittleFS, SettingsHandler::buttonsFilePath, "application/json");
+                request->send(LittleFS, BUTTON_SETTINGS_PATH, "application/json");
             });  
             
             
             server->on("/log", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 Serial.println("Get log...");
-                request->send(LittleFS, SettingsHandler::logPath);
+                request->send(LittleFS, LOG_PATH);
             });   
 
             server->on("/connectWifi", HTTP_POST, [](AsyncWebServerRequest *request) 
@@ -103,7 +103,7 @@ class WebHandler : public HTTPBase {
                 WifiHandler wifi;
                 const size_t capacity = JSON_OBJECT_SIZE(2);
                 DynamicJsonDocument doc(capacity);
-                if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) 
+                if (wifi.connect(SettingsHandler::getSSID(), SettingsHandler::getWifiPass())) 
                 {
 
                     doc["connected"] = true;
@@ -123,11 +123,11 @@ class WebHandler : public HTTPBase {
 
             server->on("/toggleContinousTwist", HTTP_POST, [](AsyncWebServerRequest *request) 
             {
-				SettingsHandler::continuousTwist = !SettingsHandler::continuousTwist;
-				if (SettingsHandler::saveSettings()) 
+				SettingsHandler::getContinuousTwist() = !SettingsHandler::getContinuousTwist();
+				if (SettingsHandler::getSaveSettings()()) 
 				{
 					char returnJson[45];
-					sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", SettingsHandler::continuousTwist ? "true" : "false");
+					sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", SettingsHandler::getContinuousTwist() ? "true" : "false");
 					AsyncWebServerResponse *response = request->beginResponse(200, "application/json", returnJson);
 					request->send(response);
 				} 
@@ -149,8 +149,8 @@ class WebHandler : public HTTPBase {
                 auto boardTypeString = request->pathArg(0);
                 int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
                 Serial.println("Settings pinout default");
-                SettingsHandler::boardType = (BoardType)boardType;
-				if (SettingsHandler::defaultPinout())
+                SettingsHandler::getBoardType() = (BoardType)boardType;
+				if (SettingsHandler::setDefaultPinout())
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
@@ -170,7 +170,7 @@ class WebHandler : public HTTPBase {
             server->on("/restart", HTTP_POST, [webSocketHandler, apMode](AsyncWebServerRequest *request)
             {
                 //if(apMode) {
-                    //request->send(200, "text/plain",String("Restarting device, wait about 10-20 seconds and navigate to ") + (SettingsHandler::hostname) + ".local or the network IP address in your browser address bar.");
+                    //request->send(200, "text/plain",String("Restarting device, wait about 10-20 seconds and navigate to ") + (SettingsHandler::getHostname()) + ".local or the network IP address in your browser address bar.");
                 //}
                 String message = "{\"msg\":\"restarting\",\"apMode\":";
                 message += apMode ? "true}" : "false}";
@@ -262,7 +262,7 @@ class WebHandler : public HTTPBase {
             //         AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", (Update.hasError())?"FAIL":"OK");
             //         response->addHeader("Connection", "close");
             //         response->addHeader("Access-Control-Allow-Origin", "*");
-            //         SettingsHandler::restartRequired = true;
+            //         SettingsHandler::getRestartRequired() = true;
             //         request->send(response);
             //     },[](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
             //         //Upload handler chunks in data
@@ -368,7 +368,7 @@ class WebHandler : public HTTPBase {
         //     }
         //     MDNS.setInstanceName(friendlyName);
         //     MDNS.addService("http", "tcp", 80);
-        //     MDNS.addService("tcode", "udp", SettingsHandler::udpServerPort);
+        //     MDNS.addService("tcode", "udp", SettingsHandler::getUdpServerPort());
         //     MDNSInitialized = true;
         // }
 };

@@ -34,8 +34,8 @@ SOFTWARE. */
 #include "LogHandler.h"
 class MDNSHandler {
     public:
-        void setup(char* hostName, char* friendlyName) {
-            startMDNS(hostName, friendlyName);
+        void setup(const char* hostName, const char* friendlyName, const int webPort, const int udpPort) {
+            startMDNS(hostName, friendlyName, webPort, udpPort);
         }
         void stop() {
             if(MDNSInitialized)
@@ -47,7 +47,7 @@ class MDNSHandler {
         private: 
         const char* _TAG = TagHandler::MdnsHandler;
         bool MDNSInitialized = false;
-        void startMDNS(char* hostName, char* friendlyName)
+        void startMDNS(const char* hostName, const char* friendlyName, const int webPort, const int udpPort)
         {
             LogHandler::info(_TAG, "Setting up MDNS");
             if(MDNSInitialized)
@@ -61,9 +61,9 @@ class MDNSHandler {
             sprintf(domainName, "%s.local", hostName);
             SettingsHandler::printWebAddress(domainName);
             MDNS.setInstanceName(friendlyName);
-            MDNS.addService("http", "tcp", SettingsHandler::webServerPort);
+            MDNS.addService("http", "tcp", webPort);
             MDNS.addService("https", "tcp", 443);
-            MDNS.addService("tcode", "udp", SettingsHandler::udpServerPort);
+            MDNS.addService("tcode", "udp", udpPort);
             MDNSInitialized = true;
         }
   };

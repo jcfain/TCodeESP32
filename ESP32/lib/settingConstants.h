@@ -1,15 +1,44 @@
 #pragma once
+#include <stdint.h>
+
+#include "enum.h"
+
+#define GET_DEFAULT(X) X##_DEFAULT
+
+// Constants
+#define LOG_PATH "/log.json"
+#define DECOY_PASS "Too bad haxor!"
+#define TCODE_HANDSHAKE "D1\n"
+#define TCODE_SETTINGS "D2\n"
+
+#define COMMON_SETTINGS_PATH "/userSettings.json"
+#define WIFI_SETTINGS_PATH "/wifiInfo.json"
+#define BUTTON_SETTINGS_PATH "/buttons.json"
+#define MOTION_PROFILE_SETTINGS_PATH "/motionProfiles.json"
+
 // Setting defaults
-#define SSID_DEFAULT_DEFAULT "YOUR SSID HERE"
+#define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::OSR
+#define MOTOR_TYPE_DEFAULT (uint8_t)MotorType::Servo
+#define IP_ADDRESS_LEN 15 // TODO: Should be 13?
+#define SSID_DEFAULT "YOUR SSID HERE"
+#define SSID_LEN 32
 #define WIFI_PASS_DEFAULT "YOUR PASSWORD HERE"
+#define WIFI_PASS_LEN 63
+#define AP_MODE_SSID "TCodeESP32Setup"
+#define AP_MODE_PASS "12345678" // Not used?
+#define DEFAULT_IP "192.168.69.1"
+#define DEFAULT_GATEWAY "192.168.69.254"
+#define DEFAULT_SUBNET "255.255.255.0"
 #define BOARD_TYPE_DEFAULT 0
 #define LOG_LEVEL_DEFAULT 2
 #define FULL_BUILD_DEFAULT false
-#define TCODE_VERSION_DEFAULT (int)TCodeVersion::v0_3 // V0.3
+#define TCODE_VERSION_DEFAULT (uint8_t)TCodeVersion::v0_3
 #define UDP_SERVER_PORT_DEFAULT 8000
 #define WEBSERVER_PORT_DEFAULT 80
 #define HOST_NAME_DEFAULT "tcode"
+#define HOST_NAME_LEN 63
 #define FRIENDLY_NAME_DEFAULT "ESP32 TCode"
+#define FRIENDLY_NAME_LEN 100
 #define BLUETOOTH_ENABLED_DEFAULT false
 #define PITCH_FREQUENCY_IS_DIFFERENT_DEFAULT false
 #define MS_PER_RAD_DEFAULT 637
@@ -26,7 +55,6 @@
 #define BLDC_USEMT6701_DEFAULT true
 #define BLDC_USEHALLSENSOR_DEFAULT false
 #define BLDC_PULLEY_CIRCUMFERENCE_DEFAULT 60
-// See pin map for pins
 #define BLDC_MOTORA_VOLTAGE_DEFAULT 20.0f
 #define BLDC_MOTORA_CURRENT_DEFAULT 1.0f
 #define BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT false
@@ -39,7 +67,7 @@
 #define SUBNET_DEFAULT "255.255.255.0"
 #define DNS1_DEFAULT "8.8.8.8"
 #define DNS2_DEFAULT "8.8.4.4"
-#define SR6MODE_DEFAULT false
+//#define SR6MODE_DEFAULT false
 #define RIGHT_SERVO_ZERO_DEFAULT 1500
 #define LEFT_SERVO_ZERO_DEFAULT 1500
 #define RIGHT_UPPER_SERVO_ZERO_DEFAULT 1500
@@ -67,9 +95,7 @@
 #define HEAT_PWM_DEFAULT 255
 #define HOLD_PWM_DEFAULT 110
 #define DISPLAY_I2C_ADDRESS_DEFAULT "0x3c"
-// #define DISPLAY_RST_PIN_DEFAULT -1
-// #define TEMP_PIN_DEFAULT 5
-// #define HEATER_PIN_DEFAULT 33
+#define DISPLAY_I2C_ADDRESS_LEN 5
 #define HEATER_THRESHOLD_DEFAULT 5.0f
 #define HEATER_RESOLUTION_DEFAULT 8
 #define HEATER_FREQUENCY_DEFAULT 50
@@ -90,6 +116,16 @@
 #define LOG_INCLUDETAGS_DEFAULT {}
 #define LOG_EXCLUDETAGS_DEFAULT {}
 
+#define BOOT_BUTTON_ENABLED_DEFAULT false
+#define BOOT_BUTTON_COMMAND_DEFAULT "#motion-profile-cycle"
+#define BOOT_BUTTON_COMMAND_LEN MAX_COMMAND
+#define BUTTON_SETS_ENABLED_DEFAULT false
+#define BUTTON_ANALOG_DEBOUNCE_DEFAULT 200
+
+#define MOTION_PROFILE_SELECTED_INDEX_DEFAULT 1
+
+#define DEVICE_TYPE "deviceType"
+#define MOTOR_TYPE_SETTING "motorType"
 #define SSID_SETTING "ssid"
 #define WIFI_PASS_SETTING "wifiPass"
 #define BOARD_TYPE_SETTING "boardType"
@@ -111,34 +147,10 @@
 #define CONTINUOUS_TWIST "continuousTwist"
 #define FEEDBACK_TWIST "feedbackTwist"
 #define ANALOG_TWIST "analogTwist"
-#define TWIST_FEEDBACK_PIN "TwistFeedBack_PIN"
-#define RIGHT_SERVO_PIN "RightServo_PIN"
-#define LEFT_SERVO_PIN "LeftServo_PIN"
-#define RIGHT_UPPER_SERVO_PIN "RightUpperServo_PIN"
-#define LEFT_UPPER_SERVO_PIN "LeftUpperServo_PIN"
-#define PITCH_LEFT_SERVO_PIN "PitchLeftServo_PIN"
-#define PITCH_RIGHTSERVO_PIN "PitchRightServo_PIN"
-#define VALVE_SERVO_PIN "ValveServo_PIN"
-#define TWIST_SERVO_PIN "TwistServo_PIN"
-#define SQUEEZE_PIN "Squeeze_PIN"
-#define VIBE0_PIN "Vibe0_PIN"
-#define VIBE1_PIN "Vibe1_PIN"
-#define VIBE2_PIN "Vibe2_PIN"
-#define VIBE3_PIN "Vibe3_PIN"
-#define CASE_FAN_PIN "Case_Fan_PIN"
-#define LUBE_BUTTON_PIN "LubeButton_PIN"
-#define INTERNAL_TEMP_PIN "Internal_Temp_PIN"
 #define BLDC_USEPWM "BLDC_UsePWM"
 #define BLDC_USEMT6701 "BLDC_UseMT6701"
 #define BLDC_USEHALLSENSOR "BLDC_UseHallSensor"
 #define BLDC_PULLEY_CIRCUMFERENCE "BLDC_Pulley_Circumference"
-#define BLDC_ENCODER_PIN "BLDC_Encoder_PIN"
-#define BLDC_CHIPSELECT_PIN "BLDC_ChipSelect_PIN"
-#define BLDC_ENABLE_PIN "BLDC_Enable_PIN"
-#define BLDC_HALLEFFECT_PIN "BLDC_HallEffect_PIN"
-#define BLDC_PWMCHANNEL1_PIN "BLDC_PWMchannel1_PIN"
-#define BLDC_PWMCHANNEL2_PIN "BLDC_PWMchannel2_PIN"
-#define BLDC_PWMCHANNEL3_PIN "BLDC_PWMchannel3_PIN"
 #define BLDC_MOTORA_VOLTAGE "BLDC_MotorA_Voltage"
 #define BLDC_MOTORA_CURRENT "BLDC_MotorA_Current"
 #define BLDC_MOTORA_PARAMETERSKNOWN "BLDC_MotorA_ParametersKnown"
@@ -151,11 +163,11 @@
 #define SUBNET "subnet"
 #define DNS1 "dns1"
 #define DNS2 "dns2"
-#define SR6MODE "sr6Mode"
+//#define SR6MODE "sr6Mode"
 #define RIGHT_SERVO_ZERO "RightServo_ZERO"
 #define LEFT_SERVO_ZERO "LeftServo_ZERO"
 #define RIGHT_UPPER_SERVO_ZERO "RightUpperServo_ZERO"
-#define LEFT_UPPE_RSERVO_ZERO "LeftUpperServo_ZERO"
+#define LEFT_UPPER_SERVO_ZERO "LeftUpperServo_ZERO"
 #define PITCH_LEFT_SERVO_ZERO "PitchLeftServo_ZERO"
 #define PITCH_RIGHT_SERVO_ZERO "PitchRightServo_ZERO"
 #define TWIST_SERVO_ZERO "TwistServo_ZERO"
@@ -179,16 +191,13 @@
 #define HEAT_PWM "HeatPWM"
 #define HOLD_PWM "HoldPWM"
 #define DISPLAY_I2C_ADDRESS "Display_I2C_Address"
-#define DISPLAY_RST_PIN "Display_Rst_PIN"
-#define TEMP_PIN "Temp_PIN"
-#define HEATER_PIN "Heater_PIN"
 #define HEATER_THRESHOLD "heaterThreshold"
 #define HEATER_RESOLUTION "heaterResolution"
 #define HEATER_FREQUENCY "heaterFrequency"
 #define FAN_CONTROL_ENABLED "fanControlEnabled"
 #define CASE_FAN_FREQUENCY "caseFanFrequency"
 #define CASE_FAN_RESOLUTION "caseFanResolution"
-#define INTERNAL_TEMP_FOR_FAN "internalTempForFan"
+#define INTERNAL_TEMP_FOR_FANON "internalTempForFan"
 #define INTERNAL_MAX_TEMP "internalMaxTemp"
 #define TEMP_INTERNAL_ENABLED "tempInternalEnabled"
 #define BATTERY_LEVEL_ENABLED "batteryLevelEnabled"
@@ -202,8 +211,12 @@
 #define LOG_INCLUDETAGS "log-include-tags"
 #define LOG_EXCLUDETAGS "log-exclude-tags"
 
-#define BUTTON_SET_PIN "buttonSetPin"
-#define I2C_SDA_PIN "i2cSdaPin"
-#define I2C_SCL_PIN "i2cSclPin"
+#define BOOT_BUTTON_ENABLED "bootButtonEnabled"
+#define BOOT_BUTTON_COMMAND "bootButtonCommand"
+#define BUTTON_SETS_ENABLED "buttonSetsEnabled"
+#define BUTTON_ANALOG_DEBOUNCE "buttonAnalogDebounce"
+
+#define MOTION_PROFILE_SELECTED_INDEX "motionSelectedProfileIndex"
+
 
 ;

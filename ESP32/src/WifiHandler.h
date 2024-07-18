@@ -90,32 +90,32 @@ class WifiHandler
         WiFi.mode(WIFI_STA);
         WiFi.setSleep(false);
         WiFi.setHostname("TCodeESP32");
-      if (SettingsHandler::staticIP) 
+      if (SettingsHandler::getStaticIP()) 
       {
-        LogHandler::info(_TAG, "Setting static IP settings: %s", SettingsHandler::localIP);
+        LogHandler::info(_TAG, "Setting static IP settings: %s", SettingsHandler::getLocalIP());
         IPAddress ipAddress;
-        if(!ipAddress.fromString(SettingsHandler::localIP)) {
-          LogHandler::error(_TAG, "Invalid static IP address: %s", SettingsHandler::localIP);
+        if(!ipAddress.fromString(SettingsHandler::getLocalIP())) {
+          LogHandler::error(_TAG, "Invalid static IP address: %s", SettingsHandler::getLocalIP());
           return false;
         }
         IPAddress gateway;
-        if(!gateway.fromString(SettingsHandler::gateway)) {
-          LogHandler::error(_TAG, "Invalid static gateway address: %s", SettingsHandler::gateway);
+        if(!gateway.fromString(SettingsHandler::getGateway())) {
+          LogHandler::error(_TAG, "Invalid static gateway address: %s", SettingsHandler::getGateway());
           return false;
         }
         IPAddress subnet;
-        if(!subnet.fromString(SettingsHandler::subnet)) {
-          LogHandler::error(_TAG, "Invalid static subnet address: %s", SettingsHandler::subnet);
+        if(!subnet.fromString(SettingsHandler::getSubnet())) {
+          LogHandler::error(_TAG, "Invalid static subnet address: %s", SettingsHandler::getSubnet());
           return false;
         }
         IPAddress dns1 = (uint32_t)0;
-        if(strlen(SettingsHandler::dns2) > 0 && !dns1.fromString(SettingsHandler::dns1)) {
-          LogHandler::error(_TAG, "Invalid static dns1 address: %s", SettingsHandler::dns1);
+        if(strlen(SettingsHandler::getDns1()) > 0 && !dns1.fromString(SettingsHandler::getDns1())) {
+          LogHandler::error(_TAG, "Invalid static dns1 address: %s", SettingsHandler::getDns1());
           return false;
         }
         IPAddress dns2 = (uint32_t)0;
-        if(strlen(SettingsHandler::dns2) > 0 && !dns2.fromString(SettingsHandler::dns2)) {
-          LogHandler::error(_TAG, "Invalid static dns2 address: %s", SettingsHandler::dns2);
+        if(strlen(SettingsHandler::getDns2()) > 0 && !dns2.fromString(SettingsHandler::getDns2())) {
+          LogHandler::error(_TAG, "Invalid static dns2 address: %s", SettingsHandler::getDns2());
           return false;
         }
 
@@ -163,12 +163,12 @@ class WifiHandler
           LogHandler::info(_TAG, "Station Mode Started");
           break;
         case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-          strcpy(SettingsHandler::localIP, WiFi.localIP().toString().c_str());
-          strcpy(SettingsHandler::subnet, WiFi.subnetMask().toString().c_str());
-          strcpy(SettingsHandler::gateway, WiFi.gatewayIP().toString().c_str());
-          strcpy(SettingsHandler::dns1, WiFi.dnsIP().toString().c_str());
+          strcpy(SettingsHandler::currentIP, WiFi.localIP().toString().c_str());
+          strcpy(SettingsHandler::currentGateway, WiFi.subnetMask().toString().c_str());
+          strcpy(SettingsHandler::currentSubnet, WiFi.gatewayIP().toString().c_str());
+          strcpy(SettingsHandler::currentDns1, WiFi.dnsIP().toString().c_str());
           LogHandler::info(_TAG, "Connected to: %s", WiFi.SSID().c_str());
-          LogHandler::info(_TAG, "IP Address: %s", SettingsHandler::localIP);
+          LogHandler::info(_TAG, "IP Address: %s", SettingsHandler::getLocalIP());
           break;
         case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: 
         {
@@ -259,11 +259,11 @@ class WifiHandler
                     this->WiFiEvent(event, info);
                   });
       IPAddress local_IP;
-      local_IP.fromString(SettingsHandler::defaultIP);
+      local_IP.fromString(DEFAULT_IP);
       IPAddress subnet;
-      subnet.fromString(SettingsHandler::defaultSubnet);
+      subnet.fromString(DEFAULT_SUBNET);
       IPAddress gateway;
-      gateway.fromString(SettingsHandler::defaultGateWay);
+      gateway.fromString(DEFAULT_GATEWAY);
       if (!WiFi.softAPConfig(local_IP, gateway, subnet)) 
 	    {
         LogHandler::error(_TAG, "AP Failed to configure");
@@ -281,8 +281,8 @@ class WifiHandler
 private: 
     WIFI_STATUS_FUNCTION_PTR_T wifiStatus_callback;
     const char* _TAG = TagHandler::WifiHandler;
-    const char *ssid = "TCodeESP32Setup";
-    const char *password = "12345678";
+    const char *ssid = AP_MODE_SSID;
+    const char *password = AP_MODE_PASS;
     int connectTimeOut = 10000;
     int onApEventID = 0;
     static int8_t _rssi;

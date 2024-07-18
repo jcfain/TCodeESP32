@@ -193,7 +193,7 @@ void TCodeCommandCallback(const char* in) {
 		systemCommandHandler->process(in);
 	} else {
 		#if BLUETOOTH_TCODE
-			if (SettingsHandler::bluetoothEnabled && btHandler && btHandler->isConnected())
+			if (SettingsHandler::getBluetoothEnabled() && btHandler && btHandler->isConnected())
 				btHandler->CommandCallback(in);
 		#endif
 		#if BLE_TCODE
@@ -218,7 +218,7 @@ void TCodePassthroughCommandCallback(const char* in) {
 		strcat(temp, "\n");
 		//////////////////////////////////////////////////////////////////////////////////////
 		#if BLUETOOTH_TCODE
-			if (SettingsHandler::bluetoothEnabled && btHandler && btHandler->isConnected())
+			if (SettingsHandler::getBluetoothEnabled() && btHandler && btHandler->isConnected())
 				btHandler->CommandCallback(temp);
 		#endif
 		#if BLE_TCODE
@@ -286,7 +286,7 @@ void logCallBack(const char* in, LogLevel level) {
 	}
 #endif
 #if WIFI_TCODE
-void startWeb(bool apMode) {
+void startWeb(const bool &apMode, const int &port, const int &udpPort, const char* hostname, const char* friendlyName) {
 	if(!webHandler) {
 		displayPrint("Starting web server");
 		#if !SECURE_WEB
@@ -296,9 +296,9 @@ void startWeb(bool apMode) {
 			webHandler = new HTTPSHandler();
 			webSocketHandler = new SecureWebSocketHandler();
 		#endif
-		webHandler->setup(SettingsHandler::webServerPort, webSocketHandler, apMode);
+		webHandler->setup(port, webSocketHandler, apMode);
 		if(!apMode)
-			mdnsHandler.setup(SettingsHandler::hostname, SettingsHandler::friendlyName);
+			mdnsHandler.setup(hostname, friendlyName, port, udpPort);
 		
 		#if SECURE_WEB
 			LogHandler::debug(TagHandler::Main, "Start https task");
@@ -347,17 +347,17 @@ void startBlueTooth() {
 #endif
 
 #if WIFI_TCODE
-void startUDP() {
+void startUDP(int port) {
 	if(!udpHandler) {
 		displayPrint("Starting UDP");
 		udpHandler = new Udphandler();
-		udpHandler->setup(SettingsHandler::udpServerPort);
+		udpHandler->setup(port);
 	}
 }
 #endif
 
 #if WIFI_TCODE
-void startConfigMode(bool withBle= true) {
+void startConfigMode(const int &webPort, const int &udpPort, const char* hostname, const char* friendlyName) {
 	SettingsHandler::apMode = true;
 	LogHandler::info(TagHandler::Main, "Starting in APMode");
 	displayPrint("Starting in APMode");
@@ -365,7 +365,7 @@ void startConfigMode(bool withBle= true) {
 	{
 		LogHandler::info(TagHandler::Main, "APMode started");
 		displayPrint("APMode started");
-		startWeb(true);
+		startWeb(SettingsHandler::apMode, webPort, udpPort, hostname, friendlyName);
 	}
 	else 
 	{
@@ -373,10 +373,10 @@ void startConfigMode(bool withBle= true) {
 		displayPrint("APMode start failed");
 	}
 
-// After attempting to connect wifi, ble cause crash
-	if(withBle) { 
-		startBLEConfig();
-	}
+// // After attempting to connect wifi, ble cause crash
+// 	if(withBle) { 
+// 		startBLEConfig();
+// 	}
 }
 #endif
 
@@ -395,12 +395,15 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
         LogHandler::debug(TagHandler::Main, "wifiStatusCallBack Not connected");
 		if(reason == WiFiReason::NO_AP || reason == WiFiReason::UNKNOWN) {
         	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::NO_AP || WiFiReason::UNKNOWN");
-			startConfigMode(false);
+			startConfigMode(
+				SettingsHandler::getWebServerPort(), 
+				SettingsHandler::getUdpServerPort(),
+				SettingsHandler::getHostname(),
+				SettingsHandler::getFriendlyName());
 		} else if(reason == WiFiReason::AUTH) {
         	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AUTH");
             LogHandler::warning(TagHandler::Main, "Connection auth failed: Resetting wifi password and restarting");
-            strcpy(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass);
-            SettingsHandler::saveSettings();
+            SettingsHandler::defaultValue(WIFI_PASS_SETTING);
             ESP.restart();
 		}  else if(reason == WiFiReason::AP_MODE) {
         	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AP_MODE");
@@ -433,43 +436,43 @@ void settingChangeCallback(const char* group, const char* settingThatChanged) {
 		if(strcmp(settingThatChanged, "motionSelectedProfileIndex") == 0 || strcmp(settingThatChanged, "motionProfile") == 0) 
 			motionHandler.setMotionChannels(SettingsHandler::getMotionChannels());
 		// else if(strcmp(settingThatChanged, "motionChannels") == 0) 
-		// 	motionHandler.setMotionChannels(SettingsHandler::getMotionChannels());
+		// 	motionHandler.setMotionChannels(SettingsHandler::getGetMotionChannels()());
 		else if(strcmp(settingThatChanged, "motionEnabled") == 0) 
 			motionHandler.setEnabled(SettingsHandler::getMotionEnabled());
 		// else if(strcmp(settingThatChanged, "motionAmplitudeGlobal") == 0) 
-		// 	motionHandler.setAmplitude(SettingsHandler::getMotionAmplitudeGlobal());
+		// 	motionHandler.setAmplitude(SettingsHandler::getGetMotionAmplitudeGlobal()());
 		// else if(strcmp(settingThatChanged, "motionOffsetGlobal") == 0) 
-		// 	motionHandler.setOffset(SettingsHandler::getMotionOffsetGlobal());
+		// 	motionHandler.setOffset(SettingsHandler::getGetMotionOffsetGlobal()());
 		// else if(strcmp(settingThatChanged, "motionPeriodGlobal") == 0) 
-		// 	motionHandler.setPeriod(SettingsHandler::getMotionPeriodGlobal());
+		// 	motionHandler.setPeriod(SettingsHandler::getGetMotionPeriodGlobal()());
 		// else if(strcmp(settingThatChanged, "motionUpdateGlobal") == 0) 
-		// 	motionHandler.setUpdate(SettingsHandler::getMotionUpdateGlobal());
+		// 	motionHandler.setUpdate(SettingsHandler::getGetMotionUpdateGlobal()());
 		// else if(strcmp(settingThatChanged, "motionPhaseGlobal") == 0) 
-		// 	motionHandler.setPhase(SettingsHandler::getMotionPhaseGlobal());
+		// 	motionHandler.setPhase(SettingsHandler::getGetMotionPhaseGlobal()());
 		// else if(strcmp(settingThatChanged, "motionReversedGlobal") == 0) 
-		// 	motionHandler.setReverse(SettingsHandler::getMotionReversedGlobal());
+		// 	motionHandler.setReverse(SettingsHandler::getGetMotionReversedGlobal()());
 		// else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandom") == 0) 
-		// 	motionHandler.setAmplitudeRandom(SettingsHandler::getMotionAmplitudeGlobalRandom());
+		// 	motionHandler.setAmplitudeRandom(SettingsHandler::getGetMotionAmplitudeGlobalRandom()());
 		// else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandomMin") == 0) 
-		// 	motionHandler.setAmplitudeRandomMin(SettingsHandler::getMotionAmplitudeGlobalRandomMin());
+		// 	motionHandler.setAmplitudeRandomMin(SettingsHandler::getGetMotionAmplitudeGlobalRandomMin()());
 		// else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandomMax") == 0) 
-		// 	motionHandler.setAmplitudeRandomMax(SettingsHandler::getMotionAmplitudeGlobalRandomMax());
+		// 	motionHandler.setAmplitudeRandomMax(SettingsHandler::getGetMotionAmplitudeGlobalRandomMax()());
 		// else if(strcmp(settingThatChanged, "motionPeriodGlobalRandom") == 0) 
-		// 	motionHandler.setPeriodRandom(SettingsHandler::getMotionPeriodGlobalRandom());
+		// 	motionHandler.setPeriodRandom(SettingsHandler::getGetMotionPeriodGlobalRandom()());
 		// else if(strcmp(settingThatChanged, "motionPeriodGlobalRandomMin") == 0) 
-		// 	motionHandler.setPeriodRandomMin(SettingsHandler::getMotionPeriodGlobalRandomMin());
+		// 	motionHandler.setPeriodRandomMin(SettingsHandler::getGetMotionPeriodGlobalRandomMin()());
 		// else if(strcmp(settingThatChanged, "motionPeriodGlobalRandomMax") == 0) 
-		// 	motionHandler.setPeriodRandomMax(SettingsHandler::getMotionPeriodGlobalRandomMax());
+		// 	motionHandler.setPeriodRandomMax(SettingsHandler::getGetMotionPeriodGlobalRandomMax()());
 		// else if(strcmp(settingThatChanged, "motionOffsetGlobalRandom") == 0) 
-		// 	motionHandler.setOffsetRandom(SettingsHandler::getMotionOffsetGlobalRandom());
+		// 	motionHandler.setOffsetRandom(SettingsHandler::getGetMotionOffsetGlobalRandom()());
 		// else if(strcmp(settingThatChanged, "motionOffsetGlobalRandomMin") == 0) 
-		// 	motionHandler.setOffsetRandomMin(SettingsHandler::getMotionOffsetGlobalRandomMin());
+		// 	motionHandler.setOffsetRandomMin(SettingsHandler::getGetMotionOffsetGlobalRandomMin()());
 		// else if(strcmp(settingThatChanged, "motionOffsetGlobalRandomMax") == 0) 
-		// 	motionHandler.setOffsetRandomMax(SettingsHandler::getMotionOffsetGlobalRandomMax());
+		// 	motionHandler.setOffsetRandomMax(SettingsHandler::getGetMotionOffsetGlobalRandomMax()());
 		// else if(strcmp(settingThatChanged, "motionRandomChangeMin") == 0) 
-		// 	motionHandler.setMotionRandomChangeMin(SettingsHandler::getMotionRandomChangeMin());
+		// 	motionHandler.setMotionRandomChangeMin(SettingsHandler::getGetMotionRandomChangeMin()());
 		// else if(strcmp(settingThatChanged, "motionRandomChangeMax") == 0) 
-		// 	motionHandler.setMotionRandomChangeMax(SettingsHandler::getMotionRandomChangeMax());
+		// 	motionHandler.setMotionRandomChangeMax(SettingsHandler::getGetMotionRandomChangeMax()());
 	} else if(voiceHandler && strcmp(group, "voiceHandler") == 0) {
 		if(strcmp(settingThatChanged, "voiceMuted") == 0) 
 			voiceHandler->setMuteMode(SettingsHandler::getVoiceMuted());
@@ -479,11 +482,11 @@ void settingChangeCallback(const char* group, const char* settingThatChanged) {
 			voiceHandler->setWakeTime(SettingsHandler::getVoiceWakeTime());
 	} else if(buttonHandler && strcmp(group, "buttonCommand") == 0) {
 		if(strcmp(settingThatChanged, "bootButtonCommand") == 0) 
-			buttonHandler->updateBootButtonCommand(SettingsHandler::bootButtonCommand);
+			buttonHandler->updateBootButtonCommand(SettingsHandler::getBootButtonCommand());
 		else if(strcmp(settingThatChanged, "analogButtonCommands") == 0) {
-			buttonHandler->updateAnalogButtonCommands(SettingsHandler::buttonSets);
+			buttonHandler->updateAnalogButtonCommands(SettingsHandler::getButtonSets());
 		} else if(strcmp(settingThatChanged, "buttonAnalogDebounce") == 0) {
-			buttonHandler->updateAnalogDebounce(SettingsHandler::buttonAnalogDebounce);
+			buttonHandler->updateAnalogDebounce(SettingsHandler::getButtonAnalogDebounce());
 		}
 	} else if(strcmp(group, "channelRanges") == 0) {// TODO add channe; specific updates when moving to its own save...maybe...
 		motionHandler.updateChannelRanges();
@@ -491,9 +494,9 @@ void settingChangeCallback(const char* group, const char* settingThatChanged) {
 	
 	
 }
-void loadI2CModules() {
+void loadI2CModules(bool displayEnabled, bool batteryEnabled, bool voiceEnabled) {
 #if BUILD_DISPLAY
-	if(SettingsHandler::displayEnabled)
+	if(displayEnabled)
 	{
     	LogHandler::debug(TagHandler::Main, "Start Display task");
 		auto displayStatus = xTaskCreatePinnedToCore(
@@ -509,7 +512,7 @@ void loadI2CModules() {
 			}
 	}
 #endif
-	if(SettingsHandler::batteryLevelEnabled) {
+	if(batteryEnabled) {
 		batteryHandler = new BatteryHandler();
 		if(batteryHandler->setup()) {
 			LogHandler::debug(TagHandler::Main, "Start Battery task");
@@ -527,7 +530,7 @@ void loadI2CModules() {
 				batteryHandler->setMessageCallback(batteryVoltageCallback);
 		}
 	}
-	if(SettingsHandler::getVoiceEnabled()) {
+	if(voiceEnabled) {
 		voiceHandler = new VoiceHandler();
 		voiceHandler->setMessageCallback(TCodeCommandCallback);
 		if(voiceHandler->setup()) {
@@ -551,6 +554,8 @@ void setup()
 	// see if we can use the onboard led for status
 	//https://github.com/kriswiner/ESP32/blob/master/PWM/ledcWrite_demo_ESP32.ino
   	//digitalWrite(5, LOW);// Turn off on-board blue led
+
+	
 
 
 	Serial.begin(115200);
@@ -590,21 +595,130 @@ void setup()
 	}
 
 	SettingsHandler::init();
-	LogHandler::info(TagHandler::Main, "Version: %s", SettingsHandler::getFirmwareVersion());
+	LogHandler::info(TagHandler::Main, "Version: %s", FIRMWARE_VERSION_NAME);
+	
+	// GEt ConfigurationSettings
+	int Display_Rst_PIN = DISPLAY_RST_PIN_DEFAULT;
+	SettingsHandler::getValue(DISPLAY_RST_PIN, Display_Rst_PIN);
+	bool fanControlEnabled = FAN_CONTROL_ENABLED_DEFAULT;
+	SettingsHandler::getValue(FAN_CONTROL_ENABLED, fanControlEnabled);
+
+    // Cached (Requires reboot)
+    MotorType motorType;
+    BoardType boardType;
+	SettingsHandler::getValue(MOTOR_TYPE_SETTING, motorType);
+	SettingsHandler::getValue(BOARD_TYPE_SETTING, boardType);
+
+#if WIFI_TCODE
+    char ssid[SSID_LEN];
+    char wifiPass[WIFI_PASS_LEN];
+    bool staticIP;
+    char localIP[IP_ADDRESS_LEN];
+    char gateway[IP_ADDRESS_LEN];
+    char subnet[IP_ADDRESS_LEN];
+    char dns1[IP_ADDRESS_LEN];
+    char dns2[IP_ADDRESS_LEN];
+
+	SettingsHandler::getValue(SSID_SETTING, ssid, SSID_LEN);
+	SettingsHandler::getValue(WIFI_PASS_SETTING, wifiPass, WIFI_PASS_LEN);
+	SettingsHandler::getValue(STATICIP, staticIP);
+	SettingsHandler::getValue(LOCALIP, localIP, IP_ADDRESS_LEN);
+	SettingsHandler::getValue(GATEWAY, gateway, IP_ADDRESS_LEN);
+	SettingsHandler::getValue(SUBNET, subnet, IP_ADDRESS_LEN);
+	SettingsHandler::getValue(DNS1, dns1, IP_ADDRESS_LEN);
+	SettingsHandler::getValue(DNS2, dns2, IP_ADDRESS_LEN);
+
+#endif
+
+    int msPerRad;
+    int servoFrequency;
+    int pitchFrequency;
+    int valveFrequency;
+    int twistFrequency;
+    int squeezeFrequency;
+    bool lubeEnabled;
+    bool feedbackTwist;
+    bool analogTwist;
+    bool bootButtonEnabled;
+    bool buttonSetsEnabled;
+#if MOTOR_TYPE == 0
+
+#elif MOTOR_TYPE == 1
+    bool BLDC_UseHallSensor;
+
+    #warning validate
+    double BLDC_MotorA_Voltage;
+    double BLDC_MotorA_Current;
+    bool BLDC_MotorA_ParametersKnown;
+    double BLDC_MotorA_ZeroElecAngle;
+    int BLDC_Pulley_Circumference;
+    int BLDC_StrokeLength;
+    int BLDC_RailLength;
+    bool BLDC_UseMT6701;
+
+	SettingsHandler::getValue(BLDC_MOTORA_VOLTAGE, BLDC_MotorA_Voltage);
+	SettingsHandler::getValue(BLDC_MOTORA_CURRENT, BLDC_MotorA_Current);
+	SettingsHandler::getValue(BLDC_MOTORA_PARAMETERSKNOWN, BLDC_MotorA_ParametersKnown);
+	SettingsHandler::getValue(BLDC_MOTORA_ZEROELECANGLE, BLDC_MotorA_ZeroElecAngle);
+	SettingsHandler::getValue(BLDC_PULLEY_CIRCUMFERENCE, BLDC_Pulley_Circumference);
+	SettingsHandler::getValue(BLDC_STROKELENGTH, BLDC_StrokeLength);
+	SettingsHandler::getValue(BLDC_RAILLENGTH, BLDC_RailLength);
+	SettingsHandler::getValue(BLDC_USEMT6701, BLDC_UseMT6701);
+#endif
+
+#if BUILD_TEMP
+    bool sleeveTempEnabled;
+    bool internalTempEnabled;
+    int heaterFrequency;
+    int heaterResolution;
+	float heaterThreshold;
+    int caseFanFrequency;
+    int caseFanResolution;
+	SettingsHandler::getValue(TEMP_SLEEVE_ENABLED, sleeveTempEnabled);
+	SettingsHandler::getValue(TEMP_INTERNAL_ENABLED, internalTempEnabled);
+	SettingsHandler::getValue(HEATER_FREQUENCY, heaterFrequency);
+	SettingsHandler::getValue(HEATER_RESOLUTION, heaterResolution);
+	SettingsHandler::getValue(HEATER_THRESHOLD, heaterThreshold);
+	SettingsHandler::getValue(CASE_FAN_FREQUENCY, caseFanFrequency);
+	SettingsHandler::getValue(CASE_FAN_RESOLUTION, caseFanResolution);
+	
+#endif
+
+	SettingsHandler::getValue(MS_PER_RAD, msPerRad);
+	SettingsHandler::getValue(SERVO_FREQUENCY, servoFrequency);
+	SettingsHandler::getValue(PITCH_FREQUENCY, pitchFrequency);
+	SettingsHandler::getValue(VALVE_FREQUENCY, valveFrequency);
+	SettingsHandler::getValue(TWIST_FREQUENCY, twistFrequency);
+	SettingsHandler::getValue(SQUEEZE_FREQUENCY, squeezeFrequency);
+	SettingsHandler::getValue(FEEDBACK_TWIST, feedbackTwist);
+	SettingsHandler::getValue(ANALOG_TWIST, analogTwist);
+	SettingsHandler::getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
+	SettingsHandler::getValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
+
+    bool batteryLevelEnabled;
+    bool voiceEnabled;
+	SettingsHandler::getValue(BATTERY_LEVEL_ENABLED, batteryLevelEnabled);
+	SettingsHandler::getValue(VOICE_ENABLED, voiceEnabled);
+
+    bool displayEnabled;
+	SettingsHandler::getValue(DISPLAY_ENABLED, displayEnabled);
+	char Display_I2C_AddressString[DISPLAY_I2C_ADDRESS_LEN] = {0};
+	SettingsHandler::getValue(DISPLAY_I2C_ADDRESS, Display_I2C_AddressString, DISPLAY_I2C_ADDRESS_LEN);
+	int Display_I2C_Address = (int)strtol(Display_I2C_AddressString, NULL, 0);
 
 	systemCommandHandler = new SystemCommandHandler();
 	systemCommandHandler->registerExternalCommandCallback(TCodePassthroughCommandCallback);
 
 #if MOTOR_TYPE == 0
-	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_3) {
+	if(SettingsHandler::getTCodeVersionEnum() == TCodeVersion::v0_3) {
 		motorHandler = new ServoHandler0_3();
 	}
 	#if !DEBUG_BUILD && TCODE_V2
-		else if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2)
+		else if(SettingsHandler::getTCodeVersionEnum() == TCodeVersion::v0_2)
 			motorHandler = new ServoHandler0_2();
 	#endif
 		else {
-			LogHandler::error(TagHandler::Main, "Invalid TCode version: %ld", SettingsHandler::TCodeVersionEnum);
+			LogHandler::error(TagHandler::Main, "Invalid TCode version: %ld", SettingsHandler::getTCodeVersionEnum());
 			return;// TODO: this stops apmode and not what we want
 			//motorHandler = new ServoHandler1_0();
 		}
@@ -619,9 +733,19 @@ void setup()
 	//SystemCommandHandler::registerOtherCommandCallback(TCodeCommandCallback);
 
 #if BUILD_TEMP
-	if(SettingsHandler::tempSleeveEnabled || SettingsHandler::tempInternalEnabled) {
+	if(sleeveTempEnabled || internalTempEnabled) {
 		temperatureHandler = new TemperatureHandler();
-		temperatureHandler->setup();
+		temperatureHandler->setup(internalTempEnabled,
+				sleeveTempEnabled,
+				sleeveTempPin, 
+				internalTempPin, 
+				heaterPin, 
+				caseFanPin,
+				heaterFrequency,
+				heaterResolution,
+				fanControlEnabled,
+				caseFanFrequency,
+				caseFanResolution);
 		temperatureHandler->setMessageCallback(tempChangeCallBack);
 		temperatureHandler->setStateChangeCallback(tempStateChangeCallBack);
     	LogHandler::debug(TagHandler::Main, "Start temperature task");
@@ -641,9 +765,9 @@ void setup()
 #endif
 #if BUILD_DISPLAY
 	displayHandler = new DisplayHandler();
-	if(SettingsHandler::displayEnabled)
+	if(displayEnabled)
 	{
-		displayHandler->setup();
+		displayHandler->setup(Display_I2C_Address, fanControlEnabled, Display_Rst_PIN);
 		// #if ISAAC_NEWTONGUE_BUILD
 		// 	xTaskCreatePinnedToCore(
 		// 		DisplayHandler::startAnimationDontPanic,/* Function to implement the task */
@@ -660,24 +784,33 @@ void setup()
 	
 
 	#if WIFI_TCODE
-		if (strcmp(SettingsHandler::wifiPass, SettingsHandler::defaultWifiPass) != 0 && SettingsHandler::ssid != nullptr) {
+		if (strcmp(wifiPass, WIFI_PASS_DEFAULT) != 0 && ssid != nullptr) {
 			displayPrint("Setting up wifi...");
 			displayPrint("Connecting to: ");
-			displayPrint(SettingsHandler::ssid);
-			if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) { 
+			displayPrint(ssid);
+			if (wifi.connect(ssid, wifiPass)) 
+			{ 
 				displayPrint("Connected IP: " + wifi.ip().toString());
 		#if BUILD_DISPLAY
-			displayHandler->setLocalIPAddress(wifi.ip());
+				displayHandler->setLocalIPAddress(wifi.ip());
 		#endif
-				startUDP();
-				startWeb(false);
+				startUDP(SettingsHandler::getUdpServerPort());
+				startWeb(false, 
+					SettingsHandler::getWebServerPort(), 
+					SettingsHandler::getUdpServerPort(), 
+					SettingsHandler::getHostname(), 
+					SettingsHandler::getFriendlyName());
 			} 
 		} else { 
-			startConfigMode();
+			startConfigMode(
+				SettingsHandler::getWebServerPort(), 
+				SettingsHandler::getUdpServerPort(), 
+				SettingsHandler::getHostname(), 
+				SettingsHandler::getFriendlyName());
 		}
 	#endif
 	#if BLUETOOTH_TCODE
-		if(!SettingsHandler::apMode && SettingsHandler::bluetoothEnabled) {
+		if(!SettingsHandler::getApMode() && SettingsHandler::getBluetoothEnabled()) {
 			startBlueTooth();
 		} 
 	#endif
@@ -687,12 +820,14 @@ void setup()
     //otaHandler.setup();
 	displayPrint("Setting up motor");
     motorHandler->setup();
-	motionHandler.setup(SettingsHandler::TCodeVersionEnum);
-	loadI2CModules();
+	motionHandler.setup(SettingsHandler::getTcodeVersion());
+	loadI2CModules(displayEnabled, batteryLevelEnabled, voiceEnabled);
 	
-	if(SettingsHandler::bootButtonEnabled || SettingsHandler::buttonSetsEnabled) {
+	if(bootButtonEnabled || buttonSetsEnabled) {
 		buttonHandler = new ButtonHandler();
-		buttonHandler->init(SettingsHandler::buttonAnalogDebounce, SettingsHandler::bootButtonCommand, SettingsHandler::buttonSets);
+		buttonHandler->init(SettingsHandler::getButtonAnalogDebounce(), 
+			SettingsHandler::getBootButtonCommand(), 
+			SettingsHandler::buttonSets);
 	}
 
 	SettingsHandler::setMessageCallback(settingChangeCallback);
@@ -703,7 +838,7 @@ void setup()
 
 // Main loop functions/////////////////////////////////////////////////
 void readTCode(String& tcode) {
-	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2)
+	if(SettingsHandler::getTcodeVersion() == TCodeVersion::v0_2)
 		tcodeV2Recieved = true;
 	if(motorHandler) {
 		motorHandler->read(tcode);
@@ -712,7 +847,7 @@ void readTCode(String& tcode) {
 }
 
 void readTCode(char* tcode) {
-	if(SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2)
+	if(SettingsHandler::getTcodeVersion() == TCodeVersion::v0_2)
 		tcodeV2Recieved = true;
 	if(motorHandler) {
 		motorHandler->read(tcode);
@@ -803,7 +938,7 @@ void processMotionHandlerMovement() {
 }
 
 void loop() {
-	// if(setupSucceeded && SettingsHandler::saving) {
+	// if(setupSucceeded && SettingsHandler::getSaving()) {
 	// 	motorHandler->execute();
 	// 	vTaskDelay(250/portTICK_PERIOD_MS);
 	// 	return;
@@ -811,7 +946,7 @@ void loop() {
 	//LogHandler::verbose(TagHandler::MainLoop, "Enter loop ############################################");
 	tcodeV2Recieved = false;
 	benchStart(0);
-	if (SettingsHandler::restartRequired || restarting) {  // check the flag here to determine if a restart is required
+	if (SettingsHandler::getRestartRequired() || restarting) {  // check the flag here to determine if a restart is required
 		if(!restarting) {
 			LogHandler::info(TagHandler::Main, "Restarting ESP");
 			ESP.restart();
@@ -820,13 +955,11 @@ void loop() {
         vTaskDelay(1000/portTICK_PERIOD_MS);
 	} 
 #if BUILD_TEMP
-	else if (SettingsHandler::tempInternalEnabled && temperatureHandler && temperatureHandler->isMaxTempTriggered()) {
+	else if (temperatureHandler && temperatureHandler->isMaxTempTriggered()) {
 		char stop[7] = "DSTOP\n";
 		readTCode(stop);
 		LogHandler::error(TagHandler::Main, "Internal temp has reached maximum user set. Main loop disabled! Restart system to enable the loop.");
-			if(SettingsHandler::fanControlEnabled) {
-				temperatureHandler->setFanState();
-			}
+		temperatureHandler->setFanState();
         vTaskDelay(5000/portTICK_PERIOD_MS);
 	} 
 #endif
@@ -841,7 +974,7 @@ void loop() {
 
 			processCommand();
 
-			if(!SettingsHandler::motionPaused) {
+			if(!SettingsHandler::getMotionPaused()) {
 				dStopped = false;
 				benchStart(3);
 				if (SettingsHandler::getMotionEnabled()) {// Motion overrides all other input
@@ -868,7 +1001,7 @@ void loop() {
 					readTCode(bleData);
 #endif
 #if BLUETOOTH_TCODE
-				} else if (!SettingsHandler::getMotionEnabled() && bluetoothData.length() > 0) {
+				} else if (!SettingsHandler::getGetMotionEnabled()() && bluetoothData.length() > 0) {
 					LogHandler::verbose(TagHandler::MainLoop, "bluetooth writing: %s", bluetoothData);
 					readTCode(bluetoothData);
 #endif
@@ -899,12 +1032,8 @@ void loop() {
 #if BUILD_TEMP
 			benchStart(5);
 			if(temperatureHandler && temperatureHandler->isRunning()) {
-				if(SettingsHandler::tempSleeveEnabled) {
-					temperatureHandler->setHeaterState();
-				}
-				if(SettingsHandler::fanControlEnabled) {
-					temperatureHandler->setFanState();
-				}
+				temperatureHandler->setHeaterState();
+				temperatureHandler->setFanState();
 			}
 			benchFinish("Temp check", 5);
 #endif

@@ -100,15 +100,15 @@ protected:
                 // if(tCodeInQueue == NULL)return;
                 // xQueueSend(tCodeInQueue, &message, 0);
             } 
-            else 
-            {
-                LogHandler::verbose(_TAG, "Websocket tcode in JSON: %s", msg);
-                char tcode[MAX_COMMAND];
-                SettingsHandler::processTCodeJson(tcode, msg);
-                // Serial.print("tcode JSON converted:");
-                // Serial.println(tcode);
-                xQueueSend(tCodeInQueue, tcode, 0);
-            }
+            // else 
+            // {
+            //     LogHandler::verbose(_TAG, "Websocket tcode in JSON: %s", msg);
+            //     char tcode[MAX_COMMAND];
+            //     SettingsHandler::processTCodeJson(tcode, msg);
+            //     // Serial.print("tcode JSON converted:");
+            //     // Serial.println(tcode);
+            //     xQueueSend(tCodeInQueue, tcode, 0);
+            // }
         }
     }
 

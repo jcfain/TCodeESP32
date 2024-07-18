@@ -81,13 +81,13 @@ class Udphandler
 			packetBuffer[len] = 0;
 			//LogHandler::verbose(_TAG, "Udp in: %s", packetBuffer);
 		}
-		if (SettingsHandler::TCodeVersionEnum >= TCodeVersion::v0_3 && (strpbrk(packetBuffer, "$") != nullptr || strpbrk(packetBuffer, "#") != nullptr)) {
+		if (SettingsHandler::getTCodeVersion() >= TCodeVersion::v0_3 && (strpbrk(packetBuffer, "$") != nullptr || strpbrk(packetBuffer, "#") != nullptr)) {
 			strcpy(udpData, packetBuffer);
 			LogHandler::info(_TAG, "System command received: %s", udpData);
 			CommandCallback("OK");
-		} else if (strpbrk(packetBuffer, jsonIdentifier) != nullptr) {
-			SettingsHandler::processTCodeJson(udpData, packetBuffer);
-			//LogHandler::verbose(_TAG, "json processed: %s", udpData);
+		// } else if (strpbrk(packetBuffer, jsonIdentifier) != nullptr) {
+		// 	SettingsHandler::getProcessTCodeJson()(udpData, packetBuffer);
+		// 	//LogHandler::verbose(_TAG, "json processed: %s", udpData);
 		} else {
 			//udpData[strlen(packetBuffer) + 1];
 			strcpy(udpData, packetBuffer);

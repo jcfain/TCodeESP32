@@ -28,6 +28,7 @@ SOFTWARE. */
 #include "utils.h"
 #include "TagHandler.h"
 #include "../lib/struct/command.hpp"
+#include "../lib/settingsFactory.h"
 
 class SystemCommandHandler {
 public: 
@@ -205,6 +206,7 @@ private:
 	SemaphoreHandle_t xMutex = xSemaphoreCreateMutex();
     QueueHandle_t tCodeQueue;
 	const char* _TAG = TagHandler::SystemCommandHandler;
+	SettingsFactory* m_settingsFactory;
 	std::function<void(const char*)> m_externalCommandCallback = 0;
 	std::function<void(const char*)> m_otherCommandCallback = 0;
 
@@ -315,14 +317,16 @@ private:
 		return true;
 	}};
     const CommandValue<const char*>WIFI_SSID{{"Wifi ssid", "#wifi-ssid", "Sets the ssid of the wifi AP", SaveRequired::YES, RestartRequired::YES, SettingType::String}, [this](const char* value) -> bool {
-		return validateMaxLength("Wifi SSID", value, sizeof(SettingsHandler::ssid), false, [](const char* value) -> bool {
-			strcpy(SettingsHandler::ssid, value);
+		return validateMaxLength("Wifi SSID", value, sizeof(m_settingsFactory->getSSID()), false, [this](const char* value) -> bool {
+			m_settingsFactory->setValue(SSID_SETTING, value);
+			//strcpy(SettingsHandler::ssid, value);
 			return true;
 		}, SaveRequired::YES, RestartRequired::YES); 
 	}};
     const CommandValue<const char*>WIFI_PASS{{"Wifi pass", "#wifi-pass", "Sets the password of the wifi AP", SaveRequired::YES, RestartRequired::YES, SettingType::String}, [this](const char* value) -> bool {
-		return validateMaxLength("Wifi password", value, sizeof(SettingsHandler::wifiPass), true, [](const char* value) -> bool {
-			strcpy(SettingsHandler::wifiPass, value);
+		return validateMaxLength("Wifi password", value, sizeof(m_settingsFactory->getWifiPass()), true, [this](const char* value) -> bool {
+			m_settingsFactory->setValue(WIFI_PASS_SETTING, value);
+			//strcpy(SettingsHandler::wifiPass, value);
 			return true;
 		}, SaveRequired::YES, RestartRequired::YES); 
 	}};

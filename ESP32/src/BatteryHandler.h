@@ -59,7 +59,7 @@ public:
     /** Sets accumulated charge registers to the maximum value */
     static void setBatteryToFull() {
         if(connected()) {
-            setBatteryCapacity(SettingsHandler::batteryCapacityMax);
+            setBatteryCapacity(SettingsHandler::getBatteryCapacityMax());
             gauge.setBatteryToFull();
             LogHandler::info(_TAG, "Battery capacity set to full");
         }
@@ -84,7 +84,7 @@ public:
         LogHandler::info(_TAG, "Monitor connected!");
         m_battery_connected = true;
         gauge.setADCMode(ADC_MODE_SLEEP); // In sleep mode, voltage and temperature measurements will only take place when requested
-        setBatteryCapacity(SettingsHandler::batteryCapacityMax);
+        setBatteryCapacity(SettingsHandler::getBatteryCapacityMax());
         gauge.startMeasurement();
         LogHandler::debug(_TAG, "Complete");
         return true;
@@ -127,12 +127,12 @@ public:
 
     //void setup() {
         // Method to get via ADC I had issues with.
-        // if(SettingsHandler::batteryLevelEnabled) {
-        // 	LogHandler::info("batteryHandler", "Setting up voltage on pin: %ld", SettingsHandler::Battery_Voltage_PIN);
+        // if(SettingsHandler::getBatteryLevelEnabled()) {
+        // 	LogHandler::info("batteryHandler", "Setting up voltage on pin: %ld", SettingsHandler::getBattery_Voltage_PIN());
         // 	adc1_config_width(ADC_WIDTH_12Bit);
-        // 	m_adc1Channel = gpioToADC1(SettingsHandler::Battery_Voltage_PIN);
+        // 	m_adc1Channel = gpioToADC1(SettingsHandler::getBattery_Voltage_PIN());
         // 	if(m_adc1Channel == adc1_channel_t::ADC1_CHANNEL_MAX) {
-        // 		LogHandler::error(_TAG, "Invalid Battery voltage pin: %ld", SettingsHandler::Battery_Voltage_PIN);
+        // 		LogHandler::error(_TAG, "Invalid Battery voltage pin: %ld", SettingsHandler::getBattery_Voltage_PIN());
         // 	}
         // 	if(m_adc1Channel != adc1_channel_t::ADC1_CHANNEL_MAX) {
         // 		LogHandler::info("batteryHandler", "ADC channel: %ld", (int)m_adc1Channel);
@@ -160,7 +160,7 @@ public:
         // }
         // https://esp32tutorials.com/esp32-adc-esp-idf/
         //int adc_value = adc1_get_raw(m_adc1Channel);
-        // uint16_t raw = analogRead(SettingsHandler::Battery_Voltage_PIN); // analogRead is less accurate than adc1_get_raw
+        // uint16_t raw = analogRead(SettingsHandler::getBattery_Voltage_PIN()); // analogRead is less accurate than adc1_get_raw
         // m_batteryVoltage = (raw * 3.3 ) / 4095;
         // uint32_t mV;
         // if (m_val_type == ESP_ADC_CAL_VAL_EFUSE_VREF) {

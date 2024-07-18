@@ -69,7 +69,7 @@ void IRAM_ATTR twistChange()
 	long currentMicros = esp_timer_get_time();
 	//Thanks to AberrantJ for the following changes. https://discord.com/channels/664171761415356426/673141343320670210/919994227423858728
   	//noInterrupts();
-	if(digitalRead(SettingsHandler::TwistFeedBack_PIN) == HIGH)
+	if(digitalRead(SettingsHandler::getTwistFeedBack_PIN()) == HIGH)
 	{
 		twistPulseCycle = currentMicros-twistPulseStart;
   		twistPulseStart = currentMicros;

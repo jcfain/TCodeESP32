@@ -63,7 +63,6 @@ enum class RestartRequired {
     YES
 };
 
-
 struct Setting
 {
     const char* name;
@@ -74,3 +73,12 @@ struct Setting
     RestartRequired isRestartRequired;
     std::vector<SettingProfile> profile;
 };
+
+enum class SettingFile
+{
+    NONE,
+    Common,
+    Wifi,
+    MotionProfile,
+    ButtonSet
+}

@@ -53,127 +53,127 @@ protected:
         if(!m_tcode)
             return;
             
-        ValveServo_Freq = SettingsHandler::valveFrequency;
+        ValveServo_Freq = SettingsHandler::getValveFrequency();
         ValveServo_Int = 1000000/ValveServo_Freq;
 
-        TwistServo_Freq = SettingsHandler::twistFrequency;
+        TwistServo_Freq = SettingsHandler::getTwistFrequency();
         TwistServo_Int = 1000000/TwistServo_Freq;
 
-        SqueezeServo_Freq = SettingsHandler::squeezeFrequency;
+        SqueezeServo_Freq = SettingsHandler::getSqueezeFrequency();
         SqueezeServo_Int = 1000000/SqueezeServo_Freq;
         
-        m_tcode->setup(SettingsHandler::getFirmwareVersion(), SettingsHandler::TCodeVersionName.c_str());
+        m_tcode->setup(SettingsHandler::getGetFirmwareVersion(()), SettingsHandler::getTCodeVersionName().c_str());
         // report status
         m_tcode->StringInput("D0");
         m_tcode->StringInput("D1");
         
-        if(SettingsHandler::ValveServo_PIN > -1) {
+        if(SettingsHandler::getValveServo_PIN() > -1) {
             m_tcode->AxisInput("A1",VALVE_DEFAULT,'I',3000);
             m_tcode->RegisterAxis("A1", "Suck");
             m_tcode->RegisterAxis("A0", "Valve");
-            LogHandler::debug(_TAG, "Connecting valve servo to pin: %ld @ freq: %ld", SettingsHandler::ValveServo_PIN, SettingsHandler::valveFrequency);
+            LogHandler::debug(_TAG, "Connecting valve servo to pin: %ld @ freq: %ld", SettingsHandler::getValveServo_PIN(), SettingsHandler::getValveFrequency());
             #ifdef ESP_ARDUINO3
-            ledcAttach(SettingsHandler::ValveServo_PIN, ValveServo_Freq, 16);
+            ledcAttach(SettingsHandler::getValveServo_PIN(), ValveServo_Freq, 16);
             #else
             ledcSetup(ValveServo_PWM,ValveServo_Freq,16);
-            ledcAttachPin(SettingsHandler::ValveServo_PIN,ValveServo_PWM);
+            ledcAttachPin(SettingsHandler::getValveServo_PIN(),ValveServo_PWM);
             #endif
         }
 
-        if(SettingsHandler::TwistServo_PIN > -1) {
+        if(SettingsHandler::getTwistServo_PIN() > -1) {
             m_tcode->RegisterAxis("R0", "Twist");
-            LogHandler::debug(_TAG, "Connecting twist servo to pin: %ld @ freq: %ld", SettingsHandler::TwistServo_PIN, SettingsHandler::twistFrequency);
+            LogHandler::debug(_TAG, "Connecting twist servo to pin: %ld @ freq: %ld", SettingsHandler::getTwistServo_PIN(), SettingsHandler::getTwistFrequency());
             #ifdef ESP_ARDUINO3
-            ledcAttach(SettingsHandler::TwistServo_PIN, TwistServo_Freq, 16);
+            ledcAttach(SettingsHandler::getTwistServo_PIN(), TwistServo_Freq, 16);
             #else
             ledcSetup(TwistServo_PWM,TwistServo_Freq,16);
-            ledcAttachPin(SettingsHandler::TwistServo_PIN,TwistServo_PWM);
+            ledcAttachPin(SettingsHandler::getTwistServo_PIN(),TwistServo_PWM);
             #endif
         }
 
-        if(SettingsHandler::Squeeze_PIN > -1) {
+        if(SettingsHandler::getSqueeze_PIN() > -1) {
             m_tcode->RegisterAxis("A3", "Squeeze");
-            LogHandler::debug(_TAG, "Connecting squeeze servo to pin: %ld @ freq: %ld", SettingsHandler::Squeeze_PIN, SettingsHandler::squeezeFrequency);
+            LogHandler::debug(_TAG, "Connecting squeeze servo to pin: %ld @ freq: %ld", SettingsHandler::getSqueeze_PIN(), SettingsHandler::getSqueezeFrequency());
             #ifdef ESP_ARDUINO3
-            ledcAttach(SettingsHandler::Squeeze_PIN, SqueezeServo_Freq, 16);
+            ledcAttach(SettingsHandler::getSqueeze_PIN(), SqueezeServo_Freq, 16);
             #else
             ledcSetup(SqueezeServo_PWM,SqueezeServo_Freq,16);
-            ledcAttachPin(SettingsHandler::Squeeze_PIN,SqueezeServo_PWM);
+            ledcAttachPin(SettingsHandler::getSqueeze_PIN(),SqueezeServo_PWM);
             #endif
         }
 
-        if (SettingsHandler::lubeEnabled && SettingsHandler::LubeButton_PIN > -1 && SettingsHandler::Vibe1_PIN > -1) {
+        if (SettingsHandler::getLubeEnabled() && SettingsHandler::getLubeButton_PIN() > -1 && SettingsHandler::getVibe1_PIN() > -1) {
             m_tcode->RegisterAxis("A2", "Lube");
             m_tcode->AxisInput("A2",0,' ',0);
-            pinMode(SettingsHandler::LubeButton_PIN,INPUT);
+            pinMode(SettingsHandler::getLubeButton_PIN(),INPUT);
             #ifdef ESP_ARDUINO3
-            ledcAttach(SettingsHandler::Vibe1_PIN,VibePWM_Freq,8);
+            ledcAttach(SettingsHandler::getVibe1_PIN(),VibePWM_Freq,8);
             #else
             ledcSetup(Vibe1_PWM,VibePWM_Freq,8);
-            ledcAttachPin(SettingsHandler::Vibe1_PIN,Vibe1_PWM); 
+            ledcAttachPin(SettingsHandler::getVibe1_PIN(),Vibe1_PWM); 
             #endif
             lubeRegistered = true;
         }
 
         // Set vibration PWM pins
-        if(SettingsHandler::Vibe0_PIN > -1) {
+        if(SettingsHandler::getVibe0_PIN() > -1) {
             m_tcode->RegisterAxis("V0", "Vibe1");
-            LogHandler::debug(_TAG, "Connecting vib 1 to pin: %ld @ freq: %ld", SettingsHandler::Vibe0_PIN, VibePWM_Freq);
+            LogHandler::debug(_TAG, "Connecting vib 1 to pin: %ld @ freq: %ld", SettingsHandler::getVibe0_PIN(), VibePWM_Freq);
             #ifdef ESP_ARDUINO3
-            ledcAttach(SettingsHandler::Vibe0_PIN,VibePWM_Freq,8);
+            ledcAttach(SettingsHandler::getVibe0_PIN(),VibePWM_Freq,8);
             #else
             ledcSetup(Vibe0_PWM,VibePWM_Freq,8);
-            ledcAttachPin(SettingsHandler::Vibe0_PIN,Vibe0_PWM);
+            ledcAttachPin(SettingsHandler::getVibe0_PIN(),Vibe0_PWM);
             #endif
         }
-        if(!lubeRegistered && SettingsHandler::Vibe1_PIN > -1) {
+        if(!lubeRegistered && SettingsHandler::getVibe1_PIN() > -1) {
             m_tcode->RegisterAxis("V1", "Vibe2");
-            LogHandler::debug(_TAG, "Connecting lube/vib 2 to pin: %ld @ freq: %ld", SettingsHandler::Vibe1_PIN, VibePWM_Freq);
+            LogHandler::debug(_TAG, "Connecting lube/vib 2 to pin: %ld @ freq: %ld", SettingsHandler::getVibe1_PIN(), VibePWM_Freq);
             #ifdef ESP_ARDUINO3
-            ledcAttach(SettingsHandler::Vibe1_PIN,VibePWM_Freq,8);
+            ledcAttach(SettingsHandler::getVibe1_PIN(),VibePWM_Freq,8);
             #else
             ledcSetup(Vibe1_PWM,VibePWM_Freq,8);
-            ledcAttachPin(SettingsHandler::Vibe1_PIN,Vibe1_PWM); 
+            ledcAttachPin(SettingsHandler::getVibe1_PIN(),Vibe1_PWM); 
             #endif
         }
-        if(SettingsHandler::Vibe2_PIN > -1) {
+        if(SettingsHandler::getVibe2_PIN() > -1) {
             m_tcode->RegisterAxis("V2", "Vibe3");
-            LogHandler::debug(_TAG, "Connecting vib 3 to pin: %ld @ freq: %ld", SettingsHandler::Vibe2_PIN, VibePWM_Freq);
+            LogHandler::debug(_TAG, "Connecting vib 3 to pin: %ld @ freq: %ld", SettingsHandler::getVibe2_PIN(), VibePWM_Freq);
             #ifdef ESP_ARDUINO3
-            ledcAttach(SettingsHandler::Vibe2_PIN,VibePWM_Freq,8);
+            ledcAttach(SettingsHandler::getVibe2_PIN(),VibePWM_Freq,8);
             #else
             ledcSetup(Vibe2_PWM,VibePWM_Freq,8);
-            ledcAttachPin(SettingsHandler::Vibe2_PIN,Vibe2_PWM); 
+            ledcAttachPin(SettingsHandler::getVibe2_PIN(),Vibe2_PWM); 
             #endif
         }
-        if(SettingsHandler::Vibe3_PIN > -1) {
+        if(SettingsHandler::getVibe3_PIN() > -1) {
             m_tcode->RegisterAxis("V3", "Vibe4");
-            LogHandler::debug(_TAG, "Connecting vib 4 to pin: %ld @ freq: %ld", SettingsHandler::Vibe3_PIN, VibePWM_Freq);
+            LogHandler::debug(_TAG, "Connecting vib 4 to pin: %ld @ freq: %ld", SettingsHandler::getVibe3_PIN(), VibePWM_Freq);
             #ifdef ESP_ARDUINO3
-            ledcAttach(SettingsHandler::Vibe3_PIN,VibePWM_Freq,8);
+            ledcAttach(SettingsHandler::getVibe3_PIN(),VibePWM_Freq,8);
             #else
             ledcSetup(Vibe3_PWM,VibePWM_Freq,8);
-            ledcAttachPin(SettingsHandler::Vibe3_PIN,Vibe3_PWM); 
+            ledcAttachPin(SettingsHandler::getVibe3_PIN(),Vibe3_PWM); 
             #endif
         }
 
-        if(SettingsHandler::feedbackTwist)
+        if(SettingsHandler::getFeedbackTwist())
         {
-            if(SettingsHandler::TwistFeedBack_PIN > -1) {
+            if(SettingsHandler::getTwistFeedBack_PIN() > -1) {
                 // Initiate position tracking for twist
-                pinMode(SettingsHandler::TwistFeedBack_PIN,INPUT);
-                if(!SettingsHandler::analogTwist) 
+                pinMode(SettingsHandler::getTwistFeedBack_PIN(),INPUT);
+                if(!SettingsHandler::getAnalogTwist()) 
                 {
-                    LogHandler::debug(_TAG, "Attaching interrupt for twist feedback to pin: %u", SettingsHandler::TwistFeedBack_PIN);
-                    attachInterrupt(SettingsHandler::TwistFeedBack_PIN, twistChange, CHANGE);
+                    LogHandler::debug(_TAG, "Attaching interrupt for twist feedback to pin: %u", SettingsHandler::getTwistFeedBack_PIN());
+                    attachInterrupt(SettingsHandler::getTwistFeedBack_PIN(), twistChange, CHANGE);
                     //Serial.print("Setting digital twist "); 
-                    //Serial.println(SettingsHandler::TwistFeedBack_PIN);
+                    //Serial.println(SettingsHandler::getTwistFeedBack_PIN());
                 } 
                 else
                 {
                     //Serial.print("Setting analog twist "); 
-                    //Serial.println(SettingsHandler::TwistFeedBack_PIN);
-        /*             adcAttachPin(SettingsHandler::TwistFeedBack_PIN);
+                    //Serial.println(SettingsHandler::getTwistFeedBack_PIN());
+        /*             adcAttachPin(SettingsHandler::getTwistFeedBack_PIN());
                     analogReadResolution(11);
                     analogSetAttenuation(ADC_6db); */
                 }
@@ -224,11 +224,11 @@ private:
     void executeTwist() {
         xRot = m_tcode->AxisRead("R0");
         if(xRot > -1) {
-            if (SettingsHandler::feedbackTwist && !SettingsHandler::continuousTwist) 
+            if (SettingsHandler::getFeedbackTwist() && !SettingsHandler::getContinuousTwist()) 
             {
                 float angPos;
                 // Calculate twist position
-                if (!SettingsHandler::analogTwist)
+                if (!SettingsHandler::getAnalogTwist())
                 {  
                     //noInterrupts();
                     float dutyCycle = twistPulseLength;
@@ -240,7 +240,7 @@ private:
                 }
                 else 
                 {
-                    int feedBackValue = analogRead(SettingsHandler::TwistFeedBack_PIN);
+                    int feedBackValue = analogRead(SettingsHandler::getTwistFeedBack_PIN());
                     angPos = feedBackValue / 675.0;
                     // if(feedBackValue != testVar) {
                     //     testVar = feedBackValue;
@@ -259,10 +259,10 @@ private:
 
             // Twist
             int twist;
-            if (SettingsHandler::feedbackTwist && !SettingsHandler::continuousTwist) 
+            if (SettingsHandler::getFeedbackTwist() && !SettingsHandler::getContinuousTwist()) 
             {
                 twist  = (xRot - map(twistPos,-1500,1500,9999,0))/5;
-                if(!SettingsHandler::analogTwist) 
+                if(!SettingsHandler::getAnalogTwist()) 
                 { 
                     twist  = constrain(twist, -750, 750);
                 }
@@ -279,7 +279,7 @@ private:
                     //     Serial.print("map(twistPos,-1500,1500,9999,0) "); 
                     //     Serial.println(map(twistPos,-1500,1500,9999,0));
                         // Serial.print("map "); 
-                        // Serial.println(map(SettingsHandler::TwistServo_ZERO + twist,0,TwistServo_Int,0,65535));
+                        // Serial.println(map(SettingsHandler::getTwistServo_ZERO() + twist,0,TwistServo_Int,0,65535));
                     //}
                 }
             } 
@@ -287,7 +287,7 @@ private:
             {
                 twist  = map(xRot,0,9999,1000,-1000);
             }
-            ledcWrite(TwistServo_PWM, map(SettingsHandler::TwistServo_ZERO + twist,0,TwistServo_Int,0,65535));
+            ledcWrite(TwistServo_PWM, map(SettingsHandler::getTwistServo_ZERO() + twist,0,TwistServo_Int,0,65535));
         }
     }
 
@@ -328,10 +328,10 @@ private:
             int valve;
             valve  = valvePos - 500;
             valve  = constrain(valve, -500, 500);
-            if (SettingsHandler::inverseValve) { valve = -valve; }
-            if(SettingsHandler::valveServo90Degrees)
+            if (SettingsHandler::getInverseValve()) { valve = -valve; }
+            if(SettingsHandler::getValveServo90Degrees())
             {
-                if (SettingsHandler::inverseValve) { 
+                if (SettingsHandler::getInverseValve()) { 
                     valve = map(valve,0,500,-500,500);
                 } 
                 else
@@ -339,7 +339,7 @@ private:
                     valve = map(valve,-500,0,-500,500);
                 }
             }
-            ledcWrite(ValveServo_PWM, map(SettingsHandler::ValveServo_ZERO + valve,0,ValveServo_Int,0,65535));
+            ledcWrite(ValveServo_PWM, map(SettingsHandler::getValveServo_ZERO() + valve,0,ValveServo_Int,0,65535));
         }
     }
 
@@ -387,8 +387,8 @@ private:
             if (cmd > -1) {
                 if (cmd > 0 && cmd <= 9999) {
                     ledcWrite(Vibe1_PWM, map(cmd,1,9999,127,255));
-                } else if (digitalRead(SettingsHandler::LubeButton_PIN) == HIGH) {
-                    ledcWrite(Vibe1_PWM,SettingsHandler::lubeAmount);
+                } else if (digitalRead(SettingsHandler::getLubeButton_PIN()) == HIGH) {
+                    ledcWrite(Vibe1_PWM,SettingsHandler::getLubeAmount());
                 } else { 
                     ledcWrite(Vibe1_PWM,0);
                 }
@@ -401,7 +401,7 @@ private:
         squeezeCmd = m_tcode->AxisRead("A3");
         if(squeezeCmd > -1) {
             int squeeze = map(squeezeCmd,0,9999,1000,-1000);
-            ledcWrite(SqueezeServo_PWM, map(SettingsHandler::SqueezeServo_ZERO + squeeze,0,SqueezeServo_Int,0,65535));
+            ledcWrite(SqueezeServo_PWM, map(SettingsHandler::getSqueezeServo_ZERO() + squeeze,0,SqueezeServo_Int,0,65535));
         }
     }
 };

@@ -34,19 +34,19 @@ public:
     // Setup function
     // This is run once, when the arduino starts
     void setup() override {
-        ms_per_rad = SettingsHandler::msPerRad;
-        MainServo_Freq = SettingsHandler::servoFrequency;
-        PitchServo_Freq = SettingsHandler::pitchFrequency;
+        ms_per_rad = SettingsHandler::getMsPerRad();
+        MainServo_Freq = SettingsHandler::getServoFrequency();
+        PitchServo_Freq = SettingsHandler::getPitchFrequency();
 // Servo Pulse intervals
         MainServo_Int = 1000000/MainServo_Freq;
         PitchServo_Int = 1000000/PitchServo_Freq;
 
         // Set SR6 arms to startup positions
-        if (SettingsHandler::sr6Mode) { m_tcode->StringInput("R2750"); }
+        if (SettingsHandler::getSr6Mode()) { m_tcode->StringInput("R2750"); }
 
         // Register device axes
         m_tcode->RegisterAxis("L0", "Up");
-        if (SettingsHandler::sr6Mode) {
+        if (SettingsHandler::getSr6Mode()) {
             m_tcode->RegisterAxis("L1", "Forward");
             m_tcode->RegisterAxis("L2", "Left");
         }
@@ -56,87 +56,87 @@ public:
         // Lower Left Servo
         if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
         
-            if(SettingsHandler::LeftServo_PIN > -1) {
-                LogHandler::debug(_TAG, "Connecting left servo to pin: %u", SettingsHandler::LeftServo_PIN);
+            if(SettingsHandler::getLeftServo_PIN() > -1) {
+                LogHandler::debug(_TAG, "Connecting left servo to pin: %u", SettingsHandler::getLeftServo_PIN());
                 #ifdef ESP_ARDUINO3
-                ledcAttach(SettingsHandler::LeftServo_PIN, MainServo_Freq, 16);
+                ledcAttach(SettingsHandler::getLeftServo_PIN(), MainServo_Freq, 16);
                 #else
                 ledcSetup(LowerLeftServo_PWM,MainServo_Freq,16);
-                ledcAttachPin(SettingsHandler::LeftServo_PIN,LowerLeftServo_PWM);
+                ledcAttachPin(SettingsHandler::getLeftServo_PIN(),LowerLeftServo_PWM);
                 #endif
             } else {
-                LogHandler::error(_TAG, "Invalid left servo to pin: %u", SettingsHandler::LeftServo_PIN);
+                LogHandler::error(_TAG, "Invalid left servo to pin: %u", SettingsHandler::getLeftServo_PIN());
                 m_initFailed = true;
             }
-            if(SettingsHandler::RightServo_PIN > -1) {
+            if(SettingsHandler::getRightServo_PIN() > -1) {
                 // Lower Right Servo
-                LogHandler::debug(_TAG, "Connecting right servo to pin: %u", SettingsHandler::RightServo_PIN);
+                LogHandler::debug(_TAG, "Connecting right servo to pin: %u", SettingsHandler::getRightServo_PIN());
                 #ifdef ESP_ARDUINO3
-                ledcAttach(SettingsHandler::RightServo_PIN, MainServo_Freq, 16);
+                ledcAttach(SettingsHandler::getRightServo_PIN(), MainServo_Freq, 16);
                 #else
                 ledcSetup(LowerRightServo_PWM,MainServo_Freq,16);
-                ledcAttachPin(SettingsHandler::RightServo_PIN,LowerRightServo_PWM);
+                ledcAttachPin(SettingsHandler::getRightServo_PIN(),LowerRightServo_PWM);
                 #endif
             } else {
-                LogHandler::error(_TAG, "Invalid right servo to pin: %u", SettingsHandler::RightServo_PIN);
+                LogHandler::error(_TAG, "Invalid right servo to pin: %u", SettingsHandler::getRightServo_PIN());
                 m_initFailed = true;
             }
         }
-        if(SettingsHandler::sr6Mode)
+        if(SettingsHandler::getSr6Mode())
         {
-            if(SettingsHandler::LeftUpperServo_PIN > -1) {
+            if(SettingsHandler::getLeftUpperServo_PIN() > -1) {
                 // Upper Left Servo
-                LogHandler::debug(_TAG, "Connecting left upper servo to pin: %u", SettingsHandler::LeftUpperServo_PIN);
+                LogHandler::debug(_TAG, "Connecting left upper servo to pin: %u", SettingsHandler::getLeftUpperServo_PIN());
                 #ifdef ESP_ARDUINO3
-                ledcAttach(SettingsHandler::LeftUpperServo_PIN, MainServo_Freq, 16);
+                ledcAttach(SettingsHandler::getLeftUpperServo_PIN(), MainServo_Freq, 16);
                 #else
                 ledcSetup(UpperLeftServo_PWM,MainServo_Freq,16);
-                ledcAttachPin(SettingsHandler::LeftUpperServo_PIN,UpperLeftServo_PWM);
+                ledcAttachPin(SettingsHandler::getLeftUpperServo_PIN(),UpperLeftServo_PWM);
                 #endif
             } else {
-                LogHandler::error(_TAG, "Invalid left upper servo to pin: %u", SettingsHandler::LeftUpperServo_PIN);
+                LogHandler::error(_TAG, "Invalid left upper servo to pin: %u", SettingsHandler::getLeftUpperServo_PIN());
                 m_initFailed = true;
             }
             if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
-                if(SettingsHandler::RightUpperServo_PIN > -1) {
+                if(SettingsHandler::getRightUpperServo_PIN() > -1) {
                     // Upper Right Servo
-                    LogHandler::debug(_TAG, "Connecting right upper servo to pin: %u", SettingsHandler::RightUpperServo_PIN);
+                    LogHandler::debug(_TAG, "Connecting right upper servo to pin: %u", SettingsHandler::getRightUpperServo_PIN());
                     #ifdef ESP_ARDUINO3
-                    ledcAttach(SettingsHandler::RightUpperServo_PIN, MainServo_Freq, 16);
+                    ledcAttach(SettingsHandler::getRightUpperServo_PIN(), MainServo_Freq, 16);
                     #else
                     ledcSetup(UpperRightServo_PWM,MainServo_Freq,16);
-                    ledcAttachPin(SettingsHandler::RightUpperServo_PIN,UpperRightServo_PWM);
+                    ledcAttachPin(SettingsHandler::getRightUpperServo_PIN(),UpperRightServo_PWM);
                     #endif
                 } else {
-                    LogHandler::error(_TAG, "Invalid right upper servo to pin: %u", SettingsHandler::RightUpperServo_PIN);
+                    LogHandler::error(_TAG, "Invalid right upper servo to pin: %u", SettingsHandler::getRightUpperServo_PIN());
                     m_initFailed = true;
                 }
-                if(SettingsHandler::PitchRightServo_PIN > -1) {
+                if(SettingsHandler::getPitchRightServo_PIN() > -1) {
                     // Right Pitch Servo
-                    LogHandler::debug(_TAG, "Connecting right pitch servo to pin: %u", SettingsHandler::PitchRightServo_PIN);
+                    LogHandler::debug(_TAG, "Connecting right pitch servo to pin: %u", SettingsHandler::getPitchRightServo_PIN());
                     #ifdef ESP_ARDUINO3
-                    ledcAttach(SettingsHandler::PitchRightServo_PIN, PitchServo_Freq, 16);
+                    ledcAttach(SettingsHandler::getPitchRightServo_PIN(), PitchServo_Freq, 16);
                     #else
                     ledcSetup(RightPitchServo_PWM,PitchServo_Freq,16);
-                    ledcAttachPin(SettingsHandler::PitchRightServo_PIN,RightPitchServo_PWM);
+                    ledcAttachPin(SettingsHandler::getPitchRightServo_PIN(),RightPitchServo_PWM);
                     #endif
                 } else {
-                    LogHandler::error(_TAG, "Invalid right pitch servo to pin: %u", SettingsHandler::PitchRightServo_PIN);
+                    LogHandler::error(_TAG, "Invalid right pitch servo to pin: %u", SettingsHandler::getPitchRightServo_PIN());
                     m_initFailed = true;
                 }
             }
         }
-        if(SettingsHandler::PitchLeftServo_PIN > -1) {
+        if(SettingsHandler::getPitchLeftServo_PIN() > -1) {
             // Left Pitch Servo
-            LogHandler::debug(_TAG, "Connecting pitch servo to pin: %u", SettingsHandler::PitchLeftServo_PIN);
+            LogHandler::debug(_TAG, "Connecting pitch servo to pin: %u", SettingsHandler::getPitchLeftServo_PIN());
             #ifdef ESP_ARDUINO3
-            ledcAttach(SettingsHandler::PitchLeftServo_PIN, PitchServo_Freq, 16);
+            ledcAttach(SettingsHandler::getPitchLeftServo_PIN(), PitchServo_Freq, 16);
             #else
             ledcSetup(LeftPitchServo_PWM,PitchServo_Freq,16);
-            ledcAttachPin(SettingsHandler::PitchLeftServo_PIN,LeftPitchServo_PWM);
+            ledcAttachPin(SettingsHandler::getPitchLeftServo_PIN(),LeftPitchServo_PWM);
             #endif
         } else {
-            LogHandler::error(_TAG, "Invalid pitch servo to pin: %u", SettingsHandler::PitchLeftServo_PIN);
+            LogHandler::error(_TAG, "Invalid pitch servo to pin: %u", SettingsHandler::getPitchLeftServo_PIN());
             m_initFailed = true;
         }
 
@@ -181,32 +181,32 @@ public:
         // If you want to mix your servos differently, enter your code below:
 
         // OSR2 Kinematics
-        if (!SettingsHandler::sr6Mode) {
+        if (!SettingsHandler::getSr6Mode()) {
             // Calculate arm angles
             // Linear scale inputs to servo appropriate numbers
             int stroke,roll,pitch;
             stroke = map(xLin,0,9999,-350,350);
             roll   = map(yRot,0,9999,-180,180);
             pitch  = map(zRot,0,9999,-350,350);
-            if(SettingsHandler::inverseStroke) 
+            if(SettingsHandler::getInverseStroke()) 
             {
-                ledcWrite(LowerLeftServo_PWM, map(SettingsHandler::LeftServo_ZERO - stroke + roll,0,MainServo_Int,0,65535));
-                ledcWrite(LowerRightServo_PWM, map(SettingsHandler::RightServo_ZERO + stroke + roll,0,MainServo_Int,0,65535));
+                ledcWrite(LowerLeftServo_PWM, map(SettingsHandler::getLeftServo_ZERO() - stroke + roll,0,MainServo_Int,0,65535));
+                ledcWrite(LowerRightServo_PWM, map(SettingsHandler::getRightServo_ZERO() + stroke + roll,0,MainServo_Int,0,65535));
             }
             else
             {
-                ledcWrite(LowerLeftServo_PWM, map(SettingsHandler::LeftServo_ZERO + stroke + roll,0,MainServo_Int,0,65535));
-                ledcWrite(LowerRightServo_PWM, map(SettingsHandler::RightServo_ZERO - stroke + roll,0,MainServo_Int,0,65535));
+                ledcWrite(LowerLeftServo_PWM, map(SettingsHandler::getLeftServo_ZERO() + stroke + roll,0,MainServo_Int,0,65535));
+                ledcWrite(LowerRightServo_PWM, map(SettingsHandler::getRightServo_ZERO() - stroke + roll,0,MainServo_Int,0,65535));
             }
             
-            if(SettingsHandler::inversePitch) 
+            if(SettingsHandler::getInversePitch()) 
             {
-                ledcWrite(LeftPitchServo_PWM, map(SettingsHandler::PitchLeftServo_ZERO + pitch,0,PitchServo_Int,0,65535));
+                ledcWrite(LeftPitchServo_PWM, map(SettingsHandler::getPitchLeftServo_ZERO() + pitch,0,PitchServo_Int,0,65535));
 
             }
             else
             {
-                ledcWrite(LeftPitchServo_PWM, map(SettingsHandler::PitchLeftServo_ZERO - pitch,0,PitchServo_Int,0,65535));
+                ledcWrite(LeftPitchServo_PWM, map(SettingsHandler::getPitchLeftServo_ZERO() - pitch,0,PitchServo_Int,0,65535));
             }
         }
         else 
@@ -224,7 +224,7 @@ public:
 
             // Main arms
             int lowerLeftValue,upperLeftValue,pitchLeftValue,pitchRightValue,upperRightValue,lowerRightValue;
-            if(SettingsHandler::inverseStroke) 
+            if(SettingsHandler::getInverseStroke()) 
             {
                 lowerLeftValue = SetMainServo(16248 - fwd, 1500 - thrust - roll); // Lower left servo
                 upperLeftValue = SetMainServo(16248 - fwd, 1500 + thrust + roll); // Upper left servo
@@ -249,12 +249,12 @@ public:
 				// Serial.printf("Sending pitchLeftValue: %i\n", pitchLeftValue);
 				// Serial.printf("Sending pitchRightValue: %i\n", pitchRightValue);
             // Set Servos
-            ledcWrite(LowerLeftServo_PWM, map(SettingsHandler::LeftServo_ZERO - lowerLeftValue,0,MainServo_Int,0,65535));
-            ledcWrite(UpperLeftServo_PWM, map(SettingsHandler::LeftUpperServo_ZERO + upperLeftValue,0,MainServo_Int,0,65535));
-            ledcWrite(UpperRightServo_PWM, map(SettingsHandler::RightUpperServo_ZERO - upperRightValue,0,MainServo_Int,0,65535));
-            ledcWrite(LowerRightServo_PWM, map(SettingsHandler::RightServo_ZERO + lowerRightValue,0,MainServo_Int,0,65535));
-            ledcWrite(LeftPitchServo_PWM, map(constrain(SettingsHandler::PitchLeftServo_ZERO - pitchLeftValue, SettingsHandler::PitchLeftServo_ZERO - 600, SettingsHandler::PitchLeftServo_ZERO + 1000), 0, PitchServo_Int, 0, 65535));
-            ledcWrite(RightPitchServo_PWM, map(constrain(SettingsHandler::PitchRightServo_ZERO + pitchRightValue, SettingsHandler::PitchRightServo_ZERO - 1000, SettingsHandler::PitchRightServo_ZERO + 600), 0, PitchServo_Int, 0, 65535));
+            ledcWrite(LowerLeftServo_PWM, map(SettingsHandler::getLeftServo_ZERO() - lowerLeftValue,0,MainServo_Int,0,65535));
+            ledcWrite(UpperLeftServo_PWM, map(SettingsHandler::getLeftUpperServo_ZERO() + upperLeftValue,0,MainServo_Int,0,65535));
+            ledcWrite(UpperRightServo_PWM, map(SettingsHandler::getRightUpperServo_ZERO() - upperRightValue,0,MainServo_Int,0,65535));
+            ledcWrite(LowerRightServo_PWM, map(SettingsHandler::getRightServo_ZERO() + lowerRightValue,0,MainServo_Int,0,65535));
+            ledcWrite(LeftPitchServo_PWM, map(constrain(SettingsHandler::getPitchLeftServo_ZERO() - pitchLeftValue, SettingsHandler::getPitchLeftServo_ZERO() - 600, SettingsHandler::getPitchLeftServo_ZERO() + 1000), 0, PitchServo_Int, 0, 65535));
+            ledcWrite(RightPitchServo_PWM, map(constrain(SettingsHandler::getPitchRightServo_ZERO() + pitchRightValue, SettingsHandler::getPitchRightServo_ZERO() - 1000, SettingsHandler::getPitchRightServo_ZERO() + 600), 0, PitchServo_Int, 0, 65535));
         }
 
         executeCommon(xLin);

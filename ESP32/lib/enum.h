@@ -1,13 +1,13 @@
 #pragma once
 
-enum class TCodeVersion
+enum class TCodeVersion: int
 {
     v0_2,
     v0_3,
     v0_5
 };
 
-enum class BuildFeature
+enum class BuildFeature: int
 {
     NONE,
     DEBUG,
@@ -20,20 +20,20 @@ enum class BuildFeature
     HTTPS
 };
 
-enum class BoardType
+enum class BoardType: int
 {
     DEVKIT,
     CRIMZZON,
     ISAAC
 };
 
-enum class MotorType
+enum class MotorType: int
 {
     Servo,
     BLDC
 };
 
-enum class DeviceType
+enum class DeviceType: int
 {
     OSR,
     SR6,

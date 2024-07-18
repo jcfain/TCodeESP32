@@ -42,7 +42,7 @@ public:
         buttonIndexMap[3] = 4096;
     }
 
-    void init(uint16_t analogDebounce, char bootButtonCommand[MAX_COMMAND], ButtonSet buttonSets[MAX_BUTTON_SETS]) {
+    void init(uint16_t analogDebounce, const char bootButtonCommand[MAX_COMMAND], ButtonSet buttonSets[MAX_BUTTON_SETS]) {
         if(m_initialized) {
             return;
         }
@@ -51,9 +51,13 @@ public:
         if(m_buttonQueue == NULL) {
             LogHandler::error(_TAG, "Error creating the debug queue");
         }
-        if(SettingsHandler::bootButtonEnabled)
+        bool bootButtonEnabled = BOOT_BUTTON_ENABLED_DEFAULT;
+        SettingsHandler::getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
+        if(bootButtonEnabled)
             initBootbutton(bootButtonCommand);
-        if(SettingsHandler::buttonSetsEnabled)
+        bool buttonSetsEnabled = BUTTON_SETS_ENABLED_DEFAULT;
+        SettingsHandler::getValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
+        if(buttonSetsEnabled)
             initAnalogButtons(buttonSets);
         m_initialized = true;
     }
@@ -85,14 +89,14 @@ public:
         }
     }
 
-    void initBootbutton(char command[MAX_COMMAND]) {
+    void initBootbutton(const char command[MAX_COMMAND]) {
         pinMode(0, INPUT_PULLDOWN);
         attachInterrupt(digitalPinToInterrupt(0), bootButtonInterrupt, CHANGE);
         sprintf(bootButtonModel.name, "Boot button");
         updateBootButtonCommand(command);
     }
 
-    void updateBootButtonCommand(char bootButtonCommand[MAX_COMMAND]) {
+    void updateBootButtonCommand(const char bootButtonCommand[MAX_COMMAND]) {
         xSemaphoreTake(xMutex, portMAX_DELAY);
         if(strlen(bootButtonCommand) > 0) {
             strcpy(bootButtonModel.command, bootButtonCommand);
