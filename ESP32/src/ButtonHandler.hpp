@@ -29,6 +29,7 @@ SOFTWARE. */
 #include "SettingsHandler.h"
 #include "../lib/constants.h"
 #include "../lib/struct/buttonSet.h"
+#include "../lib/settingsFactory.h"
 
 
 class ButtonHandler {
@@ -52,11 +53,12 @@ public:
             LogHandler::error(_TAG, "Error creating the debug queue");
         }
         bool bootButtonEnabled = BOOT_BUTTON_ENABLED_DEFAULT;
-        SettingsHandler::getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
+        SettingsFactory* settingsFactory = SettingsFactory::getInstance();
+        settingsFactory->getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
         if(bootButtonEnabled)
             initBootbutton(bootButtonCommand);
         bool buttonSetsEnabled = BUTTON_SETS_ENABLED_DEFAULT;
-        SettingsHandler::getValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
+        settingsFactory->getValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
         if(buttonSetsEnabled)
             initAnalogButtons(buttonSets);
         m_initialized = true;

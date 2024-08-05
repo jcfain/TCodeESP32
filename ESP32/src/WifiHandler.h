@@ -76,9 +76,10 @@ class WifiHandler
     {
       return _apMode;
     }
-    bool connect(char ssid[32], char pass[63]) 
+    bool connect(char ssid[SSID_LEN], char pass[WIFI_PASS_LEN]) 
     {
       LogHandler::info(_TAG, "Setting up wifi");
+      m_settingsFactory = SettingsFactory::getInstance();
         _apMode = false;
         WiFi.disconnect(true, true);
         //Serial.println("Setting mode");
@@ -90,32 +91,39 @@ class WifiHandler
         WiFi.mode(WIFI_STA);
         WiFi.setSleep(false);
         WiFi.setHostname("TCodeESP32");
-      if (SettingsHandler::getStaticIP()) 
+      bool isStatic = false;
+      m_settingsFactory->getValue(STATICIP, isStatic);
+      if (isStatic) 
       {
-        LogHandler::info(_TAG, "Setting static IP settings: %s", SettingsHandler::getLocalIP());
+        const char* ipAddressString = m_settingsFactory->getValue(LOCALIP);
+        LogHandler::info(_TAG, "Setting static IP settings: %s", ipAddressString);
         IPAddress ipAddress;
-        if(!ipAddress.fromString(SettingsHandler::getLocalIP())) {
-          LogHandler::error(_TAG, "Invalid static IP address: %s", SettingsHandler::getLocalIP());
+        if(!ipAddress.fromString(ipAddressString)) {
+          LogHandler::error(_TAG, "Invalid static IP address: %s", ipAddressString);
           return false;
         }
         IPAddress gateway;
-        if(!gateway.fromString(SettingsHandler::getGateway())) {
-          LogHandler::error(_TAG, "Invalid static gateway address: %s", SettingsHandler::getGateway());
+        const char* gatewayString = m_settingsFactory->getValue(GATEWAY);
+        if(!gateway.fromString(gatewayString)) {
+          LogHandler::error(_TAG, "Invalid static gateway address: %s", gatewayString);
           return false;
         }
         IPAddress subnet;
-        if(!subnet.fromString(SettingsHandler::getSubnet())) {
-          LogHandler::error(_TAG, "Invalid static subnet address: %s", SettingsHandler::getSubnet());
+        const char* subnetString = m_settingsFactory->getValue(SUBNET);
+        if(!subnet.fromString(subnetString)) {
+          LogHandler::error(_TAG, "Invalid static subnet address: %s", subnetString);
           return false;
         }
         IPAddress dns1 = (uint32_t)0;
-        if(strlen(SettingsHandler::getDns1()) > 0 && !dns1.fromString(SettingsHandler::getDns1())) {
-          LogHandler::error(_TAG, "Invalid static dns1 address: %s", SettingsHandler::getDns1());
+        const char* dns1String = m_settingsFactory->getValue(DNS1);
+        if(strlen(dns1String) > 0 && !dns1.fromString(dns1String)) {
+          LogHandler::error(_TAG, "Invalid static dns1 address: %s", dns1String);
           return false;
         }
         IPAddress dns2 = (uint32_t)0;
-        if(strlen(SettingsHandler::getDns2()) > 0 && !dns2.fromString(SettingsHandler::getDns2())) {
-          LogHandler::error(_TAG, "Invalid static dns2 address: %s", SettingsHandler::getDns2());
+        const char* dns2String = m_settingsFactory->getValue(DNS2);
+        if(strlen(dns2String) > 0 && !dns2.fromString(dns2String)) {
+          LogHandler::error(_TAG, "Invalid static dns2 address: %s", dns2String);
           return false;
         }
 
@@ -168,7 +176,7 @@ class WifiHandler
           strcpy(SettingsHandler::currentSubnet, WiFi.gatewayIP().toString().c_str());
           strcpy(SettingsHandler::currentDns1, WiFi.dnsIP().toString().c_str());
           LogHandler::info(_TAG, "Connected to: %s", WiFi.SSID().c_str());
-          LogHandler::info(_TAG, "IP Address: %s", SettingsHandler::getLocalIP());
+          LogHandler::info(_TAG, "IP Address: %s", SettingsHandler::currentIP);
           break;
         case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: 
         {
@@ -281,6 +289,7 @@ class WifiHandler
 private: 
     WIFI_STATUS_FUNCTION_PTR_T wifiStatus_callback;
     const char* _TAG = TagHandler::WifiHandler;
+    SettingsFactory* m_settingsFactory;
     const char *ssid = AP_MODE_SSID;
     const char *password = AP_MODE_PASS;
     int connectTimeOut = 10000;

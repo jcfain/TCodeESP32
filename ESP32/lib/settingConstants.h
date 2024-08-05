@@ -3,7 +3,7 @@
 
 #include "enum.h"
 
-#define GET_DEFAULT(X) X##_DEFAULT
+//#define GET_DEFAULT(X) X##_DEFAULT
 
 // Constants
 #define LOG_PATH "/log.json"
@@ -12,6 +12,7 @@
 #define TCODE_SETTINGS "D2\n"
 
 #define COMMON_SETTINGS_PATH "/userSettings.json"
+#define PIN_SETTINGS_PATH "/pins.json"
 #define WIFI_SETTINGS_PATH "/wifiInfo.json"
 #define BUTTON_SETTINGS_PATH "/buttons.json"
 #define MOTION_PROFILE_SETTINGS_PATH "/motionProfiles.json"
@@ -51,8 +52,9 @@
 #define FEEDBACK_TWIST_DEFAULT false
 #define ANALOG_TWIST_DEFAULT false
 
-#define BLDC_USEPWM_DEFAULT false
-#define BLDC_USEMT6701_DEFAULT true
+#define BLDC_ENCODER_DEFAULT 0
+// #define BLDC_USEPWM_DEFAULT false
+// #define BLDC_USEMT6701_DEFAULT true
 #define BLDC_USEHALLSENSOR_DEFAULT false
 #define BLDC_PULLEY_CIRCUMFERENCE_DEFAULT 60
 #define BLDC_MOTORA_VOLTAGE_DEFAULT 20.0f
@@ -147,8 +149,9 @@
 #define CONTINUOUS_TWIST "continuousTwist"
 #define FEEDBACK_TWIST "feedbackTwist"
 #define ANALOG_TWIST "analogTwist"
-#define BLDC_USEPWM "BLDC_UsePWM"
-#define BLDC_USEMT6701 "BLDC_UseMT6701"
+#define BLDC_ENCODER "BLDC_Encoder"
+// #define BLDC_USEPWM "BLDC_UsePWM"
+// #define BLDC_USEMT6701 "BLDC_UseMT6701"
 #define BLDC_USEHALLSENSOR "BLDC_UseHallSensor"
 #define BLDC_PULLEY_CIRCUMFERENCE "BLDC_Pulley_Circumference"
 #define BLDC_MOTORA_VOLTAGE "BLDC_MotorA_Voltage"

@@ -49,11 +49,11 @@ class WebHandler : public HTTPBase {
 		    LogHandler::info(_TAG, "Starting web server on port: %i", port);
             server = new AsyncWebServer(port);
             ((WebSocketHandler*)webSocketHandler)->setup(server);
-
+            m_settingsFactory = SettingsFactory::getInstance();
             server->on("/wifiSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 char info[100];
-                SettingsHandler::getGetWifiInfo(info);
+                SettingsHandler::getWifiInfo(info);
                 if (strlen(info) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting wifi settings");
                     request->send(response);
@@ -71,7 +71,7 @@ class WebHandler : public HTTPBase {
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 String systemInfo;
-                SettingsHandler::getGetSystemInfo()(systemInfo);
+                SettingsHandler::getSystemInfo(systemInfo);
                 if (!systemInfo.length()) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
                     request->send(response);
@@ -98,12 +98,16 @@ class WebHandler : public HTTPBase {
                 request->send(LittleFS, LOG_PATH);
             });   
 
-            server->on("/connectWifi", HTTP_POST, [](AsyncWebServerRequest *request) 
+            server->on("/connectWifi", HTTP_POST, [this](AsyncWebServerRequest *request) 
             {
                 WifiHandler wifi;
                 const size_t capacity = JSON_OBJECT_SIZE(2);
                 DynamicJsonDocument doc(capacity);
-                if (wifi.connect(SettingsHandler::getSSID(), SettingsHandler::getWifiPass())) 
+                char ssid[SSID_LEN] = {0};
+                char pass[WIFI_PASS_LEN] = {0};
+                m_settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
+                m_settingsFactory->getValue(WIFI_PASS_SETTING, pass, WIFI_PASS_LEN);
+                if (wifi.connect(ssid, pass)) 
                 {
 
                     doc["connected"] = true;
@@ -121,13 +125,13 @@ class WebHandler : public HTTPBase {
                 request->send(response);
             });
 
-            server->on("/toggleContinousTwist", HTTP_POST, [](AsyncWebServerRequest *request) 
+            server->on("/toggleContinousTwist", HTTP_POST, [this](AsyncWebServerRequest *request) 
             {
-				SettingsHandler::getContinuousTwist() = !SettingsHandler::getContinuousTwist();
-				if (SettingsHandler::getSaveSettings()()) 
+				m_settingsFactory->setValue(CONTINUOUS_TWIST, !m_settingsFactory->getContinuousTwist());
+				if (m_settingsFactory->saveCommon()) 
 				{
 					char returnJson[45];
-					sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", SettingsHandler::getContinuousTwist() ? "true" : "false");
+					sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", m_settingsFactory->getContinuousTwist() ? "true" : "false");
 					AsyncWebServerResponse *response = request->beginResponse(200, "application/json", returnJson);
 					request->send(response);
 				} 
@@ -144,13 +148,13 @@ class WebHandler : public HTTPBase {
             });
 
 
-            server->on("^\\/pinoutDefault\\/([0-9]+)$", HTTP_POST, [](AsyncWebServerRequest *request)
+            server->on("^\\/pinoutDefault\\/([0-9]+)$", HTTP_POST, [this](AsyncWebServerRequest *request)
             {
                 auto boardTypeString = request->pathArg(0);
                 int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
                 Serial.println("Settings pinout default");
-                SettingsHandler::getBoardType() = (BoardType)boardType;
-				if (SettingsHandler::setDefaultPinout())
+                m_settingsFactory->setValue(BOARD_TYPE_SETTING, boardType);
+				if (m_settingsFactory->resetPins())
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
@@ -192,11 +196,11 @@ class WebHandler : public HTTPBase {
                 }
             });
 
-            AsyncCallbackJsonWebHandler* settingsUpdateHandler = new AsyncCallbackJsonWebHandler("/settings", [](AsyncWebServerRequest *request, JsonVariant &json)
+            AsyncCallbackJsonWebHandler* settingsUpdateHandler = new AsyncCallbackJsonWebHandler("/settings", [this](AsyncWebServerRequest *request, JsonVariant &json)
 			{
                 Serial.println("API save settings...");
                 JsonObject jsonObj = json.as<JsonObject>();
-                if (SettingsHandler::loadSettings(false, jsonObj) && SettingsHandler::saveSettings()) 
+                if (m_settingsFactory->saveCommon(jsonObj)) 
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
@@ -208,11 +212,11 @@ class WebHandler : public HTTPBase {
                 }
             }, 32768U );//Bad request? increase the size.
 
-            AsyncCallbackJsonWebHandler* wifiUpdateHandler = new AsyncCallbackJsonWebHandler("/wifiSettings", [](AsyncWebServerRequest *request, JsonVariant &json)
+            AsyncCallbackJsonWebHandler* wifiUpdateHandler = new AsyncCallbackJsonWebHandler("/wifiSettings", [this](AsyncWebServerRequest *request, JsonVariant &json)
 			{
                 Serial.println("API save wifi settings...");
                 JsonObject jsonObj = json.as<JsonObject>();
-                if (SettingsHandler::saveWifiInfo(jsonObj)) 
+                if (m_settingsFactory->saveWifi(jsonObj)) 
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
@@ -333,6 +337,7 @@ class WebHandler : public HTTPBase {
     private:
         bool initialized = false;
         const char* _TAG = TagHandler::WebHandler;
+    	SettingsFactory* m_settingsFactory;
         AsyncWebServer* server;
 
         void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){

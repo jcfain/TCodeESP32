@@ -39,13 +39,8 @@
 #define BLDC_PWMCHANNEL2_PIN_DEFAULT 26
 #define BLDC_PWMCHANNEL3_PIN_DEFAULT 25
 
+// Common
 #define TWIST_FEEDBACK_PIN "TwistFeedBack_PIN"
-#define RIGHT_SERVO_PIN "RightServo_PIN"
-#define LEFT_SERVO_PIN "LeftServo_PIN"
-#define RIGHT_UPPER_SERVO_PIN "RightUpperServo_PIN"
-#define LEFT_UPPER_SERVO_PIN "LeftUpperServo_PIN"
-#define PITCH_LEFT_SERVO_PIN "PitchLeftServo_PIN"
-#define PITCH_RIGHTSERVO_PIN "PitchRightServo_PIN"
 #define VALVE_SERVO_PIN "ValveServo_PIN"
 #define TWIST_SERVO_PIN "TwistServo_PIN"
 #define SQUEEZE_PIN "Squeeze_PIN"
@@ -62,6 +57,17 @@
 #define TEMP_PIN "Temp_PIN"
 #define HEATER_PIN "Heater_PIN"
 
+// OSR
+#define RIGHT_SERVO_PIN "RightServo_PIN"
+#define LEFT_SERVO_PIN "LeftServo_PIN"
+#define PITCH_LEFT_SERVO_PIN "PitchLeftServo_PIN"
+
+// SR6
+#define PITCH_RIGHTSERVO_PIN "PitchRightServo_PIN"
+#define RIGHT_UPPER_SERVO_PIN "RightUpperServo_PIN"
+#define LEFT_UPPER_SERVO_PIN "LeftUpperServo_PIN"
+
+// BLDC (SSR1)
 #define BLDC_ENCODER_PIN "BLDC_Encoder_PIN"
 #define BLDC_CHIPSELECT_PIN "BLDC_ChipSelect_PIN"
 #define BLDC_ENABLE_PIN "BLDC_Enable_PIN"
@@ -70,6 +76,37 @@
 #define BLDC_PWMCHANNEL2_PIN "BLDC_PWMchannel2_PIN"
 #define BLDC_PWMCHANNEL3_PIN "BLDC_PWMchannel3_PIN"
 
+class PinMap;
+
+class PinMapInfo {
+public:
+    PinMapInfo(DeviceType deviceType, BoardType boardType, PinMap* pinMap): 
+        m_deviceType(deviceType), 
+        m_boardType(boardType), 
+        m_pinMap(pinMap) { }
+
+    DeviceType deviceType() {
+        return m_deviceType;
+    }
+
+    BoardType boardType() {
+        return m_boardType;
+    }
+
+    template<typename T, typename = std::enable_if<std::is_base_of<PinMap, T>::value>>
+    const T pinMap() {
+        return static_cast<const T>(m_pinMap);
+    }  
+    const PinMap* pinMap() {
+        return m_pinMap;
+    }
+private:
+    DeviceType m_deviceType;
+    BoardType m_boardType;
+    PinMap* m_pinMap;
+};
+
+// class PinMapFactory;
 class PinMap {
 public:
     PinMap(PinMap const&) = delete;
@@ -135,7 +172,6 @@ public:
 protected:
     PinMap(){}
 private:
-    friend class PinMapFactory;
     int8_t m_twistFeedBack = TWIST_FEEDBACK_PIN_DEFAULT;
     int8_t m_valve = VALVE_SERVO_PIN_DEFAULT;
     int8_t m_twist = TWIST_SERVO_PIN_DEFAULT;
@@ -154,7 +190,7 @@ private:
     int8_t m_i2cScl = I2C_SCL_PIN_DEFAULT;
     int8_t m_buttonSetPins[MAX_BUTTON_SETS] = { 39, -1, -1, -1 };
 
-    virtual void overideDefaults() {}
+    virtual void overideDefaults() =0;
 };
 
 class PinMapSSR1 : public PinMap {
@@ -243,7 +279,6 @@ private:
     void overideDefaults() override {}
 };
 
-#warning finish custom board pin mapping
 class PinMapINControl : public PinMapSR6 {
 public:
     static PinMapINControl* getInstance()
@@ -252,27 +287,29 @@ public:
         return &instance;
     }
     void overideDefaults() override {
-        setTwistFeedBack(32);// TODO finish map overrides
-        // TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 32;
-        // RightServo_PIN = json["RightServo_PIN"] | 4;
-        // LeftServo_PIN = json["LeftServo_PIN"] | 13;
-        // RightUpperServo_PIN = json["RightUpperServo_PIN"] | 16;
-        // LeftUpperServo_PIN = json["LeftUpperServo_PIN"] | 27;
-        // PitchLeftServo_PIN = json["PitchLeftServo_PIN"] | 26;
-        // PitchRightServo_PIN = json["PitchRightServo_PIN"] | 17;
-        // ValveServo_PIN = json["ValveServo_PIN"] | 18;
-        // TwistServo_PIN = json["TwistServo_PIN"] | 25;
-        // // Common motor
-        // Squeeze_PIN = json["Squeeze_PIN"] | 19;
-        // LubeButton_PIN = json["LubeButton_PIN"] | 34;
-        // // Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
-        // Sleeve_Temp_PIN = json["Temp_PIN"] | 33;
+        setTwistFeedBack(32);
+        setRightServo(4);
+        setLeftServo(13);
+        setRightUpperServo(16);
+        setLeftUpperServo(27);
+        setPitchLeft(26);
+        setPitchRight(17);
+        setValve(18);
+        setTwist(25);
+        // Common motor
+        setSqueeze(19);
+        setLubeButton(34);
+        setInternalTemp(34);
+        setSleeveTemp(33);
+        setCaseFan(16);
         // // Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
-        // Vibe0_PIN = json["Vibe0_PIN"] | 15;
-        // Vibe1_PIN = json["Vibe1_PIN"] | 2;
+        setVibe0(15);
+        setVibe1(2);
+        setVibe2(23);
         // // Vibe2_PIN = json["Vibe2_PIN"] | 23;
+        setVibe3(32);
         // // Vibe3_PIN = json["Vibe3_PIN"] | 32;
-        // Heater_PIN = json["Heater_PIN"] | 5;
+        setHeater(5);
     }
 };
 
@@ -284,49 +321,21 @@ public:
         return &instance;
     }
     void overideDefaults() override {
-        // Vibe3_PIN = json["Vibe3_PIN"] | 26;
-        // Internal_Temp_PIN = json["Internal_Temp_PIN"] | 32;
+        setVibe3(26);
+        setInternalTemp(32);
 
         // // EXT
         // //  EXT_Input2_PIN = 34;
         // //  EXT_Input3_PIN = 39;
         // //  EXT_Input4_PIN = 36;
 
+        #warning How to handle other board setting overrides?
         // heaterResolution = json["heaterResolution"] | 8;
         // caseFanResolution = json["caseFanResolution"] | 10;
         // caseFanFrequency = json["caseFanFrequency"] | 25;
         // Display_Screen_Height = json["Display_Screen_Height"] | 32;
-        // TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 0;
+
+        setTwistFeedBack(0);
 
     }
 };
-
-class PinMapFactory {
-    static PinMap* getInstance(DeviceType deviceType, BoardType boardType)
-    {
-        PinMap* selectedPinout = 0;
-        switch(deviceType)
-        {
-            case DeviceType::SR6:
-            {
-                if(boardType == BoardType::DEVKIT)
-                    selectedPinout = PinMapSR6::getInstance();
-                else if(boardType == BoardType::ISAAC)
-                    selectedPinout = PinMapINControl::getInstance();
-                else
-                    selectedPinout = PinMapSR6MB::getInstance();
-                selectedPinout->overideDefaults();
-            }
-            break;
-            case DeviceType::OSR:
-                selectedPinout = PinMapOSR::getInstance();
-            break;
-            case DeviceType::SSR1:
-                selectedPinout = PinMapSSR1::getInstance();
-            break;
-
-        }
-        return selectedPinout;
-    }
-};
-;

@@ -39,3 +39,9 @@ enum class DeviceType: int
     SR6,
     SSR1
 };
+
+enum class BLDCEncoderType: int {
+    MT6701,
+    SPI,
+    PWM
+};

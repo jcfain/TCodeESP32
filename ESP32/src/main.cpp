@@ -98,6 +98,7 @@ SOFTWARE. */
 #include "ButtonHandler.hpp"
 
 SystemCommandHandler* systemCommandHandler;
+SettingsFactory* settingsFactory;
 //BLEConfigurationHandler* bleConfigurationHandler;
 //TcpHandler tcpHandler;
 MotorHandler* motorHandler;
@@ -396,14 +397,14 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason) {
 		if(reason == WiFiReason::NO_AP || reason == WiFiReason::UNKNOWN) {
         	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::NO_AP || WiFiReason::UNKNOWN");
 			startConfigMode(
-				SettingsHandler::getWebServerPort(), 
-				SettingsHandler::getUdpServerPort(),
-				SettingsHandler::getHostname(),
-				SettingsHandler::getFriendlyName());
+				settingsFactory->getWebServerPort(), 
+				settingsFactory->getUdpServerPort(),
+				settingsFactory->getHostname(),
+				settingsFactory->getFriendlyName());
 		} else if(reason == WiFiReason::AUTH) {
         	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AUTH");
             LogHandler::warning(TagHandler::Main, "Connection auth failed: Resetting wifi password and restarting");
-            SettingsHandler::defaultValue(WIFI_PASS_SETTING);
+            settingsFactory->defaultValue(WIFI_PASS_SETTING);
             ESP.restart();
 		}  else if(reason == WiFiReason::AP_MODE) {
         	LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AP_MODE");
@@ -482,11 +483,11 @@ void settingChangeCallback(const char* group, const char* settingThatChanged) {
 			voiceHandler->setWakeTime(SettingsHandler::getVoiceWakeTime());
 	} else if(buttonHandler && strcmp(group, "buttonCommand") == 0) {
 		if(strcmp(settingThatChanged, "bootButtonCommand") == 0) 
-			buttonHandler->updateBootButtonCommand(SettingsHandler::getBootButtonCommand());
+			buttonHandler->updateBootButtonCommand(settingsFactory->getBootButtonCommand());
 		else if(strcmp(settingThatChanged, "analogButtonCommands") == 0) {
 			buttonHandler->updateAnalogButtonCommands(SettingsHandler::getButtonSets());
 		} else if(strcmp(settingThatChanged, "buttonAnalogDebounce") == 0) {
-			buttonHandler->updateAnalogDebounce(SettingsHandler::getButtonAnalogDebounce());
+			buttonHandler->updateAnalogDebounce(settingsFactory->getButtonAnalogDebounce());
 		}
 	} else if(strcmp(group, "channelRanges") == 0) {// TODO add channe; specific updates when moving to its own save...maybe...
 		motionHandler.updateChannelRanges();
@@ -594,20 +595,27 @@ void setup()
 		return;
 	}
 
+	settingsFactory = SettingsFactory::getInstance();
+	if(!settingsFactory->init()) {
+		LogHandler::error(TagHandler::Main, "Failed to load settings...");
+		return;
+	}
+	PinMapInfo pinMapInfo = settingsFactory->getPins();
+	PinMap* pinMap = pinMapInfo.pinMap<PinMap*>();
 	SettingsHandler::init();
 	LogHandler::info(TagHandler::Main, "Version: %s", FIRMWARE_VERSION_NAME);
 	
 	// GEt ConfigurationSettings
 	int Display_Rst_PIN = DISPLAY_RST_PIN_DEFAULT;
-	SettingsHandler::getValue(DISPLAY_RST_PIN, Display_Rst_PIN);
+	settingsFactory->getValue(DISPLAY_RST_PIN, Display_Rst_PIN);
 	bool fanControlEnabled = FAN_CONTROL_ENABLED_DEFAULT;
-	SettingsHandler::getValue(FAN_CONTROL_ENABLED, fanControlEnabled);
+	settingsFactory->getValue(FAN_CONTROL_ENABLED, fanControlEnabled);
 
     // Cached (Requires reboot)
     MotorType motorType;
     BoardType boardType;
-	SettingsHandler::getValue(MOTOR_TYPE_SETTING, motorType);
-	SettingsHandler::getValue(BOARD_TYPE_SETTING, boardType);
+	settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);
+	settingsFactory->getValue(BOARD_TYPE_SETTING, boardType);
 
 #if WIFI_TCODE
     char ssid[SSID_LEN];
@@ -619,14 +627,14 @@ void setup()
     char dns1[IP_ADDRESS_LEN];
     char dns2[IP_ADDRESS_LEN];
 
-	SettingsHandler::getValue(SSID_SETTING, ssid, SSID_LEN);
-	SettingsHandler::getValue(WIFI_PASS_SETTING, wifiPass, WIFI_PASS_LEN);
-	SettingsHandler::getValue(STATICIP, staticIP);
-	SettingsHandler::getValue(LOCALIP, localIP, IP_ADDRESS_LEN);
-	SettingsHandler::getValue(GATEWAY, gateway, IP_ADDRESS_LEN);
-	SettingsHandler::getValue(SUBNET, subnet, IP_ADDRESS_LEN);
-	SettingsHandler::getValue(DNS1, dns1, IP_ADDRESS_LEN);
-	SettingsHandler::getValue(DNS2, dns2, IP_ADDRESS_LEN);
+	settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
+	settingsFactory->getValue(WIFI_PASS_SETTING, wifiPass, WIFI_PASS_LEN);
+	settingsFactory->getValue(STATICIP, staticIP);
+	settingsFactory->getValue(LOCALIP, localIP, IP_ADDRESS_LEN);
+	settingsFactory->getValue(GATEWAY, gateway, IP_ADDRESS_LEN);
+	settingsFactory->getValue(SUBNET, subnet, IP_ADDRESS_LEN);
+	settingsFactory->getValue(DNS1, dns1, IP_ADDRESS_LEN);
+	settingsFactory->getValue(DNS2, dns2, IP_ADDRESS_LEN);
 
 #endif
 
@@ -654,16 +662,16 @@ void setup()
     int BLDC_Pulley_Circumference;
     int BLDC_StrokeLength;
     int BLDC_RailLength;
-    bool BLDC_UseMT6701;
+    BLDCEncoderType BLDC_EncoderType;
 
-	SettingsHandler::getValue(BLDC_MOTORA_VOLTAGE, BLDC_MotorA_Voltage);
-	SettingsHandler::getValue(BLDC_MOTORA_CURRENT, BLDC_MotorA_Current);
-	SettingsHandler::getValue(BLDC_MOTORA_PARAMETERSKNOWN, BLDC_MotorA_ParametersKnown);
-	SettingsHandler::getValue(BLDC_MOTORA_ZEROELECANGLE, BLDC_MotorA_ZeroElecAngle);
-	SettingsHandler::getValue(BLDC_PULLEY_CIRCUMFERENCE, BLDC_Pulley_Circumference);
-	SettingsHandler::getValue(BLDC_STROKELENGTH, BLDC_StrokeLength);
-	SettingsHandler::getValue(BLDC_RAILLENGTH, BLDC_RailLength);
-	SettingsHandler::getValue(BLDC_USEMT6701, BLDC_UseMT6701);
+	settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, BLDC_MotorA_Voltage);
+	settingsFactory->getValue(BLDC_MOTORA_CURRENT, BLDC_MotorA_Current);
+	settingsFactory->getValue(BLDC_MOTORA_PARAMETERSKNOWN, BLDC_MotorA_ParametersKnown);
+	settingsFactory->getValue(BLDC_MOTORA_ZEROELECANGLE, BLDC_MotorA_ZeroElecAngle);
+	settingsFactory->getValue(BLDC_PULLEY_CIRCUMFERENCE, BLDC_Pulley_Circumference);
+	settingsFactory->getValue(BLDC_STROKELENGTH, BLDC_StrokeLength);
+	settingsFactory->getValue(BLDC_RAILLENGTH, BLDC_RailLength);
+	settingsFactory->getValue(BLDC_ENCODER, BLDC_EncoderType);
 #endif
 
 #if BUILD_TEMP
@@ -674,36 +682,36 @@ void setup()
 	float heaterThreshold;
     int caseFanFrequency;
     int caseFanResolution;
-	SettingsHandler::getValue(TEMP_SLEEVE_ENABLED, sleeveTempEnabled);
-	SettingsHandler::getValue(TEMP_INTERNAL_ENABLED, internalTempEnabled);
-	SettingsHandler::getValue(HEATER_FREQUENCY, heaterFrequency);
-	SettingsHandler::getValue(HEATER_RESOLUTION, heaterResolution);
-	SettingsHandler::getValue(HEATER_THRESHOLD, heaterThreshold);
-	SettingsHandler::getValue(CASE_FAN_FREQUENCY, caseFanFrequency);
-	SettingsHandler::getValue(CASE_FAN_RESOLUTION, caseFanResolution);
+	settingsFactory->getValue(TEMP_SLEEVE_ENABLED, sleeveTempEnabled);
+	settingsFactory->getValue(TEMP_INTERNAL_ENABLED, internalTempEnabled);
+	settingsFactory->getValue(HEATER_FREQUENCY, heaterFrequency);
+	settingsFactory->getValue(HEATER_RESOLUTION, heaterResolution);
+	settingsFactory->getValue(HEATER_THRESHOLD, heaterThreshold);
+	settingsFactory->getValue(CASE_FAN_FREQUENCY, caseFanFrequency);
+	settingsFactory->getValue(CASE_FAN_RESOLUTION, caseFanResolution);
 	
 #endif
 
-	SettingsHandler::getValue(MS_PER_RAD, msPerRad);
-	SettingsHandler::getValue(SERVO_FREQUENCY, servoFrequency);
-	SettingsHandler::getValue(PITCH_FREQUENCY, pitchFrequency);
-	SettingsHandler::getValue(VALVE_FREQUENCY, valveFrequency);
-	SettingsHandler::getValue(TWIST_FREQUENCY, twistFrequency);
-	SettingsHandler::getValue(SQUEEZE_FREQUENCY, squeezeFrequency);
-	SettingsHandler::getValue(FEEDBACK_TWIST, feedbackTwist);
-	SettingsHandler::getValue(ANALOG_TWIST, analogTwist);
-	SettingsHandler::getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
-	SettingsHandler::getValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
+	settingsFactory->getValue(MS_PER_RAD, msPerRad);
+	settingsFactory->getValue(SERVO_FREQUENCY, servoFrequency);
+	settingsFactory->getValue(PITCH_FREQUENCY, pitchFrequency);
+	settingsFactory->getValue(VALVE_FREQUENCY, valveFrequency);
+	settingsFactory->getValue(TWIST_FREQUENCY, twistFrequency);
+	settingsFactory->getValue(SQUEEZE_FREQUENCY, squeezeFrequency);
+	settingsFactory->getValue(FEEDBACK_TWIST, feedbackTwist);
+	settingsFactory->getValue(ANALOG_TWIST, analogTwist);
+	settingsFactory->getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
+	settingsFactory->getValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
 
     bool batteryLevelEnabled;
     bool voiceEnabled;
-	SettingsHandler::getValue(BATTERY_LEVEL_ENABLED, batteryLevelEnabled);
-	SettingsHandler::getValue(VOICE_ENABLED, voiceEnabled);
+	settingsFactory->getValue(BATTERY_LEVEL_ENABLED, batteryLevelEnabled);
+	settingsFactory->getValue(VOICE_ENABLED, voiceEnabled);
 
     bool displayEnabled;
-	SettingsHandler::getValue(DISPLAY_ENABLED, displayEnabled);
+	settingsFactory->getValue(DISPLAY_ENABLED, displayEnabled);
 	char Display_I2C_AddressString[DISPLAY_I2C_ADDRESS_LEN] = {0};
-	SettingsHandler::getValue(DISPLAY_I2C_ADDRESS, Display_I2C_AddressString, DISPLAY_I2C_ADDRESS_LEN);
+	settingsFactory->getValue(DISPLAY_I2C_ADDRESS, Display_I2C_AddressString, DISPLAY_I2C_ADDRESS_LEN);
 	int Display_I2C_Address = (int)strtol(Display_I2C_AddressString, NULL, 0);
 
 	systemCommandHandler = new SystemCommandHandler();
@@ -737,10 +745,10 @@ void setup()
 		temperatureHandler = new TemperatureHandler();
 		temperatureHandler->setup(internalTempEnabled,
 				sleeveTempEnabled,
-				sleeveTempPin, 
-				internalTempPin, 
-				heaterPin, 
-				caseFanPin,
+				pinMap->sleeveTemp(), 
+				pinMap->internalTemp(), 
+				pinMap->heater(), 
+				pinMap->caseFan(),
 				heaterFrequency,
 				heaterResolution,
 				fanControlEnabled,
@@ -794,19 +802,19 @@ void setup()
 		#if BUILD_DISPLAY
 				displayHandler->setLocalIPAddress(wifi.ip());
 		#endif
-				startUDP(SettingsHandler::getUdpServerPort());
+				startUDP(settingsFactory->getUdpServerPort());
 				startWeb(false, 
-					SettingsHandler::getWebServerPort(), 
-					SettingsHandler::getUdpServerPort(), 
-					SettingsHandler::getHostname(), 
-					SettingsHandler::getFriendlyName());
+					settingsFactory->getWebServerPort(), 
+					settingsFactory->getUdpServerPort(), 
+					settingsFactory->getHostname(), 
+					settingsFactory->getFriendlyName());
 			} 
 		} else { 
 			startConfigMode(
-				SettingsHandler::getWebServerPort(), 
-				SettingsHandler::getUdpServerPort(), 
-				SettingsHandler::getHostname(), 
-				SettingsHandler::getFriendlyName());
+				settingsFactory->getWebServerPort(), 
+				settingsFactory->getUdpServerPort(), 
+				settingsFactory->getHostname(), 
+				settingsFactory->getFriendlyName());
 		}
 	#endif
 	#if BLUETOOTH_TCODE
@@ -820,13 +828,13 @@ void setup()
     //otaHandler.setup();
 	displayPrint("Setting up motor");
     motorHandler->setup();
-	motionHandler.setup(SettingsHandler::getTcodeVersion());
+	motionHandler.setup(settingsFactory->getTcodeVersion());
 	loadI2CModules(displayEnabled, batteryLevelEnabled, voiceEnabled);
 	
 	if(bootButtonEnabled || buttonSetsEnabled) {
 		buttonHandler = new ButtonHandler();
-		buttonHandler->init(SettingsHandler::getButtonAnalogDebounce(), 
-			SettingsHandler::getBootButtonCommand(), 
+		buttonHandler->init(settingsFactory->getButtonAnalogDebounce(), 
+			settingsFactory->getBootButtonCommand(), 
 			SettingsHandler::buttonSets);
 	}
 
@@ -838,7 +846,7 @@ void setup()
 
 // Main loop functions/////////////////////////////////////////////////
 void readTCode(String& tcode) {
-	if(SettingsHandler::getTcodeVersion() == TCodeVersion::v0_2)
+	if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_2)
 		tcodeV2Recieved = true;
 	if(motorHandler) {
 		motorHandler->read(tcode);
@@ -847,7 +855,7 @@ void readTCode(String& tcode) {
 }
 
 void readTCode(char* tcode) {
-	if(SettingsHandler::getTcodeVersion() == TCodeVersion::v0_2)
+	if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_2)
 		tcodeV2Recieved = true;
 	if(motorHandler) {
 		motorHandler->read(tcode);

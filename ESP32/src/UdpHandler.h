@@ -39,6 +39,8 @@ class Udphandler
 		LogHandler::info(_TAG, "Starting UDP");
 		wifiUdp.begin(localPort);
         LogHandler::info(_TAG, "UDP Listening");
+    	SettingsFactory* m_settingsFactory = SettingsFactory::getInstance();
+		m_tcodeVersion = m_settingsFactory->getTcodeVersion();
 		udpInitialized = true;
     }
 
@@ -81,7 +83,7 @@ class Udphandler
 			packetBuffer[len] = 0;
 			//LogHandler::verbose(_TAG, "Udp in: %s", packetBuffer);
 		}
-		if (SettingsHandler::getTCodeVersion() >= TCodeVersion::v0_3 && (strpbrk(packetBuffer, "$") != nullptr || strpbrk(packetBuffer, "#") != nullptr)) {
+		if (m_tcodeVersion >= TCodeVersion::v0_3 && (strpbrk(packetBuffer, "$") != nullptr || strpbrk(packetBuffer, "#") != nullptr)) {
 			strcpy(udpData, packetBuffer);
 			LogHandler::info(_TAG, "System command received: %s", udpData);
 			CommandCallback("OK");
@@ -97,6 +99,8 @@ class Udphandler
     
   private: 
     const char* _TAG = TagHandler::UdpHandler;
+	TCodeVersion m_tcodeVersion;
+	
     WiFiUDP wifiUdp;
 	IPAddress _lastConnectedIP;
 	int _lastConnectedPort = 0;

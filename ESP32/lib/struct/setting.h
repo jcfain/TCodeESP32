@@ -22,6 +22,7 @@ SOFTWARE. */
 
 #pragma once
 #include <vector>
+#include <ArduinoJson.h>
 //#include <variant>
 #include <mpark/variant.hpp>
 //#include <variant.hpp>
@@ -70,6 +71,7 @@ struct Setting
     const char* description;
     SettingType type;
     mpark::variant<const int, const char*, const float, const double, const bool> value;
+    //JsonVariant value;
     RestartRequired isRestartRequired;
     std::vector<SettingProfile> profile;
 };
@@ -79,6 +81,15 @@ enum class SettingFile
     NONE,
     Common,
     Wifi,
+    Pins,
     MotionProfile,
     ButtonSet
-}
+};
+
+class SettingFileInfo {
+public:
+    const char* path;
+    SettingFile file;
+    JsonDocument doc;
+    const std::vector<Setting> settings;
+};

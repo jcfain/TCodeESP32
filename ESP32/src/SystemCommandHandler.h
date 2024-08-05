@@ -317,14 +317,14 @@ private:
 		return true;
 	}};
     const CommandValue<const char*>WIFI_SSID{{"Wifi ssid", "#wifi-ssid", "Sets the ssid of the wifi AP", SaveRequired::YES, RestartRequired::YES, SettingType::String}, [this](const char* value) -> bool {
-		return validateMaxLength("Wifi SSID", value, sizeof(m_settingsFactory->getSSID()), false, [this](const char* value) -> bool {
+		return validateMaxLength("Wifi SSID", value, SSID_LEN, false, [this](const char* value) -> bool {
 			m_settingsFactory->setValue(SSID_SETTING, value);
 			//strcpy(SettingsHandler::ssid, value);
 			return true;
 		}, SaveRequired::YES, RestartRequired::YES); 
 	}};
     const CommandValue<const char*>WIFI_PASS{{"Wifi pass", "#wifi-pass", "Sets the password of the wifi AP", SaveRequired::YES, RestartRequired::YES, SettingType::String}, [this](const char* value) -> bool {
-		return validateMaxLength("Wifi password", value, sizeof(m_settingsFactory->getWifiPass()), true, [this](const char* value) -> bool {
+		return validateMaxLength("Wifi password", value, WIFI_PASS_LEN, true, [this](const char* value) -> bool {
 			m_settingsFactory->setValue(WIFI_PASS_SETTING, value);
 			//strcpy(SettingsHandler::wifiPass, value);
 			return true;

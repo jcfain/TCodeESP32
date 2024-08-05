@@ -67,9 +67,9 @@ volatile int lastTwistPulseCycle;
 void IRAM_ATTR twistChange() 
 {
 	long currentMicros = esp_timer_get_time();
-	//Thanks to AberrantJ for the following changes. https://discord.com/channels/664171761415356426/673141343320670210/919994227423858728
-  	//noInterrupts();
-	if(digitalRead(SettingsHandler::getTwistFeedBack_PIN()) == HIGH)
+	
+    SettingsFactory* m_settingsFactory = SettingsFactory::getInstance();
+	if(digitalRead(m_settingsFactory->getPins().pinMap<PinMap*>()->twistFeedBack()) == HIGH)
 	{
 		twistPulseCycle = currentMicros-twistPulseStart;
   		twistPulseStart = currentMicros;

@@ -58,74 +58,73 @@ public:
     static ChannelMap channelMap;
     static std::vector<Channel> currentChannels;
     static BuildFeature buildFeatures[featureCount];
-    static String TCodeVersionName;
 
     
-    // // Cached (Requires reboot)
-    static TCodeVersion getTcodeVersion() { return m_settingsFactory->getTcodeVersion(); }
-    static DeviceType getDeviceType() { return m_settingsFactory->getDeviceType(); }
-    static int getWebServerPort() { return m_settingsFactory->getWebServerPort(); }
-    static int getUdpServerPort() { return m_settingsFactory->getUdpServerPort(); }
-    static const char* getHostname() { return m_settingsFactory->getHostname(); }
-    static const char* getFriendlyName() { return m_settingsFactory->getFriendlyName(); }
-    // static MotorType getMotorType() { return m_settingsFactory->getMotorType(); }
-    // static BoardType getBoardType() { return m_settingsFactory->getBoardType(); }
-    // static const char* getSSID() { return m_settingsFactory->getSSID(); }
-    // static const char* getWifiPass() { return m_settingsFactory->getWifiPass(); }
-    // static int getMsPerRad() { return m_settingsFactory->getMsPerRad(); }
-    // static int getServoFrequency() { return m_settingsFactory->getServoFrequency(); }
-    // static int getPitchFrequency() { return m_settingsFactory->getPitchFrequency(); }
-    // static int getValveFrequency() { return m_settingsFactory->getValveFrequency(); }
-    // static int getTwistFrequency() { return m_settingsFactory->getTwistFrequency(); }
-    // static int getSqueezeFrequency() { return m_settingsFactory->getSqueezeFrequency(); }
-    // static bool getLubeEnabled() { return m_settingsFactory->getLubeEnabled(); }
-    // static bool getFeedbackTwist() { return m_settingsFactory->getFeedbackTwist(); }
-    // static bool getAnalogTwist() { return m_settingsFactory->getAnalogTwist(); }
-    // static bool getBootButtonEnabled() { return m_settingsFactory->getBootButtonEnabled(); }
-    // static bool getButtonSetsEnabled() { return m_settingsFactory->getButtonSetsEnabled();
-    // static bool getBatteryLevelEnabled() { return m_settingsFactory->getBatteryLevelEnabled(); }
-    // static bool getVoiceEnabled() { return m_settingsFactory->getVoiceEnabled(); }
-    // static bool getTempSleeveEnabled() { return m_settingsFactory->getTempSleeveEnabled(); }
-    // static bool getTempInternalEnabled() { return m_settingsFactory->getTempInternalEnabled(); }
-    // static bool getStaticIP() { return m_settingsFactory->getStaticIP(); }
-    // static const char* getLocalIP() { return m_settingsFactory->getLocalIP(); }
-    // static const char* getGateway() { return m_settingsFactory->getGateway(); }
-    // static const char* getSubnet() { return m_settingsFactory->getSubnet(); }
-    // static const char* getDns1() { return m_settingsFactory->getDns1(); }
-    // static const char* getDns2() { return m_settingsFactory->getDns2(); }
+    // // // Cached (Requires reboot)
+    // static TCodeVersion getTcodeVersion() { return m_settingsFactory->getTcodeVersion(); }
+    // static DeviceType getDeviceType() { return m_settingsFactory->getDeviceType(); }
+    // static int getWebServerPort() { return m_settingsFactory->getWebServerPort(); }
+    // static int getUdpServerPort() { return m_settingsFactory->getUdpServerPort(); }
+    // static const char* getHostname() { return m_settingsFactory->getHostname(); }
+    // static const char* getFriendlyName() { return m_settingsFactory->getFriendlyName(); }
+    // // static MotorType getMotorType() { return m_settingsFactory->getMotorType(); }
+    // // static BoardType getBoardType() { return m_settingsFactory->getBoardType(); }
+    // // static const char* getSSID() { return m_settingsFactory->getSSID(); }
+    // // static const char* getWifiPass() { return m_settingsFactory->getWifiPass(); }
+    // // static int getMsPerRad() { return m_settingsFactory->getMsPerRad(); }
+    // // static int getServoFrequency() { return m_settingsFactory->getServoFrequency(); }
+    // // static int getPitchFrequency() { return m_settingsFactory->getPitchFrequency(); }
+    // // static int getValveFrequency() { return m_settingsFactory->getValveFrequency(); }
+    // // static int getTwistFrequency() { return m_settingsFactory->getTwistFrequency(); }
+    // // static int getSqueezeFrequency() { return m_settingsFactory->getSqueezeFrequency(); }
+    // // static bool getLubeEnabled() { return m_settingsFactory->getLubeEnabled(); }
+    // // static bool getFeedbackTwist() { return m_settingsFactory->getFeedbackTwist(); }
+    // // static bool getAnalogTwist() { return m_settingsFactory->getAnalogTwist(); }
+    // // static bool getBootButtonEnabled() { return m_settingsFactory->getBootButtonEnabled(); }
+    // // static bool getButtonSetsEnabled() { return m_settingsFactory->getButtonSetsEnabled();
+    // // static bool getBatteryLevelEnabled() { return m_settingsFactory->getBatteryLevelEnabled(); }
+    // // static bool getVoiceEnabled() { return m_settingsFactory->getVoiceEnabled(); }
+    // // static bool getTempSleeveEnabled() { return m_settingsFactory->getTempSleeveEnabled(); }
+    // // static bool getTempInternalEnabled() { return m_settingsFactory->getTempInternalEnabled(); }
+    // // static bool getStaticIP() { return m_settingsFactory->getStaticIP(); }
+    // // static const char* getLocalIP() { return m_settingsFactory->getLocalIP(); }
+    // // static const char* getGateway() { return m_settingsFactory->getGateway(); }
+    // // static const char* getSubnet() { return m_settingsFactory->getSubnet(); }
+    // // static const char* getDns1() { return m_settingsFactory->getDns1(); }
+    // // static const char* getDns2() { return m_settingsFactory->getDns2(); }
 
-    // Cached (Live update)
-    static bool getInverseStroke() { return m_settingsFactory->getInverseStroke(); }
-    static bool getInversePitch() { return m_settingsFactory->getInversePitch(); }
-    static bool getValveServo90Degrees() { return m_settingsFactory->getValveServo90Degrees(); }
-    static bool getAutoValve() { return m_settingsFactory->getAutoValve(); }
-    static bool getInverseValve() { return m_settingsFactory->getInverseValve(); }
-    static bool getContinuousTwist() { return m_settingsFactory->getContinuousTwist(); }
-    static int getLubeAmount() { return m_settingsFactory->getLubeAmount(); }
-    static int getBatteryCapacityMax() { return m_settingsFactory->getBatteryCapacityMax(); }
-    static int getRightServo_ZERO() { return m_settingsFactory->getRightServo_ZERO(); }
-    static int getLeftServo_ZERO() { return m_settingsFactory->getLeftServo_ZERO(); }
-    static int getRightUpperServo_ZERO() { return m_settingsFactory->getRightUpperServo_ZERO(); }
-    static int getLeftUpperServo_ZERO() { return m_settingsFactory->getLeftUpperServo_ZERO(); }
-    static int getPitchLeftServo_ZERO() { return m_settingsFactory->getPitchLeftServo_ZERO(); }
-    static int getPitchRightServo_ZERO() { return m_settingsFactory->getPitchRightServo_ZERO(); }
-    static int getTwistServo_ZERO() { return m_settingsFactory->getTwistServo_ZERO(); }
-    static int getValveServo_ZERO() { return m_settingsFactory->getValveServo_ZERO(); }
-    static int getSqueezeServo_ZERO() { return m_settingsFactory->getSqueezeServo_ZERO(); }
-    static const char* getBootButtonCommand() { return m_settingsFactory->getBootButtonCommand(); }
-    static uint16_t getButtonAnalogDebounce() { return m_settingsFactory->getButtonAnalogDebounce(); }
-    static bool getVersionDisplayed() { return m_settingsFactory->getVersionDisplayed(); }
-    static bool getSleeveTempDisplayed() { return m_settingsFactory->getSleeveTempDisplayed(); }
-    static bool getInternalTempDisplayed() { return m_settingsFactory->getInternalTempDisplayed(); }
-    static int getDisplayScreenWidth() { return m_settingsFactory->getDisplayScreenWidth(); }
-    static int getDisplayScreenHeight() { return m_settingsFactory->getDisplayScreenHeight(); }
-    static int getBatteryLevelNumeric() { return m_settingsFactory->getBatteryLevelNumeric(); }
-    static int getTargetTemp() { return m_settingsFactory->getTargetTemp(); }
-    static int getHeatPWM() { return m_settingsFactory->getHeatPWM(); }
-    static int getHoldPWM() { return m_settingsFactory->getHoldPWM(); }
-    static float getHeaterThreshold() { return m_settingsFactory->getHeaterThreshold(); }
-    static double getInternalMaxTemp() { return m_settingsFactory->getInternalMaxTemp(); }
-    static double getInternalTempForFanOn() { return m_settingsFactory->getInternalTempForFanOn(); }
+    // // Cached (Live update)
+    // static bool getInverseStroke() { return m_settingsFactory->getInverseStroke(); }
+    // static bool getInversePitch() { return m_settingsFactory->getInversePitch(); }
+    // static bool getValveServo90Degrees() { return m_settingsFactory->getValveServo90Degrees(); }
+    // static bool getAutoValve() { return m_settingsFactory->getAutoValve(); }
+    // static bool getInverseValve() { return m_settingsFactory->getInverseValve(); }
+    // static bool getContinuousTwist() { return m_settingsFactory->getContinuousTwist(); }
+    // static int getLubeAmount() { return m_settingsFactory->getLubeAmount(); }
+    // static int getBatteryCapacityMax() { return m_settingsFactory->getBatteryCapacityMax(); }
+    // static int getRightServo_ZERO() { return m_settingsFactory->getRightServo_ZERO(); }
+    // static int getLeftServo_ZERO() { return m_settingsFactory->getLeftServo_ZERO(); }
+    // static int getRightUpperServo_ZERO() { return m_settingsFactory->getRightUpperServo_ZERO(); }
+    // static int getLeftUpperServo_ZERO() { return m_settingsFactory->getLeftUpperServo_ZERO(); }
+    // static int getPitchLeftServo_ZERO() { return m_settingsFactory->getPitchLeftServo_ZERO(); }
+    // static int getPitchRightServo_ZERO() { return m_settingsFactory->getPitchRightServo_ZERO(); }
+    // static int getTwistServo_ZERO() { return m_settingsFactory->getTwistServo_ZERO(); }
+    // static int getValveServo_ZERO() { return m_settingsFactory->getValveServo_ZERO(); }
+    // static int getSqueezeServo_ZERO() { return m_settingsFactory->getSqueezeServo_ZERO(); }
+    // static const char* getBootButtonCommand() { return m_settingsFactory->getBootButtonCommand(); }
+    // static uint16_t getButtonAnalogDebounce() { return m_settingsFactory->getButtonAnalogDebounce(); }
+    // static bool getVersionDisplayed() { return m_settingsFactory->getVersionDisplayed(); }
+    // static bool getSleeveTempDisplayed() { return m_settingsFactory->getSleeveTempDisplayed(); }
+    // static bool getInternalTempDisplayed() { return m_settingsFactory->getInternalTempDisplayed(); }
+    // static int getDisplayScreenWidth() { return m_settingsFactory->getDisplayScreenWidth(); }
+    // static int getDisplayScreenHeight() { return m_settingsFactory->getDisplayScreenHeight(); }
+    // static int getBatteryLevelNumeric() { return m_settingsFactory->getBatteryLevelNumeric(); }
+    // static int getTargetTemp() { return m_settingsFactory->getTargetTemp(); }
+    // static int getHeatPWM() { return m_settingsFactory->getHeatPWM(); }
+    // static int getHoldPWM() { return m_settingsFactory->getHoldPWM(); }
+    // static float getHeaterThreshold() { return m_settingsFactory->getHeaterThreshold(); }
+    // static double getInternalMaxTemp() { return m_settingsFactory->getInternalMaxTemp(); }
+    // static double getInternalTempForFanOn() { return m_settingsFactory->getInternalTempForFanOn(); }
     
 
     // static TCodeVersion TCodeVersionEnum;
@@ -270,22 +269,22 @@ public:
     static bool apMode;
 
     
-    template<typename T,
-             typename = std::enable_if<!std::is_const<T>::value || std::is_integral<T>::value || std::is_enum<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
-    static void getValue(const char* name, T &value)
-    {
-        m_settingsFactory->getValue(name, value);
-    }
+    // template<typename T,
+    //          typename = std::enable_if<!std::is_const<T>::value || std::is_integral<T>::value || std::is_enum<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
+    // static void getValue(const char* name, T &value)
+    // {
+    //     m_settingsFactory->getValue(name, value);
+    // }
     
-    static void getValue(const char* name, char* value, size_t len)
-    {
-        m_settingsFactory->getValue(name, value, len);
-    }
+    // static void getValue(const char* name, char* value, size_t len)
+    // {
+    //     m_settingsFactory->getValue(name, value, len);
+    // }
 
-    static void defaultValue(const char* name) 
-    {
-        m_settingsFactory->defaultValue(name);
-    }
+    // static void defaultValue(const char* name) 
+    // {
+    //     m_settingsFactory->defaultValue(name);
+    // }
 
     static void init()
     {
@@ -294,9 +293,6 @@ public:
 
         // loadWifiInfo(false);
         // loadSettings(false);
-        m_settingsFactory->loadWifi();
-        m_settingsFactory->loadCommon();
-        m_settingsFactory->loadCache();
         loadMotionProfiles(false);
         loadButtons(false);
 
@@ -356,7 +352,7 @@ public:
     {
         char webServerportString[6];
         int webServerPort = 0;
-        getValue(WEBSERVER_PORT, webServerPort);
+        m_settingsFactory->getValue(WEBSERVER_PORT, webServerPort);
         sprintf(webServerportString, ":%ld", webServerPort);
         LogHandler::info(_TAG, "Web address: http://%s%s", hostAddress, webServerPort == 80 ? "" : webServerportString);
     }
@@ -400,31 +396,35 @@ public:
 		//setBoardPinout();
         int8_t defaultButtonSetPin = -1;
         for(int i = 0; i < MAX_BUTTON_SETS; i++) {
-            buttonSets[i].pin = i==0 ? getbu : -1;
+            buttonSets[i].pin = i==0 ? defaultButtonSetPin : -1;
         }
-        return m_settingsFactory->saveCommon();
+        return m_settingsFactory->savePins();
     }
 
-    // static void getWifiInfo(char buf[100])
-    // {
-    //     DynamicJsonDocument doc(100);
+    static void getWifiInfo(char buf[100])
+    {
+        DynamicJsonDocument doc(100);
 
-    //     doc["ssid"] = ssid;
+        char ssid[SSID_LEN];
+        char wifiPass[WIFI_PASS_LEN];
+        m_settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
+        m_settingsFactory->getValue(WIFI_PASS_SETTING, wifiPass, WIFI_PASS_LEN);
+        doc["ssid"] = ssid;
         
-    //     if(strcmp(wifiPass, defaultWifiPass) != 0) {
-    //         doc["wifiPass"] = decoyPass; // Never set to actual password
-    //     } else {
-    //         doc["wifiPass"] = defaultWifiPass;
-    //     }
+        if(strcmp(wifiPass, WIFI_PASS_DEFAULT) != 0) {
+            doc["wifiPass"] = DECOY_PASS; // Never set to actual password
+        } else {
+            doc["wifiPass"] = WIFI_PASS_DEFAULT;
+        }
 
-    //     String output;
-    //     serializeJson(doc, output);
-    //     doc.clear();
-    //     if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
-    //         Serial.printf("WifiInfo: %s\n", output.c_str());
-    //     buf[0] = {0};
-    //     strcpy(buf, output.c_str());
-    // }
+        String output;
+        serializeJson(doc, output);
+        doc.clear();
+        if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
+            Serial.printf("WifiInfo: %s\n", output.c_str());
+        buf[0] = {0};
+        strcpy(buf, output.c_str());
+    }
 
     static void getSystemInfo(String &buf)
     {
@@ -445,7 +445,7 @@ public:
         INControl["name"] = "IN-Control";
         INControl["value"] = (uint8_t)BoardType::ISAAC;
         int motorType = MOTOR_TYPE_DEFAULT;
-        getValue(MOTOR_TYPE_SETTING, motorType);
+        m_settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);
         doc["motorType"] = motorType;
         JsonArray buildFeaturesJsonArray = doc.createNestedArray("buildFeatures");
         for (BuildFeature value : buildFeatures)
@@ -483,7 +483,7 @@ public:
         channelMap.serialize(availableChannels);
         doc["motionEnabled"] = getMotionEnabled();
         int motionProfileSelectedIndex = MOTION_PROFILE_SELECTED_INDEX_DEFAULT;
-        getValue(MOTION_PROFILE_SELECTED_INDEX, motionProfileSelectedIndex);
+        m_settingsFactory->getValue(MOTION_PROFILE_SELECTED_INDEX, motionProfileSelectedIndex);
         doc[MOTION_PROFILE_SELECTED_INDEX] = motionProfileSelectedIndex; 
         
         doc["localIP"] = currentIP;
@@ -634,7 +634,7 @@ public:
                 mutableLoadDefault = true;
                 for(int i = 0; i < MAX_BUTTON_SETS; i++) {
                     buttonSets[i] = ButtonSet();
-                    buttonSets[i].pin = BUTTON_SET_PINS_DEFAULT[i];
+                    buttonSets[i].pin = m_settingsFactory->getPins().pinMap()->buttonSetPin(i);
                         
                     sprintf(buttonSets[i].name, "Button set %u", i+1);
                     LogHandler::debug(_TAG, "Default buttonset name: %s, index: %u, pin: %ld", buttonSets[i].name, i, buttonSets[i].pin);
@@ -676,16 +676,16 @@ public:
         return saveSettingsJson(BUTTON_SETTINGS_PATH, m_buttonsMutex, docSize, [](DynamicJsonDocument& doc) -> bool {
 
             bool bootButtonEnabled = BOOT_BUTTON_ENABLED_DEFAULT;
-            SettingsHandler::getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
+            m_settingsFactory->getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
             doc["bootButtonEnabled"] = bootButtonEnabled; 
             bool buttonSetsEnabled = BUTTON_SETS_ENABLED_DEFAULT;
-            SettingsHandler::getValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
+            m_settingsFactory->getValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
             doc["buttonSetsEnabled"] = buttonSetsEnabled;
             char* bootButtonCommand = BOOT_BUTTON_COMMAND_DEFAULT;
-            SettingsHandler::getValue(BOOT_BUTTON_COMMAND, bootButtonCommand, MAX_COMMAND);
+            m_settingsFactory->getValue(BOOT_BUTTON_COMMAND, bootButtonCommand, MAX_COMMAND);
             doc["bootButtonCommand"] = bootButtonCommand; 
             int buttonAnalogDebounce = BUTTON_ANALOG_DEBOUNCE_DEFAULT;
-            SettingsHandler::getValue(BUTTON_ANALOG_DEBOUNCE, buttonAnalogDebounce);
+            m_settingsFactory->getValue(BUTTON_ANALOG_DEBOUNCE, buttonAnalogDebounce);
             doc["buttonAnalogDebounce"] = buttonAnalogDebounce;
             
             //auto buttonSetArray = doc.createNestedArray("buttonSets");
@@ -1211,9 +1211,9 @@ public:
 		LogHandler::info(_TAG, "Scanning for I2C...");
 		nDevices = 0;
         int8_t sdaPin = I2C_SDA_PIN_DEFAULT;
-        getValue(I2C_SDA_PIN, sdaPin);
+        m_settingsFactory->getValue(I2C_SDA_PIN, sdaPin);
         int8_t sclPin = I2C_SCL_PIN_DEFAULT;
-        getValue(I2C_SCL_PIN, sclPin);
+        m_settingsFactory->getValue(I2C_SCL_PIN, sclPin);
         if(sdaPin < 0 || sclPin < 0) {
 		    LogHandler::debug(_TAG, "SDA or SCL is disabled when scaning for I2C devices sdaPin: %ld, sclPin: %ld", sdaPin, sclPin);
             return false;
@@ -2207,25 +2207,6 @@ private:
         return constrain(value, getChannelMin(channel), getChannelMax(channel));
     }
 
-    static String TCodeVersionMapper(TCodeVersion version) 
-    {
-        switch (version)
-        {
-        case TCodeVersion::v0_2:
-            return "TCode v0.2\n";
-            break;
-        case TCodeVersion::v0_3:
-            return "TCode v0.3\n";
-            break;
-        case TCodeVersion::v0_5:
-            return "TCode v0.5\n";
-            break;
-        default:
-            return "TCode v?\n";
-            break;
-        }
-    }
-
     // Function that gets current epoch time
     static unsigned long getTime()
     {
@@ -2483,8 +2464,6 @@ BuildFeature SettingsHandler::buildFeatures[featureCount];
 const char *SettingsHandler::_TAG = TagHandler::SettingsHandler;
 std::vector<int> SettingsHandler::systemI2CAddresses;
 SETTING_STATE_FUNCTION_PTR_T SettingsHandler::message_callback = 0;
-String SettingsHandler::TCodeVersionName;
-// TCodeVersion SettingsHandler::TCodeVersionEnum;
 ChannelMap SettingsHandler::channelMap;
 std::vector<Channel> SettingsHandler::currentChannels;
 

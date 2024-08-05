@@ -58,8 +58,9 @@ public:
 
     /** Sets accumulated charge registers to the maximum value */
     static void setBatteryToFull() {
-        if(connected()) {
-            setBatteryCapacity(SettingsHandler::getBatteryCapacityMax());
+        if(connected()) {        
+            SettingsFactory* settingsFactory = SettingsFactory::getInstance();
+            setBatteryCapacity(settingsFactory->getBatteryCapacityMax());
             gauge.setBatteryToFull();
             LogHandler::info(_TAG, "Battery capacity set to full");
         }
@@ -84,7 +85,8 @@ public:
         LogHandler::info(_TAG, "Monitor connected!");
         m_battery_connected = true;
         gauge.setADCMode(ADC_MODE_SLEEP); // In sleep mode, voltage and temperature measurements will only take place when requested
-        setBatteryCapacity(SettingsHandler::getBatteryCapacityMax());
+        SettingsFactory* settingsFactory = SettingsFactory::getInstance();
+        setBatteryCapacity(settingsFactory->getBatteryCapacityMax());
         gauge.startMeasurement();
         LogHandler::debug(_TAG, "Complete");
         return true;
