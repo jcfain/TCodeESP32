@@ -32,6 +32,7 @@ SOFTWARE. */
 #include "settingConstants.h"
 #include "pinMap.h"
 
+using SETTING_STATE_FUNCTION_PTR_T = void (*)(const SettingProfile &profile, const char* settingThatChanged);
 
 class SettingsFactory
 {
@@ -46,7 +47,7 @@ public:
 
     bool init() 
     {
-        if(!loadWifi() || !loadCommon() || !loadPins())
+        if(!loadAll())
             return false;
         m_initialized = true;
         loadCache();
@@ -122,6 +123,9 @@ public:
     int getSqueezeServo_ZERO() const { return SqueezeServo_ZERO; }
     const char* getBootButtonCommand() const { return bootButtonCommand; }
     uint16_t getButtonAnalogDebounce() const { return buttonAnalogDebounce; }
+    bool getVoiceMuted() const { return voiceMuted; };
+	int8_t getVoiceVolume() const { return voiceVolume; };
+	int8_t getVoiceWakeTime() const { return voiceWakeTime; };
     bool getVersionDisplayed() const { return versionDisplayed; }
     bool getSleeveTempDisplayed() const { return sleeveTempDisplayed; }
     bool getInternalTempDisplayed() const { return internalTempDisplayed; }
@@ -147,6 +151,19 @@ public:
         &m_pinsFileInfo,
         &m_commonFileInfo
     };
+
+    void setMessageCallback(SETTING_STATE_FUNCTION_PTR_T f)
+    {
+        LogHandler::debug(m_TAG, "setMessageCallback");
+        if (f == nullptr)
+        {
+            message_callback = 0;
+        }
+        else
+        {
+            message_callback = f;
+        }
+    }
 
     const Setting* getSetting(const char* name) const
     { 
@@ -174,10 +191,10 @@ public:
             setting = getSetting(name);
         if(!setting)
             return false;
-        return std::find_if(setting->profile.begin(), setting->profile.end(), 
+        return std::find_if(setting->profiles.begin(), setting->profiles.end(), 
                             [profile](const SettingProfile &profileIn) {
                                 return profile == profileIn;
-        }) != setting->profile.end();
+        }) != setting->profiles.end();
     }
 
     template<typename T,
@@ -231,6 +248,7 @@ public:
         {
             return SettingFile::Common;
         }
+        return SettingFile::NONE;
     }
     
     const char* getValue(const char* name)
@@ -273,22 +291,25 @@ public:
         if (m_wifiFileInfo.doc.containsKey(name))
         {
             xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
-            toJson(getSetting(name), m_wifiFileInfo.doc);
+            const Setting* setting = getSetting(name);
+            toJson(setting, m_wifiFileInfo.doc);
             saveWifi();
             xSemaphoreGive(m_wifiSemaphore);
+            sendMessage(setting->profiles.front(), name);
             return SettingFile::Wifi;
         }
         else if (m_commonFileInfo.doc.containsKey(name))
         {
             xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
-            toJson(getSetting(name), m_commonFileInfo.doc);
+            const Setting* setting = getSetting(name);
+            toJson(setting, m_commonFileInfo.doc);
             saveCommon();
             xSemaphoreGive(m_commonSemaphore);
+            sendMessage(setting->profiles.front(), name);
             return SettingFile::Common;
         }
-        else
-            LogHandler::error(m_TAG, "Set value key not found: ", name);
-            return SettingFile::NONE;
+        LogHandler::error(m_TAG, "Set value key not found: ", name);
+        return SettingFile::NONE;
     }
 
     void defaultValue(const char* name) 
@@ -421,6 +442,9 @@ public:
         getValue(HEATER_THRESHOLD, heaterThreshold);
         getValue(INTERNAL_MAX_TEMP, internalMaxTemp);
         getValue(INTERNAL_TEMP_FOR_FANON, internalTempForFanOn);
+        getValue(VOICE_MUTED, voiceMuted);
+        getValue(VOICE_VOLUME, voiceVolume);
+        getValue(VOICE_WAKE_TIME, voiceWakeTime);
     }
 
 private:
@@ -430,6 +454,7 @@ private:
     const int m_commonSerializeSize = 24576;
 
     bool m_initialized = false;
+    SETTING_STATE_FUNCTION_PTR_T message_callback;
 
 
     SemaphoreHandle_t m_wifiSemaphore;
@@ -623,6 +648,9 @@ private:
     float heaterThreshold;
     double internalMaxTemp;
     double internalTempForFanOn;
+    bool voiceMuted;
+    int8_t voiceVolume;
+    int8_t voiceWakeTime;
 
     bool load(SettingFileInfo &fileInfo)
     {
@@ -687,20 +715,26 @@ private:
                 PinMapSR6MB* pinMap = PinMapSR6MB::getInstance();
                 pinMap->overideDefaults();
                 syncSR6Pins(pinMap);
-                save(m_pinsFileInfo);
+                return save(m_pinsFileInfo);
             }
             break;
             case BoardType::ISAAC: {
                 PinMapINControl* pinMap = PinMapINControl::getInstance();
                 pinMap->overideDefaults();
                 syncSR6Pins(pinMap);
-                save(m_pinsFileInfo);
+                return save(m_pinsFileInfo);
             }
             break;
             default: {
-                loadDefault(m_pinsFileInfo);
+                return loadDefault(m_pinsFileInfo);
             }
         }
+    }
+    bool loadAll()
+    {
+        return loadWifi() && 
+                loadCommon() && 
+                loadPins();
     }
 
     bool loadCommon()
@@ -751,7 +785,7 @@ private:
         }
 
         LogHandler::debug(m_TAG, "Doc overflowed: %u", fileInfo.doc.overflowed());
-        LogHandler::debug(m_TAG, "Doc memory: %u", fileInfo.doc.memoryUsage());
+        //LogHandler::debug(m_TAG, "Doc memory: %u", fileInfo.doc.memoryUsage());
         //LogHandler::debug(m_TAG, "Doc capacity: %u", fileInfo.doc.capacity());
         File file = LittleFS.open(fileInfo.path, FILE_WRITE);
         if (!file )
@@ -967,6 +1001,19 @@ private:
                 // int[]
                 // doc[setting->name] = mpark::get<Array>(setting->value);
             break;
+        }
+    }
+    
+    void sendMessage(const SettingProfile &profile, const char *message)
+    {
+        if (message_callback)
+        {
+            LogHandler::debug(m_TAG, "sendMessage: message_callback profile %ld: %s", (int)profile, message);
+            message_callback(profile, message);
+        }
+        else
+        {
+            LogHandler::debug(m_TAG, "sendMessage: message_callback 0");
         }
     }
 };

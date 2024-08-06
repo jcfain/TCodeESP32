@@ -336,7 +336,7 @@ private:
 				LogHandler::error(_TAG, "Invalid value: %ld. Valid log levels are 0-4", value);
 				return false;
 			}
-			SettingsHandler::logLevel = static_cast<LogLevel>(value);
+			//SettingsHandler::logLevel = static_cast<LogLevel>(value);
 			LogHandler::setLogLevel(static_cast<LogLevel>(value));
 			Serial.printf("Log level changed to: %ld\n", value);
 			return true;

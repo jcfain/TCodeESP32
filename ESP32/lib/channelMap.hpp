@@ -218,7 +218,7 @@ private:
     void toJson(const Channel channels[], JsonArray& arr, uint16_t len) {
         for (int i=0; i < len; i++) {
             auto channel = channels[i];
-            auto obj = arr.createNestedObject();
+            auto obj = arr.add<JsonObject>();
             channel.toJson(obj);
         }
     }

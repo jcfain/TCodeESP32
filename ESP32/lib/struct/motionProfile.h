@@ -59,7 +59,7 @@ struct MotionProfile {
     void toJson(JsonObject &obj) {
         obj["name"] = motionProfileName;
         obj["edited"] = edited;
-        auto array = obj.createNestedArray("channels");
+        auto array = obj["channels"].to<JsonArray>();
         for(size_t i = 0; i<channels.size(); i++) {
             JsonObject channelObj;
             channels[i].toJson(channelObj);

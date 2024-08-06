@@ -22,6 +22,7 @@ SOFTWARE. */
 
 var userSettings = {};
 var wifiSettings = {};
+var pinoutSettings = {};
 var systemInfo = {};
 var motionProviderSettings = {};
 var buttonSettings = {};
@@ -35,6 +36,7 @@ var websocket;
 const EndPointType = {
     System: { uri: "/systemInfo"},
     Common: {uri: "/settings"},
+    Pins: {uri: "/pins"},
     Wifi: {uri: "/wifiSettings"},
     MotionProfile: {uri: "/motionProfiles"},
     Buttons: {uri: "/buttonSettings"}
@@ -94,6 +96,7 @@ var startUpHostName;
 var startUpWebPort;
 var startUpStaticIP;
 var startUpLocalIP;
+const defaultDebounce = 3000;
 
 //PWM availible on: 2,4,5,12-19,21-23,25-27,32-33
 const validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33];
@@ -174,7 +177,7 @@ function onDocumentLoad() {
     // debugTextElement.scrollTop = debugTextElement.scrollHeight;
 }
 
-function getSystemInfo() {
+function getSystemInfo(chain) {
     get("system info", EndPointType.System.uri, function(xhr) {
         systemInfo = xhr.response;
         if(!systemInfo) {
@@ -182,45 +185,67 @@ function getSystemInfo() {
             return;
         }
         setSystemInfo();
-        getWifiSettings();
+        if(chain)
+            getPinSettings(true);
+    });
+}
+function getPinSettings(chain) {
+    get("Pinout settings", EndPointType.Pins.uri, function(xhr) {
+        pinoutSettings = xhr.response;
+        if(!pinoutSettings) {
+            showError("Error getting pinout!");
+            return;
+        }
+        if(chain)
+            getWifiSettings(chain);
+        else
+            setPinoutSettings();
     });
 }
 
-function getWifiSettings() {
+function getWifiSettings(chain) {
     get("wifi settings", EndPointType.Wifi.uri, function(xhr) {
         wifiSettings = xhr.response;
         if(!wifiSettings || !wifiSettings["ssid"]) {
             showError("Error getting wifi settings!");
             return;
         }
-        getMotionProviderSettings();
+        if(chain)
+            getMotionProviderSettings(chain);
+        else
+            setWifiSettings();
     });
 }
 
-function getMotionProviderSettings() {
+function getMotionProviderSettings(chain) {
     get("motion settings", EndPointType.MotionProfile.uri, function(xhr) {
         motionProviderSettings = xhr.response;
         if(!motionProviderSettings || !motionProviderSettings["motionProfiles"]) {
             showError("Error getting motion provider settings!");
             return;
         }
-        getButtonSettings();
+        if(chain)
+            getButtonSettings(chain);
     });
 }
 
-function getButtonSettings() {
+function getButtonSettings(chain) {
     get("button settings", EndPointType.Buttons.uri, function(xhr) {
         buttonSettings = xhr.response;
         if(!buttonSettings || !buttonSettings["bootButtonCommand"]) {
             showError("Error getting button settings!");
             return;
         }
-        getUserSettings();
+        if(chain)
+            getUserSettings();
     });
 }
 
 function postCommonSettings(debounce, callback) {
     updateUserSettings(debounce, EndPointType.Common.uri, userSettings, callback);
+}
+function postPinoutSettings(debounce, callback) {
+    updateUserSettings(debounce, EndPointType.Pins.uri, pinoutSettings, callback);
 }
 function postWifiSettings(debounce, callback) {
     updateUserSettings(debounce, EndPointType.Wifi.uri, wifiSettings, callback);
@@ -233,7 +258,10 @@ function postMotionProfileSettings(debounce) {
 }
 
 function updateALLUserSettings() {
-    postCommonSettings(0, updateWifiSettingsChain);
+    postCommonSettings(0, updatePinoutChain);
+}
+var updatePinoutChain = function() {
+    postPinoutSettings(0, updateWifiSettingsChain);
 }
 var updateWifiSettingsChain = function() {
     postWifiSettings(0, updateButtonSettingsChain);
@@ -589,6 +617,28 @@ function setWifiSettings() {
     document.getElementById("ssid").value = wifiSettings["ssid"];
     document.getElementById("wifiPass").value = wifiSettings["wifiPass"];
 }
+function setPinoutSettings() {
+    document.getElementById("TwistFeedBack_PIN").value = pinoutSettings["TwistFeedBack_PIN"];
+    document.getElementById("RightServo_PIN").value = pinoutSettings["RightServo_PIN"];
+    document.getElementById("LeftServo_PIN").value = pinoutSettings["LeftServo_PIN"];
+    document.getElementById("RightUpperServo_PIN").value = pinoutSettings["RightUpperServo_PIN"];
+    document.getElementById("LeftUpperServo_PIN").value = pinoutSettings["LeftUpperServo_PIN"];
+    document.getElementById("PitchLeftServo_PIN").value = pinoutSettings["PitchLeftServo_PIN"];
+    document.getElementById("PitchRightServo_PIN").value = pinoutSettings["PitchRightServo_PIN"];
+    document.getElementById("ValveServo_PIN").value = pinoutSettings["ValveServo_PIN"];
+	document.getElementById("TwistServo_PIN").value = pinoutSettings["TwistServo_PIN"];
+    document.getElementById("Vibe0_PIN").value = pinoutSettings["Vibe0_PIN"];
+    document.getElementById("Vibe1_PIN").value = pinoutSettings["Vibe1_PIN"];
+    document.getElementById("Vibe2_PIN").value = pinoutSettings["Vibe2_PIN"];
+    document.getElementById("Vibe3_PIN").value = pinoutSettings["Vibe3_PIN"];
+	document.getElementById("LubeButton_PIN").value = pinoutSettings["LubeButton_PIN"];
+	document.getElementById("Squeeze_PIN").value = pinoutSettings["Squeeze_PIN"];
+	// document.getElementById("Display_Rst_PIN").value = pinoutSettings["Display_Rst_PIN"];
+	document.getElementById("Temp_PIN").value = pinoutSettings["Temp_PIN"];
+	document.getElementById("Heater_PIN").value = pinoutSettings["Heater_PIN"];
+    document.getElementById('Case_Fan_PIN').value = pinoutSettings["Case_Fan_PIN"];
+    document.getElementById('Internal_Temp_PIN').value = pinoutSettings["Internal_Temp_PIN"];
+}
 function setUserSettings() 
 {
     document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
@@ -644,21 +694,7 @@ function setUserSettings()
 	document.getElementById("continuousTwist").checked = userSettings["continuousTwist"];
 	document.getElementById("analogTwist").checked = userSettings["analogTwist"];
     
-    document.getElementById("TwistFeedBack_PIN").value = userSettings["TwistFeedBack_PIN"];
-    document.getElementById("RightServo_PIN").value = userSettings["RightServo_PIN"];
-    document.getElementById("LeftServo_PIN").value = userSettings["LeftServo_PIN"];
-    document.getElementById("RightUpperServo_PIN").value = userSettings["RightUpperServo_PIN"];
-    document.getElementById("LeftUpperServo_PIN").value = userSettings["LeftUpperServo_PIN"];
-    document.getElementById("PitchLeftServo_PIN").value = userSettings["PitchLeftServo_PIN"];
-    document.getElementById("PitchRightServo_PIN").value = userSettings["PitchRightServo_PIN"];
-    document.getElementById("ValveServo_PIN").value = userSettings["ValveServo_PIN"];
-	document.getElementById("TwistServo_PIN").value = userSettings["TwistServo_PIN"];
-    document.getElementById("Vibe0_PIN").value = userSettings["Vibe0_PIN"];
-    document.getElementById("Vibe1_PIN").value = userSettings["Vibe1_PIN"];
-    document.getElementById("Vibe2_PIN").value = userSettings["Vibe2_PIN"];
-    document.getElementById("Vibe3_PIN").value = userSettings["Vibe3_PIN"];
-	document.getElementById("LubeButton_PIN").value = userSettings["LubeButton_PIN"];
-	document.getElementById("Squeeze_PIN").value = userSettings["Squeeze_PIN"];
+    setPinoutSettings();
 
     if(systemInfo.motorType === MotorType.BLDC) 
         BLDCMotor.setup();
@@ -701,9 +737,6 @@ function setUserSettings()
 	document.getElementById("HoldPWM").value = userSettings["HoldPWM"];
 	document.getElementById("Display_I2C_Address").value = userSettings["Display_I2C_Address"];
     document.getElementById("Display_I2C_Address_text").value = userSettings["Display_I2C_Address"];
-	// document.getElementById("Display_Rst_PIN").value = userSettings["Display_Rst_PIN"];
-	document.getElementById("Temp_PIN").value = userSettings["Temp_PIN"];
-	document.getElementById("Heater_PIN").value = userSettings["Heater_PIN"];
 	// document.getElementById("heaterFailsafeTime").value = userSettings["heaterFailsafeTime"];
 	document.getElementById("heaterThreshold").value = userSettings["heaterThreshold"];
 	document.getElementById("heaterResolution").value = userSettings["heaterResolution"];
@@ -725,11 +758,9 @@ function setUserSettings()
 	document.getElementById("Display_Screen_Width").readOnly = true;
 	document.getElementById("Display_Screen_Height").readOnly = true;
 	// document.getElementById("Display_Rst_PIN").readOnly = true;
-    document.getElementById('Internal_Temp_PIN').value = userSettings["Internal_Temp_PIN"];
     document.getElementById('fanControlEnabled').checked = userSettings["fanControlEnabled"];
     document.getElementById('internalTempForFan').value = userSettings["internalTempForFan"];
     document.getElementById('internalMaxTemp').value = userSettings["internalMaxTemp"];
-    document.getElementById('Case_Fan_PIN').value = userSettings["Case_Fan_PIN"];
     document.getElementById('caseFanResolution').value = userSettings["caseFanResolution"];
     document.getElementById('caseFanFrequency').value = userSettings["caseFanFrequency"];
 
@@ -827,7 +858,7 @@ function updateUserSettings(debounceInMs, uri, objectToSave, callback)
 {
     if (documentLoaded) {
         if(debounceInMs == null || debounceInMs == undefined) {
-            debounceInMs = 3000;
+            debounceInMs = defaultDebounce;
         }
         if(!uri) {
             uri = "/settings"
@@ -1344,16 +1375,16 @@ function updateAnalogTwist() {
     
     if(checked ) {
         document.getElementById("TwistFeedBack_PIN").value = 32;
-        userSettings["TwistFeedBack_PIN"] = 32;
+        pinoutSettings["TwistFeedBack_PIN"] = 32;
         //if(!newtoungeHatExists)
         alert("Note, twist feedback pin has been changed to analog input pin 32.\nPlease adjust your hardware accordingly.");
     } else {
         document.getElementById("TwistFeedBack_PIN").value = 26;
-        userSettings["TwistFeedBack_PIN"] = 26;
+        pinoutSettings["TwistFeedBack_PIN"] = 26;
         alert("Note, twist feedback pin reset to 26.\nPlease adjust your hardware accordingly.");
     }
     setRestartRequired();
-    updateUserSettings();
+    postPinoutSettings(defaultDebounce, postCommonSettings);
 }
 function updateFeedbackTwist() {
     var checked = document.getElementById('feedbackTwist').checked;
@@ -1471,45 +1502,45 @@ function updatePins()
     {
         var pinValues = validatePins();
         if(pinValues) {
-            userSettings["RightServo_PIN"] = pinValues.rightPin;
-            userSettings["LeftServo_PIN"] = pinValues.leftPin;
-            userSettings["RightUpperServo_PIN"] = pinValues.rightUpper;
-            userSettings["LeftUpperServo_PIN"] = pinValues.leftUpper;
-            userSettings["PitchLeftServo_PIN"] = pinValues.pitchLeft;
-            userSettings["PitchRightServo_PIN"] = pinValues.pitchRight;
+            pinoutSettings["RightServo_PIN"] = pinValues.rightPin;
+            pinoutSettings["LeftServo_PIN"] = pinValues.leftPin;
+            pinoutSettings["RightUpperServo_PIN"] = pinValues.rightUpper;
+            pinoutSettings["LeftUpperServo_PIN"] = pinValues.leftUpper;
+            pinoutSettings["PitchLeftServo_PIN"] = pinValues.pitchLeft;
+            pinoutSettings["PitchRightServo_PIN"] = pinValues.pitchRight;
             updateCommonPins(pinValues);
             setRestartRequired();
-            updateUserSettings();
+            postPinoutSettings();
         }
-    }, 2000);
+    }, defaultDebounce);
 }
 
 function updateCommonPins(pinValues) {
-    userSettings["TwistServo_PIN"] = pinValues.twistServo;
-    userSettings["ValveServo_PIN"] = pinValues.valveServo;
-    userSettings["Squeeze_PIN"] = pinValues.squeezeServo;
-    userSettings["Vibe0_PIN"] = pinValues.vibe0;
-    userSettings["Vibe1_PIN"] = pinValues.vibe1;
-    userSettings["Vibe2_PIN"] = pinValues.vibe2;
-    userSettings["Vibe3_PIN"] = pinValues.vibe3;
-    userSettings["LubeButton_PIN"] = pinValues.lubeButton;
+    pinoutSettings["TwistServo_PIN"] = pinValues.twistServo;
+    pinoutSettings["ValveServo_PIN"] = pinValues.valveServo;
+    pinoutSettings["Squeeze_PIN"] = pinValues.squeezeServo;
+    pinoutSettings["Vibe0_PIN"] = pinValues.vibe0;
+    pinoutSettings["Vibe1_PIN"] = pinValues.vibe1;
+    pinoutSettings["Vibe2_PIN"] = pinValues.vibe2;
+    pinoutSettings["Vibe3_PIN"] = pinValues.vibe3;
+    pinoutSettings["LubeButton_PIN"] = pinValues.lubeButton;
     if(userSettings.tempSleeveEnabled) {
-        userSettings["Heater_PIN"] = pinValues.heat;
+        pinoutSettings["Heater_PIN"] = pinValues.heat;
     }
     if(userSettings.tempInternalEnabled) {
-        userSettings["Case_Fan_PIN"] = pinValues.caseFanPin;
+        pinoutSettings["Case_Fan_PIN"] = pinValues.caseFanPin;
     }
     if(userSettings.tempSleeveEnabled) {
-        userSettings["Temp_PIN"] = pinValues.temp;
+        pinoutSettings["Temp_PIN"] = pinValues.temp;
     }
     if(userSettings.feedbackTwist) {
-        userSettings["TwistFeedBack_PIN"] = pinValues.twistFeedBack;
+        pinoutSettings["TwistFeedBack_PIN"] = pinValues.twistFeedBack;
     }
     if(userSettings.tempInternalEnabled) {
-        userSettings["Internal_Temp_PIN"] = pinValues.internalTemp;
+        pinoutSettings["Internal_Temp_PIN"] = pinValues.internalTemp;
     }
     // if(userSettings.batteryLevelEnabled) {
-    //     userSettings["Battery_Voltage_PIN"] = pinValues.Battery_Voltage_PIN;
+    //     pinoutSettings["Battery_Voltage_PIN"] = pinValues.Battery_Voltage_PIN;
     // }
 
 }
@@ -2035,7 +2066,7 @@ function setDisplaySettings()
     // userSettings["Display_Screen_Width"] = parseInt(document.getElementById('Display_Screen_Width').value);
     // userSettings["Display_Screen_Height"] = parseInt(document.getElementById('Display_Screen_Height').value);
 
-    // userSettings["Display_Rst_PIN"] = parseInt(document.getElementById('Display_Rst_PIN').value);
+    // pinoutSettings["Display_Rst_PIN"] = parseInt(document.getElementById('Display_Rst_PIN').value);
     userSettings["Display_I2C_Address"] = document.getElementById('Display_I2C_Address_text').value;
     userSettings["sleeveTempDisplayed"] = document.getElementById('sleeveTempDisplayed').checked;
     userSettings["internalTempDisplayed"] = document.getElementById('internalTempDisplayed').checked;
@@ -2185,7 +2216,7 @@ function updateWifiSettings() {
             setRestartRequired();
             updateUserSettings(0);
         }
-    }, 3000);
+    }, defaultDebounce);
 }
 
 function validateStaticIPAddresses(ips) {
@@ -2308,6 +2339,7 @@ function exportToJsonFile() {
     userSettingsCopy["motionDefaultProfileIndex"] = motionProviderSettings.motionDefaultProfileIndex;
     userSettingsCopy["motionProfiles"] = motionProviderSettings.motionProfiles;
     userSettingsCopy["buttonSettings"] = buttonSettings;
+    userSettingsCopy["pinoutSettings"] = pinoutSettings;
 
     let dataStr = JSON.stringify(userSettingsCopy);
     let dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
@@ -2368,29 +2400,35 @@ function importSettings() {
 function handleImportRenames(key, value) {
     switch(key) {
         case "LubeManual_PIN": 
-        userSettings.LubeButton_PIN = value;
-        break;
+        pinoutSettings.LubeButton_PIN = value;
+        return;
         case "motionProfiles": 
         motionProviderSettings.motionProfiles = value;
         motionProviderSettings.motionProfiles.forEach(x => {
             x.edited = true;
             x.channels.forEach(y => y.edited = true);
         });
-        break;
+        return;
         case "motionDefaultProfileIndex": 
         motionProviderSettings.motionDefaultProfileIndex = value;
-        break;
+        return;
         case "wifiSettings": 
         wifiSettings.ssid = value.ssid;
-        break;
+        return;
         case "ssid": 
         wifiSettings.ssid = value;
-        break;
+        return;
         case "bootButtonCommand":
         buttonSettings.bootButtonCommand = value;
-        break;
+        return;
         case "buttonSettings": 
         buttonSettings = value;
-        break;
+        return;
+        case "pinoutSettings":
+        pinoutSettings = value;
+        return;
+    }
+    if(key.endsWith("_PIN")) {
+        pinoutSettings[key] = value;
     }
 }

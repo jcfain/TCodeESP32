@@ -42,7 +42,10 @@ SOFTWARE. */
 #include "../lib/settingConstants.h"
 #include "../lib/settingsFactory.h"
 
-using SETTING_STATE_FUNCTION_PTR_T = void (*)(const char *group, const char *settingNameThatChanged);
+#define DESERIALIZE_SIZE 32768
+#define SERIALIZE_SIZE 24576
+
+//using SETTING_STATE_FUNCTION_PTR_T = void (*)(const char *group, const char *settingNameThatChanged);
 
 class SettingsHandler
 {
@@ -373,7 +376,7 @@ public:
     {
         LogHandler::debug(_TAG, "Save frome string");
         printMemory();
-        DynamicJsonDocument doc(deserializeSize);
+        JsonDocument doc;
     
         DeserializationError error = deserializeJson(doc, data);
         if (error)
@@ -403,7 +406,7 @@ public:
 
     static void getWifiInfo(char buf[100])
     {
-        DynamicJsonDocument doc(100);
+        JsonDocument doc; //100
 
         char ssid[SSID_LEN];
         char wifiPass[WIFI_PASS_LEN];
@@ -428,37 +431,37 @@ public:
 
     static void getSystemInfo(String &buf)
     {
-        DynamicJsonDocument doc(3500);
+        JsonDocument doc; // 3500
 
         doc["esp32Version"] = FIRMWARE_VERSION_NAME;
         doc["TCodeVersion"] = m_settingsFactory->getTcodeVersion();
         doc["lastRebootReason"] = lastRebootReason;
         
-        JsonArray boardTypes = doc.createNestedArray("boardTypes");
-        JsonObject devkit = boardTypes.createNestedObject();
+        JsonArray boardTypes = doc["boardTypes"].to<JsonArray>();
+        JsonObject devkit = boardTypes.add<JsonObject>();
         devkit["name"] = "Devkit/NexusPRO";
         devkit["value"] = (uint8_t)BoardType::DEVKIT;
-        JsonObject SR6MB = boardTypes.createNestedObject();
+        JsonObject SR6MB = boardTypes.add<JsonObject>();
         SR6MB["name"] = "SR6MB";
         SR6MB["value"] = (uint8_t)BoardType::CRIMZZON;
-        JsonObject INControl = boardTypes.createNestedObject();
+        JsonObject INControl = boardTypes.add<JsonObject>();
         INControl["name"] = "IN-Control";
         INControl["value"] = (uint8_t)BoardType::ISAAC;
         int motorType = MOTOR_TYPE_DEFAULT;
         m_settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);
         doc["motorType"] = motorType;
-        JsonArray buildFeaturesJsonArray = doc.createNestedArray("buildFeatures");
+        JsonArray buildFeaturesJsonArray = doc["buildFeatures"].to<JsonArray>();
         for (BuildFeature value : buildFeatures)
         {
             buildFeaturesJsonArray.add((int)value);
         }
 
-        JsonArray availableTagsJsonArray = doc.createNestedArray("availableTags");
+        JsonArray availableTagsJsonArray = doc["availableTags"].to<JsonArray>();
         for (const char *tag : TagHandler::AvailableTags)
         {
             availableTagsJsonArray.add(tag);
         }
-        JsonArray systemI2CAddressesJsonArray = doc.createNestedArray("systemI2CAddresses");
+        JsonArray systemI2CAddressesJsonArray = doc["systemI2CAddresses"].to<JsonArray>();
         systemI2CAddressesJsonArray.add("0x0");
         for (int value : systemI2CAddresses) {
 			char buf[10];
@@ -466,12 +469,12 @@ public:
             systemI2CAddressesJsonArray.add(buf);
         }
 
-        JsonArray deviceTypes = doc.createNestedArray("deviceTypes");
-        JsonObject defaultDevice = deviceTypes.createNestedObject();
+        JsonArray deviceTypes = doc["deviceTypes"].to<JsonArray>();
+        JsonObject defaultDevice = deviceTypes.add<JsonObject>();
     #if MOTOR_TYPE == 0
         defaultDevice["name"] = "OSR";
         defaultDevice["value"] = (uint8_t)DeviceType::OSR;
-        JsonObject SR6 = deviceTypes.createNestedObject();
+        JsonObject SR6 = deviceTypes.add<JsonObject>();
         SR6["name"] = "SR6";
         SR6["value"] = (uint8_t)DeviceType::SR6;
     #elif MOTOR_TYPE == 1
@@ -479,7 +482,7 @@ public:
         defaultDevice["value"] = (uint8_t)DeviceType::SSR1;
     #endif
 
-        JsonArray availableChannels = doc.createNestedArray("availableChannels");
+        JsonArray availableChannels = doc["availableChannels"].to<JsonArray>();
         channelMap.serialize(availableChannels);
         doc["motionEnabled"] = getMotionEnabled();
         int motionProfileSelectedIndex = MOTION_PROFILE_SELECTED_INDEX_DEFAULT;
@@ -658,7 +661,7 @@ public:
             }
             
             if(initialized)
-                sendMessage("buttonCommand", "analogButtonCommands");
+                sendMessage(SettingProfile::Button, "analogButtonCommands");
             
             return true;
         }, saveButtons, json);
@@ -673,7 +676,7 @@ public:
         //         LogHandler::debug(_TAG, "Save buttonSets[i].buttons, name: %s,  index: %ld, command: %s", buttonSets[i].name, buttonSets[i].buttons[j].index, buttonSets[i].buttons[j].command);
         //     }
         // }
-        return saveSettingsJson(BUTTON_SETTINGS_PATH, m_buttonsMutex, docSize, [](DynamicJsonDocument& doc) -> bool {
+        return saveSettingsJson(BUTTON_SETTINGS_PATH, m_buttonsMutex, docSize, [](JsonDocument& doc) -> bool {
 
             bool bootButtonEnabled = BOOT_BUTTON_ENABLED_DEFAULT;
             m_settingsFactory->getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
@@ -681,7 +684,7 @@ public:
             bool buttonSetsEnabled = BUTTON_SETS_ENABLED_DEFAULT;
             m_settingsFactory->getValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
             doc["buttonSetsEnabled"] = buttonSetsEnabled;
-            char* bootButtonCommand = BOOT_BUTTON_COMMAND_DEFAULT;
+            char bootButtonCommand[MAX_COMMAND];
             m_settingsFactory->getValue(BOOT_BUTTON_COMMAND, bootButtonCommand, MAX_COMMAND);
             doc["bootButtonCommand"] = bootButtonCommand; 
             int buttonAnalogDebounce = BUTTON_ANALOG_DEBOUNCE_DEFAULT;
@@ -713,7 +716,7 @@ public:
         bool mutableLoadDefault = loadDefault;
         if(mutableLoadDefault || json.isNull()) {
 		    xSemaphoreTake(m_motionMutex, portMAX_DELAY);
-            DynamicJsonDocument doc(deserializeSize);
+            JsonDocument doc; //deserializeSize
             if(!checkForFileAndLoad(MOTION_PROFILE_SETTINGS_PATH, json, doc, mutableLoadDefault)) {
                 saving = false;
                 xSemaphoreGive(m_motionMutex);
@@ -763,7 +766,7 @@ public:
             // WARNING: watchout for the mutex taken in this method. Changing these parameters below may result in hard locks.
             loadMotionProfiles(false, json); // DO NOT PASS loadDefault as true else infinit loop
         }
-        DynamicJsonDocument doc(serializeSize);
+        JsonDocument doc; //serializeSize
         doc["motionDefaultProfileIndex"] = motionDefaultProfileIndex;
         LogHandler::debug(_TAG, "motion profiles index: %ld", motionDefaultProfileIndex);
         int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
@@ -800,7 +803,7 @@ public:
                     //}
                 }
                 if(initialized && motionSelectedProfileIndex == i) {
-                    sendMessage("motionGenerator", "motionProfile");
+                    sendMessage(SettingProfile::MotionProfile, "motionProfile");
                 }
                 motionProfiles[i].edited = false;
             //}
@@ -830,7 +833,7 @@ public:
     }
     static void setMotionEnabled(const bool& newValue)
     {
-        setValue(newValue, motionEnabled, "motionGenerator", "motionEnabled");
+        setValue(newValue, motionEnabled, SettingProfile::MotionProfile, "motionEnabled");
     }
     static bool getMotionPaused()
     {
@@ -838,7 +841,7 @@ public:
     }
     static void setMotionPaused(const bool& newValue)
     {
-        setValue(newValue, motionPaused, "motionGenerator", "motionPaused");
+        setValue(newValue, motionPaused, SettingProfile::MotionProfile, "motionPaused");
     }
 
     static int getMotionDefaultProfileIndex() 
@@ -856,7 +859,7 @@ public:
     }
     static void setRestartRequired(const bool& newValue)
     {
-        setValue(newValue, restartRequired, "system", "restartRequired");
+        setValue(newValue, restartRequired, SettingProfile::System, "restartRequired");
     }
 
     // static int getMotionUpdateGlobal(const char name[3])
@@ -1037,7 +1040,7 @@ public:
             LogHandler::error(_TAG, "Invalid motion profile index: %ld", profileIndex);
             return;
         }
-        setValue(profileIndex, motionSelectedProfileIndex, "motionGenerator", "motionSelectedProfileIndex");
+        setValue(profileIndex, motionSelectedProfileIndex, SettingProfile::MotionProfile, "motionSelectedProfileIndex");
     }
     
     static void cycleMotionProfile() {
@@ -1059,37 +1062,37 @@ public:
         return buttonSets;
     }
 
-    static bool getVoiceEnabled() {
-        return voiceEnabled;
-    }
+    // static bool getVoiceEnabled() {
+    //     return voiceEnabled;
+    // }
 
-    static void setVoiceEnabled(bool value) {
-        setValue(value, voiceEnabled, "voiceHandler", "voiceEnabled");
-    }
+    // static void setVoiceEnabled(bool value) {
+    //     setValue(value, voiceEnabled, "voiceHandler", "voiceEnabled");
+    // }
 
-    static bool getVoiceMuted() {
-        return voiceMuted;
-    }
+    // static bool getVoiceMuted() {
+    //     return voiceMuted;
+    // }
 
-    static void setVoiceMuted(bool value) {
-        setValue(value, voiceMuted, "voiceHandler", "voiceMuted");
-    }
+    // static void setVoiceMuted(bool value) {
+    //     setValue(value, voiceMuted, "voiceHandler", "voiceMuted");
+    // }
 
-    static int getVoiceVolume() {
-        return voiceVolume;
-    }
+    // static int getVoiceVolume() {
+    //     return voiceVolume;
+    // }
 
-    static void setVoiceVolume(int value) {
-        setValue(value, voiceVolume, "voiceHandler", "voiceVolume");
-    }
+    // static void setVoiceVolume(int value) {
+    //     setValue(value, voiceVolume, "voiceHandler", "voiceVolume");
+    // }
 
-    static int getVoiceWakeTime() {
-        return voiceWakeTime;
-    }
+    // static int getVoiceWakeTime() {
+    //     return voiceWakeTime;
+    // }
 
-    static void setVoiceWakeTime(int value) {
-        setValue(value, voiceWakeTime, "voiceHandler", "voiceWakeTime");
-    }
+    // static void setVoiceWakeTime(int value) {
+    //     setValue(value, voiceWakeTime, "voiceHandler", "voiceWakeTime");
+    // }
 
     static const bool readFile(char* &buf, const char* path) {
         if(!LittleFS.exists(path)) {
@@ -1324,10 +1327,10 @@ private:
     static int motionDefaultProfileIndex;
     static MotionProfile motionProfiles[maxMotionProfileCount];
     
-    static bool voiceEnabled;
-    static bool voiceMuted;
-    static int voiceWakeTime ;
-    static int voiceVolume;
+    // static bool voiceEnabled;
+    // static bool voiceMuted;
+    // static int voiceWakeTime ;
+    // static int voiceVolume;
 
 //     static bool update(JsonObject json)
 //     {
@@ -1740,7 +1743,7 @@ private:
     /// @param json 
     /// @return 
     static bool loadSettingsJson(const char* filepath, bool loadDefault, SemaphoreHandle_t& mutex, const int jsonSize, std::function<bool(const JsonObject, bool& mutableLoadDefault)> loadFunction, std::function<bool(JsonObject)> saveFunction, JsonObject json = JsonObject()) {
-        DynamicJsonDocument doc(jsonSize);
+        JsonDocument doc; //jsonSize
         bool mutableLoadDefault = loadDefault;
         if(mutableLoadDefault || json.isNull()) {
 		    xSemaphoreTake(mutex, portMAX_DELAY);
@@ -1766,7 +1769,7 @@ private:
     /// @param saveFunction 
     /// @param json 
     /// @return 
-    static bool saveSettingsJson(const char* filepath, SemaphoreHandle_t& mutex, int jsonSize, std::function<bool(DynamicJsonDocument&)> saveFunction, std::function<bool(bool, JsonObject)> loadFunction, JsonObject json = JsonObject()) {
+    static bool saveSettingsJson(const char* filepath, SemaphoreHandle_t& mutex, int jsonSize, std::function<bool(JsonDocument&)> saveFunction, std::function<bool(bool, JsonObject)> loadFunction, JsonObject json = JsonObject()) {
         saving = true;
 		xSemaphoreTake(mutex, portMAX_DELAY);
         LogHandler::debug(_TAG, "Saving File: %s", filepath);
@@ -1787,7 +1790,7 @@ private:
 		        xSemaphoreTake(mutex, portMAX_DELAY);
             }
             LogHandler::debug(_TAG, "jsonSize: %ld", jsonSize);
-            DynamicJsonDocument doc(jsonSize);
+            JsonDocument doc; //jsonSize
             if(!saveFunction(doc)) {
                 LogHandler::error(_TAG, "Failed to compile JSON object: %s", filepath);
                 xSemaphoreGive(mutex);
@@ -1795,8 +1798,8 @@ private:
                 return false;
             }
             LogHandler::debug(_TAG, "Doc overflowed: %u", doc.overflowed());
-            LogHandler::debug(_TAG, "Doc memory: %u", doc.memoryUsage());
-            LogHandler::debug(_TAG, "Doc capacity: %u", doc.capacity());
+            //LogHandler::debug(_TAG, "Doc memory: %u", doc.memoryUsage());
+            //LogHandler::debug(_TAG, "Doc capacity: %u", doc.capacity());
             File file = LittleFS.open(filepath, FILE_WRITE);
             if (serializeJson(doc, file) == 0)
             {
@@ -1815,7 +1818,7 @@ private:
         return true;
     }
 
-    static bool checkForFileAndLoad(const char* path, JsonObject &json, DynamicJsonDocument &doc, bool &loadDefault) {
+    static bool checkForFileAndLoad(const char* path, JsonObject &json, JsonDocument &doc, bool &loadDefault) {
         if(!LittleFS.exists(path)) {
             loadDefault = true;
         }
@@ -1846,7 +1849,7 @@ private:
         return true;
     }
 
-    static bool loadJsonFromFile(const char* path, JsonObject &json, DynamicJsonDocument &doc) {
+    static bool loadJsonFromFile(const char* path, JsonObject &json, JsonDocument &doc) {
         LogHandler::debug(_TAG, "Loading json file %s", path);
         if (!LittleFS.exists(path)) {
             LogHandler::error(_TAG, "%s did not exist!", path);
@@ -2069,12 +2072,12 @@ private:
 #endif
     }
 
-    static void sendMessage(const char *group, const char *message)
+    static void sendMessage(const SettingProfile &profile, const char *message)
     {
         if (message_callback)
         {
-            LogHandler::debug(_TAG, "sendMessage: message_callback group %s: %s", group, message);
-            message_callback(group, message);
+            LogHandler::debug(_TAG, "sendMessage: message_callback %s", message);
+            message_callback(profile, message);
         }
         else
         {
@@ -2082,42 +2085,42 @@ private:
         }
     }
 
-    static void setValue(JsonObject json, bool &variable, const char *propertyGroup, const char *propertyName, bool defaultValue)
+    static void setValue(JsonObject json, bool &variable, const SettingProfile &profile, const char *propertyName, bool defaultValue)
     {
         bool newValue = json[propertyName] | defaultValue;
-        setValue(newValue, variable, propertyGroup, propertyName);
+        setValue(newValue, variable, profile, propertyName);
     }
 
     template<size_t n> 
-    static void setValue(JsonObject json, char (&variable)[n], const char *propertyGroup, const char *propertyName, const char *defaultValue)
+    static void setValue(JsonObject json, char (&variable)[n], const SettingProfile &profile, const char *propertyName, const char *defaultValue)
     {
         const char *newValue = json[propertyName] | defaultValue;
-        setValue(newValue, variable, propertyGroup, propertyName);
+        setValue(newValue, variable, profile, propertyName);
     }
 
-    static void setValue(JsonObject json, int &variable, const char *propertyGroup, const char *propertyName, int defaultValue)
+    static void setValue(JsonObject json, int &variable, const SettingProfile &profile, const char *propertyName, int defaultValue)
     {
         int newValue = json[propertyName] | defaultValue;
-        setValue(newValue, variable, propertyGroup, propertyName);
+        setValue(newValue, variable, profile, propertyName);
     }
-    static void setValue(JsonObject json, uint8_t &variable, const char *propertyGroup, const char *propertyName, uint8_t defaultValue)
+    static void setValue(JsonObject json, uint8_t &variable, const SettingProfile &profile, const char *propertyName, uint8_t defaultValue)
     {
         uint8_t newValue = json[propertyName] | defaultValue;
-        setValue(newValue, variable, propertyGroup, propertyName);
+        setValue(newValue, variable, profile, propertyName);
     }
-    static void setValue(JsonObject json, uint16_t &variable, const char *propertyGroup, const char *propertyName, uint16_t defaultValue)
+    static void setValue(JsonObject json, uint16_t &variable, const SettingProfile &profile, const char *propertyName, uint16_t defaultValue)
     {
         uint16_t newValue = json[propertyName] | defaultValue;
-        setValue(newValue, variable, propertyGroup, propertyName);
+        setValue(newValue, variable, profile, propertyName);
     }
 
-    static void setValue(JsonObject json, float &variable, const char *propertyGroup, const char *propertyName, float defaultValue)
+    static void setValue(JsonObject json, float &variable, const SettingProfile &profile, const char *propertyName, float defaultValue)
     {
         float newValue = json[propertyName] | defaultValue;
-        setValue(newValue, variable, propertyGroup, propertyName);
+        setValue(newValue, variable, profile, propertyName);
     }
 
-    static void setValue(JsonObject json, std::vector<const char*> &variable, const char *propertyGroup, const char *propertyName)
+    static void setValue(JsonObject json, std::vector<const char*> &variable, const SettingProfile &profile, const char *propertyName)
     {
         variable.clear();
         if(json[propertyName].isNull()) {
@@ -2129,10 +2132,10 @@ private:
             variable.push_back(jsonArray[i]);
         }
         if(initialized)
-            sendMessage(propertyGroup, propertyName);
+            sendMessage(profile, propertyName);
     }
 
-    static void setValue(JsonObject json, std::vector<String> &variable, const char *propertyGroup, const char *propertyName)
+    static void setValue(JsonObject json, std::vector<String> &variable, const SettingProfile &profile, const char *propertyName)
     {
         variable.clear();
         if(json[propertyName].isNull()) {
@@ -2144,62 +2147,62 @@ private:
             variable.push_back(jsonArray[i]);
         }
         if(initialized)
-            sendMessage(propertyGroup, propertyName);
+            sendMessage(profile, propertyName);
     }
 
-    static void setValue(bool newValue, bool &variable, const char *propertyGroup, const char *propertyName)
+    static void setValue(bool newValue, bool &variable, const SettingProfile &profile, const char *propertyName)
     {
         bool valueChanged = initialized && variable != newValue;
         LogHandler::debug(TagHandler::SettingsHandler, "Set bool '%s' oldValue '%ld' newValue '%ld' changed: '%ld'", propertyName, variable, newValue, valueChanged);
         variable = newValue;
         if (valueChanged)
-            sendMessage(propertyGroup, propertyName);
+            sendMessage(profile, propertyName);
     }
     
     template<size_t n> 
-    static void setValue(const char *newValue, char (&variable)[n], const char *propertyGroup, const char *propertyName)
+    static void setValue(const char *newValue, char (&variable)[n], const SettingProfile &profile, const char *propertyName)
     {
         bool valueChanged = initialized && strcmp(variable, newValue) != -1;
         LogHandler::debug(TagHandler::SettingsHandler, "Set char* '%s' oldValue '%s' newValue '%s' changed: '%ld'", propertyName, variable, newValue, valueChanged);
         strcpy(variable, newValue);
         if (valueChanged)
-            sendMessage(propertyGroup, propertyName);
+            sendMessage(profile, propertyName);
     }
 
-    static void setValue(int newValue, int &variable, const char *propertyGroup, const char *propertyName)
+    static void setValue(int newValue, int &variable, const SettingProfile &profile, const char *propertyName)
     {
         bool valueChanged = initialized && variable != newValue;
         LogHandler::debug(TagHandler::SettingsHandler, "Set int '%s' oldValue '%ld' newValue '%ld' changed: '%ld'", propertyName, variable, newValue, valueChanged);
         variable = newValue;
         if (valueChanged)
-            sendMessage(propertyGroup, propertyName);
+            sendMessage(profile, propertyName);
     }
 
-    static void setValue(uint8_t newValue, uint8_t &variable, const char *propertyGroup, const char *propertyName)
+    static void setValue(uint8_t newValue, uint8_t &variable, const SettingProfile &profile, const char *propertyName)
     {
         bool valueChanged = initialized && variable != newValue;
         LogHandler::debug(TagHandler::SettingsHandler, "Set int '%s' oldValue '%u' newValue '%u' changed: '%ld'", propertyName, variable, newValue, valueChanged);
         variable = newValue;
         if (valueChanged)
-            sendMessage(propertyGroup, propertyName);
+            sendMessage(profile, propertyName);
     }
 
-    static void setValue(uint16_t newValue, uint16_t &variable, const char *propertyGroup, const char *propertyName)
+    static void setValue(uint16_t newValue, uint16_t &variable, const SettingProfile &profile, const char *propertyName)
     {
         bool valueChanged = initialized && variable != newValue;
         LogHandler::debug(TagHandler::SettingsHandler, "Set int '%s' oldValue '%u' newValue '%u' changed: '%ld'", propertyName, variable, newValue, valueChanged);
         variable = newValue;
         if (valueChanged)
-            sendMessage(propertyGroup, propertyName);
+            sendMessage(profile, propertyName);
     }
 
-    static void setValue(float newValue, float &variable, const char *propertyGroup, const char *propertyName)
+    static void setValue(float newValue, float &variable, const SettingProfile &profile, const char *propertyName)
     {
         bool valueChanged = initialized && variable != newValue;
         LogHandler::debug(TagHandler::SettingsHandler, "Set float '%s' oldValue '%f' newValue '%f' changed: '%ld'", propertyName, variable, newValue, valueChanged);
         variable = newValue;
         if (valueChanged)
-            sendMessage(propertyGroup, propertyName);
+            sendMessage(profile, propertyName);
     }
 
     static u_int16_t calculateRange(const char *channel, int value)

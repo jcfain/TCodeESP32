@@ -430,10 +430,12 @@ void batteryVoltageCallback(float capacityRemainingPercentage, float capacityRem
 		}
 	#endif
 }
+void settingChangeCallback(const char* group, const char* name) {
+}
 
-void settingChangeCallback(const char* group, const char* settingThatChanged) {
+void settingChangeCallback(const SettingProfile &profile, const char* settingThatChanged) {
     LogHandler::debug(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
-	if(strcmp(group, "motionGenerator") == 0) {
+	if(profile == SettingProfile::MotionProfile) {
 		if(strcmp(settingThatChanged, "motionSelectedProfileIndex") == 0 || strcmp(settingThatChanged, "motionProfile") == 0) 
 			motionHandler.setMotionChannels(SettingsHandler::getMotionChannels());
 		// else if(strcmp(settingThatChanged, "motionChannels") == 0) 
@@ -474,14 +476,15 @@ void settingChangeCallback(const char* group, const char* settingThatChanged) {
 		// 	motionHandler.setMotionRandomChangeMin(SettingsHandler::getGetMotionRandomChangeMin()());
 		// else if(strcmp(settingThatChanged, "motionRandomChangeMax") == 0) 
 		// 	motionHandler.setMotionRandomChangeMax(SettingsHandler::getGetMotionRandomChangeMax()());
-	} else if(voiceHandler && strcmp(group, "voiceHandler") == 0) {
-		if(strcmp(settingThatChanged, "voiceMuted") == 0) 
-			voiceHandler->setMuteMode(SettingsHandler::getVoiceMuted());
-		else if(strcmp(settingThatChanged, "voiceVolume") == 0) 
-			voiceHandler->setVolume(SettingsHandler::getVoiceVolume());
-		else if(strcmp(settingThatChanged, "voiceWakeTime") == 0) 
-			voiceHandler->setWakeTime(SettingsHandler::getVoiceWakeTime());
-	} else if(buttonHandler && strcmp(group, "buttonCommand") == 0) {
+	} else if(voiceHandler && profile == SettingProfile::Voice) {
+		if(strcmp(settingThatChanged, "voiceMuted") == 0) {
+			voiceHandler->setMuteMode(settingsFactory->getVoiceMuted());
+		} else if(strcmp(settingThatChanged, "voiceVolume") == 0) {
+			voiceHandler->setVolume(settingsFactory->getVoiceVolume());
+		} else if(strcmp(settingThatChanged, "voiceWakeTime") == 0) {
+			voiceHandler->setWakeTime(settingsFactory->getVoiceWakeTime());
+		}
+	} else if(buttonHandler && profile == SettingProfile::Button) {
 		if(strcmp(settingThatChanged, "bootButtonCommand") == 0) 
 			buttonHandler->updateBootButtonCommand(settingsFactory->getBootButtonCommand());
 		else if(strcmp(settingThatChanged, "analogButtonCommands") == 0) {
@@ -489,11 +492,9 @@ void settingChangeCallback(const char* group, const char* settingThatChanged) {
 		} else if(strcmp(settingThatChanged, "buttonAnalogDebounce") == 0) {
 			buttonHandler->updateAnalogDebounce(settingsFactory->getButtonAnalogDebounce());
 		}
-	} else if(strcmp(group, "channelRanges") == 0) {// TODO add channe; specific updates when moving to its own save...maybe...
+	} else if(profile == SettingProfile::ChannelRanges) {// TODO add channe; specific updates when moving to its own save...maybe...
 		motionHandler.updateChannelRanges();
 	}
-	
-	
 }
 void loadI2CModules(bool displayEnabled, bool batteryEnabled, bool voiceEnabled) {
 #if BUILD_DISPLAY

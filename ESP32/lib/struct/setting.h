@@ -56,6 +56,7 @@ enum class SettingProfile
     Analog,
     Bluetooth,
     Ble,
+    ChannelRanges,
     MAX
 };
 
@@ -73,7 +74,12 @@ struct Setting
     mpark::variant<const int, const char*, const float, const double, const bool> value;
     //JsonVariant value;
     RestartRequired isRestartRequired;
-    std::vector<SettingProfile> profile;
+    std::vector<SettingProfile> profiles;
+    bool hasProfile(const SettingProfile &profileToSearch) const {
+        return std::find_if(profiles.begin(), profiles.end(), [profileToSearch](const SettingProfile &profile) {
+            return profile == profileToSearch;
+        }) != profiles.end();
+    }
 };
 
 enum class SettingFile

@@ -47,7 +47,7 @@ struct ButtonSet {
         obj["name"] = name;
         obj["pin"] = pin;
         obj["pullMode"] = (uint8_t)pullMode;
-        auto array = obj.createNestedArray("buttons");
+        auto array = obj["buttons"].to<JsonArray>();
         for(int i = 0; i<MAX_BUTTONS; i++) {
             JsonObject buttonOBJ;
             buttons[i].toJson(buttonOBJ);

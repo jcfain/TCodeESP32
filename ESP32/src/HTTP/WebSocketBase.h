@@ -78,7 +78,7 @@ protected:
         }
         else
         {
-            DynamicJsonDocument doc(255);
+            JsonDocument doc; //255
             DeserializationError error = deserializeJson(doc, msg);
             if (error) 
             {

@@ -50,12 +50,12 @@ public:
         }
         _isConnected = true;
         LogHandler::info(_TAG, "Begin ok!");
-        
-        if(SettingsHandler::getVoiceVolume() > 0) {
-            setVolume(SettingsHandler::getVoiceVolume());
+        SettingsFactory* settingsFactory = SettingsFactory::getInstance();
+        if(settingsFactory->getVoiceVolume() > 0) {
+            setVolume(settingsFactory->getVoiceVolume());
         }
-        setMuteMode(SettingsHandler::getVoiceMuted());
-        setWakeTime(SettingsHandler::getVoiceWakeTime());
+        setMuteMode(settingsFactory->getVoiceMuted());
+        setWakeTime(settingsFactory->getVoiceWakeTime());
         /**
              @brief Get wake-up duration
             @return The currently-set wake-up period

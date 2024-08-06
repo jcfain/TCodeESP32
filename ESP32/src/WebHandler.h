@@ -66,7 +66,12 @@ class WebHandler : public HTTPBase {
             server->on("/settings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
-            });   
+            });
+
+            server->on("/pins", HTTP_GET, [](AsyncWebServerRequest *request) 
+            {
+                request->send(LittleFS, PIN_SETTINGS_PATH, "application/json");
+            }); 
 
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
@@ -91,7 +96,6 @@ class WebHandler : public HTTPBase {
                 request->send(LittleFS, BUTTON_SETTINGS_PATH, "application/json");
             });  
             
-            
             server->on("/log", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 Serial.println("Get log...");
@@ -101,8 +105,8 @@ class WebHandler : public HTTPBase {
             server->on("/connectWifi", HTTP_POST, [this](AsyncWebServerRequest *request) 
             {
                 WifiHandler wifi;
-                const size_t capacity = JSON_OBJECT_SIZE(2);
-                DynamicJsonDocument doc(capacity);
+                //const size_t capacity = JSON_OBJECT_SIZE(2);
+                JsonDocument doc;
                 char ssid[SSID_LEN] = {0};
                 char pass[WIFI_PASS_LEN] = {0};
                 m_settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
