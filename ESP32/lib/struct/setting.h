@@ -35,7 +35,6 @@ enum class SettingType
     String,
     Float,
     Double,
-    Array,
     MAX
 };
 
@@ -98,4 +97,15 @@ public:
     SettingFile file;
     JsonDocument doc;
     const std::vector<Setting> settings;
+    const Setting* getSetting(const char* name) {
+        std::vector<Setting>::const_iterator it = 
+                std::find_if(settings.begin(), settings.end(), 
+                    [name](const Setting &setting) {
+                        return setting.name == name;
+                });
+        if(it != settings.end()) {
+            return it.base();
+        }
+        return 0;
+    }
 };

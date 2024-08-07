@@ -27,15 +27,8 @@ SOFTWARE. */
 #include <mutex>
 #include <vector>
 #include "utils.h"
+#include "../lib/enum.h"
 
-
-enum class LogLevel {
-    ERROR,
-    WARNING,
-    INFO,
-    DEBUG,
-    VERBOSE
-};
 
 using LOG_FUNCTION_PTR_T = void (*)(const char* input, LogLevel level);
 class LogHandler {

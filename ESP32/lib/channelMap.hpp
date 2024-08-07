@@ -112,14 +112,14 @@ public:
             return;
         }
         switch (m_version) {
-            case TCodeVersion::v0_2:
-                for(auto channel : ChannelListV2) {
-                    char bufTemp[MAX_COMMAND];
-                    formatTCodeChannel(channel, bufTemp, channel.isSwitch ? channel.min : channel.mid, speed);
-                    strcat(buf, bufTemp);
-                    strcat(buf, " ");
-                }
-                break;
+            // case TCodeVersion::v0_2:
+            //     for(auto channel : ChannelListV2) {
+            //         char bufTemp[MAX_COMMAND];
+            //         formatTCodeChannel(channel, bufTemp, channel.isSwitch ? channel.min : channel.mid, speed);
+            //         strcat(buf, bufTemp);
+            //         strcat(buf, " ");
+            //     }
+            //     break;
             case TCodeVersion::v0_3:
                 for(auto channel : ChannelListV3) {
                     char bufTemp[MAX_COMMAND];
@@ -128,7 +128,7 @@ public:
                     strcat(buf, " ");
                 }
                 break;
-            case TCodeVersion::v0_5:// Not supported yet
+            case TCodeVersion::v0_4:// Not supported yet
                 //v5ToJson(arr);
                 break;
         }
@@ -161,7 +161,7 @@ private:
             value = channel.isSwitch ? channel.min : channel.mid;
         }
         char valueString[5];
-        sprintf(valueString, m_version == TCodeVersion::v0_2 ? "%03d" : "%04d", value);
+        sprintf(valueString, "%04d", value);
         if(speed < 1) {
             sprintf(buf, "%s%s", channel.Name, valueString);
             return;
@@ -188,13 +188,13 @@ private:
 
     void serializeBLDC(JsonArray& arr) {
         switch (m_version) {
-            case TCodeVersion::v0_2:// Not supported in BLDC
-                break;
+            // case TCodeVersion::v0_2:// Not supported in BLDC
+            //     break;
             case TCodeVersion::v0_3:
                 //v3ToJson(arr);
                 toJson(ChannelListBLDCV3, arr, sizeof(ChannelListBLDCV3)/sizeof(Channel));
                 break;
-            case TCodeVersion::v0_5:// Not supported yet
+            case TCodeVersion::v0_4:// Not supported yet
                 //v5ToJson(arr);
                 break;
         }
@@ -202,14 +202,14 @@ private:
     
     void serializeServo(JsonArray& arr) {
         switch (m_version) {
-            case TCodeVersion::v0_2:
-                toJson(ChannelListV2, arr, sizeof(ChannelListV2)/sizeof(Channel));
-                break;
+            // case TCodeVersion::v0_2:
+            //     toJson(ChannelListV2, arr, sizeof(ChannelListV2)/sizeof(Channel));
+            //     break;
             case TCodeVersion::v0_3:
                 //v3ToJson(arr);
                 toJson(ChannelListV3, arr, sizeof(ChannelListV3)/sizeof(Channel));
                 break;
-            case TCodeVersion::v0_5:// Not supported yet
+            case TCodeVersion::v0_4:// Not supported yet
                 //v5ToJson(arr);
                 break;
         }

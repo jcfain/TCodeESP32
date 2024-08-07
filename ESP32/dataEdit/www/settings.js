@@ -42,13 +42,12 @@ const EndPointType = {
     Buttons: {uri: "/buttonSettings"}
 }
 const TCodeVersion = {
-    V2: 0,
-    V3: 1
+    V3: 0,
+    V4: 1
 }
 // Modified in toggleBuildOptions if TCode V2 is not in build
 const availableVersions = [
-    {version: TCodeVersion.V2, versionName: "v0.2"},
-    {version: TCodeVersion.V3, versionName: "v0.3"},
+    {version: TCodeVersion.V3, versionName: "v0.3"}
 ] 
 const latestTCodeVersion = TCodeVersion.V3;
 const LogLevel = {
@@ -170,7 +169,7 @@ function get(name, uri, callback, callbackFail) {
 	xhr.send();
 }
 function onDocumentLoad() {
-    getSystemInfo();
+    getSystemInfo(true);
     createImportSettingsInputElement();
     
     // debugTextElement = document.getElementById("debugText");
@@ -182,11 +181,10 @@ function getSystemInfo(chain) {
         systemInfo = xhr.response;
         if(!systemInfo) {
             showError("Error getting system info!");
-            return;
-        }
-        setSystemInfo();
+        } else
+            setSystemInfo();
         if(chain)
-            getPinSettings(true);
+            getPinSettings(chain);
     });
 }
 function getPinSettings(chain) {
@@ -194,12 +192,11 @@ function getPinSettings(chain) {
         pinoutSettings = xhr.response;
         if(!pinoutSettings) {
             showError("Error getting pinout!");
-            return;
         }
-        if(chain)
-            getWifiSettings(chain);
         else
             setPinoutSettings();
+        if(chain)
+            getWifiSettings(chain);
     });
 }
 
@@ -208,12 +205,11 @@ function getWifiSettings(chain) {
         wifiSettings = xhr.response;
         if(!wifiSettings || !wifiSettings["ssid"]) {
             showError("Error getting wifi settings!");
-            return;
         }
-        if(chain)
-            getMotionProviderSettings(chain);
         else
             setWifiSettings();
+        if(chain)
+            getMotionProviderSettings(chain);
     });
 }
 
@@ -222,7 +218,6 @@ function getMotionProviderSettings(chain) {
         motionProviderSettings = xhr.response;
         if(!motionProviderSettings || !motionProviderSettings["motionProfiles"]) {
             showError("Error getting motion provider settings!");
-            return;
         }
         if(chain)
             getButtonSettings(chain);
@@ -234,7 +229,6 @@ function getButtonSettings(chain) {
         buttonSettings = xhr.response;
         if(!buttonSettings || !buttonSettings["bootButtonCommand"]) {
             showError("Error getting button settings!");
-            return;
         }
         if(chain)
             getUserSettings();
@@ -279,11 +273,11 @@ var updateMotionProfileSettings = function() {
 function getUserSettings() {
     get("common settings", EndPointType.Common.uri, function(xhr) {
         userSettings = xhr.response;
-        if(!userSettings || !userSettings["TCodeVersion"]) {
+        if(!userSettings || userSettings["TCodeVersion"] == undefined) {
             showError("Error getting user settings!");
-            return;
-        }
-        setUserSettings();
+        } 
+        else
+            setUserSettings();
         initWebSocket();
     });
 }
@@ -835,9 +829,9 @@ function toggleBuildOptions() {
         
     var tcodeVersionElement = document.getElementById('TCodeVersion');
 
-    if(!hasTCodeV2()) {
-        availableVersions.splice(availableVersions.findIndex(x => x.version === TCodeVersion.V2), 1);
-    }
+    // if(!hasTCodeV2()) {
+    //     availableVersions.splice(availableVersions.findIndex(x => x.version === TCodeVersion.V2), 1);
+    // }
     availableVersions.forEach(x => {
         const optionElement = document.createElement("option");
         optionElement.value=x.version;
@@ -1007,7 +1001,7 @@ function closeError()
 
 function showError(message) 
 {
-    document.getElementById("errorText").innerHTML += message;
+    document.getElementById("errorText").innerHTML += message + "<br>";
     document.getElementById("errorMessage").hidden = false;
 }
 

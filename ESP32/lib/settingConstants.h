@@ -18,8 +18,13 @@
 #define MOTION_PROFILE_SETTINGS_PATH "/motionProfiles.json"
 
 // Setting defaults
-#define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::OSR
-#define MOTOR_TYPE_DEFAULT (uint8_t)MotorType::Servo
+
+#if MOTOR_TYPE == 0
+    #define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::OSR
+#else 
+    #define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::SSR1
+#endif
+#define MOTOR_TYPE_DEFAULT MOTOR_TYPE
 #define IP_ADDRESS_LEN 15 // TODO: Should be 13?
 #define SSID_DEFAULT "YOUR SSID HERE"
 #define SSID_LEN 32

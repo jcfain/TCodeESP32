@@ -362,12 +362,12 @@ public:
 
     static bool defaultAll()
     {
-        return m_settingsFactory->resetWiFi() && m_settingsFactory->resetCommon() && loadMotionProfiles(true) && loadButtons(true); 
+        return m_settingsFactory->resetAll() && loadMotionProfiles(true) && loadButtons(true); 
     }
     
     static bool saveAll(JsonObject obj = JsonObject()) 
     {
-        if(!m_settingsFactory->saveCommon(obj) || !m_settingsFactory->saveWifi(obj) || !saveMotionProfiles(obj) || !saveButtons(obj))
+        if(!m_settingsFactory->saveAll(obj) || !saveMotionProfiles(obj) || !saveButtons(obj))
             return false;
         return true;
     }
@@ -394,12 +394,12 @@ public:
     }
 
     static bool defaultPinout() {
-        
-    #warning TODO: Implement pinout loading
 		//setBoardPinout();
         int8_t defaultButtonSetPin = -1;
+        m_settingsFactory->resetPins();
+        const PinMap* pinMap = m_settingsFactory->getPins().pinMap();
         for(int i = 0; i < MAX_BUTTON_SETS; i++) {
-            buttonSets[i].pin = i==0 ? defaultButtonSetPin : -1;
+            buttonSets[i].pin = i==0 ? pinMap->buttonSetPin(i) : -1;
         }
         return m_settingsFactory->savePins();
     }
@@ -623,21 +623,23 @@ public:
             // setValue(json, buttonAnalogDebounce, "buttonCommand", "buttonAnalogDebounce", BUTTON_ANALOG_DEBOUNCE_DEFAULT);
             
             bool bootButtonEnabled = json[BOOT_BUTTON_ENABLED] | BOOT_BUTTON_ENABLED_DEFAULT;
-            SettingsHandler::m_settingsFactory->setValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
+            m_settingsFactory->setValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
             bool buttonSetsEnabled = json[BUTTON_SETS_ENABLED] | BUTTON_SETS_ENABLED_DEFAULT;
-            SettingsHandler::m_settingsFactory->setValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
-            bool bootButtonCommand = json[BOOT_BUTTON_COMMAND] | BOOT_BUTTON_COMMAND_DEFAULT;
-            SettingsHandler::m_settingsFactory->setValue(BOOT_BUTTON_COMMAND, bootButtonCommand);
+            m_settingsFactory->setValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
+            const char* bootButtonCommand = json[BOOT_BUTTON_COMMAND] | BOOT_BUTTON_COMMAND_DEFAULT;
+            m_settingsFactory->setValue(BOOT_BUTTON_COMMAND, bootButtonCommand);
             bool buttonAnalogDebounce = json[BUTTON_ANALOG_DEBOUNCE] | BUTTON_ANALOG_DEBOUNCE_DEFAULT;
-            SettingsHandler::m_settingsFactory->setValue(BUTTON_ANALOG_DEBOUNCE, buttonAnalogDebounce);
+            m_settingsFactory->setValue(BUTTON_ANALOG_DEBOUNCE, buttonAnalogDebounce);
 
             JsonArray buttonSetsObj = json["buttonSets"].as<JsonArray>();
             if(buttonSetsObj.isNull()) {
                 LogHandler::info(_TAG, "No button sets stored, loading default");
                 mutableLoadDefault = true;
+                
+                const PinMap* pinMap = m_settingsFactory->getPins().pinMap();
                 for(int i = 0; i < MAX_BUTTON_SETS; i++) {
                     buttonSets[i] = ButtonSet();
-                    buttonSets[i].pin = m_settingsFactory->getPins().pinMap()->buttonSetPin(i);
+                    buttonSets[i].pin = pinMap->buttonSetPin(i);
                         
                     sprintf(buttonSets[i].name, "Button set %u", i+1);
                     LogHandler::debug(_TAG, "Default buttonset name: %s, index: %u, pin: %ld", buttonSets[i].name, i, buttonSets[i].pin);
@@ -1283,7 +1285,7 @@ public:
             if(strcmp(currentChannels[i].Name, channel) == 0)
                 return currentChannels[i].max;
         }
-        return m_settingsFactory->getTcodeVersion() == TCodeVersion::v0_2 ? 999 : 9999;
+        return 9999;
     }
 
     static void setChannelMin(const char *channel, u_int16_t value) 
@@ -1344,13 +1346,13 @@ private:
 //             TCodeVersionEnum = TCodeVersion::v0_3;
 //             TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
 //         }
-//         std::vector<String> includesVec;
-//         setValue(json, includesVec, "log", "log-include-tags");
-//         LogHandler::setIncludes(includesVec);
+        std::vector<String> includesVec;
+        setValue(json, includesVec, "log", "log-include-tags");
+        LogHandler::setIncludes(includesVec);
 
-//         std::vector<String> excludesVec;
-//         setValue(json, excludesVec, "log", "log-exclude-tags");
-//         LogHandler::setExcludes(excludesVec);
+        std::vector<String> excludesVec;
+        setValue(json, excludesVec, "log", "log-exclude-tags");
+        LogHandler::setExcludes(excludesVec);
 
 //         if(!isBoardType(BoardType::CRIMZZON)) {
 //             TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 1);
@@ -2050,11 +2052,11 @@ private:
         buildFeatures[index] = BuildFeature::DISPLAY_;
         index++;
 #endif
-#if TCODE_V2
-        LogHandler::debug("setBuildFeatures", "TCODE_V2");
-        buildFeatures[index] = BuildFeature::HAS_TCODE_V2;
-        index++;
-#endif
+// #if TCODE_V2
+//         LogHandler::debug("setBuildFeatures", "TCODE_V2");
+//         buildFeatures[index] = BuildFeature::HAS_TCODE_V2;
+//         index++;
+// #endif
 #if SECURE_WEB
         LogHandler::debug("setBuildFeatures", "HTTPS");
         buildFeatures[index] = BuildFeature::HTTPS;

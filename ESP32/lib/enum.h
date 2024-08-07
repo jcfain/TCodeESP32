@@ -1,15 +1,30 @@
 #pragma once
+#include "ArduinoJson.h"
 
 enum class TCodeVersion: int
 {
-    v0_2,
+    //v0_2,
     v0_3,
-    v0_5
+    v0_4
 };
 void convertFromJson(JsonVariantConst src, TCodeVersion& dst) {
     static_cast<uint8_t>(dst);
 }
 bool convertToJson(const TCodeVersion& src, JsonVariant dst) {
+  return dst.set(static_cast<uint8_t>(src));
+}
+
+enum class LogLevel {
+    ERROR,
+    WARNING,
+    INFO,
+    DEBUG,
+    VERBOSE
+};
+void convertFromJson(JsonVariantConst src, LogLevel& dst) {
+    static_cast<uint8_t>(dst);
+}
+bool convertToJson(const LogLevel& src, JsonVariant dst) {
   return dst.set(static_cast<uint8_t>(src));
 }
 

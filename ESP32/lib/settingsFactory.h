@@ -58,14 +58,14 @@ public:
     TCodeVersion getTcodeVersion() const { return tcodeVersion; }
     const char* getTcodeVersionString() const { 
         switch(getTcodeVersion()) {
-            case TCodeVersion::v0_2:
-                return "TCode v0.2\n";
-                break;
+            // case TCodeVersion::v0_2:
+            //     return "TCode v0.2\n";
+            //     break;
             case TCodeVersion::v0_3:
                 return "TCode v0.3\n";
                 break;
-            case TCodeVersion::v0_5:
-                return "TCode v0.5\n";
+            case TCodeVersion::v0_4:
+                return "TCode v0.4\n";
                 break;
             default:
                 return "TCode v?\n";
@@ -165,20 +165,28 @@ public:
         }
     }
 
+    SettingFileInfo* getFile(const char* settingName) const
+    { 
+        if(!m_initialized)
+            return 0;
+        for(SettingFileInfo* settingsInfo : AllSettings)
+        {
+            const Setting* setting = settingsInfo->getSetting(settingName);
+            if(setting)
+                return settingsInfo;
+        }
+        return 0;
+    }
+
     const Setting* getSetting(const char* name) const
     { 
         if(!m_initialized)
             return 0;
         for(SettingFileInfo* settingsInfo : AllSettings)
         {
-            std::vector<Setting>::const_iterator it = 
-                    std::find_if(settingsInfo->settings.begin(), settingsInfo->settings.end(), 
-                        [name](const Setting &setting) {
-                            return setting.name == name;
-                    });
-            if(it != settingsInfo->settings.end()) {
-                return it.base();
-            }
+            const Setting* setting = settingsInfo->getSetting(name);
+            if(setting)
+                return setting;
         }
         return 0;
     }
@@ -226,7 +234,7 @@ public:
         }    
         else
         {
-            LogHandler::error(m_TAG, "Get value key not found: ", name);
+            LogHandler::error(m_TAG, "Get value key not found: %s", name);
             return SettingFile::NONE;
         }
     }
@@ -271,9 +279,33 @@ public:
         }    
         else
         {
-            LogHandler::error(m_TAG, "Get value key not found: ", name);
+            LogHandler::error(m_TAG, "Get value key not found: %s", name);
         }
         return 0;
+    }
+    SettingFile getValue(const char* name, std::vector<String> &value)
+    {
+        SettingFileInfo* fileInfo = getFile(name);
+        //const Setting* setting = fileInfo->getSetting(name);
+        JsonArray array = fileInfo->doc[name].as<JsonArray>();
+        for (size_t i = 0; i < array.size(); i++)
+        {
+            value.push_back(array[i].as<String>());
+        }
+        
+        return fileInfo->file;
+    }
+    SettingFile getValue(const char* name, std::vector<int> &value)
+    {
+        SettingFileInfo* fileInfo = getFile(name);
+        //const Setting* setting = fileInfo->getSetting(name);
+        JsonArray array = fileInfo->doc[name].as<JsonArray>();
+        for (size_t i = 0; i < array.size(); i++)
+        {
+            value.push_back(array[i].as<int>());
+        }
+        
+        return fileInfo->file;
     }
     
     
@@ -283,17 +315,18 @@ public:
     }
 
     template<typename T,
-             typename = std::enable_if<!std::is_const<T>::value || std::is_integral<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
+             typename = std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
     SettingFile setValue(const char* name, const T &value) 
     {
         if(!m_initialized)
             return SettingFile::NONE;
+        LogHandler::error(m_TAG, "Set value: ", name);
         if (m_wifiFileInfo.doc.containsKey(name))
         {
             xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
             const Setting* setting = getSetting(name);
-            toJson(setting, m_wifiFileInfo.doc);
-            saveWifi();
+            //toJson(setting, m_wifiFileInfo.doc, value);
+            m_wifiFileInfo.doc[name] = value;
             xSemaphoreGive(m_wifiSemaphore);
             sendMessage(setting->profiles.front(), name);
             return SettingFile::Wifi;
@@ -302,30 +335,63 @@ public:
         {
             xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
             const Setting* setting = getSetting(name);
-            toJson(setting, m_commonFileInfo.doc);
-            saveCommon();
+            //toJson(setting, m_commonFileInfo.doc, value);
+            m_commonFileInfo.doc[name] = value;
             xSemaphoreGive(m_commonSemaphore);
             sendMessage(setting->profiles.front(), name);
             return SettingFile::Common;
         }
-        LogHandler::error(m_TAG, "Set value key not found: ", name);
+        else if (m_pinsFileInfo.doc.containsKey(name))
+        {
+            xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
+            const Setting* setting = getSetting(name);
+            //toJson(setting, m_commonFileInfo.doc, value);
+            m_pinsFileInfo.doc[name] = value;
+            xSemaphoreGive(m_pinSemaphore);
+            sendMessage(setting->profiles.front(), name);
+            return SettingFile::Common;
+        }
+        LogHandler::error(m_TAG, "Set value key not found");
         return SettingFile::NONE;
+    }
+    SettingFile setValue(const char* name, const std::vector<int> &value) 
+    {
+        if(!m_initialized)
+            return SettingFile::NONE;
+        LogHandler::error(m_TAG, "Set int array value: ", name);
+        SettingFileInfo* fileInfo = getFile(name);
+        const Setting* setting = fileInfo->getSetting(name);
+        toJson(setting, fileInfo->doc, value);
+        return fileInfo->file;
+    }
+    SettingFile setValue(const char* name, const std::vector<String> &value) 
+    {
+        if(!m_initialized)
+            return SettingFile::NONE;
+        LogHandler::error(m_TAG, "Set int array value: ", name);
+        SettingFileInfo* fileInfo = getFile(name);
+        const Setting* setting = fileInfo->getSetting(name);
+        toJson(setting, fileInfo->doc, value);
+        return fileInfo->file;
     }
 
     void defaultValue(const char* name) 
     {
         if(!m_initialized)
             return;
-        const Setting* setting = getSetting(name);
-        SettingFile file;
-        file = setValue(name, setting->value);
-        switch(file)
+        SettingFileInfo* fileInfo = getFile(name);
+        const Setting* setting = fileInfo->getSetting(name);
+        defaultToJson(setting, fileInfo->doc);
+        switch(fileInfo->file)
         {
             case SettingFile::Wifi:
             saveWifi();
             break;
             case SettingFile::Common:
             saveCommon();
+            break;
+            case SettingFile::Pins:
+            savePins();
             break;
             case SettingFile::ButtonSet:
             //saveButtonSet();
@@ -339,10 +405,23 @@ public:
         }
     }
 
+    bool saveAll(JsonObject fromJson = JsonObject())
+    {
+        return saveCommon(fromJson) &&
+            saveWifi(fromJson) &&
+            savePins(fromJson);
+    }
+    bool resetAll() 
+    {
+        return deleteJsonFile(m_commonFileInfo.path) &&
+        deleteJsonFile(m_wifiFileInfo.path) &&
+        deleteJsonFile(m_pinsFileInfo.path);
+        // return resetCommon() &&
+        //     resetWiFi() &&
+        //     resetPins();
+    }
     bool saveCommon(JsonObject fromJson = JsonObject())
     {
-        if(!m_initialized)
-            return false;
         xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
         bool ret = save(m_commonFileInfo, fromJson);
         xSemaphoreGive(m_commonSemaphore);
@@ -350,8 +429,6 @@ public:
     }
     bool resetCommon()
     {
-        if(!m_initialized)
-            return false;
         xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
         bool ret = loadDefault(m_commonFileInfo);
         xSemaphoreGive(m_commonSemaphore);
@@ -360,8 +437,6 @@ public:
 
     bool saveWifi(JsonObject fromJson = JsonObject())
     {
-        if(!m_initialized)
-            return false;
         xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
         bool ret = save(m_wifiFileInfo, fromJson);
         xSemaphoreGive(m_wifiSemaphore);
@@ -369,8 +444,6 @@ public:
     }
     bool resetWiFi()
     {
-        if(!m_initialized)
-            return false;
         xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
         bool ret = loadDefault(m_wifiFileInfo);
         xSemaphoreGive(m_wifiSemaphore);
@@ -378,8 +451,6 @@ public:
     }
     bool savePins(JsonObject fromJson = JsonObject())
     {
-        if(!m_initialized)
-            return false;
         xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
         bool ret = save(m_pinsFileInfo, fromJson);
         xSemaphoreGive(m_pinSemaphore);
@@ -387,8 +458,6 @@ public:
     }
     bool resetPins()
     {
-        if(!m_initialized)
-            return false;
         xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
         bool ret = loadDefaultPins();
         xSemaphoreGive(m_pinSemaphore);
@@ -397,8 +466,6 @@ public:
 
     void loadCache() 
     {
-        if(!m_initialized)
-            return;
 	    getValue(TCODE_VERSION_SETTING, tcodeVersion);
 	    getValue(UDP_SERVER_PORT, udpServerPort);
 	    getValue(WEBSERVER_PORT, webServerPort);
@@ -448,13 +515,13 @@ public:
     }
 
 private:
-    const char* m_TAG = "SettingsFactory";
+    const char* m_TAG = TagHandler::SettingsFactory;
     PinMap* m_currentPinMap;
-    const int m_commonDeserializeSize = 32768;
-    const int m_commonSerializeSize = 24576;
+    // const int m_commonDeserializeSize = 32768;
+    // const int m_commonSerializeSize = 24576;
 
     bool m_initialized = false;
-    SETTING_STATE_FUNCTION_PTR_T message_callback;
+    SETTING_STATE_FUNCTION_PTR_T message_callback = 0;
 
 
     SemaphoreHandle_t m_wifiSemaphore;
@@ -555,8 +622,8 @@ private:
             {VOICE_MUTED, "Voice muted", "Voice talk back muted", SettingType::Boolean, VOICE_MUTED_DEFAULT, RestartRequired::YES, {SettingProfile::Voice}},
             {VOICE_WAKE_TIME, "Voice wake time", "How long to keep the voice module awake listening for commands", SettingType::Number, VOICE_WAKE_TIME_DEFAULT, RestartRequired::YES, {SettingProfile::Voice}},
             {VOICE_VOLUME, "Voice volume", "The volume of the voice talk back", SettingType::Number, VOICE_VOLUME_DEFAULT, RestartRequired::YES, {SettingProfile::Voice}},
-            {LOG_INCLUDETAGS, "Log included tags", "Log tags to be included in the output", SettingType::Array, LOG_INCLUDETAGS_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
-            {LOG_EXCLUDETAGS, "Log excluded tags", "Log tags to be excluded in the output", SettingType::Array, LOG_EXCLUDETAGS_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
+            //{LOG_INCLUDETAGS, "Log included tags", "Log tags to be included in the output", SettingType::ArrayString, LOG_INCLUDETAGS_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
+            //{LOG_EXCLUDETAGS, "Log excluded tags", "Log tags to be excluded in the output", SettingType::ArrayString, LOG_EXCLUDETAGS_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
             {BOOT_BUTTON_ENABLED, "Boot button enabled", "Enables the boot button function", SettingType::Boolean, BOOT_BUTTON_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Button}},
             {BOOT_BUTTON_COMMAND, "Boot button command", "Command to execute when the boot button is pressed", SettingType::String, BOOT_BUTTON_COMMAND_DEFAULT, RestartRequired::NO, {SettingProfile::Button}},
             {BUTTON_SETS_ENABLED, "Button sets enabled", "Enables the button sets function", SettingType::Boolean, BUTTON_SETS_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Button}},
@@ -654,10 +721,15 @@ private:
 
     bool load(SettingFileInfo &fileInfo)
     {
+        LogHandler::info(m_TAG, "Loading file: %s", fileInfo.path);
         bool fileExists = LittleFS.exists(fileInfo.path);
         if(!fileExists)
         {
-            LogHandler::info(m_TAG, "File %s did not exist, creating..", fileInfo.path);
+            LogHandler::info(m_TAG, "File %s did not exist", fileInfo.path);
+            if(!createJsonFile(fileInfo.path))
+                return false;
+            if(!loadDefault(fileInfo.file))
+                return false;
         }
         File file = LittleFS.open(fileInfo.path, FILE_READ, !fileExists);
         if(!file) {
@@ -666,18 +738,12 @@ private:
         }
         if(LogDeserializationError(deserializeJson(fileInfo.doc, file), file.name())) {
             file.close();
+            createJsonFile(fileInfo.path);
             return false;
         }
         file.close();
         //json = doc.as<JsonObject>();
         return true;
-    }
-
-    bool loadDefault()
-    {
-        return loadDefault(m_wifiFileInfo) &&
-                loadDefault(m_commonFileInfo) &&
-                loadDefault(m_pinsFileInfo);
     }
 
     bool loadDefault(SettingFile file) 
@@ -694,16 +760,28 @@ private:
         {
             return loadDefaultPins();
         }
+        LogHandler::error(m_TAG, "Unknown file loading default: %ld", (int)file);
+        return false;
     }
 
     //template <unsigned int N>
     bool loadDefault(SettingFileInfo &fileInfo)
     {
+        LogHandler::info(m_TAG, "Loading default: %s", fileInfo.path);
         for(const Setting& setting : fileInfo.settings)
         {
-            toJson(&setting, fileInfo.doc);
+            defaultToJson(&setting, fileInfo.doc);
         }
         return save(fileInfo);
+    }
+
+    bool loadDefaultArrays() {
+        
+        std::vector<String> includesVec;
+        setValue(LOG_EXCLUDETAGS, includesVec);
+        LogHandler::setIncludes(includesVec);
+
+        std::vector<String> excludesVec;
     }
 
     bool loadDefaultPins() {
@@ -715,6 +793,7 @@ private:
                 PinMapSR6MB* pinMap = PinMapSR6MB::getInstance();
                 pinMap->overideDefaults();
                 syncSR6Pins(pinMap);
+                loadPins();
                 return save(m_pinsFileInfo);
             }
             break;
@@ -722,11 +801,14 @@ private:
                 PinMapINControl* pinMap = PinMapINControl::getInstance();
                 pinMap->overideDefaults();
                 syncSR6Pins(pinMap);
+                loadPins();
                 return save(m_pinsFileInfo);
             }
             break;
             default: {
-                return loadDefault(m_pinsFileInfo);
+                bool ret = loadDefault(m_pinsFileInfo);
+                loadPins();
+                return ret;
             }
         }
     }
@@ -776,10 +858,9 @@ private:
     //template <unsigned int N>
     bool save(SettingFileInfo &fileInfo, JsonObject fromJson = JsonObject())
     {
-        if(!m_initialized)
-            return false;
+        LogHandler::info(m_TAG, "Save file: %s", fileInfo.path);
         if(!fromJson.isNull()) {
-            LogHandler::debug(m_TAG, "Loading from input json: %s", fileInfo.path);
+            LogHandler::debug(m_TAG, "Saving from override json");
             fileInfo.doc.clear();
             fileInfo.doc.set(fromJson);
         }
@@ -800,6 +881,7 @@ private:
             return false;
         }
         LogHandler::debug(m_TAG, "File contents: %s", file.readString().c_str());
+        file.close();
         return true;
     }
     
@@ -958,6 +1040,7 @@ private:
         setValue(BLDC_PWMCHANNEL1_PIN, pinMap->pwmChannel1());
         setValue(BLDC_PWMCHANNEL2_PIN, pinMap->pwmChannel2());
         setValue(BLDC_PWMCHANNEL3_PIN, pinMap->pwmChannel3());
+        savePins();
     }
 
     void syncOSRPins(const PinMapOSR* pinMap) 
@@ -966,6 +1049,7 @@ private:
         setValue(RIGHT_SERVO_PIN, pinMap->rightServo());
         setValue(LEFT_SERVO_PIN, pinMap->leftServo());
         setValue(PITCH_LEFT_SERVO_PIN, pinMap->pitchLeft());
+        savePins();
     }
 
     void syncSR6Pins(const PinMapSR6* pinMap) 
@@ -977,29 +1061,83 @@ private:
         setValue(PITCH_RIGHTSERVO_PIN, pinMap->pitchRight());
         setValue(RIGHT_UPPER_SERVO_PIN, pinMap->rightUpperServo());
         setValue(LEFT_UPPER_SERVO_PIN, pinMap->leftUpperServo());
+        savePins();
     }
 
-    void toJson(const Setting *setting, JsonDocument &doc) {
+    void toJson(const Setting *setting, JsonDocument &doc, const std::vector<const int> &value) {
+        JsonArray array = doc[setting->name].add<JsonArray>();
+        for (size_t i = 0; i < value.size(); i++)
+        {
+            array.add(value[i]);
+        }
+    }
+    void toJson(const Setting *setting, JsonDocument &doc, const std::vector<const char*> &value) {
+        JsonArray array = doc[setting->name].add<JsonArray>();
+        for (size_t i = 0; i < value.size(); i++)
+        {
+            array.add(value[i]);
+        }
+    }
+    
+    template<typename T,
+             typename = std::enable_if<!std::is_const<T>::value || std::is_integral<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
+    void toJson(const Setting *setting, JsonDocument &doc, T value) {
         switch(setting->type)
         {
-            case SettingType::Boolean:
+            case SettingType::Boolean: {
+                doc[setting->name] = static_cast<bool>(value);
+                LogHandler::verbose(m_TAG, "Load bool: %s, value: %ld", setting->name, doc[setting->name].as<bool>());
+            }
+            break;
+            case SettingType::Number: {
+                doc[setting->name] = static_cast<int>(value);
+                LogHandler::verbose(m_TAG, "Load number: %s, value: %ld", setting->name, doc[setting->name].as<int>());
+            }
+            break;
+            case SettingType::Double: {
+                doc[setting->name] = static_cast<double>(value);
+                LogHandler::verbose(m_TAG, "Load double: %s, value: %f", setting->name, doc[setting->name].as<double>());
+            }
+            break;
+            case SettingType::Float: {
+                doc[setting->name] = static_cast<float>(value);
+                LogHandler::verbose(m_TAG, "Load float: %s, value: %f", setting->name, doc[setting->name].as<float>());
+            }
+            break;
+            case SettingType::String: {
+                doc[setting->name] = static_cast<char*>(value);
+                LogHandler::verbose(m_TAG, "Load string: %s, value: %s", setting->name, doc[setting->name].as<const char*>());
+            }
+            break;
+        }
+    }
+    void defaultToJson(const Setting *setting, JsonDocument &doc) {
+        switch(setting->type)
+        {
+            case SettingType::Boolean: {
                 doc[setting->name] = mpark::get<const bool>(setting->value);
+                LogHandler::verbose(m_TAG, "Load default bool: %s, value: %ld", setting->name, doc[setting->name].as<bool>());
+            }
             break;
-            case SettingType::Number:
+            case SettingType::Number: {
                 doc[setting->name] = mpark::get<const int>(setting->value);
+                LogHandler::verbose(m_TAG, "Load default number: %s, value: %ld", setting->name, doc[setting->name].as<int>());
+            }
             break;
-            case SettingType::Double:
+            case SettingType::Double: {
                 doc[setting->name] = mpark::get<const double>(setting->value);
+                LogHandler::verbose(m_TAG, "Load default double: %s, value: %f", setting->name, doc[setting->name].as<double>());
+            }
             break;
-            case SettingType::Float:
+            case SettingType::Float: {
                 doc[setting->name] = mpark::get<const float>(setting->value);
+                LogHandler::verbose(m_TAG, "Load default float: %s, value: %f", setting->name, doc[setting->name].as<float>());
+            }
             break;
-            case SettingType::String:
+            case SettingType::String: {
                 doc[setting->name] = mpark::get<const char*>(setting->value);
-            break;
-            case SettingType::Array:
-                // int[]
-                // doc[setting->name] = mpark::get<Array>(setting->value);
+                LogHandler::verbose(m_TAG, "Load default string: %s, value: %s", setting->name, doc[setting->name].as<const char*>());
+            }
             break;
         }
     }
@@ -1015,5 +1153,36 @@ private:
         {
             LogHandler::debug(m_TAG, "sendMessage: message_callback 0");
         }
+    }
+
+    bool createJsonFile(const char* path) {
+        LogHandler::info(m_TAG, "Creating file %s", path);
+        if(LittleFS.exists(path)) {
+            LogHandler::info(m_TAG, "File exists, Deleting file %s", path);
+            if(!LittleFS.remove(path)) {
+                LogHandler::error(m_TAG, "Error deleting %s!", path);
+                return false;
+            }
+        }
+        File newFile = LittleFS.open(path, FILE_WRITE, true);
+        if(!newFile) {
+            LogHandler::error(m_TAG, "Error creating %s!", path);
+            return false;
+        }
+        newFile.print("{}");
+        newFile.flush();
+        newFile.close();
+        return true;
+    }
+    
+    bool deleteJsonFile(const char* path) {
+        if(LittleFS.exists(path)) {
+            LogHandler::info(m_TAG, "Deleting file %s", path);
+            if(!LittleFS.remove(path)) {
+                LogHandler::error(m_TAG, "Error deleting %s!", path);
+                return false;
+            }
+        }
+        return true;
     }
 };

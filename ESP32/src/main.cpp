@@ -58,7 +58,7 @@ SOFTWARE. */
 //#include "BLEConfigurationHandler.h"
 #if MOTOR_TYPE == 0
 	#if TCODE_V2//Too much memory needed with debug
-		#include "TCode/v0.2/ServoHandler0_2.h"
+		//#include "TCode/v0.2/ServoHandler0_2.h"
 	#endif
 
 	#include "TCode/v0.3/ServoHandler0_3.h"
@@ -569,7 +569,7 @@ void setup()
 	#endif
 
 	Serial.println();
- 	LogHandler::info(TagHandler::Main, "TCode esp version: %s", FIRMWARE_VERSION_NAME);
+	LogHandler::info(TagHandler::Main, "Firmware version: %s", FIRMWARE_VERSION_NAME);
  	//LogHandler::info(TagHandler::Main, "Esp arduino version: %s", ESP_ARDUINO_VERSION_STR);
  	LogHandler::info(TagHandler::Main, "ESP IDF version: %s", esp_get_idf_version());
 	uint32_t chipId = 0;
@@ -596,19 +596,24 @@ void setup()
 		return;
 	}
 
+    LogHandler::setLogLevel(LogLevel::VERBOSE);
 	settingsFactory = SettingsFactory::getInstance();
 	if(!settingsFactory->init()) {
 		LogHandler::error(TagHandler::Main, "Failed to load settings...");
 		return;
 	}
+
+	LogLevel logLevel;
+	settingsFactory->getValue(LOG_LEVEL_SETTING, logLevel);
+    LogHandler::setLogLevel(logLevel);
+    LogHandler::setLogLevel(LogLevel::VERBOSE);
+
 	PinMapInfo pinMapInfo = settingsFactory->getPins();
-	PinMap* pinMap = pinMapInfo.pinMap<PinMap*>();
+	const PinMap* pinMap = pinMapInfo.pinMap();
+
 	SettingsHandler::init();
-	LogHandler::info(TagHandler::Main, "Version: %s", FIRMWARE_VERSION_NAME);
 	
-	// GEt ConfigurationSettings
-	int Display_Rst_PIN = DISPLAY_RST_PIN_DEFAULT;
-	settingsFactory->getValue(DISPLAY_RST_PIN, Display_Rst_PIN);
+	// Get ConfigurationSettings
 	bool fanControlEnabled = FAN_CONTROL_ENABLED_DEFAULT;
 	settingsFactory->getValue(FAN_CONTROL_ENABLED, fanControlEnabled);
 
@@ -719,15 +724,15 @@ void setup()
 	systemCommandHandler->registerExternalCommandCallback(TCodePassthroughCommandCallback);
 
 #if MOTOR_TYPE == 0
-	if(SettingsHandler::getTCodeVersionEnum() == TCodeVersion::v0_3) {
+	if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_3) {
 		motorHandler = new ServoHandler0_3();
 	}
 	#if !DEBUG_BUILD && TCODE_V2
-		else if(SettingsHandler::getTCodeVersionEnum() == TCodeVersion::v0_2)
-			motorHandler = new ServoHandler0_2();
+		// else if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_2)
+		// 	motorHandler = new ServoHandler0_2();
 	#endif
 		else {
-			LogHandler::error(TagHandler::Main, "Invalid TCode version: %ld", SettingsHandler::getTCodeVersionEnum());
+			LogHandler::error(TagHandler::Main, "Invalid TCode version: %ld", settingsFactory->getTcodeVersion());
 			return;// TODO: this stops apmode and not what we want
 			//motorHandler = new ServoHandler1_0();
 		}
@@ -776,7 +781,7 @@ void setup()
 	displayHandler = new DisplayHandler();
 	if(displayEnabled)
 	{
-		displayHandler->setup(Display_I2C_Address, fanControlEnabled, Display_Rst_PIN);
+		displayHandler->setup(Display_I2C_Address, fanControlEnabled, pinMap->displayReset());
 		// #if ISAAC_NEWTONGUE_BUILD
 		// 	xTaskCreatePinnedToCore(
 		// 		DisplayHandler::startAnimationDontPanic,/* Function to implement the task */
@@ -840,6 +845,7 @@ void setup()
 	}
 
 	SettingsHandler::setMessageCallback(settingChangeCallback);
+	settingsFactory->setMessageCallback(settingChangeCallback);
 	setupSucceeded = true;
     LogHandler::debug(TagHandler::Main, "Setup finished");
     SettingsHandler::printFree();
@@ -847,8 +853,8 @@ void setup()
 
 // Main loop functions/////////////////////////////////////////////////
 void readTCode(String& tcode) {
-	if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_2)
-		tcodeV2Recieved = true;
+	// if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_2)
+	// 	tcodeV2Recieved = true;
 	if(motorHandler) {
 		motorHandler->read(tcode);
 		tcode.clear();
@@ -856,8 +862,8 @@ void readTCode(String& tcode) {
 }
 
 void readTCode(char* tcode) {
-	if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_2)
-		tcodeV2Recieved = true;
+	// if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_2)
+	// 	tcodeV2Recieved = true;
 	if(motorHandler) {
 		motorHandler->read(tcode);
 		tcode[0] = {0};

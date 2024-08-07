@@ -85,31 +85,38 @@ public:
         // Begin tracking encoder
         BLDCEncoderType encoderType = BLDCEncoderType::MT6701;
         m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
+        LogHandler::debug(_TAG, "Encoder type: %ld", encoderType);
 
         if(encoderType == BLDCEncoderType::MT6701) {
+            LogHandler::info(_TAG, "Selected encoder: MT6701");
             m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
             if(pinMap->chipSelect() > -1) {
                 LogHandler::info(_TAG, "Setup BLDC motor on MT6701 chip select pin: %ld", pinMap->chipSelect());
                 sensorMT6701 = new MagneticSensorMT6701SSI(pinMap->chipSelect());
             } else {
-                LogHandler::error(_TAG, "Invalid ChipSelect pin %ld", pinMap->encoder());
+                LogHandler::error(_TAG, "Invalid ChipSelect pin %ld", pinMap->chipSelect());
                 m_initFailed = true;
+                return;
             }
         } else if(encoderType == BLDCEncoderType::PWM) {
+            LogHandler::info(_TAG, "Selected encoder: PWM");
             if(pinMap->encoder() > -1) {
                 LogHandler::info(_TAG, "Setup BLDC motor on PWM encoder pin: %ld", pinMap->encoder());
                 sensorPWM = new MagneticSensorPWM(pinMap->encoder(), 5, 928);
             } else {
                 LogHandler::error(_TAG, "Invalid encoder pin %ld", pinMap->encoder());
                 m_initFailed = true;
+                return;
             }
         } else {
             if(pinMap->chipSelect() > -1) {
+                LogHandler::info(_TAG, "Selected encoder: SPI");
                 LogHandler::info(_TAG, "Setup BLDC motor on SPI chip select pin: %ld", pinMap->chipSelect());
                 sensorSPI = new MagneticSensorSPI(pinMap->chipSelect(), 14, 0x3FFF);
             } else {
-                LogHandler::error(_TAG, "Invalid ChipSelect pin %ld", pinMap->encoder());
+                LogHandler::error(_TAG, "Invalid ChipSelect pin %ld", pinMap->chipSelect());
                 m_initFailed = true;
+                return;
             }
         }
         // BLDC motor & driver instance
