@@ -58,8 +58,6 @@
 #define ANALOG_TWIST_DEFAULT false
 
 #define BLDC_ENCODER_DEFAULT 0
-// #define BLDC_USEPWM_DEFAULT false
-// #define BLDC_USEMT6701_DEFAULT true
 #define BLDC_USEHALLSENSOR_DEFAULT false
 #define BLDC_PULLEY_CIRCUMFERENCE_DEFAULT 60
 #define BLDC_MOTORA_VOLTAGE_DEFAULT 20.0f
@@ -74,7 +72,6 @@
 #define SUBNET_DEFAULT "255.255.255.0"
 #define DNS1_DEFAULT "8.8.8.8"
 #define DNS2_DEFAULT "8.8.4.4"
-//#define SR6MODE_DEFAULT false
 #define RIGHT_SERVO_ZERO_DEFAULT 1500
 #define LEFT_SERVO_ZERO_DEFAULT 1500
 #define RIGHT_UPPER_SERVO_ZERO_DEFAULT 1500
@@ -119,7 +116,8 @@
 #define VOICE_ENABLED_DEFAULT false
 #define VOICE_MUTED_DEFAULT false
 #define VOICE_WAKE_TIME_DEFAULT 10
-#define VOICE_VOLUME_DEFAULT 10
+#define VOICE_VOLUME_DEFAULT 5
+// Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
 #define LOG_INCLUDETAGS_DEFAULT {}
 #define LOG_EXCLUDETAGS_DEFAULT {}
 
@@ -129,7 +127,7 @@
 #define BUTTON_SETS_ENABLED_DEFAULT false
 #define BUTTON_ANALOG_DEBOUNCE_DEFAULT 200
 
-#define MOTION_PROFILE_SELECTED_INDEX_DEFAULT 1
+#define MOTION_PROFILE_SELECTED_INDEX_DEFAULT 0
 
 #define DEVICE_TYPE "deviceType"
 #define MOTOR_TYPE_SETTING "motorType"
@@ -225,6 +223,10 @@
 #define BUTTON_ANALOG_DEBOUNCE "buttonAnalogDebounce"
 
 #define MOTION_PROFILE_SELECTED_INDEX "motionSelectedProfileIndex"
+#define MOTION_PROFILE_DEFAULT_INDEX "motionDefaultProfileIndex"
+#define MOTION_PROFILES "motionProfiles"
+#define MOTION_ENABLED "motionEnabled"
+#define MOTION_PAUSED "motionPaused"
 
 
 ;

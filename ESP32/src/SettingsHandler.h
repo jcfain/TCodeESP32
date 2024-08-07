@@ -395,11 +395,11 @@ public:
 
     static bool defaultPinout() {
 		//setBoardPinout();
-        int8_t defaultButtonSetPin = -1;
-        m_settingsFactory->resetPins();
+        if(!m_settingsFactory->resetPins())
+            return false;
         const PinMap* pinMap = m_settingsFactory->getPins().pinMap();
         for(int i = 0; i < MAX_BUTTON_SETS; i++) {
-            buttonSets[i].pin = i==0 ? pinMap->buttonSetPin(i) : -1;
+            buttonSets[i].pin = pinMap->buttonSetPin(i);
         }
         return m_settingsFactory->savePins();
     }
@@ -478,16 +478,16 @@ public:
         SR6["name"] = "SR6";
         SR6["value"] = (uint8_t)DeviceType::SR6;
     #elif MOTOR_TYPE == 1
-        defaultDevice["name"] = "BLDC";
+        defaultDevice["name"] = "SSR1";
         defaultDevice["value"] = (uint8_t)DeviceType::SSR1;
     #endif
 
         JsonArray availableChannels = doc["availableChannels"].to<JsonArray>();
         channelMap.serialize(availableChannels);
-        doc["motionEnabled"] = getMotionEnabled();
-        int motionProfileSelectedIndex = MOTION_PROFILE_SELECTED_INDEX_DEFAULT;
-        m_settingsFactory->getValue(MOTION_PROFILE_SELECTED_INDEX, motionProfileSelectedIndex);
-        doc[MOTION_PROFILE_SELECTED_INDEX] = motionProfileSelectedIndex; 
+        doc[MOTION_ENABLED] = getMotionEnabled();
+        // int motionProfileSelectedIndex = MOTION_PROFILE_SELECTED_INDEX_DEFAULT;
+        // m_settingsFactory->getValue(MOTION_PROFILE_SELECTED_INDEX, motionProfileSelectedIndex);
+        doc[MOTION_PROFILE_SELECTED_INDEX] = motionSelectedProfileIndex; 
         
         doc["localIP"] = currentIP;
         doc["gateway"] = currentGateway;
@@ -628,7 +628,7 @@ public:
             m_settingsFactory->setValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
             const char* bootButtonCommand = json[BOOT_BUTTON_COMMAND] | BOOT_BUTTON_COMMAND_DEFAULT;
             m_settingsFactory->setValue(BOOT_BUTTON_COMMAND, bootButtonCommand);
-            bool buttonAnalogDebounce = json[BUTTON_ANALOG_DEBOUNCE] | BUTTON_ANALOG_DEBOUNCE_DEFAULT;
+            int buttonAnalogDebounce = json[BUTTON_ANALOG_DEBOUNCE] | BUTTON_ANALOG_DEBOUNCE_DEFAULT;
             m_settingsFactory->setValue(BUTTON_ANALOG_DEBOUNCE, buttonAnalogDebounce);
 
             JsonArray buttonSetsObj = json["buttonSets"].as<JsonArray>();
@@ -651,15 +651,19 @@ public:
                     }
                 }
             } else {
+                std::vector<int> pins; 
                 for(int i = 0; i < MAX_BUTTON_SETS; i++) {
                     auto set = ButtonSet();
                     set.fromJson(buttonSetsObj[i].as<JsonObject>());
-                    LogHandler::debug(_TAG, "Loaded button set '%s', pin: %u", set.name, set.pin);
+                    pins.push_back(set.pin);
+                    LogHandler::debug(_TAG, "Loaded button set '%s', pin: %ld", set.name, set.pin);
                     buttonSets[i] = set;
                     for(int j = 0; j < MAX_BUTTONS; j++) {
                         LogHandler::debug(_TAG, "Loaded button, name: %s, index: %u, command: %s", buttonSets[i].name, buttonSets[i].buttons[j].index, buttonSets[i].buttons[j].command);
                     }
                 }
+                m_settingsFactory->setValue(BUTTON_SET_PINS, pins);
+                m_settingsFactory->savePins();
             }
             
             if(initialized)
@@ -682,23 +686,26 @@ public:
 
             bool bootButtonEnabled = BOOT_BUTTON_ENABLED_DEFAULT;
             m_settingsFactory->getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
-            doc["bootButtonEnabled"] = bootButtonEnabled; 
+            doc[BOOT_BUTTON_ENABLED] = bootButtonEnabled; 
             bool buttonSetsEnabled = BUTTON_SETS_ENABLED_DEFAULT;
             m_settingsFactory->getValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
-            doc["buttonSetsEnabled"] = buttonSetsEnabled;
+            doc[BUTTON_SETS_ENABLED] = buttonSetsEnabled;
             char bootButtonCommand[MAX_COMMAND];
             m_settingsFactory->getValue(BOOT_BUTTON_COMMAND, bootButtonCommand, MAX_COMMAND);
-            doc["bootButtonCommand"] = bootButtonCommand; 
+            doc[BOOT_BUTTON_COMMAND] = bootButtonCommand; 
             int buttonAnalogDebounce = BUTTON_ANALOG_DEBOUNCE_DEFAULT;
             m_settingsFactory->getValue(BUTTON_ANALOG_DEBOUNCE, buttonAnalogDebounce);
-            doc["buttonAnalogDebounce"] = buttonAnalogDebounce;
+            doc[BUTTON_ANALOG_DEBOUNCE] = buttonAnalogDebounce;
             
-            //auto buttonSetArray = doc.createNestedArray("buttonSets");
+            //auto buttonSetArray = doc["buttonSets"].as<JsonArray>();
+            std::vector<int> pins;
             for (size_t i = 0; i < MAX_BUTTON_SETS; i++)
             {
                 //JsonObject obj;
                 doc["buttonSets"][i]["name"] = buttonSets[i].name;
+                
                 doc["buttonSets"][i]["pin"] = buttonSets[i].pin;
+                pins.push_back(buttonSets[i].pin);
                 doc["buttonSets"][i]["pullMode"] = (uint8_t)buttonSets[i].pullMode;
                 LogHandler::debug(_TAG, "Saving button set '%s' from settings, pin: %ld",  doc["buttonSets"][i]["name"].as<const  char*>(), doc["buttonSets"][i]["pin"].as<int>());
                 for(size_t j = 0; j < MAX_BUTTONS; j++) {
@@ -709,6 +716,8 @@ public:
                 }
                 //buttonSetArray.add(obj);
             }
+            m_settingsFactory->setValue(BUTTON_SET_PINS, pins);
+            m_settingsFactory->savePins();
             return true;
         }, loadButtons, json);
     }
@@ -725,11 +734,12 @@ public:
                 return false;
             }
         }
-        motionDefaultProfileIndex = json["motionDefaultProfileIndex"] | 0;
+        motionDefaultProfileIndex = json[MOTION_PROFILE_DEFAULT_INDEX] | MOTION_PROFILE_SELECTED_INDEX_DEFAULT;
         if(!initialized)
             motionSelectedProfileIndex = motionDefaultProfileIndex;
-
-        JsonArray motionProfilesObj = json["motionProfiles"].as<JsonArray>();
+        LogHandler::info(_TAG, "json.containsKey(MOTION_PROFILES): %u", json.containsKey(MOTION_PROFILES));
+        LogHandler::info(_TAG, "motionDefaultProfileIndex: %u", motionDefaultProfileIndex);
+        JsonArray motionProfilesObj = json[MOTION_PROFILES].as<JsonArray>();
         
         if(motionProfilesObj.isNull()) {
             LogHandler::info(_TAG, "No motion profiles stored, loading default");
@@ -739,13 +749,13 @@ public:
                 motionProfiles[i].addDefaultChannel("L0");
             }
         } else {
-            for(int i = 0; i<motionProfilesObj.size(); i++) {
-                if(i == maxMotionProfileCount) 
-                    break;
+            int i = 0;
+ 	        for (JsonObject profileObj : motionProfilesObj) {
                 auto profile = MotionProfile();
-                LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", motionProfilesObj[i]["name"].as<String>());
-                profile.fromJson(motionProfilesObj[i].as<JsonObject>());
+                profile.fromJson(profileObj);
+                LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", profile.motionProfileName);
                 motionProfiles[i] = profile;
+                i++;
             }
         }
         xSemaphoreGive(m_motionMutex);
@@ -769,43 +779,43 @@ public:
             loadMotionProfiles(false, json); // DO NOT PASS loadDefault as true else infinit loop
         }
         JsonDocument doc; //serializeSize
-        doc["motionDefaultProfileIndex"] = motionDefaultProfileIndex;
+        doc[MOTION_PROFILE_DEFAULT_INDEX] = motionDefaultProfileIndex;
         LogHandler::debug(_TAG, "motion profiles index: %ld", motionDefaultProfileIndex);
         int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
         LogHandler::debug(_TAG, "motion profiles length: %ld", len);
         for (int i=0; i < len; i++) {
             //if(motionProfiles[i].edited) { // TODO: this does not work because doc is empty and needs to be loaded from disk first bedore modifying sections of it.
                 LogHandler::debug(_TAG, "Edited motion profile name: %s", motionProfiles[i].motionProfileName);
-                doc["motionProfiles"][i]["name"] = motionProfiles[i].motionProfileName;
+                doc[MOTION_PROFILES][i]["name"] = motionProfiles[i].motionProfileName;
                 for (size_t j = 0; j < motionProfiles[i].channels.size(); j++) {
                     //if(motionProfiles[i].channels[j].edited) {
                         LogHandler::debug(_TAG, "motion profile channel: %s", motionProfiles[i].channels[j].name);
-                        doc["motionProfiles"][i]["channels"][j]["name"] = motionProfiles[i].channels[j].name;
-                        doc["motionProfiles"][i]["channels"][j]["update"] = motionProfiles[i].channels[j].motionUpdateGlobal;
-                        doc["motionProfiles"][i]["channels"][j]["period"] = motionProfiles[i].channels[j].motionPeriodGlobal;
-                        doc["motionProfiles"][i]["channels"][j]["amp"] = motionProfiles[i].channels[j].motionAmplitudeGlobal;
-                        doc["motionProfiles"][i]["channels"][j]["offset"] = motionProfiles[i].channels[j].motionOffsetGlobal;
-                        doc["motionProfiles"][i]["channels"][j]["phase"] = motionProfiles[i].channels[j].motionPhaseGlobal;
-                        doc["motionProfiles"][i]["channels"][j]["reverse"] = motionProfiles[i].channels[j].motionReversedGlobal;
-                        doc["motionProfiles"][i]["channels"][j]["periodRan"] = motionProfiles[i].channels[j].motionPeriodGlobalRandom;
-                        doc["motionProfiles"][i]["channels"][j]["periodMin"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMin;
-                        doc["motionProfiles"][i]["channels"][j]["periodMax"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMax;
-                        doc["motionProfiles"][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
-                        doc["motionProfiles"][i]["channels"][j]["ampMin"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMin;
-                        doc["motionProfiles"][i]["channels"][j]["ampMax"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMax;
-                        doc["motionProfiles"][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
-                        doc["motionProfiles"][i]["channels"][j]["offsetMin"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMin;
-                        doc["motionProfiles"][i]["channels"][j]["offsetMax"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMax;
-                        doc["motionProfiles"][i]["channels"][j]["phaseRan"] = motionProfiles[i].channels[j].motionPhaseRandom;
-                        doc["motionProfiles"][i]["channels"][j]["phaseMin"] = motionProfiles[i].channels[j].motionPhaseRandomMin;
-                        doc["motionProfiles"][i]["channels"][j]["phaseMax"] = motionProfiles[i].channels[j].motionPhaseRandomMax;
-                        doc["motionProfiles"][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
-                        doc["motionProfiles"][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
+                        doc[MOTION_PROFILES][i]["channels"][j]["name"] = motionProfiles[i].channels[j].name;
+                        doc[MOTION_PROFILES][i]["channels"][j]["update"] = motionProfiles[i].channels[j].motionUpdateGlobal;
+                        doc[MOTION_PROFILES][i]["channels"][j]["period"] = motionProfiles[i].channels[j].motionPeriodGlobal;
+                        doc[MOTION_PROFILES][i]["channels"][j]["amp"] = motionProfiles[i].channels[j].motionAmplitudeGlobal;
+                        doc[MOTION_PROFILES][i]["channels"][j]["offset"] = motionProfiles[i].channels[j].motionOffsetGlobal;
+                        doc[MOTION_PROFILES][i]["channels"][j]["phase"] = motionProfiles[i].channels[j].motionPhaseGlobal;
+                        doc[MOTION_PROFILES][i]["channels"][j]["reverse"] = motionProfiles[i].channels[j].motionReversedGlobal;
+                        doc[MOTION_PROFILES][i]["channels"][j]["periodRan"] = motionProfiles[i].channels[j].motionPeriodGlobalRandom;
+                        doc[MOTION_PROFILES][i]["channels"][j]["periodMin"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMin;
+                        doc[MOTION_PROFILES][i]["channels"][j]["periodMax"] = motionProfiles[i].channels[j].motionPeriodGlobalRandomMax;
+                        doc[MOTION_PROFILES][i]["channels"][j]["ampRan"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandom;
+                        doc[MOTION_PROFILES][i]["channels"][j]["ampMin"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMin;
+                        doc[MOTION_PROFILES][i]["channels"][j]["ampMax"] = motionProfiles[i].channels[j].motionAmplitudeGlobalRandomMax;
+                        doc[MOTION_PROFILES][i]["channels"][j]["offsetRan"] = motionProfiles[i].channels[j].motionOffsetGlobalRandom;
+                        doc[MOTION_PROFILES][i]["channels"][j]["offsetMin"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMin;
+                        doc[MOTION_PROFILES][i]["channels"][j]["offsetMax"] = motionProfiles[i].channels[j].motionOffsetGlobalRandomMax;
+                        doc[MOTION_PROFILES][i]["channels"][j]["phaseRan"] = motionProfiles[i].channels[j].motionPhaseRandom;
+                        doc[MOTION_PROFILES][i]["channels"][j]["phaseMin"] = motionProfiles[i].channels[j].motionPhaseRandomMin;
+                        doc[MOTION_PROFILES][i]["channels"][j]["phaseMax"] = motionProfiles[i].channels[j].motionPhaseRandomMax;
+                        doc[MOTION_PROFILES][i]["channels"][j]["ranMin"] = motionProfiles[i].channels[j].motionRandomChangeMin;
+                        doc[MOTION_PROFILES][i]["channels"][j]["ranMax"] = motionProfiles[i].channels[j].motionRandomChangeMax;
                         motionProfiles[i].channels[j].edited = false;
                     //}
                 }
                 if(initialized && motionSelectedProfileIndex == i) {
-                    sendMessage(SettingProfile::MotionProfile, "motionProfile");
+                    sendMessage(SettingProfile::MotionProfile, MOTION_PROFILES);
                 }
                 motionProfiles[i].edited = false;
             //}
@@ -835,7 +845,7 @@ public:
     }
     static void setMotionEnabled(const bool& newValue)
     {
-        setValue(newValue, motionEnabled, SettingProfile::MotionProfile, "motionEnabled");
+        setValue(newValue, motionEnabled, SettingProfile::MotionProfile, MOTION_ENABLED);
     }
     static bool getMotionPaused()
     {
@@ -843,7 +853,7 @@ public:
     }
     static void setMotionPaused(const bool& newValue)
     {
-        setValue(newValue, motionPaused, SettingProfile::MotionProfile, "motionPaused");
+        setValue(newValue, motionPaused, SettingProfile::MotionProfile, MOTION_PAUSED);
     }
 
     static int getMotionDefaultProfileIndex() 
@@ -1042,7 +1052,8 @@ public:
             LogHandler::error(_TAG, "Invalid motion profile index: %ld", profileIndex);
             return;
         }
-        setValue(profileIndex, motionSelectedProfileIndex, SettingProfile::MotionProfile, "motionSelectedProfileIndex");
+        //m_settingsFactory->setValue(MOTION_PROFILE_SELECTED_INDEX, profileIndex);
+        setValue(profileIndex, motionSelectedProfileIndex, SettingProfile::MotionProfile, MOTION_PROFILE_SELECTED_INDEX);
     }
     
     static void cycleMotionProfile() {
@@ -1346,13 +1357,13 @@ private:
 //             TCodeVersionEnum = TCodeVersion::v0_3;
 //             TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
 //         }
-        std::vector<String> includesVec;
-        setValue(json, includesVec, "log", "log-include-tags");
-        LogHandler::setIncludes(includesVec);
+        // std::vector<String> includesVec;
+        // setValue(json, includesVec, "log", "log-include-tags");
+        // LogHandler::setIncludes(includesVec);
 
-        std::vector<String> excludesVec;
-        setValue(json, excludesVec, "log", "log-exclude-tags");
-        LogHandler::setExcludes(excludesVec);
+        // std::vector<String> excludesVec;
+        // setValue(json, excludesVec, "log", "log-exclude-tags");
+        // LogHandler::setExcludes(excludesVec);
 
 //         if(!isBoardType(BoardType::CRIMZZON)) {
 //             TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 1);

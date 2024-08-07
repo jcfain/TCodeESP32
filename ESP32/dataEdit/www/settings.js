@@ -57,11 +57,20 @@ const LogLevel = {
     DEBUG: 3,
     VERBOSE: 4
 };
+const MotorType = {
+    Servo: 0,
+    BLDC: 1
+};
 const BoardType = {
     DEVKIT: 0,
     CRIMZZON: 1,
     ISAAC: 2
-}
+};
+const DeviceType = {
+    OSR: 0,
+    SR6: 1,
+    SSR1: 2
+};
 const BuildFeature = {
     NONE: 0,
     DEBUG: 1,
@@ -73,10 +82,6 @@ const BuildFeature = {
     HAS_TCODE_V2: 7,
     HTTPS: 8
 }
-const MotorType = {
-    Servo: 0,
-    BLDC: 1
-};
 const servoDegreeValue180 = 637; 
 const servoDegreeValue270 = 425; 
 dubugMessages = [];
@@ -597,7 +602,7 @@ function setSystemInfo() {
         option.innerText = element;
         i2cAddressesElement.appendChild(option);
     });
-    
+    setupDeviceTypes();
     setupBoardTypes();
     toggleBuildOptions();
     toggleMotorTypeOptions();
@@ -637,7 +642,7 @@ function setUserSettings()
 {
     document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
     toggleNonTCodev3Options();
-    toggleDeviceOptions(userSettings["sr6Mode"]);
+    toggleDeviceOptions(userSettings["deviceType"]);
     toggleStaticIPSettings(userSettings["staticIP"]);
     togglePitchServoFrequency(userSettings["pitchFrequencyIsDifferent"]);
     toggleFeedbackTwistSettings(userSettings["feedbackTwist"]);
@@ -706,7 +711,7 @@ function setUserSettings()
 	document.getElementById("Squeeze_ZERO").value = userSettings["Squeeze_ZERO"];
 	document.getElementById("lubeEnabled").checked = userSettings["lubeEnabled"];
 	document.getElementById("lubeAmount").value = userSettings["lubeAmount"];
-	document.getElementById("sr6Mode").checked = userSettings["sr6Mode"];
+	document.getElementById("deviceType").value = userSettings["deviceType"];
 	document.getElementById("autoValve").checked = userSettings["autoValve"];
 	document.getElementById("inverseValve").checked = userSettings["inverseValve"];
 	document.getElementById("valveServo90Degrees").checked = userSettings["valveServo90Degrees"];
@@ -876,13 +881,17 @@ function updateUserSettings(debounceInMs, uri, objectToSave, callback)
             {
                 if (xhr.readyState === 4) 
 				{
-                    if(xhr.responseText === '')
+                    if(!xhr.responseText.length)
                     {
                         response["msg"] = xhr.status + ': ' + xhr.statusText;
                     }
-                    else 
+                    else if(xhr.responseText.startsWith("{"))
                     {
                         response = JSON.parse(xhr.responseText);
+                    } 
+                    else
+                    {
+                        response["msg"] = xhr.responseText;
                     }
                     if (response["msg"] !== "done") 
                     {
@@ -1428,12 +1437,28 @@ function setBoardType() {
         element.value = userSettings["boardType"];
     }
 }
-function setSR6Mode() {
-    userSettings["sr6Mode"] = document.getElementById('sr6Mode').checked;
-    toggleDeviceOptions(userSettings["sr6Mode"]);
-    setupChannelSliders();
-    setRestartRequired();
-	updateUserSettings(1);
+function setupDeviceTypes() {
+    const element = document.getElementById('deviceType');
+    for(let i=0;i<systemInfo.deviceTypes.length;i++) {
+        const option = document.createElement("option");
+        option.innerText = systemInfo.deviceTypes[i].name;
+        option.value = systemInfo.deviceTypes[i].value;
+        element.appendChild(option);
+    }
+}
+function setDeviceType() {
+    let newValue = document.getElementById('deviceType').value;
+    if(confirm("This will reset the current pinout to default. Continue?")) {
+        userSettings["deviceType"] = newValue;
+        toggleDeviceOptions(userSettings["deviceType"]);
+        setupChannelSliders();
+        setRestartRequired();
+        updateUserSettings(1);
+        var boardType = userSettings["boardType"];
+        setPinoutDefault(boardType);
+    } else {
+        element.value = userSettings["deviceType"];
+    }
 }
 
 function setAutoValve() {
@@ -2255,16 +2280,18 @@ function toggleStaticIPSettings(isStatic)
     Utils.toggleControlVisibilityByID('dns1', isStatic);
     Utils.toggleControlVisibilityByID('dns2', isStatic);
 }
-function toggleDeviceOptions(sr6Mode)
+function toggleDeviceOptions(deviceType)
 {
     var osrOnly = document.getElementsByClassName('osrOnly');
     var sr6Only = document.getElementsByClassName('sr6Only');
     for(var i=0;i < sr6Only.length; i++)
-        sr6Only[i].style.display = sr6Mode ? "flex" : "none";
+        sr6Only[i].style.display = deviceType == DeviceType.SR6 && deviceType != DeviceType.SSR1 ? "flex" : "none";
     for(var i=0;i < osrOnly.length; i++)
-        osrOnly[i].style.display = sr6Mode ? "none" : "flex";
+        osrOnly[i].style.display = deviceType == DeviceType.OSR && deviceType != DeviceType.SSR1 ? "flex" : "none";
         
-    if(sr6Mode && userSettings["msPerRad"] == servoDegreeValue270) {
+    if(deviceType == DeviceType.SR6 && 
+        deviceType != DeviceType.SSR1 && 
+        userSettings["msPerRad"] == servoDegreeValue270) {
         document.getElementById('msPerRadIs270').checked = true;
     }
 }
@@ -2370,7 +2397,7 @@ function importSettings() {
                 var existingValue = userSettings[key];
                 // If the key doesnt exist anymore, dont import it.
                 if(existingValue != undefined && existingValue != null)// 0 can be valid
-                    userSettings[key]=importedValue;
+                    userSettings[key] = checkMigrateData(key, importedValue);
                 else
                     handleImportRenames(key, importedValue)
             });
@@ -2389,6 +2416,12 @@ function importSettings() {
 
         reader.readAsText(json);
     }
+}
+
+function checkMigrateData(key, value) {
+    if(key == "TCodeVersion" && value == 1)
+        return TCodeVersion.V3;
+    return value; 
 }
 
 function handleImportRenames(key, value) {
@@ -2420,6 +2453,12 @@ function handleImportRenames(key, value) {
         return;
         case "pinoutSettings":
         pinoutSettings = value;
+        return;
+        case "sr6Mode":
+        if(systemInfo.motorType == MotorType.BLDC)
+            userSettings.deviceType = DeviceType.SSR1
+        else
+            userSettings.deviceType = value ? DeviceType.SR6 : DeviceType.OSR;
         return;
     }
     if(key.endsWith("_PIN")) {

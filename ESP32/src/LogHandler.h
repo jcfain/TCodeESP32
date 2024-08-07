@@ -65,14 +65,14 @@ public:
         return _currentLogLevel;
     }
 
-    static void setIncludes(std::vector<String> tags) {
+    static void setIncludes(std::vector<const char*> tags) {
         clearIncludes();
 		for(unsigned int i = 0; i < tags.size(); i++) {
            //addTag(tags[i]);
             m_tags.push_back(tags[i]);
 		}
     }
-    static std::vector<String> getIncludes() {
+    static std::vector<const char*> getIncludes() {
         return m_tags;
     }
 
@@ -81,7 +81,7 @@ public:
     }
 
     static bool addInclude(const char* tag) {
-        std::vector<String>::iterator position = std::find(m_tags.begin(), m_tags.end(), tag);
+        std::vector<const char*>::iterator position = std::find(m_tags.begin(), m_tags.end(), tag);
         if (position == m_tags.end()) // == myVector.end() means the element was not found
             m_tags.push_back(tag);
         else
@@ -90,7 +90,7 @@ public:
     }
 
     static bool removeInclude(const char* tag) {
-        std::vector<String>::iterator position = std::find(m_tags.begin(), m_tags.end(), tag);
+        std::vector<const char*>::iterator position = std::find(m_tags.begin(), m_tags.end(), tag);
         if (position != m_tags.end()) // == myVector.end() means the element was not found
             m_tags.erase(position);
         else
@@ -98,7 +98,7 @@ public:
         return true;
     }
 
-    static void setExcludes(std::vector<String> tags) {
+    static void setExcludes(std::vector<const char*> tags) {
         clearExcludes();
 		for(unsigned int i = 0; i < tags.size(); i++) {
            //addTag(tags[i]);
@@ -106,7 +106,7 @@ public:
 		}
     }
 
-    static std::vector<String> getExcludes() {
+    static std::vector<const char*> getExcludes() {
         return m_filters;
     }
 
@@ -118,7 +118,7 @@ public:
         // Serial.print("Adding filter: ");
         // Serial.println(tag);
         // Serial.println(m_filters.size());
-        std::vector<String>::iterator position = std::find(m_filters.begin(), m_filters.end(), tag);
+        std::vector<const char*>::iterator position = std::find(m_filters.begin(), m_filters.end(), tag);
         if (position == m_filters.end()) {// == myVector.end() means the element was not found
             m_filters.push_back(tag);
             // Serial.println(m_filters.size());
@@ -134,7 +134,7 @@ public:
         // Serial.print("Removing filter: ");
         // Serial.println(tag);
         // Serial.println(m_filters.size());
-        std::vector<String>::iterator position = std::find(m_filters.begin(), m_filters.end(), tag);
+        std::vector<const char*>::iterator position = std::find(m_filters.begin(), m_filters.end(), tag);
         if (position != m_filters.end()) {// == myVector.end() means the element was not found
             m_filters.erase(position);
             // Serial.println(m_filters.size());
@@ -242,8 +242,8 @@ private:
     static LOG_FUNCTION_PTR_T message_callback;
     static LogLevel _currentLogLevel;
 	static SemaphoreHandle_t xMutex;
-    static std::vector<String> m_tags;
-    static std::vector<String> m_filters;
+    static std::vector<const char*> m_tags;
+    static std::vector<const char*> m_filters;
     static char m_lastVerbose[1024];
     static char m_lastDebug[1024];
     static bool m_filterDuplicates;
@@ -309,7 +309,7 @@ private:
     static bool isTagged(const char* tag) {
         if(m_tags.empty())
             return true;//tag all by default
-        std::vector<String>::iterator position = std::find(m_tags.begin(), m_tags.end(), tag);
+        std::vector<const char*>::iterator position = std::find(m_tags.begin(), m_tags.end(), tag);
         return position != m_tags.end();
     }
     static bool isFiltered(const char* tag) {
@@ -319,7 +319,7 @@ private:
         // Serial.println(tag);
         // Serial.println(m_filters.size());
         // Serial.println(m_filters.front());
-        std::vector<String>::iterator position = std::find(m_filters.begin(), m_filters.end(), tag);
+        std::vector<const char*>::iterator position = std::find(m_filters.begin(), m_filters.end(), tag);
         // Serial.print("position: ");
         // Serial.println(std::distance( m_filters.begin(), position ));
         return position != m_filters.end();
@@ -335,8 +335,8 @@ private:
     }
 };
 SemaphoreHandle_t LogHandler::xMutex = xSemaphoreCreateMutex();
-std::vector<String> LogHandler::m_tags;
-std::vector<String> LogHandler::m_filters;
+std::vector<const char*> LogHandler::m_tags;
+std::vector<const char*> LogHandler::m_filters;
 LogLevel LogHandler::_currentLogLevel = LogLevel::INFO;
 LOG_FUNCTION_PTR_T LogHandler::message_callback = 0;
 char LogHandler::m_lastVerbose[1024];

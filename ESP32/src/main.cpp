@@ -436,11 +436,11 @@ void settingChangeCallback(const char* group, const char* name) {
 void settingChangeCallback(const SettingProfile &profile, const char* settingThatChanged) {
     LogHandler::debug(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
 	if(profile == SettingProfile::MotionProfile) {
-		if(strcmp(settingThatChanged, "motionSelectedProfileIndex") == 0 || strcmp(settingThatChanged, "motionProfile") == 0) 
+		if(strcmp(settingThatChanged, MOTION_PROFILE_SELECTED_INDEX) == 0 || strcmp(settingThatChanged, MOTION_PROFILES) == 0) 
 			motionHandler.setMotionChannels(SettingsHandler::getMotionChannels());
 		// else if(strcmp(settingThatChanged, "motionChannels") == 0) 
 		// 	motionHandler.setMotionChannels(SettingsHandler::getGetMotionChannels()());
-		else if(strcmp(settingThatChanged, "motionEnabled") == 0) 
+		else if(strcmp(settingThatChanged, MOTION_ENABLED) == 0) 
 			motionHandler.setEnabled(SettingsHandler::getMotionEnabled());
 		// else if(strcmp(settingThatChanged, "motionAmplitudeGlobal") == 0) 
 		// 	motionHandler.setAmplitude(SettingsHandler::getGetMotionAmplitudeGlobal()());

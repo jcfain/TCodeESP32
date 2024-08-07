@@ -26,6 +26,8 @@ SOFTWARE. */
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 
+#include "enum.h"
+#include "jsonConverters.h"
 #include "LogHandler.h"
 #include "setting.h"
 #include "constants.h"
@@ -40,6 +42,7 @@ public:
     SettingsFactory(SettingsFactory const&) = delete;
     void operator=(SettingsFactory const&) = delete;
 
+
     static SettingsFactory* getInstance() {
         static SettingsFactory factory;
         return &factory;
@@ -47,12 +50,20 @@ public:
 
     bool init() 
     {
-        if(!loadAll())
+        resetAll();
+        if(!loadAllFromDisk())
             return false;
         m_initialized = true;
         loadCache();
+        loadPinCache();
         return true;
     }
+    
+    const std::vector<SettingFileInfo*> AllSettings = {
+        &m_wifiFileInfo,
+        &m_pinsFileInfo,
+        &m_commonFileInfo
+    };
 
     // Cached (Requires reboot)
     TCodeVersion getTcodeVersion() const { return tcodeVersion; }
@@ -138,19 +149,6 @@ public:
     float getHeaterThreshold() const { return heaterThreshold; }
     double getInternalMaxTemp() const { return internalMaxTemp; }
     double getInternalTempForFanOn() const { return internalTempForFanOn; }
-    
-
-    // const std::vector<std::vector<Setting>*> settingsAll = {
-    //     &m_wifiFileInfo.settings,
-    //     &m_pinsFileInfo.settings,
-    //     &m_commonFileInfo.settings
-    // };
-
-    const std::vector<SettingFileInfo*> AllSettings = {
-        &m_wifiFileInfo,
-        &m_pinsFileInfo,
-        &m_commonFileInfo
-    };
 
     void setMessageCallback(SETTING_STATE_FUNCTION_PTR_T f)
     {
@@ -167,8 +165,6 @@ public:
 
     SettingFileInfo* getFile(const char* settingName) const
     { 
-        if(!m_initialized)
-            return 0;
         for(SettingFileInfo* settingsInfo : AllSettings)
         {
             const Setting* setting = settingsInfo->getSetting(settingName);
@@ -180,8 +176,6 @@ public:
 
     const Setting* getSetting(const char* name) const
     { 
-        if(!m_initialized)
-            return 0;
         for(SettingFileInfo* settingsInfo : AllSettings)
         {
             const Setting* setting = settingsInfo->getSetting(name);
@@ -193,8 +187,6 @@ public:
 
     bool hasProfile(const char* name, const SettingProfile profile, const Setting* setting = 0) const
     {
-        if(!m_initialized)
-            return false;
         if(!setting)
             setting = getSetting(name);
         if(!setting)
@@ -209,8 +201,10 @@ public:
              typename = std::enable_if<!std::is_const<T>::value || std::is_integral<T>::value || std::is_enum<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
     SettingFile getValue(const char* name, T &value)
     {
-        if(!m_initialized)
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "getValue T called before initialized");
             return SettingFile::NONE;
+        }
         if (m_wifiFileInfo.doc.containsKey(name)) 
         {
             xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
@@ -241,8 +235,10 @@ public:
     
     SettingFile getValue(const char* name, char* value, size_t len)
     {
-        if(!m_initialized)
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "getValue char* len called before initialized");
             return SettingFile::NONE;
+        }
         const char* constvalue = getValue(name);
         if(!constvalue) {
             return SettingFile::NONE;
@@ -261,8 +257,10 @@ public:
     
     const char* getValue(const char* name)
     {
-        if(!m_initialized)
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "getValue char* called before initialized");
             return 0;
+        }
         if (m_wifiFileInfo.doc.containsKey(name)) 
         {
             xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
@@ -283,21 +281,39 @@ public:
         }
         return 0;
     }
-    SettingFile getValue(const char* name, std::vector<String> &value)
+    SettingFile getValueVector(const char* name, std::vector<const char*> &value)
     {
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "getValueVector char* called before initialized");
+            return SettingFile::NONE;
+        }
+        LogHandler::debug("Getting vector string values: %s", name);
         SettingFileInfo* fileInfo = getFile(name);
+        if(!fileInfo) {
+            LogHandler::error("Key not found in settings: %s", name);
+            return SettingFile::NONE;
+        }
         //const Setting* setting = fileInfo->getSetting(name);
         JsonArray array = fileInfo->doc[name].as<JsonArray>();
         for (size_t i = 0; i < array.size(); i++)
         {
-            value.push_back(array[i].as<String>());
+            value.push_back(array[i].as<const char*>());
         }
         
         return fileInfo->file;
     }
-    SettingFile getValue(const char* name, std::vector<int> &value)
+    SettingFile getValueVector(const char* name, std::vector<int> &value)
     {
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "getValueVector int called before initialized");
+            return SettingFile::NONE;
+        }
+        LogHandler::debug("Getting vector int values: %s", name);
         SettingFileInfo* fileInfo = getFile(name);
+        if(!fileInfo) {
+            LogHandler::error("Key not found in settings: %s", name);
+            return SettingFile::NONE;
+        }
         //const Setting* setting = fileInfo->getSetting(name);
         JsonArray array = fileInfo->doc[name].as<JsonArray>();
         for (size_t i = 0; i < array.size(); i++)
@@ -318,9 +334,11 @@ public:
              typename = std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
     SettingFile setValue(const char* name, const T &value) 
     {
-        if(!m_initialized)
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "setValue T called before initialized");
             return SettingFile::NONE;
-        LogHandler::error(m_TAG, "Set value: ", name);
+        }
+        LogHandler::debug(m_TAG, "Set value T: %s", name);
         if (m_wifiFileInfo.doc.containsKey(name))
         {
             xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
@@ -354,31 +372,26 @@ public:
         LogHandler::error(m_TAG, "Set value key not found");
         return SettingFile::NONE;
     }
-    SettingFile setValue(const char* name, const std::vector<int> &value) 
+
+    template <typename T>
+    SettingFile setValue(const char* name, const std::vector<T> &value) 
     {
-        if(!m_initialized)
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "setValue vector T called before initialized");
             return SettingFile::NONE;
-        LogHandler::error(m_TAG, "Set int array value: ", name);
+        }
+        LogHandler::debug(m_TAG, "Set vector value: ", name);
         SettingFileInfo* fileInfo = getFile(name);
-        const Setting* setting = fileInfo->getSetting(name);
-        toJson(setting, fileInfo->doc, value);
-        return fileInfo->file;
-    }
-    SettingFile setValue(const char* name, const std::vector<String> &value) 
-    {
-        if(!m_initialized)
-            return SettingFile::NONE;
-        LogHandler::error(m_TAG, "Set int array value: ", name);
-        SettingFileInfo* fileInfo = getFile(name);
-        const Setting* setting = fileInfo->getSetting(name);
-        toJson(setting, fileInfo->doc, value);
+        fileInfo->doc[name] = value;
         return fileInfo->file;
     }
 
     void defaultValue(const char* name) 
     {
-        if(!m_initialized)
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "defaultValue called before initialized");
             return;
+        }
         SettingFileInfo* fileInfo = getFile(name);
         const Setting* setting = fileInfo->getSetting(name);
         defaultToJson(setting, fileInfo->doc);
@@ -407,9 +420,11 @@ public:
 
     bool saveAll(JsonObject fromJson = JsonObject())
     {
-        return saveCommon(fromJson) &&
+        bool ret = saveCommon(fromJson) &&
             saveWifi(fromJson) &&
             savePins(fromJson);
+            loadLiveCache();
+        return ret;
     }
     bool resetAll() 
     {
@@ -479,6 +494,13 @@ public:
     void loadLiveCache() {
         if(!m_initialized)
             return;
+            
+        getValue(LOG_LEVEL_SETTING, logLevel);
+        LogHandler::setLogLevel(logLevel);
+        getValue(LOG_INCLUDETAGS, logIncludes);
+        LogHandler::setIncludes(logIncludes);
+        getValue(LOG_EXCLUDETAGS, logExcludes);
+        LogHandler::setExcludes(logExcludes);
         getValue(INVERSE_STROKE, inverseStroke);
         getValue(INVERSE_PITCH, inversePitch);
         getValue(VALVE_SERVO_90DEGREES, valveServo90Degrees);
@@ -622,8 +644,8 @@ private:
             {VOICE_MUTED, "Voice muted", "Voice talk back muted", SettingType::Boolean, VOICE_MUTED_DEFAULT, RestartRequired::YES, {SettingProfile::Voice}},
             {VOICE_WAKE_TIME, "Voice wake time", "How long to keep the voice module awake listening for commands", SettingType::Number, VOICE_WAKE_TIME_DEFAULT, RestartRequired::YES, {SettingProfile::Voice}},
             {VOICE_VOLUME, "Voice volume", "The volume of the voice talk back", SettingType::Number, VOICE_VOLUME_DEFAULT, RestartRequired::YES, {SettingProfile::Voice}},
-            //{LOG_INCLUDETAGS, "Log included tags", "Log tags to be included in the output", SettingType::ArrayString, LOG_INCLUDETAGS_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
-            //{LOG_EXCLUDETAGS, "Log excluded tags", "Log tags to be excluded in the output", SettingType::ArrayString, LOG_EXCLUDETAGS_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
+            {LOG_INCLUDETAGS, "Log included tags", "Log tags to be included in the output", SettingType::ArrayString, LOG_INCLUDETAGS_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
+            {LOG_EXCLUDETAGS, "Log excluded tags", "Log tags to be excluded in the output", SettingType::ArrayString, LOG_EXCLUDETAGS_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
             {BOOT_BUTTON_ENABLED, "Boot button enabled", "Enables the boot button function", SettingType::Boolean, BOOT_BUTTON_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Button}},
             {BOOT_BUTTON_COMMAND, "Boot button command", "Command to execute when the boot button is pressed", SettingType::String, BOOT_BUTTON_COMMAND_DEFAULT, RestartRequired::NO, {SettingProfile::Button}},
             {BUTTON_SETS_ENABLED, "Button sets enabled", "Enables the button sets function", SettingType::Boolean, BUTTON_SETS_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Button}},
@@ -663,7 +685,8 @@ private:
             {BLDC_HALLEFFECT_PIN, "Halleffect PIN", "Pin the hall effect is on", SettingType::Number, BLDC_HALLEFFECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_PWMCHANNEL1_PIN, "PWM channel1 PIN", "Pin for the BLDC PWM 1", SettingType::Number, BLDC_PWMCHANNEL1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
             {BLDC_PWMCHANNEL2_PIN, "PWM channel2 PIN", "Pin for the BLDC PWM 2", SettingType::Number, BLDC_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
-            {BLDC_PWMCHANNEL3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}}
+            {BLDC_PWMCHANNEL3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+            {BUTTON_SET_PINS, "Button set pins", "Pins for each button set. (Max 4)", SettingType::ArrayInt, BUTTON_SET_PINS_DEFAULT, RestartRequired::YES, {SettingProfile::Pin, SettingProfile::Analog}}
         }
     };
 
@@ -684,6 +707,9 @@ private:
     DeviceType m_deviceType;
 
     // Cached (Live update)
+    LogLevel logLevel;
+    std::vector<const char*> logIncludes;
+    std::vector<const char*> logExcludes;
     bool inverseStroke;
     bool inversePitch;
     bool valveServo90Degrees;
@@ -745,6 +771,25 @@ private:
         //json = doc.as<JsonObject>();
         return true;
     }
+    
+    // bool loadVector(SettingFileInfo &fileInfo, std::vector<const char*> vector)
+    // {
+    //     for (size_t i = 0; i < fileInfo.settings.size(); i++)
+    //     {
+    //         Setting setting = fileInfo.settings[i];
+    //         if(setting.type == SettingType::ArrayString) 
+    //         {
+    //             JsonArray array = fileInfo.doc[setting.name];
+    //             for (size_t j = 0; j < array.size(); j++)
+    //             {
+    //                 vector.push_back(array[j].as<const char*>());
+    //             }
+                
+    //         } 
+    //     }
+        
+    //     return true;
+    // }
 
     bool loadDefault(SettingFile file) 
     {
@@ -775,13 +820,25 @@ private:
         return save(fileInfo);
     }
 
-    bool loadDefaultArrays() {
+    bool loadDefaultVector(const char* name, JsonDocument &doc) {
         
-        std::vector<String> includesVec;
-        setValue(LOG_EXCLUDETAGS, includesVec);
-        LogHandler::setIncludes(includesVec);
-
-        std::vector<String> excludesVec;
+        if(name == LOG_INCLUDETAGS) {
+            std::vector<const char*> includesVec;
+            doc[LOG_INCLUDETAGS] = includesVec;
+            LogHandler::setIncludes(includesVec);
+            return true;
+        } else if(name == LOG_EXCLUDETAGS) {
+            std::vector<const char*> excludesVec;
+            doc[LOG_EXCLUDETAGS] = excludesVec;
+            LogHandler::setExcludes(excludesVec);
+            return true;
+        } else if(name == BUTTON_SET_PINS) {
+            std::vector<int8_t> vec = { 39, -1, -1, -1 };
+            doc[BUTTON_SET_PINS] = vec;
+            return true;
+        }
+        LogHandler::error(m_TAG, "No default vector set for: %s", name);
+        return false;
     }
 
     bool loadDefaultPins() {
@@ -793,7 +850,6 @@ private:
                 PinMapSR6MB* pinMap = PinMapSR6MB::getInstance();
                 pinMap->overideDefaults();
                 syncSR6Pins(pinMap);
-                loadPins();
                 return save(m_pinsFileInfo);
             }
             break;
@@ -801,56 +857,44 @@ private:
                 PinMapINControl* pinMap = PinMapINControl::getInstance();
                 pinMap->overideDefaults();
                 syncSR6Pins(pinMap);
-                loadPins();
                 return save(m_pinsFileInfo);
             }
             break;
             default: {
                 bool ret = loadDefault(m_pinsFileInfo);
-                loadPins();
                 return ret;
             }
         }
     }
-    bool loadAll()
+
+    bool loadAllFromDisk()
     {
-        return loadWifi() && 
-                loadCommon() && 
-                loadPins();
+        for(SettingFileInfo* settingsInfo : AllSettings)
+        {
+            if(!load(*settingsInfo))
+                return false;
+        }
+        return true;
     }
 
-    bool loadCommon()
+    bool loadCommonFromDisk()
     {
         xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
         auto ret = load(m_commonFileInfo);
         xSemaphoreGive(m_commonSemaphore);
         return ret;
     }
-    bool loadWifi()
+    bool loadWifiFromDisk()
     {
         xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
         bool ret = load(m_wifiFileInfo);;
         xSemaphoreGive(m_wifiSemaphore);
         return ret;
     }
-    bool loadPins()
+    bool loadPinsFromDisk()
     {
         xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
         bool ret = load(m_pinsFileInfo);
-        DeviceType deviceType;
-        getValue(DEVICE_TYPE, deviceType);
-        switch(deviceType) 
-        {
-            case DeviceType::SSR1:
-                m_currentPinMap = loadSSR1Pins();
-            break;
-            case DeviceType::SR6:
-                m_currentPinMap = loadSR6Pins();
-            break;
-            default:
-                m_currentPinMap = loadOSRPins();
-
-        }
         xSemaphoreGive(m_pinSemaphore);
         return ret;
     }
@@ -915,8 +959,34 @@ private:
         }
         return false;
     }
+    
+    void loadPinCache() {
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "loadPinCache called before initialized");
+            return;
+        }
+        DeviceType deviceType;
+        getValue(DEVICE_TYPE, deviceType);
+        switch(deviceType) 
+        {
+            case DeviceType::SSR1:
+                m_currentPinMap = loadSSR1Pins();
+            break;
+            case DeviceType::SR6:
+                m_currentPinMap = loadSR6Pins();
+            break;
+            default:
+                m_currentPinMap = loadOSRPins();
+
+        }
+    }
+
     void loadCommonPins(PinMap* pinMap) 
     {
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "loadCommonPins called before initialized");
+            return;
+        }
         uint8_t pin = -1;
         getValue(TWIST_FEEDBACK_PIN, pin);
         pinMap->setTwistFeedBack(pin);
@@ -946,15 +1016,23 @@ private:
         pinMap->setSleeveTemp(pin);
         getValue(HEATER_PIN, pin);
         pinMap->setHeater(pin);
-        // getValue(SQUEEZE_PIN, pin);
-        // pinMap->setButtonSetPins(pin);
         getValue(I2C_SDA_PIN, pin);
         pinMap->setI2cSda(pin);
         getValue(I2C_SCL_PIN, pin);
         pinMap->setI2cScl(pin);
+        std::vector<int> vec;
+        getValueVector(BUTTON_SET_PINS, vec);
+        for (size_t i = 0; i < vec.size(); i++)
+        {
+            pinMap->setButtonSetPin(vec[i], i);
+        }
     }
     PinMapSSR1* loadSSR1Pins() 
     {
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "loadSSR1Pins called before initialized");
+            return 0;
+        }
         PinMapSSR1* pinMap = PinMapSSR1::getInstance();
         loadCommonPins(pinMap);
         uint8_t pin = -1;
@@ -977,6 +1055,10 @@ private:
     }
     PinMapOSR* loadOSRPins() 
     {
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "loadSSR1Pins called before initialized");
+            return 0;
+        }
         PinMapOSR* pinMap = PinMapOSR::getInstance();
         loadCommonPins(pinMap);
         uint8_t pin = -1;
@@ -991,6 +1073,10 @@ private:
     
     PinMapSR6* loadSR6Pins() 
     {
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "loadSR6Pins called before initialized");
+            return 0;
+        }
         PinMapSR6* pinMap = PinMapSR6::getInstance();
         loadCommonPins(pinMap);
         uint8_t pin = -1;
@@ -1011,6 +1097,10 @@ private:
     
     void syncCommonPins(const PinMap* pinMap) 
     {
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "syncCommonPins called before initialized");
+            return;
+        }
         setValue(TWIST_FEEDBACK_PIN, pinMap->twistFeedBack());
         setValue(VALVE_SERVO_PIN, pinMap->valve());
         setValue(TWIST_SERVO_PIN, pinMap->twist());
@@ -1032,6 +1122,10 @@ private:
 
     void syncSSR1Pins(const PinMapSSR1* pinMap) 
     {
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "syncSSR1Pins called before initialized");
+            return;
+        }
         syncCommonPins(pinMap);
         setValue(BLDC_ENCODER_PIN, pinMap->encoder());
         setValue(BLDC_CHIPSELECT_PIN, pinMap->chipSelect());
@@ -1045,6 +1139,10 @@ private:
 
     void syncOSRPins(const PinMapOSR* pinMap) 
     {
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "syncOSRPins called before initialized");
+            return;
+        }
         syncCommonPins(pinMap);
         setValue(RIGHT_SERVO_PIN, pinMap->rightServo());
         setValue(LEFT_SERVO_PIN, pinMap->leftServo());
@@ -1054,6 +1152,10 @@ private:
 
     void syncSR6Pins(const PinMapSR6* pinMap) 
     {
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "syncSR6Pins called before initialized");
+            return;
+        }
         syncCommonPins(pinMap);
         setValue(RIGHT_SERVO_PIN, pinMap->rightServo());
         setValue(LEFT_SERVO_PIN, pinMap->leftServo());
@@ -1064,23 +1166,37 @@ private:
         savePins();
     }
 
-    void toJson(const Setting *setting, JsonDocument &doc, const std::vector<const int> &value) {
-        JsonArray array = doc[setting->name].add<JsonArray>();
-        for (size_t i = 0; i < value.size(); i++)
-        {
-            array.add(value[i]);
-        }
-    }
-    void toJson(const Setting *setting, JsonDocument &doc, const std::vector<const char*> &value) {
-        JsonArray array = doc[setting->name].add<JsonArray>();
-        for (size_t i = 0; i < value.size(); i++)
-        {
-            array.add(value[i]);
-        }
-    }
+    // void toJsonVector(const Setting *setting, const std::vector<int> &value, JsonDocument &doc) 
+    // {
+    //     doc[setting->name] = value;
+    //     // JsonArray array = doc[setting->name].add<JsonArray>();
+    //     // for (size_t i = 0; i < value.size(); i++)
+    //     // {
+    //     //     array.add(value[i]);
+    //     // }
+    // }
+    // void toJsonVector(const Setting *setting, const std::vector<const char*> &value, JsonDocument &doc) 
+    // {
+    //     doc[setting->name] = value;
+    //     // JsonArray array = doc[setting->name].add<JsonArray>();
+    //     // for (size_t i = 0; i < value.size(); i++)
+    //     // {
+    //     //     array.add(value[i]);
+    //     // }
+    // }
     
     template<typename T,
-             typename = std::enable_if<!std::is_const<T>::value || std::is_integral<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
+             typename = 
+                std::enable_if
+                <
+                    !std::is_const<T>::value || 
+                    std::is_integral<T>::value || 
+                    std::is_floating_point<T>::value || 
+                    std::is_same<T, bool>::value 
+                    // || std::is_same<T, std::vector<const char*>>::value 
+                    // || std::is_same<T, std::vector<const int>>::value
+                >
+            >
     void toJson(const Setting *setting, JsonDocument &doc, T value) {
         switch(setting->type)
         {
@@ -1109,34 +1225,54 @@ private:
                 LogHandler::verbose(m_TAG, "Load string: %s, value: %s", setting->name, doc[setting->name].as<const char*>());
             }
             break;
+            // case SettingType::ArrayString: {
+            //     doc[setting->name] = static_cast<const std::vector<const char*>>(value);
+            //     LogHandler::verbose(m_TAG, "Load array string: %s, value size: %ld", setting->name, doc[setting->name].as<const std::vector<const char*>>().size());
+            // }
+            // break;
+            // case SettingType::ArrayInt: {
+            //     doc[setting->name] = static_cast<const std::vector<int>>(value);
+            //     LogHandler::verbose(m_TAG, "Load array int: %s, value size: %ld", setting->name, doc[setting->name].as<const std::vector<const int>>().size());
+            // }
+            break;
         }
     }
     void defaultToJson(const Setting *setting, JsonDocument &doc) {
         switch(setting->type)
         {
             case SettingType::Boolean: {
-                doc[setting->name] = mpark::get<const bool>(setting->value);
+                doc[setting->name] = mpark::get<const bool>(setting->defaultValue);
                 LogHandler::verbose(m_TAG, "Load default bool: %s, value: %ld", setting->name, doc[setting->name].as<bool>());
             }
             break;
             case SettingType::Number: {
-                doc[setting->name] = mpark::get<const int>(setting->value);
+                doc[setting->name] = mpark::get<const int>(setting->defaultValue);
                 LogHandler::verbose(m_TAG, "Load default number: %s, value: %ld", setting->name, doc[setting->name].as<int>());
             }
             break;
             case SettingType::Double: {
-                doc[setting->name] = mpark::get<const double>(setting->value);
+                doc[setting->name] = mpark::get<const double>(setting->defaultValue);
                 LogHandler::verbose(m_TAG, "Load default double: %s, value: %f", setting->name, doc[setting->name].as<double>());
             }
             break;
             case SettingType::Float: {
-                doc[setting->name] = mpark::get<const float>(setting->value);
+                doc[setting->name] = mpark::get<const float>(setting->defaultValue);
                 LogHandler::verbose(m_TAG, "Load default float: %s, value: %f", setting->name, doc[setting->name].as<float>());
             }
             break;
             case SettingType::String: {
-                doc[setting->name] = mpark::get<const char*>(setting->value);
+                doc[setting->name] = mpark::get<const char*>(setting->defaultValue);
                 LogHandler::verbose(m_TAG, "Load default string: %s, value: %s", setting->name, doc[setting->name].as<const char*>());
+            }
+            break;
+            case SettingType::ArrayString: {
+                loadDefaultVector(setting->name, doc);
+                LogHandler::verbose(m_TAG, "Load default string vector: %s, value size: %ld", setting->name, doc[setting->name].as<JsonArray>().size());
+            }
+            break;
+            case SettingType::ArrayInt: {
+                loadDefaultVector(setting->name, doc);
+                LogHandler::verbose(m_TAG, "Load default int vector: %s, value size: %ld", setting->name, doc[setting->name].as<JsonArray>().size());
             }
             break;
         }

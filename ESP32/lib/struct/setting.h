@@ -35,6 +35,8 @@ enum class SettingType
     String,
     Float,
     Double,
+    ArrayString,
+    ArrayInt,
     MAX
 };
 
@@ -70,7 +72,7 @@ struct Setting
     const char* friendlyName;
     const char* description;
     SettingType type;
-    mpark::variant<const int, const char*, const float, const double, const bool> value;
+    mpark::variant<const int, const char*, const float, const double, const bool> defaultValue;
     //JsonVariant value;
     RestartRequired isRestartRequired;
     std::vector<SettingProfile> profiles;

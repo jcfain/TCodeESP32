@@ -158,7 +158,8 @@ class WebHandler : public HTTPBase {
                 int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
                 Serial.println("Settings pinout default");
                 m_settingsFactory->setValue(BOARD_TYPE_SETTING, boardType);
-				if (m_settingsFactory->resetPins())
+                if(SettingsHandler::defaultPinout())
+				//if (m_settingsFactory->resetPins()) // Settings handler executes resetPins
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
@@ -215,6 +216,22 @@ class WebHandler : public HTTPBase {
                     request->send(response);
                 }
             }, 32768U );//Bad request? increase the size.
+
+            AsyncCallbackJsonWebHandler* pinsHandler = new AsyncCallbackJsonWebHandler("/pins", [this](AsyncWebServerRequest *request, JsonVariant &json)
+			{
+                Serial.println("API save pins...");
+                JsonObject jsonObj = json.as<JsonObject>();
+                if (m_settingsFactory->savePins(jsonObj)) 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                    request->send(response);
+                } 
+                else 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving pins\"}");
+                    request->send(response);
+                }
+            }, 1000U );//Bad request? increase the size.
 
             AsyncCallbackJsonWebHandler* wifiUpdateHandler = new AsyncCallbackJsonWebHandler("/wifiSettings", [this](AsyncWebServerRequest *request, JsonVariant &json)
 			{
@@ -303,6 +320,7 @@ class WebHandler : public HTTPBase {
             // });
 
             server->addHandler(settingsUpdateHandler);
+            server->addHandler(pinsHandler);
             server->addHandler(wifiUpdateHandler);
             server->addHandler(motionProfileUpdateHandler);
             server->addHandler(buttonsUpdateHandler);

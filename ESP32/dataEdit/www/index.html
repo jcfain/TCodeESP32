@@ -317,12 +317,20 @@
 								<select name="TCodeVersion" id="TCodeVersion" onchange="setTCodeVersion()"> </select>
 							</div>
 						</div>
-						<div class="tRow servoOnly hidden">
+						<!-- <div class="tRow servoOnly hidden">
 							<div class="tCell">
 								<span title="Uncheck this if you are building an OSR">SR6 mode</span> 
 							</div>
 							<div class="tCell">
 								<input id="sr6Mode" type="checkbox" onclick="setSR6Mode()"></input>
+							</div>
+						</div> -->
+						<div class="tRow">
+							<div class="tCell">
+								<span title="Select the device this is installed on">Device type</span> 
+							</div>
+							<div class="tCell">
+								<select name="deviceType" id="deviceType" onchange="setDeviceType()"> </select>
 							</div>
 						</div>
 						<div class="tRow servoOnly hidden">

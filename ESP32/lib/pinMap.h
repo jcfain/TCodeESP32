@@ -19,6 +19,7 @@
 #define HEATER_PIN_DEFAULT 33
 #define I2C_SDA_PIN_DEFAULT 21
 #define I2C_SCL_PIN_DEFAULT 22
+#define BUTTON_SET_PINS_DEFAULT {}// Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
 
 // OSR
 #define PITCH_LEFT_SERVO_PIN_DEFAULT 4
@@ -56,6 +57,7 @@
 #define DISPLAY_RST_PIN "Display_Rst_PIN"
 #define TEMP_PIN "Temp_PIN"
 #define HEATER_PIN "Heater_PIN"
+#define BUTTON_SET_PINS "Button_Set_PIN"
 
 // OSR
 #define RIGHT_SERVO_PIN "RightServo_PIN"
@@ -155,7 +157,7 @@ public:
     void setHeater(const int8_t &heater) { m_heater = heater; }
 
     int8_t buttonSetPin(int8_t index) const { return m_buttonSetPins[index]; }
-    void setButtonSetPins(const int8_t pin, int8_t index) { 
+    void setButtonSetPin(const int8_t pin, int8_t index) { 
         if(index >= MAX_BUTTON_SETS)
         {
             LogHandler::error("Pin_map", "Invalid index for button set %u", index);
@@ -188,7 +190,7 @@ private:
     int8_t m_heater = HEATER_PIN_DEFAULT;
     int8_t m_i2cSda = I2C_SDA_PIN_DEFAULT;
     int8_t m_i2cScl = I2C_SCL_PIN_DEFAULT;
-    int8_t m_buttonSetPins[MAX_BUTTON_SETS] = { 39, -1, -1, -1 };
+    int8_t m_buttonSetPins[MAX_BUTTON_SETS] = BUTTON_SET_PINS_DEFAULT;
 
     virtual void overideDefaults() =0;
 };
