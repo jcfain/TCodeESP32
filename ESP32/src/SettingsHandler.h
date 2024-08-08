@@ -631,7 +631,6 @@ public:
             // setValue(json, buttonSetsEnabled, "buttonCommand", "buttonSetsEnabled", BOOT_BUTTON_COMMAND_DEFAULT);
             // setValue(json, bootButtonCommand, "buttonCommand", "bootButtonCommand", BUTTON_SETS_ENABLED_DEFAULT);
             // setValue(json, buttonAnalogDebounce, "buttonCommand", "buttonAnalogDebounce", BUTTON_ANALOG_DEBOUNCE_DEFAULT);
-            
             bool bootButtonEnabled = json[BOOT_BUTTON_ENABLED] | BOOT_BUTTON_ENABLED_DEFAULT;
             m_settingsFactory->setValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
             bool buttonSetsEnabled = json[BUTTON_SETS_ENABLED] | BUTTON_SETS_ENABLED_DEFAULT;
@@ -700,8 +699,9 @@ public:
             bool buttonSetsEnabled = BUTTON_SETS_ENABLED_DEFAULT;
             m_settingsFactory->getValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
             doc[BUTTON_SETS_ENABLED] = buttonSetsEnabled;
-            char bootButtonCommand[MAX_COMMAND];
-            m_settingsFactory->getValue(BOOT_BUTTON_COMMAND, bootButtonCommand, MAX_COMMAND);
+            // char bootButtonCommand[BOOT_BUTTON_COMMAND_LEN] = {0};
+            // m_settingsFactory->getValue(BOOT_BUTTON_COMMAND, bootButtonCommand, BOOT_BUTTON_COMMAND_LEN);
+            const char* bootButtonCommand = m_settingsFactory->getBootButtonCommand();
             doc[BOOT_BUTTON_COMMAND] = bootButtonCommand; 
             int buttonAnalogDebounce = BUTTON_ANALOG_DEBOUNCE_DEFAULT;
             m_settingsFactory->getValue(BUTTON_ANALOG_DEBOUNCE, buttonAnalogDebounce);

@@ -142,7 +142,7 @@ public:
     bool getInternalTempDisplayed() const { return internalTempDisplayed; }
     int getDisplayScreenWidth() const { return Display_Screen_Width; }
     int getDisplayScreenHeight() const { return Display_Screen_Height; }
-    int getBatteryLevelNumeric() const { return batteryLevelNumeric; }
+    bool getBatteryLevelNumeric() const { return batteryLevelNumeric; }
     int getTargetTemp() const { return targetTemp; }
     int getHeatPWM() const { return HeatPWM; }
     int getHoldPWM() const { return HoldPWM; }
@@ -240,10 +240,12 @@ public:
             return SettingFile::NONE;
         }
         const char* constvalue = getValue(name);
+        LogHandler::debug(m_TAG, "getValue char* len %s: constvalue: %s", name, constvalue);
         if(!constvalue) {
             return SettingFile::NONE;
         }
         strncpy(value, constvalue, len);
+        LogHandler::debug(m_TAG, "getValue char* len: %s: %s", name, value);
         if (m_wifiFileInfo.doc.containsKey(name)) 
         {
             return SettingFile::Wifi;
@@ -265,6 +267,7 @@ public:
         {
             xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
             const char* constvalue = m_wifiFileInfo.doc[name];
+            LogHandler::debug(m_TAG, "getValue char* wifi: %s: constvalue: %s", name, constvalue);
             xSemaphoreGive(m_wifiSemaphore);
             return constvalue;
         } 
@@ -272,6 +275,7 @@ public:
         {
             xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
             const char* constvalue = m_commonFileInfo.doc[name];
+            LogHandler::debug(m_TAG, "getValue char* common: %s: constvalue: %s", name, constvalue);
             xSemaphoreGive(m_commonSemaphore);
             return constvalue;
         }    
@@ -373,6 +377,18 @@ public:
         return SettingFile::NONE;
     }
 
+    SettingFile setValue(const char* name, const char* value) 
+    {
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "setValue const char* called before initialized");
+            return SettingFile::NONE;
+        }
+        LogHandler::debug(m_TAG, "Set const char*: %s value: %s", name, value);
+        SettingFileInfo* fileInfo = getFile(name);
+        fileInfo->doc[name] = value;
+        return fileInfo->file;
+    }
+
     template <typename T>
     SettingFile setValue(const char* name, const std::vector<T> &value) 
     {
@@ -380,7 +396,7 @@ public:
             LogHandler::error(m_TAG, "setValue vector T called before initialized");
             return SettingFile::NONE;
         }
-        LogHandler::debug(m_TAG, "Set vector value: ", name);
+        LogHandler::debug(m_TAG, "Set vector value: %s", name);
         SettingFileInfo* fileInfo = getFile(name);
         fileInfo->doc[name] = value;
         return fileInfo->file;
@@ -392,6 +408,7 @@ public:
             LogHandler::error(m_TAG, "defaultValue called before initialized");
             return;
         }
+        LogHandler::debug(m_TAG, "Default: %s", name);
         SettingFileInfo* fileInfo = getFile(name);
         const Setting* setting = fileInfo->getSetting(name);
         defaultToJson(setting, fileInfo->doc);
@@ -497,6 +514,10 @@ public:
 
     void loadCache() 
     {
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "loadCache called before initialized");
+            return;
+        }
 	    getValue(TCODE_VERSION_SETTING, tcodeVersion);
 	    getValue(UDP_SERVER_PORT, udpServerPort);
 	    getValue(WEBSERVER_PORT, webServerPort);
@@ -508,9 +529,10 @@ public:
     }
 
     void loadLiveCache() {
-        if(!m_initialized)
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "loadLiveCache called before initialized");
             return;
-            
+        }
         getValue(LOG_LEVEL_SETTING, logLevel);
         LogHandler::setLogLevel(logLevel);
         getValue(LOG_INCLUDETAGS, logIncludes);
@@ -534,7 +556,8 @@ public:
         getValue(TWIST_SERVO_ZERO, TwistServo_ZERO);
         getValue(VALVE_SERVO_ZERO, ValveServo_ZERO);
         getValue(SQUEEZE_ZERO, SqueezeServo_ZERO);
-        getValue(BOOT_BUTTON_COMMAND, bootButtonCommand, sizeof(bootButtonCommand));
+        bootButtonCommand[0] = {0};
+        getValue(BOOT_BUTTON_COMMAND, bootButtonCommand, BOOT_BUTTON_COMMAND_LEN);
         getValue(VERSION_DISPLAYED, versionDisplayed);
         getValue(SLEEVE_TEMP_DISPLAYED, sleeveTempDisplayed);
         getValue(INTERNAL_TEMP_DISPLAYED, internalTempDisplayed);
@@ -583,14 +606,14 @@ private:
             {MOTOR_TYPE_SETTING, "Motor type", "The current motor type", SettingType::Number, MOTOR_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
             {BOARD_TYPE_SETTING, "Board type", "The physical board type", SettingType::Number, BOARD_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
             {LOG_LEVEL_SETTING, "Log level", "The loglevel that will output", SettingType::Number, LOG_LEVEL_DEFAULT, RestartRequired::NO, {SettingProfile::System}},
-            //{FULL_BUILD, "Full build", "", SettingType::Boolean, false, RestartRequired::YES, {SettingProfile::System}},
+            //{FULL_BUILD, "Full build", "", SettingType::Boolean, false, RestartRequired::YES, {SettingProfile::System}}, // Not sure what this was for. Doesnt appear to be used anywhere.
             {TCODE_VERSION_SETTING, "TCode version", "The version of TCode", SettingType::Number, TCODE_VERSION_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
             {UDP_SERVER_PORT, "Udp port", "The UDP port for TCode input", SettingType::Number, UDP_SERVER_PORT_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {WEBSERVER_PORT, "Web port", "The Web port for the web server", SettingType::Number, WEBSERVER_PORT_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {HOST_NAME, "Hostname", "The hostname for network com", SettingType::String, HOST_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {FRIENDLY_NAME, "Friendly name", "The friendly name displayed when connecting", SettingType::String, FRIENDLY_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {BLUETOOTH_ENABLED, "BLE enabled", "BLE tcode", SettingType::Boolean, BLUETOOTH_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth}},
-            {PITCH_FREQUENCY_IS_DIFFERENT, "Pitch frewuency is different", "", SettingType::Boolean, PITCH_FREQUENCY_IS_DIFFERENT_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
+            {PITCH_FREQUENCY_IS_DIFFERENT, "Pitch frequency is different", "True will use the value set in pitchFrequency", SettingType::Boolean, PITCH_FREQUENCY_IS_DIFFERENT_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {MS_PER_RAD, "Ms per rad", "Micro seconds per radian for servos", SettingType::Number, MS_PER_RAD_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {SERVO_FREQUENCY, "Servo frequency", "Base servo frequenbcy", SettingType::Number, SERVO_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {PITCH_FREQUENCY, "Pitch frequency", "Pitch servo frequency if different than base", SettingType::Number, PITCH_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
@@ -615,7 +638,6 @@ private:
             {SUBNET, "Subnet", "The networks subnet", SettingType::String, SUBNET_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {DNS1, "DNS1", "The networks first DNS", SettingType::String, DNS1_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {DNS2, "DSN2", "The networks second DNS", SettingType::String, DNS2_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            //{SR6MODE, "SR6 mode", "The current device mode", SettingType::Boolean, SR6MODE_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
             {RIGHT_SERVO_ZERO, "Right servo zero", "The zero calibration for the right servo", SettingType::Number, RIGHT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {LEFT_SERVO_ZERO, "Left servo zero", "The zero calibration for the left servo", SettingType::Number, LEFT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {RIGHT_UPPER_SERVO_ZERO, "Right upper servo zero", "The zero calibration for the right upper servo", SettingType::Number, RIGHT_UPPER_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
@@ -643,7 +665,7 @@ private:
             {HEAT_PWM, "Heat PWM", "PWM when the sleeve needs heating", SettingType::Number, HEAT_PWM_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {HOLD_PWM, "Hold PWM", "PWM when the sleeve is at target", SettingType::Number, HOLD_PWM_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {DISPLAY_I2C_ADDRESS, "Display I2C address", "I2C address of the display", SettingType::String, DISPLAY_I2C_ADDRESS_DEFAULT, RestartRequired::YES, {SettingProfile::Display}},
-            {HEATER_THRESHOLD, "Heater thresh hold", "", SettingType::Float, HEATER_THRESHOLD_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},// TODo: what is this exactly
+            {HEATER_THRESHOLD, "Heater thresh hold", "The HoldPWM will be sent while the temp less than or equal to TargetTemp + heaterThreshold", SettingType::Float, HEATER_THRESHOLD_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},// TODo: what is this exactly
             {HEATER_RESOLUTION, "Heater resolution", "Resolution for the Heater PWM", SettingType::Number, HEATER_RESOLUTION_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {HEATER_FREQUENCY, "Heater frequency", "Frequence for the heater PWM", SettingType::Number, HEATER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {FAN_CONTROL_ENABLED, "Fan control enabled", "Enable PWM fan", SettingType::Boolean, FAN_CONTROL_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
@@ -653,7 +675,7 @@ private:
             {INTERNAL_MAX_TEMP, "Internal max temp", "Max temp for internal. The movement will shutdown if this value is reached.", SettingType::Double, INTERNAL_MAX_TEMP_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {TEMP_INTERNAL_ENABLED, "Temp Internal enabled", "Enable the internal temp sensor", SettingType::Boolean, TEMP_INTERNAL_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {BATTERY_LEVEL_ENABLED, "Battery level enabled", "Enable the battery level", SettingType::Boolean, BATTERY_LEVEL_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Battery}},
-            {BATTERY_LEVEL_NUMERIC, "Battery level numeric", "", SettingType::Number, BATTERY_LEVEL_NUMERIC_DEFAULT, RestartRequired::YES, {SettingProfile::Battery}},// TODO what is this exactly?
+            {BATTERY_LEVEL_NUMERIC, "Battery level numeric", "Display the battery level in numeric form", SettingType::Boolean, BATTERY_LEVEL_NUMERIC_DEFAULT, RestartRequired::YES, {SettingProfile::Battery}},
             {BATTERY_VOLTAGE_MAX, "Battery voltage max", "The max voltage for the battery", SettingType::Double, BATTERY_VOLTAGE_MAX_DEFAULT, RestartRequired::YES, {SettingProfile::Battery}},
             {BATTERY_CAPACITY_MAX, "Battery capcity max", "The battery max capacity", SettingType::Number, BATTERY_CAPACITY_MAX_DEFAULT, RestartRequired::YES, {SettingProfile::Battery}},
             {VOICE_ENABLED, "Voice enabled", "Enable voice control", SettingType::Boolean, VOICE_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Voice}},
@@ -673,7 +695,7 @@ private:
     {
         PIN_SETTINGS_PATH, SettingFile::Pins, JsonDocument(), 
         {
-            {TWIST_FEEDBACK_PIN, "Twist feedback PIN", "Feedback servo pin", SettingType::Number, TWIST_FEEDBACK_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Pin}},
+            {TWIST_FEEDBACK_PIN, "Twist feedback PIN", "The twist feedback pin", SettingType::Number, TWIST_FEEDBACK_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Pin}},
             {RIGHT_SERVO_PIN, "Right servo PIN", "Pin the right servo is on", SettingType::Number, RIGHT_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
             {LEFT_SERVO_PIN, "Left servo PIN", "Pin the left servo is on", SettingType::Number, LEFT_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
             {RIGHT_UPPER_SERVO_PIN, "Right upper servo PIN", "Pin the right upper servo is on", SettingType::Number, RIGHT_UPPER_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
@@ -693,8 +715,8 @@ private:
             {DISPLAY_RST_PIN, "Display Rst PIN", "Reset pin for the display", SettingType::Number, DISPLAY_RST_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Display, SettingProfile::Pin}},
             {TEMP_PIN, "Temp pin", "Pin the sleeve temperture is on", SettingType::Number, TEMP_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Pin, SettingProfile::Analog}},
             {HEATER_PIN, "Heater PIN", "Pin the heater is on", SettingType::Number, HEATER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature, SettingProfile::Pin, SettingProfile::PWM}},
-            {I2C_SDA_PIN, "I2C SDA PIN", "", SettingType::Number, I2C_SDA_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::System, SettingProfile::Pin}},
-            {I2C_SCL_PIN, "I2C SCL PIN", "", SettingType::Number, I2C_SCL_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::System, SettingProfile::Pin}},
+            {I2C_SDA_PIN, "I2C SDA PIN", "Pin of the I2C SDA", SettingType::Number, I2C_SDA_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::System, SettingProfile::Pin}},
+            {I2C_SCL_PIN, "I2C SCL PIN", "Pin of the I2C SCL", SettingType::Number, I2C_SCL_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::System, SettingProfile::Pin}},
             {BLDC_ENCODER_PIN, "Encoder PIN", "Pin the BLDC encoder is on", SettingType::Number, BLDC_ENCODER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_CHIPSELECT_PIN, "Chipselect PIN", "Pin the BLDC chip select is on", SettingType::Number, BLDC_CHIPSELECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_ENABLE_PIN, "Enable PIN", "Pin the BLDC enable is on", SettingType::Number, BLDC_ENABLE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
@@ -750,7 +772,7 @@ private:
     bool internalTempDisplayed;
     int Display_Screen_Width;
     int Display_Screen_Height;
-    int batteryLevelNumeric;
+    bool batteryLevelNumeric;
     int targetTemp;
     int HeatPWM;
     int HoldPWM;

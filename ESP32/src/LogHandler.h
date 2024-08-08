@@ -35,10 +35,13 @@ class LogHandler {
 public:
     // Need to port to espidf framework instead of arduino to be able to change this at runtime.
     static void setLogLevel(LogLevel logLevel) {
-		xSemaphoreTake(xMutex, portMAX_DELAY);
-        Serial.printf("LogHandler: log level: %ld\n", (uint8_t)logLevel);
-        _currentLogLevel = logLevel;
-        xSemaphoreGive(xMutex);
+        if(logLevel != _currentLogLevel)
+        {
+            xSemaphoreTake(xMutex, portMAX_DELAY);
+			Serial.printf("Log level changed to: %ld\n", logLevel);
+            _currentLogLevel = logLevel;
+            xSemaphoreGive(xMutex);
+        }
         // // Chant change this at runtime...
         // switch(logLevel) {
         //     case LogLevel::WARNING:
@@ -81,8 +84,10 @@ public:
     }
 
     static void clearIncludes() {
-        Serial.print("LogHandler: clear includes\n");
-        m_tags.clear();
+        if(!m_tags.empty()) {
+            Serial.print("LogHandler: clear includes\n");
+            m_tags.clear();
+        }
     }
 
     static bool addInclude(const char* tag) {

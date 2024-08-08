@@ -596,13 +596,13 @@ void setup()
 		return;
 	}
 
-    //LogHandler::setLogLevel(LogLevel::VERBOSE);
+    LogHandler::setLogLevel(LogLevel::DEBUG);
 	settingsFactory = SettingsFactory::getInstance();
 	if(!settingsFactory->init()) {
 		LogHandler::error(TagHandler::Main, "Failed to load settings...");
 		return;
 	}
-    //LogHandler::setLogLevel(LogLevel::VERBOSE);
+    LogHandler::setLogLevel(LogLevel::DEBUG);
 
 	PinMapInfo pinMapInfo = settingsFactory->getPins();
 	const PinMap* pinMap = pinMapInfo.pinMap();

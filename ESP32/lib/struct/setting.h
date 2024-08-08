@@ -58,6 +58,7 @@ enum class SettingProfile
     Bluetooth,
     Ble,
     ChannelRanges,
+    Disabled,
     MAX
 };
 

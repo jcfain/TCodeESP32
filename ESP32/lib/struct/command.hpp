@@ -41,13 +41,16 @@ struct CommandBase {
 struct Command : CommandBase {
     Command(CommandBase commandbase_, std::function<bool()> callback_) :  
     CommandBase(commandbase_),
-    callback(callback_) {}
+        callback(callback_) {}
     std::function<bool()> callback;
 };
 template<typename T>
 struct CommandValue: CommandBase {
     CommandValue(CommandBase commandbase_, std::function<bool(T value)> callback_) :
-    CommandBase(commandbase_),
-    callback(callback_) {}
+        CommandBase(commandbase_),
+        callback(callback_) {}
+    CommandValue(const Setting &setting, std::function<bool(T value)> callback_) :
+        CommandBase({setting.friendlyName, setting.name, setting.description, SaveRequired::YES, setting.isRestartRequired, setting.type}),
+        callback(callback_) {}
     std::function<bool(T value)> callback;
 };
