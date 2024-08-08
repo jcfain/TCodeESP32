@@ -50,7 +50,7 @@ public:
 
     bool init() 
     {
-        resetAll();
+        //resetAll();
         if(!loadAllFromDisk())
             return false;
         m_initialized = true;
@@ -420,26 +420,35 @@ public:
 
     bool saveAll(JsonObject fromJson = JsonObject())
     {
-        bool ret = saveCommon(fromJson) &&
-            saveWifi(fromJson) &&
-            savePins(fromJson);
-            loadLiveCache();
-        return ret;
+        for(SettingFileInfo* settingsInfo : AllSettings)
+        {
+            if(!save(*settingsInfo, fromJson))
+                return false;
+        }
+        loadLiveCache();
+        return true;;
     }
     bool resetAll() 
     {
-        return deleteJsonFile(m_commonFileInfo.path) &&
-        deleteJsonFile(m_wifiFileInfo.path) &&
-        deleteJsonFile(m_pinsFileInfo.path);
-        // return resetCommon() &&
-        //     resetWiFi() &&
-        //     resetPins();
+        for(SettingFileInfo* settingsInfo : AllSettings)
+        {
+            if(!deleteJsonFile(settingsInfo->path))
+                return false;
+        }
+        // for(SettingFileInfo* settingsInfo : AllSettings)
+        // {
+        //     if(!loadDefault(*settingsInfo))
+        //         return false;
+        // }
+        return true;
     }
     bool saveCommon(JsonObject fromJson = JsonObject())
     {
         xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
         bool ret = save(m_commonFileInfo, fromJson);
         xSemaphoreGive(m_commonSemaphore);
+        if(ret)
+            loadLiveCache();
         return ret;
     }
     bool resetCommon()
@@ -447,6 +456,8 @@ public:
         xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
         bool ret = loadDefault(m_commonFileInfo);
         xSemaphoreGive(m_commonSemaphore);
+        if(ret)
+            loadLiveCache();
         return ret;
     }
 
@@ -464,11 +475,14 @@ public:
         xSemaphoreGive(m_wifiSemaphore);
         return ret;
     }
+    
     bool savePins(JsonObject fromJson = JsonObject())
     {
         xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
         bool ret = save(m_pinsFileInfo, fromJson);
         xSemaphoreGive(m_pinSemaphore);
+        if(ret)
+            loadPinCache();
         return ret;
     }
     bool resetPins()
@@ -476,6 +490,8 @@ public:
         xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
         bool ret = loadDefaultPins();
         xSemaphoreGive(m_pinSemaphore);
+        if(ret)
+            loadPinCache();
         return ret;
     }
 

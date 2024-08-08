@@ -298,8 +298,10 @@ private:
       int commandNumber = command.toInt();
       if (commandNumber==0 && command.charAt(0)!='0' ) { command = -1; }
       switch( commandNumber ) {
-        case 0:
-          sendMessage(firmwareID);
+        case 0: {
+          char firmware[12] = "Firmware v";
+          sendMessage(strcat(firmware, firmwareID));
+        }
         break;
   
         case 1:

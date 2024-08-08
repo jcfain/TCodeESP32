@@ -388,7 +388,7 @@ function setMotionPhaseRandomClicked(profileIndex, channelIndex, channelName) {
 
 function setMotionProfileDefault() {
     motionProviderSettings["motionDefaultProfileIndex"] = getMotionProfileSelectedIndex();
-    MotionGenerator.updateSettings(1);
+    MotionGenerator.updateSettings(undefined, undefined, 0);
 }
 var selectedMotionProfileIndex = 0;
 function getMotionProfileSelectedIndex() {
@@ -460,7 +460,7 @@ function setMotionGeneratorSettings(profileIndex, channelIndex, channelName) {
 
         
         //userSettings["motionReversed"] = document.getElementById('motionReversed').checked;
-        MotionGenerator.updateSettings(1);
+        MotionGenerator.updateSettings(profileIndex, channelIndex, 0);
     }.bind(this, profileIndex, channelIndex, channelName), 3000);
 }
 var setMotionGeneratorNameDebounce;
@@ -472,7 +472,7 @@ function setMotionGeneratorName(profileIndex) {
     setMotionGeneratorNameDebounce = setTimeout(function(profileIndex) {
         if(validateStringControl("motionProfileName"+profileIndex, motionProviderSettings['motionProfiles'][profileIndex], "name")) {
             updateMotionProfileName(profileIndex);
-            MotionGenerator.updateSettings(1);
+            MotionGenerator.updateSettings(profileIndex, -1, 1);
         }
     }.bind(this, profileIndex), 3000);
 }
@@ -519,7 +519,7 @@ function updateMotionProfileName(profileIndex) {
 function setMotionGeneratorSettingsDefault(profileIndex, channelIndex, channelName) {
     if (confirm(`Are you sure you want to set the current channel '${channelName}' in profile '${motionProviderSettings['motionProfiles'][profileIndex]["name"]}' to the default settings?`)) {
         setProfileMotionGeneratorSettingsDefault(profileIndex, channelIndex, channelName);
-        MotionGenerator.updateSettings(1);
+        MotionGenerator.updateSettings(profileIndex, channelIndex, 0);
     }
 }
 function getMotionChannelIndex(profileIndex, channelName) {

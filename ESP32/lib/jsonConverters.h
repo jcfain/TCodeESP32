@@ -5,49 +5,49 @@
 #include "enum.h"
 
 void convertFromJson(JsonVariantConst src, TCodeVersion& dst) {
-    static_cast<uint8_t>(dst);
+    dst = static_cast<TCodeVersion>(src.as<uint8_t>());
 }
 bool convertToJson(const TCodeVersion& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
 }
 
 void convertFromJson(JsonVariantConst src, LogLevel& dst) {
-    static_cast<uint8_t>(dst);
+    dst = static_cast<LogLevel>(src.as<uint8_t>());
 }
 bool convertToJson(const LogLevel& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
 }
 
 void convertFromJson(JsonVariantConst src, BuildFeature& dst) {
-    static_cast<uint8_t>(dst);
+    dst = static_cast<BuildFeature>(src.as<uint8_t>());
 }
 bool convertToJson(const BuildFeature& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
 }
 
 void convertFromJson(JsonVariantConst src, BoardType& dst) {
-    static_cast<uint8_t>(dst);
+    dst = static_cast<BoardType>(src.as<uint8_t>());
 }
 bool convertToJson(const BoardType& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
 }
 
 void convertFromJson(JsonVariantConst src, MotorType& dst) {
-    static_cast<uint8_t>(dst);
+    dst = static_cast<MotorType>(src.as<uint8_t>());
 }
 bool convertToJson(const MotorType& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
 }
 
 void convertFromJson(JsonVariantConst src, DeviceType& dst) {
-    static_cast<uint8_t>(dst);
+    dst = static_cast<DeviceType>(src.as<uint8_t>());
 }
 bool convertToJson(const DeviceType& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
 }
 
 void convertFromJson(JsonVariantConst src, BLDCEncoderType& dst) {
-    static_cast<uint8_t>(dst);
+    dst = static_cast<BLDCEncoderType>(src.as<uint8_t>());
 }
 bool convertToJson(const BLDCEncoderType& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
@@ -79,7 +79,7 @@ bool convertToJson(const BLDCEncoderType& src, JsonVariant dst) {
 //     return true;
 // }
 
-namespace ARDUINOJSON_NAMESPACE {
+namespace ArduinoJson {
     template <typename T>
     struct Converter<std::vector<T> > {
         static void toJson(const std::vector<T>& src, JsonVariant dst) {

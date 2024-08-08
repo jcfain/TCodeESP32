@@ -35,7 +35,10 @@ class LogHandler {
 public:
     // Need to port to espidf framework instead of arduino to be able to change this at runtime.
     static void setLogLevel(LogLevel logLevel) {
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        Serial.printf("LogHandler: log level: %ld\n", (uint8_t)logLevel);
         _currentLogLevel = logLevel;
+        xSemaphoreGive(xMutex);
         // // Chant change this at runtime...
         // switch(logLevel) {
         //     case LogLevel::WARNING:
@@ -69,6 +72,7 @@ public:
         clearIncludes();
 		for(unsigned int i = 0; i < tags.size(); i++) {
            //addTag(tags[i]);
+            Serial.printf("LogHandler: set include: %s\n", tags[i]);
             m_tags.push_back(tags[i]);
 		}
     }
@@ -77,23 +81,30 @@ public:
     }
 
     static void clearIncludes() {
+        Serial.print("LogHandler: clear includes\n");
         m_tags.clear();
     }
 
     static bool addInclude(const char* tag) {
-        std::vector<const char*>::iterator position = std::find(m_tags.begin(), m_tags.end(), tag);
-        if (position == m_tags.end()) // == myVector.end() means the element was not found
+        std::vector<const char*>::iterator position = std::find_if(m_tags.begin(), m_tags.end(), [tag](const char* tagIn) {
+            return !strcmp(tag, tagIn);
+        });
+        if (position == m_tags.end()) {
             m_tags.push_back(tag);
-        else
+            Serial.printf("LogHandler: add include: %s\n", tag);
+        } else
             return false;
         return true;
     }
 
     static bool removeInclude(const char* tag) {
-        std::vector<const char*>::iterator position = std::find(m_tags.begin(), m_tags.end(), tag);
-        if (position != m_tags.end()) // == myVector.end() means the element was not found
+        std::vector<const char*>::iterator position = std::find_if(m_tags.begin(), m_tags.end(), [tag](const char* tagIn) {
+            return !strcmp(tag, tagIn);
+        });
+        if (position != m_tags.end()) {
             m_tags.erase(position);
-        else
+            Serial.printf("LogHandler: remove include: %s\n", tag);
+        } else
             return false;
         return true;
     }
@@ -102,6 +113,7 @@ public:
         clearExcludes();
 		for(unsigned int i = 0; i < tags.size(); i++) {
            //addTag(tags[i]);
+            Serial.printf("LogHandler: set exclude: %s\n", tags[i]);
             m_filters.push_back(tags[i]);
 		}
     }
@@ -118,9 +130,12 @@ public:
         // Serial.print("Adding filter: ");
         // Serial.println(tag);
         // Serial.println(m_filters.size());
-        std::vector<const char*>::iterator position = std::find(m_filters.begin(), m_filters.end(), tag);
+        std::vector<const char*>::iterator position = std::find_if(m_filters.begin(), m_filters.end(), [tag](const char* tagIn) {
+            return !strcmp(tag, tagIn);
+        });
         if (position == m_filters.end()) {// == myVector.end() means the element was not found
             m_filters.push_back(tag);
+            Serial.printf("LogHandler: add exclude: %s\n", tag);
             // Serial.println(m_filters.size());
         } else {
             // Serial.println(m_filters.size());
@@ -134,9 +149,12 @@ public:
         // Serial.print("Removing filter: ");
         // Serial.println(tag);
         // Serial.println(m_filters.size());
-        std::vector<const char*>::iterator position = std::find(m_filters.begin(), m_filters.end(), tag);
+        std::vector<const char*>::iterator position = std::find_if(m_filters.begin(), m_filters.end(), [tag](const char* tagIn) {
+            return !strcmp(tag, tagIn);
+        });
         if (position != m_filters.end()) {// == myVector.end() means the element was not found
             m_filters.erase(position);
+            Serial.printf("LogHandler: remove exclude: %s\n", tag);
             // Serial.println(m_filters.size());
         } else {
             // Serial.println(m_filters.size());
@@ -309,7 +327,9 @@ private:
     static bool isTagged(const char* tag) {
         if(m_tags.empty())
             return true;//tag all by default
-        std::vector<const char*>::iterator position = std::find(m_tags.begin(), m_tags.end(), tag);
+        std::vector<const char*>::iterator position = std::find_if(m_tags.begin(), m_tags.end(), [tag](const char* tagIn) {
+            return !strcmp(tag, tagIn);
+        });
         return position != m_tags.end();
     }
     static bool isFiltered(const char* tag) {
@@ -319,7 +339,9 @@ private:
         // Serial.println(tag);
         // Serial.println(m_filters.size());
         // Serial.println(m_filters.front());
-        std::vector<const char*>::iterator position = std::find(m_filters.begin(), m_filters.end(), tag);
+        std::vector<const char*>::iterator position = std::find_if(m_filters.begin(), m_filters.end(), [tag](const char* tagIn) {
+            return !strcmp(tag, tagIn);
+        });
         // Serial.print("position: ");
         // Serial.println(std::distance( m_filters.begin(), position ));
         return position != m_filters.end();

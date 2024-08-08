@@ -253,7 +253,7 @@ function postButtonSettings(debounce, callback) {
     updateUserSettings(debounce, EndPointType.Buttons.uri, buttonSettings, callback);
 }
 function postMotionProfileSettings(debounce) {
-    MotionGenerator.updateSettings(debounce, null, 0);
+    MotionGenerator.updateSettings(null, null, debounce);
 }
 
 function updateALLUserSettings() {
@@ -269,7 +269,7 @@ var updateButtonSettingsChain = function() {
     postButtonSettings(0, updateMotionProfileSettings);
 }
 var updateMotionProfileSettings = function() {
-    postMotionProfileSettings();
+    postMotionProfileSettings(0);
 }
 
 // ALWAYS CALL setUserSettings/getUserSettings LAST! 

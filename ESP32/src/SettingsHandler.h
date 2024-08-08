@@ -725,9 +725,9 @@ public:
     static bool loadMotionProfiles(bool loadDefault, JsonObject json = JsonObject()) {
         LogHandler::info(_TAG, "Loading motion profiles");
         bool mutableLoadDefault = loadDefault;
+        JsonDocument doc; //deserializeSize
         if(mutableLoadDefault || json.isNull()) {
 		    xSemaphoreTake(m_motionMutex, portMAX_DELAY);
-            JsonDocument doc; //deserializeSize
             if(!checkForFileAndLoad(MOTION_PROFILE_SETTINGS_PATH, json, doc, mutableLoadDefault)) {
                 saving = false;
                 xSemaphoreGive(m_motionMutex);
@@ -737,8 +737,7 @@ public:
         motionDefaultProfileIndex = json[MOTION_PROFILE_DEFAULT_INDEX] | MOTION_PROFILE_SELECTED_INDEX_DEFAULT;
         if(!initialized)
             motionSelectedProfileIndex = motionDefaultProfileIndex;
-        LogHandler::info(_TAG, "json.containsKey(MOTION_PROFILES): %u", json.containsKey(MOTION_PROFILES));
-        LogHandler::info(_TAG, "motionDefaultProfileIndex: %u", motionDefaultProfileIndex);
+            
         JsonArray motionProfilesObj = json[MOTION_PROFILES].as<JsonArray>();
         
         if(motionProfilesObj.isNull()) {
@@ -785,6 +784,7 @@ public:
         LogHandler::debug(_TAG, "motion profiles length: %ld", len);
         for (int i=0; i < len; i++) {
             //if(motionProfiles[i].edited) { // TODO: this does not work because doc is empty and needs to be loaded from disk first bedore modifying sections of it.
+
                 LogHandler::debug(_TAG, "Edited motion profile name: %s", motionProfiles[i].motionProfileName);
                 doc[MOTION_PROFILES][i]["name"] = motionProfiles[i].motionProfileName;
                 for (size_t j = 0; j < motionProfiles[i].channels.size(); j++) {
