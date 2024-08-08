@@ -22,20 +22,18 @@ SOFTWARE. */
 
 BLDCMotor = {
     setup() {
-        document.getElementById("BLDC_UsePWM").checked = userSettings["BLDC_UsePWM"];
-        document.getElementById("BLDC_UseMT6701").checked = userSettings["BLDC_UseMT6701"];
-        document.getElementById("BLDC_UseSPI").checked = !userSettings["BLDC_UseMT6701"] && !userSettings["BLDC_UsePWM"];
+        document.getElementById("BLDC_Encoder").value = userSettings["BLDC_Encoder"];
         document.getElementById("BLDC_UseHallSensor").checked = userSettings["BLDC_UseHallSensor"];
         document.getElementById("BLDC_Pulley_Circumference").value = userSettings["BLDC_Pulley_Circumference"];
         document.getElementById("BLDC_MotorA_Voltage").value = Utils.round2(userSettings["BLDC_MotorA_Voltage"]);
         document.getElementById("BLDC_MotorA_Current").value = Utils.round2(userSettings["BLDC_MotorA_Current"]);
-        document.getElementById("BLDC_ChipSelect_PIN").value = userSettings["BLDC_ChipSelect_PIN"];
-        document.getElementById("BLDC_Encoder_PIN").value = userSettings["BLDC_Encoder_PIN"];
-        document.getElementById("BLDC_Enable_PIN").value = userSettings["BLDC_Enable_PIN"];
-        document.getElementById("BLDC_PWMchannel1_PIN").value = userSettings["BLDC_PWMchannel1_PIN"];
-        document.getElementById("BLDC_PWMchannel2_PIN").value = userSettings["BLDC_PWMchannel2_PIN"];
-        document.getElementById("BLDC_PWMchannel3_PIN").value = userSettings["BLDC_PWMchannel3_PIN"];
-        document.getElementById("BLDC_HallEffect_PIN").value = userSettings["BLDC_HallEffect_PIN"];
+        document.getElementById("BLDC_ChipSelect_PIN").value = pinoutSettings["BLDC_ChipSelect_PIN"];
+        document.getElementById("BLDC_Encoder_PIN").value = pinoutSettings["BLDC_Encoder_PIN"];
+        document.getElementById("BLDC_Enable_PIN").value = pinoutSettings["BLDC_Enable_PIN"];
+        document.getElementById("BLDC_PWMchannel1_PIN").value = pinoutSettings["BLDC_PWMchannel1_PIN"];
+        document.getElementById("BLDC_PWMchannel2_PIN").value = pinoutSettings["BLDC_PWMchannel2_PIN"];
+        document.getElementById("BLDC_PWMchannel3_PIN").value = pinoutSettings["BLDC_PWMchannel3_PIN"];
+        document.getElementById("BLDC_HallEffect_PIN").value = pinoutSettings["BLDC_HallEffect_PIN"];
         document.getElementById("BLDC_MotorA_ZeroElecAngle").value = Utils.round2(userSettings["BLDC_MotorA_ZeroElecAngle"]);
         document.getElementById("BLDC_MotorA_ParametersKnown").checked = userSettings["BLDC_MotorA_ParametersKnown"];
         document.getElementById("BLDC_RailLength").value = userSettings["BLDC_RailLength"];
@@ -91,16 +89,16 @@ function updateBLDCPins() {
     {
         var pinValues = validateBLDCPins();
         if(pinValues) {
-            userSettings["BLDC_ChipSelect_PIN"] = pinValues.BLDC_ChipSelect_PIN;
-            userSettings["BLDC_Encoder_PIN"] = pinValues.BLDC_Encoder_PIN;
-            userSettings["BLDC_Enable_PIN"] = pinValues.BLDC_Enable_PIN;
-            userSettings["BLDC_PWMchannel1_PIN"] = pinValues.BLDC_PWMchannel1_PIN;
-            userSettings["BLDC_PWMchannel2_PIN"] = pinValues.BLDC_PWMchannel2_PIN;
-            userSettings["BLDC_PWMchannel3_PIN"] = pinValues.BLDC_PWMchannel3_PIN;
-            userSettings["BLDC_HallEffect_PIN"] = pinValues.BLDC_HallEffect_PIN;
+            pinoutSettings["BLDC_ChipSelect_PIN"] = pinValues.BLDC_ChipSelect_PIN;
+            pinoutSettings["BLDC_Encoder_PIN"] = pinValues.BLDC_Encoder_PIN;
+            pinoutSettings["BLDC_Enable_PIN"] = pinValues.BLDC_Enable_PIN;
+            pinoutSettings["BLDC_PWMchannel1_PIN"] = pinValues.BLDC_PWMchannel1_PIN;
+            pinoutSettings["BLDC_PWMchannel2_PIN"] = pinValues.BLDC_PWMchannel2_PIN;
+            pinoutSettings["BLDC_PWMchannel3_PIN"] = pinValues.BLDC_PWMchannel3_PIN;
+            pinoutSettings["BLDC_HallEffect_PIN"] = pinValues.BLDC_HallEffect_PIN;
             updateCommonPins(pinValues);
             setRestartRequired();
-            updateUserSettings();
+            postPinoutSettings();
         }
     }, 2000);
 }

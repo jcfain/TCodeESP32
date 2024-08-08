@@ -480,6 +480,16 @@ public:
     #elif MOTOR_TYPE == 1
         defaultDevice["name"] = "SSR1";
         defaultDevice["value"] = (uint8_t)DeviceType::SSR1;
+        JsonArray encoderTypes = doc["encoderTypes"].to<JsonArray>();
+        JsonObject defaultEncoder = encoderTypes.add<JsonObject>();
+        defaultEncoder["name"] = "MT6701 SSI";
+        defaultEncoder["value"] = (uint8_t)BLDCEncoderType::MT6701;
+        JsonObject PWM = encoderTypes.add<JsonObject>();
+        PWM["name"] = "PWM";
+        PWM["value"] = (uint8_t)BLDCEncoderType::PWM;
+        JsonObject SPI = encoderTypes.add<JsonObject>();
+        SPI["name"] = "SPI";
+        SPI["value"] = (uint8_t)BLDCEncoderType::SPI;
     #endif
 
         JsonArray availableChannels = doc["availableChannels"].to<JsonArray>();

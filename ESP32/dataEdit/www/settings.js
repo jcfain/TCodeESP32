@@ -71,6 +71,11 @@ const DeviceType = {
     SR6: 1,
     SSR1: 2
 };
+const BLDCEncoderType = {
+    MT6701: 0,
+    SPI: 1,
+    PWM: 2
+};
 const BuildFeature = {
     NONE: 0,
     DEBUG: 1,
@@ -602,8 +607,11 @@ function setSystemInfo() {
         option.innerText = element;
         i2cAddressesElement.appendChild(option);
     });
+    if(systemInfo.motorType === MotorType.BLDC)
+        setupEncoderTypes();
+    else
+        setupBoardTypes();
     setupDeviceTypes();
-    setupBoardTypes();
     toggleBuildOptions();
     toggleMotorTypeOptions();
     
@@ -633,6 +641,7 @@ function setPinoutSettings() {
 	document.getElementById("LubeButton_PIN").value = pinoutSettings["LubeButton_PIN"];
 	document.getElementById("Squeeze_PIN").value = pinoutSettings["Squeeze_PIN"];
 	// document.getElementById("Display_Rst_PIN").value = pinoutSettings["Display_Rst_PIN"];
+	// document.getElementById("Display_Rst_PIN").readOnly = true;
 	document.getElementById("Temp_PIN").value = pinoutSettings["Temp_PIN"];
 	document.getElementById("Heater_PIN").value = pinoutSettings["Heater_PIN"];
     document.getElementById('Case_Fan_PIN').value = pinoutSettings["Case_Fan_PIN"];
@@ -756,7 +765,6 @@ function setUserSettings()
 
 	document.getElementById("Display_Screen_Width").readOnly = true;
 	document.getElementById("Display_Screen_Height").readOnly = true;
-	// document.getElementById("Display_Rst_PIN").readOnly = true;
     document.getElementById('fanControlEnabled').checked = userSettings["fanControlEnabled"];
     document.getElementById('internalTempForFan').value = userSettings["internalTempForFan"];
     document.getElementById('internalMaxTemp').value = userSettings["internalMaxTemp"];
@@ -1426,6 +1434,19 @@ function setupBoardTypes() {
         boardTypeOption.innerText = systemInfo.boardTypes[i].name;
         boardTypeOption.value = systemInfo.boardTypes[i].value;
         boardTypeElement.appendChild(boardTypeOption);
+    }
+}
+function setEncoderType() {
+    userSettings["BLDC_Encoder"] = document.getElementById('BLDC_Encoder').value;
+    updateUserSettings(0);
+}
+function setupEncoderTypes() {
+    const element = document.getElementById('BLDC_Encoder');
+    for(let i=0;i<systemInfo.encoderTypes.length;i++) {
+        const option = document.createElement("option");
+        option.innerText = systemInfo.encoderTypes[i].name;
+        option.value = systemInfo.encoderTypes[i].value;
+        element.appendChild(option);
     }
 }
 function setBoardType() {
@@ -2460,7 +2481,11 @@ function handleImportRenames(key, value) {
         else
             userSettings.deviceType = value ? DeviceType.SR6 : DeviceType.OSR;
         return;
-    }
+        case "BLDC_UsePWM": 
+            userSettings.BLDC_Encoder = value ? BLDCEncoderType.PWM : BLDCEncoderType.SPI;
+        case "BLDC_UseMT6701": 
+            userSettings.BLDC_Encoder = value ? BLDCEncoderType.MT6701 : BLDCEncoderType.SPI;
+        }
     if(key.endsWith("_PIN")) {
         pinoutSettings[key] = value;
     }

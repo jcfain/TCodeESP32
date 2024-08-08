@@ -155,26 +155,10 @@
 
 						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
-								<span title="Check this if you want to use MT6701 SSI">Encoder MT6701 SSI</span> 
+								<span title="Choose the encoder you have">Encoder</span> 
 							</div>
 							<div class="tCell">
-								<input id="BLDC_UseMT6701" type="radio" value="BLDC_UseMT6701" name="encoder_type" onclick="updateEncoderType(this.value)"></input>
-							</div>
-						</div>
-						<div class="tRow BLDCOnly hidden">
-							<div class="tCell">
-								<span title="Check this if you want to usePWM">Encoder PWM</span> 
-							</div>
-							<div class="tCell">
-								<input id="BLDC_UsePWM" type="radio" value="BLDC_UsePWM" name="encoder_type" onclick="updateEncoderType(this.value)"></input>
-							</div>
-						</div>
-						<div class="tRow BLDCOnly hidden">
-							<div class="tCell">
-								<span title="Check this if you want to use SPI">Encoder SPI</span> 
-							</div>
-							<div class="tCell">
-								<input id="BLDC_UseSPI" type="radio" value="BLDC_UseSPI" name="encoder_type" onclick="updateEncoderType(this.value)"></input>
+								<select name="BLDC_Encoder" id="BLDC_Encoder" onchange="setEncoderType()"> </select>
 							</div>
 						</div>
 						<div class="tRow BLDCOnly hidden">
