@@ -56,6 +56,7 @@ public:
         m_initialized = true;
         loadCommonCache();
         loadPinCache();
+        initMessages();
         return true;
     }
     
@@ -115,6 +116,9 @@ public:
     // const char* getDns2() const { return dns2; }
 
     // Cached (Live update)
+    LogLevel getLogLevel() const { return logLevel; }
+    std::vector<const char*> getLogIncludes() const { return logIncludes; }
+    std::vector<const char*> getLogExcludes() const { return logExcludes; }
     bool getInverseStroke() const { return inverseStroke; }
     bool getInversePitch() const { return inversePitch; }
     bool getValveServo90Degrees() const { return valveServo90Degrees; }
@@ -267,7 +271,7 @@ public:
         {
             xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
             const char* constvalue = m_wifiFileInfo.doc[name];
-            LogHandler::debug(m_TAG, "getValue char* wifi: %s: constvalue: %s", name, strcmp(name, WIFI_PASS_SETTING) ? constvalue : DECOY_PASS);
+            LogHandler::debug(m_TAG, "getValue char* wifi: %s: constvalue: %s", name, strcmp(name, WIFI_PASS_SETTING) || !strcmp(constvalue, WIFI_PASS_DEFAULT) ? constvalue : "<Redacted>");
             xSemaphoreGive(m_wifiSemaphore);
             return constvalue;
         } 
@@ -342,33 +346,45 @@ public:
             LogHandler::error(m_TAG, "setValue T called before initialized");
             return SettingFile::NONE;
         }
-        LogHandler::debug(m_TAG, "Set value T: %s", name);
+        LogHandler::debug(m_TAG, "Enter setValue T: %s", name);
         if (m_wifiFileInfo.doc.containsKey(name))
         {
-            xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
-            const Setting* setting = getSetting(name);
-            m_wifiFileInfo.doc[name] = value;
-            xSemaphoreGive(m_wifiSemaphore);
-            sendMessage(setting->profiles.front(), name);
+            T currentValue = m_wifiFileInfo.doc[name].as<T>();
+            if(currentValue != value) {
+                LogHandler::debug(m_TAG, "Change wifi value T: %s", name);
+                xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
+                const Setting* setting = getSetting(name);
+                m_wifiFileInfo.doc[name] = value;
+                xSemaphoreGive(m_wifiSemaphore);
+                sendMessage(setting->profiles.front(), name);
+            }
             return SettingFile::Wifi;
         }
         else if (m_commonFileInfo.doc.containsKey(name))
         {
-            xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
-            const Setting* setting = getSetting(name);
-            m_commonFileInfo.doc[name] = value;
-            loadCommonLiveCache(name);
-            xSemaphoreGive(m_commonSemaphore);
-            sendMessage(setting->profiles.front(), name);
+            T currentValue = m_commonFileInfo.doc[name].as<T>();
+            if(currentValue != value) {
+                LogHandler::debug(m_TAG, "Change common value T: %s", name);
+                xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
+                const Setting* setting = getSetting(name);
+                m_commonFileInfo.doc[name] = value;
+                loadCommonLiveCache(name);
+                xSemaphoreGive(m_commonSemaphore);
+                sendMessage(setting->profiles.front(), name);
+            }
             return SettingFile::Common;
         }
         else if (m_pinsFileInfo.doc.containsKey(name))
         {
-            xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
-            const Setting* setting = getSetting(name);
-            m_pinsFileInfo.doc[name] = value;
-            xSemaphoreGive(m_pinSemaphore);
-            sendMessage(setting->profiles.front(), name);
+            T currentValue = m_pinsFileInfo.doc[name].as<T>();
+            if(currentValue != value) {
+                LogHandler::debug(m_TAG, "Change pin value T: %s", name);
+                xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
+                const Setting* setting = getSetting(name);
+                m_pinsFileInfo.doc[name] = value;
+                xSemaphoreGive(m_pinSemaphore);
+                sendMessage(setting->profiles.front(), name);
+            }
             return SettingFile::Pins;
         }
         LogHandler::error(m_TAG, "Set value key not found");
@@ -381,11 +397,21 @@ public:
             LogHandler::error(m_TAG, "setValue const char* called before initialized");
             return SettingFile::NONE;
         }
-        LogHandler::debug(m_TAG, "Set const char*: %s value: %s", name, strcmp(name, WIFI_PASS_SETTING) ? value : DECOY_PASS);
+        LogHandler::debug(m_TAG, "Enter setValue const char*: %s", name);
         SettingFileInfo* fileInfo = getFile(name);
-        fileInfo->doc[name] = value;
-        if(fileInfo->file == SettingFile::Common) {
-            loadCommonLiveCache(name);
+        if(!fileInfo) {
+            LogHandler::error(m_TAG, "Set value key not found");
+            return SettingFile::NONE;
+        }
+        const char* currentValue = fileInfo->doc[name].as<const char*>();
+        if(fileInfo->doc[name].isNull() || strcmp(currentValue, value)) {
+            LogHandler::debug(m_TAG, "Change value: %s old value: %s new value: %s", name, currentValue, strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DEFAULT) ? value : "<Redacted>");
+            fileInfo->doc[name] = value;
+            if(fileInfo->file == SettingFile::Common) {
+                loadCommonLiveCache(name);
+            }
+            const Setting* setting = fileInfo->getSetting(name);
+            sendMessage(setting->profiles.front(), name);
         }
         return fileInfo->file;
     }
@@ -403,6 +429,8 @@ public:
         if(fileInfo->file == SettingFile::Common) {
             loadCommonLiveCache(name);
         }
+        const Setting* setting = fileInfo->getSetting(name);
+        sendMessage(setting->profiles.front(), name);
         return fileInfo->file;
     }
 
@@ -440,6 +468,7 @@ public:
                 LogHandler::error(m_TAG, "Set default value key not found: ", name);
             break;
         }
+        sendMessage(setting->profiles.front(), name);
     }
 
     bool saveAllToDisk(JsonObject fromJson = JsonObject())
@@ -554,17 +583,14 @@ public:
         bool targeted = !!name;
         if(!name || !strcmp(name, LOG_LEVEL_SETTING)) {
             getValue(LOG_LEVEL_SETTING, logLevel);
-            LogHandler::setLogLevel(logLevel);
             if(targeted) return;
         }
         if(!name || !strcmp(name, LOG_INCLUDETAGS)) {
             getValue(LOG_INCLUDETAGS, logIncludes);
-            LogHandler::setIncludes(logIncludes);
             if(targeted) return;
         }
         if(!name || !strcmp(name, LOG_INCLUDETAGS)) {
             getValue(LOG_INCLUDETAGS, logExcludes);
-            LogHandler::setExcludes(logExcludes);
             if(targeted) return;
         }
         if(!name || !strcmp(name, INVERSE_STROKE)) {
@@ -1346,6 +1372,16 @@ private:
         setValue(RIGHT_UPPER_SERVO_PIN, pinMap->rightUpperServo());
         setValue(LEFT_UPPER_SERVO_PIN, pinMap->leftUpperServo());
         savePins();
+    }
+
+    void initMessages() {
+        for(SettingFileInfo* settingsInfo : AllSettings)
+        {
+            for(const Setting setting : settingsInfo->settings)
+            {
+                sendMessage(setting.profiles.front(), setting.name);
+            }
+        }
     }
 
     // void toJsonVector(const Setting *setting, const std::vector<int> &value, JsonDocument &doc) 

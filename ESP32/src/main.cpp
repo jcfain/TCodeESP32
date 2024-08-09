@@ -431,12 +431,20 @@ void batteryVoltageCallback(float capacityRemainingPercentage, float capacityRem
 		}
 	#endif
 }
-void settingChangeCallback(const char* group, const char* name) {
-}
 
 void settingChangeCallback(const SettingProfile &profile, const char* settingThatChanged) {
     LogHandler::debug(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
-	if(profile == SettingProfile::MotionProfile) {
+	if(profile == SettingProfile::System) {
+		if(!strcmp(settingThatChanged, LOG_LEVEL_SETTING)) {
+            LogHandler::setLogLevel(settingsFactory->getLogLevel());
+		}
+		else if(!strcmp(settingThatChanged, LOG_INCLUDETAGS)) {
+            LogHandler::setIncludes(settingsFactory->getLogIncludes());
+		}
+		else if(!strcmp(settingThatChanged, LOG_EXCLUDETAGS)) {
+            LogHandler::setExcludes(settingsFactory->getLogExcludes());
+		}
+	} else if(profile == SettingProfile::MotionProfile) {
 		if(strcmp(settingThatChanged, MOTION_PROFILE_SELECTED_INDEX) == 0 || strcmp(settingThatChanged, MOTION_PROFILES) == 0) 
 			motionHandler.setMotionChannels(SettingsHandler::getMotionChannels());
 		// else if(strcmp(settingThatChanged, "motionChannels") == 0) 
@@ -598,18 +606,20 @@ void setup()
 		return;
 	}
 
-    // LogHandler::setLogLevel(LogLevel::DEBUG);
+    LogHandler::setLogLevel(LogLevel::DEBUG);
 	settingsFactory = SettingsFactory::getInstance();
+	settingsFactory->setMessageCallback(settingChangeCallback);
 	if(!settingsFactory->init()) {
 		LogHandler::error(TagHandler::Main, "Failed to load settings...");
 		return;
 	}
-    // LogHandler::setLogLevel(LogLevel::DEBUG);
+    LogHandler::setLogLevel(LogLevel::DEBUG);
 
 	PinMapInfo pinMapInfo = settingsFactory->getPins();
 	const PinMap* pinMap = pinMapInfo.pinMap();
 
 	SettingsHandler::init();
+	SettingsHandler::setMessageCallback(settingChangeCallback);
 
 #if BLE_TCODE
 	settingsFactory->getValue(BLUETOOTH_ENABLED, bleMode);
@@ -848,8 +858,6 @@ void setup()
 			SettingsHandler::buttonSets);
 	}
 
-	SettingsHandler::setMessageCallback(settingChangeCallback);
-	settingsFactory->setMessageCallback(settingChangeCallback);
 	setupSucceeded = true;
     LogHandler::debug(TagHandler::Main, "Setup finished");
     SettingsHandler::printFree();

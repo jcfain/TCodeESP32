@@ -527,101 +527,9 @@ public:
         // strcpy(buf, output.c_str());
     }
 
-    // static bool loadSettings(bool loadDefault, JsonObject json = JsonObject()) {
-    //     LogHandler::info(_TAG, "Loading common settings");
-    //     return loadSettingsJson(userSettingsFilePath, loadDefault, m_settingsMutex, deserializeSize, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
-    //         if(!update(json)) {
-    //             return false;
-    //         }
-    //         LogUpdateDebug();
-    //         return true;
-    //     }, saveSettings, json);
-    // }
-
-    // static bool saveSettings(JsonObject json = JsonObject()) {
-    //     saving = true;
-    //     LogHandler::info(_TAG, "Save common settings file");
-    //     return saveSettingsJson(userSettingsFilePath, m_settingsMutex, serializeSize, [](DynamicJsonDocument& doc) -> bool {
-    //         if(!compileCommonJsonDocument(doc)) {
-    //             return false;
-    //         }
-    //         LogSaveDebug(doc);
-    //         return true;
-    //     }, loadSettings, json);
-    // }
-
-    // static bool loadWifiInfo(bool loadDefault, JsonObject json = JsonObject()) {
-    //     LogHandler::info(_TAG, "Loading wifi info");
-    //     bool mutableLoadDefault = loadDefault;
-    //     DynamicJsonDocument doc(100);
-    //     if(mutableLoadDefault || json.isNull()) {
-	// 	    xSemaphoreTake(m_wifiMutex, portMAX_DELAY);
-    //         if(!checkForFileAndLoad(wifiPassFilePath, json, doc, mutableLoadDefault)) {
-    //             xSemaphoreGive(m_wifiMutex);
-    //             return false;
-    //         }
-    //     }
-    //     const char *ssidConst = json["ssid"] | "YOUR SSID HERE";
-    //     if (ssid != nullptr)
-    //     {
-    //         strcpy(ssid, ssidConst);
-    //     }
-    //     const char *wifiPassConst = json["wifiPass"] | defaultWifiPass;
-    //     //LogHandler::info(_TAG, "Pass: %s",wifiPassConst);
-    //     if (strcmp(wifiPassConst, SettingsHandler::decoyPass) != 0)
-    //     {
-    //         strcpy(wifiPass, wifiPassConst);
-    //     }
-    //     xSemaphoreGive(m_wifiMutex);
-    //     if(mutableLoadDefault)
-    //         saveWifiInfo();
-    //     return true;
-    // }
-
-    // static bool saveWifiInfo(JsonObject json = JsonObject()) {
-    //     LogHandler::info(_TAG, "Save Wifi info file");
-    //     saving = true;
-	// 	xSemaphoreTake(m_wifiMutex, portMAX_DELAY);
-    //     if (!LittleFS.exists(wifiPassFilePath)) {
-    //         LogHandler::error(_TAG, "Wifi info file did not exist whan saving.");
-    //         xSemaphoreGive(m_wifiMutex);
-    //         saving = false;
-    //         return false;
-    //     } else {
-    //         if(!json.isNull()) {
-    //             xSemaphoreGive(m_wifiMutex);
-    //             if(!loadWifiInfo(false, json)){
-    //                 LogHandler::error(_TAG, "File loading wifi input json failed");
-    //                 return false;
-    //             }
-	// 	        xSemaphoreTake(m_wifiMutex, portMAX_DELAY);
-    //         }
-
-    //         DynamicJsonDocument doc(100);
-    //         File file = LittleFS.open(wifiPassFilePath, FILE_WRITE);
-    //         //LogHandler::info(_TAG, "Pass: %s",wifiPass);
-    //         doc["ssid"] = ssid;
-    //         doc["wifiPass"] = wifiPass;
-    //         if (serializeJson(doc, file) == 0)
-    //         {
-    //             LogHandler::error(_TAG, "Failed to write to password file");
-    //             doc["wifiPass"] = defaultWifiPass;
-    //             file.close();
-    //             xSemaphoreGive(m_wifiMutex);
-    //             saving = false;
-    //             return false;
-    //         }
-    //         file.close();
-    //     }
-    //     saving = false;
-    //     xSemaphoreGive(m_wifiMutex);
-    //     return true;
-    // }
-
     static bool loadButtons(bool loadDefault, JsonObject json = JsonObject()) {
         LogHandler::info(_TAG, "Loading buttons");
-        uint16_t docSize = 3000;
-        return loadSettingsJson(BUTTON_SETTINGS_PATH, loadDefault, m_buttonsMutex, docSize, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
+        return loadSettingsJson(BUTTON_SETTINGS_PATH, loadDefault, m_buttonsMutex, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
             
             // const bool bootButtonEnabled = SettingsHandler::getValue<const bool>(BOOT_BUTTON_ENABLED);
             // const bool buttonSetsEnabled = SettingsHandler::getValue<const bool>(BUTTON_SETS_ENABLED);;
@@ -631,15 +539,18 @@ public:
             // setValue(json, buttonSetsEnabled, "buttonCommand", "buttonSetsEnabled", BOOT_BUTTON_COMMAND_DEFAULT);
             // setValue(json, bootButtonCommand, "buttonCommand", "bootButtonCommand", BUTTON_SETS_ENABLED_DEFAULT);
             // setValue(json, buttonAnalogDebounce, "buttonCommand", "buttonAnalogDebounce", BUTTON_ANALOG_DEBOUNCE_DEFAULT);
-            bool bootButtonEnabled = json[BOOT_BUTTON_ENABLED] | BOOT_BUTTON_ENABLED_DEFAULT;
-            m_settingsFactory->setValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
-            bool buttonSetsEnabled = json[BUTTON_SETS_ENABLED] | BUTTON_SETS_ENABLED_DEFAULT;
-            m_settingsFactory->setValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
-            const char* bootButtonCommand = json[BOOT_BUTTON_COMMAND] | BOOT_BUTTON_COMMAND_DEFAULT;
-            m_settingsFactory->setValue(BOOT_BUTTON_COMMAND, bootButtonCommand);
-            int buttonAnalogDebounce = json[BUTTON_ANALOG_DEBOUNCE] | BUTTON_ANALOG_DEBOUNCE_DEFAULT;
-            m_settingsFactory->setValue(BUTTON_ANALOG_DEBOUNCE, buttonAnalogDebounce);
-            m_settingsFactory->saveCommon();
+            if(!json.isNull())
+            {
+                bool bootButtonEnabled = json[BOOT_BUTTON_ENABLED] | BOOT_BUTTON_ENABLED_DEFAULT;
+                m_settingsFactory->setValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
+                bool buttonSetsEnabled = json[BUTTON_SETS_ENABLED] | BUTTON_SETS_ENABLED_DEFAULT;
+                m_settingsFactory->setValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
+                const char* bootButtonCommand = json[BOOT_BUTTON_COMMAND] | BOOT_BUTTON_COMMAND_DEFAULT;
+                m_settingsFactory->setValue(BOOT_BUTTON_COMMAND, bootButtonCommand);
+                int buttonAnalogDebounce = json[BUTTON_ANALOG_DEBOUNCE] | BUTTON_ANALOG_DEBOUNCE_DEFAULT;
+                m_settingsFactory->setValue(BUTTON_ANALOG_DEBOUNCE, buttonAnalogDebounce);
+                m_settingsFactory->saveCommon();
+            }
 
             JsonArray buttonSetsObj = json["buttonSets"].as<JsonArray>();
             if(buttonSetsObj.isNull()) {
@@ -707,7 +618,7 @@ public:
             int buttonAnalogDebounce = BUTTON_ANALOG_DEBOUNCE_DEFAULT;
             m_settingsFactory->getValue(BUTTON_ANALOG_DEBOUNCE, buttonAnalogDebounce);
             doc[BUTTON_ANALOG_DEBOUNCE] = buttonAnalogDebounce;
-            
+
             //auto buttonSetArray = doc["buttonSets"].as<JsonArray>();
             std::vector<int> pins;
             for (size_t i = 0; i < MAX_BUTTON_SETS; i++)
@@ -735,43 +646,46 @@ public:
 
     static bool loadMotionProfiles(bool loadDefault, JsonObject json = JsonObject()) {
         LogHandler::info(_TAG, "Loading motion profiles");
-        bool mutableLoadDefault = loadDefault;
-        JsonDocument doc; //deserializeSize
-        if(mutableLoadDefault || json.isNull()) {
-		    xSemaphoreTake(m_motionMutex, portMAX_DELAY);
-            if(!checkForFileAndLoad(MOTION_PROFILE_SETTINGS_PATH, json, doc, mutableLoadDefault)) {
-                saving = false;
-                xSemaphoreGive(m_motionMutex);
-                return false;
-            }
-        }
-        motionDefaultProfileIndex = json[MOTION_PROFILE_DEFAULT_INDEX] | MOTION_PROFILE_SELECTED_INDEX_DEFAULT;
-        if(!initialized)
-            motionSelectedProfileIndex = motionDefaultProfileIndex;
+        // bool mutableLoadDefault = loadDefault;
+        // JsonDocument doc; //deserializeSize
+        // if(mutableLoadDefault || json.isNull()) {
+		//     xSemaphoreTake(m_motionMutex, portMAX_DELAY);
+        //     if(!checkForFileAndLoad(MOTION_PROFILE_SETTINGS_PATH, doc, mutableLoadDefault)) {
+        //         saving = false;
+        //         xSemaphoreGive(m_motionMutex);
+        //         return false;
+        //     }
+        //     json = doc.as<JsonObject>();
+        // }
+        return loadSettingsJson(MOTION_PROFILE_SETTINGS_PATH, loadDefault, m_motionMutex, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
+            motionDefaultProfileIndex = json[MOTION_PROFILE_DEFAULT_INDEX] | MOTION_PROFILE_SELECTED_INDEX_DEFAULT;
+            if(!initialized)
+                motionSelectedProfileIndex = motionDefaultProfileIndex;
+                
+            JsonArray motionProfilesObj = json[MOTION_PROFILES].as<JsonArray>();
             
-        JsonArray motionProfilesObj = json[MOTION_PROFILES].as<JsonArray>();
-        
-        if(motionProfilesObj.isNull()) {
-            LogHandler::info(_TAG, "No motion profiles stored, loading default");
-            mutableLoadDefault = true;
-            for(int i = 0; i < maxMotionProfileCount; i++) {
-                motionProfiles[i] = MotionProfile(i + 1);
-                motionProfiles[i].addDefaultChannel("L0");
+            if(motionProfilesObj.isNull()) {
+                LogHandler::info(_TAG, "No motion profiles stored, loading default");
+                mutableLoadDefault = true;
+                for(int i = 0; i < maxMotionProfileCount; i++) {
+                    motionProfiles[i] = MotionProfile(i + 1);
+                    motionProfiles[i].addDefaultChannel("L0");
+                }
+            } else {
+                int i = 0;
+                for (JsonObject profileObj : motionProfilesObj) {
+                    auto profile = MotionProfile();
+                    profile.fromJson(profileObj);
+                    LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", profile.motionProfileName);
+                    motionProfiles[i] = profile;
+                    i++;
+                }
             }
-        } else {
-            int i = 0;
- 	        for (JsonObject profileObj : motionProfilesObj) {
-                auto profile = MotionProfile();
-                profile.fromJson(profileObj);
-                LogHandler::debug(_TAG, "Loading motion profile '%s' from settings", profile.motionProfileName);
-                motionProfiles[i] = profile;
-                i++;
-            }
-        }
-        xSemaphoreGive(m_motionMutex);
-        if(mutableLoadDefault)
-            saveMotionProfiles();
+        //xSemaphoreGive(m_motionMutex);
+        // if(mutableLoadDefault)
+        //     saveMotionProfiles();
         return true;
+        }, saveMotionProfiles, json);
     }
 
     static bool saveMotionProfiles(JsonObject json = JsonObject()) {
@@ -1766,15 +1680,16 @@ private:
     /// @param loadFunction 
     /// @param json 
     /// @return 
-    static bool loadSettingsJson(const char* filepath, bool loadDefault, SemaphoreHandle_t& mutex, const int jsonSize, std::function<bool(const JsonObject, bool& mutableLoadDefault)> loadFunction, std::function<bool(JsonObject)> saveFunction, JsonObject json = JsonObject()) {
+    static bool loadSettingsJson(const char* filepath, bool loadDefault, SemaphoreHandle_t& mutex, std::function<bool(const JsonObject, bool& mutableLoadDefault)> loadFunction, std::function<bool(JsonObject)> saveFunction, JsonObject json = JsonObject()) {
         JsonDocument doc; //jsonSize
         bool mutableLoadDefault = loadDefault;
         if(mutableLoadDefault || json.isNull()) {
 		    xSemaphoreTake(mutex, portMAX_DELAY);
-            if(!checkForFileAndLoad(filepath, json, doc, mutableLoadDefault)) {
+            if(!checkForFileAndLoad(filepath, doc, mutableLoadDefault)) {
                 xSemaphoreGive(mutex);
                 return false;
             }
+            json = doc.as<JsonObject>();
         }
         if(!loadFunction(json, mutableLoadDefault)) {
             xSemaphoreGive(mutex);
@@ -1842,14 +1757,14 @@ private:
         return true;
     }
 
-    static bool checkForFileAndLoad(const char* path, JsonObject &json, JsonDocument &doc, bool &loadDefault) {
+    static bool checkForFileAndLoad(const char* path, JsonDocument &doc, bool &loadDefault) {
         if(!LittleFS.exists(path)) {
             loadDefault = true;
         }
         if(loadDefault) {
             defaultJsonFile(path);
         }
-        return loadJsonFromFile(path, json, doc);
+        return loadJsonFromFile(path, doc);
     }
 
     static bool defaultJsonFile(const char* path) {
@@ -1873,7 +1788,7 @@ private:
         return true;
     }
 
-    static bool loadJsonFromFile(const char* path, JsonObject &json, JsonDocument &doc) {
+    static bool loadJsonFromFile(const char* path, JsonDocument &doc) {
         LogHandler::debug(_TAG, "Loading json file %s", path);
         if (!LittleFS.exists(path)) {
             LogHandler::error(_TAG, "%s did not exist!", path);
@@ -1890,7 +1805,6 @@ private:
             return false;
         }
         file.close();
-        json = doc.as<JsonObject>();
         return true;
     }
 

@@ -248,6 +248,7 @@ private:
 		return execute([this]() -> bool {
 			SettingsHandler::defaultAll();
 			Serial.println("All settings reset to default!");
+			SettingsHandler::restart();
 			return true;
 		}, SaveRequired::NO, RestartRequired::YES);
 	}};
