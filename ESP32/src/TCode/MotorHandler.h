@@ -163,7 +163,7 @@ protected:
             #endif
         }
 
-        m_settingsFactory->getValue(TWIST_FEEDBACK_PIN, m_isTwistFeedBack);
+        m_settingsFactory->getValue(FEEDBACK_TWIST, m_isTwistFeedBack);
         m_twistFeedBackPin = pinMap->twistFeedBack();
         if(m_isTwistFeedBack)
         {

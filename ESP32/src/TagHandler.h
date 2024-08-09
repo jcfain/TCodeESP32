@@ -44,7 +44,7 @@ class TagHandler {
     static const char* BLEConfigurationHandler;
     static const char* BluetoothHandler;
     static const char* ServoHandler3;
-    static const char* ServoHandler2;
+    //static const char* ServoHandler2;
     static const char* TCodeHandler;
     static const char* BLDCHandler;
     static const char* ToyHandler;
@@ -77,7 +77,7 @@ const char* TagHandler::BLEHandler = "ble-handler";
 const char* TagHandler::BLEConfigurationHandler = "ble-config-handler";
 const char* TagHandler::BluetoothHandler = "bluetooth-handler";
 const char* TagHandler::ServoHandler3 = "servo-3-handler";
-const char* TagHandler::ServoHandler2 = "servo-2-handler";
+//const char* TagHandler::ServoHandler2 = "servo-2-handler";
 const char* TagHandler::TCodeHandler = "tcode-handler";
 const char* TagHandler::BLDCHandler = "bldc-handler";
 const char* TagHandler::ToyHandler = "toy-handler";
@@ -107,7 +107,7 @@ const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::UdpHandler,
     TagHandler::ServoHandler3,
     TagHandler::TCodeHandler,
-    TagHandler::ServoHandler2,
+    //TagHandler::ServoHandler2,
     TagHandler::ToyHandler,
     TagHandler::BLDCHandler,
     TagHandler::DisplayHandler,

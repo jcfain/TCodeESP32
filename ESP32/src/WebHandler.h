@@ -193,9 +193,10 @@ class WebHandler : public HTTPBase {
             server->on("/default", HTTP_POST, [this](AsyncWebServerRequest *request)
             {
                 Serial.println("Settings default");
-                if(SettingsHandler::defaultAll()) {
+                if(m_settingsFactory->resetAll()) {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
+			        SettingsHandler::restart(5);
                 } else {
                     sendError(request);
                 }

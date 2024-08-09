@@ -606,14 +606,14 @@ void setup()
 		return;
 	}
 
-    LogHandler::setLogLevel(LogLevel::DEBUG);
+    //LogHandler::setLogLevel(LogLevel::DEBUG);
 	settingsFactory = SettingsFactory::getInstance();
 	settingsFactory->setMessageCallback(settingChangeCallback);
 	if(!settingsFactory->init()) {
 		LogHandler::error(TagHandler::Main, "Failed to load settings...");
 		return;
 	}
-    LogHandler::setLogLevel(LogLevel::DEBUG);
+    //LogHandler::setLogLevel(LogLevel::DEBUG);
 
 	PinMapInfo pinMapInfo = settingsFactory->getPins();
 	const PinMap* pinMap = pinMapInfo.pinMap();
@@ -973,11 +973,12 @@ void loop() {
 	//LogHandler::verbose(TagHandler::MainLoop, "Enter loop ############################################");
 	tcodeV2Recieved = false;
 	benchStart(0);
-	if (SettingsHandler::getRestartRequired() || restarting) {  // check the flag here to determine if a restart is required
-		if(!restarting) {
+	if (SettingsHandler::restartRequired > -1 || restarting) {  // check the flag here to determine if a restart is required
+		SettingsHandler::restartRequired--;
+		if(SettingsHandler::restartRequired <= -1 && !restarting) {
 			LogHandler::info(TagHandler::Main, "Restarting ESP");
 			ESP.restart();
-        	restarting = true;
+			restarting = true;
 		}
         vTaskDelay(1000/portTICK_PERIOD_MS);
 	} 

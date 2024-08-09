@@ -51,7 +51,7 @@ class SettingsHandler
 {
 public:
     static bool initialized;
-    static bool restartRequired;
+    static int restartRequired;
     static bool saving;
     static bool motionPaused;
     static bool fullBuild;
@@ -334,11 +334,10 @@ public:
         LogHandler::debug(_TAG, "MIN_FREE_HEAP %u", esp_get_minimum_free_heap_size() );
     }
 
-	static void restart() {
+	static void restart(const int &delayInSec = 0) {
 		LogHandler::info(_TAG, "Schedule device restart...");
 		//ESP.restart();
-		restartRequired = true;
-		delay(1000);
+		restartRequired = delayInSec;
 	}
 
     static void printMemory()
@@ -358,11 +357,6 @@ public:
         m_settingsFactory->getValue(WEBSERVER_PORT, webServerPort);
         sprintf(webServerportString, ":%ld", webServerPort);
         LogHandler::info(_TAG, "Web address: http://%s%s", hostAddress, webServerPort == 80 ? "" : webServerportString);
-    }
-
-    static bool defaultAll()
-    {
-        return m_settingsFactory->resetAll() && loadMotionProfiles(true) && loadButtons(true); 
     }
     
     static bool saveAll(JsonObject obj = JsonObject()) 
@@ -788,15 +782,6 @@ public:
     static void setMotionProfileName(const char newValue[maxMotionProfileNameLength])
     {
         strcpy(motionProfiles[motionSelectedProfileIndex].motionProfileName, newValue);
-    }
-
-    static bool getRestartRequired() 
-    {
-        return restartRequired;
-    }
-    static void setRestartRequired(const bool& newValue)
-    {
-        setValue(newValue, restartRequired, SettingProfile::System, "restartRequired");
     }
 
     // static int getMotionUpdateGlobal(const char name[3])
@@ -2394,7 +2379,7 @@ SemaphoreHandle_t SettingsHandler::m_wifiMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_buttonsMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_settingsMutex = xSemaphoreCreateMutex();
 bool SettingsHandler::initialized = false;
-bool SettingsHandler::restartRequired = false;
+int SettingsHandler::restartRequired = -1;
 bool SettingsHandler::saving = false;
 bool SettingsHandler::motionPaused = false;
 bool SettingsHandler::fullBuild = false;

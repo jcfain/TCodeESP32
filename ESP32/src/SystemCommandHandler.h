@@ -246,8 +246,11 @@ private:
 	}};
     const Command DEFAULT_ALL{{"Default all", "$defaultAll", "Saves all settings to default", SaveRequired::NO, RestartRequired::YES, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
-			SettingsHandler::defaultAll();
-			Serial.println("All settings reset to default!");
+			if(!m_settingsFactory->resetAll()) {
+				LogHandler::error(_TAG, "Error resetting all to default");
+				return false;
+			}
+			LogHandler::info(_TAG, "All settings reset to default!");
 			SettingsHandler::restart();
 			return true;
 		}, SaveRequired::NO, RestartRequired::YES);

@@ -56,7 +56,6 @@ public:
         m_initialized = true;
         loadCommonCache();
         loadPinCache();
-        initMessages();
         return true;
     }
     
@@ -186,6 +185,7 @@ public:
             if(setting)
                 return setting;
         }
+        LogHandler::error(m_TAG, "Setting '%s' not found when calling getSetting", name);
         return 0;
     }
 
@@ -355,8 +355,8 @@ public:
                 xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
                 const Setting* setting = getSetting(name);
                 m_wifiFileInfo.doc[name] = value;
+                //loadWifiLiveCache(name); // Not needed now
                 xSemaphoreGive(m_wifiSemaphore);
-                sendMessage(setting->profiles.front(), name);
             }
             return SettingFile::Wifi;
         }
@@ -370,7 +370,6 @@ public:
                 m_commonFileInfo.doc[name] = value;
                 loadCommonLiveCache(name);
                 xSemaphoreGive(m_commonSemaphore);
-                sendMessage(setting->profiles.front(), name);
             }
             return SettingFile::Common;
         }
@@ -382,8 +381,8 @@ public:
                 xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
                 const Setting* setting = getSetting(name);
                 m_pinsFileInfo.doc[name] = value;
+                //loadPinCache(); // Not needed now
                 xSemaphoreGive(m_pinSemaphore);
-                sendMessage(setting->profiles.front(), name);
             }
             return SettingFile::Pins;
         }
@@ -410,8 +409,6 @@ public:
             if(fileInfo->file == SettingFile::Common) {
                 loadCommonLiveCache(name);
             }
-            const Setting* setting = fileInfo->getSetting(name);
-            sendMessage(setting->profiles.front(), name);
         }
         return fileInfo->file;
     }
@@ -425,12 +422,14 @@ public:
         }
         LogHandler::debug(m_TAG, "Set vector value: %s", name);
         SettingFileInfo* fileInfo = getFile(name);
+        if(!fileInfo) {
+            LogHandler::error(m_TAG, "Set value key not found");
+            return SettingFile::NONE;
+        }
         fileInfo->doc[name] = value;
         if(fileInfo->file == SettingFile::Common) {
             loadCommonLiveCache(name);
         }
-        const Setting* setting = fileInfo->getSetting(name);
-        sendMessage(setting->profiles.front(), name);
         return fileInfo->file;
     }
 
@@ -442,6 +441,10 @@ public:
         }
         LogHandler::debug(m_TAG, "Default: %s", name);
         SettingFileInfo* fileInfo = getFile(name);
+        if(!fileInfo) {
+            LogHandler::error(m_TAG, "Default value key not found");
+            return;
+        }
         const Setting* setting = fileInfo->getSetting(name);
         defaultToJson(setting, fileInfo->doc);
         if(fileInfo->file == SettingFile::Common) {
@@ -468,7 +471,6 @@ public:
                 LogHandler::error(m_TAG, "Set default value key not found: ", name);
             break;
         }
-        sendMessage(setting->profiles.front(), name);
     }
 
     bool saveAllToDisk(JsonObject fromJson = JsonObject())
@@ -489,6 +491,10 @@ public:
             if(!deleteJsonFile(settingsInfo->path))
                 return false;
         }
+        if(!deleteJsonFile(MOTION_PROFILE_SETTINGS_PATH))
+            return false;
+        if(!deleteJsonFile(BUTTON_SETTINGS_PATH))
+            return false;
         // for(SettingFileInfo* settingsInfo : AllSettings)
         // {
         //     if(!loadDefault(*settingsInfo))
@@ -515,7 +521,7 @@ public:
                 }
                 break;
             default: {
-                LogHandler::error(m_TAG, "Invalid or unsuportted file: %ld", (int)file);
+                LogHandler::error(m_TAG, "Invalid or unsuported file: %ld", (int)file);
                 return false;
             }
         }
@@ -527,8 +533,9 @@ public:
         xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
         bool ret = saveToDisk(m_commonFileInfo, fromJson);
         xSemaphoreGive(m_commonSemaphore);
-        if(ret)
+        if(ret) {
             loadCommonLiveCache();
+        }
         return ret;
     }
     bool resetCommon()
@@ -583,149 +590,150 @@ public:
         bool targeted = !!name;
         if(!name || !strcmp(name, LOG_LEVEL_SETTING)) {
             getValue(LOG_LEVEL_SETTING, logLevel);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, LOG_INCLUDETAGS)) {
             getValue(LOG_INCLUDETAGS, logIncludes);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, LOG_INCLUDETAGS)) {
-            getValue(LOG_INCLUDETAGS, logExcludes);
-            if(targeted) return;
+            getValue(LOG_EXCLUDETAGS, logExcludes);
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, INVERSE_STROKE)) {
             getValue(INVERSE_STROKE, inverseStroke);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, INVERSE_PITCH)) {
             getValue(INVERSE_PITCH, inversePitch);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, VALVE_SERVO_90DEGREES)) {
             getValue(VALVE_SERVO_90DEGREES, valveServo90Degrees);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, AUTO_VALVE)) {
             getValue(AUTO_VALVE, autoValve);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, INVERSE_VALVE)) {
             getValue(INVERSE_VALVE, inverseValve);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, CONTINUOUS_TWIST)) {
             getValue(CONTINUOUS_TWIST, continuousTwist);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, LUBE_AMOUNT)) {
             getValue(LUBE_AMOUNT, lubeAmount);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, BATTERY_CAPACITY_MAX)) {
             getValue(BATTERY_CAPACITY_MAX, batteryCapacityMax);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, RIGHT_SERVO_ZERO)) {
             getValue(RIGHT_SERVO_ZERO, RightServo_ZERO);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, LEFT_SERVO_ZERO)) {
             getValue(LEFT_SERVO_ZERO, LeftServo_ZERO);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, RIGHT_UPPER_SERVO_ZERO)) {
             getValue(RIGHT_UPPER_SERVO_ZERO, RightUpperServo_ZERO);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, LEFT_UPPER_SERVO_ZERO)) {
             getValue(LEFT_UPPER_SERVO_ZERO, LeftUpperServo_ZERO);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, PITCH_LEFT_SERVO_ZERO)) {
             getValue(PITCH_LEFT_SERVO_ZERO, PitchLeftServo_ZERO);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, PITCH_RIGHT_SERVO_ZERO)) {
             getValue(PITCH_RIGHT_SERVO_ZERO, PitchRightServo_ZERO);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, TWIST_SERVO_ZERO)) {
             getValue(TWIST_SERVO_ZERO, TwistServo_ZERO);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, VALVE_SERVO_ZERO)) {
             getValue(VALVE_SERVO_ZERO, ValveServo_ZERO);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, SQUEEZE_ZERO)) {
             getValue(SQUEEZE_ZERO, SqueezeServo_ZERO);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, BOOT_BUTTON_COMMAND)) {
             bootButtonCommand[0] = {0};
             getValue(BOOT_BUTTON_COMMAND, bootButtonCommand, BOOT_BUTTON_COMMAND_LEN);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, VERSION_DISPLAYED)) {
             getValue(VERSION_DISPLAYED, versionDisplayed);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, SLEEVE_TEMP_DISPLAYED)) {
             getValue(SLEEVE_TEMP_DISPLAYED, sleeveTempDisplayed);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, INTERNAL_TEMP_DISPLAYED)) {
             getValue(INTERNAL_TEMP_DISPLAYED, internalTempDisplayed);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, DISPLAY_SCREEN_WIDTH)) {
             getValue(DISPLAY_SCREEN_WIDTH, Display_Screen_Width);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, DISPLAY_SCREEN_HEIGHT)) {
             getValue(DISPLAY_SCREEN_HEIGHT, Display_Screen_Height);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, BATTERY_LEVEL_NUMERIC)) {
             getValue(BATTERY_LEVEL_NUMERIC, batteryLevelNumeric);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, TARGET_TEMP)) {
             getValue(TARGET_TEMP, targetTemp);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, HEAT_PWM)) {
             getValue(HEAT_PWM, HeatPWM);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, HOLD_PWM)) {
             getValue(HOLD_PWM, HoldPWM);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, HEATER_THRESHOLD)) {
             getValue(HEATER_THRESHOLD, heaterThreshold);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, INTERNAL_MAX_TEMP)) {
             getValue(INTERNAL_MAX_TEMP, internalMaxTemp);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, INTERNAL_TEMP_FOR_FANON)) {
             getValue(INTERNAL_TEMP_FOR_FANON, internalTempForFanOn);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, VOICE_MUTED)) {
             getValue(VOICE_MUTED, voiceMuted);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, VOICE_VOLUME)) {
             getValue(VOICE_VOLUME, voiceVolume);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
         if(!name || !strcmp(name, VOICE_WAKE_TIME)) {
             getValue(VOICE_WAKE_TIME, voiceWakeTime);
-            if(targeted) return;
+            if(targeted) {initCommonMessages(name); return;}
         }
+        initCommonMessages();
     }
 
     
@@ -1012,24 +1020,24 @@ private:
         return saveToDisk(fileInfo);
     }
 
-    bool loadDefaultVector(const char* name, JsonDocument &doc) {
+    bool loadDefaultVector(const Setting *setting, JsonDocument &doc) {
         
-        if(name == LOG_INCLUDETAGS) {
+        if(!strcmp(setting->name, LOG_INCLUDETAGS)) {
             std::vector<const char*> includesVec;
             doc[LOG_INCLUDETAGS] = includesVec;
-            LogHandler::setIncludes(includesVec);
+            loadCommonLiveCache(LOG_INCLUDETAGS);
             return true;
-        } else if(name == LOG_EXCLUDETAGS) {
+        } else if(!strcmp(setting->name, LOG_EXCLUDETAGS)) {
             std::vector<const char*> excludesVec;
             doc[LOG_EXCLUDETAGS] = excludesVec;
-            LogHandler::setExcludes(excludesVec);
+            loadCommonLiveCache(LOG_EXCLUDETAGS);
             return true;
-        } else if(name == BUTTON_SET_PINS) {
+        } else if(!strcmp(setting->name, BUTTON_SET_PINS)) {
             std::vector<int8_t> vec = { 39, -1, -1, -1 };
             doc[BUTTON_SET_PINS] = vec;
             return true;
         }
-        LogHandler::error(m_TAG, "No default vector set for: %s", name);
+        LogHandler::error(m_TAG, "No default vector set for: %s", setting->name);
         return false;
     }
 
@@ -1383,6 +1391,48 @@ private:
             }
         }
     }
+    void initCommonMessages(const char* name = 0) {
+        if(name) {
+            const Setting* setting = m_commonFileInfo.getSetting(name);
+            if(!setting) {
+                return;
+            }
+            sendMessage(setting->profiles.front(), name);
+        } else {
+            for(const Setting setting : m_commonFileInfo.settings)
+            {
+                sendMessage(setting.profiles.front(), setting.name);
+            }
+        }
+    }
+    void initWifiMessages(const char* name = 0) {
+        if(name) {
+            const Setting* setting = m_wifiFileInfo.getSetting(name);
+            if(!setting) {
+                return;
+            }
+            sendMessage(setting->profiles.front(), name);
+        } else {
+            for(const Setting setting : m_wifiFileInfo.settings)
+            {
+                sendMessage(setting.profiles.front(), setting.name);
+            }
+        }
+    }
+    void initPinsMessages(const char* name = 0) {
+        if(name) {
+            const Setting* setting = m_pinsFileInfo.getSetting(name);
+            if(!setting) {
+                return;
+            }
+            sendMessage(setting->profiles.front(), name);
+        } else {
+            for(const Setting setting : m_pinsFileInfo.settings)
+            {
+                sendMessage(setting.profiles.front(), setting.name);
+            }
+        }
+    }
 
     // void toJsonVector(const Setting *setting, const std::vector<int> &value, JsonDocument &doc) 
     // {
@@ -1484,12 +1534,12 @@ private:
             }
             break;
             case SettingType::ArrayString: {
-                loadDefaultVector(setting->name, doc);
+                loadDefaultVector(setting, doc);
                 LogHandler::verbose(m_TAG, "Load default string vector: %s, value size: %ld", setting->name, doc[setting->name].as<JsonArray>().size());
             }
             break;
             case SettingType::ArrayInt: {
-                loadDefaultVector(setting->name, doc);
+                loadDefaultVector(setting, doc);
                 LogHandler::verbose(m_TAG, "Load default int vector: %s, value size: %ld", setting->name, doc[setting->name].as<JsonArray>().size());
             }
             break;
