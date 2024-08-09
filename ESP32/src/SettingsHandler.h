@@ -367,7 +367,7 @@ public:
     
     static bool saveAll(JsonObject obj = JsonObject()) 
     {
-        if(!m_settingsFactory->saveAll(obj) || !saveMotionProfiles(obj) || !saveButtons(obj))
+        if(!m_settingsFactory->saveAllToDisk(obj) || !saveMotionProfiles(obj) || !saveButtons(obj))
             return false;
         return true;
     }
@@ -639,6 +639,7 @@ public:
             m_settingsFactory->setValue(BOOT_BUTTON_COMMAND, bootButtonCommand);
             int buttonAnalogDebounce = json[BUTTON_ANALOG_DEBOUNCE] | BUTTON_ANALOG_DEBOUNCE_DEFAULT;
             m_settingsFactory->setValue(BUTTON_ANALOG_DEBOUNCE, buttonAnalogDebounce);
+            m_settingsFactory->saveCommon();
 
             JsonArray buttonSetsObj = json["buttonSets"].as<JsonArray>();
             if(buttonSetsObj.isNull()) {

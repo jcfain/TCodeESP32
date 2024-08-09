@@ -607,16 +607,9 @@ private:
 	const CommandValue<T> setupSettingsCommand(const Setting &setting) {
 		const CommandValue<T> command{setting, [this, setting](T in) -> bool {
 			return executeValue<T>(in, [this, setting](T value) -> bool {
-				// if(std::is_same<T, const char*>::value) {
-				// 	if(m_settingsFactory->setValue(setting.name, value, strlen(value)) != SettingFile::NONE) {
-				// 		return true;
-				// 	}
-				// } 
-				// else {
-					if(m_settingsFactory->setValue(setting.name, value) != SettingFile::NONE) {
-						return true;
-					}
-				// }
+				if(m_settingsFactory->setValue(setting.name, value) != SettingFile::NONE) {
+					return true;
+				}
 				return false;
 			}, SaveRequired::YES);
 		}};
@@ -817,8 +810,6 @@ private:
 			Serial.println("Execute the command '$save' to store the new value otherwise the value will reset upon reboot.");
 		if((int)isRestartRequired) {
 			Serial.println("Restart is required after save");
-		} else {
-			m_settingsFactory->loadLiveCache();
 		}
 	}
 	void printCommandHelp() {

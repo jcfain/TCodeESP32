@@ -43,6 +43,7 @@ enum class SettingType
 enum class SettingProfile
 {
     System,
+    Wireless,
     Wifi,
     Button,
     MotionProfile,

@@ -54,7 +54,7 @@ public:
         if(!loadAllFromDisk())
             return false;
         m_initialized = true;
-        loadCache();
+        loadCommonCache();
         loadPinCache();
         return true;
     }
@@ -240,18 +240,18 @@ public:
             return SettingFile::NONE;
         }
         const char* constvalue = getValue(name);
-        LogHandler::debug(m_TAG, "getValue char* len %s: constvalue: %s", name, constvalue);
         if(!constvalue) {
             return SettingFile::NONE;
         }
         strncpy(value, constvalue, len);
-        LogHandler::debug(m_TAG, "getValue char* len: %s: %s", name, value);
         if (m_wifiFileInfo.doc.containsKey(name)) 
         {
+            LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, strcmp(name, WIFI_PASS_SETTING) ? value : DECOY_PASS);
             return SettingFile::Wifi;
         } 
         else if (m_commonFileInfo.doc.containsKey(name)) 
         {
+            LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, value);
             return SettingFile::Common;
         }
         return SettingFile::NONE;
@@ -267,7 +267,7 @@ public:
         {
             xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
             const char* constvalue = m_wifiFileInfo.doc[name];
-            LogHandler::debug(m_TAG, "getValue char* wifi: %s: constvalue: %s", name, constvalue);
+            LogHandler::debug(m_TAG, "getValue char* wifi: %s: constvalue: %s", name, strcmp(name, WIFI_PASS_SETTING) ? constvalue : DECOY_PASS);
             xSemaphoreGive(m_wifiSemaphore);
             return constvalue;
         } 
@@ -347,7 +347,6 @@ public:
         {
             xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
             const Setting* setting = getSetting(name);
-            //toJson(setting, m_wifiFileInfo.doc, value);
             m_wifiFileInfo.doc[name] = value;
             xSemaphoreGive(m_wifiSemaphore);
             sendMessage(setting->profiles.front(), name);
@@ -357,8 +356,8 @@ public:
         {
             xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
             const Setting* setting = getSetting(name);
-            //toJson(setting, m_commonFileInfo.doc, value);
             m_commonFileInfo.doc[name] = value;
+            loadCommonLiveCache(name);
             xSemaphoreGive(m_commonSemaphore);
             sendMessage(setting->profiles.front(), name);
             return SettingFile::Common;
@@ -367,11 +366,10 @@ public:
         {
             xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
             const Setting* setting = getSetting(name);
-            //toJson(setting, m_commonFileInfo.doc, value);
             m_pinsFileInfo.doc[name] = value;
             xSemaphoreGive(m_pinSemaphore);
             sendMessage(setting->profiles.front(), name);
-            return SettingFile::Common;
+            return SettingFile::Pins;
         }
         LogHandler::error(m_TAG, "Set value key not found");
         return SettingFile::NONE;
@@ -383,9 +381,12 @@ public:
             LogHandler::error(m_TAG, "setValue const char* called before initialized");
             return SettingFile::NONE;
         }
-        LogHandler::debug(m_TAG, "Set const char*: %s value: %s", name, value);
+        LogHandler::debug(m_TAG, "Set const char*: %s value: %s", name, strcmp(name, WIFI_PASS_SETTING) ? value : DECOY_PASS);
         SettingFileInfo* fileInfo = getFile(name);
         fileInfo->doc[name] = value;
+        if(fileInfo->file == SettingFile::Common) {
+            loadCommonLiveCache(name);
+        }
         return fileInfo->file;
     }
 
@@ -399,6 +400,9 @@ public:
         LogHandler::debug(m_TAG, "Set vector value: %s", name);
         SettingFileInfo* fileInfo = getFile(name);
         fileInfo->doc[name] = value;
+        if(fileInfo->file == SettingFile::Common) {
+            loadCommonLiveCache(name);
+        }
         return fileInfo->file;
     }
 
@@ -412,6 +416,9 @@ public:
         SettingFileInfo* fileInfo = getFile(name);
         const Setting* setting = fileInfo->getSetting(name);
         defaultToJson(setting, fileInfo->doc);
+        if(fileInfo->file == SettingFile::Common) {
+            loadCommonLiveCache(name);
+        }
         switch(fileInfo->file)
         {
             case SettingFile::Wifi:
@@ -435,14 +442,15 @@ public:
         }
     }
 
-    bool saveAll(JsonObject fromJson = JsonObject())
+    bool saveAllToDisk(JsonObject fromJson = JsonObject())
     {
         for(SettingFileInfo* settingsInfo : AllSettings)
         {
-            if(!save(*settingsInfo, fromJson))
+            if(!saveToDisk(*settingsInfo, fromJson))
                 return false;
         }
-        loadLiveCache();
+        loadCommonLiveCache();
+        loadPinCache();
         return true;;
     }
     bool resetAll() 
@@ -459,13 +467,39 @@ public:
         // }
         return true;
     }
+
+    bool save(SettingFile file, JsonObject fromJson = JsonObject()) {
+        switch(file)
+        {
+            case SettingFile::Common:
+                if(!saveCommon(fromJson)) {
+                    return false;
+                }
+                break;
+            case SettingFile::Wifi:
+                if(!saveWifi(fromJson)) {
+                    return false;
+                }
+            case SettingFile::Pins:
+                if(!savePins(fromJson)) {
+                    return false;
+                }
+                break;
+            default: {
+                LogHandler::error(m_TAG, "Invalid or unsuportted file: %ld", (int)file);
+                return false;
+            }
+        }
+        return true;
+    }
+
     bool saveCommon(JsonObject fromJson = JsonObject())
     {
         xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
-        bool ret = save(m_commonFileInfo, fromJson);
+        bool ret = saveToDisk(m_commonFileInfo, fromJson);
         xSemaphoreGive(m_commonSemaphore);
         if(ret)
-            loadLiveCache();
+            loadCommonLiveCache();
         return ret;
     }
     bool resetCommon()
@@ -474,14 +508,14 @@ public:
         bool ret = loadDefault(m_commonFileInfo);
         xSemaphoreGive(m_commonSemaphore);
         if(ret)
-            loadLiveCache();
+            loadCommonLiveCache();
         return ret;
     }
 
     bool saveWifi(JsonObject fromJson = JsonObject())
     {
         xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
-        bool ret = save(m_wifiFileInfo, fromJson);
+        bool ret = saveToDisk(m_wifiFileInfo, fromJson);
         xSemaphoreGive(m_wifiSemaphore);
         return ret;
     }
@@ -496,7 +530,7 @@ public:
     bool savePins(JsonObject fromJson = JsonObject())
     {
         xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
-        bool ret = save(m_pinsFileInfo, fromJson);
+        bool ret = saveToDisk(m_pinsFileInfo, fromJson);
         xSemaphoreGive(m_pinSemaphore);
         if(ret)
             loadPinCache();
@@ -511,70 +545,164 @@ public:
             loadPinCache();
         return ret;
     }
-
-    void loadCache() 
-    {
+    
+    void loadCommonLiveCache(const char* name = 0) {
         if(!m_initialized) {
-            LogHandler::error(m_TAG, "loadCache called before initialized");
+            LogHandler::error(m_TAG, "loadCommonLiveCache called before initialized");
             return;
         }
-	    getValue(TCODE_VERSION_SETTING, tcodeVersion);
-	    getValue(UDP_SERVER_PORT, udpServerPort);
-	    getValue(WEBSERVER_PORT, webServerPort);
-	    getValue(HOST_NAME, hostname, HOST_NAME_LEN);
-	    getValue(FRIENDLY_NAME, friendlyName, FRIENDLY_NAME_LEN);
-        getValue(DEVICE_TYPE, m_deviceType);
-        getValue(BOARD_TYPE_SETTING, m_boardType);
-        loadLiveCache();
-    }
-
-    void loadLiveCache() {
-        if(!m_initialized) {
-            LogHandler::error(m_TAG, "loadLiveCache called before initialized");
-            return;
+        bool targeted = !!name;
+        if(!name || !strcmp(name, LOG_LEVEL_SETTING)) {
+            getValue(LOG_LEVEL_SETTING, logLevel);
+            LogHandler::setLogLevel(logLevel);
+            if(targeted) return;
         }
-        getValue(LOG_LEVEL_SETTING, logLevel);
-        LogHandler::setLogLevel(logLevel);
-        getValue(LOG_INCLUDETAGS, logIncludes);
-        LogHandler::setIncludes(logIncludes);
-        getValue(LOG_EXCLUDETAGS, logExcludes);
-        LogHandler::setExcludes(logExcludes);
-        getValue(INVERSE_STROKE, inverseStroke);
-        getValue(INVERSE_PITCH, inversePitch);
-        getValue(VALVE_SERVO_90DEGREES, valveServo90Degrees);
-        getValue(AUTO_VALVE, autoValve);
-        getValue(INVERSE_VALVE, inverseValve);
-        getValue(CONTINUOUS_TWIST, continuousTwist);
-        getValue(LUBE_AMOUNT, lubeAmount);
-        getValue(BATTERY_CAPACITY_MAX, batteryCapacityMax);
-        getValue(RIGHT_SERVO_ZERO, RightServo_ZERO);
-        getValue(LEFT_SERVO_ZERO, LeftServo_ZERO);
-        getValue(RIGHT_UPPER_SERVO_ZERO, RightUpperServo_ZERO);
-        getValue(LEFT_UPPER_SERVO_ZERO, LeftUpperServo_ZERO);
-        getValue(PITCH_LEFT_SERVO_ZERO, PitchLeftServo_ZERO);
-        getValue(PITCH_RIGHT_SERVO_ZERO, PitchRightServo_ZERO);
-        getValue(TWIST_SERVO_ZERO, TwistServo_ZERO);
-        getValue(VALVE_SERVO_ZERO, ValveServo_ZERO);
-        getValue(SQUEEZE_ZERO, SqueezeServo_ZERO);
-        bootButtonCommand[0] = {0};
-        getValue(BOOT_BUTTON_COMMAND, bootButtonCommand, BOOT_BUTTON_COMMAND_LEN);
-        getValue(VERSION_DISPLAYED, versionDisplayed);
-        getValue(SLEEVE_TEMP_DISPLAYED, sleeveTempDisplayed);
-        getValue(INTERNAL_TEMP_DISPLAYED, internalTempDisplayed);
-        getValue(DISPLAY_SCREEN_WIDTH, Display_Screen_Width);
-        getValue(DISPLAY_SCREEN_HEIGHT, Display_Screen_Height);
-        getValue(BATTERY_LEVEL_NUMERIC, batteryLevelNumeric);
-        getValue(TARGET_TEMP, targetTemp);
-        getValue(HEAT_PWM, HeatPWM);
-        getValue(HOLD_PWM, HoldPWM);
-        getValue(HEATER_THRESHOLD, heaterThreshold);
-        getValue(INTERNAL_MAX_TEMP, internalMaxTemp);
-        getValue(INTERNAL_TEMP_FOR_FANON, internalTempForFanOn);
-        getValue(VOICE_MUTED, voiceMuted);
-        getValue(VOICE_VOLUME, voiceVolume);
-        getValue(VOICE_WAKE_TIME, voiceWakeTime);
+        if(!name || !strcmp(name, LOG_INCLUDETAGS)) {
+            getValue(LOG_INCLUDETAGS, logIncludes);
+            LogHandler::setIncludes(logIncludes);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, LOG_INCLUDETAGS)) {
+            getValue(LOG_INCLUDETAGS, logExcludes);
+            LogHandler::setExcludes(logExcludes);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, INVERSE_STROKE)) {
+            getValue(INVERSE_STROKE, inverseStroke);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, INVERSE_PITCH)) {
+            getValue(INVERSE_PITCH, inversePitch);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, VALVE_SERVO_90DEGREES)) {
+            getValue(VALVE_SERVO_90DEGREES, valveServo90Degrees);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, AUTO_VALVE)) {
+            getValue(AUTO_VALVE, autoValve);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, INVERSE_VALVE)) {
+            getValue(INVERSE_VALVE, inverseValve);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, CONTINUOUS_TWIST)) {
+            getValue(CONTINUOUS_TWIST, continuousTwist);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, LUBE_AMOUNT)) {
+            getValue(LUBE_AMOUNT, lubeAmount);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, BATTERY_CAPACITY_MAX)) {
+            getValue(BATTERY_CAPACITY_MAX, batteryCapacityMax);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, RIGHT_SERVO_ZERO)) {
+            getValue(RIGHT_SERVO_ZERO, RightServo_ZERO);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, LEFT_SERVO_ZERO)) {
+            getValue(LEFT_SERVO_ZERO, LeftServo_ZERO);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, RIGHT_UPPER_SERVO_ZERO)) {
+            getValue(RIGHT_UPPER_SERVO_ZERO, RightUpperServo_ZERO);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, LEFT_UPPER_SERVO_ZERO)) {
+            getValue(LEFT_UPPER_SERVO_ZERO, LeftUpperServo_ZERO);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, PITCH_LEFT_SERVO_ZERO)) {
+            getValue(PITCH_LEFT_SERVO_ZERO, PitchLeftServo_ZERO);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, PITCH_RIGHT_SERVO_ZERO)) {
+            getValue(PITCH_RIGHT_SERVO_ZERO, PitchRightServo_ZERO);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, TWIST_SERVO_ZERO)) {
+            getValue(TWIST_SERVO_ZERO, TwistServo_ZERO);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, VALVE_SERVO_ZERO)) {
+            getValue(VALVE_SERVO_ZERO, ValveServo_ZERO);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, SQUEEZE_ZERO)) {
+            getValue(SQUEEZE_ZERO, SqueezeServo_ZERO);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, BOOT_BUTTON_COMMAND)) {
+            bootButtonCommand[0] = {0};
+            getValue(BOOT_BUTTON_COMMAND, bootButtonCommand, BOOT_BUTTON_COMMAND_LEN);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, VERSION_DISPLAYED)) {
+            getValue(VERSION_DISPLAYED, versionDisplayed);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, SLEEVE_TEMP_DISPLAYED)) {
+            getValue(SLEEVE_TEMP_DISPLAYED, sleeveTempDisplayed);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, INTERNAL_TEMP_DISPLAYED)) {
+            getValue(INTERNAL_TEMP_DISPLAYED, internalTempDisplayed);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, DISPLAY_SCREEN_WIDTH)) {
+            getValue(DISPLAY_SCREEN_WIDTH, Display_Screen_Width);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, DISPLAY_SCREEN_HEIGHT)) {
+            getValue(DISPLAY_SCREEN_HEIGHT, Display_Screen_Height);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, BATTERY_LEVEL_NUMERIC)) {
+            getValue(BATTERY_LEVEL_NUMERIC, batteryLevelNumeric);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, TARGET_TEMP)) {
+            getValue(TARGET_TEMP, targetTemp);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, HEAT_PWM)) {
+            getValue(HEAT_PWM, HeatPWM);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, HOLD_PWM)) {
+            getValue(HOLD_PWM, HoldPWM);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, HEATER_THRESHOLD)) {
+            getValue(HEATER_THRESHOLD, heaterThreshold);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, INTERNAL_MAX_TEMP)) {
+            getValue(INTERNAL_MAX_TEMP, internalMaxTemp);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, INTERNAL_TEMP_FOR_FANON)) {
+            getValue(INTERNAL_TEMP_FOR_FANON, internalTempForFanOn);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, VOICE_MUTED)) {
+            getValue(VOICE_MUTED, voiceMuted);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, VOICE_VOLUME)) {
+            getValue(VOICE_VOLUME, voiceVolume);
+            if(targeted) return;
+        }
+        if(!name || !strcmp(name, VOICE_WAKE_TIME)) {
+            getValue(VOICE_WAKE_TIME, voiceWakeTime);
+            if(targeted) return;
+        }
     }
 
+    
 private:
     const char* m_TAG = TagHandler::SettingsFactory;
     PinMap* m_currentPinMap;
@@ -593,8 +721,8 @@ private:
     {
         WIFI_SETTINGS_PATH, SettingFile::Wifi, JsonDocument(), 
         {
-            {SSID_SETTING, "Wifi ssid", "The ssid of the WiFi AP", SettingType::String, SSID_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {WIFI_PASS_SETTING, "Wifi pass", "The password for the WiFi AP", SettingType::String, WIFI_PASS_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}}
+            {SSID_SETTING, "Wifi ssid", "The ssid of the WiFi AP", SettingType::String, SSID_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
+            {WIFI_PASS_SETTING, "Wifi pass", "The password for the WiFi AP", SettingType::String, WIFI_PASS_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}}
         }
     };
 
@@ -612,7 +740,7 @@ private:
             {WEBSERVER_PORT, "Web port", "The Web port for the web server", SettingType::Number, WEBSERVER_PORT_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {HOST_NAME, "Hostname", "The hostname for network com", SettingType::String, HOST_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {FRIENDLY_NAME, "Friendly name", "The friendly name displayed when connecting", SettingType::String, FRIENDLY_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {BLUETOOTH_ENABLED, "BLE enabled", "BLE tcode", SettingType::Boolean, BLUETOOTH_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth}},
+            {BLUETOOTH_ENABLED, "BLE enabled", "BLE TCode. Note: this disabled wifi and the website. Use the setting command to switch back", SettingType::Boolean, BLUETOOTH_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth, SettingProfile::Wireless}},
             {PITCH_FREQUENCY_IS_DIFFERENT, "Pitch frequency is different", "True will use the value set in pitchFrequency", SettingType::Boolean, PITCH_FREQUENCY_IS_DIFFERENT_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {MS_PER_RAD, "Ms per rad", "Micro seconds per radian for servos", SettingType::Number, MS_PER_RAD_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {SERVO_FREQUENCY, "Servo frequency", "Base servo frequenbcy", SettingType::Number, SERVO_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
@@ -687,7 +815,7 @@ private:
             {BOOT_BUTTON_ENABLED, "Boot button enabled", "Enables the boot button function", SettingType::Boolean, BOOT_BUTTON_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Button}},
             {BOOT_BUTTON_COMMAND, "Boot button command", "Command to execute when the boot button is pressed", SettingType::String, BOOT_BUTTON_COMMAND_DEFAULT, RestartRequired::NO, {SettingProfile::Button}},
             {BUTTON_SETS_ENABLED, "Button sets enabled", "Enables the button sets function", SettingType::Boolean, BUTTON_SETS_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Button}},
-            {BUTTON_ANALOG_DEBOUNCE, "Button debounce", "How long to debounce the button press in ms", SettingType::Number, BUTTON_ANALOG_DEBOUNCE_DEFAULT, RestartRequired::NO, {SettingProfile::Button}}  
+            {BUTTON_ANALOG_DEBOUNCE, "Button debounce", "How long to debounce the button press in ms", SettingType::Number, BUTTON_ANALOG_DEBOUNCE_DEFAULT, RestartRequired::NO, {SettingProfile::Button}}
         }
     };
 
@@ -855,7 +983,7 @@ private:
         {
             defaultToJson(&setting, fileInfo.doc);
         }
-        return save(fileInfo);
+        return saveToDisk(fileInfo);
     }
 
     bool loadDefaultVector(const char* name, JsonDocument &doc) {
@@ -887,15 +1015,15 @@ private:
             case BoardType::CRIMZZON: {
                 PinMapSR6MB* pinMap = PinMapSR6MB::getInstance();
                 pinMap->overideDefaults();
-                syncSR6Pins(pinMap);
-                return save(m_pinsFileInfo);
+                syncSR6AndCommonPinsToDisk(pinMap);
+                return saveToDisk(m_pinsFileInfo);
             }
             break;
             case BoardType::ISAAC: {
                 PinMapINControl* pinMap = PinMapINControl::getInstance();
                 pinMap->overideDefaults();
-                syncSR6Pins(pinMap);
-                return save(m_pinsFileInfo);
+                syncSR6AndCommonPinsToDisk(pinMap);
+                return saveToDisk(m_pinsFileInfo);
             }
             break;
             default: {
@@ -938,7 +1066,7 @@ private:
     }
 
     //template <unsigned int N>
-    bool save(SettingFileInfo &fileInfo, JsonObject fromJson = JsonObject())
+    bool saveToDisk(SettingFileInfo &fileInfo, JsonObject fromJson = JsonObject())
     {
         LogHandler::info(m_TAG, "Save file: %s", fileInfo.path);
         if(!fromJson.isNull()) {
@@ -997,7 +1125,23 @@ private:
         }
         return false;
     }
-    
+
+    void loadCommonCache() 
+    {
+        if(!m_initialized) {
+            LogHandler::error(m_TAG, "loadCommonCache called before initialized");
+            return;
+        }
+	    getValue(TCODE_VERSION_SETTING, tcodeVersion);
+	    getValue(UDP_SERVER_PORT, udpServerPort);
+	    getValue(WEBSERVER_PORT, webServerPort);
+	    getValue(HOST_NAME, hostname, HOST_NAME_LEN);
+	    getValue(FRIENDLY_NAME, friendlyName, FRIENDLY_NAME_LEN);
+        getValue(DEVICE_TYPE, m_deviceType);
+        getValue(BOARD_TYPE_SETTING, m_boardType);
+        loadCommonLiveCache();
+    }
+
     void loadPinCache() {
         if(!m_initialized) {
             LogHandler::error(m_TAG, "loadPinCache called before initialized");
@@ -1133,10 +1277,10 @@ private:
         return pinMap;
     }
     
-    void syncCommonPins(const PinMap* pinMap) 
+    void syncCommonPinsToDoc(const PinMap* pinMap) 
     {
         if(!m_initialized) {
-            LogHandler::error(m_TAG, "syncCommonPins called before initialized");
+            LogHandler::error(m_TAG, "syncCommonPinsToDoc called before initialized");
             return;
         }
         setValue(TWIST_FEEDBACK_PIN, pinMap->twistFeedBack());
@@ -1158,13 +1302,13 @@ private:
         setValue(I2C_SCL_PIN, pinMap->i2cScl());
     }
 
-    void syncSSR1Pins(const PinMapSSR1* pinMap) 
+    void syncSSR1AndCommonPinsToDisk(const PinMapSSR1* pinMap) 
     {
         if(!m_initialized) {
-            LogHandler::error(m_TAG, "syncSSR1Pins called before initialized");
+            LogHandler::error(m_TAG, "syncSSR1AndCommonPinsToDisk called before initialized");
             return;
         }
-        syncCommonPins(pinMap);
+        syncCommonPinsToDoc(pinMap);
         setValue(BLDC_ENCODER_PIN, pinMap->encoder());
         setValue(BLDC_CHIPSELECT_PIN, pinMap->chipSelect());
         setValue(BLDC_ENABLE_PIN, pinMap->enable());
@@ -1175,26 +1319,26 @@ private:
         savePins();
     }
 
-    void syncOSRPins(const PinMapOSR* pinMap) 
+    void syncOSRAndCommonPinsToDisk(const PinMapOSR* pinMap) 
     {
         if(!m_initialized) {
-            LogHandler::error(m_TAG, "syncOSRPins called before initialized");
+            LogHandler::error(m_TAG, "syncOSRAndCommonPinsToDisk called before initialized");
             return;
         }
-        syncCommonPins(pinMap);
+        syncCommonPinsToDoc(pinMap);
         setValue(RIGHT_SERVO_PIN, pinMap->rightServo());
         setValue(LEFT_SERVO_PIN, pinMap->leftServo());
         setValue(PITCH_LEFT_SERVO_PIN, pinMap->pitchLeft());
         savePins();
     }
 
-    void syncSR6Pins(const PinMapSR6* pinMap) 
+    void syncSR6AndCommonPinsToDisk(const PinMapSR6* pinMap) 
     {
         if(!m_initialized) {
-            LogHandler::error(m_TAG, "syncSR6Pins called before initialized");
+            LogHandler::error(m_TAG, "syncSR6AndCommonPinsToDisk called before initialized");
             return;
         }
-        syncCommonPins(pinMap);
+        syncCommonPinsToDoc(pinMap);
         setValue(RIGHT_SERVO_PIN, pinMap->rightServo());
         setValue(LEFT_SERVO_PIN, pinMap->leftServo());
         setValue(PITCH_LEFT_SERVO_PIN, pinMap->pitchLeft());

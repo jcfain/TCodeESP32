@@ -159,6 +159,7 @@ char movement[MAX_COMMAND];
 ButtonModel* buttonCommand = 0;
 bool dStopped = false;
 bool tcodeV2Recieved = false;
+bool bleMode = false;
 
 unsigned long bench[10];
 unsigned long benchLast[10];
@@ -564,9 +565,10 @@ void setup()
 	
     LogHandler::setLogLevel(LogLevel::INFO);
 	LogHandler::setMessageCallback(logCallBack);
-	#if WIFI_TCODE
+#if WIFI_TCODE
+	if(!bleMode)
 		wifi.setWiFiStatusCallback(wifiStatusCallBack);
-	#endif
+#endif
 
 	Serial.println();
 	LogHandler::info(TagHandler::Main, "Firmware version: %s", FIRMWARE_VERSION_NAME);
@@ -596,18 +598,22 @@ void setup()
 		return;
 	}
 
-    LogHandler::setLogLevel(LogLevel::DEBUG);
+    // LogHandler::setLogLevel(LogLevel::DEBUG);
 	settingsFactory = SettingsFactory::getInstance();
 	if(!settingsFactory->init()) {
 		LogHandler::error(TagHandler::Main, "Failed to load settings...");
 		return;
 	}
-    LogHandler::setLogLevel(LogLevel::DEBUG);
+    // LogHandler::setLogLevel(LogLevel::DEBUG);
 
 	PinMapInfo pinMapInfo = settingsFactory->getPins();
 	const PinMap* pinMap = pinMapInfo.pinMap();
 
 	SettingsHandler::init();
+
+#if BLE_TCODE
+	settingsFactory->getValue(BLUETOOTH_ENABLED, bleMode);
+#endif
 	
 	// Get ConfigurationSettings
 	bool fanControlEnabled = FAN_CONTROL_ENABLED_DEFAULT;
@@ -619,26 +625,6 @@ void setup()
 	settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);
 	settingsFactory->getValue(BOARD_TYPE_SETTING, boardType);
 
-#if WIFI_TCODE
-    char ssid[SSID_LEN];
-    char wifiPass[WIFI_PASS_LEN];
-    bool staticIP;
-    char localIP[IP_ADDRESS_LEN];
-    char gateway[IP_ADDRESS_LEN];
-    char subnet[IP_ADDRESS_LEN];
-    char dns1[IP_ADDRESS_LEN];
-    char dns2[IP_ADDRESS_LEN];
-
-	settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
-	settingsFactory->getValue(WIFI_PASS_SETTING, wifiPass, WIFI_PASS_LEN);
-	settingsFactory->getValue(STATICIP, staticIP);
-	settingsFactory->getValue(LOCALIP, localIP, IP_ADDRESS_LEN);
-	settingsFactory->getValue(GATEWAY, gateway, IP_ADDRESS_LEN);
-	settingsFactory->getValue(SUBNET, subnet, IP_ADDRESS_LEN);
-	settingsFactory->getValue(DNS1, dns1, IP_ADDRESS_LEN);
-	settingsFactory->getValue(DNS2, dns2, IP_ADDRESS_LEN);
-
-#endif
 
     int msPerRad;
     int servoFrequency;
@@ -793,7 +779,26 @@ void setup()
 
 	
 
-	#if WIFI_TCODE
+#if WIFI_TCODE
+	if(!bleMode) 
+	{
+		char ssid[SSID_LEN];
+		char wifiPass[WIFI_PASS_LEN];
+		bool staticIP;
+		char localIP[IP_ADDRESS_LEN];
+		char gateway[IP_ADDRESS_LEN];
+		char subnet[IP_ADDRESS_LEN];
+		char dns1[IP_ADDRESS_LEN];
+		char dns2[IP_ADDRESS_LEN];
+
+		settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
+		settingsFactory->getValue(WIFI_PASS_SETTING, wifiPass, WIFI_PASS_LEN);
+		settingsFactory->getValue(STATICIP, staticIP);
+		settingsFactory->getValue(LOCALIP, localIP, IP_ADDRESS_LEN);
+		settingsFactory->getValue(GATEWAY, gateway, IP_ADDRESS_LEN);
+		settingsFactory->getValue(SUBNET, subnet, IP_ADDRESS_LEN);
+		settingsFactory->getValue(DNS1, dns1, IP_ADDRESS_LEN);
+		settingsFactory->getValue(DNS2, dns2, IP_ADDRESS_LEN);
 		if (strcmp(wifiPass, WIFI_PASS_DEFAULT) != 0 && ssid != nullptr) {
 			displayPrint("Setting up wifi...");
 			displayPrint("Connecting to: ");
@@ -818,15 +823,18 @@ void setup()
 				settingsFactory->getHostname(), 
 				settingsFactory->getFriendlyName());
 		}
-	#endif
-	#if BLUETOOTH_TCODE
-		if(!SettingsHandler::getApMode() && SettingsHandler::getBluetoothEnabled()) {
-			startBlueTooth();
-		} 
-	#endif
-	#if BLE_TCODE
+	}
+#endif
+#if BLUETOOTH_TCODE
+	if(bleMode) {
+		startBlueTooth();
+	} 
+#endif
+#if BLE_TCODE
+	if(bleMode) {
 		startBLE();
-	#endif
+	}
+#endif
     //otaHandler.setup();
 	displayPrint("Setting up motor");
     motorHandler->setup();
