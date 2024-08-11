@@ -168,6 +168,7 @@ public:
   			vTaskDelete( NULL );
 			return;
 		}
+        TickType_t pxPreviousWakeTime = millis();
 		_isRunning = true;
 		while(_isRunning) {
 			if(!m_animationPlaying && displayConnected && millis() >= lastUpdate + nextUpdate) {
@@ -251,7 +252,7 @@ public:
 
 				display.display();
 			}
-        	vTaskDelay(1000/portTICK_PERIOD_MS);
+            xTaskDelayUntil(&pxPreviousWakeTime, 5000/portTICK_PERIOD_MS);
 			// Serial.print("Display task: "); // stack size used
 			// Serial.print(uxTaskGetStackHighWaterMark( NULL )); // stack size used
 			// Serial.println();

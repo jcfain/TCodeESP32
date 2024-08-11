@@ -171,13 +171,14 @@ public:
 		_isRunning = true;
 		LogHandler::debug(_TAG, "Temp task cpu core: %u", xPortGetCoreID());
 		lastSleeveTempRequest = millis(); 
+        TickType_t pxPreviousWakeTime = millis();
 		while(_isRunning)
 		{
 			getInternalTemp();
 			getSleeveTemp();
 			chackFailSafe();
 
-        	vTaskDelay(1000/portTICK_PERIOD_MS);
+            xTaskDelayUntil(&pxPreviousWakeTime, 5000/portTICK_PERIOD_MS);
 			// Serial.print("uxTaskGetStackHighWaterMark: ");
 			// Serial.println(uxTaskGetStackHighWaterMark(NULL) *4);
 			// Serial.print("xPortGetFreeHeapSize: ");

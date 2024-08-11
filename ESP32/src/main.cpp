@@ -513,7 +513,7 @@ void loadI2CModules(bool displayEnabled, bool batteryEnabled, bool voiceEnabled)
 		auto displayStatus = xTaskCreatePinnedToCore(
 			DisplayHandler::startLoop,/* Function to implement the task */
 			"DisplayTask", /* Name of the task */
-			5000,  /* Stack size in words */
+			configMINIMAL_STACK_SIZE*3,  /* Stack size in words used to be 5000 */
 			displayHandler,  /* Task input parameter */
 			1,  /* Priority of the task */
 			&displayTask,  /* Task handle. */
@@ -530,7 +530,7 @@ void loadI2CModules(bool displayEnabled, bool batteryEnabled, bool voiceEnabled)
 			auto batteryStatus = xTaskCreatePinnedToCore(
 				BatteryHandler::startLoop,/* Function to implement the task */
 				"BatteryTask", /* Name of the task */
-				4028,  /* Stack size in words */
+				configMINIMAL_STACK_SIZE,  /* Stack size in words used to be 4028 */
 				batteryHandler,  /* Task input parameter */
 				1,  /* Priority of the task */
 				&batteryTask,  /* Task handle. */
@@ -549,7 +549,7 @@ void loadI2CModules(bool displayEnabled, bool batteryEnabled, bool voiceEnabled)
 			auto voiceStatus = xTaskCreatePinnedToCore(
 				VoiceHandler::startLoop,/* Function to implement the task */
 				"VoiceTask", /* Name of the task */
-				4028,  /* Stack size in words */
+				configMINIMAL_STACK_SIZE,  /* Stack size in words used to be 4028 */
 				voiceHandler,  /* Task input parameter */
 				1,  /* Priority of the task */
 				&voiceTask,  /* Task handle. */
@@ -623,6 +623,7 @@ void setup()
 
 #if BLE_TCODE
 	settingsFactory->getValue(BLUETOOTH_ENABLED, bleMode);
+	//bleMode = true;
 #endif
 	
 	// Get ConfigurationSettings
@@ -758,7 +759,7 @@ void setup()
 		auto tempStartStatus = xTaskCreatePinnedToCore(
 			TemperatureHandler::startLoop,/* Function to implement the task */
 			"TempTask", /* Name of the task */
-			5000,  /* Stack size in words */
+			configMINIMAL_STACK_SIZE*2,  /* Stack size in words used to be 5000 */
 			temperatureHandler,  /* Task input parameter */
 			1,  /* Priority of the task */
 			&temperatureTask,  /* Task handle. */

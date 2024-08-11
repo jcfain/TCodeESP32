@@ -253,6 +253,13 @@ public:
     void read(const String &input) override {
         m_tcode->StringInput(input);
     }
+    
+    void read(const char* &input, size_t len) override
+    {
+        for (int i = 0; i < len; i++) {
+            read(input[i]);
+        }
+    }
 
     void setMessageCallback(TCODE_FUNCTION_PTR_T function) override {
         m_tcode->setMessageCallback(function);

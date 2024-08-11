@@ -179,6 +179,13 @@ public:
     {
         m_tcode->StringInput(input);
     }
+    
+    void read(const char* &input, size_t len) override
+    {
+        for (int i = 0; i < len; i++) {
+            read(input[i]);
+        }
+    }
 
     void read(byte input) override 
     {

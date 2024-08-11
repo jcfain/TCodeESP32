@@ -103,6 +103,7 @@ public:
     void loop() {
 		_isRunning = true;
 		LogHandler::debug(_TAG, "Battery task cpu core: %u", xPortGetCoreID());
+        TickType_t pxPreviousWakeTime = millis();
 		while(_isRunning) {
             if(m_battery_connected && millis() >= lastTick) {
                 LogHandler::verbose(_TAG, "Enter getBatteryLevel");
@@ -121,7 +122,7 @@ public:
                 if(message_callback)
                     message_callback(capacityRemainingPercentage, m_batteryCapacity, m_batteryVoltage, m_batteryTemp);
             }
-        	vTaskDelay(1000/portTICK_PERIOD_MS);
+            xTaskDelayUntil(&pxPreviousWakeTime, 5000/portTICK_PERIOD_MS);
         }
         
   		vTaskDelete( NULL );

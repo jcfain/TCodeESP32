@@ -125,10 +125,11 @@ private:
         @return Return the obtained command word ID, returning 0 means no valid ID is obtained
     */
 		_isRunning = true;
-		LogHandler::debug(_TAG, "Battery task cpu core: %u", xPortGetCoreID());
+		LogHandler::debug(_TAG, "Voice task cpu core: %u", xPortGetCoreID());
+        TickType_t pxPreviousWakeTime = millis();
 		while(_isRunning) {
             toTCode(asr.getCMDID());
-            vTaskDelay(300/portTICK_PERIOD_MS);
+            xTaskDelayUntil(&pxPreviousWakeTime, 1000/portTICK_PERIOD_MS);
         }
     }
 
