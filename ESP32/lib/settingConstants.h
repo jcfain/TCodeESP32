@@ -84,6 +84,8 @@
 #define AUTO_VALVE_DEFAULT true
 #define INVERSE_VALVE_DEFAULT false
 #define VALVE_SERVO_90DEGREES_DEFAULT false
+#define VIB_TIMEOUT_ENABLED_DEFAULT true
+#define VIB_TIMEOUT_DEFAULT 2000
 #define INVERSE_STROKE_DEFAULT false
 #define INVERSE_PITCH_DEFAULT false
 #define LUBE_AMOUNT_DEFAULT 255
@@ -182,6 +184,8 @@
 #define AUTO_VALVE "autoValve"
 #define INVERSE_VALVE "inverseValve"
 #define VALVE_SERVO_90DEGREES "valveServo90Degrees"
+#define VIB_TIMEOUT_ENABLED "vibTimeoutEnabled"
+#define VIB_TIMEOUT "vibTimeout"
 #define INVERSE_STROKE "inverseStroke"
 #define INVERSE_PITCH "inversePitch"
 #define LUBE_AMOUNT "lubeAmount"

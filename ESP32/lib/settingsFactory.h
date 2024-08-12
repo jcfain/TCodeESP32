@@ -83,36 +83,13 @@ public:
                 break;
         }
     }
+    // Cached requires restart
     DeviceType getDeviceType() const { return m_deviceType; }
     int getUdpServerPort() const { return udpServerPort; }
     int getWebServerPort() const { return webServerPort; }
     const char* getHostname() const { return hostname; }
     const char* getFriendlyName() const { return friendlyName; }
     BoardType getBoardType() const { return m_boardType; }
-    // MotorType getMotorType() const { return motorType; }
-    // const char* getSSID() const { return ssid; }
-    // const char* getWifiPass() const { return wifiPass; }
-    // int getMsPerRad() const { return msPerRad; }
-    // int getServoFrequency() const { return servoFrequency; }
-    // int getPitchFrequency() const { return pitchFrequency; }
-    // int getValveFrequency() const { return valveFrequency; }
-    // int getTwistFrequency() const { return twistFrequency; }
-    // int getSqueezeFrequency() const { return squeezeFrequency; }
-    // bool getLubeEnabled() const { return lubeEnabled; }
-    // bool getFeedbackTwist() const { return feedbackTwist; }
-    // bool getAnalogTwist() const { return analogTwist; }
-    // bool getBootButtonEnabled() const { return bootButtonEnabled; }
-    // bool getButtonSetsEnabled() const { return buttonSetsEnabled; }
-    // bool getBatteryLevelEnabled() const { return batteryLevelEnabled; }
-    // bool getVoiceEnabled() const { return voiceEnabled; }
-    // bool getTempSleeveEnabled() const { return tempSleeveEnabled; }
-    // bool getTempInternalEnabled() const { return tempInternalEnabled; }
-    // bool getStaticIP() const { return staticIP; }
-    // const char* getLocalIP() const { return localIP; }
-    // const char* getGateway() const { return gateway; }
-    // const char* getSubnet() const { return subnet; }
-    // const char* getDns1() const { return dns1; }
-    // const char* getDns2() const { return dns2; }
 
     // Cached (Live update)
     LogLevel getLogLevel() const { return logLevel; }
@@ -152,6 +129,8 @@ public:
     float getHeaterThreshold() const { return heaterThreshold; }
     double getInternalMaxTemp() const { return internalMaxTemp; }
     double getInternalTempForFanOn() const { return internalTempForFanOn; }
+    bool getVibTimeoutEnabled() const { return vibTimeoutEnabled; }
+    int getVibTimeout() const { return vibTimeout; }
 
     void setMessageCallback(SETTING_STATE_FUNCTION_PTR_T f)
     {
@@ -733,6 +712,14 @@ public:
             getValue(VOICE_WAKE_TIME, voiceWakeTime);
             if(targeted) {initCommonMessages(name); return;}
         }
+        if(!name || !strcmp(name, VIB_TIMEOUT)) {
+            getValue(VIB_TIMEOUT, vibTimeout);
+            if(targeted) {initCommonMessages(name); return;}
+        }
+        if(!name || !strcmp(name, VIB_TIMEOUT_ENABLED)) {
+            getValue(VIB_TIMEOUT_ENABLED, vibTimeoutEnabled);
+            if(targeted) {initCommonMessages(name); return;}
+        }
         initCommonMessages();
     }
 
@@ -816,6 +803,8 @@ private:
             {INVERSE_PITCH, "Inverse pitch", "Inverse pitch", SettingType::Boolean, INVERSE_PITCH_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {LUBE_AMOUNT, "Lube amount", "Amount of lube in PWM", SettingType::Number, LUBE_AMOUNT_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
             {LUBE_ENABLED, "Lube enabled", "Enable lube", SettingType::Boolean, LUBE_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
+            {VIB_TIMEOUT_ENABLED, "Vib timeout Enabled", "If disabled the vibs must be manually stopped", SettingType::Boolean, VIB_TIMEOUT_ENABLED_DEFAULT, RestartRequired::NO, {SettingProfile::Vib}},
+            {VIB_TIMEOUT, "Vib timeout", "The time out the vib stops", SettingType::Number, VIB_TIMEOUT_DEFAULT, RestartRequired::NO, {SettingProfile::Vib}},
             {DISPLAY_ENABLED, "Display enabled", "Enable the OLED display", SettingType::Boolean, DISPLAY_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Display}},
             {SLEEVE_TEMP_DISPLAYED, "Sleeve temp displayed", "Display the sleeve temp on the OLED", SettingType::Boolean, SLEEVE_TEMP_DISPLAYED_DEFAULT, RestartRequired::YES, {SettingProfile::Display}},
             {VERSION_DISPLAYED, "Version displayed", "Display the version on the OLED", SettingType::Boolean, VERSION_DISPLAYED_DEFAULT, RestartRequired::YES, {SettingProfile::Display}},
@@ -944,6 +933,8 @@ private:
     bool voiceMuted;
     int8_t voiceVolume;
     int8_t voiceWakeTime;
+    int vibTimeout;
+    bool vibTimeoutEnabled;
 
     bool load(SettingFileInfo &fileInfo)
     {

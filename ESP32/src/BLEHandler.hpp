@@ -174,8 +174,11 @@ private:
     //-----------------------------------------
     class BLETCodeControlCallback: public NimBLECharacteristicCallbacks   {
         // At some point this signature will change because its in master so if Bluetooth breaks, check the source class signature.
-        //void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) {
-        void onWrite(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc) {
+        #ifdef ESP_ARDUINO3
+        void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo)  override {
+        #else
+        void onWrite(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc)  override {
+        #endif
             // uint16_t handle = pCharacteristic->getHandle();
             // const uint8_t* rxData = rxValue.data();
             // size_t rxLength = rxValue.length();
@@ -208,8 +211,11 @@ private:
             //     m_motorHandler->read(value, len);
         };
         
-        //void onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo){
-        void onRead(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc){
+        #ifdef ESP_ARDUINO3
+        void onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
+        #else
+        void onRead(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc) override {
+        #endif
             Serial.print(pCharacteristic->getUUID().toString().c_str());
             Serial.print(": onRead(), value: ");
             Serial.println(pCharacteristic->getValue().c_str());
@@ -222,8 +228,11 @@ private:
         /**
          *  The value returned in code is the NimBLE host return code.
          */
-        //void onStatus(NimBLECharacteristic* pCharacteristic, int code) {
-        void onStatus(NimBLECharacteristic* pCharacteristic, Status s, int code) {
+        #ifdef ESP_ARDUINO3
+        void onStatus(NimBLECharacteristic* pCharacteristic, int code) override  {
+        #else
+        void onStatus(NimBLECharacteristic* pCharacteristic, Status s, int code) override  {
+        #endif
             String str = ("Notification/Indication return code: ");
             str += code;
             str += ", ";
@@ -231,8 +240,11 @@ private:
             Serial.println(str);
         };
 
-        //void onSubscribe(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue) {
-        void onSubscribe(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc, uint16_t subValue) {
+        #ifdef ESP_ARDUINO3
+        void onSubscribe(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue) override  {
+        #else
+        void onSubscribe(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc, uint16_t subValue) override  {
+        #endif
             String str = "";
             //"Client ID: ";
             // str += connInfo.getConnHandle();
@@ -266,10 +278,18 @@ private:
         //     );
         //     pServer->startAdvertising(); 
         // }        
-        void onConnect(BLEServer* pServer, ble_gap_conn_desc* desc) {
+        #ifdef ESP_ARDUINO3
+        void onConnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo) override  {
+        #else
+        void onConnect(BLEServer* pServer, ble_gap_conn_desc* desc) override  {
+        #endif
             LogHandler::info(_TAG, "A client has connected via BLE");
         };
-        void onDisconnect(BLEServer* pServer, ble_gap_conn_desc* desc) {
+        #ifdef ESP_ARDUINO3
+        void onDisconnect(BLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
+        #else
+        void onDisconnect(BLEServer* pServer, ble_gap_conn_desc* desc) override  {
+        #endif
             LogHandler::info(_TAG, "A client has disconnected from BLE");
             //pServer->startAdvertising(); 
         }

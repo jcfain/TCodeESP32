@@ -392,7 +392,8 @@ private:
                 ledcWrite(pwmChannel, 0);
             }
             // Vibe timeout functions - shuts the vibne channels down if not commanded for a specified interval
-            if (millis() - m_tcode->AxisLast(channel) > VIBE_TIMEOUT) { m_tcode->AxisInput(channel,0,'I',500); }
+            if(m_settingsFactory->getVibTimeoutEnabled())
+                if (millis() - m_tcode->AxisLast(channel) > m_settingsFactory->getVibTimeout()) { m_tcode->AxisInput(channel,0,'I',500); }
         }
     }
 

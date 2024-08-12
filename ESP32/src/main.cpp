@@ -28,6 +28,10 @@ SOFTWARE. */
 #include <Arduino.h>
 #endif
 
+#if PICO_BUILD
+//#include <FreeRTOS.h>
+#endif
+
 #if ESP8266 == 1
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
@@ -513,7 +517,7 @@ void loadI2CModules(bool displayEnabled, bool batteryEnabled, bool voiceEnabled)
 		auto displayStatus = xTaskCreatePinnedToCore(
 			DisplayHandler::startLoop,/* Function to implement the task */
 			"DisplayTask", /* Name of the task */
-			configMINIMAL_STACK_SIZE*3,  /* Stack size in words used to be 5000 */
+			configMINIMAL_STACK_SIZE*4,  /* Stack size in words used to be 5000 */
 			displayHandler,  /* Task input parameter */
 			1,  /* Priority of the task */
 			&displayTask,  /* Task handle. */

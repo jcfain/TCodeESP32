@@ -652,7 +652,23 @@
 						</div>
 						<div class="tRow v3Only">
 							<div class="tCell">
-								<span title="Enable this and the firmware will treat the second vibe channel like the lube channel.">Lube enabled on V2</span> 
+								<span title="Enable the vib timout. WARNING: If disabled the vib must be manually stopped or it will run until power killed.">Enable vib timeout</span> 
+							</div>
+							<div class="tCell">
+								<input id="vibTimeoutEnabled" type="checkbox" onchange="updateVibTimeout()">
+							</div>
+						</div>
+						<div class="tRow v3Only">
+							<div class="tCell">
+								<span title="How long before the vib is timed out">Vib timeout (ms)</span> 
+							</div>
+							<div class="tCell">
+								<input id="vibTimeout" type="number" min="1" max="2147483647" onchange="updateVibTimeout()">
+							</div>
+						</div>
+						<div class="tRow v3Only">
+							<div class="tCell">
+								<span title="Enable this and the firmware will treat the second vib channel like the lube channel.">Lube enabled on V2</span> 
 							</div>
 							<div class="tCell">
 								<input id="lubeEnabled" type="checkbox" onchange="updateLubeEnabled()">

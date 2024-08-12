@@ -771,6 +771,9 @@ function setUserSettings()
     document.getElementById('caseFanResolution').value = userSettings["caseFanResolution"];
     document.getElementById('caseFanFrequency').value = userSettings["caseFanFrequency"];
 
+    document.getElementById('vibTimeout').value = userSettings["vibTimeout"];
+    document.getElementById('vibTimeoutEnabled').checked = userSettings["vibTimeoutEnabled"];
+
     batterySetup();
     
     document.getElementById('debug').value = userSettings["logLevel"];
@@ -2355,6 +2358,12 @@ function setRestartRequired() {
     }
 }
 
+function updateVibTimeout() {
+    userSettings["vibTimeout"] = parseInt(document.getElementById('vibTimeout').value);
+    userSettings["vibTimeoutEnabled"] = document.getElementById('vibTimeoutEnabled').checked;
+    
+    updateUserSettings();
+}
 function updateLubeEnabled() {
     userSettings["lubeEnabled"] = document.getElementById('lubeEnabled').checked;
     
