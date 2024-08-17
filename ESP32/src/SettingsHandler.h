@@ -320,6 +320,12 @@ public:
     // }
 
     static void printFree() {
+        LogHandler::debug(_TAG, "Free heap: %u", ESP.getFreeHeap());
+        LogHandler::debug(_TAG, "Total heap: %u", ESP.getHeapSize());
+        LogHandler::debug(_TAG, "Free psram: %u", ESP.getFreePsram());
+        LogHandler::debug(_TAG, "Total Psram: %u", ESP.getPsramSize());
+        LogHandler::debug(_TAG, "LittleFS used: %i", LittleFS.usedBytes());
+        LogHandler::debug(_TAG, "LittleFS total: %i", LittleFS.totalBytes());
         //https://esp32.com/viewtopic.php?t=27780
         //https://github.com/espressif/esp-idf/blob/master/components/heap/include/esp_heap_caps.h#L20-L37
         uint32_t freeHEap = ESP.getFreeHeap();
@@ -336,19 +342,9 @@ public:
 
 	static void restart(const int delayInSec = 0) {
 		LogHandler::info(_TAG, "Schedule device restart in %ld seconds", delayInSec);
-		//ESP.restart();
+        // Restart in main task loop
 		restartRequired = delayInSec;
 	}
-
-    static void printMemory()
-    {
-        LogHandler::debug(_TAG, "Free heap: %u", ESP.getFreeHeap());
-        LogHandler::debug(_TAG, "Total heap: %u", ESP.getHeapSize());
-        LogHandler::debug(_TAG, "Free psram: %u", ESP.getFreePsram());
-        LogHandler::debug(_TAG, "Total Psram: %u", ESP.getPsramSize());
-        LogHandler::debug(_TAG, "LittleFS used: %i", LittleFS.usedBytes());
-        LogHandler::debug(_TAG, "LittleFS total: %i", LittleFS.totalBytes());
-    }
 
     static void printWebAddress(const char* hostAddress) 
     {
@@ -369,7 +365,7 @@ public:
     static bool saveAll(const String& data)
     {
         LogHandler::debug(_TAG, "Save frome string");
-        printMemory();
+        printFree();
         JsonDocument doc;
     
         DeserializationError error = deserializeJson(doc, data);
@@ -378,6 +374,7 @@ public:
             LogHandler::error(_TAG, "Settings save: Deserialize error: %s", error.c_str());
             return false;
         }
+        printFree();
         JsonObject obj = doc.as<JsonObject>();
         if (!saveAll(obj))
         {
@@ -456,7 +453,7 @@ public:
         v03["name"] = "v0.3";
         v03["value"] = TCodeVersion::v0_3;
         JsonObject v04 = tcodeVersions.add<JsonObject>();
-        v04["name"] = "v0.4";
+        v04["name"] = "v0.4 (Experimental)";
         v04["value"] = TCodeVersion::v0_4;
         JsonArray boardTypes = doc["boardTypes"].to<JsonArray>();
         JsonObject devkit = boardTypes.add<JsonObject>();
@@ -1762,7 +1759,7 @@ private:
             }
             LogHandler::debug(_TAG, "File contents: %s", file.readString().c_str());
             file.close();
-            printMemory();
+            printFree();
         }
         saving = false;
         xSemaphoreGive(mutex);
