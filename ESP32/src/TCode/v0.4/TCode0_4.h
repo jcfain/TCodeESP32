@@ -48,19 +48,19 @@ public:
 	{
 		m_tcode.read(inString);
 	}
-	void setAxisData(const TCodeAxis* channel, const AxisData &data) override {
+	void setAxisData(TCodeAxis* channel, const AxisData &data) override {
 		m_tcode.setAxisData(channel->getId(), data);
 	}
-	void setAxisData(const TCodeAxis* channel, 
+	void setAxisData(TCodeAxis* channel, 
 						const float value, 
 						const AxisExtentionType extentionType, 
-						const unsigned long commandExtention, 
+						const unsigned long commandExtension, 
 						AxisRampData rampIn, 
 						AxisRampData rampOut) override
 	{
 		AxisData data = {
 			value,
-			commandExtention,
+			commandExtension,
 			extentionType,
 			rampIn,
 			rampOut
@@ -68,10 +68,10 @@ public:
 		setAxisData(channel, data);
 	}
 	
-    virtual void setAxisData(const TCodeAxis* channel, const float value, const AxisExtentionType extentionType, const unsigned long commandExtention) {
+    virtual void setAxisData(TCodeAxis* channel, const float value, const AxisExtentionType extentionType, const unsigned long commandExtension) {
 		AxisData data = {
 			value,
-			commandExtention,
+			commandExtension,
 			extentionType,
 			m_DefaultRampData,
 			m_DefaultRampData
@@ -80,15 +80,15 @@ public:
 	}
 
 	// Function to read the current position of an axis
-	uint16_t getAxisPosition(const TCodeAxis* channel) override
+	uint16_t getAxisPosition(TCodeAxis* channel) override
 	{
-		return m_tcode.getAxisPosition(channel->getId()) * 10000;
+		return channel->getPosition() * 10000;
 	}
 
 	// Function to query when an axis was last commanded
-	unsigned long getAxisLastCommandTime(const TCodeAxis* channel) override
+	unsigned long getAxisLastCommandTime(TCodeAxis* channel) override
 	{
-		return m_tcode.getAxisLastCommandTime(channel->getId());
+		return channel->getLastCommandTime();
 	}
 
 	void updateInterfaces() {

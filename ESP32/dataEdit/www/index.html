@@ -1232,16 +1232,10 @@
 						</div>
 						<div class="tRow" title="Set to show output in the serial monitor.">
 							<div class="tCell">
-								<span>Debug</span> 
+								<span>Log level</span> 
 							</div>
 							<div class="tCell">
-								<select name="debug" id="debug" onchange="setDebug()">
-									<option value="0">ERROR</option>
-									<option value="1">WARNING</option>
-									<option value="2">INFO</option>
-									<option value="3">DEBUG</option>
-									<option value="4">VERBOSE</option>
-								</select>
+								<select name="logLevel" id="logLevel" onchange="setLogLevel()"> </select>
 								<!-- <button onclick="clearLog()">Clear</button> -->
 							</div>
 						</div>
@@ -1250,7 +1244,7 @@
 								<span>Included tags</span> 
 							</div>
 							<div class="tCell">
-								<select id="log-include-tags" onchange="setDebug()" multiple>
+								<select id="log-include-tags" onchange="setLogLevel()" multiple>
 								</select>
 								<!-- <button onclick="clearLog()">Clear</button> -->
 							</div>
@@ -1267,7 +1261,7 @@
 								<span>Excluded tags</span> 
 							</div>
 							<div class="tCell">
-								<select id="log-exclude-tags" onchange="setDebug()" multiple>
+								<select id="log-exclude-tags" onchange="setLogLevel()" multiple>
 								</select>
 								<!-- <button onclick="clearLog()">Clear</button> -->
 							</div>

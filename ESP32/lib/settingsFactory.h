@@ -229,7 +229,7 @@ public:
         strncpy(value, constvalue, len);
         if (m_wifiFileInfo.doc.containsKey(name)) 
         {
-            LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, strcmp(name, WIFI_PASS_SETTING) ? value : DECOY_PASS);
+            LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DEFAULT) ? value : "<Redacted>");
             return SettingFile::Wifi;
         } 
         else if (m_commonFileInfo.doc.containsKey(name)) 
@@ -1541,12 +1541,12 @@ private:
     {
         if (message_callback)
         {
-            LogHandler::debug(m_TAG, "sendMessage: message_callback profile %ld: %s", (int)profile, message);
+            //LogHandler::debug(m_TAG, "sendMessage: message_callback profile %ld: %s", (int)profile, message);
             message_callback(profile, message);
         }
         else
         {
-            LogHandler::debug(m_TAG, "sendMessage: message_callback 0");
+            LogHandler::warning(m_TAG, "sendMessage: message_callback 0");
         }
     }
 

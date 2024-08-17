@@ -46,13 +46,6 @@ const TCodeVersion = {
     V4: 1
 }
 const latestTCodeVersion = TCodeVersion.V4;
-const LogLevel = {
-    ERROR: 0,
-    WARNING: 1,
-    INFO: 2,
-    DEBUG: 3,
-    VERBOSE: 4
-};
 const MotorType = {
     Servo: 0,
     BLDC: 1
@@ -395,8 +388,8 @@ function debug(message) {
     }
 }
 
-function setDebug() {
-    userSettings["logLevel"] = parseInt(document.getElementById('debug').value);
+function setLogLevel() {
+    userSettings["logLevel"] = parseInt(document.getElementById('logLevel').value);
 
     const selectedIncludes = document.querySelectorAll('#log-include-tags option:checked');
     userSettings["log-include-tags"] =  Array.from(selectedIncludes).map(el => el.value);
@@ -581,6 +574,14 @@ function setSystemInfo() {
     document.getElementById('chipID').value = systemInfo.chipID;
 
     tcodeVersions = systemInfo.tcodeVersions;
+
+    const logLevelElement = document.getElementById('logLevel');
+    for(let i=0;i<systemInfo.logLevels.length;i++) {
+        const option = document.createElement("option");
+        option.innerText = systemInfo.logLevels[i].name;
+        option.value = systemInfo.logLevels[i].value;
+        logLevelElement.appendChild(option);
+    }
 
     var excludedTagsElement = document.getElementById('log-exclude-tags');
     systemInfo.availableTags.forEach(element => {
@@ -774,7 +775,7 @@ function setUserSettings()
 
     batterySetup();
     
-    document.getElementById('debug').value = userSettings["logLevel"];
+    document.getElementById('logLevel').value = userSettings["logLevel"];
 
     var includedElement = document.getElementById('log-include-tags');
     for (var i = 0; i < includedElement.options.length; i++) {

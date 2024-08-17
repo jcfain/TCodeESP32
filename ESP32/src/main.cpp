@@ -439,7 +439,7 @@ void batteryVoltageCallback(float capacityRemainingPercentage, float capacityRem
 }
 
 void settingChangeCallback(const SettingProfile &profile, const char* settingThatChanged) {
-    LogHandler::debug(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
+    //LogHandler::debug(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
 	if(profile == SettingProfile::System) {
 		if(!strcmp(settingThatChanged, LOG_LEVEL_SETTING)) {
             LogHandler::setLogLevel(settingsFactory->getLogLevel());
@@ -885,11 +885,11 @@ void readTCode(String& tcode) {
 	}
 }
 
-void readTCode(char* tcode) {
+void readTCode(char* tcode, int len) {
 	// if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_2)
 	// 	tcodeV2Recieved = true;
 	if(motorHandler) {
-		motorHandler->read(tcode);
+		motorHandler->read(tcode, len);
 		tcode[0] = {0};
 	}
 }
@@ -901,7 +901,7 @@ void processButton() {
 			char command[MAX_COMMAND];
 			systemCommandHandler->process(buttonCommand, command);
 			if(strlen(command) > 0) {
-				readTCode(command);
+				readTCode(command, strlen(command));
 			}
 		}
 	}
@@ -959,11 +959,11 @@ void processCommand() {
 #if WIFI_TCODE
 	else if(strlen(udpData) > 0 && systemCommandHandler && systemCommandHandler->isCommand(udpData)) {
 		//systemCommandHandler->process(udpData);
-		readTCode(udpData);
+		readTCode(udpData, strlen(udpData));
 	}
 	else if(strlen(webSocketData) > 0 && systemCommandHandler && systemCommandHandler->isCommand(webSocketData)) {
 		//systemCommandHandler->process(webSocketData);
-		readTCode(webSocketData);
+		readTCode(webSocketData, strlen(webSocketData));
 	}
 #endif
 }
@@ -972,7 +972,7 @@ void processMotionHandlerMovement() {
 	motionHandler.getMovement(movement);
 	if(strlen(movement) > 0) {
 		LogHandler::verbose(TagHandler::MainLoop, "motion handler writing: %s", movement);
-		readTCode(movement);
+		readTCode(movement, strlen(movement));
 	}
 }
 
@@ -986,18 +986,20 @@ void loop() {
 	tcodeV2Recieved = false;
 	benchStart(0);
 	if (SettingsHandler::restartRequired > -1 || restarting) {  // check the flag here to determine if a restart is required
-		SettingsHandler::restartRequired--;
-		if(SettingsHandler::restartRequired <= -1 && !restarting) {
+		if(SettingsHandler::restartRequired <= 0 && !restarting) {
 			LogHandler::info(TagHandler::Main, "Restarting ESP");
 			ESP.restart();
 			restarting = true;
+		} else {
+			LogHandler::info(TagHandler::Main, "Restarting ESP in: %ld", SettingsHandler::restartRequired);
 		}
         vTaskDelay(1000/portTICK_PERIOD_MS);
+		SettingsHandler::restartRequired--;
 	} 
 #if BUILD_TEMP
 	else if (temperatureHandler && temperatureHandler->isMaxTempTriggered()) {
 		char stop[7] = "DSTOP\n";
-		readTCode(stop);
+		readTCode(stop, 7);
 		LogHandler::error(TagHandler::Main, "Internal temp has reached maximum user set. Main loop disabled! Restart system to enable the loop.");
 		temperatureHandler->setFanState();
         vTaskDelay(5000/portTICK_PERIOD_MS);
@@ -1021,18 +1023,18 @@ void loop() {
 					processMotionHandlerMovement();
 				} else if (strlen(commandTCodeData) > 0) {
 					LogHandler::verbose(TagHandler::MainLoop, "system command tcode writing: %s", commandTCodeData);
-					readTCode(commandTCodeData);
+					readTCode(commandTCodeData, strlen(commandTCodeData));
 				} else if (serialData.length() > 0) {
 					LogHandler::verbose(TagHandler::MainLoop, "serial writing: %s", serialData.c_str());
 					readTCode(serialData);
 #if WIFI_TCODE == 1
 				} else if (strlen(webSocketData) > 0) {
 					LogHandler::verbose(TagHandler::MainLoop, "webSocket writing: %s", webSocketData);
-					readTCode(webSocketData);
+					readTCode(webSocketData, strlen(webSocketData));
 				} else if (!SettingsHandler::apMode && strlen(udpData) > 0) {
 					benchStart(6);
 					LogHandler::verbose(TagHandler::MainLoop, "udp writing: %s", udpData);
-					readTCode(udpData);
+					readTCode(udpData, strlen(udpData));
 					benchFinish("Udp write", 6);
 #endif
 #if BLE_TCODE
@@ -1053,7 +1055,7 @@ void loop() {
 				// webSocketData[0] = {0};
 				// serialData.clear();
 				char stop[7] = "DSTOP\n";
-				readTCode(stop);
+				readTCode(stop, 7);
 				dStopped = true;
 				tcodeV2Recieved = false;
 #if BLE_TCODE

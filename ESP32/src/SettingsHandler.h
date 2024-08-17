@@ -334,8 +334,8 @@ public:
         LogHandler::debug(_TAG, "MIN_FREE_HEAP %u", esp_get_minimum_free_heap_size() );
     }
 
-	static void restart(const int &delayInSec = 0) {
-		LogHandler::info(_TAG, "Schedule device restart...");
+	static void restart(const int delayInSec = 0) {
+		LogHandler::info(_TAG, "Schedule device restart in %ld seconds", delayInSec);
 		//ESP.restart();
 		restartRequired = delayInSec;
 	}
@@ -430,6 +430,27 @@ public:
         doc["esp32Version"] = FIRMWARE_VERSION_NAME;
         doc["TCodeVersion"] = m_settingsFactory->getTcodeVersion();
         doc["lastRebootReason"] = lastRebootReason;
+
+        JsonArray logLevels = doc["logLevels"].to<JsonArray>();
+        JsonObject logLevelNone = logLevels.add<JsonObject>();
+        logLevelNone["name"] = "None";
+        logLevelNone["value"] = LogLevel::NONE;
+        JsonObject logLevelInfo = logLevels.add<JsonObject>();
+        logLevelInfo["name"] = "info";
+        logLevelInfo["value"] = LogLevel::INFO;
+        JsonObject logLevelWarning = logLevels.add<JsonObject>();
+        logLevelWarning["name"] = "Warning";
+        logLevelWarning["value"] = LogLevel::WARNING;
+        JsonObject logLevelError= logLevels.add<JsonObject>();
+        logLevelError["name"] = "Error";
+        logLevelError["value"] = LogLevel::ERROR;
+        JsonObject logLevelDebug = logLevels.add<JsonObject>();
+        logLevelDebug["name"] = "Debug";
+        logLevelDebug["value"] = LogLevel::DEBUG;
+        JsonObject logLevelVerbose = logLevels.add<JsonObject>();
+        logLevelVerbose["name"] = "Verbose";
+        logLevelVerbose["value"] = LogLevel::VERBOSE;
+        
         JsonArray tcodeVersions = doc["tcodeVersions"].to<JsonArray>();
         JsonObject v03 = tcodeVersions.add<JsonObject>();
         v03["name"] = "v0.3";

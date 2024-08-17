@@ -186,7 +186,7 @@ public:
         m_tcode->read(input);
     }
     
-    void read(const char* &input, size_t len) override
+    void read(const char* input, size_t len) override
     {
         for (int i = 0; i < len; i++) {
             read(input[i]);
@@ -297,7 +297,7 @@ public:
 
         executeCommon(xLin);
         
-        m_tcode->updateInterfaces();
+        //m_tcode->updateInterfaces();
     }
 
 private:

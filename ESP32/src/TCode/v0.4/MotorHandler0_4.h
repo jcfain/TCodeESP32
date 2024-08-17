@@ -59,9 +59,6 @@ protected:
         SqueezeServo_Int = 1000000/SqueezeServo_Freq;
         
         m_tcode->setup(FIRMWARE_VERSION_NAME, m_settingsFactory->getTcodeVersionString());
-        // report status
-        m_tcode->read("D0");
-        m_tcode->read("D1");
         
         if(pinMap->valve() > -1) {
             valve_axis = new TCodeAxis("Valve", {AxisType::Auxiliary, 0}, 0.0f);
@@ -190,6 +187,9 @@ protected:
                 }
             }
         } 
+        // report status
+        m_tcode->read("D0\n");
+        m_tcode->read("D1\n");
     }
 
     void executeCommon(const int xLin) {
