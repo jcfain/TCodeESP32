@@ -42,7 +42,8 @@ SOFTWARE. */
 
 #include "utils.h"
 #include <LittleFS.h>
-#include "LogHandler.h"
+#include <TCode.h>
+#include "logging/LogHandler.h"
 #include "SettingsHandler.h"
 #include "SystemCommandHandler.h"
 #if WIFI_TCODE
@@ -61,14 +62,15 @@ SOFTWARE. */
 #include "TCode/MotorHandler.h"
 //#include "BLEConfigurationHandler.h"
 #if MOTOR_TYPE == 0
-	#if TCODE_V2//Too much memory needed with debug
-		//#include "TCode/v0.2/ServoHandler0_2.h"
-	#endif
+	// #if TCODE_V2//Too much memory needed with debug
+	// 	//#include "TCode/v0.2/ServoHandler0_2.h"
+	// #endif
 
 	#include "TCode/v0.3/ServoHandler0_3.h"
-	//#include "TCode/v1.0/ServoHandler1_0.h"
+	#include "TCode/v0.4/ServoHandler0_4.h"
 #elif MOTOR_TYPE == 1
 	#include "TCode/v0.3/BLDCHandler0_3.h"
+	#include "TCode/v0.4/BLDCHandler0_4.h"
 #endif
 
 #if WIFI_TCODE
@@ -243,7 +245,7 @@ void TCodePassthroughCommandCallback(const char* in) {
 void profileChangeCallback(uint8_t profile) {
 	
 }
-void logCallBack(const char* in, LogLevel level) {
+void logCallBack(const char *input, size_t length, LogLevel level) {
 #if WIFI_TCODE
 	// if(webSocketHandler) {
 	// 	webSocketHandler->sendDebug(in, level);
@@ -566,13 +568,13 @@ void loadI2CModules(bool displayEnabled, bool batteryEnabled, bool voiceEnabled)
 }
 void setup() 
 {
+
+	setCpuFrequencyMhz(240);
+
 	// see if we can use the onboard led for status
 	//https://github.com/kriswiner/ESP32/blob/master/PWM/ledcWrite_demo_ESP32.ino
   	//digitalWrite(5, LOW);// Turn off on-board blue led
-
 	
-
-
 	Serial.begin(115200);
 	
     LogHandler::setLogLevel(LogLevel::INFO);
@@ -723,6 +725,8 @@ void setup()
 #if MOTOR_TYPE == 0
 	if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_3) {
 		motorHandler = new ServoHandler0_3();
+	} else if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_4) {
+		motorHandler = new ServoHandler0_4();
 	}
 	#if !DEBUG_BUILD && TCODE_V2
 		// else if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_2)
@@ -731,10 +735,13 @@ void setup()
 		else {
 			LogHandler::error(TagHandler::Main, "Invalid TCode version: %ld", settingsFactory->getTcodeVersion());
 			return;// TODO: this stops apmode and not what we want
-			//motorHandler = new ServoHandler1_0();
 		}
 #elif MOTOR_TYPE == 1
-	motorHandler = new BLDCHandler0_3();
+	if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_3) {
+		motorHandler = new BLDCHandler0_3();
+	} else if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_4) {
+		motorHandler = new BLDCHandler0_4();
+	}
 #else
 	LogHandler::error(TagHandler::Main, "Invalid motor type defined!");
 	return;

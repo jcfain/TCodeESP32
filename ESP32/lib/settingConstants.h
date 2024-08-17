@@ -38,7 +38,7 @@
 #define BOARD_TYPE_DEFAULT 0
 #define LOG_LEVEL_DEFAULT 2
 //#define FULL_BUILD_DEFAULT false
-#define TCODE_VERSION_DEFAULT (uint8_t)TCodeVersion::v0_3
+#define TCODE_VERSION_DEFAULT (uint8_t)TCodeVersion::v0_4
 #define UDP_SERVER_PORT_DEFAULT 8000
 #define WEBSERVER_PORT_DEFAULT 80
 #define HOST_NAME_DEFAULT "tcode"

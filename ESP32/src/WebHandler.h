@@ -375,8 +375,7 @@ class WebHandler : public HTTPBase {
             }
         }
         void sendError(AsyncWebServerRequest *request, int code = 500) {
-            char lastError[1024];
-            LogHandler::getLastError(lastError);
+            const char* lastError = LogHandler::getLastError();
             char responseMessage[1024];
             sprintf(responseMessage, "{\"msg\":\"Error setting default: %s\"}", strlen(lastError) > 0 ? lastError : "Unknown error");
             AsyncWebServerResponse *response = request->beginResponse(code, "application/json", responseMessage);

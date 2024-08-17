@@ -19,21 +19,31 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
-
+    
 #pragma once
 
 #include <Arduino.h>
-#include "Global.h"
-#include "TCodeBase.h"
-#include "../SettingsHandler.h"
-#include "../TagHandler.h"
+#include "../TCodeBase.h"
 
-class MotorHandler {
+#include <TCode.h>
+using namespace TCode;
+
+class TCodeBaseV4 : public TCodeBase {
 public:
-    virtual void setup() = 0;
-    virtual void read(byte inByte) = 0;
-    virtual void read(const String &input) = 0;
-    virtual void read(const char* &input, size_t len) = 0;
-    virtual void execute() = 0;
-    virtual void setMessageCallback(TCODE_FUNCTION_PTR_T function) = 0;
+	virtual void RegisterAxis(TCodeAxis* axis) = 0;
+    virtual void setAxisData(const TCodeAxis* channel, const float value, const AxisExtentionType extentionType, const unsigned long commandExtention, AxisRampData rampIn, AxisRampData rampOut) = 0;
+    virtual void setAxisData(const TCodeAxis* channel, const float value, const AxisExtentionType extentionType, const unsigned long commandExtention) = 0;
+    virtual void setAxisData(const TCodeAxis* channel, const AxisData &data) = 0;
+	virtual uint16_t getAxisPosition(const TCodeAxis* channel) = 0;
+	virtual unsigned long getAxisLastCommandTime(const TCodeAxis* channel) = 0;
+	virtual void updateInterfaces() = 0;
+	virtual void getDeviceSettings(char* settings) = 0;
+protected:
+	AxisRampData m_DefaultRampData = {
+		0.0,
+		0.0,
+		false,
+		false,
+		false,
+	};
 };

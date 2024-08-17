@@ -26,7 +26,7 @@ SOFTWARE. */
 #include <BluetoothSerial.h>
 //#include <BLEHandler.h>
 #include "SettingsHandler.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #include "TagHandler.h"
 
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)

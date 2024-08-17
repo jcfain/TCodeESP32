@@ -31,7 +31,7 @@ For now this is only for first configs */
 #include <BLE2902.h>
 #include <sstream>
 #include "SettingsHandler.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #include "TagHandler.h"
 
 

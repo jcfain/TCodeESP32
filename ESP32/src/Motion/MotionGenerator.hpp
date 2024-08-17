@@ -25,7 +25,7 @@ SOFTWARE. */
 
 #include <Arduino.h>
 #include "SettingsHandler.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #include "TagHandler.h"
 
 class MotionGenerator {

@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <mutex>
 #include "SettingsHandler.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #include "TagHandler.h"
 #include "MotionGenerator.hpp"
 

@@ -21,18 +21,18 @@
 
 #pragma once
 
-#include "TCode0_3.h"
+#include "TCode0_4.h"
 #include "../../SettingsHandler.h"
 #include "../Global.h"
-#include "MotorHandler0_3.h"
+#include "MotorHandler0_4.h"
 #include "../../TagHandler.h"
 #include "../settingsFactory.h"
 #include "../PinMap.h"
 
-class ServoHandler0_3 : public MotorHandler0_3 {
+class ServoHandler0_4 : public MotorHandler0_4 {
 
 public:
-    ServoHandler0_3() : MotorHandler0_3(new TCode0_3()) { }
+    ServoHandler0_4() : MotorHandler0_4(new TCode0_4()) {}
     // Setup function
     // This is run once, when the arduino starts
     void setup() override {
@@ -49,18 +49,22 @@ public:
         // Set SR6 arms to startup positions
         if (m_deviceType == DeviceType::SR6) 
         {
-             m_tcode->read("R2750"); 
+            read("R2750"); 
         }
-
         // Register device axes
-        m_tcode->RegisterAxis("L0", "Up");
+        stroke_axis = new TCodeAxis("Stroke", {AxisType::Linear, 0}, 0.5f);
+        m_tcode->RegisterAxis(stroke_axis);
         if (m_deviceType == DeviceType::SR6) 
         {
-            m_tcode->RegisterAxis("L1", "Forward");
-            m_tcode->RegisterAxis("L2", "Left");
+            surge_axis = new TCodeAxis("Surge", {AxisType::Linear, 1}, 0.5f);
+            m_tcode->RegisterAxis(surge_axis);
+            sway_axis = new TCodeAxis("Sway", {AxisType::Linear, 2}, 0.5f);
+            m_tcode->RegisterAxis(sway_axis);
         }
-        m_tcode->RegisterAxis("R1", "Roll");
-        m_tcode->RegisterAxis("R2", "Pitch");
+        roll_axis = new TCodeAxis("Roll", {AxisType::Rotation, 1}, 0.5f);
+        m_tcode->RegisterAxis(roll_axis);
+        pitch_axis = new TCodeAxis("Pitch", {AxisType::Rotation, 2}, 0.5f);
+        m_tcode->RegisterAxis(pitch_axis);
         PinMap* pinMap;
         if (m_deviceType == DeviceType::SR6) 
         {
@@ -166,10 +170,11 @@ public:
         setupCommon();
         
         // Signal done
-        if(m_initFailed)
+        if(m_initFailed) {
             m_tcode->sendMessage("Init servos error!");
-        else
+        } else {
             m_tcode->sendMessage("Ready!");
+        }
     }
 
     void setMessageCallback(TCODE_FUNCTION_PTR_T function) override {
@@ -204,10 +209,10 @@ public:
         }
         // Collect inputs
         // These functions query the t-code object for the position/level at a specified time
-        // Number recieved will be an integer, 0-9999
-        xLin = m_tcode->AxisRead("L0");
-        yRot = m_tcode->AxisRead("R1");
-        zRot = m_tcode->AxisRead("R2");
+        // Number recieved will be an integer, 0-10000
+        xLin = m_tcode->getAxisPosition(stroke_axis);
+        yRot = m_tcode->getAxisPosition(roll_axis);
+        zRot = m_tcode->getAxisPosition(pitch_axis);
         // If you want to mix your servos differently, enter your code below:
 
         // OSR2 Kinematics
@@ -216,9 +221,9 @@ public:
             // Calculate arm angles
             // Linear scale inputs to servo appropriate numbers
             int stroke,roll,pitch;
-            stroke = map(xLin,0,9999,-350,350);
-            roll   = map(yRot,0,9999,-180,180);
-            pitch  = map(zRot,0,9999,-350,350);
+            stroke = map(xLin,0,10000,-350,350);
+            roll   = map(yRot,0,10000,-180,180);
+            pitch  = map(zRot,0,10000,-350,350);
             if(m_settingsFactory->getInverseStroke()) 
             {
                 ledcWrite(LowerLeftServo_PWM, map(m_settingsFactory->getLeftServo_ZERO() - stroke + roll,0,MainServo_Int,0,65535));
@@ -242,16 +247,16 @@ public:
         }
         else if(m_deviceType == DeviceType::SR6)
         {
-            yLin = m_tcode->AxisRead("L1");
-            zLin = m_tcode->AxisRead("L2");
+            yLin = m_tcode->getAxisPosition(surge_axis);
+            zLin = m_tcode->getAxisPosition(sway_axis);
             // SR6 Kinematics
             // Calculate arm angles
             int roll,pitch,fwd,thrust,side;
-            roll = map(yRot,0,9999,-3000,3000);
-            pitch = map(zRot,0,9999,-2500,2500);
-            fwd = map(yLin,0,9999,-3000,3000);
-            thrust = map(xLin,0,9999,-6000,6000);
-            side = map(zLin,0,9999,-3000,3000);
+            roll = map(yRot,0,10000,-3000,3000);
+            pitch = map(zRot,0,10000,-2500,2500);
+            fwd = map(yLin,0,10000,-3000,3000);
+            thrust = map(xLin,0,10000,-6000,6000);
+            side = map(zLin,0,10000,-3000,3000);
 
             // Main arms
             int lowerLeftValue,upperLeftValue,pitchLeftValue,pitchRightValue,upperRightValue,lowerRightValue;
@@ -291,8 +296,8 @@ public:
         }
 
         executeCommon(xLin);
-        // Done with servo channels
-
+        
+        m_tcode->updateInterfaces();
     }
 
 private:
@@ -305,6 +310,12 @@ private:
 
     int MainServo_Freq;
     int PitchServo_Freq;
+
+	TCodeAxis* stroke_axis = 0;
+	TCodeAxis* surge_axis = 0;
+	TCodeAxis* sway_axis = 0;
+	TCodeAxis* roll_axis = 0;
+	TCodeAxis* pitch_axis = 0;
 
     // Declare classes
     // This uses the t-code object above

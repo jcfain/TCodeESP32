@@ -27,7 +27,7 @@ SOFTWARE. */
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
 #include "SettingsHandler.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #include "TagHandler.h"
 
 
@@ -41,8 +41,39 @@ class Udphandler
         LogHandler::info(_TAG, "UDP Listening");
     	SettingsFactory* m_settingsFactory = SettingsFactory::getInstance();
 		m_tcodeVersion = m_settingsFactory->getTcodeVersion();
+        // m_TCodeQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
+		// if(xTaskCreatePinnedToCore(
+		// 	handlerTask,/* Function to implement the task */
+		// 	"UDPTask", /* Name of the task */
+		// 	configMINIMAL_STACK_SIZE*4,  /* Stack size in words */
+		// 	static_cast<void*>(this),  /* Task input parameter */
+		// 	tskIDLE_PRIORITY,  /* Priority of the task */
+		// 	&m_task,  /* Task handle. */
+		// 	WIFI_TASK_CORE_ID) == pdFALSE) /* Core where the task should run */
+		// 	return; 
 		udpInitialized = true;
     }
+
+    // static void handlerTask(void* arg) {
+    //     Udphandler* handler = static_cast<Udphandler*>(arg);
+    // 	char packetBuffer[MAX_COMMAND];; //buffer to hold incoming packet
+    //     TickType_t pxPreviousWakeTime = millis();
+    //     while(1) {
+	// 		int packetSize = handler->wifiUdp.parsePacket();
+    //         if(packetSize) {
+	// 			int len = handler->wifiUdp.read(packetBuffer, MAX_COMMAND);
+	// 			if (len > 0) {
+	// 				packetBuffer[len] = 0;
+	// 				//LogHandler::verbose(_TAG, "Udp in: %s", packetBuffer);
+	// 			}
+    //             LogHandler::verbose(handler->_TAG, "Recieve: %s", packetBuffer);
+    //             if(xQueueSend(handler->m_TCodeQueue, packetBuffer, 0) != pdTRUE) {
+    //                 //LogHandler::error(_TAG, "Failed to write to queue");
+    //             }
+    //         }
+    //         xTaskDelayUntil(&pxPreviousWakeTime, 10/portTICK_PERIOD_MS);
+    //     }
+    // }
 
 	void CommandCallback(const char* in) { //This overwrites the callback for message return
 		if(udpInitialized && _lastConnectedPort > 0) {
@@ -55,44 +86,56 @@ class Udphandler
 		}
 	}
 
-    void read(char* udpData) 
+    void read(char* buf) 
     {
-		if (!udpInitialized) {
-			udpData[0] = {0};
+		if (!udpInitialized) 
+		{
+			buf[0] = {0};
 			return;
 		}
-		// if there's data available, read a packet
+        // if(xQueueReceive(m_TCodeQueue, buf, 0)) {
+        //     //LogHandler::verbose(_TAG, "Recieve tcode: %s", buf);
+        // } else {
+        //     //LogHandler::error(_TAG, "Failed to read from queue");
+        //     buf[0] = {0};
+		// 	return;
+        // }
+// 		// if there's data available, read a packet
 		int packetSize = wifiUdp.parsePacket();
-		if (!packetSize) {
-			udpData[0] = {0};
+		if (!packetSize) 
+		{
+			buf[0] = {0};
 			return;
 		}
 		_lastConnectedPort = wifiUdp.remotePort();
 		_lastConnectedIP = wifiUdp.remoteIP();
-//          Serial.print("Received packet of size ");
-//          Serial.println(packetSize);
-//          Serial.print("From ");
-//          IPAddress remoteIp = Udp.remoteIP();
-//          Serial.print(remoteIp);
-//          Serial.print(", port ");
-//          Serial.println(Udp.remotePort());
+// //          Serial.print("Received packet of size ");
+// //          Serial.println(packetSize);
+// //          Serial.print("From ");
+// //          Serial.print(_lastConnectedIP);
+// //          Serial.print(", port ");
+// //          Serial.println(_lastConnectedPort);
 	
 		// read the packet into packetBufffer
-		int len = wifiUdp.read(packetBuffer, packetSize);
-		if (len > 0) {
+		int len = wifiUdp.read(packetBuffer, MAX_COMMAND);
+		if (len > 0) 
+		{
 			packetBuffer[len] = 0;
 			//LogHandler::verbose(_TAG, "Udp in: %s", packetBuffer);
 		}
-		if (m_tcodeVersion >= TCodeVersion::v0_3 && (strpbrk(packetBuffer, "$") != nullptr || strpbrk(packetBuffer, "#") != nullptr)) {
-			strcpy(udpData, packetBuffer);
-			LogHandler::info(_TAG, "System command received: %s", udpData);
+		if (m_tcodeVersion >= TCodeVersion::v0_3 && (strpbrk(packetBuffer, "$") != nullptr || strpbrk(packetBuffer, "#") != nullptr)) 
+		{
+			// strcpy(buf, packetBuffer);
+			LogHandler::debug(_TAG, "System command received: %s", buf);
 			CommandCallback("OK");
 		// } else if (strpbrk(packetBuffer, jsonIdentifier) != nullptr) {
 		// 	SettingsHandler::getProcessTCodeJson()(udpData, packetBuffer);
 		// 	//LogHandler::verbose(_TAG, "json processed: %s", udpData);
-		} else {
+		} 
+		else 
+		{
 			//udpData[strlen(packetBuffer) + 1];
-			strcpy(udpData, packetBuffer);
+			strncpy(buf, packetBuffer, len);
 			//LogHandler::verbose(_TAG, "Udp tcode in: %s", udpData);
 		}
     }
@@ -100,6 +143,8 @@ class Udphandler
   private: 
     const char* _TAG = TagHandler::UdpHandler;
 	TCodeVersion m_tcodeVersion;
+    //TaskHandle_t m_task;
+    //QueueHandle_t m_TCodeQueue;
 	
     WiFiUDP wifiUdp;
 	IPAddress _lastConnectedIP;

@@ -30,7 +30,7 @@ SOFTWARE. */
 #include "utils.h"
 // #include "driver/adc.h"
 // #include "esp_adc_cal.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #include "TagHandler.h"
 
 using BATTERY_STATE_FUNCTION_PTR_T = void (*)(float capacityRemainingPercentage, float capacityRemaining, float voltage, float temperature);

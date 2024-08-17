@@ -74,26 +74,6 @@ public:
 					return true;
 				}
 			}
-			
-			// // Commands with values
-			// int indexofDelim = getposition(in, strlen(in), DELEMITER_VALUE);
-			// if(indexofDelim == -1) {
-			// 	LogHandler::error(_TAG, "Invalid command format: '%s' missing colon, correct format is #<command>:<value>", in);
-			// 	xSemaphoreGive(xMutex);
-			// 	return false;
-			// }
-			// const char* commandAlone = substr(in, 0, indexofDelim);
-			// if(!strlen(commandAlone)) {
-			// 	LogHandler::error(_TAG, "Invalid command format: '%s' missing command, correct format is #<command>:<value>", in);
-			// 	xSemaphoreGive(xMutex);
-			// 	return false;
-			// }
-			// const char* value = substr(in, indexofDelim +1, strlen(in));
-			// if(!strlen(value)) {
-			// 	LogHandler::error(_TAG, "Invalid command format: '%s' missing value, correct format is #<command>:<value>", in);
-			// 	xSemaphoreGive(xMutex);
-			// 	return false;
-			// }
 			CommandValuePair valuePair;
 			if(!getCommandValue(in, valuePair)) 
 				return false;

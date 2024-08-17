@@ -28,7 +28,7 @@ SOFTWARE. */
 
 #include "enum.h"
 #include "jsonConverters.h"
-#include "LogHandler.h"
+// // #include "LogHandler.h"
 #include "setting.h"
 #include "constants.h"
 #include "settingConstants.h"

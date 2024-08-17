@@ -31,7 +31,7 @@ SOFTWARE. */
 #include <ESPmDNS.h>
 #endif
 #include "SettingsHandler.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 class MDNSHandler {
     public:
         void setup(const char* hostName, const char* friendlyName, const int webPort, const int udpPort) {

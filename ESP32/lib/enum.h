@@ -7,13 +7,13 @@ enum class TCodeVersion: int
     v0_4
 };
 
-enum class LogLevel {
-    ERROR,
-    WARNING,
-    INFO,
-    DEBUG,
-    VERBOSE
-};
+// enum class LogLevel {
+//     ERROR,
+//     WARNING,
+//     INFO,
+//     DEBUG,
+//     VERBOSE
+// };
 
 enum class BuildFeature: int
 {

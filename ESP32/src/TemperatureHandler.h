@@ -28,7 +28,7 @@ SOFTWARE. */
 //#include <AutoPID.h>
 #include "TCode/Global.h"
 #include "SettingsHandler.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #include "TagHandler.h"
 
 enum class TemperatureType {

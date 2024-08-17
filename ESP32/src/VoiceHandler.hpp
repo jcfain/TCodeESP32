@@ -25,7 +25,7 @@ SOFTWARE. */
 #include <Arduino.h>
 #include "DFRobot_DF2301Q.h"
 #include <Wire.h>
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #include "TagHandler.h"
 
 using VOICE_COMMAND_FUNCTION_PTR_T = void (*)(const char* tcodeCommand);

@@ -28,7 +28,7 @@ SOFTWARE. */
 #include <vector>
 #include <map>
 #include <Wire.h>
-#include "LogHandler.h"
+// // #include "LogHandler.h"
 #include "utils.h"
 #include "TagHandler.h"
 #include "../lib/struct/voice.h"
@@ -430,7 +430,13 @@ public:
         doc["esp32Version"] = FIRMWARE_VERSION_NAME;
         doc["TCodeVersion"] = m_settingsFactory->getTcodeVersion();
         doc["lastRebootReason"] = lastRebootReason;
-        
+        JsonArray tcodeVersions = doc["tcodeVersions"].to<JsonArray>();
+        JsonObject v03 = tcodeVersions.add<JsonObject>();
+        v03["name"] = "v0.3";
+        v03["value"] = TCodeVersion::v0_3;
+        JsonObject v04 = tcodeVersions.add<JsonObject>();
+        v04["name"] = "v0.4";
+        v04["value"] = TCodeVersion::v0_4;
         JsonArray boardTypes = doc["boardTypes"].to<JsonArray>();
         JsonObject devkit = boardTypes.add<JsonObject>();
         devkit["name"] = "Devkit/NexusPRO";

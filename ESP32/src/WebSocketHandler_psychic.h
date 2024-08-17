@@ -28,7 +28,7 @@ SOFTWARE. */
 #include <PsychicHttp.h>
 //#include "HTTP/WebSocketBase.h"
 #include "SettingsHandler.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #include "TagHandler.h"
 #include "BatteryHandler.h"
 

@@ -26,7 +26,7 @@ SOFTWARE. */
 #include <Adafruit_GFX.h>
 #include "../lib/Ext/Adafruit_SSD1306_RSB.h"
 #include "SettingsHandler.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #if WIFI_TCODE
 #include "WifiHandler.h"
 #endif

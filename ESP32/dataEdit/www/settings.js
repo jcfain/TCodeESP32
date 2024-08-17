@@ -45,11 +45,7 @@ const TCodeVersion = {
     V3: 0,
     V4: 1
 }
-// Modified in toggleBuildOptions if TCode V2 is not in build
-const availableVersions = [
-    {version: TCodeVersion.V3, versionName: "v0.3"}
-] 
-const latestTCodeVersion = TCodeVersion.V3;
+const latestTCodeVersion = TCodeVersion.V4;
 const LogLevel = {
     ERROR: 0,
     WARNING: 1,
@@ -90,7 +86,7 @@ const BuildFeature = {
 const servoDegreeValue180 = 637; 
 const servoDegreeValue270 = 425; 
 dubugMessages = [];
-
+var tcodeVersions = [];
 var testDeviceUseIModifier = false;
 var testDeviceDisableModifier = false;
 var testDeviceModifierValue = "1000";
@@ -584,6 +580,8 @@ function setSystemInfo() {
     document.getElementById('chipCores').value = systemInfo.chipCores;
     document.getElementById('chipID').value = systemInfo.chipID;
 
+    tcodeVersions = systemInfo.tcodeVersions;
+
     var excludedTagsElement = document.getElementById('log-exclude-tags');
     systemInfo.availableTags.forEach(element => {
         var option = document.createElement("option");
@@ -845,13 +843,10 @@ function toggleBuildOptions() {
         
     var tcodeVersionElement = document.getElementById('TCodeVersion');
 
-    // if(!hasTCodeV2()) {
-    //     availableVersions.splice(availableVersions.findIndex(x => x.version === TCodeVersion.V2), 1);
-    // }
-    availableVersions.forEach(x => {
+    tcodeVersions.forEach(x => {
         const optionElement = document.createElement("option");
-        optionElement.value=x.version;
-        optionElement.innerText=x.versionName;
+        optionElement.value=x.value;
+        optionElement.innerText=x.name;
         tcodeVersionElement.appendChild(optionElement);
     });
 }
@@ -2432,7 +2427,7 @@ function importSettings() {
                     handleImportRenames(key, importedValue)
             });
             // If the new build doesnt have the old TCode version in it, set it to the latest version.
-            if(availableVersions.findIndex(x => x.version == userSettings.TCodeVersion) == -1) {
+            if(tcodeVersions.findIndex(x => x.value == userSettings.TCodeVersion) == -1) {
                 userSettings.TCodeVersion = latestTCodeVersion;
                 document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
                 toggleNonTCodev3Options();
@@ -2450,7 +2445,7 @@ function importSettings() {
 
 function checkMigrateData(key, value) {
     if(key == "TCodeVersion" && value == 1)
-        return TCodeVersion.V3;
+        return TCodeVersion.V4;
     return value; 
 }
 

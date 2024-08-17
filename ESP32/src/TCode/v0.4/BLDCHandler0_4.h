@@ -21,10 +21,10 @@
 #include <SimpleFOC.h>
 #include <SimpleFOCDrivers.h>
 #include <encoders/MT6701/MagneticSensorMT6701SSI.h>
-#include "TCode0_3.h"
+#include "TCode0_4.h"
 #include "../../SettingsHandler.h"
 #include "../Global.h"
-#include "MotorHandler0_3.h"
+#include "../MotorHandler0_4.h"
 #include "../../TagHandler.h"
 #include "../settingsFactory.h"
 
@@ -59,10 +59,10 @@
 //     }
 // }
 
-class BLDCHandler0_3 : public MotorHandler0_3 {
+class BLDCHandler0_3 : public MotorHandler0_4 {
 
 public:
-    BLDCHandler0_3() : MotorHandler0_3(new TCode0_3()) { }
+    BLDCHandler0_3() : MotorHandler0_4(new TCode0_4()) { }
 
     void setup() override {
         bootmode = true;

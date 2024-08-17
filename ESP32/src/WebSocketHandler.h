@@ -27,7 +27,7 @@ SOFTWARE. */
 #include <list>
 #include "HTTP/WebSocketBase.h"
 #include "SettingsHandler.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #include "TagHandler.h"
 #include "BatteryHandler.h"
 
@@ -46,7 +46,7 @@ class WebSocketHandler : public WebSocketBase {
                 onWsEvent(server, client, type, arg, data, len);
             });
             server->addHandler(&ws);
-            tCodeInQueue = xQueueCreate(5, sizeof(char[MAX_COMMAND]));
+            tCodeInQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
             if(tCodeInQueue == NULL) {
                 LogHandler::error(_TAG, "Error creating the tcode queue");
             }

@@ -28,7 +28,7 @@ SOFTWARE. */
 #include <WiFi.h>
 #include <esp_wifi.h>
 #endif
-#include "LogHandler.h"
+// // #include "LogHandler.h"
 #include "SettingsHandler.h"
 #include "TagHandler.h"
 
@@ -150,6 +150,8 @@ class WifiHandler
       IPAddress ipAddress = ip();
       LogHandler::info(_TAG, "Connected IP: %s", ip().toString().c_str());
       SettingsHandler::printWebAddress(ip().toString().c_str());
+      
+      WiFi.setSleep(false);
       _apMode = false;
       return true;
     }

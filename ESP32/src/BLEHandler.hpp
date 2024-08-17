@@ -30,7 +30,7 @@ SOFTWARE. */
 #include <sstream>
 #include "esp_coexist.h"
 #include "../lib/constants.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #include "TagHandler.h"
 #include "TCode/MotorHandler.h"
 
@@ -42,7 +42,7 @@ public:
     void setup () {
         LogHandler::info(_TAG, "Setting up BLE Tcode handler");
         m_TCodeQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
-
+        esp_ble
         LogHandler::debug(_TAG, "Setting up BLE init device");
         BLEDevice::init(m_isHC ? BLE_DEVICE_NAME_HC : BLE_DEVICE_NAME);
         LogHandler::debug(_TAG, "Setting up BLE Create server");

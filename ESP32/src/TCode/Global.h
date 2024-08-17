@@ -28,7 +28,6 @@ SOFTWARE. */
 
 // Other functions
 #define VALVE_DEFAULT 5000        // Auto-valve default suction level (low-high, 0-9999) 
-#define VIBE_TIMEOUT 2000         // Timeout for vibration channels (milliseconds).
 
 // ----------------------------
 //  Auto Settings
@@ -36,6 +35,8 @@ SOFTWARE. */
 // Do not change
 
 // Servo PWM channels
+#ifndef ESP_ARDUINO3
+
 #define LowerLeftServo_PWM 0     // Lower Left Servo
 #define UpperLeftServo_PWM 1     // Upper Left Servo
 #define LowerRightServo_PWM 2    // Lower Right Servo
@@ -53,6 +54,8 @@ SOFTWARE. */
 #define Vibe3_PWM 13
 #define SqueezeServo_PWM 14
 #define CaseFan_PWM 15
+
+#endif
 
 
 // Twist position monitor variables
