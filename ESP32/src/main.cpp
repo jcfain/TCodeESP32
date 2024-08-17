@@ -74,7 +74,7 @@ SOFTWARE. */
 #endif
 
 #if WIFI_TCODE
-	#include "UdpHandler.h"
+	#include "UdpHandler2.h"
 	//#include "TcpHandler.h"
 	#include "HTTP/HTTPBase.h"
 	#include "HTTP/WebSocketBase.h"
@@ -355,12 +355,14 @@ void startBlueTooth() {
 #endif
 
 #if WIFI_TCODE
-void startUDP(int port) {
+bool startUDP(int port) {
 	if(!udpHandler) {
 		displayPrint("Starting UDP");
 		udpHandler = new Udphandler();
-		udpHandler->setup(port);
+		if(!udpHandler->setup(port))
+			return false;
 	}
+	return true;
 }
 #endif
 
@@ -831,7 +833,10 @@ void setup()
 		#if BUILD_DISPLAY
 				displayHandler->setLocalIPAddress(wifi.ip());
 		#endif
-				startUDP(settingsFactory->getUdpServerPort());
+				if(!startUDP(settingsFactory->getUdpServerPort())) {
+					LogHandler::error(TagHandler::Main, "Error starting UDP server!");
+					return;
+				}
 				startWeb(false, 
 					settingsFactory->getWebServerPort(), 
 					settingsFactory->getUdpServerPort(), 

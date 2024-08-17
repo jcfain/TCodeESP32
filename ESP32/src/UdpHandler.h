@@ -34,10 +34,12 @@ SOFTWARE. */
 class Udphandler 
 {
   public:
-    void setup(int localPort) 
+    bool setup(int localPort) 
     {
 		LogHandler::info(_TAG, "Starting UDP");
-		wifiUdp.begin(localPort);
+		if(!m_udp.begin(localPort)) {
+			return false;
+		}
         LogHandler::info(_TAG, "UDP Listening");
     	SettingsFactory* m_settingsFactory = SettingsFactory::getInstance();
 		m_tcodeVersion = m_settingsFactory->getTcodeVersion();
@@ -52,6 +54,7 @@ class Udphandler
 		// 	WIFI_TASK_CORE_ID) == pdFALSE) /* Core where the task should run */
 		// 	return; 
 		udpInitialized = true;
+		return true;
     }
 
     // static void handlerTask(void* arg) {
@@ -59,9 +62,9 @@ class Udphandler
     // 	char packetBuffer[MAX_COMMAND];; //buffer to hold incoming packet
     //     TickType_t pxPreviousWakeTime = millis();
     //     while(1) {
-	// 		int packetSize = handler->wifiUdp.parsePacket();
+	// 		int packetSize = handler->m_udp.parsePacket();
     //         if(packetSize) {
-	// 			int len = handler->wifiUdp.read(packetBuffer, MAX_COMMAND);
+	// 			int len = handler->m_udp.read(packetBuffer, MAX_COMMAND);
 	// 			if (len > 0) {
 	// 				packetBuffer[len] = 0;
 	// 				//LogHandler::verbose(_TAG, "Udp in: %s", packetBuffer);
@@ -78,11 +81,11 @@ class Udphandler
 	void CommandCallback(const char* in) { //This overwrites the callback for message return
 		if(udpInitialized && _lastConnectedPort > 0) {
 			LogHandler::debug(_TAG, "Sending udp to client: %s", in);
-			wifiUdp.beginPacket(_lastConnectedIP, _lastConnectedPort);
+			m_udp.beginPacket(_lastConnectedIP, _lastConnectedPort);
 			int i = 0;
 			while (in[i] != 0)
-				wifiUdp.write((uint8_t)in[i++]);
-			wifiUdp.endPacket();
+				m_udp.write((uint8_t)in[i++]);
+			m_udp.endPacket();
 		}
 	}
 
@@ -101,14 +104,14 @@ class Udphandler
 		// 	return;
         // }
 // 		// if there's data available, read a packet
-		int packetSize = wifiUdp.parsePacket();
+		int packetSize = m_udp.parsePacket();
 		if (!packetSize) 
 		{
 			buf[0] = {0};
 			return;
 		}
-		_lastConnectedPort = wifiUdp.remotePort();
-		_lastConnectedIP = wifiUdp.remoteIP();
+		_lastConnectedPort = m_udp.remotePort();
+		_lastConnectedIP = m_udp.remoteIP();
 // //          Serial.print("Received packet of size ");
 // //          Serial.println(packetSize);
 // //          Serial.print("From ");
@@ -117,7 +120,7 @@ class Udphandler
 // //          Serial.println(_lastConnectedPort);
 	
 		// read the packet into packetBufffer
-		int len = wifiUdp.read(packetBuffer, MAX_COMMAND);
+		int len = m_udp.read(packetBuffer, MAX_COMMAND);
 		if (len > 0) 
 		{
 			packetBuffer[len] = 0;
@@ -146,7 +149,7 @@ class Udphandler
     //TaskHandle_t m_task;
     //QueueHandle_t m_TCodeQueue;
 	
-    WiFiUDP wifiUdp;
+    WiFiUDP m_udp;
 	IPAddress _lastConnectedIP;
 	int _lastConnectedPort = 0;
     bool udpInitialized = false;
