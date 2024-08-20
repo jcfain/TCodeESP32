@@ -405,10 +405,10 @@ public:
         m_settingsFactory->getValue(WIFI_PASS_SETTING, wifiPass, WIFI_PASS_LEN);
         doc["ssid"] = ssid;
         
-        if(strcmp(wifiPass, WIFI_PASS_DEFAULT) != 0) {
+        if(strcmp(wifiPass, WIFI_PASS_DONOTCHANGE_DEFAULT) != 0) {
             doc["wifiPass"] = DECOY_PASS; // Never set to actual password
         } else {
-            doc["wifiPass"] = WIFI_PASS_DEFAULT;
+            doc["wifiPass"] = WIFI_PASS_DONOTCHANGE_DEFAULT;
         }
 
         String output;

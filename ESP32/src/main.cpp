@@ -87,7 +87,7 @@ SOFTWARE. */
 #endif
 //#include "OTAHandler.h"
 #if BLE_TCODE
-	#include "BLEHandler.hpp"
+	#include "BLE/BLEHandler.hpp"
 #endif
 
 #if WIFI_TCODE
@@ -571,7 +571,7 @@ void loadI2CModules(bool displayEnabled, bool batteryEnabled, bool voiceEnabled)
 void setup() 
 {
 
-	setCpuFrequencyMhz(240);
+	//setCpuFrequencyMhz(240);
 
 	// see if we can use the onboard led for status
 	//https://github.com/kriswiner/ESP32/blob/master/PWM/ledcWrite_demo_ESP32.ino
@@ -823,13 +823,17 @@ void setup()
 		settingsFactory->getValue(SUBNET, subnet, IP_ADDRESS_LEN);
 		settingsFactory->getValue(DNS1, dns1, IP_ADDRESS_LEN);
 		settingsFactory->getValue(DNS2, dns2, IP_ADDRESS_LEN);
-		if (strcmp(wifiPass, WIFI_PASS_DEFAULT) != 0 && ssid != nullptr) {
+		if (strcmp(wifiPass, WIFI_PASS_DONOTCHANGE_DEFAULT) != 0 && ssid != nullptr) {
 			displayPrint("Setting up wifi...");
+			LogHandler::info(TagHandler::Main, "Setting up wifi...");
 			displayPrint("Connecting to: ");
+			LogHandler::info(TagHandler::Main, "Connecting to: %s", ssid);
 			displayPrint(ssid);
 			if (wifi.connect(ssid, wifiPass)) 
 			{ 
-				displayPrint("Connected IP: " + wifi.ip().toString());
+				String ipaddress = wifi.ip().toString();
+				displayPrint("Connected IP: " + ipaddress);
+				LogHandler::info(TagHandler::Main, "Connected IP: %s", ipaddress.c_str());
 		#if BUILD_DISPLAY
 				displayHandler->setLocalIPAddress(wifi.ip());
 		#endif
@@ -1045,7 +1049,7 @@ void loop() {
 #if BLE_TCODE
 				} else if (strlen(bleData) > 0) {
 					LogHandler::verbose(TagHandler::MainLoop, "BLE writing: %s", bleData);
-					readTCode(bleData);
+					readTCode(bleData, strlen(bleData));
 #endif
 #if BLUETOOTH_TCODE
 				} else if (!SettingsHandler::getGetMotionEnabled()() && bluetoothData.length() > 0) {

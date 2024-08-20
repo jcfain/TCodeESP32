@@ -231,7 +231,6 @@ private:
 				return false;
 			}
 			LogHandler::info(_TAG, "All settings reset to default!");
-			SettingsHandler::restart();
 			return true;
 		}, SaveRequired::NO, RestartRequired::YES);
 	}};

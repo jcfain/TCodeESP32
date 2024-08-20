@@ -10,6 +10,7 @@
 #define DECOY_PASS "Too bad haxor!"
 #define TCODE_HANDSHAKE "D1\n"
 #define TCODE_SETTINGS "D2\n"
+#define WIFI_PASS_DONOTCHANGE_DEFAULT "YOUR PASSWORD HERE"
 
 #define COMMON_SETTINGS_PATH "/userSettings.json"
 #define PIN_SETTINGS_PATH "/pins.json"
@@ -35,8 +36,8 @@
 #define DEFAULT_IP "192.168.69.1"
 #define DEFAULT_GATEWAY "192.168.69.254"
 #define DEFAULT_SUBNET "255.255.255.0"
-#define BOARD_TYPE_DEFAULT 0
-#define LOG_LEVEL_DEFAULT 2
+#define BOARD_TYPE_DEFAULT (uint8_t)BoardType::DEVKIT
+#define LOG_LEVEL_DEFAULT (uint8_t)LogLevel::INFO
 //#define FULL_BUILD_DEFAULT false
 #define TCODE_VERSION_DEFAULT (uint8_t)TCodeVersion::v0_3
 #define UDP_SERVER_PORT_DEFAULT 8000

@@ -229,7 +229,7 @@ public:
         strncpy(value, constvalue, len);
         if (m_wifiFileInfo.doc.containsKey(name)) 
         {
-            LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DEFAULT) ? value : "<Redacted>");
+            LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DONOTCHANGE_DEFAULT) ? value : "<Redacted>");
             return SettingFile::Wifi;
         } 
         else if (m_commonFileInfo.doc.containsKey(name)) 
@@ -250,7 +250,7 @@ public:
         {
             xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
             const char* constvalue = m_wifiFileInfo.doc[name];
-            LogHandler::debug(m_TAG, "getValue char* wifi: %s: constvalue: %s", name, strcmp(name, WIFI_PASS_SETTING) || !strcmp(constvalue, WIFI_PASS_DEFAULT) ? constvalue : "<Redacted>");
+            LogHandler::debug(m_TAG, "getValue char* wifi: %s: constvalue: %s", name, strcmp(name, WIFI_PASS_SETTING) || !strcmp(constvalue, WIFI_PASS_DONOTCHANGE_DEFAULT) ? constvalue : "<Redacted>");
             xSemaphoreGive(m_wifiSemaphore);
             return constvalue;
         } 
@@ -383,7 +383,7 @@ public:
         }
         const char* currentValue = fileInfo->doc[name].as<const char*>();
         if(fileInfo->doc[name].isNull() || strcmp(currentValue, value)) {
-            LogHandler::debug(m_TAG, "Change value: %s old value: %s new value: %s", name, currentValue, strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DEFAULT) ? value : "<Redacted>");
+            LogHandler::debug(m_TAG, "Change value: %s old value: %s new value: %s", name, currentValue, strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DONOTCHANGE_DEFAULT) ? value : "<Redacted>");
             fileInfo->doc[name] = value;
             if(fileInfo->file == SettingFile::Common) {
                 loadCommonLiveCache(name);
