@@ -61,11 +61,11 @@ public:
                 static uint8_t messageBuf[64];
                 if (rxValue == "DeviceType;") {
                     Serial.println("$Responding to Device Enquiry");
-                    //memmove(messageBuf, "H:11:008209AD3BD;", 18); //H solace EA gravity 9AD3BD
-                    //memmove(messageBuf, "C:11:0082059AD3BD;", 18);
-                    //memmove(messageBuf, "P:11:0082059AD3BD;", 18);
-                    // memmove(messageBuf, "W:11:008209AD3BD;", 18); //W: -domi
-                    memmove(messageBuf, "P:37:FFFFFFFFFFFF;", 18);
+                    //memmove(messageBuf, "P:37:FFFFFFFFFFFF;", 18); // Edge
+                    memmove(messageBuf, "H:11:0082059AD3BD;", 18); //H solace EA gravity 9AD3BD
+                    //memmove(messageBuf, "C:11:0082059AD3BD;", 18); // C Nora
+                    // memmove(messageBuf, "W:11:0082059AD3BD;", 18); //W: -domi
+                    //memmove(messageBuf, "H:11:FFFFFFFFFFFF;", 18); //H solace EA gravity 9AD3BD
                     // CONFIGURATION:               ^ Use a BLE address of the Lovense device you're cloning.
                     m_pTxCharacteristic->setValue(messageBuf, 18);
                     m_pTxCharacteristic->notify();

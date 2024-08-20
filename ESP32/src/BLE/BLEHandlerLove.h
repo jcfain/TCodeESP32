@@ -41,7 +41,7 @@ enum class BLELoveDevice {
 
 class BLEHandlerLove :public BLEHandlerBase {
 public:
-    BLEHandlerLove() : BLEHandlerBase("TCODE-ESP32", "50300001-0023-4bd4-bbd5-a6920e4c5653") { }
+    BLEHandlerLove() : BLEHandlerBase("LOVE-H", "50300001-0023-4bd4-bbd5-a6920e4c5653") { }
 private:
     const char* TXCHARACTERISTIC_UUID = "50300003-0023-4bd4-bbd5-a6920e4c5653";
     const char* RXCHARACTERISTIC_UUID = "50300002-0023-4bd4-bbd5-a6920e4c5653";

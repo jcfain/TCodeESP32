@@ -631,7 +631,7 @@ void setup()
 
 #if BLE_TCODE
 	settingsFactory->getValue(BLUETOOTH_ENABLED, bleMode);
-	//bleMode = true;
+	bleMode = true;
 #endif
 	
 	// Get ConfigurationSettings
