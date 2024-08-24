@@ -54,7 +54,7 @@ class WebHandler : public HTTPBase {
 
             server->on("/wifiSettings", HTTP_GET, [](PsychicRequest *request) 
             {
-                char info[100];
+                char info[255];
                 SettingsHandler::getWifiInfo(info);
                 if (strlen(info) == 0) {
                     //PsychicResponse *response = request->beginResponse(504, "application/text", "Error getting wifi settings");

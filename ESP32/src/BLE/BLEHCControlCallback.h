@@ -37,8 +37,7 @@ SOFTWARE. */
 class BLEHCControlCallback: public BLECharacteristicCallbacksBase  
 {
 public:
-    BLEHCControlCallback(QueueHandle_t tcodeQueue) : m_TCodeQueue(tcodeQueue) {
-    }
+    BLEHCControlCallback(QueueHandle_t tcodeQueue): m_TCodeQueue(tcodeQueue) { }
     // Haptics connect UUID's
     // const char* NAME = "OSR-ESP32";
     // const char* SERVICE_UUID = "00004000-0000-1000-8000-0000101A2B3C";

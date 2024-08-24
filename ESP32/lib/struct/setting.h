@@ -90,7 +90,7 @@ enum class SettingFile
 {
     NONE,
     Common,
-    Wifi,
+    Network,
     Pins,
     MotionProfile,
     ButtonSet

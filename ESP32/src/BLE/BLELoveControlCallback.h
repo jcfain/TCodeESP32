@@ -37,8 +37,7 @@ SOFTWARE. */
 class BLELoveControlCallback: public BLECharacteristicCallbacksBase   
 {
 public:
-    BLELoveControlCallback(QueueHandle_t tcodeQueue): m_TCodeQueue(tcodeQueue)
-    {
+    BLELoveControlCallback(QueueHandle_t tcodeQueue): m_TCodeQueue(tcodeQueue) {
         LogHandler::debug(TagHandler::BLEHandler, "Setting up BLE love Characteristic Callbacks");
     }
     // At some point this signature will change because its in master so if Bluetooth breaks, check the source class signature.

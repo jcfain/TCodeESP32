@@ -60,7 +60,7 @@ public:
     }
     
     const std::vector<SettingFileInfo*> AllSettings = {
-        &m_wifiFileInfo,
+        &m_networkFileInfo,
         &m_pinsFileInfo,
         &m_commonFileInfo
     };
@@ -188,12 +188,12 @@ public:
             LogHandler::error(m_TAG, "getValue T called before initialized");
             return SettingFile::NONE;
         }
-        if (m_wifiFileInfo.doc.containsKey(name)) 
+        if (m_networkFileInfo.doc.containsKey(name)) 
         {
-            xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
-            value = m_wifiFileInfo.doc[name].as<T>();
-            xSemaphoreGive(m_wifiSemaphore);
-            return SettingFile::Wifi;
+            xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
+            value = m_networkFileInfo.doc[name].as<T>();
+            xSemaphoreGive(m_networkSemaphore);
+            return SettingFile::Network;
         } 
         else if (m_commonFileInfo.doc.containsKey(name)) 
         {
@@ -227,10 +227,10 @@ public:
             return SettingFile::NONE;
         }
         strncpy(value, constvalue, len);
-        if (m_wifiFileInfo.doc.containsKey(name)) 
+        if (m_networkFileInfo.doc.containsKey(name)) 
         {
             LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DONOTCHANGE_DEFAULT) ? value : "<Redacted>");
-            return SettingFile::Wifi;
+            return SettingFile::Network;
         } 
         else if (m_commonFileInfo.doc.containsKey(name)) 
         {
@@ -246,12 +246,12 @@ public:
             LogHandler::error(m_TAG, "getValue char* called before initialized");
             return 0;
         }
-        if (m_wifiFileInfo.doc.containsKey(name)) 
+        if (m_networkFileInfo.doc.containsKey(name)) 
         {
-            xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
-            const char* constvalue = m_wifiFileInfo.doc[name];
+            xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
+            const char* constvalue = m_networkFileInfo.doc[name];
             LogHandler::debug(m_TAG, "getValue char* wifi: %s: constvalue: %s", name, strcmp(name, WIFI_PASS_SETTING) || !strcmp(constvalue, WIFI_PASS_DONOTCHANGE_DEFAULT) ? constvalue : "<Redacted>");
-            xSemaphoreGive(m_wifiSemaphore);
+            xSemaphoreGive(m_networkSemaphore);
             return constvalue;
         } 
         else if (m_commonFileInfo.doc.containsKey(name)) 
@@ -326,18 +326,18 @@ public:
             return SettingFile::NONE;
         }
         LogHandler::debug(m_TAG, "Enter setValue T: %s", name);
-        if (m_wifiFileInfo.doc.containsKey(name))
+        if (m_networkFileInfo.doc.containsKey(name))
         {
-            T currentValue = m_wifiFileInfo.doc[name].as<T>();
+            T currentValue = m_networkFileInfo.doc[name].as<T>();
             if(currentValue != value) {
                 LogHandler::debug(m_TAG, "Change wifi value T: %s", name);
-                xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
+                xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
                 const Setting* setting = getSetting(name);
-                m_wifiFileInfo.doc[name] = value;
+                m_networkFileInfo.doc[name] = value;
                 //loadWifiLiveCache(name); // Not needed now
-                xSemaphoreGive(m_wifiSemaphore);
+                xSemaphoreGive(m_networkSemaphore);
             }
-            return SettingFile::Wifi;
+            return SettingFile::Network;
         }
         else if (m_commonFileInfo.doc.containsKey(name))
         {
@@ -431,7 +431,7 @@ public:
         }
         switch(fileInfo->file)
         {
-            case SettingFile::Wifi:
+            case SettingFile::Network:
             saveWifi();
             break;
             case SettingFile::Common:
@@ -490,7 +490,7 @@ public:
                     return false;
                 }
                 break;
-            case SettingFile::Wifi:
+            case SettingFile::Network:
                 if(!saveWifi(fromJson)) {
                     return false;
                 }
@@ -529,16 +529,16 @@ public:
 
     bool saveWifi(JsonObject fromJson = JsonObject())
     {
-        xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
-        bool ret = saveToDisk(m_wifiFileInfo, fromJson);
-        xSemaphoreGive(m_wifiSemaphore);
+        xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
+        bool ret = saveToDisk(m_networkFileInfo, fromJson);
+        xSemaphoreGive(m_networkSemaphore);
         return ret;
     }
     bool resetWiFi()
     {
-        xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
-        bool ret = loadDefault(m_wifiFileInfo);
-        xSemaphoreGive(m_wifiSemaphore);
+        xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
+        bool ret = loadDefault(m_networkFileInfo);
+        xSemaphoreGive(m_networkSemaphore);
         return ret;
     }
     
@@ -734,16 +734,27 @@ private:
     SETTING_STATE_FUNCTION_PTR_T message_callback = 0;
 
 
-    SemaphoreHandle_t m_wifiSemaphore;
+    SemaphoreHandle_t m_networkSemaphore;
     SemaphoreHandle_t m_commonSemaphore;
     SemaphoreHandle_t m_pinSemaphore;
 
-    SettingFileInfo m_wifiFileInfo = 
+    SettingFileInfo m_networkFileInfo = 
     {
-        WIFI_SETTINGS_PATH, SettingFile::Wifi, JsonDocument(), 
+        NETWORK_SETTINGS_PATH, SettingFile::Network, JsonDocument(), 
         {
             {SSID_SETTING, "Wifi ssid", "The ssid of the WiFi AP", SettingType::String, SSID_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
-            {WIFI_PASS_SETTING, "Wifi pass", "The password for the WiFi AP", SettingType::String, WIFI_PASS_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}}
+            {WIFI_PASS_SETTING, "Wifi pass", "The password for the WiFi AP", SettingType::String, WIFI_PASS_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
+            {STATICIP, "Static IP", "Enable static IP for this device", SettingType::Boolean, STATICIP_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {LOCALIP, "Local IP", "The static IP of this device", SettingType::String, LOCALIP_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {GATEWAY, "Gateway", "The networks gateway", SettingType::String, GATEWAY_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {SUBNET, "Subnet", "The networks subnet", SettingType::String, SUBNET_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {DNS1, "DNS1", "The networks first DNS", SettingType::String, DNS1_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {DNS2, "DSN2", "The networks second DNS", SettingType::String, DNS2_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {UDP_SERVER_PORT, "Udp port", "The UDP port for TCode input", SettingType::Number, UDP_SERVER_PORT_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {WEBSERVER_PORT, "Web port", "The Web port for the web server", SettingType::Number, WEBSERVER_PORT_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {HOST_NAME, "Hostname", "The hostname for network com", SettingType::String, HOST_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {FRIENDLY_NAME, "Friendly name", "The friendly name displayed when connecting", SettingType::String, FRIENDLY_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {BLUETOOTH_ENABLED, "BLE enabled", "BLE TCode. Note: this disabled wifi and the website. Use the setting command to switch back", SettingType::Boolean, BLUETOOTH_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth, SettingProfile::Wireless}}
         }
     };
 
@@ -757,11 +768,6 @@ private:
             {LOG_LEVEL_SETTING, "Log level", "The loglevel that will output", SettingType::Number, LOG_LEVEL_DEFAULT, RestartRequired::NO, {SettingProfile::System}},
             //{FULL_BUILD, "Full build", "", SettingType::Boolean, false, RestartRequired::YES, {SettingProfile::System}}, // Not sure what this was for. Doesnt appear to be used anywhere.
             {TCODE_VERSION_SETTING, "TCode version", "The version of TCode", SettingType::Number, TCODE_VERSION_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
-            {UDP_SERVER_PORT, "Udp port", "The UDP port for TCode input", SettingType::Number, UDP_SERVER_PORT_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {WEBSERVER_PORT, "Web port", "The Web port for the web server", SettingType::Number, WEBSERVER_PORT_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {HOST_NAME, "Hostname", "The hostname for network com", SettingType::String, HOST_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {FRIENDLY_NAME, "Friendly name", "The friendly name displayed when connecting", SettingType::String, FRIENDLY_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {BLUETOOTH_ENABLED, "BLE enabled", "BLE TCode. Note: this disabled wifi and the website. Use the setting command to switch back", SettingType::Boolean, BLUETOOTH_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth, SettingProfile::Wireless}},
             {PITCH_FREQUENCY_IS_DIFFERENT, "Pitch frequency is different", "True will use the value set in pitchFrequency", SettingType::Boolean, PITCH_FREQUENCY_IS_DIFFERENT_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {MS_PER_RAD, "Ms per rad", "Micro seconds per radian for servos", SettingType::Number, MS_PER_RAD_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {SERVO_FREQUENCY, "Servo frequency", "Base servo frequenbcy", SettingType::Number, SERVO_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
@@ -781,12 +787,6 @@ private:
             {BLDC_MOTORA_ZEROELECANGLE, "Motor A ZeroElecAngle", "BLDC Motor A ZeroElecAngle", SettingType::Float, BLDC_MOTORA_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_RAILLENGTH, "Rail length", "SSR1 rail length", SettingType::Number, BLDC_RAILLENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {STATICIP, "Static IP", "Enable static IP for this device", SettingType::Boolean, STATICIP_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {LOCALIP, "Local IP", "The static IP of this device", SettingType::String, LOCALIP_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {GATEWAY, "Gateway", "The networks gateway", SettingType::String, GATEWAY_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {SUBNET, "Subnet", "The networks subnet", SettingType::String, SUBNET_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {DNS1, "DNS1", "The networks first DNS", SettingType::String, DNS1_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {DNS2, "DSN2", "The networks second DNS", SettingType::String, DNS2_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {RIGHT_SERVO_ZERO, "Right servo zero", "The zero calibration for the right servo", SettingType::Number, RIGHT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {LEFT_SERVO_ZERO, "Left servo zero", "The zero calibration for the left servo", SettingType::Number, LEFT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {RIGHT_UPPER_SERVO_ZERO, "Right upper servo zero", "The zero calibration for the right upper servo", SettingType::Number, RIGHT_UPPER_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
@@ -881,7 +881,7 @@ private:
 
 
     SettingsFactory() {
-        m_wifiSemaphore = xSemaphoreCreateMutex();
+        m_networkSemaphore = xSemaphoreCreateMutex();
         m_commonSemaphore = xSemaphoreCreateMutex();
         m_pinSemaphore = xSemaphoreCreateMutex();
     };
@@ -984,9 +984,9 @@ private:
 
     bool loadDefault(SettingFile file) 
     {
-        if(file == SettingFile::Wifi) 
+        if(file == SettingFile::Network) 
         {
-            return loadDefault(m_wifiFileInfo);
+            return loadDefault(m_networkFileInfo);
         }
         if(file == SettingFile::Common) 
         {
@@ -1077,9 +1077,9 @@ private:
     }
     bool loadWifiFromDisk()
     {
-        xSemaphoreTake(m_wifiSemaphore, portTICK_PERIOD_MS);
-        bool ret = load(m_wifiFileInfo);;
-        xSemaphoreGive(m_wifiSemaphore);
+        xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
+        bool ret = load(m_networkFileInfo);;
+        xSemaphoreGive(m_networkSemaphore);
         return ret;
     }
     bool loadPinsFromDisk()
@@ -1398,13 +1398,13 @@ private:
     }
     void initWifiMessages(const char* name = 0) {
         if(name) {
-            const Setting* setting = m_wifiFileInfo.getSetting(name);
+            const Setting* setting = m_networkFileInfo.getSetting(name);
             if(!setting) {
                 return;
             }
             sendMessage(setting->profiles.front(), name);
         } else {
-            for(const Setting setting : m_wifiFileInfo.settings)
+            for(const Setting setting : m_networkFileInfo.settings)
             {
                 sendMessage(setting.profiles.front(), setting.name);
             }

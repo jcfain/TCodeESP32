@@ -25,7 +25,8 @@ enum class BuildFeature: int
     DISPLAY_,
     TEMP,
     HAS_TCODE_V2,
-    HTTPS
+    HTTPS,
+    COEXIST_FEATURE
 };
 
 enum class BoardType: int

@@ -14,7 +14,7 @@
 
 #define COMMON_SETTINGS_PATH "/userSettings.json"
 #define PIN_SETTINGS_PATH "/pins.json"
-#define WIFI_SETTINGS_PATH "/wifiInfo.json"
+#define NETWORK_SETTINGS_PATH "/networkSettings.json"
 #define BUTTON_SETTINGS_PATH "/buttons.json"
 #define MOTION_PROFILE_SETTINGS_PATH "/motionProfiles.json"
 

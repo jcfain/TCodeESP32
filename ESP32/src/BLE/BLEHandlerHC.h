@@ -46,7 +46,6 @@ private:
     BLECharacteristic* m_characteristic2;
 
     void setupCharacteristics(BLEService *pService, BLEAdvertising *pAdvertising, QueueHandle_t tcodeQueue) override {
-        LogHandler::info(TagHandler::BLEHandler, "Setting up BLE HC handler");
         m_characteristic = new BLECharacteristic(CHARACTERISTIC_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
         m_characteristic2 = new BLECharacteristic(CHARACTERISTIC_UUID2, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
         LogHandler::debug(TagHandler::BLEHandler, "Setting up BLE TCode Characteristic Callbacks");
@@ -58,5 +57,9 @@ private:
     BLECharacteristicCallbacksBase* getCaracteristicCallbacks(QueueHandle_t tcodeQueue) {
         static BLEHCControlCallback callbacks(tcodeQueue);
         return &callbacks;
+    }
+    void CommandCallback(const char* in) override {
+        // m_characteristic->setValue(in);
+        // m_characteristic->notify();
     };
 };

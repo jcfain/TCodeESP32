@@ -37,8 +37,7 @@ SOFTWARE. */
 class BLETCodeControlCallback: public BLECharacteristicCallbacksBase 
 {
 public:
-    BLETCodeControlCallback(QueueHandle_t tcodeQueue) : m_TCodeQueue(tcodeQueue) {
-    }
+    BLETCodeControlCallback(QueueHandle_t tcodeQueue): m_TCodeQueue(tcodeQueue){ }
     // const char* NAME = "TCODE-ESP32";
     // const char* SERVICE_UUID = "ff1b451d-3070-4276-9c81-5dc5ea1043bc";
     // At some point this signature will change because its in master so if Bluetooth breaks, check the source class signature.

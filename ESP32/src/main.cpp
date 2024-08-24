@@ -165,7 +165,7 @@ char movement[MAX_COMMAND];
 ButtonModel* buttonCommand = 0;
 bool dStopped = false;
 bool tcodeV2Recieved = false;
-bool bleMode = false;
+bool bluetoothEnabled = false;
 
 unsigned long bench[10];
 unsigned long benchLast[10];
@@ -201,11 +201,12 @@ void TCodeCommandCallback(const char* in) {
 		systemCommandHandler->process(in);
 	} else {
 		#if BLUETOOTH_TCODE
-			if (SettingsHandler::getBluetoothEnabled() && btHandler && btHandler->isConnected())
+			if (btHandler && btHandler->isConnected())
 				btHandler->CommandCallback(in);
 		#endif
 		#if BLE_TCODE
-
+			if (bleHandler && bleHandler->isConnected())
+				bleHandler->CommandCallback(in);
 		#endif
 		#if WIFI_TCODE
 			if(webSocketHandler)
@@ -226,7 +227,7 @@ void TCodePassthroughCommandCallback(const char* in) {
 		strcat(temp, "\n");
 		//////////////////////////////////////////////////////////////////////////////////////
 		#if BLUETOOTH_TCODE
-			if (SettingsHandler::getBluetoothEnabled() && btHandler && btHandler->isConnected())
+			if (btHandler && btHandler->isConnected())
 				btHandler->CommandCallback(temp);
 		#endif
 		#if BLE_TCODE
@@ -581,10 +582,6 @@ void setup()
 	
     LogHandler::setLogLevel(LogLevel::INFO);
 	LogHandler::setMessageCallback(logCallBack);
-#if WIFI_TCODE
-	if(!bleMode)
-		wifi.setWiFiStatusCallback(wifiStatusCallBack);
-#endif
 
 	Serial.println();
 	LogHandler::info(TagHandler::Main, "Firmware version: %s", FIRMWARE_VERSION_NAME);
@@ -630,8 +627,12 @@ void setup()
 	SettingsHandler::setMessageCallback(settingChangeCallback);
 
 #if BLE_TCODE
-	settingsFactory->getValue(BLUETOOTH_ENABLED, bleMode);
-	bleMode = true;
+	settingsFactory->getValue(BLUETOOTH_ENABLED, bluetoothEnabled);
+#endif
+
+#if WIFI_TCODE
+	if(!bluetoothEnabled || COEXIST)
+		wifi.setWiFiStatusCallback(wifiStatusCallBack);
 #endif
 	
 	// Get ConfigurationSettings
@@ -804,7 +805,7 @@ void setup()
 	
 
 #if WIFI_TCODE
-	if(!bleMode) 
+	if(!bluetoothEnabled || COEXIST) 
 	{
 		char ssid[SSID_LEN];
 		char wifiPass[WIFI_PASS_LEN];
@@ -857,13 +858,25 @@ void setup()
 	}
 #endif
 #if BLUETOOTH_TCODE
-	if(bleMode) {
+	if(bluetoothEnabled || COEXIST) {
 		startBlueTooth();
 	} 
 #endif
 #if BLE_TCODE
-	if(bleMode) {
+	esp_err_t disable;
+	if(bluetoothEnabled) {
+		if(!COEXIST) {
+			LogHandler::info(TagHandler::Main, "BLE enabled and not CO-EXIST. Disable wifi");
+			disable = esp_wifi_deinit();
+		}
 		startBLE();
+	} 
+	if(!bluetoothEnabled || !COEXIST) {
+		LogHandler::info(TagHandler::Main, "Disable bluetooth");
+		disable = esp_bt_controller_deinit();
+	}
+	if(disable != ESP_OK) {
+		LogHandler::error(TagHandler::Main, "Disable fail: %s", esp_err_to_name(disable));
 	}
 #endif
     //otaHandler.setup();

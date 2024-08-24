@@ -43,13 +43,14 @@ class BLEHandler {
 public:
     BLEHandler() {
             m_TCodeQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
+            m_callBackQueue = xQueueCreate(5, sizeof(char[MAX_COMMAND]));
     }
     void setup () {
         //auto callbacks = getCaracteristicCallbacks();
 
 
-        BLEHandlerBase* subHandler = getHandler();
-        subHandler->setup(m_TCodeQueue);
+        m_subHandler = getHandler();
+        m_subHandler->setup(m_TCodeQueue);
 
         //LogHandler::debug(_TAG, "Setting up BLE Characteristics");
         // if(m_isHC) {
@@ -127,6 +128,17 @@ public:
         }
     }
 
+    bool isConnected() 
+    {
+        return m_subHandler->isConnected();
+    }
+    
+    void CommandCallback(const char* in)
+    {
+        //if(isConnected())
+            m_subHandler->CommandCallback(in);
+    }
+
 private: 
     // friend class BLETCodeControlCallback;
     // friend class BLELoveControlCallback;
@@ -137,8 +149,10 @@ private:
 
     bool m_isHC = false;
     bool m_isLove = true;
+    BLEHandlerBase* m_subHandler;
     
     QueueHandle_t m_TCodeQueue;
+    QueueHandle_t m_callBackQueue;
     // // Haptics connect UUID's
     // const char* BLE_DEVICE_NAME_HC = "OSR-ESP32";
     // const char* BLE_TCODE_SERVICE_UUID_HC = "00004000-0000-1000-8000-0000101A2B3C";

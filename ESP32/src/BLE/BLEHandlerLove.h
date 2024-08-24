@@ -49,7 +49,6 @@ private:
     BLECharacteristic* m_pRxCharacteristic;
 
     void setupCharacteristics(BLEService *pService, BLEAdvertising *pAdvertising, QueueHandle_t tcodeQueue) override {
-        LogHandler::info(TagHandler::BLEHandler, "Setting up BLE Love handler");
         BLEDevice::setSecurityAuth(true, true, true);
         m_pTxCharacteristic = pService->createCharacteristic(
                             TXCHARACTERISTIC_UUID,
@@ -71,5 +70,9 @@ private:
     BLECharacteristicCallbacksBase* getCaracteristicCallbacks(QueueHandle_t tcodeQueue) {
         static BLELoveControlCallback callbacks(tcodeQueue);
         return &callbacks;
+    }
+    void CommandCallback(const char* in) override {
+        // m_pTxCharacteristic->setValue(in);
+        // m_pTxCharacteristic->notify();
     };
 };

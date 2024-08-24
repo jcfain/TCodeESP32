@@ -45,6 +45,7 @@ public:
         
     void setup(QueueHandle_t tcodeQueue) 
     {
+        LogHandler::info(TagHandler::BLEHandler, "Setting up BLE handler: %s", NAME);
         BLEDevice::init(NAME);
         esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_DEFAULT, ESP_PWR_LVL_P9); 
         esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_P9);
@@ -81,7 +82,20 @@ public:
             LogHandler::error(TagHandler::BLEHandler, "Failed to start BLE advertising.");
 
     }
+
+    bool isConnected() 
+    {
+        return m_connected;
+    }
+
+    virtual void CommandCallback(const char* in) = 0;
+protected: 
+    void setConnected(bool connected) {
+        m_connected = connected;
+    }
+
 private:
+    bool m_connected = false;
     ServerCallbacks* getServerCallbacks() 
     {
         static ServerCallbacks callbacks;

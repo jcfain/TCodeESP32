@@ -395,15 +395,50 @@ public:
         return m_settingsFactory->savePins();
     }
 
-    static void getWifiInfo(char buf[100])
+    static void getWifiInfo(char* buf)
     {
         JsonDocument doc; //100
 
         char ssid[SSID_LEN];
         char wifiPass[WIFI_PASS_LEN];
-        m_settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
-        m_settingsFactory->getValue(WIFI_PASS_SETTING, wifiPass, WIFI_PASS_LEN);
+		bool staticIP;
+		char localIP[IP_ADDRESS_LEN];
+		char gateway[IP_ADDRESS_LEN];
+		char subnet[IP_ADDRESS_LEN];
+		char dns1[IP_ADDRESS_LEN];
+		char dns2[IP_ADDRESS_LEN];
+		bool bluetoothEnabled;
+		char hostname[HOST_NAME_LEN];
+		char friendlyName[FRIENDLY_NAME_LEN];
+        uint16_t udpPort;
+        uint16_t webPort;
+
+		m_settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
+		m_settingsFactory->getValue(WIFI_PASS_SETTING, wifiPass, WIFI_PASS_LEN);
+		m_settingsFactory->getValue(STATICIP, staticIP);
+		m_settingsFactory->getValue(LOCALIP, localIP, IP_ADDRESS_LEN);
+		m_settingsFactory->getValue(GATEWAY, gateway, IP_ADDRESS_LEN);
+		m_settingsFactory->getValue(SUBNET, subnet, IP_ADDRESS_LEN);
+		m_settingsFactory->getValue(DNS1, dns1, IP_ADDRESS_LEN);
+		m_settingsFactory->getValue(DNS2, dns2, IP_ADDRESS_LEN);
+		m_settingsFactory->getValue(DNS2, dns2, IP_ADDRESS_LEN);
+		m_settingsFactory->getValue(BLUETOOTH_ENABLED, bluetoothEnabled);
+		m_settingsFactory->getValue(HOST_NAME, hostname, HOST_NAME_LEN);
+		m_settingsFactory->getValue(FRIENDLY_NAME, friendlyName, FRIENDLY_NAME_LEN);
+		m_settingsFactory->getValue(UDP_SERVER_PORT, udpPort);
+		m_settingsFactory->getValue(WEBSERVER_PORT, webPort);
         doc["ssid"] = ssid;
+        doc["staticIP"] = staticIP;
+        doc["localIP"] = localIP;
+        doc["gateway"] = gateway;
+        doc["subnet"] = subnet;
+        doc["dns1"] = dns1;
+        doc["dns2"] = dns2;
+        doc["bluetoothEnabled"] = bluetoothEnabled;
+        doc["hostname"] = hostname;
+        doc["friendlyName"] = friendlyName;
+        doc["udpServerPort"] = udpPort;
+        doc["webServerPort"] = webPort;
         
         if(strcmp(wifiPass, WIFI_PASS_DONOTCHANGE_DEFAULT) != 0) {
             doc["wifiPass"] = DECOY_PASS; // Never set to actual password
@@ -415,7 +450,7 @@ public:
         serializeJson(doc, output);
         doc.clear();
         if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
-            Serial.printf("WifiInfo: %s\n", output.c_str());
+            Serial.printf("Network Info: %s\n", output.c_str());
         buf[0] = {0};
         strcpy(buf, output.c_str());
     }
@@ -2005,6 +2040,11 @@ private:
 #if SECURE_WEB
         LogHandler::debug("setBuildFeatures", "HTTPS");
         buildFeatures[index] = BuildFeature::HTTPS;
+        index++;
+#endif
+#if COEXIST
+        LogHandler::debug("setBuildFeatures", "COEXIST");
+        buildFeatures[index] = BuildFeature::COEXIST_FEATURE;
         index++;
 #endif
         buildFeatures[featureCount - 1] = {};

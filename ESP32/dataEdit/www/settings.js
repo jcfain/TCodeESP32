@@ -74,7 +74,8 @@ const BuildFeature = {
     DISPLAY_: 5,
     TEMP: 6,
     HAS_TCODE_V2: 7,
-    HTTPS: 8
+    HTTPS: 8,
+    COEXIST: 9
 }
 const servoDegreeValue180 = 637; 
 const servoDegreeValue270 = 425; 
@@ -493,7 +494,9 @@ function onRestartClick(optionalMessage)
             if(xhr.status == 200) {
                 var response = xhr.response;
                 logdebug("Restart succeed!");
-
+                if(wifiSettings["bluetoothEnabled"] && !hasFeature(BuildFeature.COEXIST)) {
+                    showLoading("Wifi is now disabled because bluetooth has been enabled. Yuu must disable bluetooth via serial usb to get back to this page.");
+                }
                 if(!resettingAllToDefault) {// There redirect should be to the default IP address.
                     checkRestartRedirect();
                 } else {
@@ -501,10 +504,10 @@ function onRestartClick(optionalMessage)
                 }
                 
                 if(restartingAndChangingAddress) {
-                    var isIPStatic = userSettings["staticIP"];
-                    var localIP = userSettings["localIP"];
-                    var webServerPort = userSettings["webServerPort"];
-                    var hostname = userSettings["hostname"];
+                    var isIPStatic = wifiSettings["staticIP"];
+                    var localIP = wifiSettings["localIP"];
+                    var webServerPort = wifiSettings["webServerPort"];
+                    var hostname = wifiSettings["hostname"];
                     var url = "http://"+hostname+".local";
                     url += webServerPort === 80 ? "" : ":"+webServerPort;
                     if(resettingAllToDefault) {
@@ -622,6 +625,22 @@ function setSystemInfo() {
 function setWifiSettings() {
     document.getElementById("ssid").value = wifiSettings["ssid"];
     document.getElementById("wifiPass").value = wifiSettings["wifiPass"];
+    document.getElementById('bluetoothEnabled').checked = wifiSettings["bluetoothEnabled"];
+    document.getElementById("staticIP").checked = wifiSettings["staticIP"];
+    startUpStaticIP = wifiSettings["staticIP"];
+    document.getElementById("localIPInput").value = wifiSettings["localIP"];
+    startUpLocalIP = wifiSettings["localIP"];
+    document.getElementById("gatewayInput").value = wifiSettings["gateway"];
+    document.getElementById("subnetInput").value = wifiSettings["subnet"];
+    document.getElementById("dns1Input").value = wifiSettings["dns1"];
+    document.getElementById("dns2Input").value = wifiSettings["dns2"];
+    toggleStaticIPSettings(wifiSettings["staticIP"]);
+    document.getElementById("udpServerPort").value = wifiSettings["udpServerPort"];
+    document.getElementById("webServerPort").value = wifiSettings["webServerPort"];
+    startUpWebPort = wifiSettings["webServerPort"];
+    document.getElementById("hostname").value = wifiSettings["hostname"];
+    startUpHostName = wifiSettings["hostname"];
+    document.getElementById("friendlyName").value = wifiSettings["friendlyName"];
 }
 function setPinoutSettings() {
     document.getElementById("TwistFeedBack_PIN").value = pinoutSettings["TwistFeedBack_PIN"];
@@ -651,7 +670,6 @@ function setUserSettings()
     document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
     toggleNonTCodev3Options();
     toggleDeviceOptions(userSettings["deviceType"]);
-    toggleStaticIPSettings(userSettings["staticIP"]);
     togglePitchServoFrequency(userSettings["pitchFrequencyIsDifferent"]);
     toggleFeedbackTwistSettings(userSettings["feedbackTwist"]);
     toggleBatterySettings(userSettings["batteryLevelEnabled"]);
@@ -684,12 +702,6 @@ function setUserSettings()
     
     document.getElementById('boardType').value = userSettings["boardType"];
 
-    document.getElementById("udpServerPort").value = userSettings["udpServerPort"];
-    document.getElementById("webServerPort").value = userSettings["webServerPort"];
-    startUpWebPort = userSettings["webServerPort"];
-    document.getElementById("hostname").value = userSettings["hostname"];
-    startUpHostName = userSettings["hostname"];
-    document.getElementById("friendlyName").value = userSettings["friendlyName"];
 	document.getElementById("servoFrequency").value = userSettings["servoFrequency"];
 	document.getElementById("pitchFrequency").value = userSettings["pitchFrequency"];
 	document.getElementById("valveFrequency").value = userSettings["valveFrequency"];
@@ -748,17 +760,6 @@ function setUserSettings()
 	document.getElementById("heaterThreshold").value = userSettings["heaterThreshold"];
 	document.getElementById("heaterResolution").value = userSettings["heaterResolution"];
 	document.getElementById("heaterFrequency").value = userSettings["heaterFrequency"];
-	
-    setWifiSettings();
-    document.getElementById("staticIP").checked = userSettings["staticIP"];
-    startUpStaticIP = userSettings["staticIP"];
-    document.getElementById("localIPInput").value = userSettings["localIP"];
-    startUpLocalIP = userSettings["localIP"];
-    document.getElementById("gatewayInput").value = userSettings["gateway"];
-    document.getElementById("subnetInput").value = userSettings["subnet"];
-    document.getElementById("dns1Input").value = userSettings["dns1"];
-    document.getElementById("dns2Input").value = userSettings["dns2"];
-    //document.getElementById('bluetoothEnabled').checked = userSettings["bluetoothEnabled"];
     
 	// document.getElementById("Display_Rst_PIN").readOnly = newtoungeHatExists;
 
@@ -945,13 +946,13 @@ function checkRestartRedirect() {
         } else {// Connect to wifi configuration
             //Uri change
             const isPort80 = window.location.port.length == 0;
-            const isUserPort80 = userSettings["webServerPort"] == 80;
+            const isUserPort80 = wifiSettings["webServerPort"] == 80;
             const port80Changed = isPort80 && !isUserPort80 || !isPort80 && isUserPort80;
-            const portChanged = port80Changed || (!isPort80 && window.location.port != userSettings["webServerPort"]);
+            const portChanged = port80Changed || (!isPort80 && window.location.port != wifiSettings["webServerPort"]);
             const connectedAndPortChanged = !systemInfo.apMode && portChanged; 
             //Not using IP address and hostname change
             const isCurrentIPAddress = isValidIP(window.location.hostname);
-            const connectedAndHostnameChanged = !isCurrentIPAddress && !systemInfo.apMode && window.location.hostname != userSettings["hostname"];
+            const connectedAndHostnameChanged = !isCurrentIPAddress && !systemInfo.apMode && window.location.hostname != wifiSettings["hostname"];
 
             if(connectedAndPortChanged || connectedAndHostnameChanged) {
                 restartingAndChangingAddress = true;
@@ -1278,15 +1279,15 @@ function onSpeedInput() {
 }
 
 function updateUdpPort() {
-    userSettings["udpServerPort"] = parseInt(document.getElementById('udpServerPort').value);
+    wifiSettings["udpServerPort"] = parseInt(document.getElementById('udpServerPort').value);
     setRestartRequired();
-    updateUserSettings();
+    postWifiSettings();
 }
 
 function updateWebPort() {
-    userSettings["webServerPort"] = parseInt(document.getElementById('webServerPort').value);
+    wifiSettings["webServerPort"] = parseInt(document.getElementById('webServerPort').value);
     setRestartRequired();
-    updateUserSettings();
+    postWifiSettings();
 }
 
 function setPitchFrequencyIsDifferent() {
@@ -1415,16 +1416,16 @@ function toggleFeedbackTwistSettings(feedbackChecked) {
 }
 function updateHostName() 
 {
-    userSettings["hostname"] = document.getElementById('hostname').value;
+    wifiSettings["hostname"] = document.getElementById('hostname').value;
     setRestartRequired();
-    updateUserSettings();
+    postWifiSettings();
 }
 
 function updateFriendlyName() 
 {
-    userSettings["friendlyName"] = document.getElementById('friendlyName').value;
+    wifiSettings["friendlyName"] = document.getElementById('friendlyName').value;
     setRestartRequired();
-    updateUserSettings();
+    postWifiSettings();
 }
 function setupBoardTypes() {
     const boardTypeElement = document.getElementById('boardType');
@@ -2246,14 +2247,14 @@ function updateWifiSettings() {
         ips.dns1 = document.getElementById('dns1Input').value;
         ips.dns2 = document.getElementById('dns2Input').value;
         if(validateStaticIPAddresses(ips)) {
-            userSettings["staticIP"] = staticIP;
-            userSettings["localIP"] = ips.localIP;
-            userSettings["gateway"] = ips.gateway;
-            userSettings["subnet"] = ips.subnet;
-            userSettings["dns1"] = ips.dns1;
-            userSettings["dns2"] = ips.dns2;
+            wifiSettings["staticIP"] = staticIP;
+            wifiSettings["localIP"] = ips.localIP;
+            wifiSettings["gateway"] = ips.gateway;
+            wifiSettings["subnet"] = ips.subnet;
+            wifiSettings["dns1"] = ips.dns1;
+            wifiSettings["dns2"] = ips.dns2;
             setRestartRequired();
-            updateUserSettings(0);
+            postWifiSettings(0);
         }
     }, defaultDebounce);
 }
@@ -2332,11 +2333,22 @@ function toggleNonTCodev3Options()
 
 function updateBlueToothSettings()
 {
-    userSettings["bluetoothEnabled"] = document.getElementById('bluetoothEnabled').checked;
-    if(userSettings["bluetoothEnabled"])
-        alert("EXPEREMENTAL! this is a bit slow and will not work will with fast input!\nThis will DISABLE Wifi connection and this configuration web page upon device reboot!\nThe BLE app will be REQUIRED for future configuration changes.")
-	setRestartRequired();
-	updateUserSettings();
+    const element = document.getElementById('bluetoothEnabled');
+    let value = element.checked;
+    if(value && !hasFeature(BuildFeature.COEXIST)) {
+        //alert("EXPEREMENTAL! this is a bit slow and will not work will with fast input!\nThis will DISABLE Wifi connection and this configuration web page upon device reboot!\nThe BLE app will be REQUIRED for future configuration changes.");
+        if(confirm("This will disable wifi and make this page inexcessable until disabled through command line via a serial monitor after reboot.\n\nContinue?")) {
+            wifiSettings["bluetoothEnabled"] = value;
+            setRestartRequired();
+            postWifiSettings();
+        } else {
+            element.checked = false;
+        }
+    } else {
+        wifiSettings["bluetoothEnabled"] = value;
+        setRestartRequired();
+        postWifiSettings();
+    }
 }
 
 function setTCodeVersion() 
@@ -2433,7 +2445,9 @@ function importSettings() {
                 document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
                 toggleNonTCodev3Options();
             }
+            setWifiSettings();
             setUserSettings();
+            setPinoutSettings();
             if(validatePins()) {// Do not save if pin values are invalid.
                 setRestartRequired();
                 updateALLUserSettings();
@@ -2467,9 +2481,45 @@ function handleImportRenames(key, value) {
         return;
         case "wifiSettings": 
         wifiSettings.ssid = value.ssid;
+        wifiSettings.staticIP = value.staticIP;
+        wifiSettings.localIP = value.localIP;
+        wifiSettings.gateway = value.gateway;
+        wifiSettings.subnet = value.subnet;
+        wifiSettings.dns1 = value.dns1;
+        wifiSettings.dns2 = value.dns2;
         return;
         case "ssid": 
         wifiSettings.ssid = value;
+        return;
+        case "staticIP": 
+        wifiSettings.staticIP = value;
+        return;
+        case "localIP": 
+        wifiSettings.localIP = value;
+        return;
+        case "gateway": 
+        wifiSettings.gateway = value;
+        return;
+        case "subnet": 
+        wifiSettings.subnet = value;
+        return;
+        case "dns1": 
+        wifiSettings.dns1 = value;
+        return;
+        case "dns2": 
+        wifiSettings.dns2 = value;
+        return;
+        case "udpServerPort": 
+        wifiSettings.udpServerPort = value;
+        return;
+        case "webServerPort": 
+        wifiSettings.webServerPort = value;
+        return;
+        case "hostname": 
+        wifiSettings.hostname = value;
+        return;
+        case "friendlyName": 
+        wifiSettings.friendlyName = value;
         return;
         case "bootButtonCommand":
         buttonSettings.bootButtonCommand = value;

@@ -79,6 +79,7 @@ public:
         if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
             pin = ((PinMapOSR*)pinMap)->leftServo();
             if(pin > -1) {
+                m_leftServoPin = pin;
                 LogHandler::debug(_TAG, "Connecting left servo to pin: %ld", pin);
                 #ifdef ESP_ARDUINO3
                 ledcAttach(pin, MainServo_Freq, 16);
@@ -93,6 +94,7 @@ public:
             pin = ((PinMapOSR*)pinMap)->rightServo();
             if(pin > -1) {
                 // Lower Right Servo
+                m_rightServoPin = pin;
                 LogHandler::debug(_TAG, "Connecting right servo to pin: %ld", pin);
                 #ifdef ESP_ARDUINO3
                 ledcAttach(pin, MainServo_Freq, 16);
@@ -110,6 +112,7 @@ public:
             pin = ((PinMapSR6*)pinMap)->leftUpperServo();
             if(pin > -1) {
                 // Upper Left Servo
+                m_leftUpperServoPin = pin;
                 LogHandler::debug(_TAG, "Connecting left upper servo to pin: %ld", pin);
                 #ifdef ESP_ARDUINO3
                 ledcAttach(pin, MainServo_Freq, 16);
@@ -125,6 +128,7 @@ public:
                 pin = ((PinMapSR6*)pinMap)->rightUpperServo();
                 if(pin > -1) {
                     // Upper Right Servo
+                    m_rightUpperServoPin = pin;
                     LogHandler::debug(_TAG, "Connecting right upper servo to pin: %ld", pin);
                     #ifdef ESP_ARDUINO3
                     ledcAttach(pin, MainServo_Freq, 16);
@@ -139,6 +143,7 @@ public:
                 pin = ((PinMapSR6*)pinMap)->pitchRight();
                 if(pin> -1) {
                     // Right Pitch Servo
+                    m_rightPitchServoPin = pin;
                     LogHandler::debug(_TAG, "Connecting right pitch servo to pin: %ld", pin);
                     #ifdef ESP_ARDUINO3
                     ledcAttach(pin, PitchServo_Freq, 16);
@@ -155,6 +160,7 @@ public:
         pin = ((PinMapSR6*)pinMap)->pitchLeft();
         if(pin > -1) {
             // Left Pitch Servo
+            m_leftPitchServoPin = pin;
             LogHandler::debug(_TAG, "Connecting pitch servo to pin: %u", pin);
             #ifdef ESP_ARDUINO3
             ledcAttach(pin, PitchServo_Freq, 16);
@@ -224,6 +230,28 @@ public:
             stroke = map(xLin,0,10000,-350,350);
             roll   = map(yRot,0,10000,-180,180);
             pitch  = map(zRot,0,10000,-350,350);
+            #ifdef ESP_ARDUINO3
+            if(m_settingsFactory->getInverseStroke()) 
+            {
+                ledcWrite(m_leftServoPin, map(m_settingsFactory->getLeftServo_ZERO() - stroke + roll,0,MainServo_Int,0,65535));
+                ledcWrite(m_rightServoPin, map(m_settingsFactory->getRightServo_ZERO() + stroke + roll,0,MainServo_Int,0,65535));
+            }
+            else
+            {
+                ledcWrite(m_leftServoPin, map(m_settingsFactory->getLeftServo_ZERO() + stroke + roll,0,MainServo_Int,0,65535));
+                ledcWrite(m_rightServoPin, map(m_settingsFactory->getRightServo_ZERO() - stroke + roll,0,MainServo_Int,0,65535));
+            }
+            
+            if(m_settingsFactory->getInversePitch()) 
+            {
+                ledcWrite(m_leftPitchServoPin, map(m_settingsFactory->getPitchLeftServo_ZERO() + pitch,0,PitchServo_Int,0,65535));
+
+            }
+            else
+            {
+                ledcWrite(m_leftPitchServoPin, map(m_settingsFactory->getPitchLeftServo_ZERO() - pitch,0,PitchServo_Int,0,65535));
+            }
+            #else
             if(m_settingsFactory->getInverseStroke()) 
             {
                 ledcWrite(LowerLeftServo_PWM, map(m_settingsFactory->getLeftServo_ZERO() - stroke + roll,0,MainServo_Int,0,65535));
@@ -244,6 +272,7 @@ public:
             {
                 ledcWrite(LeftPitchServo_PWM, map(m_settingsFactory->getPitchLeftServo_ZERO() - pitch,0,PitchServo_Int,0,65535));
             }
+            #endif
         }
         else if(m_deviceType == DeviceType::SR6)
         {
@@ -285,6 +314,16 @@ public:
 				// Serial.printf("Sending pitchLeftValue: %i\n", pitchLeftValue);
 				// Serial.printf("Sending pitchRightValue: %i\n", pitchRightValue);
             // Set Servos
+            #ifdef ESP_ARDUINO3
+            ledcWrite(m_leftServoPin, map(m_settingsFactory->getLeftServo_ZERO() - lowerLeftValue,0,MainServo_Int,0,65535));
+            ledcWrite(m_leftUpperServoPin, map(m_settingsFactory->getLeftUpperServo_ZERO() + upperLeftValue,0,MainServo_Int,0,65535));
+            ledcWrite(m_rightUpperServoPin, map(m_settingsFactory->getRightUpperServo_ZERO() - upperRightValue,0,MainServo_Int,0,65535));
+            ledcWrite(m_rightServoPin, map(m_settingsFactory->getRightServo_ZERO() + lowerRightValue,0,MainServo_Int,0,65535));
+            uint16_t pitchLeftZero = m_settingsFactory->getPitchLeftServo_ZERO();
+            ledcWrite(m_leftPitchServoPin, map(constrain(pitchLeftZero - pitchLeftValue, pitchLeftZero - 600, pitchLeftZero + 1000), 0, PitchServo_Int, 0, 65535));
+            uint16_t pitchRightZero = m_settingsFactory->getPitchRightServo_ZERO();
+            ledcWrite(m_rightPitchServoPin, map(constrain(pitchRightZero + pitchRightValue, pitchRightZero - 1000, pitchRightZero + 600), 0, PitchServo_Int, 0, 65535));
+            #else
             ledcWrite(LowerLeftServo_PWM, map(m_settingsFactory->getLeftServo_ZERO() - lowerLeftValue,0,MainServo_Int,0,65535));
             ledcWrite(UpperLeftServo_PWM, map(m_settingsFactory->getLeftUpperServo_ZERO() + upperLeftValue,0,MainServo_Int,0,65535));
             ledcWrite(UpperRightServo_PWM, map(m_settingsFactory->getRightUpperServo_ZERO() - upperRightValue,0,MainServo_Int,0,65535));
@@ -293,6 +332,7 @@ public:
             ledcWrite(LeftPitchServo_PWM, map(constrain(pitchLeftZero - pitchLeftValue, pitchLeftZero - 600, pitchLeftZero + 1000), 0, PitchServo_Int, 0, 65535));
             uint16_t pitchRightZero = m_settingsFactory->getPitchRightServo_ZERO();
             ledcWrite(RightPitchServo_PWM, map(constrain(pitchRightZero + pitchRightValue, pitchRightZero - 1000, pitchRightZero + 600), 0, PitchServo_Int, 0, 65535));
+            #endif
         }
 
         executeCommon(xLin);
@@ -307,6 +347,13 @@ private:
     bool m_initFailed = false;
     int MainServo_Int;
     int PitchServo_Int;
+
+    int8_t m_leftServoPin = -1;
+    int8_t m_rightServoPin = -1;
+    int8_t m_rightUpperServoPin = -1;
+    int8_t m_leftUpperServoPin = -1;
+    int8_t m_leftPitchServoPin = -1;
+    int8_t m_rightPitchServoPin = -1;
 
     int MainServo_Freq;
     int PitchServo_Freq;

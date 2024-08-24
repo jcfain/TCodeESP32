@@ -43,7 +43,6 @@ private:
     BLECharacteristic* m_characteristic;
     
     void setupCharacteristics(BLEService *pService, BLEAdvertising *pAdvertising, QueueHandle_t tcodeQueue) override {
-        LogHandler::info(TagHandler::BLEHandler, "Setting up BLE Tcode handler");
         m_characteristic = new BLECharacteristic(CHARACTERISTIC_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
         m_characteristic->setCallbacks(getCaracteristicCallbacks(tcodeQueue));
         pService->addCharacteristic(m_characteristic);
@@ -52,5 +51,9 @@ private:
     BLECharacteristicCallbacksBase* getCaracteristicCallbacks(QueueHandle_t tcodeQueue) {
         static BLETCodeControlCallback callbacks(tcodeQueue);
         return &callbacks;
+    }
+    void CommandCallback(const char* in) override {
+        //m_characteristic->setValue(in);
+        m_characteristic->notify(in);
     };
 };
