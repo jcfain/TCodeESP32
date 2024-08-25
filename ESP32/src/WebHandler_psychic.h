@@ -33,7 +33,7 @@ SOFTWARE. */
 //#include <AsyncJson.h>
 #include "HTTP/HTTPBase.h"
 #include "WifiHandler.h"
-#include "WebSocketHandler.h"
+#include "WebSocketHandler_psychic.h"
 #include "TagHandler.h"
 #include "SystemCommandHandler.h"
 // #if !CONFIG_HTTPD_WS_SUPPORT
@@ -46,8 +46,9 @@ class WebHandler : public HTTPBase {
             stop();
             if (port < 1) 
                 port = 80;
-		    LogHandler::info(_TAG, "Starting web server on port: %i", port);
+		    LogHandler::info(_TAG, "Starting psychic web server on port: %i", port);
             server = new PsychicHttpServer();
+            m_settingsFactory = SettingsFactory::getInstance();
 
             server->listen(port);
             ((WebSocketHandler*)webSocketHandler)->setup(server);
@@ -64,9 +65,15 @@ class WebHandler : public HTTPBase {
                 return request->reply(200, "application/json", info);
             });  
 
+            server->on("/pins", HTTP_GET, [](PsychicRequest *request) 
+            {
+                PsychicFileResponse response(request, LittleFS, PIN_SETTINGS_PATH, "application/json");
+                return response.send();
+            }); 
+
             server->on("/settings", HTTP_GET, [](PsychicRequest *request) 
             {
-                PsychicFileResponse response(request, LittleFS, SettingsHandler::userSettingsFilePath, "application/json");
+                PsychicFileResponse response(request, LittleFS, COMMON_SETTINGS_PATH, "application/json");
                 return response.send();
             });   
 
@@ -82,13 +89,13 @@ class WebHandler : public HTTPBase {
 
             server->on("/motionProfiles", HTTP_GET, [](PsychicRequest *request) 
             {
-                PsychicFileResponse response(request, LittleFS, SettingsHandler::motionProfilesFilePath, "application/json");
+                PsychicFileResponse response(request, LittleFS, MOTION_PROFILE_SETTINGS_PATH, "application/json");
                 return response.send();
             });   
 
             server->on("/buttonSettings", HTTP_GET, [](PsychicRequest *request) 
             {
-                PsychicFileResponse response(request, LittleFS, SettingsHandler::buttonsFilePath, "application/json");
+                PsychicFileResponse response(request, LittleFS, BUTTON_SETTINGS_PATH, "application/json");
                 return response.send();
             });  
             
@@ -96,16 +103,20 @@ class WebHandler : public HTTPBase {
             server->on("/log", HTTP_GET, [](PsychicRequest *request) 
             {
                 Serial.println("Get log...");
-                PsychicFileResponse response(request, LittleFS, SettingsHandler::logPath);
+                PsychicFileResponse response(request, LittleFS, LOG_PATH);
                 return response.send();
             });   
 
-            server->on("/connectWifi", HTTP_POST, [](PsychicRequest *request) 
+            server->on("/connectWifi", HTTP_POST, [this](PsychicRequest *request) 
             {
                 WifiHandler wifi;
-                const size_t capacity = JSON_OBJECT_SIZE(2);
-                DynamicJsonDocument doc(capacity);
-                if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) 
+                //const size_t capacity = JSON_OBJECT_SIZE(2);
+                JsonDocument doc;
+                char ssid[SSID_LEN] = {0};
+                char pass[WIFI_PASS_LEN] = {0};
+                m_settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
+                m_settingsFactory->getValue(WIFI_PASS_SETTING, pass, WIFI_PASS_LEN);
+                if (wifi.connect(ssid, pass)) 
                 {
 
                     doc["connected"] = true;
@@ -123,13 +134,13 @@ class WebHandler : public HTTPBase {
                 return request->reply(200, "application/json", output.c_str());
             });
 
-            server->on("/toggleContinousTwist", HTTP_POST, [](PsychicRequest *request) 
+            server->on("/toggleContinousTwist", HTTP_POST, [this](PsychicRequest *request) 
             {
-				SettingsHandler::continuousTwist = !SettingsHandler::continuousTwist;
-				if (SettingsHandler::saveSettings()) 
+				m_settingsFactory->setValue(CONTINUOUS_TWIST, !m_settingsFactory->getContinuousTwist());
+				if (m_settingsFactory->saveCommon()) 
 				{
 					char returnJson[45];
-					sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", SettingsHandler::continuousTwist ? "true" : "false");
+					sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", m_settingsFactory->getContinuousTwist() ? "true" : "false");
 					//PsychicResponse *response = request->beginResponse(200, "application/json", returnJson);
 					return request->reply(200, "application/json", returnJson);
 				} 
@@ -146,14 +157,15 @@ class WebHandler : public HTTPBase {
             // });
 
 
-            server->on("^\\/pinoutDefault\\/([0-9]+)$", HTTP_POST, [](PsychicRequest *request)
+            server->on("^\\/pinoutDefault\\/([0-9]+)$", HTTP_POST, [this](PsychicRequest *request)
             {
                 auto boardType = request->getParam("");
                 String boardTypeString = boardType->value();
                 int boardTypeInt = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
                 Serial.println("Settings pinout default");
-                SettingsHandler::boardType = (BoardType)boardTypeInt;
-				if (SettingsHandler::defaultPinout())
+                m_settingsFactory->setValue(BOARD_TYPE_SETTING, boardTypeInt);
+                if(SettingsHandler::defaultPinout())
+				//if (m_settingsFactory->resetPins()) // Settings handler executes resetPins
                 {
                     return request->reply(200, "application/json", "{\"msg\":\"done\"}");
                 } 
@@ -187,120 +199,70 @@ class WebHandler : public HTTPBase {
             server->on("/default", HTTP_POST, [this](PsychicRequest *request)
             {
                 Serial.println("Settings default");
-                if(SettingsHandler::defaultAll()) {
-                    return request->reply(200, "application/json", "{\"msg\":\"done\"}");
+                if(m_settingsFactory->resetAll()) {
+                    esp_err_t ret = request->reply(200, "application/json", "{\"msg\":\"done\"}");
+			        SettingsHandler::restart(5);
+                    return ret;
                 } else {
                     return sendError(request);
                 }
             });
 
-            // AsyncCallbackJsonWebHandler* settingsUpdateHandler = new AsyncCallbackJsonWebHandler("/settings", [](PsychicRequest *request, JsonVariant &json)
-			// {
-            //     Serial.println("API save settings...");
-            //     JsonObject jsonObj = json.as<JsonObject>();
-            //     if (SettingsHandler::loadSettings(false, jsonObj) && SettingsHandler::saveSettings()) 
-            //     {
-            //         PsychicResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
-            //         request->send(response);
-            //     } 
-            //     else 
-            //     {
-            //         PsychicResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving settings\"}");
-            //         request->send(response);
-            //     }
-            // }, 32768U );//Bad request? increase the size.
+            server->on("/settings", HTTP_POST, [this](PsychicRequest *request, JsonVariant &json)
+			{
+                Serial.println("API save settings...");
+                JsonObject jsonObj = json.as<JsonObject>();
+                if (m_settingsFactory->saveCommon(jsonObj)) 
+                {
+                    return request->reply(200, "application/json", "{\"msg\":\"done\"}");
+                } 
+                return request->reply(500, "application/json", "{\"msg\":\"Error saving settings\"}");
+            });
 
-            // AsyncCallbackJsonWebHandler* wifiUpdateHandler = new AsyncCallbackJsonWebHandler("/wifiSettings", [](PsychicRequest *request, JsonVariant &json)
-			// {
-            //     Serial.println("API save wifi settings...");
-            //     JsonObject jsonObj = json.as<JsonObject>();
-            //     if (SettingsHandler::saveWifiInfo(jsonObj)) 
-            //     {
-            //         PsychicResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
-            //         request->send(response);
-            //     } 
-            //     else 
-            //     {
-            //         PsychicResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving wifi settings\"}");
-            //         request->send(response);
-            //     }
-            // }, 100U );//Bad request? increase the size.
+            server->on("/pins", [this](PsychicRequest *request, JsonVariant &json)
+			{
+                Serial.println("API save pins...");
+                JsonObject jsonObj = json.as<JsonObject>();
+                if (m_settingsFactory->savePins(jsonObj)) 
+                {
+                    return request->reply(200, "application/json", "{\"msg\":\"done\"}");
+                } 
+                return request->reply(500, "application/json", "{\"msg\":\"Error saving pin settings\"}");
+            });
 
-            // AsyncCallbackJsonWebHandler* motionProfileUpdateHandler = new AsyncCallbackJsonWebHandler("/motionProfiles", [](PsychicRequest *request, JsonVariant &json)
-			// {
-            //     Serial.println("API save motion profiles...");
-            //     JsonObject jsonObj = json.as<JsonObject>();
-            //     if (SettingsHandler::saveMotionProfiles(jsonObj)) 
-            //     {
-            //         PsychicResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
-            //         request->send(response);
-            //     } 
-            //     else 
-            //     {
-            //         PsychicResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving motion profiles\"}");
-            //         request->send(response);
-            //     }
-            // }, 30000U );//Bad request? increase the size.
+            server->on("/wifiSettings", [this](PsychicRequest *request, JsonVariant &json)
+			{
+                Serial.println("API save wifi settings...");
+                JsonObject jsonObj = json.as<JsonObject>();
+                if (m_settingsFactory->saveWifi(jsonObj)) 
+                {
+                    return request->reply(200, "application/json", "{\"msg\":\"done\"}");
+                } 
+                return request->reply(500, "application/json", "{\"msg\":\"Error saving wifi settings\"}");
+            });
+
+            server->on("/motionProfiles", [this](PsychicRequest *request, JsonVariant &json)
+			{
+                Serial.println("API save motion profiles...");
+                JsonObject jsonObj = json.as<JsonObject>();
+                if (SettingsHandler::saveMotionProfiles(jsonObj)) 
+                {
+                    return request->reply(200, "application/json", "{\"msg\":\"done\"}");
+                } 
+                return request->reply(500, "application/json", "{\"msg\":\"Error saving motion profiles settings\"}");
+            });
             
-            // AsyncCallbackJsonWebHandler* buttonsUpdateHandler = new AsyncCallbackJsonWebHandler("/buttonSettings", [](PsychicRequest *request, JsonVariant &json)
-			// {
-            //     Serial.println("API save button settings...");
-            //     JsonObject jsonObj = json.as<JsonObject>();
-            //     if (SettingsHandler::saveButtons(jsonObj)) 
-            //     {
-            //         PsychicResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
-            //         request->send(response);
-            //     } 
-            //     else 
-            //     {
-            //         PsychicResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving button settings\"}");
-            //         request->send(response);
-            //     }
-            // }, 10000U );//Bad request? increase the size.
-            // //To upload through terminal you can use: curl -F "image=@firmware.bin" esp8266-webupdate.local/update
-            // server->on("/update", HTTP_POST, [this](PsychicRequest *request){
-            //         // the request handler is triggered after the upload has finished... 
-            //         // create the response, add header, and send response
-            //         PsychicResponse *response = request->beginResponse(200, "text/plain", (Update.hasError())?"FAIL":"OK");
-            //         response->addHeader("Connection", "close");
-            //         response->addHeader("Access-Control-Allow-Origin", "*");
-            //         SettingsHandler::restartRequired = true;
-            //         request->send(response);
-            //     },[](PsychicRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
-            //         //Upload handler chunks in data
-                    
-            //         if(!index){ // if index == 0 then this is the first frame of data
-            //         Serial.printf("UploadStart: %s\n", filename.c_str());
-            //         Serial.setDebugOutput(true);
-                    
-            //         // calculate sketch space required for the update
-            //         uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-            //         if(!Update.begin(maxSketchSpace)){//start with max available size
-            //             Update.printError(Serial);
-            //         }
-            //             Update.runAsync(true); // tell the updaterClass to run in async mode
-            //     }
+            server->on("/buttonSettings", [this](PsychicRequest *request, JsonVariant &json)
+			{
+                Serial.println("API save button settings...");
+                JsonObject jsonObj = json.as<JsonObject>();
+                if (SettingsHandler::saveButtons(jsonObj)) 
+                {
+                    return request->reply(200, "application/json", "{\"msg\":\"done\"}");
+                } 
+                return request->reply(500, "application/json", "{\"msg\":\"Error saving button settings\"}");
+            });
 
-            //     //Write chunked data to the free sketch space
-            //     if(Update.write(data, len) != len){
-            //         Update.printError(Serial);
-            //     }
-                
-            //     if(final){ // if the final flag is set then this is the last frame of data
-            //     if(Update.end(true)){ //true to set the size to the current progress
-            //         Serial.printf("Update Success: %u B\nRebooting...\n", index+len);
-            //         } else {
-            //         Update.printError(Serial);
-            //         }
-            //         Serial.setDebugOutput(false);
-            //     }
-            // });
-
-            // server->addHandler(settingsUpdateHandler);
-            // server->addHandler(wifiUpdateHandler);
-            // server->addHandler(motionProfileUpdateHandler);
-            // server->addHandler(buttonsUpdateHandler);
-            
             server->onNotFound([](PsychicRequest *request) 
 			{
                 Serial.printf("PsychicRequest Not found: %s", request->url());
@@ -337,6 +299,7 @@ class WebHandler : public HTTPBase {
     private:
         bool initialized = false;
         const char* _TAG = TagHandler::WebHandler;
+    	SettingsFactory* m_settingsFactory;
         PsychicHttpServer* server;
 
         void handleUpload(PsychicRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
@@ -351,8 +314,7 @@ class WebHandler : public HTTPBase {
             }
         }
         esp_err_t sendError(PsychicRequest *request, int code = 500) {
-            char lastError[1024];
-            LogHandler::getLastError(lastError);
+            const char* lastError = LogHandler::getLastError();
             char responseMessage[1024];
             sprintf(responseMessage, "{\"msg\":\"Error setting default: %s\"}", strlen(lastError) > 0 ? lastError : "Unknown error");
             //PsychicResponse *response = request->beginResponse(code, "application/json", responseMessage);

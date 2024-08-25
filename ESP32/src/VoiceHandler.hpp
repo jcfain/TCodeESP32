@@ -139,45 +139,45 @@ private:
             case 5:
             LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
             sendMessage("#motion-enable");
-            char command[22];
-            sprintf(command, "#motion-profile-set:%ld", SettingsHandler::getMotionDefaultProfileIndex() +1);
+            char command[32];
+            sprintf(command, "#motion-profile-set:%d", SettingsHandler::getMotionDefaultProfileIndex() +1);
             sendMessage(command);
             break;
             case 6:
-            LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
+            LogHandler::verbose(_TAG, "Custom Command: %d", voiceCommand); 
             sendMessage("#motion-enable");
             sendMessage("#motion-profile-set:1");
             break;
             case 7:
-            LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
+            LogHandler::verbose(_TAG, "Custom Command: %d", voiceCommand); 
             sendMessage("#motion-enable");
             sendMessage("#motion-profile-set:2");
             break;
             case 8:
-            LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
+            LogHandler::verbose(_TAG, "Custom Command: %d", voiceCommand); 
             sendMessage("#motion-enable");
             sendMessage("#motion-profile-set:3");
             break;
             case 9:
-            LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
+            LogHandler::verbose(_TAG, "Custom Command: %d", voiceCommand); 
             sendMessage("#motion-enable");
             sendMessage("#motion-profile-set:4");
             break;
             case 10:
-            LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
+            LogHandler::verbose(_TAG, "Custom Command: %d", voiceCommand); 
             sendMessage("#motion-enable");
             sendMessage("#motion-profile-set:5");
             break;
             case 11:
-            LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
+            LogHandler::verbose(_TAG, "Custom Command: %d", voiceCommand); 
             sendMessage("#motion-disable");
             break;
         
             default:if (voiceCommand == 1 || voiceCommand == 2) {
-                LogHandler::verbose(_TAG, "Wakup command: %ld", voiceCommand);
+                LogHandler::verbose(_TAG, "Wakup command: %d", voiceCommand);
             }
              else if (voiceCommand != 0) {
-                LogHandler::verbose(_TAG, "Command not used: %ld", voiceCommand);
+                LogHandler::verbose(_TAG, "Command not used: %d", voiceCommand);
             } 
         }
     }

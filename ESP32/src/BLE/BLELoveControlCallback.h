@@ -41,7 +41,7 @@ public:
         LogHandler::debug(TagHandler::BLEHandler, "Setting up BLE love Characteristic Callbacks");
     }
     // At some point this signature will change because its in master so if Bluetooth breaks, check the source class signature.
-    #ifdef ESP_ARDUINO3
+    #ifdef NIMBLE_LATEST
     void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo)  override {
     #else
     void onWrite(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc)  override {
@@ -117,7 +117,7 @@ public:
 
     };
     
-    #ifdef ESP_ARDUINO3
+    #ifdef NIMBLE_LATEST
     void onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
     #else
     void onRead(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc) override {
@@ -140,12 +140,12 @@ private:
     BLECharacteristic* m_pTxCharacteristic = 0;
 
     void buildTCode(const char* channel, const int &loveValue, const u_int16_t &interval, char* buf) {
-        sprintf(buf, "%s%04dI%u\n", channel, map(loveValue, 0,20,0,9999), interval);
+        sprintf(buf, "%s%04ldI%u\n", channel, map(loveValue, 0,20,0,9999), interval);
     }
     void buildTCode(const char* channel, const int &loveValue, char* buf) {
-        sprintf(buf, "%s%04d\n", channel, map(loveValue, 0,20,0,9999));
+        sprintf(buf, "%s%04ld\n", channel, map(loveValue, 0,20,0,9999));
     }
     void buildTCodeSpeed(const char* channel, const int &loveValue, const u_int16_t &speed, char* buf) {
-        sprintf(buf, "%s%04dS%u\n", channel, map(loveValue, 0,20,0,9999), speed);
+        sprintf(buf, "%s%04ldS%u\n", channel, map(loveValue, 0,20,0,9999), speed);
     }
 };

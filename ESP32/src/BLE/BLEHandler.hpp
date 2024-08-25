@@ -25,7 +25,7 @@ SOFTWARE. */
 #include <NimBLEDevice.h>
 #include <NimBLEServer.h>
 #include <NimBLEUtils.h>
-//#include <NimBLE2902.h>
+// #include <NimBLE2902.h>
 #include <queue>
 #include <sstream>
 #include "esp_coexist.h"
@@ -39,32 +39,34 @@ SOFTWARE. */
 #include "BLEHandlerLove.h"
 #include "BLEHandlerHc.h"
 
-class BLEHandler {
+class BLEHandler
+{
 public:
-    BLEHandler() {
-            m_TCodeQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
-            m_callBackQueue = xQueueCreate(5, sizeof(char[MAX_COMMAND]));
+    BLEHandler()
+    {
+        m_TCodeQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
+        m_callBackQueue = xQueueCreate(5, sizeof(char[MAX_COMMAND]));
     }
-    void setup () {
-        //auto callbacks = getCaracteristicCallbacks();
-
+    void setup()
+    {
+        // auto callbacks = getCaracteristicCallbacks();
 
         m_subHandler = getHandler();
         m_subHandler->setup(m_TCodeQueue);
 
-        //LogHandler::debug(_TAG, "Setting up BLE Characteristics");
-        // if(m_isHC) {
-        //     m_tcodeCharacteristic = new BLECharacteristic(callbacks->CHARACTERISTIC_UUID, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
-        //     m_tcodeCharacteristic2 = new BLECharacteristic(callbacks->CHARACTERISTIC_UUID2, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
-        //     m_tcodeCharacteristic2->setCallbacks(callbacks);
-        // } else {
-        //     m_tcodeCharacteristic = new BLECharacteristic(callbacks->CHARACTERISTIC_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
-        // }
-        // LogHandler::debug(_TAG, "Setting up BLE Characteristic Callbacks");
-        // m_tcodeCharacteristic->setCallbacks(callbacks);
+        // LogHandler::debug(_TAG, "Setting up BLE Characteristics");
+        //  if(m_isHC) {
+        //      m_tcodeCharacteristic = new BLECharacteristic(callbacks->CHARACTERISTIC_UUID, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
+        //      m_tcodeCharacteristic2 = new BLECharacteristic(callbacks->CHARACTERISTIC_UUID2, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
+        //      m_tcodeCharacteristic2->setCallbacks(callbacks);
+        //  } else {
+        //      m_tcodeCharacteristic = new BLECharacteristic(callbacks->CHARACTERISTIC_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
+        //  }
+        //  LogHandler::debug(_TAG, "Setting up BLE Characteristic Callbacks");
+        //  m_tcodeCharacteristic->setCallbacks(callbacks);
 
         // pService->addCharacteristic(m_tcodeCharacteristic);
-        
+
         // if(m_isHC) {
         //     pService->addCharacteristic(m_tcodeCharacteristic2);
         // }
@@ -76,19 +78,19 @@ public:
         // // After sending
         // esp_coex_status_bit_clear(ESP_COEX_ST_TYPE_BLE, ESP_COEX_BLE_ST_MESH_CONFIG);
         // Before sending BLE command
-        //esp_coex_preference_set(ESP_COEX_PREFER_BT);
+        // esp_coex_preference_set(ESP_COEX_PREFER_BT);
 
-        //After sending
-        //esp_coex_preference_set(ESP_COEX_PREFER_WIFI);
-        
-		// xTaskCreatePinnedToCore(
-		// 	bleTask,/* Function to implement the task */
-		// 	"BLETask", /* Name of the task */
-		// 	configMINIMAL_STACK_SIZE*4,  /* Stack size in words */
-		// 	static_cast<void*>(this),  /* Task input parameter */
-		// 	tskIDLE_PRIORITY,  /* Priority of the task */
-		// 	&m_bleTask,  /* Task handle. */
-		// 	CONFIG_BT_NIMBLE_PINNED_TO_CORE); /* Core where the task should run */
+        // After sending
+        // esp_coex_preference_set(ESP_COEX_PREFER_WIFI);
+
+        // xTaskCreatePinnedToCore(
+        // 	bleTask,/* Function to implement the task */
+        // 	"BLETask", /* Name of the task */
+        // 	configMINIMAL_STACK_SIZE*4,  /* Stack size in words */
+        // 	static_cast<void*>(this),  /* Task input parameter */
+        // 	tskIDLE_PRIORITY,  /* Priority of the task */
+        // 	&m_bleTask,  /* Task handle. */
+        // 	CONFIG_BT_NIMBLE_PINNED_TO_CORE); /* Core where the task should run */
     }
 
     // static void bleTask(void* arg) {
@@ -111,7 +113,8 @@ public:
     //     }
     // }
 
-    void read(char* buf) {
+    void read(char *buf)
+    {
         // if(m_tcodeCharacteristic->getDataLength()) {
         //     const char* value = m_tcodeCharacteristic->getValue().c_str();
         //     strncpy(buf, value, m_tcodeCharacteristic->getDataLength());
@@ -120,37 +123,54 @@ public:
         // {
         //     buf[0] = {0};
         // }
-        if(xQueueReceive(m_TCodeQueue, buf, 0)) {
-            //LogHandler::verbose(_TAG, "Recieve tcode: %s", buf);
-        } else {
-            //LogHandler::error(_TAG, "Failed to read from queue");
+        if (xQueueReceive(m_TCodeQueue, buf, 0))
+        {
+            // LogHandler::verbose(_TAG, "Recieve tcode: %s", buf);
+        }
+        else
+        {
+            // LogHandler::error(_TAG, "Failed to read from queue");
             buf[0] = {0};
         }
     }
 
-    bool isConnected() 
+    bool isConnected()
     {
+        if(!m_subHandler)
+            return false;
         return m_subHandler->isConnected();
     }
-    
-    void CommandCallback(const char* in)
+
+    void CommandCallback(const char *in)
     {
-        //if(isConnected())
+        if(m_subHandler)
             m_subHandler->CommandCallback(in);
     }
 
-private: 
+    static void disable()
+    {
+        LogHandler::info(_TAG, "Disable bluetooth");
+        //BLEDevice::deinit();
+        //esp_err_t disable = esp_bt_controller_deinit();
+        esp_err_t disable = esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
+        if (disable != ESP_OK)
+        {
+            LogHandler::error(_TAG, "Disable fail: %s", esp_err_to_name(disable));
+        }
+    };
+
+private:
     // friend class BLETCodeControlCallback;
     // friend class BLELoveControlCallback;
-    static const char* _TAG;
+    static const char *_TAG;
     // const char* BLE_DEVICE_NAME = "TCODE-ESP32";
     // const char* BLE_TCODE_SERVICE_UUID = "ff1b451d-3070-4276-9c81-5dc5ea1043bc";
     // const char* BLE_TCODE_CHARACTERISTIC_UUID = "c5f1543e-338d-47a0-8525-01e3c621359d";
 
     bool m_isHC = false;
     bool m_isLove = true;
-    BLEHandlerBase* m_subHandler;
-    
+    BLEHandlerBase *m_subHandler = 0;
+
     QueueHandle_t m_TCodeQueue;
     QueueHandle_t m_callBackQueue;
     // // Haptics connect UUID's
@@ -160,12 +180,16 @@ private:
     // const char* BLE_TCODE_CHARACTERISTIC_UUID2_HC = "00002000-0002-1000-8000-0000101A2B3C";
 
     TaskHandle_t m_bleTask;
-    BLEHandlerBase* getHandler() {
-        if(m_isLove) {
+    BLEHandlerBase *getHandler()
+    {
+        if (m_isLove)
+        {
             LogHandler::info(_TAG, "Setting up BLE Love handler");
             static BLEHandlerLove bleHandler;
             return &bleHandler;
-        } else if(m_isHC) {
+        }
+        else if (m_isHC)
+        {
             LogHandler::info(_TAG, "Setting up BLE HC handler");
             static BLEHandlerHC bleHandler;
             return &bleHandler;
@@ -175,4 +199,4 @@ private:
         return &bleHandler;
     };
 };
-const char*  BLEHandler::_TAG = TagHandler::BLEHandler;
+const char *BLEHandler::_TAG = TagHandler::BLEHandler;

@@ -543,7 +543,7 @@ private:
 		
         for(SettingFileInfo* settingsInfo : allSettings)
         {
-			for(const Setting setting : settingsInfo->settings)
+			for(const Setting& setting : settingsInfo->settings)
 			{
 				switch(setting.type) {
 					case SettingType::String: {
@@ -731,7 +731,7 @@ private:
 
 	bool validateGreaterThanZero(const char* name, int value, std::function<bool(int value)> function,  SaveRequired isSaveRequired = SaveRequired::NO, RestartRequired isRestartRequired = RestartRequired::NO) {
 		if(value < 1) {
-			Serial.printf("Invalid value: %ld.", value);
+			Serial.printf("Invalid value: %d.", value);
 			xSemaphoreGive(xMutex);
 			return false;
 		}
@@ -745,7 +745,7 @@ private:
 	}
 	bool validateGreaterThanNegativeOne(const char* name, int value, std::function<bool(int value)> function, SaveRequired isSaveRequired = SaveRequired::NO, RestartRequired isRestartRequired = RestartRequired::NO) {
 		if(value < 0) {
-			Serial.printf("Invalid value: %ld.", value);
+			Serial.printf("Invalid value: %d.", value);
 			xSemaphoreGive(xMutex);
 			return false;
 		}
@@ -760,7 +760,7 @@ private:
 
 	bool validateMaxLength(const char* name, const char* value, int maxLen, bool valueSensitive, std::function<bool(const char* value)> function,  SaveRequired isSaveRequired = SaveRequired::NO, RestartRequired isRestartRequired = RestartRequired::NO) {
 		if(strlen(value) > maxLen) {
-			Serial.printf("Invalid command: %s max length is: %ld\n", name, maxLen);
+			Serial.printf("Invalid command: %s max length is: %d\n", name, maxLen);
 			xSemaphoreGive(xMutex);
 			return false;
 		}
@@ -769,7 +769,7 @@ private:
 			if(!valueSensitive)
 				printNewState(name, value);
 			else
-				Serial.printf("%s changed to a value of %ld length\n", name, strlen(value));
+				Serial.printf("%s changed to a value of %d length\n", name, strlen(value));
 			completeCommand(isRestartRequired, isSaveRequired);
 		}
 		xSemaphoreGive(xMutex);
@@ -780,7 +780,7 @@ private:
 		Serial.printf("%s changed to: %s\n", name, newValue);
 	}
 	void printNewState(const char* name, int newValue) {
-		Serial.printf("%s changed to: %ld\n", name, newValue);
+		Serial.printf("%s changed to: %d\n", name, newValue);
 	}
 	void printNewState(const char* name, bool newValue) {
 		Serial.printf("%s %s\n", name, newValue ? "enabled" : "disabled");

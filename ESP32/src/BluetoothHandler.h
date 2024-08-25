@@ -87,6 +87,10 @@ class BluetoothHandler
 		return _isConnected;
 	}
 
+  static void disable() {
+    esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
+  }
+
   private:
     const char* _TAG = TagHandler::BluetoothHandler;
   	bool _isConnected = false;

@@ -103,6 +103,13 @@ public:
 		if(m_sleeveTempEnabled) {
 			setupSleeveTemp();
 		}
+		#ifdef ESP_ARDUINO3
+			m_caseFanAddress = m_caseFanPin;
+			m_heatAddress = m_heaterPin;
+		#else
+			m_caseFanAddress = CaseFan_PWM;
+			m_heatAddress = Heater_PWM;
+		#endif
 	}
 
 	void setupSleeveTemp() {
@@ -330,7 +337,7 @@ public:
 					m_lastInternalTempDuty = m_fanMaxDuty;
 					LogHandler::debug(_TAG, "Setting fan duty: %f", m_lastInternalTempDuty);
 				}
-				ledcWrite(CaseFan_PWM, m_fanMaxDuty);
+				ledcWrite(m_caseFanAddress, m_fanMaxDuty);
 			} else {
 				if(m_fanControlEnabled && !fanControlInitialized)
 					currentState = TemperatureState::RESTART_REQUIRED;
@@ -352,7 +359,7 @@ public:
 			String currentState;
 			if(m_sleeveTempEnabled && sleeveTempInitialized) {
 				if(failsafeTriggerSleeve) {
-					ledcWrite(Heater_PWM, 0);
+					ledcWrite(m_heatAddress, 0);
 				} 
 				else {
 					double currentTemp = _currentSleeveTemp;
@@ -364,7 +371,7 @@ public:
 						if (definitelyLessThan(currentTemp, m_settingsFactory->getTargetTemp()) 
 						//|| (currentTemp > 0 && bootTime)
 						) {
-							ledcWrite(Heater_PWM, m_settingsFactory->getHeatPWM());
+							ledcWrite(m_heatAddress, m_settingsFactory->getHeatPWM());
 
 							// if(bootTime) 
 							// {
@@ -387,10 +394,10 @@ public:
 								if(message_callback)
 									message_callback(TemperatureType::SLEEVE, "tempReached", _currentSleeveTemp);
 							}
-							ledcWrite(Heater_PWM, m_settingsFactory->getHoldPWM());
+							ledcWrite(m_heatAddress, m_settingsFactory->getHoldPWM());
 							currentState = TemperatureState::HOLD;
 						} else {
-							ledcWrite(Heater_PWM, 0);
+							ledcWrite(m_heatAddress, 0);
 							currentState = TemperatureState::OFF;
 						}
 					}
@@ -494,6 +501,9 @@ private:
 		int m_fanResolution = CASE_FAN_RESOLUTION_DEFAULT;
 		int m_fanMaxDuty = pow(2, m_fanResolution) - 1;
 		float m_internalTempForFanOn = INTERNAL_TEMP_FOR_FAN_DEFAULT;
+
+		uint8_t m_caseFanAddress = 0;
+		uint8_t m_heatAddress = 0;
 
 		const int resolution = 9;
 		const int delayInMillis = 750 / (1 << (12 - resolution));

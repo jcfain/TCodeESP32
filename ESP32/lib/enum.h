@@ -29,6 +29,12 @@ enum class BuildFeature: int
     COEXIST_FEATURE
 };
 
+enum class ModuleType: int
+{
+    WROOM32,
+    S3_MODULE
+};
+
 enum class BoardType: int
 {
     DEVKIT,

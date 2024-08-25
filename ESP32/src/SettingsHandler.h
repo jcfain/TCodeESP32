@@ -351,7 +351,7 @@ public:
         char webServerportString[6];
         int webServerPort = 0;
         m_settingsFactory->getValue(WEBSERVER_PORT, webServerPort);
-        sprintf(webServerportString, ":%ld", webServerPort);
+        sprintf(webServerportString, ":%d", webServerPort);
         LogHandler::info(_TAG, "Web address: http://%s%s", hostAddress, webServerPort == 80 ? "" : webServerportString);
     }
     
@@ -508,6 +508,11 @@ public:
         {
             buildFeaturesJsonArray.add((int)value);
         }
+#ifdef WROOM32
+         doc["moduleType"] = (int)ModuleType::WROOM32;
+#elif defined(S3)
+         doc["moduleType"] = (int)ModuleType::S3_MODULE;
+#endif
 
         JsonArray availableTagsJsonArray = doc["availableTags"].to<JsonArray>();
         for (const char *tag : TagHandler::AvailableTags)

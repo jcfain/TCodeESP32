@@ -35,7 +35,8 @@ SOFTWARE. */
 class MDNSHandler {
     public:
         void setup(const char* hostName, const char* friendlyName, const int webPort, const int udpPort) {
-            startMDNS(hostName, friendlyName, webPort, udpPort);
+            if(!MDNSInitialized)
+                startMDNS(hostName, friendlyName, webPort, udpPort);
         }
         void stop() {
             if(MDNSInitialized)

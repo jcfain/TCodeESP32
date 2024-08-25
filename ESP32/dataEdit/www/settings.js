@@ -50,6 +50,10 @@ const MotorType = {
     Servo: 0,
     BLDC: 1
 };
+const ModuleType = {
+    WROOM32: 0,
+    S3: 1
+}
 const BoardType = {
     DEVKIT: 0,
     CRIMZZON: 1,
@@ -87,6 +91,7 @@ var testDeviceModifierValue = "1000";
 var restartClicked = false;
 var serverPollingTimeOut = null;
 var staticIPAddressTimeout = null;
+var hostnameTimeout = null;
 var websocketRetryCount = 0;
 var channelSliderList = [];
 var restartingAndChangingAddress = false;
@@ -206,8 +211,13 @@ function getWifiSettings(chain) {
         if(!wifiSettings || !wifiSettings["ssid"]) {
             showError("Error getting wifi settings!");
         }
-        else
+        else {
+            startUpStaticIP = wifiSettings["staticIP"];
+            startUpLocalIP = wifiSettings["localIP"];
+            startUpWebPort = wifiSettings["webServerPort"];
+            startUpHostName = wifiSettings["hostname"];
             setWifiSettings();
+        }
         if(chain)
             getMotionProviderSettings(chain);
     });
@@ -493,9 +503,10 @@ function onRestartClick(optionalMessage)
         {
             if(xhr.status == 200) {
                 var response = xhr.response;
+                var message = "";
                 logdebug("Restart succeed!");
-                if(wifiSettings["bluetoothEnabled"] && !hasFeature(BuildFeature.COEXIST)) {
-                    showLoading("Wifi is now disabled because bluetooth has been enabled. Yuu must disable bluetooth via serial usb to get back to this page.");
+                if(wifiSettings["bluetoothEnabled"]) {
+                    message += "The web server will be disabled because bluetooth has been enabled.<br>You will need to disable bluetooth via serial usb<br>to get back to this page after rebooting.<br><br>";
                 }
                 if(!resettingAllToDefault) {// There redirect should be to the default IP address.
                     checkRestartRedirect();
@@ -516,7 +527,7 @@ function onRestartClick(optionalMessage)
                     }
                     var staticIPUrl = "http://"+localIP;
                     staticIPUrl += webServerPort === 80 ? "" : ":"+webServerPort;
-                    var message = "Device restarting, the page will redirect to<br><a href='"+url+"'>"+url+"</a> in 10 seconds<br>";
+                    message += "Device restarting, the page will redirect to<br><a href='"+url+"'>"+url+"</a> in 10 seconds<br>";
                     if(!resettingAllToDefault) {
                         message += isIPStatic ? "If this doesnt work, you can try using this url<br><a href='"+staticIPUrl+"'>"+staticIPUrl+"</a> when the device reboots." 
                             : "If this doesnt work, you will need<br>to find the dymanic ip address of the esp32."
@@ -627,9 +638,7 @@ function setWifiSettings() {
     document.getElementById("wifiPass").value = wifiSettings["wifiPass"];
     document.getElementById('bluetoothEnabled').checked = wifiSettings["bluetoothEnabled"];
     document.getElementById("staticIP").checked = wifiSettings["staticIP"];
-    startUpStaticIP = wifiSettings["staticIP"];
     document.getElementById("localIPInput").value = wifiSettings["localIP"];
-    startUpLocalIP = wifiSettings["localIP"];
     document.getElementById("gatewayInput").value = wifiSettings["gateway"];
     document.getElementById("subnetInput").value = wifiSettings["subnet"];
     document.getElementById("dns1Input").value = wifiSettings["dns1"];
@@ -637,9 +646,7 @@ function setWifiSettings() {
     toggleStaticIPSettings(wifiSettings["staticIP"]);
     document.getElementById("udpServerPort").value = wifiSettings["udpServerPort"];
     document.getElementById("webServerPort").value = wifiSettings["webServerPort"];
-    startUpWebPort = wifiSettings["webServerPort"];
     document.getElementById("hostname").value = wifiSettings["hostname"];
-    startUpHostName = wifiSettings["hostname"];
     document.getElementById("friendlyName").value = wifiSettings["friendlyName"];
 }
 function setPinoutSettings() {
@@ -964,6 +971,9 @@ function checkRestartRedirect() {
 function isValidIP(ip) {
     return ip && ip.match(/^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/);
 }
+function isValidHostName(hostname) {
+    return hostname && hostname.match(/^(?![0-9]+$)(?!.*-$)(?!-)[a-zA-Z0-9-_]{1,63}$/g)
+}
 
 function showRestartRequired() {
     //document.getElementById('requiresRestart').hidden = false;
@@ -1001,24 +1011,34 @@ function toggleMenu() {
 function clearErrors(name) 
 {
     var errorText = document.getElementById("errorText");
-    var errors = document.getElementsByName(name);
-    for(var i=0;i<errors.length;i++) {
-        errorText.removeChild(errors[i]);
-    }
-    if(errorText.innerText == "" && !errorText.firstChild) {
-        closeError();
-    }
+    if(name) {
+        var errors = document.getElementsByName(name);
+        for(var i=0;i<errors.length;i++) {
+            errorText.removeChild(errors[i].parentNode);
+        }
+        errors = document.getElementsByName("errorItem");
+        if(!errors.length) {
+            document.getElementById("errorMessage").hidden = true;
+        }
+    } 
+    // else {
+    //     closeError();
+    // }
 }
 
 function closeError() 
 {
-    document.getElementById("errorText").innerHTML = "";
+    var errorText = document.getElementById("errorText");
+    removeAllChildren(errorText);
     document.getElementById("errorMessage").hidden = true;
 }
 
 function showError(message) 
 {
-    document.getElementById("errorText").innerHTML += message + "<br>";
+    var div = document.createElement("div");
+    div.setAttribute("name", "errorItem");
+    div.innerHTML = message;
+    document.getElementById("errorText").appendChild(div);
     document.getElementById("errorMessage").hidden = false;
 }
 
@@ -1416,9 +1436,26 @@ function toggleFeedbackTwistSettings(feedbackChecked) {
 }
 function updateHostName() 
 {
-    wifiSettings["hostname"] = document.getElementById('hostname').value;
-    setRestartRequired();
-    postWifiSettings();
+    if(hostnameTimeout !== null) 
+    {
+        clearTimeout(hostnameTimeout);
+    }
+    hostnameTimeout = setTimeout(() => 
+    {
+        clearErrors("hostnameValidation");
+        let value = document.getElementById('hostname').value;
+        if(isValidHostName(value)) 
+        {
+            wifiSettings["hostname"] = value;
+            setRestartRequired();
+            postWifiSettings(0);
+        } else {
+            var errorString = "<div name='hostnameValidation'>Invalid hostname</div>";
+            
+            errorString += "</div>";
+            showError(errorString);
+        }
+    }, defaultDebounce);
 }
 
 function updateFriendlyName() 
@@ -1761,7 +1798,7 @@ function validatePins() {
         assignedPins.push({name:"Pitch left servo", pin:pinValues.pitchLeft});
     }
 
-    validateCommonPWMPins(assignedPins, duplicatePins, pinValues);
+    validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pmwErrors);
 
     var invalidPins = [];
     validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues);
@@ -2335,9 +2372,10 @@ function updateBlueToothSettings()
 {
     const element = document.getElementById('bluetoothEnabled');
     let value = element.checked;
-    if(value && !hasFeature(BuildFeature.COEXIST)) {
-        //alert("EXPEREMENTAL! this is a bit slow and will not work will with fast input!\nThis will DISABLE Wifi connection and this configuration web page upon device reboot!\nThe BLE app will be REQUIRED for future configuration changes.");
-        if(confirm("This will disable wifi and make this page inexcessable until disabled through command line via a serial monitor after reboot.\n\nContinue?")) {
+    if(value) {
+        
+        let message = "This will disable this web server. The Wroom32 chip does not have enough memory for bluetooth and the web server.\n\nYou will need to disable bluetooth to see this web page again.\n\nMost settings can be configured via tcode command #setting.\nUse the tcode command #help for more information\n\nUDP TCode will probably still work.";
+        if(confirm(message+"\n\nContinue?")) {
             wifiSettings["bluetoothEnabled"] = value;
             setRestartRequired();
             postWifiSettings();
@@ -2481,12 +2519,12 @@ function handleImportRenames(key, value) {
         return;
         case "wifiSettings": 
         wifiSettings.ssid = value.ssid;
-        wifiSettings.staticIP = value.staticIP;
-        wifiSettings.localIP = value.localIP;
-        wifiSettings.gateway = value.gateway;
-        wifiSettings.subnet = value.subnet;
-        wifiSettings.dns1 = value.dns1;
-        wifiSettings.dns2 = value.dns2;
+        wifiSettings.staticIP = value.staticIP ?? wifiSettings.staticIP;
+        wifiSettings.localIP = value.localIP ?? wifiSettings.localIP;
+        wifiSettings.gateway = value.gateway ?? wifiSettings.gateway;
+        wifiSettings.subnet = value.subnet ?? wifiSettings.subnet;
+        wifiSettings.dns1 = value.dns1 ?? wifiSettings.dns1;
+        wifiSettings.dns2 = value.dns2 ?? wifiSettings.dns2;
         return;
         case "ssid": 
         wifiSettings.ssid = value;

@@ -35,7 +35,12 @@ SOFTWARE. */
 
 
 class ServerCallbacks: public NimBLEServerCallbacks {  
-    #ifdef ESP_ARDUINO3
+public:
+    bool isConnected() {
+        return m_connected;
+    }
+private:
+    #ifdef NIMBLE_LATEST
     void onConnect(BLEServer* pServer, NimBLEConnInfo& connInfo) override  {
         LogHandler::info(TagHandler::BLEHandler, "A client has connected via BLE: %s",
             connInfo.getAddress().toString().c_str()
@@ -44,8 +49,9 @@ class ServerCallbacks: public NimBLEServerCallbacks {
     void onConnect(BLEServer* pServer, ble_gap_conn_desc* desc) override  {
         LogHandler::info(TagHandler::BLEHandler, "A client has connected via BLE");
     #endif
+        m_connected = true;
     };
-    #ifdef ESP_ARDUINO3
+    #ifdef NIMBLE_LATEST
     void onDisconnect(BLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
         LogHandler::info(TagHandler::BLEHandler, "A client has disconnected from BLE: %s",
             connInfo.getAddress().toString().c_str()
@@ -54,5 +60,7 @@ class ServerCallbacks: public NimBLEServerCallbacks {
     void onDisconnect(BLEServer* pServer, ble_gap_conn_desc* desc) override  {
         LogHandler::info(TagHandler::BLEHandler, "A client has disconnected from BLE");
     #endif
+        m_connected = false;
     }
+    bool m_connected = false;
 };

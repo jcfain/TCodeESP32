@@ -3,14 +3,7 @@
 
 #include "enum.h"
 
-//#define GET_DEFAULT(X) X##_DEFAULT
-
-// Constants
-#define LOG_PATH "/log.json"
-#define DECOY_PASS "Too bad haxor!"
-#define TCODE_HANDSHAKE "D1\n"
-#define TCODE_SETTINGS "D2\n"
-#define WIFI_PASS_DONOTCHANGE_DEFAULT "YOUR PASSWORD HERE"
+//#define GET_DEFAULT(X)
 
 #define COMMON_SETTINGS_PATH "/userSettings.json"
 #define PIN_SETTINGS_PATH "/pins.json"

@@ -44,7 +44,7 @@ public:
     // const char* CHARACTERISTIC_UUID = "00002000-0001-1000-8000-0000101A2B3C";
     // const char* CHARACTERISTIC_UUID2_HC = "00002000-0002-1000-8000-0000101A2B3C";
     // At some point this signature will change because its in master so if Bluetooth breaks, check the source class signature.
-    #ifdef ESP_ARDUINO3
+    #ifdef NIMBLE_LATEST
     void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo)  override {
     #else
     void onWrite(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc)  override {

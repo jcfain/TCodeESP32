@@ -37,7 +37,7 @@ SOFTWARE. */
 class BLECharacteristicCallbacksBase: public NimBLECharacteristicCallbacks {
 public:
     
-    #ifdef ESP_ARDUINO3
+    #ifdef NIMBLE_LATEST
     void onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
     #else
     void onRead(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc) override {
@@ -53,7 +53,7 @@ public:
     /**
      *  The value returned in code is the NimBLE host return code.
      */
-    #ifdef ESP_ARDUINO3
+    #ifdef NIMBLE_LATEST
     void onStatus(NimBLECharacteristic* pCharacteristic, int code) override  {
     #else
     void onStatus(NimBLECharacteristic* pCharacteristic, Status s, int code) override  {
@@ -65,10 +65,9 @@ public:
         Serial.println(str);
     };
 
-    #ifdef ESP_ARDUINO3
+    #ifdef NIMBLE_LATEST
     void onSubscribe(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue) override  {
-        String str = "";
-        "Client ID: ";
+        String str = "Client ID: ";
         str += connInfo.getConnHandle();
         str += " Address: ";
         str += connInfo.getAddress().toString().c_str();

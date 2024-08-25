@@ -437,7 +437,7 @@ private:
 	// Function to modify axis preference values
 	void setupCmd(String command)
 	{
-		int minVal, maxVal;
+		int minVal = 0, maxVal = 0;
 		String minValString, maxValString;
 		bool valid;
 		// Axis type

@@ -332,7 +332,7 @@ public:
             if(currentValue != value) {
                 LogHandler::debug(m_TAG, "Change wifi value T: %s", name);
                 xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
-                const Setting* setting = getSetting(name);
+                //const Setting* setting = getSetting(name);
                 m_networkFileInfo.doc[name] = value;
                 //loadWifiLiveCache(name); // Not needed now
                 xSemaphoreGive(m_networkSemaphore);
@@ -345,7 +345,7 @@ public:
             if(currentValue != value) {
                 LogHandler::debug(m_TAG, "Change common value T: %s", name);
                 xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
-                const Setting* setting = getSetting(name);
+                //const Setting* setting = getSetting(name);
                 m_commonFileInfo.doc[name] = value;
                 loadCommonLiveCache(name);
                 xSemaphoreGive(m_commonSemaphore);
@@ -358,7 +358,7 @@ public:
             if(currentValue != value) {
                 LogHandler::debug(m_TAG, "Change pin value T: %s", name);
                 xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
-                const Setting* setting = getSetting(name);
+                //const Setting* setting = getSetting(name);
                 m_pinsFileInfo.doc[name] = value;
                 //loadPinCache(); // Not needed now
                 xSemaphoreGive(m_pinSemaphore);
@@ -1194,7 +1194,7 @@ private:
             LogHandler::error(m_TAG, "loadCommonPins called before initialized");
             return;
         }
-        uint8_t pin = -1;
+        int8_t pin = -1;
         getValue(TWIST_FEEDBACK_PIN, pin);
         pinMap->setTwistFeedBack(pin);
         getValue(VALVE_SERVO_PIN, pin);
@@ -1242,7 +1242,7 @@ private:
         }
         PinMapSSR1* pinMap = PinMapSSR1::getInstance();
         loadCommonPins(pinMap);
-        uint8_t pin = -1;
+        int8_t pin = -1;
         getValue(BLDC_ENCODER_PIN, pin);
         pinMap->setEncoder(pin);
         getValue(BLDC_CHIPSELECT_PIN, pin);
@@ -1286,7 +1286,7 @@ private:
         }
         PinMapSR6* pinMap = PinMapSR6::getInstance();
         loadCommonPins(pinMap);
-        uint8_t pin = -1;
+        int8_t pin = -1;
         getValue(RIGHT_SERVO_PIN, pin);
         pinMap->setRightServo(pin);
         getValue(LEFT_SERVO_PIN, pin);
@@ -1376,7 +1376,7 @@ private:
     void initMessages() {
         for(SettingFileInfo* settingsInfo : AllSettings)
         {
-            for(const Setting setting : settingsInfo->settings)
+            for(const Setting& setting : settingsInfo->settings)
             {
                 sendMessage(setting.profiles.front(), setting.name);
             }
@@ -1390,7 +1390,7 @@ private:
             }
             sendMessage(setting->profiles.front(), name);
         } else {
-            for(const Setting setting : m_commonFileInfo.settings)
+            for(const Setting& setting : m_commonFileInfo.settings)
             {
                 sendMessage(setting.profiles.front(), setting.name);
             }
@@ -1404,7 +1404,7 @@ private:
             }
             sendMessage(setting->profiles.front(), name);
         } else {
-            for(const Setting setting : m_networkFileInfo.settings)
+            for(const Setting& setting : m_networkFileInfo.settings)
             {
                 sendMessage(setting.profiles.front(), setting.name);
             }
@@ -1418,7 +1418,7 @@ private:
             }
             sendMessage(setting->profiles.front(), name);
         } else {
-            for(const Setting setting : m_pinsFileInfo.settings)
+            for(const Setting& setting : m_pinsFileInfo.settings)
             {
                 sendMessage(setting.profiles.front(), setting.name);
             }
@@ -1533,6 +1533,10 @@ private:
                 loadDefaultVector(setting, doc);
                 LogHandler::verbose(m_TAG, "Load default int vector: %s, value size: %ld", setting->name, doc[setting->name].as<JsonArray>().size());
             }
+            break;
+            case SettingType::NONE: 
+            break;
+            case SettingType::MAX: 
             break;
         }
     }

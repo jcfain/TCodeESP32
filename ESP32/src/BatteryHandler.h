@@ -115,7 +115,7 @@ public:
 		        LogHandler::verbose(_TAG, "Battery remaining capacity: %f", m_batteryCapacity);
 		        LogHandler::verbose(_TAG, "Battery voltage: %f", m_batteryVoltage);
 		        LogHandler::verbose(_TAG, "Battery temp: %f", m_batteryTemp);
-                float capacityRemainingPercentage;
+                float capacityRemainingPercentage = 0;
                 if(m_batteryCapacity > 0)
                     capacityRemainingPercentage = m_batteryCapacity / m_maxCapacity * 100;
 

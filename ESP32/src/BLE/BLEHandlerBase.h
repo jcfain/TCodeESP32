@@ -85,14 +85,10 @@ public:
 
     bool isConnected() 
     {
-        return m_connected;
+        return getServerCallbacks()->isConnected();
     }
 
     virtual void CommandCallback(const char* in) = 0;
-protected: 
-    void setConnected(bool connected) {
-        m_connected = connected;
-    }
 
 private:
     bool m_connected = false;

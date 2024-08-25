@@ -41,7 +41,7 @@ public:
     // const char* NAME = "TCODE-ESP32";
     // const char* SERVICE_UUID = "ff1b451d-3070-4276-9c81-5dc5ea1043bc";
     // At some point this signature will change because its in master so if Bluetooth breaks, check the source class signature.
-    #ifdef ESP_ARDUINO3
+    #ifdef NIMBLE_LATEST
     void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo)  override {
     #else
     void onWrite(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc)  override {
@@ -57,7 +57,7 @@ public:
         }
     };
     
-    #ifdef ESP_ARDUINO3
+    #ifdef NIMBLE_LATEST
     void onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
     #else
     void onRead(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc) override {

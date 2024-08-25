@@ -32,7 +32,7 @@ SOFTWARE. */
 struct MotionProfile {
     MotionProfile() { }
     MotionProfile(int profileNumber) {
-        snprintf(motionProfileName, sizeof(motionProfileName), "Profile %ld", profileNumber);
+        snprintf(motionProfileName, sizeof(motionProfileName), "Profile %d", profileNumber);
     }
     char motionProfileName[maxMotionProfileNameLength] = motionDefaultProfileName;
     bool edited = false;

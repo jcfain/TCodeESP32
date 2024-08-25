@@ -17,7 +17,8 @@ public:
 		tcodeID = tcode;
 
 		// #ESP32# Enable EEPROM
-		m_tcode.setOutputStream(&Serial);
+		#warning implement output stream class
+		//m_tcode.setOutputStream(&Serial);
 
 		// m_tcode.registerInterface(&button);
 	}

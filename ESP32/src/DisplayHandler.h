@@ -219,7 +219,7 @@ public:
 						newLine();
 					}
 					
-				} else if(WifiHandler::apMode) {
+				} else if(WifiHandler::apMode()) {
 					LogHandler::verbose(_TAG, "Enter apMode");
 					startLine(headerPadding);
 					left("AP: 192.168.1.1");
@@ -229,7 +229,7 @@ public:
 						left("SSID: TCodeESP32Setup");
 						newLine();
 					}
-					if(is32() && m_settingsFactory->getVersionDisplayed() && !m_settingsFactory->getSleeveTempDisplayed() && !m_settingsFactory->getInternalTempDisplayed()
+					if((is32() && m_settingsFactory->getVersionDisplayed() && !m_settingsFactory->getSleeveTempDisplayed() && !m_settingsFactory->getInternalTempDisplayed())
 						|| m_settingsFactory->getVersionDisplayed()) {
 						left(m_settingsFactory->getTcodeVersionString());
 						right(FIRMWARE_VERSION_NAME);
@@ -400,7 +400,7 @@ private:
 			LogHandler::verbose(_TAG, "Enter draw64Temp sleeveTempDisplayed");
 			if(m_settingsFactory->getVersionDisplayed()) {
 				LogHandler::verbose(_TAG, "versionDisplayed");
-				char buf[16];
+				char buf[17];
 				getTempString("Sleeve: ", m_sleeveTempString, buf, sizeof(buf));
 				left(buf);
 				newLine();
@@ -417,7 +417,7 @@ private:
 			LogHandler::verbose(_TAG, "Enter draw64Temp internalTempDisplayed");
 			if(m_settingsFactory->getVersionDisplayed()) {
 				LogHandler::verbose(_TAG, "versionDisplayed");
-				char buf[18];
+				char buf[19];
 				getTempString("Internal: ", m_internalTempString, buf, sizeof(buf));
 				left(buf);
 				if(m_fanControlEnabled) {
@@ -465,7 +465,7 @@ private:
 	void draw32Temp() {
 		if(m_settingsFactory->getSleeveTempDisplayed() && !m_settingsFactory->getInternalTempDisplayed()) {
 			LogHandler::verbose(_TAG, "Enter draw32Temp sleeveTempDisplayed");
-			char buf[19];
+			char buf[20];
 			if(m_settingsFactory->getVersionDisplayed() || !hasNextLine()) {
 				LogHandler::verbose(_TAG, "versionDisplayed");
 				getTempString("Sleeve: ", m_sleeveTempString, buf, sizeof(buf));

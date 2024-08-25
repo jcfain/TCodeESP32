@@ -24,7 +24,7 @@ SOFTWARE. */
 
 #include <Arduino.h>
 #include <LittleFS.h>
-#include <ESPAsyncWebServer.h>
+#include <WebServer.h>
 #if ESP8266 == 1
 #include <ESPAsyncTCP.h>
 #else
@@ -44,7 +44,7 @@ class WebHandler : public HTTPBase {
         // bool MDNSInitialized = false;
         void setup(int port, WebSocketBase* webSocketHandler, bool apMode) override {
             stop();
-            if (port < 1) 
+            if (port < 1 || port > 65535) 
                 port = 80;
 		    LogHandler::info(_TAG, "Starting web server on port: %i", port);
             server = new AsyncWebServer(port);
@@ -248,7 +248,7 @@ class WebHandler : public HTTPBase {
                     AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving wifi settings\"}");
                     request->send(response);
                 }
-            }, 100U );//Bad request? increase the size.
+            }, 500U );//Bad request? increase the size.
 
             AsyncCallbackJsonWebHandler* motionProfileUpdateHandler = new AsyncCallbackJsonWebHandler("/motionProfiles", [](AsyncWebServerRequest *request, JsonVariant &json)
 			{
@@ -328,7 +328,7 @@ class WebHandler : public HTTPBase {
             
             server->onNotFound([](AsyncWebServerRequest *request) 
 			{
-                Serial.printf("AsyncWebServerRequest Not found: %s", request->url());
+                Serial.printf("AsyncWebServerRequest Not found: %s", request->url().c_str());
                 if (request->method() == HTTP_OPTIONS) {
                     request->send(200);
                 } else {
@@ -376,7 +376,7 @@ class WebHandler : public HTTPBase {
         }
         void sendError(AsyncWebServerRequest *request, int code = 500) {
             const char* lastError = LogHandler::getLastError();
-            char responseMessage[1024];
+            char responseMessage[1057];
             sprintf(responseMessage, "{\"msg\":\"Error setting default: %s\"}", strlen(lastError) > 0 ? lastError : "Unknown error");
             AsyncWebServerResponse *response = request->beginResponse(code, "application/json", responseMessage);
             request->send(response);

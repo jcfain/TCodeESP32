@@ -5,11 +5,11 @@
 struct Channel {
     const char* Name;
     const char* FriendlyName;
+    bool isSwitch;
+    bool sr6Only;
     uint16_t min;
     uint16_t mid;
     uint16_t max;
-    bool isSwitch;
-    bool sr6Only;
 
     void toJson(JsonObject& obj) {
         obj["Name"] = Name;
