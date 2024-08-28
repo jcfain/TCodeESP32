@@ -332,7 +332,7 @@ void startWeb(const bool &apMode, const int &port, const int &udpPort, const cha
 	{
 		displayPrint("Starting web server");
 #if !SECURE_WEB
-		if(!bluetoothEnabled) 
+		if(MODULE_CURRENT != ModuleType::WROOM32 || !bluetoothEnabled) 
 		{
 			webHandler = new WebHandler();
 			webSocketHandler = new WebSocketHandler();

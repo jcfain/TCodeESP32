@@ -152,7 +152,12 @@ public:
         LogHandler::info(_TAG, "Disable bluetooth");
         //BLEDevice::deinit();
         //esp_err_t disable = esp_bt_controller_deinit();
-        esp_err_t disable = esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
+        //esp_err_t disable = esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
+        // esp_bluedroid_disable(); 
+        // esp_bluedroid_deinit(); 
+        esp_bt_controller_disable(); 
+        esp_bt_controller_deinit();
+        esp_err_t disable = esp_bt_mem_release(ESP_BT_MODE_BTDM);
         if (disable != ESP_OK)
         {
             LogHandler::error(_TAG, "Disable fail: %s", esp_err_to_name(disable));

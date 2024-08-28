@@ -32,7 +32,7 @@ enum class BuildFeature: int
 enum class ModuleType: int
 {
     WROOM32,
-    S3_MODULE
+    S3
 };
 
 enum class BoardType: int

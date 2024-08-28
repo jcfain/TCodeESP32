@@ -84,12 +84,12 @@ public:
         }
     }
     // Cached requires restart
-    DeviceType getDeviceType() const { return m_deviceType; }
+    // DeviceType getDeviceType() const { return m_deviceType; }
     int getUdpServerPort() const { return udpServerPort; }
     int getWebServerPort() const { return webServerPort; }
     const char* getHostname() const { return hostname; }
     const char* getFriendlyName() const { return friendlyName; }
-    BoardType getBoardType() const { return m_boardType; }
+    // BoardType getBoardType() const { return m_boardType; }
 
     // Cached (Live update)
     LogLevel getLogLevel() const { return logLevel; }
@@ -530,6 +530,16 @@ public:
     bool saveWifi(JsonObject fromJson = JsonObject())
     {
         xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
+        if(!fromJson.isNull()) 
+        {
+            const char* pass = fromJson[WIFI_PASS_SETTING] | DECOY_PASS;
+            if(!strcmp(pass, DECOY_PASS)) 
+            {
+                char passTemp[WIFI_PASS_LEN];
+                getValue(WIFI_PASS_SETTING, passTemp, sizeof(passTemp));
+                fromJson[WIFI_PASS_SETTING] = passTemp;
+            }
+        }
         bool ret = saveToDisk(m_networkFileInfo, fromJson);
         xSemaphoreGive(m_networkSemaphore);
         return ret;
@@ -1024,7 +1034,7 @@ private:
             loadCommonLiveCache(LOG_EXCLUDETAGS);
             return true;
         } else if(!strcmp(setting->name, BUTTON_SET_PINS)) {
-            std::vector<int8_t> vec = { 39, -1, -1, -1 };
+            std::vector<int8_t> vec = { BUTTON_SET_PINS_1, BUTTON_SET_PINS_2, BUTTON_SET_PINS_3, BUTTON_SET_PINS_4 };
             doc[BUTTON_SET_PINS] = vec;
             return true;
         }

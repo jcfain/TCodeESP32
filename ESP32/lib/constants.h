@@ -16,6 +16,52 @@
 #define TCODE_HANDSHAKE "D1\n"
 #define TCODE_SETTINGS "D2\n"
 #define WIFI_PASS_DONOTCHANGE_DEFAULT "YOUR PASSWORD HERE"
+#ifdef S3_MODULE
+#define MODULE_CURRENT ModuleType::S3
+#elif defined(WROOM32_MODULE)
+#define MODULE_CURRENT ModuleType::WROOM32
+#endif
+
+// Servo operating frequencies
+#define VibePWM_Freq 8000   // Vibe motor control PWM frequency
+
+// Other functions
+#define VALVE_DEFAULT 5000        // Auto-valve default suction level (low-high, 0-9999) 
+
+// ----------------------------
+//  Auto Settings
+// ----------------------------
+// Do not change
+
+#ifdef WROOM32_MODULE
+#define SERVO_PWM_RES 16
+#else
+#define SERVO_PWM_RES 14
+#endif
+
+
+// Servo PWM channels
+#ifndef ESP_ARDUINO3
+
+#define LowerLeftServo_PWM 0     // Lower Left Servo
+#define UpperLeftServo_PWM 1     // Upper Left Servo
+#define LowerRightServo_PWM 2    // Lower Right Servo
+#define UpperRightServo_PWM 3    // Upper Right Servo
+#define LeftPitchServo_PWM 4     // Left Pitch Servo
+#define RightPitchServo_PWM 5    // Right Pitch Servo
+#define TwistServo_PWM 6         // Twist Servo
+#define ValveServo_PWM 7         // Valve Servo
+#define TwistFeedback_PWM 8      // Twist Servo
+#define Vibe0_PWM 9              // Vibration motor 1
+#define Vibe1_PWM 10             // Vibration motor 2
+#define Heater_PWM 11             // Heatting pad
+
+#define Vibe2_PWM 12
+#define Vibe3_PWM 13
+#define SqueezeServo_PWM 14
+#define CaseFan_PWM 15
+
+#endif
 
 // const Channel ChannelMapV2[9] = {
 //     {"L0","Stroke",0,500,999,false,false,0,500,999},

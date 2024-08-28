@@ -505,7 +505,7 @@ function onRestartClick(optionalMessage)
                 var response = xhr.response;
                 var message = "";
                 logdebug("Restart succeed!");
-                if(wifiSettings["bluetoothEnabled"]) {
+                if(wifiSettings["bluetoothEnabled"] && systemInfo["moduleType"] == ModuleType.WROOM32) {
                     message += "The web server will be disabled because bluetooth has been enabled.<br>You will need to disable bluetooth via serial usb<br>to get back to this page after rebooting.<br><br>";
                 }
                 if(!resettingAllToDefault) {// There redirect should be to the default IP address.
@@ -2372,8 +2372,7 @@ function updateBlueToothSettings()
 {
     const element = document.getElementById('bluetoothEnabled');
     let value = element.checked;
-    if(value) {
-        
+    if(value && systemInfo["moduleType"] == ModuleType.WROOM32) {
         let message = "This will disable this web server. The Wroom32 chip does not have enough memory for bluetooth and the web server.\n\nYou will need to disable bluetooth to see this web page again.\n\nMost settings can be configured via tcode command #setting.\nUse the tcode command #help for more information\n\nUDP TCode will probably still work.";
         if(confirm(message+"\n\nContinue?")) {
             wifiSettings["bluetoothEnabled"] = value;

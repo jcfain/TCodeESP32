@@ -63,14 +63,16 @@ class WebHandler : public HTTPBase {
                 request->send(response);
             });  
 
-            server->on("/settings", HTTP_GET, [](AsyncWebServerRequest *request) 
+            server->on("/settings", HTTP_GET, [this](AsyncWebServerRequest *request)
             {
-                request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
+                // request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
+                sendChunked(request, COMMON_SETTINGS_PATH);
             });
 
-            server->on("/pins", HTTP_GET, [](AsyncWebServerRequest *request) 
+            server->on("/pins", HTTP_GET, [this](AsyncWebServerRequest *request) 
             {
-                request->send(LittleFS, PIN_SETTINGS_PATH, "application/json");
+                //request->send(LittleFS, PIN_SETTINGS_PATH, "application/json");
+                sendChunked(request, PIN_SETTINGS_PATH);
             }); 
 
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
@@ -86,20 +88,23 @@ class WebHandler : public HTTPBase {
                 request->send(response);
             }); 
 
-            server->on("/motionProfiles", HTTP_GET, [](AsyncWebServerRequest *request) 
+            server->on("/motionProfiles", HTTP_GET, [this](AsyncWebServerRequest *request) 
             {
-                request->send(LittleFS, MOTION_PROFILE_SETTINGS_PATH, "application/json");
+                //request->send(LittleFS, MOTION_PROFILE_SETTINGS_PATH, "application/json");
+                sendChunked(request, MOTION_PROFILE_SETTINGS_PATH);
             });   
 
-            server->on("/buttonSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
+            server->on("/buttonSettings", HTTP_GET, [this](AsyncWebServerRequest *request) 
             {
-                request->send(LittleFS, BUTTON_SETTINGS_PATH, "application/json");
+                //request->send(LittleFS, BUTTON_SETTINGS_PATH, "application/json");
+                sendChunked(request, BUTTON_SETTINGS_PATH);
             });  
             
-            server->on("/log", HTTP_GET, [](AsyncWebServerRequest *request) 
+            server->on("/log", HTTP_GET, [this](AsyncWebServerRequest *request) 
             {
                 Serial.println("Get log...");
-                request->send(LittleFS, LOG_PATH);
+                //request->send(LittleFS, LOG_PATH);
+                sendChunked(request, LOG_PATH);
             });   
 
             server->on("/connectWifi", HTTP_POST, [this](AsyncWebServerRequest *request) 
@@ -380,6 +385,42 @@ class WebHandler : public HTTPBase {
             sprintf(responseMessage, "{\"msg\":\"Error setting default: %s\"}", strlen(lastError) > 0 ? lastError : "Unknown error");
             AsyncWebServerResponse *response = request->beginResponse(code, "application/json", responseMessage);
             request->send(response);
+        }
+
+        void sendChunked(AsyncWebServerRequest *request, const char* filePath) {
+                File file{LittleFS.open(filePath, FILE_READ)};
+
+                AsyncWebServerResponse *response = request->beginChunkedResponse(
+                    "application/json",
+                    [file](
+                        uint8_t* buffer,
+                        const size_t max_len,
+                        const size_t index) mutable -> size_t
+                    {
+                        size_t length;
+
+                        // Restrict chunk size so we don't run out of RAM
+                        static const size_t max_chunk{512};
+                        if (max_chunk < max_len)
+                        {
+                            length = file.read(buffer, max_chunk);
+                        }
+                        else
+                        {
+                            length = file.read(buffer, max_len);
+                        }
+
+                        if (length == 0)
+                        {
+                            file.close();
+                        }
+
+                        return length;
+                    });
+
+                // Force download
+                //response->addHeader("Content-Disposition", "attachment; filename=\"userSettings.json\"");
+                request->send(response);
         }
         // void startMDNS(char* hostName, char* friendlyName)
         // {

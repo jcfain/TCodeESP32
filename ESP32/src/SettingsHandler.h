@@ -440,7 +440,7 @@ public:
         doc["udpServerPort"] = udpPort;
         doc["webServerPort"] = webPort;
         
-        if(strcmp(wifiPass, WIFI_PASS_DONOTCHANGE_DEFAULT) != 0) {
+        if(strcmp(wifiPass, WIFI_PASS_DONOTCHANGE_DEFAULT)) {
             doc["wifiPass"] = DECOY_PASS; // Never set to actual password
         } else {
             doc["wifiPass"] = WIFI_PASS_DONOTCHANGE_DEFAULT;
@@ -508,11 +508,7 @@ public:
         {
             buildFeaturesJsonArray.add((int)value);
         }
-#ifdef WROOM32
-         doc["moduleType"] = (int)ModuleType::WROOM32;
-#elif defined(S3)
-         doc["moduleType"] = (int)ModuleType::S3_MODULE;
-#endif
+        doc["moduleType"] = (int)MODULE_CURRENT;
 
         JsonArray availableTagsJsonArray = doc["availableTags"].to<JsonArray>();
         for (const char *tag : TagHandler::AvailableTags)
