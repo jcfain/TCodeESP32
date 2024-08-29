@@ -399,51 +399,54 @@ public:
     {
         JsonDocument doc; //100
 
-        char ssid[SSID_LEN];
-        char wifiPass[WIFI_PASS_LEN];
-		bool staticIP;
-		char localIP[IP_ADDRESS_LEN];
-		char gateway[IP_ADDRESS_LEN];
-		char subnet[IP_ADDRESS_LEN];
-		char dns1[IP_ADDRESS_LEN];
-		char dns2[IP_ADDRESS_LEN];
-		bool bluetoothEnabled;
-		char hostname[HOST_NAME_LEN];
-		char friendlyName[FRIENDLY_NAME_LEN];
-        uint16_t udpPort;
-        uint16_t webPort;
+        JsonDocument wifiDoc = m_settingsFactory->getNetworkSettings();
 
-		m_settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
-		m_settingsFactory->getValue(WIFI_PASS_SETTING, wifiPass, WIFI_PASS_LEN);
-		m_settingsFactory->getValue(STATICIP, staticIP);
-		m_settingsFactory->getValue(LOCALIP, localIP, IP_ADDRESS_LEN);
-		m_settingsFactory->getValue(GATEWAY, gateway, IP_ADDRESS_LEN);
-		m_settingsFactory->getValue(SUBNET, subnet, IP_ADDRESS_LEN);
-		m_settingsFactory->getValue(DNS1, dns1, IP_ADDRESS_LEN);
-		m_settingsFactory->getValue(DNS2, dns2, IP_ADDRESS_LEN);
-		m_settingsFactory->getValue(DNS2, dns2, IP_ADDRESS_LEN);
-		m_settingsFactory->getValue(BLUETOOTH_ENABLED, bluetoothEnabled);
-		m_settingsFactory->getValue(HOST_NAME, hostname, HOST_NAME_LEN);
-		m_settingsFactory->getValue(FRIENDLY_NAME, friendlyName, FRIENDLY_NAME_LEN);
-		m_settingsFactory->getValue(UDP_SERVER_PORT, udpPort);
-		m_settingsFactory->getValue(WEBSERVER_PORT, webPort);
-        doc["ssid"] = ssid;
-        doc["staticIP"] = staticIP;
-        doc["localIP"] = localIP;
-        doc["gateway"] = gateway;
-        doc["subnet"] = subnet;
-        doc["dns1"] = dns1;
-        doc["dns2"] = dns2;
-        doc["bluetoothEnabled"] = bluetoothEnabled;
-        doc["hostname"] = hostname;
-        doc["friendlyName"] = friendlyName;
-        doc["udpServerPort"] = udpPort;
-        doc["webServerPort"] = webPort;
-        
+        doc.set(wifiDoc);
+        // char ssid[SSID_LEN];
+        // char wifiPass[WIFI_PASS_LEN];
+		// bool staticIP;
+		// char localIP[IP_ADDRESS_LEN];
+		// char gateway[IP_ADDRESS_LEN];
+		// char subnet[IP_ADDRESS_LEN];
+		// char dns1[IP_ADDRESS_LEN];
+		// char dns2[IP_ADDRESS_LEN];
+		// bool bluetoothEnabled;
+		// char hostname[HOST_NAME_LEN];
+		// char friendlyName[FRIENDLY_NAME_LEN];
+        // uint16_t udpPort;
+        // uint16_t webPort;
+
+		// m_settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
+		// m_settingsFactory->getValue(WIFI_PASS_SETTING, wifiPass, WIFI_PASS_LEN);
+		// m_settingsFactory->getValue(STATICIP, staticIP);
+		// m_settingsFactory->getValue(LOCALIP, localIP, IP_ADDRESS_LEN);
+		// m_settingsFactory->getValue(GATEWAY, gateway, IP_ADDRESS_LEN);
+		// m_settingsFactory->getValue(SUBNET, subnet, IP_ADDRESS_LEN);
+		// m_settingsFactory->getValue(DNS1, dns1, IP_ADDRESS_LEN);
+		// m_settingsFactory->getValue(DNS2, dns2, IP_ADDRESS_LEN);
+		// m_settingsFactory->getValue(DNS2, dns2, IP_ADDRESS_LEN);
+		// m_settingsFactory->getValue(BLUETOOTH_ENABLED, bluetoothEnabled);
+		// m_settingsFactory->getValue(HOST_NAME, hostname, HOST_NAME_LEN);
+		// m_settingsFactory->getValue(FRIENDLY_NAME, friendlyName, FRIENDLY_NAME_LEN);
+		// m_settingsFactory->getValue(UDP_SERVER_PORT, udpPort);
+		// m_settingsFactory->getValue(WEBSERVER_PORT, webPort);
+        // doc["ssid"] = ssid;
+        // doc["staticIP"] = staticIP;
+        // doc["localIP"] = localIP;
+        // doc["gateway"] = gateway;
+        // doc["subnet"] = subnet;
+        // doc["dns1"] = dns1;
+        // doc["dns2"] = dns2;
+        // doc["bluetoothEnabled"] = bluetoothEnabled;
+        // doc["hostname"] = hostname;
+        // doc["friendlyName"] = friendlyName;
+        // doc["udpServerPort"] = udpPort;
+        // doc["webServerPort"] = webPort;
+        const char* wifiPass = doc[WIFI_PASS_SETTING];
         if(strcmp(wifiPass, WIFI_PASS_DONOTCHANGE_DEFAULT)) {
-            doc["wifiPass"] = DECOY_PASS; // Never set to actual password
+            doc[WIFI_PASS_SETTING] = DECOY_PASS; // Never set to actual password
         } else {
-            doc["wifiPass"] = WIFI_PASS_DONOTCHANGE_DEFAULT;
+            doc[WIFI_PASS_SETTING] = WIFI_PASS_DONOTCHANGE_DEFAULT;
         }
 
         String output;

@@ -106,6 +106,7 @@ body {
 }
 .page-body {
   overflow-y: auto;
+  visibility: hidden;
 }
 .menu-button {
   border-radius: 25px;
@@ -375,7 +376,7 @@ button:hover {
 }
 
 .loading-modal {
-  visibility: hidden;
+  visibility: visible;
   position: fixed;
   z-index: 100;
   top: 0;

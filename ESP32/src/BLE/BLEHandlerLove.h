@@ -34,11 +34,6 @@ SOFTWARE. */
 #include "TagHandler.h"
 #include "BLEHandlerBase.h"
 
-enum class BLELoveDevice {
-    EDGE
-    
-};
-
 class BLEHandlerLove :public BLEHandlerBase {
 public:
     BLEHandlerLove() : BLEHandlerBase("LOVE-H", "50300001-0023-4bd4-bbd5-a6920e4c5653") { }

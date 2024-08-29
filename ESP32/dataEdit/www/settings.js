@@ -150,6 +150,8 @@ const AvailibleChannelsBLDC = [
 
 document.addEventListener("DOMContentLoaded", function() {
     onDocumentLoad();
+    document.getElementById("page-body").style.visibility = "visible";
+    hideLoading();
 });
 
 function logdebug(message) {
@@ -506,7 +508,10 @@ function onRestartClick(optionalMessage)
                 var message = "";
                 logdebug("Restart succeed!");
                 if(wifiSettings["bluetoothEnabled"] && systemInfo["moduleType"] == ModuleType.WROOM32) {
-                    message += "The web server will be disabled because bluetooth has been enabled.<br>You will need to disable bluetooth via serial usb<br>to get back to this page after rebooting.<br><br>";
+                    message += "The web server will be disabled because bluetooth has been enabled.<br>You will need to disable bluetooth via serial usb commands<br>to get back to this page after rebooting.<br><br>";
+                    
+                    showLoading(message);
+                    return;
                 }
                 if(!resettingAllToDefault) {// There redirect should be to the default IP address.
                     checkRestartRedirect();
@@ -2373,7 +2378,7 @@ function updateBlueToothSettings()
     const element = document.getElementById('bluetoothEnabled');
     let value = element.checked;
     if(value && systemInfo["moduleType"] == ModuleType.WROOM32) {
-        let message = "This will disable this web server. The Wroom32 chip does not have enough memory for bluetooth and the web server.\n\nYou will need to disable bluetooth to see this web page again.\n\nMost settings can be configured via tcode command #setting.\nUse the tcode command #help for more information\n\nUDP TCode will probably still work.";
+        let message = "This will disable this web server. The Wroom32 chip does not have enough memory for bluetooth and the web server.\n\nYou will need to disable bluetooth to see this web page again.\n\nMost settings can be configured via tcode command #setting.\nUse the tcode command #help for more information\n\nUDP TCode will probably still work.\n\nYuu will be able to continue configuration on this page until you reboot the board.";
         if(confirm(message+"\n\nContinue?")) {
             wifiSettings["bluetoothEnabled"] = value;
             setRestartRequired();

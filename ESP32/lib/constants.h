@@ -41,27 +41,32 @@
 
 
 // Servo PWM channels
-#ifndef ESP_ARDUINO3
-
+//#ifndef ESP_ARDUINO3
 #define LowerLeftServo_PWM 0     // Lower Left Servo
 #define UpperLeftServo_PWM 1     // Upper Left Servo
+
 #define LowerRightServo_PWM 2    // Lower Right Servo
 #define UpperRightServo_PWM 3    // Upper Right Servo
+
 #define LeftPitchServo_PWM 4     // Left Pitch Servo
 #define RightPitchServo_PWM 5    // Right Pitch Servo
+
 #define TwistServo_PWM 6         // Twist Servo
-#define ValveServo_PWM 7         // Valve Servo
-#define TwistFeedback_PWM 8      // Twist Servo
-#define Vibe0_PWM 9              // Vibration motor 1
-#define Vibe1_PWM 10             // Vibration motor 2
-#define Heater_PWM 11             // Heatting pad
+#define SqueezeServo_PWM 7
 
-#define Vibe2_PWM 12
-#define Vibe3_PWM 13
-#define SqueezeServo_PWM 14
-#define CaseFan_PWM 15
+#define Vibe0_PWM 8              // Vibration motor 1
+#define Vibe1_PWM 9            // Vibration motor 2
 
-#endif
+#define Vibe2_PWM 10
+#define Vibe3_PWM 11
+
+#define Heater_PWM 12             // Heating pad
+#define CaseFan_PWM 13
+
+#define ValveServo_PWM 14         // Valve Servo
+//#define TwistFeedback_PWM 15      // Twist Servo
+
+//#endif
 
 // const Channel ChannelMapV2[9] = {
 //     {"L0","Stroke",0,500,999,false,false,0,500,999},

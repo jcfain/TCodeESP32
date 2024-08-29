@@ -40,6 +40,8 @@
 #define FRIENDLY_NAME_DEFAULT "ESP32 TCode"
 #define FRIENDLY_NAME_LEN 100
 #define BLUETOOTH_ENABLED_DEFAULT false
+#define BLE_DEVICE_TYPE_DEFAULT (uint8_t)BLEDeviceType::TCODE
+#define BLE_LOVE_DEVICE_TYPE_DEFAULT (uint8_t)BLELoveDeviceType::EDGE
 #define PITCH_FREQUENCY_IS_DIFFERENT_DEFAULT false
 #define MS_PER_RAD_DEFAULT 637
 #define SERVO_FREQUENCY_DEFAULT 50
@@ -138,6 +140,8 @@
 #define HOST_NAME "hostname"
 #define FRIENDLY_NAME "friendlyName"
 #define BLUETOOTH_ENABLED "bluetoothEnabled"
+#define BLE_DEVICE_TYPE "bleDeviceType"
+#define BLE_LOVE_DEVICE_TYPE "bleLoveDeviceType"
 #define PITCH_FREQUENCY_IS_DIFFERENT "pitchFrequencyIsDifferent"
 #define MS_PER_RAD "msPerRad"
 #define SERVO_FREQUENCY "servoFrequency"

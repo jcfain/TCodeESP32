@@ -51,6 +51,7 @@ protected:
         PinMapInfo pinMapInfo = m_settingsFactory->getPins();
         PinMap* pinMap = pinMapInfo.pinMap<PinMap*>();
         m_settingsFactory->getValue(VALVE_FREQUENCY, ValveServo_Freq);
+        //TIMER_CLK_FREQ
         ValveServo_Int = 1000000/ValveServo_Freq;
 
         m_settingsFactory->getValue(TWIST_FREQUENCY, TwistServo_Freq);
@@ -72,7 +73,7 @@ protected:
             m_tcode->RegisterAxis("A1", "Suck");
             m_tcode->RegisterAxis("A0", "Valve");
             #ifdef ESP_ARDUINO3
-            attachPin("valve servo", m_valveServoPin, ValveServo_Freq);
+            attachPin("valve servo", m_valveServoPin, ValveServo_Freq, ValveServo_PWM);
             #else
             attachPin("valve servo", m_valveServoPin, ValveServo_Freq, ValveServo_PWM);
             #endif
@@ -82,7 +83,7 @@ protected:
             m_tcode->RegisterAxis("R0", "Twist");
             m_twistServoPin = pinMap->twist();
             #ifdef ESP_ARDUINO3
-            attachPin("twist servo", m_twistServoPin, TwistServo_Freq);
+            attachPin("twist servo", m_twistServoPin, TwistServo_Freq, TwistServo_PWM);
             #else
             attachPin("twist servo", m_twistServoPin, TwistServo_Freq, TwistServo_PWM);
             #endif
@@ -92,7 +93,7 @@ protected:
             m_tcode->RegisterAxis("A3", "Squeeze");
             m_squeezeServoPin = pinMap->squeeze();
             #ifdef ESP_ARDUINO3
-            attachPin("aux servo", m_squeezeServoPin, SqueezeServo_Freq);
+            attachPin("aux servo", m_squeezeServoPin, SqueezeServo_Freq, SqueezeServo_PWM);
             #else
             attachPin("aux servo", m_squeezeServoPin, SqueezeServo_Freq, SqueezeServo_PWM);
             #endif
@@ -106,7 +107,7 @@ protected:
             m_tcode->AxisInput("A2",0,' ',0);
             pinMode(m_lubeButtonPin, INPUT);
             #ifdef ESP_ARDUINO3
-            attachPin("lube", pinMap->vibe1(), VibePWM_Freq, 8);
+            attachPin("lube", pinMap->vibe1(), VibePWM_Freq, Vibe1_PWM, 8);
             #else
             attachPin("lube", pinMap->vibe1(), VibePWM_Freq, Vibe1_PWM, 8);
             #endif
@@ -118,7 +119,7 @@ protected:
             m_tcode->RegisterAxis("V0", "Vibe1");
             m_vib0Pin = pinMap->vibe0();
             #ifdef ESP_ARDUINO3
-            attachPin("vib 1", m_vib0Pin, VibePWM_Freq, 8);
+            attachPin("vib 1", m_vib0Pin, VibePWM_Freq, Vibe0_PWM, 8);
             #else
             attachPin("vib 1", m_vib0Pin, VibePWM_Freq, Vibe0_PWM, 8);
             #endif
@@ -127,7 +128,7 @@ protected:
             m_tcode->RegisterAxis("V1", "Vibe2");
             m_vib1Pin = pinMap->vibe1();
             #ifdef ESP_ARDUINO3
-            attachPin("vib 2", m_vib1Pin, VibePWM_Freq, 8);
+            attachPin("vib 2", m_vib1Pin, VibePWM_Freq, Vibe1_PWM, 8);
             #else
             attachPin("vib 2", m_vib1Pin, VibePWM_Freq, Vibe1_PWM, 8);
             #endif
@@ -136,7 +137,7 @@ protected:
             m_tcode->RegisterAxis("V2", "Vibe3");
             m_vib2Pin = pinMap->vibe2();
             #ifdef ESP_ARDUINO3
-            attachPin("vib 3", m_vib2Pin, VibePWM_Freq, 8);
+            attachPin("vib 3", m_vib2Pin, VibePWM_Freq, Vibe2_PWM, 8);
             #else
             attachPin("vib 3", m_vib2Pin, VibePWM_Freq, Vibe2_PWM, 8);
             #endif
@@ -145,7 +146,7 @@ protected:
             m_tcode->RegisterAxis("V3", "Vibe4");
             m_vib3Pin = pinMap->vibe3();
             #ifdef ESP_ARDUINO3
-            attachPin("vib 4", m_vib3Pin, VibePWM_Freq, 8);
+            attachPin("vib 4", m_vib3Pin, VibePWM_Freq, Vibe3_PWM, 8);
             #else
             attachPin("vib 4", m_vib3Pin, VibePWM_Freq, Vibe3_PWM, 8);
             #endif

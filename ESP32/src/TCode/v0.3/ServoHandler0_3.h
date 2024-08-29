@@ -84,7 +84,7 @@ public:
             m_leftServoPin = ((PinMapOSR*)pinMap)->leftServo();
             if(m_leftServoPin > -1) {
                 #ifdef ESP_ARDUINO3
-                attachPin("left servo", m_leftServoPin, MainServo_Freq);
+                attachPin("left servo", m_leftServoPin, MainServo_Freq, LowerLeftServo_PWM);
                 #else
                 attachPin("left servo", m_leftServoPin, MainServo_Freq, LowerLeftServo_PWM);
                 #endif
@@ -96,7 +96,7 @@ public:
             m_rightServoPin = ((PinMapOSR*)pinMap)->rightServo();
             if(m_rightServoPin > -1) {
                 #ifdef ESP_ARDUINO3
-                attachPin("right servo", m_rightServoPin, MainServo_Freq);
+                attachPin("right servo", m_rightServoPin, MainServo_Freq, LowerRightServo_PWM);
                 #else
                 attachPin("right servo", m_rightServoPin, MainServo_Freq, LowerRightServo_PWM);
                 #endif
@@ -146,7 +146,7 @@ public:
         m_leftPitchServoPin = ((PinMapSR6*)pinMap)->pitchLeft();
         if(m_leftPitchServoPin > -1) {
             #ifdef ESP_ARDUINO3
-            attachPin("pitch servo", m_leftPitchServoPin, PitchServo_Freq);
+            attachPin("pitch servo", m_leftPitchServoPin, PitchServo_Freq, LeftPitchServo_PWM);
             #else
             attachPin("pitch servo", m_leftPitchServoPin, PitchServo_Freq, LeftPitchServo_PWM);
             #endif
@@ -243,34 +243,49 @@ private:
     // Rotation variables
     int yRot,zRot;
 
-    // Function to calculate the angle for the main arm servos
-    // Inputs are target x,y coords of receiver pivot in 1/100 of a mm
-    int SetMainServo(float x, float y) {
-        x /= 100; y /= 100;          // Convert to mm
-        float gamma = atan2(x,y);    // Angle of line from servo pivot to receiver pivot
-        float csq = sq(x) + sq(y);   // Square of distance between servo pivot and receiver pivot
-        float c = sqrt(csq);         // Distance between servo pivot and receiver pivot
-        float beta = acos((csq - 28125)/(100*c));  // Angle between c-line and servo arm
-        int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
-        return out;
-    }
+    void executeOSR(int strokeTcode, int rollTcode, int pitchTcode) {
+        // Calculate arm angles
+        // Linear scale inputs to servo appropriate numbers
+        int stroke,roll,pitch;
+        stroke = map(strokeTcode,0,9999,-350,350);
+        roll   = map(rollTcode,0,9999,-180,180);
+        pitch  = map(pitchTcode,0,9999,-350,350);
+        int leftDuty;
+        int rightDuty;
+        int pitchDuty;
+        if(m_settingsFactory->getInverseStroke()) 
+        {
+            leftDuty = map(m_settingsFactory->getLeftServo_ZERO() - stroke + roll,0,MainServo_Int,0,m_servoPWMMaxDuty);
+            rightDuty = map(m_settingsFactory->getRightServo_ZERO() + stroke + roll,0,MainServo_Int,0,m_servoPWMMaxDuty);
+        }
+        else
+        {
+            leftDuty = map(m_settingsFactory->getLeftServo_ZERO() + stroke + roll,0,MainServo_Int,0,m_servoPWMMaxDuty);
+            rightDuty = map(m_settingsFactory->getRightServo_ZERO() - stroke + roll,0,MainServo_Int,0,m_servoPWMMaxDuty);
+        }
+        if(m_settingsFactory->getInversePitch()) 
+        {
+            pitchDuty = map(m_settingsFactory->getPitchLeftServo_ZERO() + pitch,0,PitchServo_Int,0,m_servoPWMMaxDuty);
+        }
+        else
+        {
+            pitchDuty = map(m_settingsFactory->getPitchLeftServo_ZERO() - pitch,0,PitchServo_Int,0,m_servoPWMMaxDuty);
+            // Serial.println(pitch);
+            // Serial.println(m_settingsFactory->getPitchLeftServo_ZERO());
+            // Serial.println(PitchServo_Int);
+            // Serial.println(pitchDuty);
+            // Serial.println(m_servoPWMMaxDuty);
+        }
 
-
-    // Function to calculate the angle for the pitcher arm servos
-    // Inputs are target x,y,z coords of receiver upper pivot in 1/100 of a mm
-    // Also pitch in 1/100 of a degree
-    int SetPitchServo(float x, float y, float z, float pitch) {
-        pitch *= 0.0001745; // Convert to radians
-        x += 5500*sin(0.2618 + pitch);
-        y -= 5500*cos(0.2618 + pitch);
-        x /= 100; y /= 100; z /= 100;   // Convert to mm
-        float bsq = 36250 - sq(75 + z); // Equivalent arm length
-        float gamma = atan2(x,y);       // Angle of line from servo pivot to receiver pivot
-        float csq = sq(x) + sq(y);      // Square of distance between servo pivot and receiver pivot
-        float c = sqrt(csq);            // Distance between servo pivot and receiver pivot
-        float beta = acos((csq + 5625 - bsq)/(150*c)); // Angle between c-line and servo arm
-        int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
-        return out;
+        #ifdef ESP_ARDUINO3
+        ledcWrite(m_leftServoPin, leftDuty);
+        ledcWrite(m_rightServoPin, rightDuty);
+        ledcWrite(m_leftPitchServoPin, pitchDuty);
+        #else
+        ledcWrite(LowerLeftServo_PWM, leftDuty);
+        ledcWrite(LowerRightServo_PWM, rightDuty);
+        ledcWrite(LeftPitchServo_PWM, pitchDuty);
+        #endif
     }
 
     void executeSR6(int strokeTcode, int rollTcode, int pitchTcode) 
@@ -331,48 +346,34 @@ private:
         ledcWrite(RightPitchServo_PWM, pitchRightDuty);
         #endif
     }
-    void executeOSR(int strokeTcode, int rollTcode, int pitchTcode) {
-        // Calculate arm angles
-        // Linear scale inputs to servo appropriate numbers
-        int stroke,roll,pitch;
-        stroke = map(strokeTcode,0,9999,-350,350);
-        roll   = map(rollTcode,0,9999,-180,180);
-        pitch  = map(pitchTcode,0,9999,-350,350);
-        int leftDuty;
-        int rightDuty;
-        int pitchDuty;
-        if(m_settingsFactory->getInverseStroke()) 
-        {
-            leftDuty = map(m_settingsFactory->getLeftServo_ZERO() - stroke + roll,0,MainServo_Int,0,m_servoPWMMaxDuty);
-            rightDuty = map(m_settingsFactory->getRightServo_ZERO() + stroke + roll,0,MainServo_Int,0,m_servoPWMMaxDuty);
-        }
-        else
-        {
-            leftDuty = map(m_settingsFactory->getLeftServo_ZERO() + stroke + roll,0,MainServo_Int,0,m_servoPWMMaxDuty);
-            rightDuty = map(m_settingsFactory->getRightServo_ZERO() - stroke + roll,0,MainServo_Int,0,m_servoPWMMaxDuty);
-        }
-        if(m_settingsFactory->getInversePitch()) 
-        {
-            pitchDuty = map(m_settingsFactory->getPitchLeftServo_ZERO() + pitch,0,PitchServo_Int,0,m_servoPWMMaxDuty);
-        }
-        else
-        {
-            // Serial.println(m_settingsFactory->getPitchLeftServo_ZERO());
-            // Serial.println(pitch);
-            // Serial.println(PitchServo_Int);
-            // Serial.println(m_servoPWMMaxDuty);
-            pitchDuty = map(m_settingsFactory->getPitchLeftServo_ZERO() - pitch,0,PitchServo_Int,0,m_servoPWMMaxDuty);
-            // Serial.println(pitchDuty);
-        }
 
-        #ifdef ESP_ARDUINO3
-        ledcWrite(m_leftServoPin, leftDuty);
-        ledcWrite(m_rightServoPin, rightDuty);
-        ledcWrite(m_leftPitchServoPin, pitchDuty);
-        #else
-        ledcWrite(LowerLeftServo_PWM, leftDuty);
-        ledcWrite(LowerRightServo_PWM, rightDuty);
-        ledcWrite(LeftPitchServo_PWM, pitchDuty);
-        #endif
+    // Function to calculate the angle for the main arm servos
+    // Inputs are target x,y coords of receiver pivot in 1/100 of a mm
+    int SetMainServo(float x, float y) {
+        x /= 100; y /= 100;          // Convert to mm
+        float gamma = atan2(x,y);    // Angle of line from servo pivot to receiver pivot
+        float csq = sq(x) + sq(y);   // Square of distance between servo pivot and receiver pivot
+        float c = sqrt(csq);         // Distance between servo pivot and receiver pivot
+        float beta = acos((csq - 28125)/(100*c));  // Angle between c-line and servo arm
+        int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
+        return out;
+    }
+
+
+    // Function to calculate the angle for the pitcher arm servos
+    // Inputs are target x,y,z coords of receiver upper pivot in 1/100 of a mm
+    // Also pitch in 1/100 of a degree
+    int SetPitchServo(float x, float y, float z, float pitch) {
+        pitch *= 0.0001745; // Convert to radians
+        x += 5500*sin(0.2618 + pitch);
+        y -= 5500*cos(0.2618 + pitch);
+        x /= 100; y /= 100; z /= 100;   // Convert to mm
+        float bsq = 36250 - sq(75 + z); // Equivalent arm length
+        float gamma = atan2(x,y);       // Angle of line from servo pivot to receiver pivot
+        float csq = sq(x) + sq(y);      // Square of distance between servo pivot and receiver pivot
+        float c = sqrt(csq);            // Distance between servo pivot and receiver pivot
+        float beta = acos((csq + 5625 - bsq)/(150*c)); // Angle between c-line and servo arm
+        int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
+        return out;
     }
 };

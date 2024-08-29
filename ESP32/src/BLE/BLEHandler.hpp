@@ -50,6 +50,7 @@ public:
     void setup()
     {
         // auto callbacks = getCaracteristicCallbacks();
+        SettingsFactory::getInstance()->getValue(BLE_DEVICE_TYPE, m_bleDeviceType);
 
         m_subHandler = getHandler();
         m_subHandler->setup(m_TCodeQueue);
@@ -171,7 +172,7 @@ private:
     // const char* BLE_DEVICE_NAME = "TCODE-ESP32";
     // const char* BLE_TCODE_SERVICE_UUID = "ff1b451d-3070-4276-9c81-5dc5ea1043bc";
     // const char* BLE_TCODE_CHARACTERISTIC_UUID = "c5f1543e-338d-47a0-8525-01e3c621359d";
-
+    BLEDeviceType m_bleDeviceType;
     bool m_isHC = false;
     bool m_isLove = true;
     BLEHandlerBase *m_subHandler = 0;
@@ -187,13 +188,13 @@ private:
     TaskHandle_t m_bleTask;
     BLEHandlerBase *getHandler()
     {
-        if (m_isLove)
+        if (m_bleDeviceType == BLEDeviceType::LOVE)
         {
             LogHandler::info(_TAG, "Setting up BLE Love handler");
             static BLEHandlerLove bleHandler;
             return &bleHandler;
         }
-        else if (m_isHC)
+        if (m_bleDeviceType == BLEDeviceType::HC)
         {
             LogHandler::info(_TAG, "Setting up BLE HC handler");
             static BLEHandlerHC bleHandler;

@@ -61,3 +61,14 @@ enum class BLDCEncoderType: int {
     PWM
 };
 
+enum class BLEDeviceType {
+    TCODE,
+    LOVE,
+    HC
+};
+
+enum class BLELoveDeviceType {
+    EDGE
+    
+};
+

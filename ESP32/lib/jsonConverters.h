@@ -52,7 +52,18 @@ void convertFromJson(JsonVariantConst src, BLDCEncoderType& dst) {
 bool convertToJson(const BLDCEncoderType& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
 }
-
+void convertFromJson(JsonVariantConst src, BLEDeviceType& dst) {
+    dst = static_cast<BLEDeviceType>(src.as<uint8_t>());
+}
+bool convertToJson(const BLEDeviceType& src, JsonVariant dst) {
+    return dst.set(static_cast<uint8_t>(src));
+}
+void convertFromJson(JsonVariantConst src, BLELoveDeviceType& dst) {
+    dst = static_cast<BLELoveDeviceType>(src.as<uint8_t>());
+}
+bool convertToJson(const BLELoveDeviceType& src, JsonVariant dst) {
+    return dst.set(static_cast<uint8_t>(src));
+}
 // void convertFromJson(JsonVariantConst src, std::vector<const char*>& dst) {
 //     for (const char* item : src.as<JsonArrayConst>())
 //         dst.push_back(item);

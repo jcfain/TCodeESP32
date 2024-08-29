@@ -341,9 +341,33 @@ class WebHandler : public HTTPBase {
                     request->send(response);
                 }
             });
+            // server->on("/", HTTP_GET, [this](AsyncWebServerRequest *request)
+            // {
+            //     // request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
+            //     Serial.println("index");
+            //     sendChunked(request, "/index-min.html", "application/html");
+            // });
+            //"^\\/pinoutDefault\\/([0-9]+)$"
+            // server->on("\\/.*\\.js", HTTP_GET, [this](AsyncWebServerRequest *request)
+            // {
+            //     // request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
+            //     const char* filename = request->pathArg(0).c_str();
+            //     Serial.printf("JS file: %s\n", filename);
+            //     sendChunked(request, filename, "application/javascript");
+            // });
+            server->on("/settings-min.js", HTTP_GET, [this](AsyncWebServerRequest *request)
+            {
+                sendChunked(request, "/www/settings-min.js", 4096, "application/javascript");
+            });
+            server->on("/motion-generator-min.js", HTTP_GET, [this](AsyncWebServerRequest *request)
+            {
+                sendChunked(request, "/www/motion-generator-min.js", 1024, "application/javascript");
+            });
 
             //server->rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
-            server->serveStatic("/", LittleFS, "/www/").setDefaultFile("index-min.html");
+            server->serveStatic("/", LittleFS, "/www/")
+                .setDefaultFile("index-min.html")
+                .setCacheControl("max-age=60000");
             server->begin();
             initialized = true;
         }
@@ -387,31 +411,36 @@ class WebHandler : public HTTPBase {
             request->send(response);
         }
 
-        void sendChunked(AsyncWebServerRequest *request, const char* filePath) {
+        void sendChunked(AsyncWebServerRequest *request, const char* filePath, uint16_t chunkSize = 512, const char* mimeType = "application/json") {
+		        LogHandler::debug(_TAG,"Open file: %s\n", filePath);
                 File file{LittleFS.open(filePath, FILE_READ)};
 
                 AsyncWebServerResponse *response = request->beginChunkedResponse(
-                    "application/json",
-                    [file](
+                    mimeType,
+                    [this, file, chunkSize](
                         uint8_t* buffer,
                         const size_t max_len,
                         const size_t index) mutable -> size_t
                     {
+		                LogHandler::debug(_TAG,"Enter chunked file: %s\n", file.name());
                         size_t length;
 
                         // Restrict chunk size so we don't run out of RAM
-                        static const size_t max_chunk{512};
+                        static const size_t max_chunk{chunkSize};
                         if (max_chunk < max_len)
                         {
+		                    LogHandler::debug(_TAG,"Max chunk %u Max len %u for: %s\n", chunkSize, max_len, file.name());
                             length = file.read(buffer, max_chunk);
                         }
                         else
                         {
+		                    LogHandler::debug(_TAG,"Max len %u exceded max chunk %u for: %s\n", max_len, chunkSize, file.name());
                             length = file.read(buffer, max_len);
                         }
 
                         if (length == 0)
                         {
+		                    LogHandler::debug(_TAG,"Close file: %s\n", file.name());
                             file.close();
                         }
 
