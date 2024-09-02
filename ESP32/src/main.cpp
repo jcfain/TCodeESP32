@@ -21,12 +21,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 #if DEBUG_BUILD
-#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
+#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
 #include "esp_log.h"
 #endif
-#if BUILD_TYPE == RELEASE
 #include <Arduino.h>
-#endif
 
 #if PICO_BUILD
 // #include <FreeRTOS.h>
@@ -326,27 +324,18 @@ void tempStateChangeCallBack(TemperatureType type, const char *state)
 }
 #endif
 #if WIFI_TCODE
-void startWeb(const bool &apMode, const int &port, const int &udpPort, const char *hostname, const char *friendlyName)
+void startNetworking(const bool &apMode, const int &port, const int &udpPort, const char *hostname, const char *friendlyName)
 {
-	if (!webHandler)
+	if((MODULE_CURRENT != ModuleType::WROOM32 || !bluetoothEnabled) && !webHandler) 
 	{
 		displayPrint("Starting web server");
-#if !SECURE_WEB
-		if(MODULE_CURRENT != ModuleType::WROOM32 || !bluetoothEnabled) 
-		{
-			webHandler = new WebHandler();
-			webSocketHandler = new WebSocketHandler();
-#else
-			webHandler = new HTTPSHandler();
-			webSocketHandler = new SecureWebSocketHandler();
-#endif
-			webHandler->setup(port, webSocketHandler, apMode);
-		}
-		if (!apMode)
-			mdnsHandler.setup(hostname, friendlyName, port, udpPort);
-
-#if SECURE_WEB
+	#if !SECURE_WEB
+		webHandler = new WebHandler();
+		webSocketHandler = new WebSocketHandler();
+	#else
 		LogHandler::debug(TagHandler::Main, "Start https task");
+		webHandler = new HTTPSHandler();
+		webSocketHandler = new SecureWebSocketHandler();
 		auto httpsStatus = xTaskCreateUniversal(
 			HTTPSHandler::startLoop, /* Function to implement the task */
 			"HTTPSTask",			 /* Name of the task */
@@ -359,13 +348,17 @@ void startWeb(const bool &apMode, const int &port, const int &udpPort, const cha
 		{
 			LogHandler::error(TagHandler::Main, "Could not start https task.");
 		}
-#endif
+	#endif
+		webHandler->setup(port, webSocketHandler, apMode);
 	}
+	if (!apMode) // mdns breaks apmode?
+		mdnsHandler.setup(hostname, friendlyName, port, udpPort);
 }
 #endif
 
 void startBLEConfig()
 {
+	// Disabled. Android Application needs maintenance
 	// if(!bleConfigurationHandler) {
 	// 	displayPrint("Starting BLE config");
 	// 	bleConfigurationHandler = new BLEConfigurationHandler();
@@ -374,7 +367,7 @@ void startBLEConfig()
 }
 
 #if BLE_TCODE
-void startBLE()
+void startBLETCode()
 {
 	if (!bleHandler)
 	{
@@ -398,7 +391,7 @@ void startBlueTooth()
 #endif
 
 #if WIFI_TCODE
-bool startUDP(int port)
+bool startUDPTCode(int port)
 {
 	if (!udpHandler)
 	{
@@ -411,9 +404,9 @@ bool startUDP(int port)
 }
 #endif
 
-#if WIFI_TCODE
 void startConfigMode(const int &webPort, const int &udpPort, const char *hostname, const char *friendlyName)
 {
+#if WIFI_TCODE
 	SettingsHandler::apMode = true;
 	LogHandler::info(TagHandler::Main, "Starting in APMode");
 	displayPrint("Starting in APMode");
@@ -421,20 +414,21 @@ void startConfigMode(const int &webPort, const int &udpPort, const char *hostnam
 	{
 		LogHandler::info(TagHandler::Main, "APMode started");
 		displayPrint("APMode started");
-		startWeb(SettingsHandler::apMode, webPort, udpPort, hostname, friendlyName);
+		startNetworking(SettingsHandler::apMode, webPort, udpPort, hostname, friendlyName);
 	}
 	else
 	{
 		LogHandler::error(TagHandler::Main, "APMode start failed");
 		displayPrint("APMode start failed");
 	}
-
-	// // After attempting to connect wifi, ble cause crash
-	// 	if(withBle) {
-	// 		startBLEConfig();
-	// 	}
-}
 #endif
+
+#if BLE_TCODE || BLUETOOTH_TCODE
+	if(bluetoothEnabled) {
+		startBLEConfig();
+	}
+#endif
+}
 
 #if WIFI_TCODE
 void wifiStatusCallBack(WiFiStatus status, WiFiReason reason)
@@ -501,7 +495,7 @@ void batteryVoltageCallback(float capacityRemainingPercentage, float capacityRem
 
 void settingChangeCallback(const SettingProfile &profile, const char *settingThatChanged)
 {
-	// LogHandler::debug(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
+	LogHandler::verbose(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
 	if (profile == SettingProfile::System)
 	{
 		if (!strcmp(settingThatChanged, LOG_LEVEL_SETTING))
@@ -519,12 +513,14 @@ void settingChangeCallback(const SettingProfile &profile, const char *settingTha
 	}
 	else if (profile == SettingProfile::MotionProfile)
 	{
-		if (strcmp(settingThatChanged, MOTION_PROFILE_SELECTED_INDEX) == 0 || strcmp(settingThatChanged, MOTION_PROFILES) == 0)
+		if (strcmp(settingThatChanged, MOTION_PROFILE_SELECTED_INDEX) == 0 || strcmp(settingThatChanged, MOTION_PROFILES) == 0) {
 			motionHandler.setMotionChannels(SettingsHandler::getMotionChannels());
-		// else if(strcmp(settingThatChanged, "motionChannels") == 0)
+		//} else if(strcmp(settingThatChanged, "motionChannels") == 0) {
 		// 	motionHandler.setMotionChannels(SettingsHandler::getGetMotionChannels()());
-		else if (strcmp(settingThatChanged, MOTION_ENABLED) == 0)
+		} else if (strcmp(settingThatChanged, MOTION_ENABLED) == 0) {
+			LogHandler::verbose(TagHandler::Main, "MOTION_ENABLED: %d", SettingsHandler::getMotionEnabled());
 			motionHandler.setEnabled(SettingsHandler::getMotionEnabled());
+		}
 		// else if(strcmp(settingThatChanged, "motionAmplitudeGlobal") == 0)
 		// 	motionHandler.setAmplitude(SettingsHandler::getGetMotionAmplitudeGlobal()());
 		// else if(strcmp(settingThatChanged, "motionOffsetGlobal") == 0)
@@ -770,23 +766,6 @@ void setup()
 	settingsFactory->getValue(BLDC_ENCODER, BLDC_EncoderType);
 #endif
 
-#if BUILD_TEMP
-	bool sleeveTempEnabled;
-	bool internalTempEnabled;
-	int heaterFrequency;
-	int heaterResolution;
-	float heaterThreshold;
-	int caseFanFrequency;
-	int caseFanResolution;
-	settingsFactory->getValue(TEMP_SLEEVE_ENABLED, sleeveTempEnabled);
-	settingsFactory->getValue(TEMP_INTERNAL_ENABLED, internalTempEnabled);
-	settingsFactory->getValue(HEATER_FREQUENCY, heaterFrequency);
-	settingsFactory->getValue(HEATER_RESOLUTION, heaterResolution);
-	settingsFactory->getValue(HEATER_THRESHOLD, heaterThreshold);
-	settingsFactory->getValue(CASE_FAN_FREQUENCY, caseFanFrequency);
-	settingsFactory->getValue(CASE_FAN_RESOLUTION, caseFanResolution);
-
-#endif
 
 	settingsFactory->getValue(MS_PER_RAD, msPerRad);
 	settingsFactory->getValue(SERVO_FREQUENCY, servoFrequency);
@@ -849,6 +828,20 @@ void setup()
 	// SystemCommandHandler::registerOtherCommandCallback(TCodeCommandCallback);
 
 #if BUILD_TEMP
+	bool sleeveTempEnabled;
+	bool internalTempEnabled;
+	int heaterFrequency;
+	int heaterResolution;
+	float heaterThreshold;
+	int caseFanFrequency;
+	int caseFanResolution;
+	settingsFactory->getValue(TEMP_SLEEVE_ENABLED, sleeveTempEnabled);
+	settingsFactory->getValue(TEMP_INTERNAL_ENABLED, internalTempEnabled);
+	settingsFactory->getValue(HEATER_FREQUENCY, heaterFrequency);
+	settingsFactory->getValue(HEATER_RESOLUTION, heaterResolution);
+	settingsFactory->getValue(HEATER_THRESHOLD, heaterThreshold);
+	settingsFactory->getValue(CASE_FAN_FREQUENCY, caseFanFrequency);
+	settingsFactory->getValue(CASE_FAN_RESOLUTION, caseFanResolution);
 	if (sleeveTempEnabled || internalTempEnabled)
 	{
 		temperatureHandler = new TemperatureHandler();
@@ -899,6 +892,24 @@ void setup()
 	}
 #endif
 
+#if BLE_TCODE
+	if (bluetoothEnabled)
+	{
+		if (WIFI_TCODE && !COEXIST)
+		{
+			WifiHandler::disable();
+		}
+		#if BLUETOOTH_TCODE
+			startBlueTooth();
+		#endif
+		startBLETCode();
+	}
+	else
+	{
+		BLEHandler::disable();
+	}
+#endif
+
 #if WIFI_TCODE
 	if (!bluetoothEnabled || COEXIST)
 	{
@@ -934,12 +945,12 @@ void setup()
 #if BUILD_DISPLAY
 				displayHandler->setLocalIPAddress(wifi.ip());
 #endif
-				if (!startUDP(settingsFactory->getUdpServerPort()))
+				if (!startUDPTCode(settingsFactory->getUdpServerPort()))
 				{
 					LogHandler::error(TagHandler::Main, "Error starting UDP server!");
 					return;
 				}
-				startWeb(false,
+				startNetworking(false,
 						 settingsFactory->getWebServerPort(),
 						 settingsFactory->getUdpServerPort(),
 						 settingsFactory->getHostname(),
@@ -954,27 +965,6 @@ void setup()
 				settingsFactory->getHostname(),
 				settingsFactory->getFriendlyName());
 		}
-	}
-#endif
-#if BLUETOOTH_TCODE
-	if (bluetoothEnabled || COEXIST)
-	{
-		startBlueTooth();
-	}
-#endif
-#if BLE_TCODE
-	esp_err_t disable;
-	if (bluetoothEnabled)
-	{
-		if (WIFI_TCODE && !COEXIST)
-		{
-			WifiHandler::disable();
-		}
-		startBLE();
-	}
-	else
-	{
-		BLEHandler::disable();
 	}
 #endif
 	// otaHandler.setup();
@@ -999,8 +989,6 @@ void setup()
 // Main loop functions/////////////////////////////////////////////////
 void readTCode(String &tcode)
 {
-	// if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_2)
-	// 	tcodeV2Recieved = true;
 	if (motorHandler)
 	{
 		motorHandler->read(tcode);
@@ -1010,8 +998,6 @@ void readTCode(String &tcode)
 
 void readTCode(char *tcode, int len)
 {
-	// if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_2)
-	// 	tcodeV2Recieved = true;
 	if (motorHandler)
 	{
 		motorHandler->read(tcode, len);
@@ -1115,7 +1101,7 @@ void processCommand()
 
 void processMotionHandlerMovement()
 {
-	motionHandler.getMovement(movement);
+	motionHandler.getMovement(movement, MAX_COMMAND);
 	if (strlen(movement) > 0)
 	{
 		LogHandler::verbose(TagHandler::MainLoop, "motion handler writing: %s", movement);

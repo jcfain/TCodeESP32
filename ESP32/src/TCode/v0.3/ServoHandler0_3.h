@@ -80,31 +80,31 @@ public:
             pinMap = PinMapOSR::getInstance();
         }
         // Lower Left Servo
-        if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
-            m_leftServoPin = ((PinMapOSR*)pinMap)->leftServo();
-            if(m_leftServoPin > -1) {
-                #ifdef ESP_ARDUINO3
-                attachPin("left servo", m_leftServoPin, MainServo_Freq, LowerLeftServo_PWM);
-                #else
-                attachPin("left servo", m_leftServoPin, MainServo_Freq, LowerLeftServo_PWM);
-                #endif
+        #ifndef ESP_PROG// The default pins for these are used on the debugger board.
+        m_leftServoPin = ((PinMapOSR*)pinMap)->leftServo();
+        if(m_leftServoPin > -1) {
+            #ifdef ESP_ARDUINO3
+            attachPin("left servo", m_leftServoPin, MainServo_Freq, LowerLeftServo_PWM);
+            #else
+            attachPin("left servo", m_leftServoPin, MainServo_Freq, LowerLeftServo_PWM);
+            #endif
 
-            } else {
-                LogHandler::error(_TAG, "Invalid left servo to pin: %d freq: %d", m_leftServoPin, MainServo_Freq);
-                m_initFailed = true;
-            }
-            m_rightServoPin = ((PinMapOSR*)pinMap)->rightServo();
-            if(m_rightServoPin > -1) {
-                #ifdef ESP_ARDUINO3
-                attachPin("right servo", m_rightServoPin, MainServo_Freq, LowerRightServo_PWM);
-                #else
-                attachPin("right servo", m_rightServoPin, MainServo_Freq, LowerRightServo_PWM);
-                #endif
-            } else {
-                LogHandler::error(_TAG, "Invalid right servo to pin: %d", m_rightServoPin);
-                m_initFailed = true;
-            }
+        } else {
+            LogHandler::error(_TAG, "Invalid left servo to pin: %d freq: %d", m_leftServoPin, MainServo_Freq);
+            m_initFailed = true;
         }
+        m_rightServoPin = ((PinMapOSR*)pinMap)->rightServo();
+        if(m_rightServoPin > -1) {
+            #ifdef ESP_ARDUINO3
+            attachPin("right servo", m_rightServoPin, MainServo_Freq, LowerRightServo_PWM);
+            #else
+            attachPin("right servo", m_rightServoPin, MainServo_Freq, LowerRightServo_PWM);
+            #endif
+        } else {
+            LogHandler::error(_TAG, "Invalid right servo to pin: %d", m_rightServoPin);
+            m_initFailed = true;
+        }
+        #endif
         if(m_deviceType == DeviceType::SR6)
         {
             m_leftUpperServoPin = ((PinMapSR6*)pinMap)->leftUpperServo();
@@ -118,7 +118,7 @@ public:
                 LogHandler::error(_TAG, "Invalid left upper servo to pin: %d", m_leftUpperServoPin);
                 m_initFailed = true;
             }
-            if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
+            #ifndef ESP_PROG// The default pins for these are used on the debugger board. 12, 13, 14 & 15
                 m_rightUpperServoPin = ((PinMapSR6*)pinMap)->rightUpperServo();
                 if(m_rightUpperServoPin > -1) {
                     #ifdef ESP_ARDUINO3
@@ -131,7 +131,7 @@ public:
                     m_initFailed = true;
                 }
                 m_rightPitchServoPin = ((PinMapSR6*)pinMap)->pitchRight();
-                if(m_rightPitchServoPin> -1) {
+                if(m_rightPitchServoPin > -1) {
                     #ifdef ESP_ARDUINO3
                     attachPin("right pitch servo", m_rightPitchServoPin, PitchServo_Freq);
                     #else
@@ -141,7 +141,7 @@ public:
                     LogHandler::error(_TAG, "Invalid right pitch servo to pin: %d", m_rightPitchServoPin);
                     m_initFailed = true;
                 }
-            }
+            #endif
         }
         m_leftPitchServoPin = ((PinMapSR6*)pinMap)->pitchLeft();
         if(m_leftPitchServoPin > -1) {
@@ -202,7 +202,6 @@ public:
         zRot = m_tcode->AxisRead("R2");
         // If you want to mix your servos differently, enter your code below:
 
-        // OSR2 Kinematics
         if(m_deviceType == DeviceType::OSR)
         {
             executeOSR(xLin, yRot, zRot);
@@ -277,6 +276,7 @@ private:
             // Serial.println(m_servoPWMMaxDuty);
         }
 
+#ifndef ESP_PROG
         #ifdef ESP_ARDUINO3
         ledcWrite(m_leftServoPin, leftDuty);
         ledcWrite(m_rightServoPin, rightDuty);
@@ -286,7 +286,8 @@ private:
         ledcWrite(LowerRightServo_PWM, rightDuty);
         ledcWrite(LeftPitchServo_PWM, pitchDuty);
         #endif
-    }
+#endif
+}
 
     void executeSR6(int strokeTcode, int rollTcode, int pitchTcode) 
     {
@@ -330,6 +331,7 @@ private:
         int pitchLeftDuty = map(constrain(pitchLeftZero - pitchLeftValue, pitchLeftZero - 600, pitchLeftZero + 1000), 0, PitchServo_Int, 0, m_servoPWMMaxDuty);
         int pitchRightDuty = map(constrain(pitchRightZero + pitchRightValue, pitchRightZero - 1000, pitchRightZero + 600), 0, PitchServo_Int, 0, m_servoPWMMaxDuty);
         // Set Servos
+#if !ESP_PROG
         #ifdef ESP_ARDUINO3
         ledcWrite(m_leftServoPin, lowerLeftDuty);
         ledcWrite(m_rightServoPin, lowerRightDuty);
@@ -345,6 +347,7 @@ private:
         ledcWrite(LeftPitchServo_PWM, pitchLeftDuty);
         ledcWrite(RightPitchServo_PWM, pitchRightDuty);
         #endif
+#endif
     }
 
     // Function to calculate the angle for the main arm servos

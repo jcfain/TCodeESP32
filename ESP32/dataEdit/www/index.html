@@ -159,6 +159,15 @@
 							</div>
 						</div>
 
+						<div class="tRow">
+							<div class="tCell">
+								<span title="Choose the version of TCode you want the firmware to use.">TCode version</span> 
+							</div>
+							<div class="tCell">
+								<select name="TCodeVersion" id="TCodeVersion" onchange="setTCodeVersion()"> </select>
+							</div>
+						</div>
+
 						<!---------------------------------- BLDC -------------------------------------------------->
 
 						<div class="tRow BLDCOnly hidden">
@@ -290,7 +299,7 @@
 							</div>
 						</div>
 
-						<!--------------------------------------- BLDC ----------------------------------------------------->
+						<!--------------------------------------- END BLDC ----------------------------------------------------->
 
 
 						<div class="tRow servoOnly hidden">
@@ -301,14 +310,7 @@
 								<select name="boardType" id="boardType" onchange="setBoardType()"> </select>
 							</div>
 						</div>
-						<div class="tRow servoOnly hidden">
-							<div class="tCell">
-								<span title="Choose the version of TCode you want the firmware to use.">TCode version</span> 
-							</div>
-							<div class="tCell">
-								<select name="TCodeVersion" id="TCodeVersion" onchange="setTCodeVersion()"> </select>
-							</div>
-						</div>
+
 						<!-- <div class="tRow servoOnly hidden">
 							<div class="tCell">
 								<span title="Uncheck this if you are building an OSR">SR6 mode</span> 
@@ -459,7 +461,7 @@
 						</div>
 						<div class="tRow v3Only">
 							<div class="tCell">
-								<span>Squeeze</span> 
+								<span>Aux</span> 
 							</div>
 							<div class="tCell">
 								<input id="Squeeze_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
@@ -1261,7 +1263,7 @@
 							<div class="tCell">
 							</div>
 							<div class="tCell">
-								<button onclick="clearTags('log-include-tags')">Clear included</button>
+								<button id="clearTagsButton" onclick="clearTags('log-include-tags')">Clear included</button>
 							</div>
 						</div>
 						<div class="tRow" title="Set to exclude specific tags output in the serial monitor. (Overriden by includes)">
@@ -1278,7 +1280,7 @@
 							<div class="tCell">
 							</div>
 							<div class="tCell">
-								<button onclick="clearTags('log-exclude-tags')">Clear excluded</button>
+								<button id="clearFiltersButton" onclick="clearTags('log-exclude-tags')">Clear excluded</button>
 							</div>
 						</div>
 						<!-- <div class="tRow" id="debugLink">

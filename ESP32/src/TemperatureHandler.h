@@ -114,7 +114,7 @@ public:
 
 	void setupSleeveTemp() {
 		if(m_sleeveTempPin > -1) {
-			LogHandler::info(_TAG, "Starting sleeve temp on pin: %ld", m_sleeveTempPin);
+			LogHandler::info(_TAG, "Starting sleeve temp on pin: %d", m_sleeveTempPin);
 			oneWireSleeve.begin(m_sleeveTempPin);
 			sensorsSleeve.setOneWire(&oneWireSleeve);
 			sensorsSleeve.getAddress(sleeveDeviceAddress, 0);
@@ -125,7 +125,7 @@ public:
 
 			// bootTime = true;
 			// bootTimer = millis() + SettingsHandler::getWarmUpTime();
-			LogHandler::debug(_TAG, "Starting heat on pin: %ld", m_heaterPin);
+			LogHandler::debug(_TAG, "Starting heat on pin: %d", m_heaterPin);
 			#ifdef ESP_ARDUINO3
 			ledcAttach(m_heaterPin, m_heaterFrequency, m_heaterResolution);
 			#else
@@ -138,7 +138,7 @@ public:
 
 	void setupInternalTemp() {
 		if(m_internalTempPin > -1) {
-			LogHandler::info(_TAG, "Starting internal temp on pin: %ld", m_internalTempPin);
+			LogHandler::info(_TAG, "Starting internal temp on pin: %d", m_internalTempPin);
 			oneWireInternal.begin(m_internalTempPin);
 			sensorsInternal.setOneWire(&oneWireInternal);
 			sensorsInternal.getAddress(internalDeviceAddress, 0);
@@ -234,7 +234,7 @@ public:
 			_currentInternalTemp = currentInternalTemp;
 			//LogHandler::debug(_TAG, "Current internal temp: %f", _currentInternalTemp);
 
-			LogHandler::verbose(_TAG, "internal getTempC duration: %ld", micros() - start);
+			LogHandler::verbose(_TAG, "internal getTempC duration: %d", micros() - start);
 
 			String statusJson("{\"temp\":\"" + String(_currentInternalTemp) + "\", \"status\":\""+m_lastInternalStatus+"\"}");
 			if(tempChanged && message_callback) {
@@ -260,7 +260,7 @@ public:
 
 			long duration = micros() - start;
 
-			LogHandler::verbose(_TAG, "sleeve getTempC duration: %ld", micros() - start);
+			LogHandler::verbose(_TAG, "sleeve getTempC duration: %d", micros() - start);
 
 			String statusJson("{\"temp\":\"" + String(_currentSleeveTemp) + "\", \"status\":\""+m_lastSleeveStatus+"\"}");
 			if(tempChanged && message_callback) {
@@ -271,42 +271,44 @@ public:
 	}
 
 	void setFanState() {		
-		if (m_fanControlEnabled && _isRunning && fanControlInitialized) {
-			String currentState;
-			if(fanControlInitialized) {
-				if(failsafeTriggerInternal) {
-					currentState = TemperatureState::FAIL_SAFE;
-				} else if (maxTempTriggerInternal) {
-					currentState = TemperatureState::MAX_TEMP_ERROR;
+		if (m_caseFanAddress < 0 || !m_fanControlEnabled || !_isRunning || !fanControlInitialized) {
+			return;
+		}
+		String currentState;
+		if(fanControlInitialized) {
+			if(failsafeTriggerInternal) {
+				currentState = TemperatureState::FAIL_SAFE;
+			} else if (maxTempTriggerInternal) {
+				currentState = TemperatureState::MAX_TEMP_ERROR;
+			} else {
+				double currentTemp = _currentInternalTemp;
+				//LogHandler::debug(_TAG, "Current global temp: %f", _currentInternalTemp);
+				if (currentTemp == -127.0) {
+					currentState = TemperatureState::ERROR;
 				} else {
-					double currentTemp = _currentInternalTemp;
-					//LogHandler::debug(_TAG, "Current global temp: %f", _currentInternalTemp);
-					if (currentTemp == -127.0) {
-						currentState = TemperatureState::ERROR;
-					} else {
-						// if(definitelyLessThanOREssentiallyEqual(currentTemp, SettingsHandler::getInternalTempForFan() + 3) &&
-						// 	definitelyGreaterThanOREssentiallyEqual(currentTemp, SettingsHandler::getInternalTempForFan() - 3)) {
-						// 	currentState = TemperatureState::COOLING;
-						// 	currentDuty = m_fanMaxDuty * 0.8;
-						// } else 
-						if(definitelyGreaterThanOREssentiallyEqual(currentTemp, m_settingsFactory->getInternalTempForFanOn()) || 
-							(definitelyGreaterThanOREssentiallyEqual(currentTemp, m_settingsFactory->getInternalMaxTemp() - 5) && m_lastInternalTempDuty > 0)) {
-							//LogHandler::debug(_TAG, "definitelyGreaterThanOREssentiallyEqual: %f >= %f", currentTemp, SettingsHandler::getInternalTempForFan());
-							currentState = TemperatureState::COOLING;
-								// Calculate pwm based on user entered values.
-								// double maxTemp = SettingsHandler::getInternalTempForFan() + SettingsHandler::getInternalTempForFan() * 0.50;
-								// if(definitelyGreaterThanOREssentiallyEqual(currentTemp, maxTemp))
-								// 	maxTemp = currentTemp;
-								//  m_currentInternalTempDuty = map(currentTemp, 
-								// 				SettingsHandler::getInternalTempForFan(), 
-								// 				maxTemp, 
-								// 				50, // Min duty.
-								// 				m_fanMaxDuty);
-								// 				// https://sciencing.com/calculate-pulse-width-8618299.html
-								// 				// Period = 1/Frequency
-								// 				// Frequency = 1/Period
-								// 				// duty cycle = PulseWidth/Period
-								// 				// duty percentage = (duty/SettingsHandler::getCaseFanPWM()) * 100
+					// if(definitelyLessThanOREssentiallyEqual(currentTemp, SettingsHandler::getInternalTempForFan() + 3) &&
+					// 	definitelyGreaterThanOREssentiallyEqual(currentTemp, SettingsHandler::getInternalTempForFan() - 3)) {
+					// 	currentState = TemperatureState::COOLING;
+					// 	currentDuty = m_fanMaxDuty * 0.8;
+					// } else 
+					if(definitelyGreaterThanOREssentiallyEqual(currentTemp, m_settingsFactory->getInternalTempForFanOn()) || 
+						(definitelyGreaterThanOREssentiallyEqual(currentTemp, m_settingsFactory->getInternalMaxTemp() - 5) && m_lastInternalTempDuty > 0)) {
+						//LogHandler::debug(_TAG, "definitelyGreaterThanOREssentiallyEqual: %f >= %f", currentTemp, SettingsHandler::getInternalTempForFan());
+						currentState = TemperatureState::COOLING;
+							// Calculate pwm based on user entered values.
+							// double maxTemp = SettingsHandler::getInternalTempForFan() + SettingsHandler::getInternalTempForFan() * 0.50;
+							// if(definitelyGreaterThanOREssentiallyEqual(currentTemp, maxTemp))
+							// 	maxTemp = currentTemp;
+							//  m_currentInternalTempDuty = map(currentTemp, 
+							// 				SettingsHandler::getInternalTempForFan(), 
+							// 				maxTemp, 
+							// 				50, // Min duty.
+							// 				m_fanMaxDuty);
+							// 				// https://sciencing.com/calculate-pulse-width-8618299.html
+							// 				// Period = 1/Frequency
+							// 				// Frequency = 1/Period
+							// 				// duty cycle = PulseWidth/Period
+							// 				// duty percentage = (duty/SettingsHandler::getCaseFanPWM()) * 100
 
 // if (currentTemp < SettingsHandler::getInternalTempForFan()) {  // Fan at 10% over 27 degree
 //   	m_lastInternalTempDuty = 0;
@@ -319,98 +321,98 @@ public:
 //   } else if (currentTemp > SettingsHandler::getInternalTempForFan()){
 //   	m_lastInternalTempDuty = 50;
 //   } 
-							//  if(m_lastInternalTempDuty != m_currentInternalTempDuty) {
-							// 	m_lastInternalTempDuty = m_currentInternalTempDuty;
-							// // 	m_lastInternalTempDuty = constrain(duty, 50, SettingsHandler::getCaseFanPWM());
-							// 	LogHandler::debug(_TAG, "Setting fan duty: %f, Max duty: %i", m_lastInternalTempDuty, m_fanMaxDuty);
-							// 	// LogHandler::debug(_TAG, "Current temp: %f, maxTemp: %f, fan on temp: %f", currentTemp, maxTemp, SettingsHandler::getInternalTempForFan());
-							// 	LogHandler::debug(_TAG, "Current temp: %f,  fan on temp: %f", _currentInternalTemp, SettingsHandler::getInternalTempForFan());
-							//  }
-							
-						} else {
-							currentState = TemperatureState::OFF;
-							m_fanMaxDuty = 0;
-						}
+						//  if(m_lastInternalTempDuty != m_currentInternalTempDuty) {
+						// 	m_lastInternalTempDuty = m_currentInternalTempDuty;
+						// // 	m_lastInternalTempDuty = constrain(duty, 50, SettingsHandler::getCaseFanPWM());
+						// 	LogHandler::debug(_TAG, "Setting fan duty: %f, Max duty: %i", m_lastInternalTempDuty, m_fanMaxDuty);
+						// 	// LogHandler::debug(_TAG, "Current temp: %f, maxTemp: %f, fan on temp: %f", currentTemp, maxTemp, SettingsHandler::getInternalTempForFan());
+						// 	LogHandler::debug(_TAG, "Current temp: %f,  fan on temp: %f", _currentInternalTemp, SettingsHandler::getInternalTempForFan());
+						//  }
+						
+					} else {
+						currentState = TemperatureState::OFF;
+						m_fanMaxDuty = 0;
 					}
 				}
-				if (m_lastInternalTempDuty != m_fanMaxDuty) {
-					m_lastInternalTempDuty = m_fanMaxDuty;
-					LogHandler::debug(_TAG, "Setting fan duty: %f", m_lastInternalTempDuty);
-				}
-				ledcWrite(m_caseFanAddress, m_fanMaxDuty);
-			} else {
-				if(m_fanControlEnabled && !fanControlInitialized)
-					currentState = TemperatureState::RESTART_REQUIRED;
-				else
-					currentState = TemperatureState::DISABLED_STATE;
 			}
-			if(!currentState.isEmpty()) {
-				if(m_lastInternalStatus != currentState) {
-					LogHandler::debug(_TAG, "Setting fan state: %s", currentState);
-				}
-				setState(TemperatureType::INTERNAL, currentState.c_str());
+			if (m_lastInternalTempDuty != m_fanMaxDuty) {
+				m_lastInternalTempDuty = m_fanMaxDuty;
+				LogHandler::debug(_TAG, "Setting fan duty: %f", m_lastInternalTempDuty);
 			}
+			ledcWrite(m_caseFanAddress, m_fanMaxDuty);
+		} else {
+			if(m_fanControlEnabled && !fanControlInitialized)
+				currentState = TemperatureState::RESTART_REQUIRED;
+			else
+				currentState = TemperatureState::DISABLED_STATE;
+		}
+		if(!currentState.isEmpty()) {
+			if(m_lastInternalStatus != currentState) {
+				LogHandler::debug(_TAG, "Setting fan state: %s", currentState);
+			}
+			setState(TemperatureType::INTERNAL, currentState.c_str());
 		}
 	}
 
 	void setHeaterState() {		
 		//Serial.println(_currentTemp);
-		if (m_sleeveTempEnabled && sleeveTempInitialized && _isRunning) {
-			String currentState;
-			if(m_sleeveTempEnabled && sleeveTempInitialized) {
-				if(failsafeTriggerSleeve) {
-					ledcWrite(m_heatAddress, 0);
-				} 
-				else {
-					double currentTemp = _currentSleeveTemp;
-					if (currentTemp == -127.0) {
-						currentState = TemperatureState::ERROR;
-					} else {
-						// if(currentTemp >= SettingsHandler::getTargetTemp() || millis() >= bootTimer)
-						// 	bootTime = false;
-						if (definitelyLessThan(currentTemp, m_settingsFactory->getTargetTemp()) 
-						//|| (currentTemp > 0 && bootTime)
-						) {
-							ledcWrite(m_heatAddress, m_settingsFactory->getHeatPWM());
+		if (m_heatAddress < 0 || !m_sleeveTempEnabled || !_isRunning || !sleeveTempInitialized) {
+			return;
+		}
+		String currentState;
+		if(m_sleeveTempEnabled && sleeveTempInitialized) {
+			if(failsafeTriggerSleeve) {
+				ledcWrite(m_heatAddress, 0);
+			} 
+			else {
+				double currentTemp = _currentSleeveTemp;
+				if (currentTemp == -127.0) {
+					currentState = TemperatureState::ERROR;
+				} else {
+					// if(currentTemp >= SettingsHandler::getTargetTemp() || millis() >= bootTimer)
+					// 	bootTime = false;
+					if (definitelyLessThan(currentTemp, m_settingsFactory->getTargetTemp()) 
+					//|| (currentTemp > 0 && bootTime)
+					) {
+						ledcWrite(m_heatAddress, m_settingsFactory->getHeatPWM());
 
-							// if(bootTime) 
-							// {
-							// 	long time = bootTimer - millis();
-							// 	int tseconds = time / 1000;
-							// 	int tminutes = tseconds / 60;
-							// 	int seconds = tseconds % 60;
-							// 	currentState = "Warm up time: " + String(tminutes) + ":" + (seconds < 10 ? "0" : "") + String(seconds);
-							// }
-							// else 
-							// {
-								currentState = TemperatureState::HEAT;
-							// }
-							if(targetSleeveTempReached && m_settingsFactory->getTargetTemp() - currentTemp >= 5)
-								targetSleeveTempReached = false;
-						} else if (definitelyLessThanOREssentiallyEqual(currentTemp, (m_settingsFactory->getTargetTemp() + m_settingsFactory->getHeaterThreshold()))) {
-							if(!targetSleeveTempReached) {
-								targetSleeveTempReached = true;
-								String* command = new String("tempReached");
-								if(message_callback)
-									message_callback(TemperatureType::SLEEVE, "tempReached", _currentSleeveTemp);
-							}
-							ledcWrite(m_heatAddress, m_settingsFactory->getHoldPWM());
-							currentState = TemperatureState::HOLD;
-						} else {
-							ledcWrite(m_heatAddress, 0);
-							currentState = TemperatureState::OFF;
+						// if(bootTime) 
+						// {
+						// 	long time = bootTimer - millis();
+						// 	int tseconds = time / 1000;
+						// 	int tminutes = tseconds / 60;
+						// 	int seconds = tseconds % 60;
+						// 	currentState = "Warm up time: " + String(tminutes) + ":" + (seconds < 10 ? "0" : "") + String(seconds);
+						// }
+						// else 
+						// {
+							currentState = TemperatureState::HEAT;
+						// }
+						if(targetSleeveTempReached && m_settingsFactory->getTargetTemp() - currentTemp >= 5)
+							targetSleeveTempReached = false;
+					} else if (definitelyLessThanOREssentiallyEqual(currentTemp, (m_settingsFactory->getTargetTemp() + m_settingsFactory->getHeaterThreshold()))) {
+						if(!targetSleeveTempReached) {
+							targetSleeveTempReached = true;
+							String* command = new String("tempReached");
+							if(message_callback)
+								message_callback(TemperatureType::SLEEVE, "tempReached", _currentSleeveTemp);
 						}
+						ledcWrite(m_heatAddress, m_settingsFactory->getHoldPWM());
+						currentState = TemperatureState::HOLD;
+					} else {
+						ledcWrite(m_heatAddress, 0);
+						currentState = TemperatureState::OFF;
 					}
 				}
-			} else {
-				if(m_sleeveTempEnabled && !sleeveTempInitialized)
-					currentState = TemperatureState::RESTART_REQUIRED;
-				else
-					currentState = TemperatureState::DISABLED_STATE;
 			}
-			if(!currentState.isEmpty())
-				setState(TemperatureType::SLEEVE, currentState.c_str());
+		} else {
+			if(m_sleeveTempEnabled && !sleeveTempInitialized)
+				currentState = TemperatureState::RESTART_REQUIRED;
+			else
+				currentState = TemperatureState::DISABLED_STATE;
 		}
+		if(!currentState.isEmpty())
+			setState(TemperatureType::SLEEVE, currentState.c_str());
 	}
 
 	const char* getShortSleeveControlStatus(const char* state) {
@@ -502,8 +504,8 @@ private:
 		int m_fanMaxDuty = pow(2, m_fanResolution) - 1;
 		float m_internalTempForFanOn = INTERNAL_TEMP_FOR_FAN_DEFAULT;
 
-		uint8_t m_caseFanAddress = 0;
-		uint8_t m_heatAddress = 0;
+		int8_t m_caseFanAddress = -1;
+		int8_t m_heatAddress = -1;
 
 		const int resolution = 9;
 		const int delayInMillis = 750 / (1 << (12 - resolution));

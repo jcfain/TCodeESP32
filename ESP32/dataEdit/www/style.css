@@ -173,13 +173,18 @@ button {
   width: 100%;
   border-radius: 5px;
 }
-button:hover {  
+button:hover:not(:disabled) {  
   border-color: black;
   background-color: cadetblue;
   color: white;
 }
-.button-pressed {
+.button-pressed:not(:disabled) {
   background-color: cadetblue;
+}
+button:disabled {
+  background-color: darkgray;
+  color: black;
+  pointer-events: none;
 }
 .error {
   border-radius: 25px;

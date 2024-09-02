@@ -67,9 +67,9 @@ protected:
         m_tcode->read("D0");
         m_tcode->read("D1");
         
-        if(pinMap->valve() > -1) {
+        m_valveServoPin = pinMap->valve();
+        if(m_valveServoPin > -1) {
             m_tcode->AxisInput("A1",VALVE_DEFAULT,'I',3000);
-            m_valveServoPin = pinMap->valve();
             m_tcode->RegisterAxis("A1", "Suck");
             m_tcode->RegisterAxis("A0", "Valve");
             #ifdef ESP_ARDUINO3
@@ -79,9 +79,9 @@ protected:
             #endif
         }
 
-        if(pinMap->twist() > -1) {
+        m_twistServoPin = pinMap->twist();
+        if(m_twistServoPin > -1) {
             m_tcode->RegisterAxis("R0", "Twist");
-            m_twistServoPin = pinMap->twist();
             #ifdef ESP_ARDUINO3
             attachPin("twist servo", m_twistServoPin, TwistServo_Freq, TwistServo_PWM);
             #else
@@ -89,9 +89,9 @@ protected:
             #endif
         }
 
-        if(pinMap->squeeze() > -1) {
+        m_squeezeServoPin = pinMap->squeeze();
+        if(m_squeezeServoPin > -1) {
             m_tcode->RegisterAxis("A3", "Squeeze");
-            m_squeezeServoPin = pinMap->squeeze();
             #ifdef ESP_ARDUINO3
             attachPin("aux servo", m_squeezeServoPin, SqueezeServo_Freq, SqueezeServo_PWM);
             #else
@@ -101,50 +101,55 @@ protected:
 
         bool lubeEnabled = false; 
         m_settingsFactory->getValue(LUBE_ENABLED, lubeEnabled);
-        m_lubeButtonPin = pinMap->lubeButton();
-        if (lubeEnabled && m_lubeButtonPin > -1 && pinMap->vibe1() > -1) {
-            m_tcode->RegisterAxis("A2", "Lube");
-            m_tcode->AxisInput("A2",0,' ',0);
-            pinMode(m_lubeButtonPin, INPUT);
-            #ifdef ESP_ARDUINO3
-            attachPin("lube", pinMap->vibe1(), VibePWM_Freq, Vibe1_PWM, 8);
-            #else
-            attachPin("lube", pinMap->vibe1(), VibePWM_Freq, Vibe1_PWM, 8);
-            #endif
-            lubeRegistered = true;
+        if (lubeEnabled) {
+            m_lubeButtonPin = pinMap->lubeButton();
+            m_vib1Pin = pinMap->vibe1();
+            if(m_lubeButtonPin > -1 && m_vib1Pin > -1) {
+                m_tcode->RegisterAxis("A2", "Lube");
+                m_tcode->AxisInput("A2",0,' ',0);
+                pinMode(m_lubeButtonPin, INPUT);
+                #ifdef ESP_ARDUINO3
+                attachPin("lube", m_vib1Pin, VibePWM_Freq, Vibe1_PWM, 8);
+                #else
+                attachPin("lube", m_vib1Pin, VibePWM_Freq, Vibe1_PWM, 8);
+                #endif
+                lubeRegistered = true;
+            }
         }
 
         // Set vibration PWM pins
-        if(pinMap->vibe0() > -1) {
+        m_vib0Pin = pinMap->vibe0();
+        if(m_vib0Pin > -1) {
             m_tcode->RegisterAxis("V0", "Vibe1");
-            m_vib0Pin = pinMap->vibe0();
             #ifdef ESP_ARDUINO3
             attachPin("vib 1", m_vib0Pin, VibePWM_Freq, Vibe0_PWM, 8);
             #else
             attachPin("vib 1", m_vib0Pin, VibePWM_Freq, Vibe0_PWM, 8);
             #endif
         }
-        if(!lubeRegistered && pinMap->vibe1() > -1) {
-            m_tcode->RegisterAxis("V1", "Vibe2");
+        if(!lubeRegistered) {
             m_vib1Pin = pinMap->vibe1();
-            #ifdef ESP_ARDUINO3
-            attachPin("vib 2", m_vib1Pin, VibePWM_Freq, Vibe1_PWM, 8);
-            #else
-            attachPin("vib 2", m_vib1Pin, VibePWM_Freq, Vibe1_PWM, 8);
-            #endif
+            if(m_vib0Pin > -1) {
+                m_tcode->RegisterAxis("V1", "Vibe2");
+                #ifdef ESP_ARDUINO3
+                attachPin("vib 2", m_vib1Pin, VibePWM_Freq, Vibe1_PWM, 8);
+                #else
+                attachPin("vib 2", m_vib1Pin, VibePWM_Freq, Vibe1_PWM, 8);
+                #endif
+            }
         }
-        if(pinMap->vibe2() > -1) {
+        m_vib2Pin = pinMap->vibe2();
+        if(m_vib2Pin > -1) {
             m_tcode->RegisterAxis("V2", "Vibe3");
-            m_vib2Pin = pinMap->vibe2();
             #ifdef ESP_ARDUINO3
             attachPin("vib 3", m_vib2Pin, VibePWM_Freq, Vibe2_PWM, 8);
             #else
             attachPin("vib 3", m_vib2Pin, VibePWM_Freq, Vibe2_PWM, 8);
             #endif
         }
-        if(pinMap->vibe3() > -1) {
+        m_vib3Pin = pinMap->vibe3();
+        if(m_vib3Pin > -1) {
             m_tcode->RegisterAxis("V3", "Vibe4");
-            m_vib3Pin = pinMap->vibe3();
             #ifdef ESP_ARDUINO3
             attachPin("vib 4", m_vib3Pin, VibePWM_Freq, Vibe3_PWM, 8);
             #else
@@ -233,6 +238,9 @@ private:
     int xLast;
 
     void executeTwist() {
+        if(m_twistServoPin < 0) {
+            return;
+        }
         xRot = m_tcode->AxisRead("R0");
         if(xRot > -1) {
             if (m_isTwistFeedBack && !m_settingsFactory->getContinuousTwist()) 
@@ -307,6 +315,9 @@ private:
     }
 
     void executeValve(int xLin) {
+        if(m_valveServoPin < 0) {
+            return;
+        }
         valveCmd = m_tcode->AxisRead("A0");
         suckCmd = m_tcode->AxisRead("A1");
         if(valveCmd > -1 || suckCmd > -1) {
@@ -408,6 +419,9 @@ private:
                 break;
             }
         }
+        if(pwmChannel < 0) {
+            return;
+        }
         int cmd = m_tcode->AxisRead(channel);
         if(cmd > -1) {
             if (cmd > 0 && cmd <= 9999) {
@@ -423,6 +437,9 @@ private:
 
     void executeLube() {
         if(lubeRegistered) {
+            if(m_vib1Pin < 0) {
+                return;
+            }
             int cmd = m_tcode->AxisRead("A2"); 
             if (cmd > -1) {
                 if (cmd > 0 && cmd <= 9999) {
@@ -448,6 +465,9 @@ private:
     }
 
     void executeSqueeze() {
+        if(m_squeezeServoPin < 0) {
+            return;
+        }
         squeezeCmd = m_tcode->AxisRead("A3");
         if(squeezeCmd > -1) {
             int squeeze = map(squeezeCmd,0,9999,1000,-1000);

@@ -67,8 +67,8 @@ public:
     void setup() override {
         bootmode = true;
         m_settingsFactory = SettingsFactory::getInstance();
-        PinMapInfo pinMapInfo = m_settingsFactory->getPins();
-        PinMapSSR1* pinMap = pinMapInfo.pinMap<PinMapSSR1*>();
+        //PinMapInfo pinMapInfo = m_settingsFactory->getPins();
+        PinMapSSR1* pinMap = PinMapSSR1::getInstance();
         int pullyCircumference = -1;
         m_settingsFactory->getValue(BLDC_PULLEY_CIRCUMFERENCE, pullyCircumference);
         int strokeLength = -1;
@@ -89,9 +89,8 @@ public:
 
         if(encoderType == BLDCEncoderType::MT6701) {
             LogHandler::info(_TAG, "Selected encoder: MT6701");
-            m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
             if(pinMap->chipSelect() > -1) {
-                LogHandler::info(_TAG, "Setup BLDC motor on MT6701 chip select pin: %ld", pinMap->chipSelect());
+                LogHandler::info(_TAG, "Setup BLDC motor on MT6701 chip select pin: %d", pinMap->chipSelect());
                 sensorMT6701 = new MagneticSensorMT6701SSI(pinMap->chipSelect());
             } else {
                 LogHandler::error(_TAG, "Invalid ChipSelect pin %ld", pinMap->chipSelect());
@@ -101,7 +100,7 @@ public:
         } else if(encoderType == BLDCEncoderType::PWM) {
             LogHandler::info(_TAG, "Selected encoder: PWM");
             if(pinMap->encoder() > -1) {
-                LogHandler::info(_TAG, "Setup BLDC motor on PWM encoder pin: %ld", pinMap->encoder());
+                LogHandler::info(_TAG, "Setup BLDC motor on PWM encoder pin: %d", pinMap->encoder());
                 sensorPWM = new MagneticSensorPWM(pinMap->encoder(), 5, 928);
             } else {
                 LogHandler::error(_TAG, "Invalid encoder pin %ld", pinMap->encoder());
@@ -111,7 +110,7 @@ public:
         } else {
             if(pinMap->chipSelect() > -1) {
                 LogHandler::info(_TAG, "Selected encoder: SPI");
-                LogHandler::info(_TAG, "Setup BLDC motor on SPI chip select pin: %ld", pinMap->chipSelect());
+                LogHandler::info(_TAG, "Setup BLDC motor on SPI chip select pin: %d", pinMap->chipSelect());
                 sensorSPI = new MagneticSensorSPI(pinMap->chipSelect(), 14, 0x3FFF);
             } else {
                 LogHandler::error(_TAG, "Invalid ChipSelect pin %ld", pinMap->chipSelect());
@@ -122,13 +121,14 @@ public:
         // BLDC motor & driver instance
         motorA = new BLDCMotor(11,11.1);
         // BLDCDriver3PWM driver = BLDCDriver3PWM(pwmA, pwmB, pwmC, Enable(optional));
+        LogHandler::info(_TAG, "Setup BLDC PWM pins 1: %d, 2: %d, 3: %d, enable: %d", pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
         driverA = new BLDCDriver3PWM(pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
 
         // Start serial connection and report status
         m_tcode->setup(FIRMWARE_VERSION_NAME, m_settingsFactory->getTcodeVersionString());
 
-        m_tcode->StringInput("D0");
-        m_tcode->StringInput("D1");
+        read("D0");
+        read("D1");
 
         // #ESP32# Enable EEPROM
         //EEPROM.begin(320); Done in TCode class
@@ -142,7 +142,7 @@ public:
             // Set pinmode for hall sensor
             pinMode(m_hallSensorPin, INPUT_PULLUP);
         } else if(m_useHallSensor) {
-            LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %ld. Reverting to no sensor.", pinMap->hallEffect());
+            LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d. Reverting to no sensor.", pinMap->hallEffect());
             m_useHallSensor = false;
             m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
         }
@@ -225,15 +225,15 @@ public:
         if(sensorMT6701) {
             sensorMT6701->update();
             zeroAngle = sensorMT6701->getAngle();
-            LogHandler::debug(_TAG, "MT6701 zeroAngle: %ld", zeroAngle);
+            LogHandler::debug(_TAG, "MT6701 zeroAngle: %f", zeroAngle);
         } else if (sensorPWM) { 
             sensorPWM->update(); 
             zeroAngle = sensorPWM->getAngle();
-            LogHandler::debug(_TAG, "PWM zeroAngle: %ld", zeroAngle);
+            LogHandler::debug(_TAG, "PWM zeroAngle: %f", zeroAngle);
         } else { 
             sensorSPI->update();
             zeroAngle = sensorSPI->getAngle();
-            LogHandler::debug(_TAG, "SPI zeroAngle: %ld", zeroAngle);
+            LogHandler::debug(_TAG, "SPI zeroAngle: %f", zeroAngle);
         }
 
 
@@ -247,14 +247,14 @@ public:
     }
 
     void read(byte inByte) override {
-        m_tcode->ByteInput(inByte);
+        m_tcode->read(inByte);
     }
 
     void read(const String &input) override {
-        m_tcode->StringInput(input);
+        m_tcode->read(input);
     }
     
-    void read(const char* &input, size_t len) override
+    void read(const char* input, size_t len) override
     {
         for (int i = 0; i < len; i++) {
             read(input[i]);

@@ -153,8 +153,6 @@
 #define FEEDBACK_TWIST "feedbackTwist"
 #define ANALOG_TWIST "analogTwist"
 #define BLDC_ENCODER "BLDC_Encoder"
-// #define BLDC_USEPWM "BLDC_UsePWM"
-// #define BLDC_USEMT6701 "BLDC_UseMT6701"
 #define BLDC_USEHALLSENSOR "BLDC_UseHallSensor"
 #define BLDC_PULLEY_CIRCUMFERENCE "BLDC_Pulley_Circumference"
 #define BLDC_MOTORA_VOLTAGE "BLDC_MotorA_Voltage"

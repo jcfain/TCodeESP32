@@ -222,11 +222,13 @@ public:
 				} else if(WifiHandler::apMode()) {
 					LogHandler::verbose(_TAG, "Enter apMode");
 					startLine(headerPadding);
-					left("AP: 192.168.1.1");
+					left("AP:");
+					left(DEFAULT_IP, 4);
 					drawBatteryLevel();
 					newLine(headerPadding);
 					if(!is32()) {
-						left("SSID: TCodeESP32Setup");
+						left("SSID:");
+						left(AP_MODE_SSID, 6);
 						newLine();
 					}
 					if((is32() && m_settingsFactory->getVersionDisplayed() && !m_settingsFactory->getSleeveTempDisplayed() && !m_settingsFactory->getInternalTempDisplayed())
@@ -235,7 +237,8 @@ public:
 						right(FIRMWARE_VERSION_NAME);
 						newLine();
 					} else if(is32()) {
-						left("SSID: TCodeESP32Setup");
+						left("SSID:");
+						left(AP_MODE_SSID, 6);
 						newLine();
 					}
 				} else {

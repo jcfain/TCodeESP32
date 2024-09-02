@@ -36,13 +36,13 @@ SOFTWARE. */
 #include "WebSocketHandler.h"
 #include "TagHandler.h"
 #include "SystemCommandHandler.h"
-// #if !CONFIG_HTTPD_WS_SUPPORT
-// #error This example cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
-// #endif
+#if !CONFIG_HTTPD_WS_SUPPORT
+#error This example cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
+#endif
 class WebHandler : public HTTPBase {
     public:
         // bool MDNSInitialized = false;
-        void setup(int port, WebSocketBase* webSocketHandler, bool apMode) override {
+        void setup(uint16_t port, WebSocketBase* webSocketHandler, bool apMode) override {
             stop();
             if (port < 1 || port > 65535) 
                 port = 80;
@@ -366,8 +366,8 @@ class WebHandler : public HTTPBase {
 
             //server->rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
             server->serveStatic("/", LittleFS, "/www/")
-                .setDefaultFile("index-min.html")
-                .setCacheControl("max-age=60000");
+                .setDefaultFile("index-min.html");
+                //.setCacheControl("max-age=60000");
             server->begin();
             initialized = true;
         }
@@ -406,7 +406,7 @@ class WebHandler : public HTTPBase {
         void sendError(AsyncWebServerRequest *request, int code = 500) {
             const char* lastError = LogHandler::getLastError();
             char responseMessage[1057];
-            sprintf(responseMessage, "{\"msg\":\"Error setting default: %s\"}", strlen(lastError) > 0 ? lastError : "Unknown error");
+            sprintf(responseMessage, "{\"msg\":\"Error: %s\"}", strlen(lastError) > 0 ? lastError : "Unknown error");
             AsyncWebServerResponse *response = request->beginResponse(code, "application/json", responseMessage);
             request->send(response);
         }

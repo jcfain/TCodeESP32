@@ -61,75 +61,7 @@ public:
     static ChannelMap channelMap;
     static std::vector<Channel> currentChannels;
     static BuildFeature buildFeatures[featureCount];
-
     
-    // // // Cached (Requires reboot)
-    // static TCodeVersion getTcodeVersion() { return m_settingsFactory->getTcodeVersion(); }
-    // static DeviceType getDeviceType() { return m_settingsFactory->getDeviceType(); }
-    // static int getWebServerPort() { return m_settingsFactory->getWebServerPort(); }
-    // static int getUdpServerPort() { return m_settingsFactory->getUdpServerPort(); }
-    // static const char* getHostname() { return m_settingsFactory->getHostname(); }
-    // static const char* getFriendlyName() { return m_settingsFactory->getFriendlyName(); }
-    // // static MotorType getMotorType() { return m_settingsFactory->getMotorType(); }
-    // // static BoardType getBoardType() { return m_settingsFactory->getBoardType(); }
-    // // static const char* getSSID() { return m_settingsFactory->getSSID(); }
-    // // static const char* getWifiPass() { return m_settingsFactory->getWifiPass(); }
-    // // static int getMsPerRad() { return m_settingsFactory->getMsPerRad(); }
-    // // static int getServoFrequency() { return m_settingsFactory->getServoFrequency(); }
-    // // static int getPitchFrequency() { return m_settingsFactory->getPitchFrequency(); }
-    // // static int getValveFrequency() { return m_settingsFactory->getValveFrequency(); }
-    // // static int getTwistFrequency() { return m_settingsFactory->getTwistFrequency(); }
-    // // static int getSqueezeFrequency() { return m_settingsFactory->getSqueezeFrequency(); }
-    // // static bool getLubeEnabled() { return m_settingsFactory->getLubeEnabled(); }
-    // // static bool getFeedbackTwist() { return m_settingsFactory->getFeedbackTwist(); }
-    // // static bool getAnalogTwist() { return m_settingsFactory->getAnalogTwist(); }
-    // // static bool getBootButtonEnabled() { return m_settingsFactory->getBootButtonEnabled(); }
-    // // static bool getButtonSetsEnabled() { return m_settingsFactory->getButtonSetsEnabled();
-    // // static bool getBatteryLevelEnabled() { return m_settingsFactory->getBatteryLevelEnabled(); }
-    // // static bool getVoiceEnabled() { return m_settingsFactory->getVoiceEnabled(); }
-    // // static bool getTempSleeveEnabled() { return m_settingsFactory->getTempSleeveEnabled(); }
-    // // static bool getTempInternalEnabled() { return m_settingsFactory->getTempInternalEnabled(); }
-    // // static bool getStaticIP() { return m_settingsFactory->getStaticIP(); }
-    // // static const char* getLocalIP() { return m_settingsFactory->getLocalIP(); }
-    // // static const char* getGateway() { return m_settingsFactory->getGateway(); }
-    // // static const char* getSubnet() { return m_settingsFactory->getSubnet(); }
-    // // static const char* getDns1() { return m_settingsFactory->getDns1(); }
-    // // static const char* getDns2() { return m_settingsFactory->getDns2(); }
-
-    // // Cached (Live update)
-    // static bool getInverseStroke() { return m_settingsFactory->getInverseStroke(); }
-    // static bool getInversePitch() { return m_settingsFactory->getInversePitch(); }
-    // static bool getValveServo90Degrees() { return m_settingsFactory->getValveServo90Degrees(); }
-    // static bool getAutoValve() { return m_settingsFactory->getAutoValve(); }
-    // static bool getInverseValve() { return m_settingsFactory->getInverseValve(); }
-    // static bool getContinuousTwist() { return m_settingsFactory->getContinuousTwist(); }
-    // static int getLubeAmount() { return m_settingsFactory->getLubeAmount(); }
-    // static int getBatteryCapacityMax() { return m_settingsFactory->getBatteryCapacityMax(); }
-    // static int getRightServo_ZERO() { return m_settingsFactory->getRightServo_ZERO(); }
-    // static int getLeftServo_ZERO() { return m_settingsFactory->getLeftServo_ZERO(); }
-    // static int getRightUpperServo_ZERO() { return m_settingsFactory->getRightUpperServo_ZERO(); }
-    // static int getLeftUpperServo_ZERO() { return m_settingsFactory->getLeftUpperServo_ZERO(); }
-    // static int getPitchLeftServo_ZERO() { return m_settingsFactory->getPitchLeftServo_ZERO(); }
-    // static int getPitchRightServo_ZERO() { return m_settingsFactory->getPitchRightServo_ZERO(); }
-    // static int getTwistServo_ZERO() { return m_settingsFactory->getTwistServo_ZERO(); }
-    // static int getValveServo_ZERO() { return m_settingsFactory->getValveServo_ZERO(); }
-    // static int getSqueezeServo_ZERO() { return m_settingsFactory->getSqueezeServo_ZERO(); }
-    // static const char* getBootButtonCommand() { return m_settingsFactory->getBootButtonCommand(); }
-    // static uint16_t getButtonAnalogDebounce() { return m_settingsFactory->getButtonAnalogDebounce(); }
-    // static bool getVersionDisplayed() { return m_settingsFactory->getVersionDisplayed(); }
-    // static bool getSleeveTempDisplayed() { return m_settingsFactory->getSleeveTempDisplayed(); }
-    // static bool getInternalTempDisplayed() { return m_settingsFactory->getInternalTempDisplayed(); }
-    // static int getDisplayScreenWidth() { return m_settingsFactory->getDisplayScreenWidth(); }
-    // static int getDisplayScreenHeight() { return m_settingsFactory->getDisplayScreenHeight(); }
-    // static int getBatteryLevelNumeric() { return m_settingsFactory->getBatteryLevelNumeric(); }
-    // static int getTargetTemp() { return m_settingsFactory->getTargetTemp(); }
-    // static int getHeatPWM() { return m_settingsFactory->getHeatPWM(); }
-    // static int getHoldPWM() { return m_settingsFactory->getHoldPWM(); }
-    // static float getHeaterThreshold() { return m_settingsFactory->getHeaterThreshold(); }
-    // static double getInternalMaxTemp() { return m_settingsFactory->getInternalMaxTemp(); }
-    // static double getInternalTempForFanOn() { return m_settingsFactory->getInternalTempForFanOn(); }
-    
-
     // static TCodeVersion TCodeVersionEnum;
     // static MotorType motorType;
     // static const char defaultIP[15];
@@ -402,46 +334,6 @@ public:
         JsonDocument wifiDoc = m_settingsFactory->getNetworkSettings();
 
         doc.set(wifiDoc);
-        // char ssid[SSID_LEN];
-        // char wifiPass[WIFI_PASS_LEN];
-		// bool staticIP;
-		// char localIP[IP_ADDRESS_LEN];
-		// char gateway[IP_ADDRESS_LEN];
-		// char subnet[IP_ADDRESS_LEN];
-		// char dns1[IP_ADDRESS_LEN];
-		// char dns2[IP_ADDRESS_LEN];
-		// bool bluetoothEnabled;
-		// char hostname[HOST_NAME_LEN];
-		// char friendlyName[FRIENDLY_NAME_LEN];
-        // uint16_t udpPort;
-        // uint16_t webPort;
-
-		// m_settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
-		// m_settingsFactory->getValue(WIFI_PASS_SETTING, wifiPass, WIFI_PASS_LEN);
-		// m_settingsFactory->getValue(STATICIP, staticIP);
-		// m_settingsFactory->getValue(LOCALIP, localIP, IP_ADDRESS_LEN);
-		// m_settingsFactory->getValue(GATEWAY, gateway, IP_ADDRESS_LEN);
-		// m_settingsFactory->getValue(SUBNET, subnet, IP_ADDRESS_LEN);
-		// m_settingsFactory->getValue(DNS1, dns1, IP_ADDRESS_LEN);
-		// m_settingsFactory->getValue(DNS2, dns2, IP_ADDRESS_LEN);
-		// m_settingsFactory->getValue(DNS2, dns2, IP_ADDRESS_LEN);
-		// m_settingsFactory->getValue(BLUETOOTH_ENABLED, bluetoothEnabled);
-		// m_settingsFactory->getValue(HOST_NAME, hostname, HOST_NAME_LEN);
-		// m_settingsFactory->getValue(FRIENDLY_NAME, friendlyName, FRIENDLY_NAME_LEN);
-		// m_settingsFactory->getValue(UDP_SERVER_PORT, udpPort);
-		// m_settingsFactory->getValue(WEBSERVER_PORT, webPort);
-        // doc["ssid"] = ssid;
-        // doc["staticIP"] = staticIP;
-        // doc["localIP"] = localIP;
-        // doc["gateway"] = gateway;
-        // doc["subnet"] = subnet;
-        // doc["dns1"] = dns1;
-        // doc["dns2"] = dns2;
-        // doc["bluetoothEnabled"] = bluetoothEnabled;
-        // doc["hostname"] = hostname;
-        // doc["friendlyName"] = friendlyName;
-        // doc["udpServerPort"] = udpPort;
-        // doc["webServerPort"] = webPort;
         const char* wifiPass = doc[WIFI_PASS_SETTING];
         if(strcmp(wifiPass, WIFI_PASS_DONOTCHANGE_DEFAULT)) {
             doc[WIFI_PASS_SETTING] = DECOY_PASS; // Never set to actual password
@@ -470,15 +362,15 @@ public:
         JsonObject logLevelNone = logLevels.add<JsonObject>();
         logLevelNone["name"] = "None";
         logLevelNone["value"] = LogLevel::NONE;
-        JsonObject logLevelInfo = logLevels.add<JsonObject>();
-        logLevelInfo["name"] = "info";
-        logLevelInfo["value"] = LogLevel::INFO;
-        JsonObject logLevelWarning = logLevels.add<JsonObject>();
-        logLevelWarning["name"] = "Warning";
-        logLevelWarning["value"] = LogLevel::WARNING;
         JsonObject logLevelError= logLevels.add<JsonObject>();
         logLevelError["name"] = "Error";
         logLevelError["value"] = LogLevel::ERROR;
+        JsonObject logLevelWarning = logLevels.add<JsonObject>();
+        logLevelWarning["name"] = "Warning";
+        logLevelWarning["value"] = LogLevel::WARNING;
+        JsonObject logLevelInfo = logLevels.add<JsonObject>();
+        logLevelInfo["name"] = "info";
+        logLevelInfo["value"] = LogLevel::INFO;
         JsonObject logLevelDebug = logLevels.add<JsonObject>();
         logLevelDebug["name"] = "Debug";
         logLevelDebug["value"] = LogLevel::DEBUG;
@@ -1047,38 +939,6 @@ public:
     static ButtonSet* getButtonSets() {
         return buttonSets;
     }
-
-    // static bool getVoiceEnabled() {
-    //     return voiceEnabled;
-    // }
-
-    // static void setVoiceEnabled(bool value) {
-    //     setValue(value, voiceEnabled, "voiceHandler", "voiceEnabled");
-    // }
-
-    // static bool getVoiceMuted() {
-    //     return voiceMuted;
-    // }
-
-    // static void setVoiceMuted(bool value) {
-    //     setValue(value, voiceMuted, "voiceHandler", "voiceMuted");
-    // }
-
-    // static int getVoiceVolume() {
-    //     return voiceVolume;
-    // }
-
-    // static void setVoiceVolume(int value) {
-    //     setValue(value, voiceVolume, "voiceHandler", "voiceVolume");
-    // }
-
-    // static int getVoiceWakeTime() {
-    //     return voiceWakeTime;
-    // }
-
-    // static void setVoiceWakeTime(int value) {
-    //     setValue(value, voiceWakeTime, "voiceHandler", "voiceWakeTime");
-    // }
 
     static const bool readFile(char* &buf, const char* path) {
         if(!LittleFS.exists(path)) {

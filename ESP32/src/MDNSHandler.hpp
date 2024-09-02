@@ -34,7 +34,7 @@ SOFTWARE. */
 // #include "LogHandler.h"
 class MDNSHandler {
     public:
-        void setup(const char* hostName, const char* friendlyName, const int webPort, const int udpPort) {
+        void setup(const char* hostName, const char* friendlyName, const int udpPort, const uint8_t webPort = 0, const uint8_t securePort = 0) {
             if(!MDNSInitialized)
                 startMDNS(hostName, friendlyName, webPort, udpPort);
         }
@@ -48,7 +48,7 @@ class MDNSHandler {
         private: 
         const char* _TAG = TagHandler::MdnsHandler;
         bool MDNSInitialized = false;
-        void startMDNS(const char* hostName, const char* friendlyName, const int webPort, const int udpPort)
+        void startMDNS(const char* hostName, const char* friendlyName, const int udpPort, const uint8_t webPort = 0, const uint8_t securePort = 0)
         {
             LogHandler::info(_TAG, "Setting up MDNS");
             if(MDNSInitialized)
@@ -57,13 +57,17 @@ class MDNSHandler {
                 printf("MDNS Init failed");
                 return;
             }
-            char hostLen = strlen(hostName) + 7;
-            char domainName[hostLen];
-            sprintf(domainName, "%s.local", hostName);
-            SettingsHandler::printWebAddress(domainName);
             MDNS.setInstanceName(friendlyName);
-            MDNS.addService("http", "tcp", webPort);
-            MDNS.addService("https", "tcp", 443);
+            if(webPort) 
+                MDNS.addService("http", "tcp", webPort);
+            if(securePort)
+                MDNS.addService("https", "tcp", securePort);
+            if(webPort || securePort) {
+                char hostLen = strlen(hostName) + 7;
+                char domainName[hostLen];
+                sprintf(domainName, "%s.local", hostName);
+                SettingsHandler::printWebAddress(domainName);
+            }
             MDNS.addService("tcode", "udp", udpPort);
             MDNSInitialized = true;
         }

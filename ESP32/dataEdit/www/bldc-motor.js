@@ -39,8 +39,8 @@ BLDCMotor = {
         document.getElementById("BLDC_RailLength").value = userSettings["BLDC_RailLength"];
         document.getElementById("BLDC_StrokeLength").value = userSettings["BLDC_StrokeLength"];
 
-        Utils.toggleControlVisibilityByClassName("BLDCPWM", userSettings["BLDC_UsePWM"]);
-        Utils.toggleControlVisibilityByClassName("BLDCSPI", !userSettings["BLDC_UsePWM"]);
+        Utils.toggleControlVisibilityByClassName("BLDCPWM", userSettings["BLDC_Encoder"] == BLDCEncoderType.PWM);
+        Utils.toggleControlVisibilityByClassName("BLDCSPI", userSettings["BLDC_Encoder"] == BLDCEncoderType.SPI);
         Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
         Utils.toggleControlVisibilityByID("ZeroElecAngle", userSettings["BLDC_MotorA_ParametersKnown"]);
     }
@@ -48,7 +48,7 @@ BLDCMotor = {
 }
 
 function isBLDCSPI() {
-    return !userSettings["BLDC_UsePWM"] && !userSettings["BLDC_UseMT6701"];
+    return userSettings["BLDC_Encoder"] == BLDCEncoderType.SPI;
 }
 
 function updateBLDCSettings() {
@@ -64,20 +64,6 @@ function updateBLDCSettings() {
     Utils.toggleControlVisibilityByID("ZeroElecAngle", userSettings["BLDC_MotorA_ParametersKnown"]);
     setRestartRequired();
     updateUserSettings();
-}
-
-function updateEncoderType(type) {
-    userSettings["BLDC_UsePWM"] = false;
-    userSettings["BLDC_UseMT6701"] = false;
-    //userSettings["BLDC_UseSPI"] = false; // Not used. This state is represented by above two falsey
-    userSettings[type] = true;
-    Utils.toggleControlVisibilityByClassName("BLDCPWM", userSettings["BLDC_UsePWM"]);
-    Utils.toggleControlVisibilityByClassName("BLDCSPI", !userSettings["BLDC_UsePWM"]);
-    var pinValues = validateBLDCPins();
-    if(pinValues) {
-        setRestartRequired();
-        updateUserSettings();
-    }
 }
 
 function updateBLDCPins() {

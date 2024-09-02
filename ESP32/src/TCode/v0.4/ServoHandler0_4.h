@@ -83,9 +83,9 @@ public:
         {
             pinMap = PinMapOSR::getInstance();
         }
-        int pin = -1;
+        int8_t pin = -1;
         // Lower Left Servo
-        if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
+        #ifndef ESP_PROG // The default pins for these are used on the debugger board.
             pin = ((PinMapOSR*)pinMap)->leftServo();
             if(pin > -1) {
                 m_leftServoPin = pin;
@@ -111,7 +111,7 @@ public:
                 LogHandler::error(_TAG, "Invalid right servo to pin: %ld", pin);
                 m_initFailed = true;
             }
-        }
+        #endif
         if(m_deviceType == DeviceType::SR6)
         {
             pin = ((PinMapSR6*)pinMap)->leftUpperServo();
@@ -127,7 +127,7 @@ public:
                 LogHandler::error(_TAG, "Invalid left upper servo to pin: %ld", pin);
                 m_initFailed = true;
             }
-            if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
+            #ifndef ESP_PROG // The default pins for these are used on the debugger board.
                 pin = ((PinMapSR6*)pinMap)->rightUpperServo();
                 if(pin > -1) {
                     // Upper Right Servo
@@ -154,7 +154,7 @@ public:
                     LogHandler::error(_TAG, "Invalid right pitch servo to pin: %ld", pin);
                     m_initFailed = true;
                 }
-            }
+            #endif
         }
         pin = ((PinMapSR6*)pinMap)->pitchLeft();
         if(pin > -1) {
@@ -338,6 +338,7 @@ private:
         int pitchLeftDuty = map(constrain(pitchLeftZero - pitchLeftValue, pitchLeftZero - 600, pitchLeftZero + 1000), 0, PitchServo_Int, 0, m_servoPWMMaxDuty);
         int pitchRightDuty = map(constrain(pitchRightZero + pitchRightValue, pitchRightZero - 1000, pitchRightZero + 600), 0, PitchServo_Int, 0, m_servoPWMMaxDuty);
         // Set Servos
+#ifndef ESP_PROG
         #ifdef ESP_ARDUINO3
         ledcWrite(m_leftServoPin, lowerLeftDuty);
         ledcWrite(m_rightServoPin, lowerRightDuty);
@@ -353,6 +354,7 @@ private:
         ledcWrite(LeftPitchServo_PWM, pitchLeftDuty);
         ledcWrite(RightPitchServo_PWM, pitchRightDuty);
         #endif
+#endif
     }
     void executeOSR(int strokeTcode, int rollTcode, int pitchTcode) {
         // Calculate arm angles
@@ -388,6 +390,7 @@ private:
             // Serial.println(pitchDuty);
         }
 
+#ifndef ESP_PROG
         #ifdef ESP_ARDUINO3
         ledcWrite(m_leftServoPin, leftDuty);
         ledcWrite(m_rightServoPin, rightDuty);
@@ -397,5 +400,6 @@ private:
         ledcWrite(LowerRightServo_PWM, rightDuty);
         ledcWrite(LeftPitchServo_PWM, pitchDuty);
         #endif
+#endif
     }
 };

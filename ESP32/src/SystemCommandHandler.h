@@ -256,6 +256,7 @@ private:
 	}};
     const Command MOTION_ENABLE{{"Motion enable", "#motion-enable", "Enables the motion generator", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return validateBool("Motion", true, SettingsHandler::getMotionEnabled(), [](bool value) -> bool {
+			LogHandler::verbose(TagHandler::Main, "MOTION_ENABLED: %d", value);
 			SettingsHandler::setMotionEnabled(value);
 			return true;
 		});

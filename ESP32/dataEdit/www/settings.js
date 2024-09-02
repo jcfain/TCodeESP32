@@ -92,7 +92,7 @@ var restartClicked = false;
 var serverPollingTimeOut = null;
 var staticIPAddressTimeout = null;
 var hostnameTimeout = null;
-var websocketRetryCount = 0;
+var serverPollRetryCount = 0;
 var channelSliderList = [];
 var restartingAndChangingAddress = false;
 var resettingAllToDefault = false;
@@ -173,6 +173,11 @@ function get(name, uri, callback, callbackFail) {
                 callback(xhr);
 		}
 	};
+    if(callbackFail) {
+        xhr.onerror = function() {
+            callbackFail(xhr);
+        }
+    }
 	xhr.send();
 }
 function onDocumentLoad() {
@@ -184,14 +189,28 @@ function onDocumentLoad() {
 }
 
 function getSystemInfo(chain) {
+    let polling = false;
+    if(serverPollingTimeOut) {
+        polling = true;
+        clearTimeout(serverPollingTimeOut);
+        serverPollingTimeOut = null;
+    }
     get("system info", EndPointType.System.uri, function(xhr) {
         systemInfo = xhr.response;
         if(!systemInfo) {
-            showError("Error getting system info!");
+            if(!polling)
+                showError("Error getting system info!");
+            startServerPoll();
+            return;
         } else
             setSystemInfo();
         if(chain)
             getPinSettings(chain);
+        serverPollRetryCount = 0;
+    }, function(xhr) {
+        if(!polling)
+            showError("Error getting system info!");
+        startServerPoll();
     });
 }
 function getPinSettings(chain) {
@@ -314,7 +333,6 @@ function initWebSocket() {
                 clearTimeout(serverPollingTimeOut);
                 serverPollingTimeOut = null;
             }
-            websocketRetryCount = 0;
 			//updateSettingsUI();
 		};
 		websocket.onclose = function (evt) {
@@ -326,7 +344,7 @@ function initWebSocket() {
                     message += "\n(Hint: Make sure you are connected to the AP in wifi networks."
                 }
                 showLoading(message);
-                checkForServer();
+                startServerPoll();
             }
             //alert('Web socket disconnected: To use some features you need to make sure the device is on and connected and refresh the page.');
 			//xtpConnected = false;
@@ -338,7 +356,7 @@ function initWebSocket() {
 		websocket.onerror = function (evt) {
             if(!serverPollingTimeOut && !restartingAndChangingAddress) {
                 showLoading("Server error, waiting for restart...");
-                checkForServer();
+                startServerPoll();
             }
 			//alert('ERROR: ' + evt.data + ", Address: "+wsUri);
 			//xtpConnected = false;
@@ -346,7 +364,7 @@ function initWebSocket() {
 	} catch (exception) {
         if(!serverPollingTimeOut && !restartingAndChangingAddress) {
             showLoading("Server exception, waiting for restart...");
-            checkForServer();
+            startServerPoll();
         }
         //alert('ERROR: ' + exception + ", Address: "+wsUri);
 		//xtpConnected = false;
@@ -401,15 +419,26 @@ function debug(message) {
     }
 }
 
+function setLogLevelUI() {
+    const clearTagsButton = document.getElementById('clearTagsButton');
+    const clearFiltersButton = document.getElementById('clearFiltersButton');
+    const selectedIncludes = userSettings["log-include-tags"];
+    const selectedExcludes = userSettings["log-exclude-tags"];
+    clearTagsButton.disabled = !selectedIncludes?.length;
+    clearFiltersButton.disabled = !selectedExcludes?.length;
+
+    clearTagsButton.innerText = "Clear included" + (selectedIncludes.length ? ": "+ selectedIncludes.length : "");
+    clearFiltersButton.innerText = "Clear excluded" + (selectedExcludes.length ? ": "+ selectedExcludes.length : "");
+}
 function setLogLevel() {
     userSettings["logLevel"] = parseInt(document.getElementById('logLevel').value);
-
     const selectedIncludes = document.querySelectorAll('#log-include-tags option:checked');
     userSettings["log-include-tags"] =  Array.from(selectedIncludes).map(el => el.value);
 
     const selectedExcludes = document.querySelectorAll('#log-exclude-tags option:checked');
     userSettings["log-exclude-tags"] = Array.from(selectedExcludes).map(el => el.value);
 
+    setLogLevelUI();
     //document.getElementById("log-exclude-tags").disabled = selectedIncludes.length > 0;
     // if(userSettings["logLevel"] == LogLevel.VERBOSE)
     //     alert("There are not enough resources to send VERBOSE messages to the site.\nUse serial to view them.")
@@ -421,6 +450,7 @@ function clearTags(name) {
     for (var i = 0; i < element.options.length; i++) {
         element.options[i].selected = false;
     }
+    setLogLevelUI();
 	updateUserSettings();
 }
 function clearLog() {
@@ -448,7 +478,7 @@ function onDefaultClick()
 {		
 	if (confirm("WARNING! Are you sure you wish to reset ALL settings?\nThis will restart your device and you may need to reconfigure your WiFi settings!")) 
 	{
-        showInfo("Resetting...");
+        showInfo("Setting default...");
 		var xhr = new XMLHttpRequest();
 		xhr.open("POST", "/default", true);
 		xhr.onreadystatechange = function() 
@@ -459,8 +489,10 @@ function onDefaultClick()
                     showError("Error setting default!");
                 } else {
                     showInfoSuccess("Settings reset!");
-                    resettingAllToDefault = true;
-                    onRestartClick("\nYou may need to reconfigure your wifi with the instructions provided in the zip.");
+                    //resettingAllToDefault = true;
+                    showLoading("Restarting...");
+                    startServerPoll();
+                    //onRestartClick("\nYou may need to reconfigure your wifi with the instructions provided in the zip.");
                 }
 			}
 		}
@@ -542,6 +574,7 @@ function onRestartClick(optionalMessage)
                         logdebug("Redirecting to: " + url)
                         window.location.href = url;
                     }, 10000);
+                    //startServerPoll(url);
                 }
                 hideRestartRequired();
             } else {
@@ -556,27 +589,36 @@ function isWebSocketConnected() {
         return false;
     return websocket.readyState !== WebSocket.OPEN;
 }
-function checkForServer() {
-    if(serverPollingTimeOut) {
-        clearTimeout(serverPollingTimeOut);
-        serverPollingTimeOut = null;
-    }
-    if(websocketRetryCount > 10) {
-        showLoading("Websocket timed out. Please refresh the page for full functionality.");
+
+function startServerPoll() {
+    if(serverPollRetryCount > 10) {
+        showLoading("Waiting for restart timed out<br>Please manually refresh the page when the device is back online.");
         return;
     }
-    if(isWebSocketConnected() && websocket.readyState !== WebSocket.CONNECTING) {
-        logdebug("Websocket closed retrying..");
-        initWebSocket();
-        websocketRetryCount++;
-        serverPollingTimeOut = setTimeout(checkForServer, 2000);
-    } else if(isWebSocketConnected()) {
-        logdebug("Websocket open..");
-        if(serverPollingTimeOut) {
-            clearTimeout(serverPollingTimeOut);
-            serverPollingTimeOut = null;
-        }
-    }
+    serverPollRetryCount++;
+    serverPollingTimeOut = setTimeout(function() {getSystemInfo(true);}, 2000);
+}
+function checkForServer() {
+    // if(serverPollingTimeOut) {
+    //     clearTimeout(serverPollingTimeOut);
+    //     serverPollingTimeOut = null;
+    // }
+    // if(serverPollRetryCount > 10) {
+    //     showLoading("Websocket timed out. Please refresh the page for full functionality.");
+    //     return;
+    // }
+    // if(isWebSocketConnected() && websocket.readyState !== WebSocket.CONNECTING) {
+    //     logdebug("Websocket closed retrying..");
+    //     initWebSocket();
+    //     serverPollRetryCount++;
+    //     serverPollingTimeOut = setTimeout(checkForServer, 2000);
+    // } else if(isWebSocketConnected()) {
+    //     logdebug("Websocket open..");
+    //     if(serverPollingTimeOut) {
+    //         clearTimeout(serverPollingTimeOut);
+    //         serverPollingTimeOut = null;
+    //     }
+    // }
 }
 
 function setSystemInfo() {
@@ -680,6 +722,7 @@ function setPinoutSettings() {
 function setUserSettings() 
 {
     document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
+    setLogLevelUI();
     toggleNonTCodev3Options();
     toggleDeviceOptions(userSettings["deviceType"]);
     togglePitchServoFrequency(userSettings["pitchFrequencyIsDifferent"]);
@@ -1093,10 +1136,18 @@ function hideInfo() {
 }
 
 function sendWebsocketCommand(command, message) {
+    if(!isWebSocketConnected()) {
+        startServerPoll();
+        return;
+    }
     websocket.send("{\"command\":\""+command+"\", \"message\": \""+message+"\"}")
 }
 
 function sendTCode(tcode) {
+    if(!isWebSocketConnected()) {
+        startServerPoll();
+        return;
+    }
     websocket.send(tcode+String.fromCharCode(10))
 }
 
@@ -1480,6 +1531,8 @@ function setupBoardTypes() {
 }
 function setEncoderType() {
     userSettings["BLDC_Encoder"] = document.getElementById('BLDC_Encoder').value;
+    Utils.toggleControlVisibilityByClassName("BLDCPWM", userSettings["BLDC_Encoder"] == BLDCEncoderType.PWM);
+    Utils.toggleControlVisibilityByClassName("BLDCSPI", userSettings["BLDC_Encoder"] == BLDCEncoderType.SPI);
     updateUserSettings(0);
 }
 function setupEncoderTypes() {
@@ -2475,9 +2528,12 @@ function importSettings() {
                     return;
                 var importedValue = json[key];
                 var existingValue = userSettings[key];
+                var wifiValue = wifiSettings[key];
                 // If the key doesnt exist anymore, dont import it.
                 if(existingValue != undefined && existingValue != null)// 0 can be valid
                     userSettings[key] = checkMigrateData(key, importedValue);
+                else if(wifiValue != undefined && wifiValue != null)
+                    wifiSettings[key] = checkMigrateData(key, importedValue);
                 else
                     handleImportRenames(key, importedValue)
             });
@@ -2502,7 +2558,7 @@ function importSettings() {
 
 function checkMigrateData(key, value) {
     if(key == "TCodeVersion" && value == 1)
-        return TCodeVersion.V4;
+        return TCodeVersion.V3;
     return value; 
 }
 
@@ -2522,13 +2578,10 @@ function handleImportRenames(key, value) {
         motionProviderSettings.motionDefaultProfileIndex = value;
         return;
         case "wifiSettings": 
-        wifiSettings.ssid = value.ssid;
-        wifiSettings.staticIP = value.staticIP ?? wifiSettings.staticIP;
-        wifiSettings.localIP = value.localIP ?? wifiSettings.localIP;
-        wifiSettings.gateway = value.gateway ?? wifiSettings.gateway;
-        wifiSettings.subnet = value.subnet ?? wifiSettings.subnet;
-        wifiSettings.dns1 = value.dns1 ?? wifiSettings.dns1;
-        wifiSettings.dns2 = value.dns2 ?? wifiSettings.dns2;
+        Object.keys(value).forEach(function(key,index) {
+            if(key !== "wifiPass")
+                wifiSettings[key] = value[key];
+        });
         return;
         case "ssid": 
         wifiSettings.ssid = value;

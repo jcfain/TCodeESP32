@@ -15,24 +15,24 @@ public:
         setMotionChannels(SettingsHandler::getMotionChannels());
     }
 
-    void getMovement(char buf[255]) {
+    void getMovement(char* buf, size_t len) {
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         buf[0] = {0};
-        LogHandler::verbose(TagHandler::MotionHandler, "getMovement Enter %s" , buf);
         if(!enabled || !m_motionGenerators.size()) {
             xSemaphoreGive(xMutex);
             return;
         }
+        LogHandler::verbose(TagHandler::MotionHandler, "getMovement Enter");
         for (int i = 0; i < m_motionGenerators.size(); i++) {
             char temp[25];
-            m_motionGenerators[i].getMovement(temp);
+            m_motionGenerators[i].getMovement(temp, 25);
             if(strlen(temp) == 0)
                 continue;
-            strcat(buf, temp);
-            strcat(buf, " ");
+            strncat(buf, temp, len);
+            strncat(buf, " ", len);
         }
-        buf[strlen(buf) - 1] = '\n';
-        buf[strlen(buf) - 1] = '\0';
+        strncat(buf, "\n", len);
+        //buf[strlen(buf) - 1] = '\0';
         LogHandler::verbose(TagHandler::MotionHandler, "Exit %s" , buf);
         xSemaphoreGive(xMutex);
     }
