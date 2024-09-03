@@ -22,18 +22,21 @@ public:
             xSemaphoreGive(xMutex);
             return;
         }
-        LogHandler::verbose(TagHandler::MotionHandler, "getMovement Enter");
+        //LogHandler::verbose(TagHandler::MotionHandler, "getMovement Enter");
         for (int i = 0; i < m_motionGenerators.size(); i++) {
             char temp[25];
             m_motionGenerators[i].getMovement(temp, 25);
             if(strlen(temp) == 0)
                 continue;
-            strncat(buf, temp, len);
-            strncat(buf, " ", len);
+            //strncat(buf, temp, len);
+		    snprintf(buf, len, "%s%s", buf, temp);
+            //strncat(buf, " ", len);
+		    snprintf(buf, len, "%s%s", buf, " ");
         }
-        strncat(buf, "\n", len);
+        //strncat(buf, "\n", len);
+		snprintf(buf, len, "%s%s", buf, "\n");
         //buf[strlen(buf) - 1] = '\0';
-        LogHandler::verbose(TagHandler::MotionHandler, "Exit %s" , buf);
+        //LogHandler::verbose(TagHandler::MotionHandler, "Exit %s" , buf);
         xSemaphoreGive(xMutex);
     }
     

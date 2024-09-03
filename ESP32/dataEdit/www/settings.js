@@ -108,17 +108,6 @@ const inputOnlypins = [34,35,36,39];
 const adc1Pins = [36,37,38,39,32,33,34,35];
 const adc2Pins = [4,0,2,15,13,12,14,27,25,26];
 
-const AvailibleChannelsV2 = [
-    {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
-    {channel: "L1", channelName: "Surge", switch: false, sr6Only: true},
-    {channel: "L2", channelName: "Sway", switch: false, sr6Only: true},
-    {channel: "L3", channelName: "Suck", switch: false, sr6Only: false},
-    {channel: "R0", channelName: "Twist", switch: false, sr6Only: false},
-    {channel: "R1", channelName: "Roll", switch: false, sr6Only: false},
-    {channel: "R2", channelName: "Pitch", switch: false, sr6Only: false},
-    {channel: "V0", channelName: "Vibe 0", switch: true, sr6Only: false},
-    {channel: "V1", channelName: "Vibe 1/Lube", switch: true, sr6Only: false}
-]
 const AvailibleChannelsV3 = [
     {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
     {channel: "L1", channelName: "Surge", switch: false, sr6Only: true},
@@ -318,7 +307,7 @@ function initWebSocket() {
 		var wsUri = (hasFeature(BuildFeature.HTTPS) ? "wss://" : "ws://") + window.location.host + "/ws";
 		if (typeof MozWebSocket == 'function')
 			WebSocket = MozWebSocket;
-		if ( websocket && websocket.readyState == 1 )
+		if ( websocket )
 			websocket.close();
 		websocket = new WebSocket( wsUri );
 		websocket.onopen = function (evt) {
@@ -587,7 +576,7 @@ function onRestartClick(optionalMessage)
 function isWebSocketConnected() {
     if(!websocket)
         return false;
-    return websocket.readyState !== WebSocket.OPEN;
+    return websocket.readyState === WebSocket.OPEN;
 }
 
 function startServerPoll() {
@@ -625,6 +614,7 @@ function setSystemInfo() {
     if(!systemInfo)
         showError("Error getting system info!");
     document.getElementById('version').value = systemInfo.esp32Version;
+    document.getElementById('macAddressSystemInfo').value = systemInfo.mac;
     document.getElementById('ipAddressSystemInfo').value = systemInfo.localIP;
     document.getElementById('gatewaySystemInfo').value = systemInfo.gateway;
     document.getElementById('subnetSystemInfo').value = systemInfo.subnet;
@@ -637,6 +627,7 @@ function setSystemInfo() {
     tcodeVersions = systemInfo.tcodeVersions;
 
     const logLevelElement = document.getElementById('logLevel');
+    removeAllChildren(logLevelElement);
     for(let i=0;i<systemInfo.logLevels.length;i++) {
         const option = document.createElement("option");
         option.innerText = systemInfo.logLevels[i].name;
@@ -645,6 +636,7 @@ function setSystemInfo() {
     }
 
     var excludedTagsElement = document.getElementById('log-exclude-tags');
+    removeAllChildren(excludedTagsElement);
     systemInfo.availableTags.forEach(element => {
         var option = document.createElement("option");
         option.value = element;
@@ -653,6 +645,7 @@ function setSystemInfo() {
     });
 
     var includedTagsElement = document.getElementById('log-include-tags');
+    removeAllChildren(includedTagsElement);
     systemInfo.availableTags.forEach(element => {
         var option = document.createElement("option");
         option.value = element;
@@ -661,6 +654,7 @@ function setSystemInfo() {
     });
     
     var i2cAddressesElement = document.getElementById("Display_I2C_Address");
+    removeAllChildren(i2cAddressesElement);
     systemInfo.systemI2CAddresses.forEach(element => {
         var option = document.createElement("option");
         option.value = element;
@@ -697,6 +691,7 @@ function setWifiSettings() {
     document.getElementById("friendlyName").value = wifiSettings["friendlyName"];
 }
 function setPinoutSettings() {
+    ESPTimer.setup();
     document.getElementById("TwistFeedBack_PIN").value = pinoutSettings["TwistFeedBack_PIN"];
     document.getElementById("RightServo_PIN").value = pinoutSettings["RightServo_PIN"];
     document.getElementById("LeftServo_PIN").value = pinoutSettings["LeftServo_PIN"];
@@ -1326,16 +1321,13 @@ function hasTCodeV2()  {
     return hasFeature(BuildFeature.HAS_TCODE_V2);
 }
 function getTCodeMax() {
-    return isTCodeV3() ? 9999 : 999;
+    return 9999;
 }
 function getChannelMap() {
-    return systemInfo["motorType"] == MotorType.Servo ? isTCodeV3() ? AvailibleChannelsV3 : AvailibleChannelsV2 : AvailibleChannelsBLDC;
+    return systemInfo["motorType"] == MotorType.Servo ? AvailibleChannelsV3 : AvailibleChannelsBLDC;
 };
 function onChannelSliderInput(channel, value) {
-    sendTCode(channel+value.toString().padStart(isTCodeV3() ? 4 : 3, "0") + "S1000");
-}
-function getTCodeMax() {
-    return isTCodeV3() ? 9999 : 999
+    sendTCode(channel+value.toString().padStart(4, "0") + "S1000");
 }
 function tcodeToPercentage(tcodeValue) {
     return convertRange(0, getTCodeMax(), 0, 99, tcodeValue);
@@ -1555,6 +1547,7 @@ function setBoardType() {
 }
 function setupDeviceTypes() {
     const element = document.getElementById('deviceType');
+    removeAllChildren(element);
     for(let i=0;i<systemInfo.deviceTypes.length;i++) {
         const option = document.createElement("option");
         option.innerText = systemInfo.deviceTypes[i].name;

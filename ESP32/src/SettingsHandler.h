@@ -23,6 +23,7 @@ SOFTWARE. */
 #pragma once
 
 #include <sstream>
+#include <WiFi.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <vector>
@@ -192,7 +193,7 @@ public:
 
     // static VoiceCommand voiceCommands[147];
 
-    static const char *lastRebootReason;
+    // static const char *lastRebootReason;
 
     // static const char *userSettingsFilePath;
     // static const char *wifiPassFilePath;
@@ -231,6 +232,7 @@ public:
         loadMotionProfiles(false);
         loadButtons(false);
 
+        LogHandler::debug(_TAG, "Last reset reason: %s", machine_reset_cause());
         initialized = true;
     }
 
@@ -356,7 +358,7 @@ public:
 
         doc["esp32Version"] = FIRMWARE_VERSION_NAME;
         doc["TCodeVersion"] = m_settingsFactory->getTcodeVersion();
-        doc["lastRebootReason"] = lastRebootReason;
+        doc["lastRebootReason"] = machine_reset_cause();
 
         JsonArray logLevels = doc["logLevels"].to<JsonArray>();
         JsonObject logLevelNone = logLevels.add<JsonObject>();
@@ -453,6 +455,13 @@ public:
         doc["subnet"] = currentSubnet;
         doc["dns1"] = currentDns1;
         doc["dns2"] = currentDns2;// Not being used currently
+        char macTemp[18] = {0};
+		#ifdef ESP_ARDUINO3
+        strlcpy(macTemp, Network.macAddress().c_str(), sizeof(macTemp));
+		#else
+        strlcpy(macTemp, WiFi.macAddress().c_str(), sizeof(macTemp));
+		#endif
+		doc["mac"] = macTemp;
 
         doc["chipModel"] = ESP.getChipModel();
         doc["chipRevision"] = ESP.getChipRevision();
@@ -2457,7 +2466,7 @@ char SettingsHandler::currentDns2[IP_ADDRESS_LEN] = DNS2_DEFAULT;
 // int SettingsHandler::heaterFrequency = 5000;
 // int SettingsHandler::caseFanFrequency = 25;
 // int SettingsHandler::caseFanResolution = 10;
-const char *SettingsHandler::lastRebootReason;
+// const char *SettingsHandler::lastRebootReason;
 
 // bool SettingsHandler::voiceEnabled = false;
 // bool SettingsHandler::voiceMuted = false;

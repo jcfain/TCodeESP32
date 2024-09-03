@@ -16,6 +16,7 @@
   <script defer type="text/javascript" src="bldc-motor-min.js"></script>
   <script defer type="text/javascript" src="buttons-min.js"></script>
   <script defer type="text/javascript" src="range-slider-min.js"></script>
+  <script defer type="text/javascript" src="esp-timer-setup-min.js"></script>
   <script defer type="text/javascript" src="settings-min.js"></script>
 </head>
 <body>
@@ -1193,6 +1194,12 @@
 							</div>
 						</div>
 						<div class="tRow">
+							<div class="tCell"><span>MAC</span></div>
+							<div class="tCell">
+								<input id="macAddressSystemInfo" type="text" readonly>
+							</div>
+						</div>
+						<div class="tRow">
 							<div class="tCell"><span>IP</span></div>
 							<div class="tCell">
 								<input id="ipAddressSystemInfo" type="text" readonly>
@@ -1313,5 +1320,6 @@
 		<div id="deviceRangesTable" class="formTable formTableModal"></div>
 	</modal-component>
 	<modal-component id="buttonSetsModal"></modal-component>
+	<modal-component id="espTimerSetupModal"></modal-component>
 </body>
 </html>

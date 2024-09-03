@@ -62,10 +62,6 @@ public:
 	{
 		return WiFi.localIP();
 	}
-	String mac()
-	{
-		return WiFi.macAddress();
-	}
 	int8_t RSSI()
 	{
 		return WiFi.RSSI();
@@ -134,7 +130,7 @@ public:
 
 			WiFi.config(ipAddress, gateway, subnet, dns1, dns2);
 		}
-		LogHandler::info(_TAG, "Mac: %s", mac().c_str());
+		printMac();
 		LogHandler::info(_TAG, "Establishing connection to %s", ssid);
 		if (pass[0] == '\0')
 			WiFi.begin(ssid);
@@ -284,7 +280,7 @@ public:
 		WiFi.mode(WIFI_AP);
 		// WiFi.setHostname("TCodeESP32");
 		WiFi.softAP(ssid);
-		LogHandler::info(_TAG, "Mac: %s", mac().c_str());
+		printMac();
 		delay(100);
 		if (onApEventID != 0)
 			WiFi.removeEvent(onApEventID);
@@ -349,5 +345,16 @@ private:
 	//        return "WPA2_ENTERPRISE";
 	//    }
 	//  }
+	void printMac()
+	{
+    	//char macAddress[18] = {0};
+		#ifdef ESP_ARDUINO3
+        //strlcpy(macAddress, Network.macAddress().c_str(), sizeof(macAddress));
+		LogHandler::info(_TAG, "Mac: %s", Network.macAddress().c_str());
+		#else
+        //strlcpy(macTemp, WiFi.macAddress().c_str(), sizeof(macTemp));
+		LogHandler::info(_TAG, "Mac: %s", WiFi.macAddress().c_str());
+		#endif
+	}
 };
 bool WifiHandler::_apMode = false;

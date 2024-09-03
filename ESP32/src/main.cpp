@@ -350,6 +350,9 @@ void startNetworking(const bool &apMode, const int &port, const int &udpPort, co
 		}
 	#endif
 		webHandler->setup(port, webSocketHandler, apMode);
+	} else {
+		displayPrint("WebServer disabled");
+		LogHandler::info(TagHandler::Main, "WebServer disabled due to bluetooth and chip model");
 	}
 	if (!apMode) // mdns breaks apmode?
 		mdnsHandler.setup(hostname, friendlyName, port, udpPort);

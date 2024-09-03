@@ -243,34 +243,35 @@ private:
     const Command CLEAR_LOGS_INCLUDE{{"Clear log include", "#clear-log-include", "Clears all the log included tags", SaveRequired::YES, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			LogHandler::clearIncludes();
-			Serial.println("Tags cleared");
+			LogHandler::debug(_TAG, "Tags cleared");
 			return m_settingsFactory->setValue(LOG_INCLUDETAGS, LogHandler::getIncludes()) != SettingFile::NONE;
 		}, SaveRequired::YES);
 	}};
     const Command CLEAR_LOGS_EXCLUDE{{"Clear log exclude", "#clear-log-exclude", "Clears all the log excluded tags", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			LogHandler::clearExcludes();
-			Serial.println("Tags filters cleared");
+			LogHandler::debug(_TAG, "Filters cleared");
 			return m_settingsFactory->setValue(LOG_EXCLUDETAGS, LogHandler::getExcludes()) != SettingFile::NONE;
 		}, SaveRequired::NO);
 	}};
     const Command MOTION_ENABLE{{"Motion enable", "#motion-enable", "Enables the motion generator", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
-		return validateBool("Motion", true, SettingsHandler::getMotionEnabled(), [](bool value) -> bool {
-			LogHandler::verbose(TagHandler::Main, "MOTION_ENABLED: %d", value);
+		return validateBool("Motion", true, SettingsHandler::getMotionEnabled(), [this](bool value) -> bool {
 			SettingsHandler::setMotionEnabled(value);
+			LogHandler::debug(_TAG, "Motion enabled");
 			return true;
 		});
 	}};
     const Command MOTION_DISABLE{{"Motion disable", "#motion-disable", "Disables the motion generator", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
-		return validateBool("Motion", false, SettingsHandler::getMotionEnabled(), [](bool value) -> bool {
+		return validateBool("Motion", false, SettingsHandler::getMotionEnabled(), [this](bool value) -> bool {
 			SettingsHandler::setMotionEnabled(value);
+			LogHandler::debug(_TAG, "Motion disabled");
 			return true;
 		});
 	}};
     const Command MOTION_TOGGLE{{"Motion toggle", "#motion-toggle", "Toggles the motion generator", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			SettingsHandler::setMotionEnabled(!SettingsHandler::getMotionEnabled());
-			Serial.println(SettingsHandler::getMotionEnabled() ? "Motion enabled" : "Motion disabled");
+			LogHandler::debug(_TAG, SettingsHandler::getMotionEnabled() ? "Motion enabled" : "Motion disabled");
 			return true;
 		});
 	}};
