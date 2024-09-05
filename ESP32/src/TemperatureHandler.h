@@ -496,10 +496,10 @@ private:
 		int8_t m_internalTempPin = INTERNAL_TEMP_PIN_DEFAULT; 
 		int8_t m_heaterPin = HEATER_PIN_DEFAULT;
 		int8_t m_caseFanPin = CASE_FAN_PIN_DEFAULT;
-		int m_heaterFrequency = HEATER_FREQUENCY_DEFAULT;
+		int m_heaterFrequency = ESP_TIMER_FREQUENCY_DEFAULT;
 		int m_heaterResolution = HEATER_RESOLUTION_DEFAULT;
 		bool m_fanControlEnabled = FAN_CONTROL_ENABLED_DEFAULT;
-		int m_fanFrequency = CASE_FAN_FREQUENCY_DEFAULT;
+		int m_fanFrequency = ESP_TIMER_FREQUENCY_DEFAULT;
 		int m_fanResolution = CASE_FAN_RESOLUTION_DEFAULT;
 		int m_fanMaxDuty = pow(2, m_fanResolution) - 1;
 		float m_internalTempForFanOn = INTERNAL_TEMP_FOR_FAN_DEFAULT;

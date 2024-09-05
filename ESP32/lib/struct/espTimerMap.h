@@ -20,42 +20,29 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
+// #pragma once
 
-#pragma once
+// #include <ArduinoJson.h>
+// #include "../constants.h"
 
+// struct ESPTimerPWM {
+//     const char* name;
+//     const int8_t channel;
+//     const int8_t pin;
+// };
 
+// struct ESPTimer {
+//     int frequency = ESP_TIMER_FREQUENCY_DEFAULT;
+//     ESPTimerPWM channels[ESP_TIMER_MAX_CHANNEL];
+// };
 
-// Twist position monitor variables
-volatile int twistPulseLength = 0;
-volatile int twistPulseCycle = 1099;
-volatile int twistPulseStart = 0;
-// Libraries used
-//#include <EEPROM.h> // Permanent memory
-
-volatile int lastTwistPulseCycle; 
-volatile int twistFeedBackPin = 0; 
-// Twist position detection functions
-void IRAM_ATTR twistChange() 
-{
-	long currentMicros = esp_timer_get_time();
-	if(!twistFeedBackPin) {
-    	SettingsFactory* m_settingsFactory = SettingsFactory::getInstance();
-		twistFeedBackPin = m_settingsFactory->getPins()->twistFeedBack();
-	}
-	if(digitalRead(twistFeedBackPin) == HIGH)
-	{
-		twistPulseCycle = currentMicros-twistPulseStart;
-  		twistPulseStart = currentMicros;
-	}
-	else if (lastTwistPulseCycle != twistPulseCycle) 
-	{
-      int currentPulseLength = currentMicros-twistPulseStart;
-      if (currentPulseLength <= 1000000/50) {
-        twistPulseLength = currentPulseLength;
-        lastTwistPulseCycle = twistPulseCycle;
-      }
-	}
-  	//interrupts();
-}
-
-using TCODE_FUNCTION_PTR_T = void (*)(const char* input);
+// struct ESPTimerMap {
+//     ESPTimer timerH0;
+//     ESPTimer timerH1;
+//     ESPTimer timerH2;
+//     ESPTimer timerH3;
+//     ESPTimer timerL0;
+//     ESPTimer timerL1;
+//     ESPTimer timerL2;
+//     ESPTimer timerL3;
+// };

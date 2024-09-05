@@ -720,7 +720,6 @@ function setUserSettings()
     setLogLevelUI();
     toggleNonTCodev3Options();
     toggleDeviceOptions(userSettings["deviceType"]);
-    togglePitchServoFrequency(userSettings["pitchFrequencyIsDifferent"]);
     toggleFeedbackTwistSettings(userSettings["feedbackTwist"]);
     toggleBatterySettings(userSettings["batteryLevelEnabled"]);
     MotionGenerator.setEnabledStatus();
@@ -752,11 +751,6 @@ function setUserSettings()
     
     document.getElementById('boardType').value = userSettings["boardType"];
 
-	document.getElementById("servoFrequency").value = userSettings["servoFrequency"];
-	document.getElementById("pitchFrequency").value = userSettings["pitchFrequency"];
-	document.getElementById("valveFrequency").value = userSettings["valveFrequency"];
-	document.getElementById("twistFrequency").value = userSettings["twistFrequency"];
-    document.getElementById("squeezeFrequency").value = userSettings.squeezeFrequency,
 	document.getElementById("msPerRad").value = userSettings["msPerRad"];
 	
 	document.getElementById("feedbackTwist").checked = userSettings["feedbackTwist"];
@@ -794,7 +788,6 @@ function setUserSettings()
 	document.getElementById("versionDisplayed").checked = userSettings["versionDisplayed"];
 	document.getElementById("tempSleeveEnabled").checked = userSettings["tempSleeveEnabled"];
     document.getElementById('tempInternalEnabled').checked = userSettings["tempInternalEnabled"];
-	document.getElementById("pitchFrequencyIsDifferent").checked = userSettings["pitchFrequencyIsDifferent"];
 	document.getElementById("Display_Screen_Width").value = userSettings["Display_Screen_Width"];
 	document.getElementById("Display_Screen_Height").value = userSettings["Display_Screen_Height"];
     
@@ -809,7 +802,6 @@ function setUserSettings()
 	// document.getElementById("heaterFailsafeTime").value = userSettings["heaterFailsafeTime"];
 	document.getElementById("heaterThreshold").value = userSettings["heaterThreshold"];
 	document.getElementById("heaterResolution").value = userSettings["heaterResolution"];
-	document.getElementById("heaterFrequency").value = userSettings["heaterFrequency"];
     
 	// document.getElementById("Display_Rst_PIN").readOnly = newtoungeHatExists;
 
@@ -819,7 +811,6 @@ function setUserSettings()
     document.getElementById('internalTempForFan').value = userSettings["internalTempForFan"];
     document.getElementById('internalMaxTemp').value = userSettings["internalMaxTemp"];
     document.getElementById('caseFanResolution').value = userSettings["caseFanResolution"];
-    document.getElementById('caseFanFrequency').value = userSettings["caseFanFrequency"];
 
     document.getElementById('vibTimeout').value = userSettings["vibTimeout"];
     document.getElementById('vibTimeoutEnabled').checked = userSettings["vibTimeoutEnabled"];
@@ -1358,46 +1349,6 @@ function updateWebPort() {
     postWifiSettings();
 }
 
-function setPitchFrequencyIsDifferent() {
-    var isChecked = document.getElementById('pitchFrequencyIsDifferent').checked;
-    userSettings["pitchFrequencyIsDifferent"] = isChecked;
-    togglePitchServoFrequency(isChecked);
-}
-
-function updateServoFrequency() {
-    var servoFrequencyControl = document.getElementById('servoFrequency');
-    if(!servoFrequencyControl.checkValidity()) {
-        showError(servoFrequencyControl.validationMessage);
-    } else
-        userSettings["servoFrequency"] = parseInt(servoFrequencyControl.value);
-        
-    var pitchFrequencyControl = document.getElementById('pitchFrequency');
-    if(!pitchFrequencyControl.checkValidity()) {
-        showError(pitchFrequencyControl.validationMessage);
-    } else
-        userSettings["pitchFrequency"] = parseInt(pitchFrequencyControl.value);
-
-    var valveFrequencyControl = document.getElementById('valveFrequency');
-    if(!valveFrequencyControl.checkValidity()) {
-        showError(valveFrequencyControl.validationMessage);
-    } else
-        userSettings["valveFrequency"] = parseInt(valveFrequencyControl.value);
-
-    var twistFrequencyControl = document.getElementById('twistFrequency');
-    if(!twistFrequencyControl.checkValidity()) {
-        showError(twistFrequencyControl.validationMessage);
-    } else
-        userSettings["twistFrequency"] = parseInt(twistFrequencyControl.value);
-        var twistFrequencyControl = document.getElementById('twistFrequency');
-
-    var squeezeFrequencyControl = document.getElementById('squeezeFrequency');
-    if(!squeezeFrequencyControl.checkValidity()) {
-        showError(squeezeFrequencyControl.validationMessage);
-    } else
-        userSettings["squeezeFrequency"] = parseInt(squeezeFrequencyControl.value);
-    setRestartRequired();
-    updateUserSettings();
-}
 function updateMSPerRad(userChecked) {
     var control = document.getElementById('msPerRad');
     if(!control.checkValidity()) {
@@ -2218,7 +2169,6 @@ function setTempSettings() {
     userSettings["HoldPWM"] = parseInt(document.getElementById('HoldPWM').value);
     userSettings["heaterThreshold"] = parseInt(document.getElementById('heaterThreshold').value);
     userSettings["heaterResolution"] = parseInt(document.getElementById('heaterResolution').value);
-    userSettings["heaterFrequency"] = parseInt(document.getElementById('heaterFrequency').value);
 
     Utils.toggleControlVisibilityByID('sleeveTempDisplayedRow', hasFeature(BuildFeature.TEMP) && userSettings["tempSleeveEnabled"]);
     if(validatePins()) {
@@ -2229,7 +2179,6 @@ function setTempSettings() {
 function setInternalTempSettings() {
     userSettings["tempInternalEnabled"] = document.getElementById('tempInternalEnabled').checked;
     userSettings["caseFanResolution"] = parseInt(document.getElementById('caseFanResolution').value);
-    userSettings["caseFanFrequency"] = parseInt(document.getElementById('caseFanFrequency').value);
 
     Utils.toggleControlVisibilityByID('internalTempDisplayedRow', hasFeature(BuildFeature.TEMP) && userSettings["tempInternalEnabled"]);
     setRestartRequired();
@@ -2376,11 +2325,6 @@ function validateStaticIPAddresses(ips) {
     return true;
 }
 
-
-function togglePitchServoFrequency(isChecked) 
-{
-    Utils.toggleControlVisibilityByID('pitchFrequencyRow', isChecked);
-}
 function toggleStaticIPSettings(isStatic)
 {
     Utils.toggleControlVisibilityByID('localIP', isStatic);

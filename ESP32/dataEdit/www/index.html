@@ -328,54 +328,6 @@
 								<select name="deviceType" id="deviceType" onchange="setDeviceType()"> </select>
 							</div>
 						</div>
-						<div class="tRow servoOnly hidden">
-							<div class="tCell">
-								<span title="This sets the frequency of the main servos. L/R and Pitch\nif 'Pitch Frequency is different' is NOT checked">Servo Frequency (hz)</span> 
-							</div>
-							<div class="tCell">
-								<input id="servoFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()" class="servoOnly">
-							</div>
-						</div>
-						<div class="tRow servoOnly hidden">
-							<div class="tCell">
-								<span title="This sets the frequency of the main servos. L/R and Pitch" >Pitch Frequency is different</span> 
-							</div>
-							<div class="tCell">
-								<input id="pitchFrequencyIsDifferent" type="checkbox" onclick="setPitchFrequencyIsDifferent()"></input>
-							</div>
-						</div>
-						<div id="pitchFrequencyRow" class="tRow servoOnly hidden">
-							<div class="tCell">
-								<span title="This sets the frequency of the pitch servos.">Pitch Frequency (hz)</span> 
-							</div>
-							<div class="tCell">
-								<input id="pitchFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
-							</div>
-						</div>
-						<div class="tRow">
-							<div class="tCell">
-								<span title="This sets the frequency of the valve servo.">Valve Frequency (hz)</span> 
-							</div>
-							<div class="tCell">
-								<input id="valveFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
-							</div>
-						</div>
-						<div title="This sets the frequency of the twist servo." class="tRow">
-							<div class="tCell">
-								<span>Twist Frequency (hz)</span> 
-							</div>
-							<div class="tCell">
-								<input id="twistFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
-							</div>
-						</div>
-						<div title="This sets the frequency of the auxiliary servo." class="tRow">
-							<div class="tCell">
-								<span>Aux Frequency (hz)</span> 
-							</div>
-							<div class="tCell">
-								<input id="squeezeFrequency" type="number" min="1" max="2147483647" oninput="updateServoFrequency()">
-							</div>
-						</div>
 						<div class="tRow sr6Only servoOnly hidden">
 							<div class="tCell">
 								<span>Set (&#181;) for 270 degree servos</span> 
@@ -811,14 +763,14 @@
 								<input id="heaterResolution" type="text"  oninput="setTempSettings()">
 							</div>
 						</div>
-						<div class="tRow">
+						<!-- <div class="tRow">
 							<div class="tCell">
 								<span>Heater frequency (hz)</span> 
 							</div>
 							<div class="tCell">
 								<input id="heaterFrequency" type="text"  oninput="setTempSettings()">
 							</div>
-						</div>
+						</div> -->
 						<div class="tRow">
 							<div class="tCell">
 								<span>Sleeve temp (&#8451;)</span> 
@@ -904,12 +856,12 @@
 								<input id="Case_Fan_PIN" type="number" min="-1" oninput="updatePins()">
 							</div>
 						</div>
-						<div class="tRow fan-control">
+						<!-- <div class="tRow fan-control">
 							<div class="tCell"><span>Fan frequency (hz)</span></div>
 							<div class="tCell">
 								<input id="caseFanFrequency" type="number" min="0" oninput="setInternalTempSettings()">
 							</div>
-						</div>
+						</div> -->
 						<div class="tRow fan-control">
 							<div class="tCell"><span>Fan resolution (bit)</span></div>
 							<div class="tCell">

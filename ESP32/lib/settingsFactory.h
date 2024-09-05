@@ -316,10 +316,9 @@ public:
         return fileInfo->file;
     }
     
-    
-    PinMapInfo getPins() 
+    PinMap* getPins() 
     {
-        return {m_deviceType, m_boardType, m_currentPinMap};
+        return m_currentPinMap;
     }
 
     template<typename T,
@@ -785,13 +784,7 @@ private:
             {LOG_LEVEL_SETTING, "Log level", "The loglevel that will output", SettingType::Number, LOG_LEVEL_DEFAULT, RestartRequired::NO, {SettingProfile::System}},
             //{FULL_BUILD, "Full build", "", SettingType::Boolean, false, RestartRequired::YES, {SettingProfile::System}}, // Not sure what this was for. Doesnt appear to be used anywhere.
             {TCODE_VERSION_SETTING, "TCode version", "The version of TCode", SettingType::Number, TCODE_VERSION_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
-            {PITCH_FREQUENCY_IS_DIFFERENT, "Pitch frequency is different", "True will use the value set in pitchFrequency", SettingType::Boolean, PITCH_FREQUENCY_IS_DIFFERENT_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {MS_PER_RAD, "Ms per rad", "Micro seconds per radian for servos", SettingType::Number, MS_PER_RAD_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
-            {SERVO_FREQUENCY, "Servo frequency", "Base servo frequenbcy", SettingType::Number, SERVO_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
-            {PITCH_FREQUENCY, "Pitch frequency", "Pitch servo frequency if different than base", SettingType::Number, PITCH_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
-            {VALVE_FREQUENCY, "Valve frequency", "Valve servo frequency", SettingType::Number, VALVE_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
-            {TWIST_FREQUENCY, "Twist frequency", "Twist servo frequency if different than base", SettingType::Number, TWIST_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
-            {SQUEEZE_FREQUENCY, "Squeeze frequency", "Squeeze servo frequency if different than base", SettingType::Number, SQUEEZE_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {CONTINUOUS_TWIST, "Continous twist", "Ignores any feedback signal", SettingType::Boolean, CONTINUOUS_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {FEEDBACK_TWIST, "Feedback twist", "For feed back servos", SettingType::Boolean, FEEDBACK_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {ANALOG_TWIST, "Analog twist", "Analog feedback servo", SettingType::Boolean, ANALOG_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
@@ -835,9 +828,7 @@ private:
             {DISPLAY_I2C_ADDRESS, "Display I2C address", "I2C address of the display", SettingType::String, DISPLAY_I2C_ADDRESS_DEFAULT, RestartRequired::YES, {SettingProfile::Display}},
             {HEATER_THRESHOLD, "Heater thresh hold", "The HoldPWM will be sent while the temp less than or equal to TargetTemp + heaterThreshold", SettingType::Float, HEATER_THRESHOLD_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},// TODo: what is this exactly
             {HEATER_RESOLUTION, "Heater resolution", "Resolution for the Heater PWM", SettingType::Number, HEATER_RESOLUTION_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
-            {HEATER_FREQUENCY, "Heater frequency", "Frequence for the heater PWM", SettingType::Number, HEATER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {FAN_CONTROL_ENABLED, "Fan control enabled", "Enable PWM fan", SettingType::Boolean, FAN_CONTROL_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
-            {CASE_FAN_FREQUENCY, "Fan frequency", "Fan frequency", SettingType::Number, CASE_FAN_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {CASE_FAN_RESOLUTION, "Fan resolution", "Fan resolution", SettingType::Number, CASE_FAN_RESOLUTION_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {INTERNAL_TEMP_FOR_FANON, "Internal temp for fan", "The temp. threshold to turn the fan on", SettingType::Double, INTERNAL_TEMP_FOR_FAN_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {INTERNAL_MAX_TEMP, "Internal max temp", "Max temp for internal. The movement will shutdown if this value is reached.", SettingType::Double, INTERNAL_MAX_TEMP_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
@@ -856,6 +847,16 @@ private:
             {BOOT_BUTTON_COMMAND, "Boot button command", "Command to execute when the boot button is pressed", SettingType::String, BOOT_BUTTON_COMMAND_DEFAULT, RestartRequired::NO, {SettingProfile::Button}},
             {BUTTON_SETS_ENABLED, "Button sets enabled", "Enables the button sets function", SettingType::Boolean, BUTTON_SETS_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Button}},
             {BUTTON_ANALOG_DEBOUNCE, "Button debounce", "How long to debounce the button press in ms", SettingType::Number, BUTTON_ANALOG_DEBOUNCE_DEFAULT, RestartRequired::NO, {SettingProfile::Button}}
+            #if CONFIG_IDF_TARGET_ESP32
+            ,{ESP_H_TIMER0_FREQUENCY, "High timer 0 frequency", "Frequency for the high timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
+            ,{ESP_H_TIMER1_FREQUENCY, "High timer 1 frequency", "Frequency for the high timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
+            ,{ESP_H_TIMER2_FREQUENCY, "High timer 2 frequency", "Frequency for the high timer 2", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
+            ,{ESP_H_TIMER3_FREQUENCY, "High timer 3 frequency", "Frequency for the high timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}} 
+            #endif
+            ,{ESP_L_TIMER0_FREQUENCY, "Low timer 0 frequency", "Frequency for the low timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
+            ,{ESP_L_TIMER1_FREQUENCY, "Low timer 1 frequency", "Frequency for the low timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
+            ,{ESP_L_TIMER2_FREQUENCY, "Low timer 2 frequency", "Frequency for the low timer 2", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
+            ,{ESP_L_TIMER3_FREQUENCY, "Low timer 3 frequency", "Frequency for the low timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}  
         }
     };
 
@@ -863,36 +864,54 @@ private:
     {
         PIN_SETTINGS_PATH, SettingFile::Pins, JsonDocument(), 
         {
-            {TWIST_FEEDBACK_PIN, "Twist feedback PIN", "The twist feedback pin", SettingType::Number, TWIST_FEEDBACK_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Pin}},
+            // PWM
             {RIGHT_SERVO_PIN, "Right servo PIN", "Pin the right servo is on", SettingType::Number, RIGHT_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+            {RIGHT_SERVO_CHANNEL, "Right servo channel", "Timer channel the right servo is on", SettingType::Number, RIGHT_SERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
             {LEFT_SERVO_PIN, "Left servo PIN", "Pin the left servo is on", SettingType::Number, LEFT_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+            {LEFT_SERVO_CHANNEL, "Left servo channel", "Timer channel the left servo is on", SettingType::Number, LEFT_SERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
             {RIGHT_UPPER_SERVO_PIN, "Right upper servo PIN", "Pin the right upper servo is on", SettingType::Number, RIGHT_UPPER_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+            {RIGHT_UPPER_SERVO_CHANNEL, "Right upper servo channel", "Timer channel the right upper servo is on", SettingType::Number, RIGHT_UPPER_SERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
             {LEFT_UPPER_SERVO_PIN, "Left upper servo PIN", "Pin the left servo is on", SettingType::Number, LEFT_UPPER_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+            {LEFT_UPPER_SERVO_CHANNEL, "Left upper servo channel", "Timer channel the left servo is on", SettingType::Number, LEFT_UPPER_SERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
             {PITCH_LEFT_SERVO_PIN, "Pitch left servo PIN", "Pin the pitch left servo is on", SettingType::Number, PITCH_LEFT_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+            {PITCH_LEFT_SERVO_CHANNEL, "Pitch left servo channel", "Timer channel the pitch left servo is on", SettingType::Number, PITCH_LEFT_SERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
             {PITCH_RIGHTSERVO_PIN, "Pitch right servo PIN", "Pin the pitch right servo is on", SettingType::Number, PITCH_RIGHTSERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+            {PITCH_RIGHTSERVO_CHANNEL, "Pitch right servo channel", "Timer channel the pitch right servo is on", SettingType::Number, PITCH_RIGHTSERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
             {VALVE_SERVO_PIN, "Valve servo PIN", "Pin the valve servo is on", SettingType::Number, VALVE_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+            {VALVE_SERVO_CHANNEL, "Valve servo channel", "Timer channel the valve servo is on", SettingType::Number, VALVE_SERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
             {TWIST_SERVO_PIN, "Twist servo PIN", "Pin the twist servo is on", SettingType::Number, TWIST_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+            {TWIST_SERVO_CHANNEL, "Twist servo channel", "Timer channel the twist servo is on", SettingType::Number, TWIST_SERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
             {SQUEEZE_PIN, "Squeeze servo PIN", "Pin the squeeze servo is on", SettingType::Number, SQUEEZE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+            {SQUEEZE_CHANNEL, "Squeeze servo channel", "Timer channel the squeeze servo is on", SettingType::Number, SQUEEZE_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
             {VIBE0_PIN, "Vibe1 PIN", "Pin the vibe 1 is on", SettingType::Number, VIBE0_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
+            {VIBE0_CHANNEL, "Vibe1 channel", "Timer channel the vibe 1 is on", SettingType::Number, VIBE0_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
             {VIBE1_PIN, "Vibe2 PIN", "Pin the vibe 2 is on", SettingType::Number, VIBE1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
+            {VIBE1_CHANNEL, "Vibe2 channel", "Timer channel the vibe 2 is on", SettingType::Number, VIBE1_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
             {VIBE2_PIN, "Vibe3 PIN", "Pin the vibe 3 is on", SettingType::Number, VIBE2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
+            {VIBE2_CHANNEL, "Vibe3 channel", "Timer channel the vibe 3 is on", SettingType::Number, VIBE2_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
             {VIBE3_PIN, "Vibe4 PIN", "Pin the vibe 4 is on", SettingType::Number, VIBE3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
+            {VIBE3_CHANNEL, "Vibe4 channel", "Timer channel the vibe 4 is on", SettingType::Number, VIBE3_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
             {CASE_FAN_PIN, "Case fan PIN", "Pin the case fan is on", SettingType::Number, CASE_FAN_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
+            {CASE_FAN_CHANNEL, "Case fan channel", "Timer channel the case fan is on", SettingType::Number, CASE_FAN_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
+            {HEATER_PIN, "Heater PIN", "Pin the heater is on", SettingType::Number, HEATER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature, SettingProfile::Pin, SettingProfile::PWM}},
+            {HEATER_CHANNEL, "Heater channel", "Timer channel the heater is on", SettingType::Number, HEATER_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature, SettingProfile::Pin, SettingProfile::PWM}},
+            // Analog
+            {TWIST_FEEDBACK_PIN, "Twist feedback PIN", "The twist feedback pin", SettingType::Number, TWIST_FEEDBACK_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Pin}},
             {LUBE_BUTTON_PIN, "Lube button PIN", "Pin the lube button is on", SettingType::Number, LUBE_BUTTON_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
             {INTERNAL_TEMP_PIN, "Internal temp PIN", "Pin the internal temp sensor is on", SettingType::Number, INTERNAL_TEMP_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Analog, SettingProfile::Pin}},
             {DISPLAY_RST_PIN, "Display Rst PIN", "Reset pin for the display", SettingType::Number, DISPLAY_RST_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Display, SettingProfile::Pin}},
             {TEMP_PIN, "Temp pin", "Pin the sleeve temperture is on", SettingType::Number, TEMP_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Pin, SettingProfile::Analog}},
-            {HEATER_PIN, "Heater PIN", "Pin the heater is on", SettingType::Number, HEATER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature, SettingProfile::Pin, SettingProfile::PWM}},
             {I2C_SDA_PIN, "I2C SDA PIN", "Pin of the I2C SDA", SettingType::Number, I2C_SDA_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::System, SettingProfile::Pin}},
             {I2C_SCL_PIN, "I2C SCL PIN", "Pin of the I2C SCL", SettingType::Number, I2C_SCL_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::System, SettingProfile::Pin}},
+            {BUTTON_SET_PINS, "Button set pins", "Pins for each button set. (Max 4)", SettingType::ArrayInt, BUTTON_SET_PINS_DEFAULT, RestartRequired::YES, {SettingProfile::Pin, SettingProfile::Analog}},
+            // BLDC
             {BLDC_ENCODER_PIN, "Encoder PIN", "Pin the BLDC encoder is on", SettingType::Number, BLDC_ENCODER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_CHIPSELECT_PIN, "Chipselect PIN", "Pin the BLDC chip select is on", SettingType::Number, BLDC_CHIPSELECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_ENABLE_PIN, "Enable PIN", "Pin the BLDC enable is on", SettingType::Number, BLDC_ENABLE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_HALLEFFECT_PIN, "Halleffect PIN", "Pin the hall effect is on", SettingType::Number, BLDC_HALLEFFECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_PWMCHANNEL1_PIN, "PWM channel1 PIN", "Pin for the BLDC PWM 1", SettingType::Number, BLDC_PWMCHANNEL1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
             {BLDC_PWMCHANNEL2_PIN, "PWM channel2 PIN", "Pin for the BLDC PWM 2", SettingType::Number, BLDC_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
-            {BLDC_PWMCHANNEL3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
-            {BUTTON_SET_PINS, "Button set pins", "Pins for each button set. (Max 4)", SettingType::ArrayInt, BUTTON_SET_PINS_DEFAULT, RestartRequired::YES, {SettingProfile::Pin, SettingProfile::Analog}}
+            {BLDC_PWMCHANNEL3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}}
         }
     };
 
@@ -1212,24 +1231,46 @@ private:
             return;
         }
         int8_t pin = -1;
-        getValue(TWIST_FEEDBACK_PIN, pin);
-        pinMap->setTwistFeedBack(pin);
+        int8_t channel = -1;
         getValue(VALVE_SERVO_PIN, pin);
         pinMap->setValve(pin);
+        getValue(VALVE_SERVO_CHANNEL, channel);
+        pinMap->setValveChannel(channel);
         getValue(TWIST_SERVO_PIN, pin);
         pinMap->setTwist(pin);
+        getValue(TWIST_SERVO_CHANNEL, channel);
+        pinMap->setTwistChannel(channel);
         getValue(SQUEEZE_PIN, pin);
         pinMap->setSqueeze(pin);
+        getValue(SQUEEZE_CHANNEL, channel);
+        pinMap->setSqueezeChannel(channel);
         getValue(VIBE0_PIN, pin);
         pinMap->setVibe0(pin);
+        getValue(VIBE0_CHANNEL, channel);
+        pinMap->setVibe0Channel(channel);
         getValue(VIBE1_PIN, pin);
         pinMap->setVibe1(pin);
+        getValue(VIBE1_CHANNEL, channel);
+        pinMap->setVibe1Channel(channel);
         getValue(VIBE2_PIN, pin);
         pinMap->setVibe2(pin);
+        getValue(VIBE2_CHANNEL, channel);
+        pinMap->setVibe2Channel(channel);
         getValue(VIBE3_PIN, pin);
         pinMap->setVibe3(pin);
+        getValue(VIBE3_CHANNEL, channel);
+        pinMap->setVibe3Channel(channel);
         getValue(CASE_FAN_PIN, pin);
         pinMap->setCaseFan(pin);
+        getValue(CASE_FAN_CHANNEL, channel);
+        pinMap->setCaseFanChannel(channel);
+        getValue(HEATER_PIN, pin);
+        pinMap->setHeater(pin);
+        getValue(HEATER_CHANNEL, channel);
+        pinMap->setHeaterChannel(channel);
+
+        getValue(TWIST_FEEDBACK_PIN, pin);
+        pinMap->setTwistFeedBack(pin);
         getValue(LUBE_BUTTON_PIN, pin);
         pinMap->setLubeButton(pin);
         getValue(INTERNAL_TEMP_PIN, pin);
@@ -1238,8 +1279,6 @@ private:
         pinMap->setDisplayReset(pin);
         getValue(TEMP_PIN, pin);
         pinMap->setSleeveTemp(pin);
-        getValue(HEATER_PIN, pin);
-        pinMap->setHeater(pin);
         getValue(I2C_SDA_PIN, pin);
         pinMap->setI2cSda(pin);
         getValue(I2C_SCL_PIN, pin);
@@ -1250,6 +1289,35 @@ private:
         {
             pinMap->setButtonSetPin(vec[i], i);
         }
+
+        int timerFreq = -1;
+#if CONFIG_IDF_TARGET_ESP32
+        getValue(ESP_H_TIMER0_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(0, timerFreq);
+        getValue(ESP_H_TIMER1_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(1, timerFreq);
+        getValue(ESP_H_TIMER2_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(2, timerFreq);
+        getValue(ESP_H_TIMER3_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(3, timerFreq);
+        getValue(ESP_L_TIMER0_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(4, timerFreq);
+        getValue(ESP_L_TIMER1_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(5, timerFreq);
+        getValue(ESP_L_TIMER2_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(6, timerFreq);
+        getValue(ESP_L_TIMER3_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(7, timerFreq);
+#elif CONFIG_IDF_TARGET_ESP32S3
+        getValue(ESP_L_TIMER0_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(0, timerFreq);
+        getValue(ESP_L_TIMER1_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(1, timerFreq);
+        getValue(ESP_L_TIMER2_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(2, timerFreq);
+        getValue(ESP_L_TIMER3_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(3, timerFreq);
+#endif
     }
     PinMapSSR1* loadSSR1Pins() 
     {
@@ -1285,13 +1353,20 @@ private:
         }
         PinMapOSR* pinMap = PinMapOSR::getInstance();
         loadCommonPins(pinMap);
-        uint8_t pin = -1;
+        int8_t pin = -1;
+        int8_t channel = -1;
         getValue(RIGHT_SERVO_PIN, pin);
         pinMap->setRightServo(pin);
+        getValue(RIGHT_SERVO_CHANNEL, channel);
+        pinMap->setRightServoChannel(channel);
         getValue(LEFT_SERVO_PIN, pin);
         pinMap->setLeftServo(pin);
+        getValue(LEFT_SERVO_CHANNEL, channel);
+        pinMap->setLeftServoChannel(channel);
         getValue(PITCH_LEFT_SERVO_PIN, pin);
         pinMap->setPitchLeft(pin);
+        getValue(PITCH_LEFT_SERVO_CHANNEL, channel);
+        pinMap->setPitchLeftChannel(channel);
         return pinMap;
     }
     
@@ -1304,18 +1379,31 @@ private:
         PinMapSR6* pinMap = PinMapSR6::getInstance();
         loadCommonPins(pinMap);
         int8_t pin = -1;
+        int8_t channel = -1;
         getValue(RIGHT_SERVO_PIN, pin);
         pinMap->setRightServo(pin);
+        getValue(RIGHT_SERVO_CHANNEL, channel);
+        pinMap->setRightServoChannel(channel);
         getValue(LEFT_SERVO_PIN, pin);
         pinMap->setLeftServo(pin);
+        getValue(LEFT_SERVO_CHANNEL, channel);
+        pinMap->setLeftServoChannel(channel);
         getValue(PITCH_LEFT_SERVO_PIN, pin);
         pinMap->setPitchLeft(pin);
+        getValue(PITCH_LEFT_SERVO_CHANNEL, channel);
+        pinMap->setPitchLeftChannel(channel);
         getValue(PITCH_RIGHTSERVO_PIN, pin);
         pinMap->setPitchRight(pin);
+        getValue(PITCH_RIGHTSERVO_CHANNEL, channel);
+        pinMap->setPitchRightChannel(channel);
         getValue(RIGHT_UPPER_SERVO_PIN, pin);
         pinMap->setRightUpperServo(pin);
+        getValue(RIGHT_UPPER_SERVO_CHANNEL, channel);
+        pinMap->setRightUpperServoChannel(channel);
         getValue(LEFT_UPPER_SERVO_PIN, pin);
         pinMap->setLeftUpperServo(pin);
+        getValue(LEFT_UPPER_SERVO_CHANNEL, channel);
+        pinMap->setLeftUpperServoChannel(channel);
         return pinMap;
     }
     
@@ -1325,20 +1413,30 @@ private:
             LogHandler::error(m_TAG, "syncCommonPinsToDoc called before initialized");
             return;
         }
-        setValue(TWIST_FEEDBACK_PIN, pinMap->twistFeedBack());
         setValue(VALVE_SERVO_PIN, pinMap->valve());
+        setValue(VALVE_SERVO_CHANNEL, pinMap->valveChannel());
         setValue(TWIST_SERVO_PIN, pinMap->twist());
+        setValue(TWIST_SERVO_CHANNEL, pinMap->twistChannel());
         setValue(SQUEEZE_PIN, pinMap->squeeze());
+        setValue(SQUEEZE_CHANNEL, pinMap->squeezeChannel());
         setValue(VIBE0_PIN, pinMap->vibe0());
+        setValue(VIBE0_CHANNEL, pinMap->vibe0Channel());
         setValue(VIBE1_PIN, pinMap->vibe1());
+        setValue(VIBE1_CHANNEL, pinMap->vibe1Channel());
         setValue(VIBE2_PIN, pinMap->vibe2());
+        setValue(VIBE2_CHANNEL, pinMap->vibe2Channel());
         setValue(VIBE3_PIN, pinMap->vibe3());
+        setValue(VIBE3_CHANNEL, pinMap->vibe3Channel());
         setValue(CASE_FAN_PIN, pinMap->caseFan());
+        setValue(CASE_FAN_CHANNEL, pinMap->caseFanChannel());
+        setValue(HEATER_PIN, pinMap->heater());
+        setValue(HEATER_CHANNEL, pinMap->heaterChannel());
+
+        setValue(TWIST_FEEDBACK_PIN, pinMap->twistFeedBack());
         setValue(LUBE_BUTTON_PIN, pinMap->lubeButton());
         setValue(INTERNAL_TEMP_PIN, pinMap->internalTemp());
         setValue(DISPLAY_RST_PIN, pinMap->displayReset());
         setValue(TEMP_PIN, pinMap->sleeveTemp());
-        setValue(HEATER_PIN, pinMap->heater());
         //setValue(I2C_SDA_PIN, pinMap->setButtonSetPins());
         setValue(I2C_SDA_PIN, pinMap->i2cSda());
         setValue(I2C_SCL_PIN, pinMap->i2cScl());
@@ -1369,8 +1467,11 @@ private:
         }
         syncCommonPinsToDoc(pinMap);
         setValue(RIGHT_SERVO_PIN, pinMap->rightServo());
+        setValue(RIGHT_SERVO_CHANNEL, pinMap->rightServoChannel());
         setValue(LEFT_SERVO_PIN, pinMap->leftServo());
+        setValue(LEFT_SERVO_CHANNEL, pinMap->leftServoChannel());
         setValue(PITCH_LEFT_SERVO_PIN, pinMap->pitchLeft());
+        setValue(PITCH_LEFT_SERVO_CHANNEL, pinMap->pitchLeftChannel());
         savePins();
     }
 
@@ -1382,11 +1483,17 @@ private:
         }
         syncCommonPinsToDoc(pinMap);
         setValue(RIGHT_SERVO_PIN, pinMap->rightServo());
+        setValue(RIGHT_SERVO_CHANNEL, pinMap->rightServoChannel());
         setValue(LEFT_SERVO_PIN, pinMap->leftServo());
+        setValue(LEFT_SERVO_CHANNEL, pinMap->leftServoChannel());
         setValue(PITCH_LEFT_SERVO_PIN, pinMap->pitchLeft());
+        setValue(PITCH_LEFT_SERVO_CHANNEL, pinMap->pitchLeftChannel());
         setValue(PITCH_RIGHTSERVO_PIN, pinMap->pitchRight());
+        setValue(PITCH_RIGHTSERVO_CHANNEL, pinMap->pitchRightChannel());
         setValue(RIGHT_UPPER_SERVO_PIN, pinMap->rightUpperServo());
+        setValue(RIGHT_UPPER_SERVO_CHANNEL, pinMap->rightUpperServoChannel());
         setValue(LEFT_UPPER_SERVO_PIN, pinMap->leftUpperServo());
+        setValue(LEFT_UPPER_SERVO_CHANNEL, pinMap->leftUpperServoChannel());
         savePins();
     }
 

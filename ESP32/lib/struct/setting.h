@@ -51,6 +51,7 @@ enum class SettingProfile
     Display,
     Servo,
     Pin,
+    Timer,
     Bldc,
     Battery,
     Voice,
@@ -93,7 +94,8 @@ enum class SettingFile
     Network,
     Pins,
     MotionProfile,
-    ButtonSet
+    ButtonSet,
+    ESPTimers
 };
 
 class SettingFileInfo {

@@ -39,62 +39,71 @@
 #define SERVO_PWM_RES 14
 #endif
 
+#define ESP_TIMER_FREQUENCY_DEFAULT 50
+// #define ESP_TIMER_MAX_CHANNEL 2
 
-// Servo PWM channels
+
+// // Servo PWM channels
 #ifdef CONFIG_IDF_TARGET_ESP32
 
-    #define LowerLeftServo_PWM 0     // Lower Left Servo
-    #define UpperLeftServo_PWM 1     // Upper Left Servo
+    #define MAX_TIMERS 8
 
-    #define LowerRightServo_PWM 2    // Lower Right Servo
-    #define UpperRightServo_PWM 3    // Upper Right Servo
+//     #define LowerLeftServo_PWM 0     // Lower Left Servo
+//     #define UpperLeftServo_PWM 1     // Upper Left Servo
 
-    #define LeftPitchServo_PWM 4     // Left Pitch Servo
-    #define RightPitchServo_PWM 5    // Right Pitch Servo
+//     #define LowerRightServo_PWM 2    // Lower Right Servo
+//     #define UpperRightServo_PWM 3    // Upper Right Servo
 
-    #define TwistServo_PWM 6         // Twist Servo
-    #define SqueezeServo_PWM 7
+//     #define LeftPitchServo_PWM 4     // Left Pitch Servo
+//     #define RightPitchServo_PWM 5    // Right Pitch Servo
 
-    #define Vibe0_PWM 8              // Vibration motor 1
-    #define Vibe1_PWM 9            // Vibration motor 2
+//     #define TwistServo_PWM 6         // Twist Servo
+//     #define SqueezeServo_PWM 7
 
-    #define Vibe2_PWM 10
-    #define Vibe3_PWM 11
+//     #define Vibe0_PWM 8              // Vibration motor 1
+//     #define Vibe1_PWM 9            // Vibration motor 2
 
-    #define Heater_PWM 12             // Heating pad
-    #define CaseFan_PWM 13
+//     #define Vibe2_PWM 10
+//     #define Vibe3_PWM 11
 
-    #define ValveServo_PWM 14         // Valve Servo
+//     #define Heater_PWM 12             // Heating pad
+//     #define CaseFan_PWM 13
+
+//     #define ValveServo_PWM 14         // Valve Servo
 
 #elif CONFIG_IDF_TARGET_ESP32S3
 
-    #define SR6LowerLeftServo_PWM 0     // Lower Left Servo
-    #define SR6UpperLeftServo_PWM 1     // Upper Left Servo
+    #define MAX_TIMERS 4
 
-    #define SR6LowerRightServo_PWM 2    // Lower Right Servo
-    #define SR6UpperRightServo_PWM 3    // Upper Right Servo
+//     #define SR6LowerLeftServo_PWM 0     // Lower Left Servo
+//     #define SR6UpperLeftServo_PWM 1     // Upper Left Servo
 
-    #define SR6LeftPitchServo_PWM 4     // Left Pitch Servo
-    #define SR6RightPitchServo_PWM 5    // Right Pitch Servo
+//     #define SR6LowerRightServo_PWM 2    // Lower Right Servo
+//     #define SR6UpperRightServo_PWM 3    // Upper Right Servo
 
-    #define OSRLeftServo_PWM 0     // Lower Left Servo
-    #define OSRRightServo_PWM 1    // Lower Right Servo
-    #define OSRPitchServo_PWM 2     // Left Pitch Servo
+//     #define SR6LeftPitchServo_PWM 4     // Left Pitch Servo
+//     #define SR6RightPitchServo_PWM 5    // Right Pitch Servo
 
-    #define TwistServo_PWM 6         // Twist Servo
-    #define SqueezeServo_PWM 7
+//     #define OSRLeftServo_PWM 0     // Lower Left Servo
+//     #define OSRRightServo_PWM 1    // Lower Right Servo
+//     #define OSRPitchServo_PWM 2     // Left Pitch Servo
 
-    #define Vibe0_PWM 8              // Vibration motor 1
-    #define Vibe1_PWM 9            // Vibration motor 2
+//     #define TwistServo_PWM 6         // Twist Servo
+//     #define SqueezeServo_PWM 7
 
-    #define Vibe2_PWM 10
-    #define Vibe3_PWM 11
+//     #define Vibe0_PWM 8              // Vibration motor 1
+//     #define Vibe1_PWM 9            // Vibration motor 2
 
-    #define Heater_PWM 12             // Heating pad
-    #define CaseFan_PWM 13
+//     #define Vibe2_PWM 10
+//     #define Vibe3_PWM 11
 
-    #define ValveServo_PWM 14         // Valve Servo
+//     #define Heater_PWM 12             // Heating pad
+//     #define CaseFan_PWM 13
+
+//     #define ValveServo_PWM 14         // Valve Servo
 #endif
+
+#define MAX_CHANNELS (MAX_TIMERS << 1)
 
 // const Channel ChannelMapV2[9] = {
 //     {"L0","Stroke",0,500,999,false,false,0,500,999},

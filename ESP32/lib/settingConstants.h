@@ -7,6 +7,7 @@
 
 #define COMMON_SETTINGS_PATH "/userSettings.json"
 #define PIN_SETTINGS_PATH "/pins.json"
+#define ESP_TIMER_SETTINGS_PATH "/espTimers.json"
 #define NETWORK_SETTINGS_PATH "/networkSettings.json"
 #define BUTTON_SETTINGS_PATH "/buttons.json"
 #define MOTION_PROFILE_SETTINGS_PATH "/motionProfiles.json"
@@ -42,13 +43,8 @@
 #define BLUETOOTH_ENABLED_DEFAULT false
 #define BLE_DEVICE_TYPE_DEFAULT (uint8_t)BLEDeviceType::TCODE
 #define BLE_LOVE_DEVICE_TYPE_DEFAULT (uint8_t)BLELoveDeviceType::EDGE
-#define PITCH_FREQUENCY_IS_DIFFERENT_DEFAULT false
+// #define PITCH_FREQUENCY_IS_DIFFERENT_DEFAULT false
 #define MS_PER_RAD_DEFAULT 637
-#define SERVO_FREQUENCY_DEFAULT 50
-#define PITCH_FREQUENCY_DEFAULT 50
-#define VALVE_FREQUENCY_DEFAULT 50
-#define TWIST_FREQUENCY_DEFAULT 50
-#define SQUEEZE_FREQUENCY_DEFAULT 50
 #define CONTINUOUS_TWIST_DEFAULT false
 #define FEEDBACK_TWIST_DEFAULT false
 #define ANALOG_TWIST_DEFAULT false
@@ -100,9 +96,9 @@
 #define DISPLAY_I2C_ADDRESS_LEN 5
 #define HEATER_THRESHOLD_DEFAULT 5.0f
 #define HEATER_RESOLUTION_DEFAULT 8
-#define HEATER_FREQUENCY_DEFAULT 50
+// #define HEATER_FREQUENCY_DEFAULT 50
 #define FAN_CONTROL_ENABLED_DEFAULT false
-#define CASE_FAN_FREQUENCY_DEFAULT 25
+// #define CASE_FAN_FREQUENCY_DEFAULT 25
 #define CASE_FAN_RESOLUTION_DEFAULT 10
 #define INTERNAL_TEMP_FOR_FAN_DEFAULT 30.0
 #define INTERNAL_MAX_TEMP_DEFAULT 50.0
@@ -142,13 +138,7 @@
 #define BLUETOOTH_ENABLED "bluetoothEnabled"
 #define BLE_DEVICE_TYPE "bleDeviceType"
 #define BLE_LOVE_DEVICE_TYPE "bleLoveDeviceType"
-#define PITCH_FREQUENCY_IS_DIFFERENT "pitchFrequencyIsDifferent"
 #define MS_PER_RAD "msPerRad"
-#define SERVO_FREQUENCY "servoFrequency"
-#define PITCH_FREQUENCY "pitchFrequency"
-#define VALVE_FREQUENCY "valveFrequency"
-#define TWIST_FREQUENCY "twistFrequency"
-#define SQUEEZE_FREQUENCY "squeezeFrequency"
 #define CONTINUOUS_TWIST "continuousTwist"
 #define FEEDBACK_TWIST "feedbackTwist"
 #define ANALOG_TWIST "analogTwist"
@@ -199,9 +189,9 @@
 #define DISPLAY_I2C_ADDRESS "Display_I2C_Address"
 #define HEATER_THRESHOLD "heaterThreshold"
 #define HEATER_RESOLUTION "heaterResolution"
-#define HEATER_FREQUENCY "heaterFrequency"
+// #define HEATER_FREQUENCY "heaterFrequency"
 #define FAN_CONTROL_ENABLED "fanControlEnabled"
-#define CASE_FAN_FREQUENCY "caseFanFrequency"
+// #define CASE_FAN_FREQUENCY "caseFanFrequency"
 #define CASE_FAN_RESOLUTION "caseFanResolution"
 #define INTERNAL_TEMP_FOR_FANON "internalTempForFan"
 #define INTERNAL_MAX_TEMP "internalMaxTemp"
@@ -228,5 +218,13 @@
 #define MOTION_ENABLED "motionEnabled"
 #define MOTION_PAUSED "motionPaused"
 
+#define ESP_H_TIMER0_FREQUENCY "ESP_H_TIMER0_FREQUENCY"
+#define ESP_H_TIMER1_FREQUENCY "ESP_H_TIMER1_FREQUENCY"
+#define ESP_H_TIMER2_FREQUENCY "ESP_H_TIMER2_FREQUENCY"
+#define ESP_H_TIMER3_FREQUENCY "ESP_H_TIMER3_FREQUENCY"
+#define ESP_L_TIMER0_FREQUENCY "ESP_L_TIMER0_FREQUENCY"
+#define ESP_L_TIMER1_FREQUENCY "ESP_L_TIMER1_FREQUENCY"
+#define ESP_L_TIMER2_FREQUENCY "ESP_L_TIMER2_FREQUENCY"
+#define ESP_L_TIMER3_FREQUENCY "ESP_L_TIMER3_FREQUENCY"
 
 ;

@@ -64,4 +64,9 @@ protected:
         ledcAttachPin(pin,channel);
     }
     #endif
+    
+
+    int calcInt(int freq) {
+        return 1000000/freq;
+    }
 };

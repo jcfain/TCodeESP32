@@ -322,7 +322,7 @@ public:
 		//setBoardPinout();
         if(!m_settingsFactory->resetPins())
             return false;
-        const PinMap* pinMap = m_settingsFactory->getPins().pinMap();
+        const PinMap* pinMap = m_settingsFactory->getPins();
         for(int i = 0; i < MAX_BUTTON_SETS; i++) {
             buttonSets[i].pin = pinMap->buttonSetPin(i);
         }
@@ -449,6 +449,32 @@ public:
         // int motionProfileSelectedIndex = MOTION_PROFILE_SELECTED_INDEX_DEFAULT;
         // m_settingsFactory->getValue(MOTION_PROFILE_SELECTED_INDEX, motionProfileSelectedIndex);
         doc[MOTION_PROFILE_SELECTED_INDEX] = motionSelectedProfileIndex; 
+
+        // JsonArray availableTimers = doc["availableTimers"].to<JsonArray>();
+        // for (size_t i = 0; i < MAX_TIMERS; i++)
+        // {
+        //     JsonObject timerObj = availableTimers.add<JsonObject>();
+        //     timerObj["name"] = 
+        // }
+        
+//     HIGH0_CH0,
+//     HIGH0_CH1,
+//     HIGH1_CH2,
+//     HIGH1_CH3,
+//     HIGH2_CH4,
+//     HIGH2_CH5,
+//     HIGH3_CH6,
+//     HIGH3_CH7,
+// #endif
+//     LOW0_CH0,
+//     LOW0_CH1,
+//     LOW1_CH2,
+//     LOW1_CH3,
+//     LOW2_CH4,
+//     LOW2_CH5,
+//     LOW3_CH6,
+//     LOW3_CH7,
+        
         
         doc["localIP"] = currentIP;
         doc["gateway"] = currentGateway;
@@ -515,7 +541,7 @@ public:
                 LogHandler::info(_TAG, "No button sets stored, loading default");
                 mutableLoadDefault = true;
                 
-                const PinMap* pinMap = m_settingsFactory->getPins().pinMap();
+                const PinMap* pinMap = m_settingsFactory->getPins();
                 for(int i = 0; i < MAX_BUTTON_SETS; i++) {
                     buttonSets[i] = ButtonSet();
                     buttonSets[i].pin = pinMap->buttonSetPin(i);

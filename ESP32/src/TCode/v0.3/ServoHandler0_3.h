@@ -41,19 +41,8 @@ public:
         
         m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
         m_settingsFactory->getValue(MS_PER_RAD, ms_per_rad);
-        m_settingsFactory->getValue(SERVO_FREQUENCY, MainServo_Freq);
-        bool pitchFreqIsDifferent = false;
-        m_settingsFactory->getValue(PITCH_FREQUENCY_IS_DIFFERENT, pitchFreqIsDifferent);
-        if(pitchFreqIsDifferent)
-            m_settingsFactory->getValue(PITCH_FREQUENCY, PitchServo_Freq);
-        else
-            PitchServo_Freq = MainServo_Freq;
         LogHandler::debug(_TAG, "DEVICE_TYPE: %d", m_deviceType);
         LogHandler::debug(_TAG, "MS_PER_RAD: %d", ms_per_rad);
-        LogHandler::debug(_TAG, "SERVO_FREQUENCY: %d", MainServo_Freq);
-        LogHandler::debug(_TAG, "PITCH_FREQUENCY: %d", PitchServo_Freq);
-        MainServo_Int = 1000000/MainServo_Freq;
-        PitchServo_Int = 1000000/PitchServo_Freq;
 
         // Set SR6 arms to startup positions
         if (m_deviceType == DeviceType::SR6) 
@@ -83,23 +72,20 @@ public:
         #ifndef ESP_PROG// The default pins for these are used on the debugger board.
         m_leftServoPin = ((PinMapOSR*)pinMap)->leftServo();
         if(m_leftServoPin > -1) {
-            #ifdef ESP_ARDUINO3
-            attachPin("left servo", m_leftServoPin, MainServo_Freq, LowerLeftServo_PWM);
-            #else
-            attachPin("left servo", m_leftServoPin, MainServo_Freq, LowerLeftServo_PWM);
-            #endif
-
+            m_lowerLeftServoChannel = ((PinMapOSR*)pinMap)->leftServoChannel();
+            int freq = ((PinMapOSR*)pinMap)->getChannelFrequency(m_lowerLeftServoChannel);
+            m_leftServo_Int = calcInt(freq);
+            attachPin("left servo", m_leftServoPin, freq, m_lowerLeftServoChannel);
         } else {
-            LogHandler::error(_TAG, "Invalid left servo to pin: %d freq: %d", m_leftServoPin, MainServo_Freq);
+            LogHandler::error(_TAG, "Invalid left servo to pin: %d", m_leftServoPin);
             m_initFailed = true;
         }
         m_rightServoPin = ((PinMapOSR*)pinMap)->rightServo();
         if(m_rightServoPin > -1) {
-            #ifdef ESP_ARDUINO3
-            attachPin("right servo", m_rightServoPin, MainServo_Freq, LowerRightServo_PWM);
-            #else
-            attachPin("right servo", m_rightServoPin, MainServo_Freq, LowerRightServo_PWM);
-            #endif
+            m_lowerRightServoChannel = ((PinMapOSR*)pinMap)->rightServoChannel();
+            int freq = ((PinMapOSR*)pinMap)->getChannelFrequency(m_lowerRightServoChannel);
+            m_rightServo_Int = calcInt(freq);
+            attachPin("right servo", m_rightServoPin, freq, m_lowerRightServoChannel);
         } else {
             LogHandler::error(_TAG, "Invalid right servo to pin: %d", m_rightServoPin);
             m_initFailed = true;
@@ -109,11 +95,10 @@ public:
         {
             m_leftUpperServoPin = ((PinMapSR6*)pinMap)->leftUpperServo();
             if(m_leftUpperServoPin > -1) {
-                #ifdef ESP_ARDUINO3
-                attachPin("left upper servo", m_leftUpperServoPin, MainServo_Freq);
-                #else
-                attachPin("left upper servo", m_leftUpperServoPin, MainServo_Freq, UpperLeftServo_PWM);
-                #endif
+                m_upperLeftServoChannel = ((PinMapSR6*)pinMap)->leftUpperServoChannel();
+                int freq = ((PinMapSR6*)pinMap)->getChannelFrequency(m_upperLeftServoChannel);
+                m_leftUpperServo_Int = calcInt(freq);
+                attachPin("left upper servo", m_leftUpperServoPin, freq, m_upperLeftServoChannel);
             } else {
                 LogHandler::error(_TAG, "Invalid left upper servo to pin: %d", m_leftUpperServoPin);
                 m_initFailed = true;
@@ -121,22 +106,20 @@ public:
             #ifndef ESP_PROG// The default pins for these are used on the debugger board. 12, 13, 14 & 15
                 m_rightUpperServoPin = ((PinMapSR6*)pinMap)->rightUpperServo();
                 if(m_rightUpperServoPin > -1) {
-                    #ifdef ESP_ARDUINO3
-                    attachPin("right upper servo", m_rightUpperServoPin, MainServo_Freq);
-                    #else
-                    attachPin("right upper servo", m_rightUpperServoPin, MainServo_Freq, UpperRightServo_PWM);
-                    #endif
+                    m_upperRightServoChannel = ((PinMapSR6*)pinMap)->rightUpperServoChannel();
+                    int freq = ((PinMapSR6*)pinMap)->getChannelFrequency(m_upperRightServoChannel);
+                    m_rightUpperServo_Int = calcInt(freq);
+                    attachPin("right upper servo", m_rightUpperServoPin, freq, m_upperRightServoChannel);
                 } else {
                     LogHandler::error(_TAG, "Invalid right upper servo to pin: %d", m_rightUpperServoPin);
                     m_initFailed = true;
                 }
                 m_rightPitchServoPin = ((PinMapSR6*)pinMap)->pitchRight();
                 if(m_rightPitchServoPin > -1) {
-                    #ifdef ESP_ARDUINO3
-                    attachPin("right pitch servo", m_rightPitchServoPin, PitchServo_Freq);
-                    #else
-                    attachPin("right pitch servo", m_rightPitchServoPin, PitchServo_Freq, RightPitchServo_PWM);
-                    #endif
+                    m_rightPitchServoChannel = ((PinMapSR6*)pinMap)->pitchRightChannel();
+                    int freq = ((PinMapSR6*)pinMap)->getChannelFrequency(m_rightPitchServoChannel);
+                    m_pitchRightServo_Int = calcInt(freq);
+                    attachPin("right pitch servo", m_rightPitchServoPin, freq, m_rightPitchServoChannel);
                 } else {
                     LogHandler::error(_TAG, "Invalid right pitch servo to pin: %d", m_rightPitchServoPin);
                     m_initFailed = true;
@@ -145,11 +128,10 @@ public:
         }
         m_leftPitchServoPin = ((PinMapSR6*)pinMap)->pitchLeft();
         if(m_leftPitchServoPin > -1) {
-            #ifdef ESP_ARDUINO3
-            attachPin("pitch servo", m_leftPitchServoPin, PitchServo_Freq, LeftPitchServo_PWM);
-            #else
-            attachPin("pitch servo", m_leftPitchServoPin, PitchServo_Freq, LeftPitchServo_PWM);
-            #endif
+            m_leftPitchServoChannel = ((PinMapSR6*)pinMap)->pitchLeftChannel();
+            int freq = ((PinMapSR6*)pinMap)->getChannelFrequency(m_leftPitchServoChannel);
+            m_pitchLeftServo_Int = calcInt(freq);
+            attachPin("pitch servo", m_leftPitchServoPin, freq, m_leftPitchServoChannel);
         } else {
             LogHandler::error(_TAG, "Invalid pitch servo to pin: %u", m_leftPitchServoPin);
             m_initFailed = true;
@@ -221,8 +203,6 @@ private:
     SettingsFactory* m_settingsFactory;
     DeviceType m_deviceType;
     bool m_initFailed = false;
-    int MainServo_Int;
-    int PitchServo_Int;
 
     int8_t m_leftServoPin = -1;
     int8_t m_rightServoPin = -1;
@@ -231,8 +211,19 @@ private:
     int8_t m_leftPitchServoPin = -1;
     int8_t m_rightPitchServoPin = -1;
 
-    int MainServo_Freq;
-    int PitchServo_Freq;
+    int8_t m_lowerLeftServoChannel = -1;
+    int8_t m_lowerRightServoChannel = -1;
+    int8_t m_upperLeftServoChannel = -1;
+    int8_t m_upperRightServoChannel = -1;
+    int8_t m_leftPitchServoChannel = -1;
+    int8_t m_rightPitchServoChannel = -1;
+
+    int m_leftServo_Int = -1;
+    int m_rightServo_Int = -1;
+    int m_leftUpperServo_Int = -1;
+    int m_rightUpperServo_Int = -1;
+    int m_pitchLeftServo_Int = -1;
+    int m_pitchRightServo_Int = -1;
 
     // Declare classes
     // This uses the t-code object above
@@ -254,21 +245,21 @@ private:
         int pitchDuty;
         if(m_settingsFactory->getInverseStroke()) 
         {
-            leftDuty = map(m_settingsFactory->getLeftServo_ZERO() - stroke + roll,0,MainServo_Int,0,m_servoPWMMaxDuty);
-            rightDuty = map(m_settingsFactory->getRightServo_ZERO() + stroke + roll,0,MainServo_Int,0,m_servoPWMMaxDuty);
+            leftDuty = map(m_settingsFactory->getLeftServo_ZERO() - stroke + roll,0,m_leftServo_Int,0,m_servoPWMMaxDuty);
+            rightDuty = map(m_settingsFactory->getRightServo_ZERO() + stroke + roll,0,m_rightServo_Int,0,m_servoPWMMaxDuty);
         }
         else
         {
-            leftDuty = map(m_settingsFactory->getLeftServo_ZERO() + stroke + roll,0,MainServo_Int,0,m_servoPWMMaxDuty);
-            rightDuty = map(m_settingsFactory->getRightServo_ZERO() - stroke + roll,0,MainServo_Int,0,m_servoPWMMaxDuty);
+            leftDuty = map(m_settingsFactory->getLeftServo_ZERO() + stroke + roll,0,m_leftServo_Int,0,m_servoPWMMaxDuty);
+            rightDuty = map(m_settingsFactory->getRightServo_ZERO() - stroke + roll,0,m_rightServo_Int,0,m_servoPWMMaxDuty);
         }
         if(m_settingsFactory->getInversePitch()) 
         {
-            pitchDuty = map(m_settingsFactory->getPitchLeftServo_ZERO() + pitch,0,PitchServo_Int,0,m_servoPWMMaxDuty);
+            pitchDuty = map(m_settingsFactory->getPitchLeftServo_ZERO() + pitch,0,m_pitchLeftServo_Int,0,m_servoPWMMaxDuty);
         }
         else
         {
-            pitchDuty = map(m_settingsFactory->getPitchLeftServo_ZERO() - pitch,0,PitchServo_Int,0,m_servoPWMMaxDuty);
+            pitchDuty = map(m_settingsFactory->getPitchLeftServo_ZERO() - pitch,0,m_pitchLeftServo_Int,0,m_servoPWMMaxDuty);
             // Serial.println(pitch);
             // Serial.println(m_settingsFactory->getPitchLeftServo_ZERO());
             // Serial.println(PitchServo_Int);
@@ -282,9 +273,9 @@ private:
         ledcWrite(m_rightServoPin, rightDuty);
         ledcWrite(m_leftPitchServoPin, pitchDuty);
         #else
-        ledcWrite(LowerLeftServo_PWM, leftDuty);
-        ledcWrite(LowerRightServo_PWM, rightDuty);
-        ledcWrite(LeftPitchServo_PWM, pitchDuty);
+        ledcWrite(m_lowerLeftServoChannel, leftDuty);
+        ledcWrite(m_lowerRightServoChannel, rightDuty);
+        ledcWrite(m_leftPitchServoChannel, pitchDuty);
         #endif
 #endif
 }
@@ -322,14 +313,14 @@ private:
             pitchLeftValue = SetPitchServo(16248 - fwd, 4500 - thrust, side - 1.5*roll, -pitch);
             pitchRightValue = SetPitchServo(16248 - fwd, 4500 - thrust, -side + 1.5*roll, -pitch);
         }
-        int lowerLeftDuty = map(m_settingsFactory->getLeftServo_ZERO() - lowerLeftValue,0,MainServo_Int,0,m_servoPWMMaxDuty);
-        int lowerRightDuty = map(m_settingsFactory->getRightServo_ZERO() + lowerRightValue,0,MainServo_Int,0,m_servoPWMMaxDuty);
-        int upperLeftDuty = map(m_settingsFactory->getLeftUpperServo_ZERO() + upperLeftValue,0,MainServo_Int,0,m_servoPWMMaxDuty);
-        int upperRightDuty = map(m_settingsFactory->getRightUpperServo_ZERO() - upperRightValue,0,MainServo_Int,0,m_servoPWMMaxDuty);
+        int lowerLeftDuty = map(m_settingsFactory->getLeftServo_ZERO() - lowerLeftValue,0,m_leftServo_Int,0,m_servoPWMMaxDuty);
+        int lowerRightDuty = map(m_settingsFactory->getRightServo_ZERO() + lowerRightValue,0,m_rightServo_Int,0,m_servoPWMMaxDuty);
+        int upperLeftDuty = map(m_settingsFactory->getLeftUpperServo_ZERO() + upperLeftValue,0,m_leftUpperServo_Int,0,m_servoPWMMaxDuty);
+        int upperRightDuty = map(m_settingsFactory->getRightUpperServo_ZERO() - upperRightValue,0,m_rightUpperServo_Int,0,m_servoPWMMaxDuty);
         uint16_t pitchLeftZero = m_settingsFactory->getPitchLeftServo_ZERO();
         uint16_t pitchRightZero = m_settingsFactory->getPitchRightServo_ZERO();
-        int pitchLeftDuty = map(constrain(pitchLeftZero - pitchLeftValue, pitchLeftZero - 600, pitchLeftZero + 1000), 0, PitchServo_Int, 0, m_servoPWMMaxDuty);
-        int pitchRightDuty = map(constrain(pitchRightZero + pitchRightValue, pitchRightZero - 1000, pitchRightZero + 600), 0, PitchServo_Int, 0, m_servoPWMMaxDuty);
+        int pitchLeftDuty = map(constrain(pitchLeftZero - pitchLeftValue, pitchLeftZero - 600, pitchLeftZero + 1000), 0, m_pitchLeftServo_Int, 0, m_servoPWMMaxDuty);
+        int pitchRightDuty = map(constrain(pitchRightZero + pitchRightValue, pitchRightZero - 1000, pitchRightZero + 600), 0, m_pitchRightServo_Int, 0, m_servoPWMMaxDuty);
         // Set Servos
 #if !ESP_PROG
         #ifdef ESP_ARDUINO3
@@ -340,12 +331,12 @@ private:
         ledcWrite(m_leftPitchServoPin, pitchLeftDuty);
         ledcWrite(m_rightPitchServoPin, pitchRightDuty);
         #else
-        ledcWrite(LowerLeftServo_PWM, lowerLeftDuty);
-        ledcWrite(LowerRightServo_PWM, lowerRightDuty);
-        ledcWrite(UpperLeftServo_PWM, upperLeftDuty);
-        ledcWrite(UpperRightServo_PWM, upperRightDuty);
-        ledcWrite(LeftPitchServo_PWM, pitchLeftDuty);
-        ledcWrite(RightPitchServo_PWM, pitchRightDuty);
+        ledcWrite(m_lowerLeftServoChannel, lowerLeftDuty);
+        ledcWrite(m_lowerRightServoChannel, lowerRightDuty);
+        ledcWrite(m_upperLeftServoChannel, upperLeftDuty);
+        ledcWrite(m_upperRightServoChannel, upperRightDuty);
+        ledcWrite(m_leftPitchServoChannel, pitchLeftDuty);
+        ledcWrite(m_rightPitchServoChannel, pitchRightDuty);
         #endif
 #endif
     }

@@ -707,8 +707,7 @@ void setup()
 	}
 	// LogHandler::setLogLevel(LogLevel::DEBUG);
 
-	PinMapInfo pinMapInfo = settingsFactory->getPins();
-	const PinMap *pinMap = pinMapInfo.pinMap();
+	const PinMap *pinMap = settingsFactory->getPins();
 
 	SettingsHandler::init();
 	SettingsHandler::setMessageCallback(settingChangeCallback);
@@ -734,11 +733,6 @@ void setup()
 	settingsFactory->getValue(BOARD_TYPE_SETTING, boardType);
 
 	int msPerRad;
-	int servoFrequency;
-	int pitchFrequency;
-	int valveFrequency;
-	int twistFrequency;
-	int squeezeFrequency;
 	bool lubeEnabled;
 	bool feedbackTwist;
 	bool analogTwist;
@@ -771,11 +765,6 @@ void setup()
 
 
 	settingsFactory->getValue(MS_PER_RAD, msPerRad);
-	settingsFactory->getValue(SERVO_FREQUENCY, servoFrequency);
-	settingsFactory->getValue(PITCH_FREQUENCY, pitchFrequency);
-	settingsFactory->getValue(VALVE_FREQUENCY, valveFrequency);
-	settingsFactory->getValue(TWIST_FREQUENCY, twistFrequency);
-	settingsFactory->getValue(SQUEEZE_FREQUENCY, squeezeFrequency);
 	settingsFactory->getValue(FEEDBACK_TWIST, feedbackTwist);
 	settingsFactory->getValue(ANALOG_TWIST, analogTwist);
 	settingsFactory->getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
@@ -833,17 +822,15 @@ void setup()
 #if BUILD_TEMP
 	bool sleeveTempEnabled;
 	bool internalTempEnabled;
-	int heaterFrequency;
+	int heaterFrequency = pinMap->getChannelFrequency(pinMap->heaterChannel());
 	int heaterResolution;
 	float heaterThreshold;
-	int caseFanFrequency;
+	int caseFanFrequency = pinMap->getChannelFrequency(pinMap->caseFanChannel());
 	int caseFanResolution;
 	settingsFactory->getValue(TEMP_SLEEVE_ENABLED, sleeveTempEnabled);
 	settingsFactory->getValue(TEMP_INTERNAL_ENABLED, internalTempEnabled);
-	settingsFactory->getValue(HEATER_FREQUENCY, heaterFrequency);
 	settingsFactory->getValue(HEATER_RESOLUTION, heaterResolution);
 	settingsFactory->getValue(HEATER_THRESHOLD, heaterThreshold);
-	settingsFactory->getValue(CASE_FAN_FREQUENCY, caseFanFrequency);
 	settingsFactory->getValue(CASE_FAN_RESOLUTION, caseFanResolution);
 	if (sleeveTempEnabled || internalTempEnabled)
 	{
