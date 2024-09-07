@@ -33,6 +33,7 @@ SOFTWARE. */
 #include "constants.h"
 #include "settingConstants.h"
 #include "pinMap.h"
+#include "espTimerMap.h"
 
 using SETTING_STATE_FUNCTION_PTR_T = void (*)(const SettingProfile &profile, const char* settingThatChanged);
 

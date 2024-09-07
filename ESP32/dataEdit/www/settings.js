@@ -579,6 +579,16 @@ function isWebSocketConnected() {
     return websocket.readyState === WebSocket.OPEN;
 }
 
+function isSR6() {
+    return userSettings["deviceType"] == DeviceType.SR6;
+}
+function isOSR() {
+    return userSettings["deviceType"] == DeviceType.OSR;
+}
+function isSSR1() {
+    return userSettings["deviceType"] == DeviceType.SSR1;
+}
+
 function startServerPoll() {
     if(serverPollRetryCount > 10) {
         showLoading("Waiting for restart timed out<br>Please manually refresh the page when the device is back online.");
@@ -668,6 +678,7 @@ function setSystemInfo() {
     setupDeviceTypes();
     toggleBuildOptions();
     toggleMotorTypeOptions();
+    setupTimerChannels();
     
     //validPWMpins = [17,25,27];
     //validPWMpins = [2,4,5,12,13,14,15,17,21,22,25,27,32];
@@ -713,8 +724,29 @@ function setPinoutSettings() {
 	document.getElementById("Heater_PIN").value = pinoutSettings["Heater_PIN"];
     document.getElementById('Case_Fan_PIN').value = pinoutSettings["Case_Fan_PIN"];
     document.getElementById('Internal_Temp_PIN').value = pinoutSettings["Internal_Temp_PIN"];
+
+    setPinChannel("Vibe0_CHANNEL", pinoutSettings["Vibe0_CHANNEL"]);
+    setPinChannel("Vibe1_CHANNEL", pinoutSettings["Vibe1_CHANNEL"]);
+    setPinChannel("Vibe2_CHANNEL", pinoutSettings["Vibe2_CHANNEL"]);
+    setPinChannel("Vibe3_CHANNEL", pinoutSettings["Vibe3_CHANNEL"]);
+    setPinChannel("ValveServo_CHANNEL", pinoutSettings["ValveServo_CHANNEL"]);
+    setPinChannel("TwistServo_CHANNEL", pinoutSettings["TwistServo_CHANNEL"]);
+    setPinChannel("Squeeze_CHANNEL", pinoutSettings["Squeeze_CHANNEL"]);
+    setPinChannel("Heater_CHANNEL", pinoutSettings["Heater_CHANNEL"]);
+    setPinChannel("Case_Fan_CHANNEL", pinoutSettings["Case_Fan_CHANNEL"]);
+
+    if(isOSR() || isSR6()) {
+        setPinChannel("RightServo_CHANNEL", pinoutSettings["RightServo_CHANNEL"]);
+        setPinChannel("LeftServo_CHANNEL", pinoutSettings["LeftServo_CHANNEL"]);
+        setPinChannel("PitchLeftServo_CHANNEL", pinoutSettings["PitchLeftServo_CHANNEL"]);
+    }
+    if(isSR6()) {
+        setPinChannel("RightUpperServo_CHANNEL", pinoutSettings["RightUpperServo_CHANNEL"]);
+        setPinChannel("LeftUpperServo_CHANNEL", pinoutSettings["LeftUpperServo_CHANNEL"]);
+        setPinChannel("PitchRightServo_CHANNEL", pinoutSettings["PitchRightServo_CHANNEL"]);
+    }
 }
-function setUserSettings() 
+function setUserSettings()
 {
     document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
     setLogLevelUI();
@@ -1521,6 +1553,21 @@ function setDeviceType() {
     }
 }
 
+function setupTimerChannels() {
+    const elements = document.getElementsByName('timerChannels');
+    for (let index = 0; index < elements.length; index++) {
+        const element = elements[index];
+        removeAllChildren(element);
+        for(let i=0;i<systemInfo.timerChannels.length;i++) {
+            const option = document.createElement("option");
+            option.innerText = systemInfo.timerChannels[i].name;
+            option.value = systemInfo.timerChannels[i].value;
+            option.name = systemInfo.timerChannels[i].name;
+            element.appendChild(option);
+        }
+    }
+}
+
 function setAutoValve() {
     userSettings["autoValve"] = document.getElementById('autoValve').checked;
 	updateUserSettings();
@@ -1565,6 +1612,30 @@ function disablePinValidation() {
         document.getElementById("disablePinValidation").checked = false;
     }
 	updateUserSettings();
+}
+
+function setPinChannel(id, value) {
+    let element = document.getElementById(id);
+    element.value = value;
+    if(value > -1) {
+        const timerSelects = document.getElementsByName('timerChannels');
+        for (let index = 0; index < timerSelects.length; index++) {
+            const element = timerSelects[index +1];
+            element.options[element.selectedIndex].disabled = true;
+        }
+    }
+}
+function onSelectPinChannel(element) {
+    pinoutSettings[element.id] = element.value;
+    // let option = selectElement.options[selectElement.selectedIndex];
+    // option.disabled = true
+    if(element.value > -1) {
+        const timerSelects = document.getElementsByName('timerChannels');
+        for (let index = 0; index < timerSelects.length; index++) {
+            const element = timerSelects[index +1];
+            element.options[element.selectedIndex].disabled = true;
+        }
+    }
 }
 
 function updatePins() 

@@ -355,15 +355,16 @@ button:disabled {
   border: 1px solid transparent;
   border-style: solid none;
 }
-.servoHeader > .tCell:first-child:not(.other) {
+.servoHeader > .tCell:not(:last-child) {
   text-align: right;
   border-right: 1px solid rgb(255, 255, 255);
+}
+.servoHeader > .tCell:first-child:not(.other) {
   border-top-left-radius: 10px; 
   border-bottom-left-radius: 10px;
 }
 .servoHeader > .tCell:last-child:not(.other) {
   border-top-right-radius: 10px; 
-  border-left: 1px solid rgb(255, 255, 255);
   border-bottom-right-radius: 10px;
 }
 .displaySettingsHeader {

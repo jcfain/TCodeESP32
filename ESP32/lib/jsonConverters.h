@@ -64,6 +64,12 @@ void convertFromJson(JsonVariantConst src, BLELoveDeviceType& dst) {
 bool convertToJson(const BLELoveDeviceType& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
 }
+void convertFromJson(JsonVariantConst src, ESPTimerChannelNum& dst) {
+    dst = static_cast<ESPTimerChannelNum>(src.as<int8_t>());
+}
+bool convertToJson(const ESPTimerChannelNum& src, JsonVariant dst) {
+    return dst.set(static_cast<int8_t>(src));
+}
 // void convertFromJson(JsonVariantConst src, std::vector<const char*>& dst) {
 //     for (const char* item : src.as<JsonArrayConst>())
 //         dst.push_back(item);

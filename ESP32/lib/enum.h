@@ -72,7 +72,7 @@ enum class BLELoveDeviceType: int {
     
 };
 
-enum class ESPTimerChannel: int {
+enum class ESPTimerChannelNum: int8_t {
     NONE = -1,
 #if CONFIG_IDF_TARGET_ESP32
     HIGH0_CH0,

@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#include "espTimerMap.h"
 #if CONFIG_IDF_TARGET_ESP32
 #include "pinDefaultsWROOM32.h"
 #elif CONFIG_IDF_TARGET_ESP32S3
@@ -179,7 +180,7 @@ public:
     int8_t i2cScl() const { return m_i2cScl; }
     void setI2cScl(const int8_t &i2cScl) { m_i2cScl = i2cScl; }
 
-    // void setChannelFrequency(ESPTimerChannel channel, int frequency) {
+    // void setChannelFrequency(ESPTimerChannelNum channel, int frequency) {
     //     int8_t timer = getTimer(channel);
     //     if(timer > MAX_TIMERS - 1 || timer < 0) {
     //         LogHandler::error("Pin_map", "Invalid channel '%d' when setting frequency: %d", (int8_t)channel, frequency);
@@ -192,23 +193,28 @@ public:
     //     m_timerFreq[timer] = frequency;
     // }
     int getChannelFrequency(int8_t channel) const {
-        int8_t timer = getTimer(static_cast<ESPTimerChannel>(channel));
-        if(timer > MAX_TIMERS - 1 || timer < 0) {
+        if(channel < 0 || channel >= (MAX_TIMERS << 1)) {
             LogHandler::error("Pin_map", "Invalid channel '%d' when getting frequency", channel);
             return -1;
         }
-        return m_timerFreq[timer];
+        const ESPTimer* timer = getTimer(static_cast<ESPTimerChannelNum>(channel));
+        if(!timer) {
+            LogHandler::error("Pin_map", "Invalid channel '%d' when getting frequency", channel);
+            return -1;
+        }
+        return timer->frequency;
     }
-    void setTimerFrequency(int8_t timer, int frequency) {
-        if(timer > MAX_TIMERS - 1 || timer < 0) {
-            LogHandler::error("Pin_map", "Invalid timer '%d' when setting frequency: %d", timer, frequency);
+
+    void setTimerFrequency(int8_t timerIndex, int frequency) {
+        if(timerIndex > MAX_TIMERS - 1 || timerIndex < 0) {
+            LogHandler::error("Pin_map", "Invalid timer index '%d' when setting frequency: %d", timerIndex, frequency);
             return;
         }
         if(frequency < 0) {
-            LogHandler::error("Pin_map", "Invalid frequency '%d' when setting for timer: %d", frequency, timer);
+            LogHandler::error("Pin_map", "Invalid frequency '%d' when setting for timer index: %d", frequency, timerIndex);
             return;
         }
-        m_timerFreq[timer] = frequency;
+        m_timers[timerIndex].frequency = frequency;
     }
     // int getTimerFrequency(int8_t timer) {
     //     if(timer > MAX_TIMERS - 1 || timer < 0) {
@@ -217,15 +223,79 @@ public:
     //     }
     //     return m_timerFreq[timer];
     // }
+    ESPTimer* getTimer(uint8_t timerIndex) {
+        if(timerIndex >= MAX_TIMERS || timerIndex < 0) {
+            return 0;
+        }
+        return &m_timers[timerIndex];
+    }
 protected:
     PinMap(DeviceType deviceType, BoardType boardType) {
         m_deviceType = deviceType;
         m_boardType = boardType;
+        // if(m_deviceType == DeviceType::OSR) {
+        //     instance.setTwistChannel((int8_t)ESPTimerChannelNum::HIGH2_CH4);
+        //     instance.setSqueezeChannel((int8_t)ESPTimerChannelNum::HIGH2_CH5);
+        //     instance.setValveChannel((int8_t)ESPTimerChannelNum::HIGH3_CH6);
+        //     instance.setVibe0Channel((int8_t)ESPTimerChannelNum::LOW0_CH0);
+        //     instance.setVibe1Channel((int8_t)ESPTimerChannelNum::LOW0_CH1);
+        //     instance.setVibe2Channel((int8_t)ESPTimerChannelNum::LOW1_CH2);
+        //     instance.setVibe3Channel((int8_t)ESPTimerChannelNum::LOW1_CH3);
+        //     instance.setHeaterChannel((int8_t)ESPTimerChannelNum::LOW2_CH4);
+        //     instance.setCaseFanChannel((int8_t)ESPTimerChannelNum::LOW3_CH6);
+        // } else if (m_deviceType == DeviceType::OSR) {
+        //     instance.setVibe0Channel((int8_t)ESPTimerChannelNum::LOW0_CH0);
+        //     instance.setVibe1Channel((int8_t)ESPTimerChannelNum::LOW0_CH1);
+        //     instance.setHeaterChannel((int8_t)ESPTimerChannelNum::LOW2_CH4);
+        //     instance.setCaseFanChannel((int8_t)ESPTimerChannelNum::LOW3_CH6);
+        // }
     }
     DeviceType m_deviceType;
     BoardType m_boardType;
-    int m_timerFreq[MAX_TIMERS];
-    // ESPTimerMap m_timers;
+    ESPTimer m_timers[MAX_TIMERS] = {
+#if CONFIG_IDF_TARGET_ESP32
+        { "High 0", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"High timer channel 0", ESPTimerChannelNum::HIGH0_CH0}, 
+                {"High timer channel 1", ESPTimerChannelNum::HIGH0_CH1}
+            }
+        },
+        { "High 1", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"High timer channel 2", ESPTimerChannelNum::HIGH1_CH2}, 
+                {"High timer channel 3", ESPTimerChannelNum::HIGH1_CH3}
+            }
+        },
+        { "High 2", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"High timer channel 4", ESPTimerChannelNum::HIGH2_CH4}, 
+                {"High timer channel 5", ESPTimerChannelNum::HIGH2_CH5}
+            }
+        },
+        { "High 3", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"High timer channel 6", ESPTimerChannelNum::HIGH3_CH6}, 
+                {"High timer channel 7", ESPTimerChannelNum::HIGH3_CH7}
+            }
+        },
+#endif
+        { "Low 0", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low timer channel 0", ESPTimerChannelNum::LOW0_CH0}, 
+                {"Low timer channel 1", ESPTimerChannelNum::LOW0_CH1}
+            }
+        },
+        { "Low 1", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low timer channel 2", ESPTimerChannelNum::LOW1_CH2}, 
+                {"Low timer channel 3", ESPTimerChannelNum::LOW1_CH3}
+            }
+        },
+        { "Low 2", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low timer channel 4", ESPTimerChannelNum::LOW2_CH4}, 
+                {"Low timer channel 5", ESPTimerChannelNum::LOW2_CH5}
+            }
+        },
+        { "Low 3", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low timer channel 6", ESPTimerChannelNum::LOW3_CH6}, 
+                {"Low timer channel 7", ESPTimerChannelNum::LOW3_CH7}
+            }
+        }
+    };
 
     // void setCommonTimers() {
     //     m_timers.timerH3 = {
@@ -269,50 +339,13 @@ private:
 
     virtual void overideDefaults() =0;
 
-    int8_t getTimer(ESPTimerChannel channel) const  {
-        switch(channel) {
-#if CONFIG_IDF_TARGET_ESP32
-            case ESPTimerChannel::HIGH0_CH0:
-            case ESPTimerChannel::HIGH0_CH1:
-                return 0;
-            case ESPTimerChannel::HIGH1_CH2:
-            case ESPTimerChannel::HIGH1_CH3:
-                return 1;
-            case ESPTimerChannel::HIGH2_CH4:
-            case ESPTimerChannel::HIGH2_CH5:
-                return 2;
-            case ESPTimerChannel::HIGH3_CH6:
-            case ESPTimerChannel::HIGH3_CH7:
-                return 3;
-            case ESPTimerChannel::LOW0_CH0:
-            case ESPTimerChannel::LOW0_CH1:
-                return 4;
-            case ESPTimerChannel::LOW1_CH2:
-            case ESPTimerChannel::LOW1_CH3:
-                return 5;
-            case ESPTimerChannel::LOW2_CH4:
-            case ESPTimerChannel::LOW2_CH5:
-                return 6;
-            case ESPTimerChannel::LOW3_CH6:
-            case ESPTimerChannel::LOW3_CH7:
-                return 7;
-#elif CONFIG_IDF_TARGET_ESP32S3
-            case ESPTimerChannel::LOW0_CH0:
-            case ESPTimerChannel::LOW0_CH1:
-                return 0;
-            case ESPTimerChannel::LOW1_CH2:
-            case ESPTimerChannel::LOW1_CH3:
-                return 1;
-            case ESPTimerChannel::LOW2_CH4:
-            case ESPTimerChannel::LOW2_CH5:
-                return 2;
-            case ESPTimerChannel::LOW3_CH6:
-            case ESPTimerChannel::LOW3_CH7:
-                return 3;
-#endif
-            default:
-                return -1;
+    const ESPTimer* getTimer(ESPTimerChannelNum channel) const {
+        if(channel == ESPTimerChannelNum::NONE) {
+            return 0;
         }
+        int8_t channelInt = static_cast<int8_t>(channel);
+        int8_t timerIndex = channelInt >> 1;
+        return &m_timers[timerIndex];
     }
 };
 
@@ -362,17 +395,6 @@ public:
     static PinMapOSR* getInstance()
     {
         static PinMapOSR instance(DeviceType::OSR, BoardType::DEVKIT);
-        #if CONFIG_IDF_TARGET_ESP32
-        instance.setTwistChannel((int8_t)ESPTimerChannel::HIGH2_CH4);
-        instance.setSqueezeChannel((int8_t)ESPTimerChannel::HIGH2_CH5);
-        instance.setValveChannel((int8_t)ESPTimerChannel::HIGH3_CH6);
-        instance.setVibe0Channel((int8_t)ESPTimerChannel::LOW0_CH0);
-        instance.setVibe1Channel((int8_t)ESPTimerChannel::LOW0_CH1);
-        instance.setVibe2Channel((int8_t)ESPTimerChannel::LOW1_CH2);
-        instance.setVibe3Channel((int8_t)ESPTimerChannel::LOW1_CH3);
-        instance.setHeaterChannel((int8_t)ESPTimerChannel::LOW2_CH4);
-        instance.setCaseFanChannel((int8_t)ESPTimerChannel::LOW3_CH6);
-        #endif
         return &instance;
     }
     int8_t rightServo() const { return m_rightServo; }

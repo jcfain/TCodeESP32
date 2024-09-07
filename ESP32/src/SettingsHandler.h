@@ -450,32 +450,27 @@ public:
         // m_settingsFactory->getValue(MOTION_PROFILE_SELECTED_INDEX, motionProfileSelectedIndex);
         doc[MOTION_PROFILE_SELECTED_INDEX] = motionSelectedProfileIndex; 
 
-        // JsonArray availableTimers = doc["availableTimers"].to<JsonArray>();
-        // for (size_t i = 0; i < MAX_TIMERS; i++)
-        // {
-        //     JsonObject timerObj = availableTimers.add<JsonObject>();
-        //     timerObj["name"] = 
-        // }
-        
-//     HIGH0_CH0,
-//     HIGH0_CH1,
-//     HIGH1_CH2,
-//     HIGH1_CH3,
-//     HIGH2_CH4,
-//     HIGH2_CH5,
-//     HIGH3_CH6,
-//     HIGH3_CH7,
-// #endif
-//     LOW0_CH0,
-//     LOW0_CH1,
-//     LOW1_CH2,
-//     LOW1_CH3,
-//     LOW2_CH4,
-//     LOW2_CH5,
-//     LOW3_CH6,
-//     LOW3_CH7,
-        
-        
+        JsonArray availableTimers = doc["availableTimers"].to<JsonArray>();
+        JsonArray timerChannels = doc["timerChannels"].to<JsonArray>();
+        JsonObject timerChannelNoneObj = timerChannels.add<JsonObject>();
+        timerChannelNoneObj["name"] = "None";
+        timerChannelNoneObj["value"] = ESPTimerChannelNum::NONE;
+        PinMap* pinMap = m_settingsFactory->getPins();
+        for (size_t i = 0; i < MAX_TIMERS; i++)
+        {
+            JsonObject timerObj = availableTimers.add<JsonObject>();
+            ESPTimer* timer = pinMap->getTimer(i);
+            timerObj["name"] = timer->name;
+            timerObj["value"] = i;
+            timerObj["frequency"] = timer->frequency;
+            for (size_t j = 0; j < 2; j++)
+            {
+                JsonObject timerChannelObj = timerChannels.add<JsonObject>();
+                timerChannelObj["name"] = timer->channels[j].name;
+                timerChannelObj["value"] = timer->channels[j].channel;
+            }
+        }
+
         doc["localIP"] = currentIP;
         doc["gateway"] = currentGateway;
         doc["subnet"] = currentSubnet;

@@ -20,29 +20,19 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
-// #pragma once
+#pragma once
 
-// #include <ArduinoJson.h>
-// #include "../constants.h"
+#include <ArduinoJson.h>
+#include "../constants.h"
+#include "../enum.h"
 
-// struct ESPTimerPWM {
-//     const char* name;
-//     const int8_t channel;
-//     const int8_t pin;
-// };
+struct ESPTimerChannel {
+    const char* name;
+    const ESPTimerChannelNum channel;
+};
 
-// struct ESPTimer {
-//     int frequency = ESP_TIMER_FREQUENCY_DEFAULT;
-//     ESPTimerPWM channels[ESP_TIMER_MAX_CHANNEL];
-// };
-
-// struct ESPTimerMap {
-//     ESPTimer timerH0;
-//     ESPTimer timerH1;
-//     ESPTimer timerH2;
-//     ESPTimer timerH3;
-//     ESPTimer timerL0;
-//     ESPTimer timerL1;
-//     ESPTimer timerL2;
-//     ESPTimer timerL3;
-// };
+struct ESPTimer {
+    const char* name;
+    int frequency = ESP_TIMER_FREQUENCY_DEFAULT;
+    ESPTimerChannel channels[2];
+};
