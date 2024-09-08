@@ -22,16 +22,10 @@
 #define MODULE_CURRENT ModuleType::WROOM32
 #endif
 
-// Servo operating frequencies
-// #define VibePWM_Freq 8000   // Vibe motor control PWM frequency
 
 // Other functions
 #define VALVE_DEFAULT 5000        // Auto-valve default suction level (low-high, 0-9999) 
 
-// ----------------------------
-//  Auto Settings
-// ----------------------------
-// Do not change
 
 #ifdef CONFIG_IDF_TARGET_ESP32
 #define SERVO_PWM_RES 16

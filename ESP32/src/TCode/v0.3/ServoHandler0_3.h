@@ -71,8 +71,8 @@ public:
         // Lower Left Servo
         #ifndef ESP_PROG// The default pins for these are used on the debugger board.
         m_leftServoPin = ((PinMapOSR*)pinMap)->leftServo();
-        if(m_leftServoPin > -1) {
-            m_lowerLeftServoChannel = ((PinMapOSR*)pinMap)->leftServoChannel();
+        m_lowerLeftServoChannel = ((PinMapOSR*)pinMap)->leftServoChannel();
+        if(m_leftServoPin > -1 && m_lowerLeftServoChannel > -1) {
             int freq = ((PinMapOSR*)pinMap)->getChannelFrequency(m_lowerLeftServoChannel);
             m_leftServo_Int = calcInt(freq);
             attachPin("left servo", m_leftServoPin, freq, m_lowerLeftServoChannel);
@@ -81,8 +81,8 @@ public:
             m_initFailed = true;
         }
         m_rightServoPin = ((PinMapOSR*)pinMap)->rightServo();
-        if(m_rightServoPin > -1) {
-            m_lowerRightServoChannel = ((PinMapOSR*)pinMap)->rightServoChannel();
+        m_lowerRightServoChannel = ((PinMapOSR*)pinMap)->rightServoChannel();
+        if(m_rightServoPin > -1 && m_lowerRightServoChannel > -1) {
             int freq = ((PinMapOSR*)pinMap)->getChannelFrequency(m_lowerRightServoChannel);
             m_rightServo_Int = calcInt(freq);
             attachPin("right servo", m_rightServoPin, freq, m_lowerRightServoChannel);
@@ -94,8 +94,8 @@ public:
         if(m_deviceType == DeviceType::SR6)
         {
             m_leftUpperServoPin = ((PinMapSR6*)pinMap)->leftUpperServo();
-            if(m_leftUpperServoPin > -1) {
-                m_upperLeftServoChannel = ((PinMapSR6*)pinMap)->leftUpperServoChannel();
+            m_upperLeftServoChannel = ((PinMapSR6*)pinMap)->leftUpperServoChannel();
+            if(m_leftUpperServoPin > -1 && m_upperLeftServoChannel > -1) {
                 int freq = ((PinMapSR6*)pinMap)->getChannelFrequency(m_upperLeftServoChannel);
                 m_leftUpperServo_Int = calcInt(freq);
                 attachPin("left upper servo", m_leftUpperServoPin, freq, m_upperLeftServoChannel);
@@ -105,8 +105,8 @@ public:
             }
             #ifndef ESP_PROG// The default pins for these are used on the debugger board. 12, 13, 14 & 15
                 m_rightUpperServoPin = ((PinMapSR6*)pinMap)->rightUpperServo();
-                if(m_rightUpperServoPin > -1) {
-                    m_upperRightServoChannel = ((PinMapSR6*)pinMap)->rightUpperServoChannel();
+                m_upperRightServoChannel = ((PinMapSR6*)pinMap)->rightUpperServoChannel();
+                if(m_rightUpperServoPin > -1 && m_upperRightServoChannel > -1) {
                     int freq = ((PinMapSR6*)pinMap)->getChannelFrequency(m_upperRightServoChannel);
                     m_rightUpperServo_Int = calcInt(freq);
                     attachPin("right upper servo", m_rightUpperServoPin, freq, m_upperRightServoChannel);
@@ -115,8 +115,8 @@ public:
                     m_initFailed = true;
                 }
                 m_rightPitchServoPin = ((PinMapSR6*)pinMap)->pitchRight();
-                if(m_rightPitchServoPin > -1) {
-                    m_rightPitchServoChannel = ((PinMapSR6*)pinMap)->pitchRightChannel();
+                m_rightPitchServoChannel = ((PinMapSR6*)pinMap)->pitchRightChannel();
+                if(m_rightPitchServoPin > -1 && m_rightPitchServoChannel > -1) {
                     int freq = ((PinMapSR6*)pinMap)->getChannelFrequency(m_rightPitchServoChannel);
                     m_pitchRightServo_Int = calcInt(freq);
                     attachPin("right pitch servo", m_rightPitchServoPin, freq, m_rightPitchServoChannel);
@@ -127,8 +127,8 @@ public:
             #endif
         }
         m_leftPitchServoPin = ((PinMapSR6*)pinMap)->pitchLeft();
-        if(m_leftPitchServoPin > -1) {
-            m_leftPitchServoChannel = ((PinMapSR6*)pinMap)->pitchLeftChannel();
+        m_leftPitchServoChannel = ((PinMapSR6*)pinMap)->pitchLeftChannel();
+        if(m_leftPitchServoPin > -1 && m_leftPitchServoChannel > -1) {
             int freq = ((PinMapSR6*)pinMap)->getChannelFrequency(m_leftPitchServoChannel);
             m_pitchLeftServo_Int = calcInt(freq);
             attachPin("pitch servo", m_leftPitchServoPin, freq, m_leftPitchServoChannel);

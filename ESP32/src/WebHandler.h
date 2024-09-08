@@ -157,21 +157,44 @@ class WebHandler : public HTTPBase {
             });
 
 
-            server->on("^\\/pinoutDefault\\/([0-9]+)$", HTTP_POST, [this](AsyncWebServerRequest *request)
+            server->on("^\\/changeBoard\\/([0-9]+)$", HTTP_POST, [this](AsyncWebServerRequest *request)
             {
                 auto boardTypeString = request->pathArg(0);
                 int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
+                if(boardType == (int)BoardType::CRIMZZON || boardType == (int)BoardType::ISAAC) {
+                    m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SR6);
+                }
                 Serial.println("Settings pinout default");
                 m_settingsFactory->setValue(BOARD_TYPE_SETTING, boardType);
-                if(SettingsHandler::defaultPinout())
+                if(m_settingsFactory->saveCommon() && SettingsHandler::defaultPinout())
 				//if (m_settingsFactory->resetPins()) // Settings handler executes resetPins
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
+			        SettingsHandler::restart(5);
                 } 
                 else 
                 {
-                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error defaulting pinout settings\"}");
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error changing board type\"}");
+                    request->send(response);
+                }
+            });
+            server->on("^\\/changeDevice\\/([0-9]+)$", HTTP_POST, [this](AsyncWebServerRequest *request)
+            {
+                auto deviceTypeString = request->pathArg(0);
+                int deviceType = deviceTypeString.isEmpty() ? (int)DeviceType::OSR : deviceTypeString.toInt();
+                Serial.println("Settings pinout default");
+                m_settingsFactory->setValue(DEVICE_TYPE, deviceType);
+                if(m_settingsFactory->saveCommon() && SettingsHandler::defaultPinout())
+				//if (m_settingsFactory->resetPins()) // Settings handler executes resetPins
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                    request->send(response);
+			        SettingsHandler::restart(5);
+                } 
+                else 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error changing device type\"}");
                     request->send(response);
                 }
             });

@@ -54,7 +54,6 @@ public:
         //resetAll();
         if(!loadAllFromDisk())
             return false;
-        m_initialized = true;
         loadCommonCache();
         loadPinCache();
         return true;
@@ -62,8 +61,8 @@ public:
     
     const std::vector<SettingFileInfo*> AllSettings = {
         &m_networkFileInfo,
-        &m_pinsFileInfo,
-        &m_commonFileInfo
+        &m_commonFileInfo,
+        &m_pinsFileInfo// Pins are dependent on common for now. Device type and board type
     };
 
     // Cached (Requires reboot)
@@ -190,12 +189,12 @@ public:
              typename = std::enable_if<!std::is_const<T>::value || std::is_integral<T>::value || std::is_enum<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
     SettingFile getValue(const char* name, T &value)
     {
-        if(!m_initialized) {
-            LogHandler::error(m_TAG, "getValue T called before initialized");
-            return SettingFile::NONE;
-        }
         if (m_networkFileInfo.doc.containsKey(name)) 
         {
+            if(!m_networkFileInfo.initialized) {
+                LogHandler::error(m_TAG, "getValue T called before network file initialized");
+                return SettingFile::NONE;
+            }
             xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
             value = m_networkFileInfo.doc[name].as<T>();
             xSemaphoreGive(m_networkSemaphore);
@@ -203,6 +202,10 @@ public:
         } 
         else if (m_commonFileInfo.doc.containsKey(name)) 
         {
+            if(!m_commonFileInfo.initialized) {
+                LogHandler::error(m_TAG, "getValue T called before common file initialized");
+                return SettingFile::NONE;
+            }
             xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
             value = m_commonFileInfo.doc[name].as<T>();
             xSemaphoreGive(m_commonSemaphore);
@@ -210,6 +213,10 @@ public:
         }    
         else if (m_pinsFileInfo.doc.containsKey(name)) 
         {
+            if(!m_pinsFileInfo.initialized) {
+                LogHandler::error(m_TAG, "getValue T called before pins file initialized");
+                return SettingFile::NONE;
+            }
             xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
             value = m_pinsFileInfo.doc[name].as<T>();
             xSemaphoreGive(m_commonSemaphore);
@@ -224,10 +231,6 @@ public:
     
     SettingFile getValue(const char* name, char* value, size_t len)
     {
-        if(!m_initialized) {
-            LogHandler::error(m_TAG, "getValue char* len called before initialized");
-            return SettingFile::NONE;
-        }
         const char* constvalue = getValue(name);
         if(!constvalue) {
             return SettingFile::NONE;
@@ -235,11 +238,19 @@ public:
         strncpy(value, constvalue, len);
         if (m_networkFileInfo.doc.containsKey(name)) 
         {
+            if(!m_networkFileInfo.initialized) {
+                LogHandler::error(m_TAG, "getValue char* len called before network file initialized");
+                return SettingFile::NONE;
+            }
             LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DONOTCHANGE_DEFAULT) ? value : "<Redacted>");
             return SettingFile::Network;
         } 
         else if (m_commonFileInfo.doc.containsKey(name)) 
         {
+            if(!m_commonFileInfo.initialized) {
+                LogHandler::error(m_TAG, "getValue char* len called before common file initialized");
+                return SettingFile::NONE;
+            }
             LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, value);
             return SettingFile::Common;
         }
@@ -248,12 +259,12 @@ public:
     
     const char* getValue(const char* name)
     {
-        if(!m_initialized) {
-            LogHandler::error(m_TAG, "getValue char* called before initialized");
-            return 0;
-        }
         if (m_networkFileInfo.doc.containsKey(name)) 
         {
+            if(!m_networkFileInfo.initialized) {
+                LogHandler::error(m_TAG, "getValue char* called before network file initialized");
+                return 0;
+            }
             xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
             const char* constvalue = m_networkFileInfo.doc[name];
             LogHandler::debug(m_TAG, "getValue char* wifi: %s: constvalue: %s", name, strcmp(name, WIFI_PASS_SETTING) || !strcmp(constvalue, WIFI_PASS_DONOTCHANGE_DEFAULT) ? constvalue : "<Redacted>");
@@ -262,6 +273,10 @@ public:
         } 
         else if (m_commonFileInfo.doc.containsKey(name)) 
         {
+            if(!m_commonFileInfo.initialized) {
+                LogHandler::error(m_TAG, "getValue char* called before common file initialized");
+                return 0;
+            }
             xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
             const char* constvalue = m_commonFileInfo.doc[name];
             LogHandler::debug(m_TAG, "getValue char* common: %s: constvalue: %s", name, constvalue);
@@ -276,14 +291,14 @@ public:
     }
     SettingFile getValueVector(const char* name, std::vector<const char*> &value)
     {
-        if(!m_initialized) {
-            LogHandler::error(m_TAG, "getValueVector char* called before initialized");
-            return SettingFile::NONE;
-        }
         LogHandler::debug("Getting vector string values: %s", name);
         SettingFileInfo* fileInfo = getFile(name);
         if(!fileInfo) {
             LogHandler::error("Key not found in settings: %s", name);
+            return SettingFile::NONE;
+        }
+        if(!fileInfo->initialized) {
+            LogHandler::error(m_TAG, "getValueVector char* called before initialized");
             return SettingFile::NONE;
         }
         //const Setting* setting = fileInfo->getSetting(name);
@@ -297,14 +312,14 @@ public:
     }
     SettingFile getValueVector(const char* name, std::vector<int> &value)
     {
-        if(!m_initialized) {
-            LogHandler::error(m_TAG, "getValueVector int called before initialized");
-            return SettingFile::NONE;
-        }
         LogHandler::debug("Getting vector int values: %s", name);
         SettingFileInfo* fileInfo = getFile(name);
         if(!fileInfo) {
             LogHandler::error("Key not found in settings: %s", name);
+            return SettingFile::NONE;
+        }
+        if(!fileInfo->initialized) {
+            LogHandler::error(m_TAG, "getValueVector int called before initialized");
             return SettingFile::NONE;
         }
         //const Setting* setting = fileInfo->getSetting(name);
@@ -326,13 +341,13 @@ public:
              typename = std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
     SettingFile setValue(const char* name, const T &value) 
     {
-        if(!m_initialized) {
-            LogHandler::error(m_TAG, "setValue T called before initialized");
-            return SettingFile::NONE;
-        }
         LogHandler::debug(m_TAG, "Enter setValue T: %s", name);
         if (m_networkFileInfo.doc.containsKey(name))
         {
+            if(!m_networkFileInfo.initialized) {
+                LogHandler::error(m_TAG, "setValue T called before network file initialized");
+                return SettingFile::NONE;
+            }
             T currentValue = m_networkFileInfo.doc[name].as<T>();
             if(currentValue != value) {
                 LogHandler::debug(m_TAG, "Change wifi value T: %s", name);
@@ -346,6 +361,10 @@ public:
         }
         else if (m_commonFileInfo.doc.containsKey(name))
         {
+            if(!m_commonFileInfo.initialized) {
+                LogHandler::error(m_TAG, "setValue T called before common file initialized");
+                return SettingFile::NONE;
+            }
             T currentValue = m_commonFileInfo.doc[name].as<T>();
             if(currentValue != value) {
                 LogHandler::debug(m_TAG, "Change common value T: %s", name);
@@ -359,6 +378,10 @@ public:
         }
         else if (m_pinsFileInfo.doc.containsKey(name))
         {
+            if(!m_pinsFileInfo.initialized) {
+                LogHandler::error(m_TAG, "setValue T called before pins file initialized");
+                return SettingFile::NONE;
+            }
             T currentValue = m_pinsFileInfo.doc[name].as<T>();
             if(currentValue != value) {
                 LogHandler::debug(m_TAG, "Change pin value T: %s", name);
@@ -376,14 +399,14 @@ public:
 
     SettingFile setValue(const char* name, const char* value) 
     {
-        if(!m_initialized) {
-            LogHandler::error(m_TAG, "setValue const char* called before initialized");
-            return SettingFile::NONE;
-        }
         LogHandler::debug(m_TAG, "Enter setValue const char*: %s", name);
         SettingFileInfo* fileInfo = getFile(name);
         if(!fileInfo) {
             LogHandler::error(m_TAG, "Set value key not found");
+            return SettingFile::NONE;
+        }
+        if(!fileInfo->initialized) {
+            LogHandler::error(m_TAG, "setValue const char* called before initialized");
             return SettingFile::NONE;
         }
         const char* currentValue = fileInfo->doc[name].as<const char*>();
@@ -400,12 +423,12 @@ public:
     template <typename T>
     SettingFile setValue(const char* name, const std::vector<T> &value) 
     {
-        if(!m_initialized) {
+        LogHandler::debug(m_TAG, "Set vector value: %s", name);
+        SettingFileInfo* fileInfo = getFile(name);
+        if(!fileInfo->initialized) {
             LogHandler::error(m_TAG, "setValue vector T called before initialized");
             return SettingFile::NONE;
         }
-        LogHandler::debug(m_TAG, "Set vector value: %s", name);
-        SettingFileInfo* fileInfo = getFile(name);
         if(!fileInfo) {
             LogHandler::error(m_TAG, "Set value key not found");
             return SettingFile::NONE;
@@ -419,12 +442,12 @@ public:
 
     void defaultValue(const char* name) 
     {
-        if(!m_initialized) {
+        LogHandler::debug(m_TAG, "Default: %s", name);
+        SettingFileInfo* fileInfo = getFile(name);
+        if(!fileInfo->initialized) {
             LogHandler::error(m_TAG, "defaultValue called before initialized");
             return;
         }
-        LogHandler::debug(m_TAG, "Default: %s", name);
-        SettingFileInfo* fileInfo = getFile(name);
         if(!fileInfo) {
             LogHandler::error(m_TAG, "Default value key not found");
             return;
@@ -577,7 +600,7 @@ public:
     }
     
     void loadCommonLiveCache(const char* name = 0) {
-        if(!m_initialized) {
+        if(!m_commonFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadCommonLiveCache called before initialized");
             return;
         }
@@ -745,7 +768,6 @@ private:
     // const int m_commonDeserializeSize = 32768;
     // const int m_commonSerializeSize = 24576;
 
-    bool m_initialized = false;
     SETTING_STATE_FUNCTION_PTR_T message_callback = 0;
 
 
@@ -755,7 +777,7 @@ private:
 
     SettingFileInfo m_networkFileInfo = 
     {
-        NETWORK_SETTINGS_PATH, SettingFile::Network, JsonDocument(), 
+        false, NETWORK_SETTINGS_PATH, SettingFile::Network, JsonDocument(), 
         {
             {SSID_SETTING, "Wifi ssid", "The ssid of the WiFi AP", SettingType::String, SSID_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
             {WIFI_PASS_SETTING, "Wifi pass", "The password for the WiFi AP", SettingType::String, WIFI_PASS_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
@@ -777,7 +799,7 @@ private:
 
     SettingFileInfo m_commonFileInfo = 
     {
-        COMMON_SETTINGS_PATH, SettingFile::Common, JsonDocument(), 
+        false, COMMON_SETTINGS_PATH, SettingFile::Common, JsonDocument(), 
         {
             {DEVICE_TYPE, "Type of device", "The surrent selected device", SettingType::Number, DEVICE_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
             {MOTOR_TYPE_SETTING, "Motor type", "The current motor type", SettingType::Number, MOTOR_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
@@ -848,22 +870,12 @@ private:
             {BOOT_BUTTON_COMMAND, "Boot button command", "Command to execute when the boot button is pressed", SettingType::String, BOOT_BUTTON_COMMAND_DEFAULT, RestartRequired::NO, {SettingProfile::Button}},
             {BUTTON_SETS_ENABLED, "Button sets enabled", "Enables the button sets function", SettingType::Boolean, BUTTON_SETS_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Button}},
             {BUTTON_ANALOG_DEBOUNCE, "Button debounce", "How long to debounce the button press in ms", SettingType::Number, BUTTON_ANALOG_DEBOUNCE_DEFAULT, RestartRequired::NO, {SettingProfile::Button}}
-            #if CONFIG_IDF_TARGET_ESP32
-            ,{ESP_H_TIMER0_FREQUENCY, "High timer 0 frequency", "Frequency for the high timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
-            ,{ESP_H_TIMER1_FREQUENCY, "High timer 1 frequency", "Frequency for the high timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
-            ,{ESP_H_TIMER2_FREQUENCY, "High timer 2 frequency", "Frequency for the high timer 2", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
-            ,{ESP_H_TIMER3_FREQUENCY, "High timer 3 frequency", "Frequency for the high timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}} 
-            #endif
-            ,{ESP_L_TIMER0_FREQUENCY, "Low timer 0 frequency", "Frequency for the low timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
-            ,{ESP_L_TIMER1_FREQUENCY, "Low timer 1 frequency", "Frequency for the low timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
-            ,{ESP_L_TIMER2_FREQUENCY, "Low timer 2 frequency", "Frequency for the low timer 2", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
-            ,{ESP_L_TIMER3_FREQUENCY, "Low timer 3 frequency", "Frequency for the low timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}  
         }
     };
 
     SettingFileInfo m_pinsFileInfo = 
     {
-        PIN_SETTINGS_PATH, SettingFile::Pins, JsonDocument(), 
+        false, PIN_SETTINGS_PATH, SettingFile::Pins, JsonDocument(), 
         {
             // PWM
             {RIGHT_SERVO_PIN, "Right servo PIN", "Pin the right servo is on", SettingType::Number, RIGHT_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
@@ -913,6 +925,16 @@ private:
             {BLDC_PWMCHANNEL1_PIN, "PWM channel1 PIN", "Pin for the BLDC PWM 1", SettingType::Number, BLDC_PWMCHANNEL1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
             {BLDC_PWMCHANNEL2_PIN, "PWM channel2 PIN", "Pin for the BLDC PWM 2", SettingType::Number, BLDC_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
             {BLDC_PWMCHANNEL3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}}
+            #if CONFIG_IDF_TARGET_ESP32
+            ,{ESP_H_TIMER0_FREQUENCY, "High timer 0 frequency", "Frequency for the high timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
+            ,{ESP_H_TIMER1_FREQUENCY, "High timer 1 frequency", "Frequency for the high timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
+            ,{ESP_H_TIMER2_FREQUENCY, "High timer 2 frequency", "Frequency for the high timer 2", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
+            ,{ESP_H_TIMER3_FREQUENCY, "High timer 3 frequency", "Frequency for the high timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}} 
+            #endif
+            ,{ESP_L_TIMER0_FREQUENCY, "Low timer 0 frequency", "Frequency for the low timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
+            ,{ESP_L_TIMER1_FREQUENCY, "Low timer 1 frequency", "Frequency for the low timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
+            ,{ESP_L_TIMER2_FREQUENCY, "Low timer 2 frequency", "Frequency for the low timer 2", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
+            ,{ESP_L_TIMER3_FREQUENCY, "Low timer 3 frequency", "Frequency for the low timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}  
         }
     };
 
@@ -984,18 +1006,20 @@ private:
                 return false;
             if(!loadDefault(fileInfo.file))
                 return false;
-        }
-        File file = LittleFS.open(fileInfo.path, FILE_READ, !fileExists);
-        if(!file) {
-            LogHandler::error(m_TAG, "%s failed to open!", fileInfo.path);
-            return false;
-        }
-        if(LogDeserializationError(deserializeJson(fileInfo.doc, file), file.name())) {
+        } else {
+            File file = LittleFS.open(fileInfo.path, FILE_READ, !fileExists);
+            if(!file) {
+                LogHandler::error(m_TAG, "%s failed to open!", fileInfo.path);
+                return false;
+            }
+            if(LogDeserializationError(deserializeJson(fileInfo.doc, file), file.name())) {
+                file.close();
+                createJsonFile(fileInfo.path);
+                return false;
+            }
             file.close();
-            createJsonFile(fileInfo.path);
-            return false;
+            fileInfo.initialized = true;
         }
-        file.close();
         //json = doc.as<JsonObject>();
         return true;
     }
@@ -1045,6 +1069,7 @@ private:
         {
             defaultToJson(&setting, fileInfo.doc);
         }
+        fileInfo.initialized = true;
         return saveToDisk(fileInfo);
     }
 
@@ -1077,6 +1102,7 @@ private:
             case BoardType::CRIMZZON: {
                 PinMapSR6MB* pinMap = PinMapSR6MB::getInstance();
                 pinMap->overideDefaults();
+                m_pinsFileInfo.initialized = true;
                 syncSR6AndCommonPinsToDisk(pinMap);
                 loadDefaultChannelsForDeviceType();
                 return saveToDisk(m_pinsFileInfo);
@@ -1085,6 +1111,7 @@ private:
             case BoardType::ISAAC: {
                 PinMapINControl* pinMap = PinMapINControl::getInstance();
                 pinMap->overideDefaults();
+                m_pinsFileInfo.initialized = true;
                 syncSR6AndCommonPinsToDisk(pinMap);
                 loadDefaultChannelsForDeviceType();
                 return saveToDisk(m_pinsFileInfo);
@@ -1092,6 +1119,7 @@ private:
             break;
             default: {
                 bool ret = loadDefault(m_pinsFileInfo);
+                m_pinsFileInfo.initialized = true;
                 loadDefaultChannelsForDeviceType();
                 return saveToDisk(m_pinsFileInfo);
             }
@@ -1103,42 +1131,59 @@ private:
         getValue(DEVICE_TYPE, deviceType);
         switch(deviceType) {
             case DeviceType::OSR: {
+                LogHandler::debug(m_TAG, "Loading default channels and pins for OSR");
 #if CONFIG_IDF_TARGET_ESP32
                 setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH0_CH0);
                 setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH0_CH1);
+                setValue(RIGHT_UPPER_SERVO_PIN, -1);
                 setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_UPPER_SERVO_PIN, -1);
                 setValue(LEFT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
                 setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH1_CH2);
+                setValue(PITCH_RIGHTSERVO_PIN, -1);
                 setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
                 setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH1_CH3);
                 setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH2_CH4);
+                setValue(SQUEEZE_PIN, -1);
                 setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
                 setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
                 setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
                 setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
                 setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
+                setValue(ESP_L_TIMER0_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
+                setValue(ESP_L_TIMER1_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
                 setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
                 setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
 #elif CONFIG_IDF_TARGET_ESP32S3
                 setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
                 setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
                 setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_UPPER_SERVO_PIN, -1);
                 setValue(LEFT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
                 setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
+                setValue(PITCH_RIGHTSERVO_PIN, -1);
                 setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
                 setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
                 setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH5);
+                setValue(SQUEEZE_PIN, -1);
                 setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE0_PIN, -1);
                 setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE1_PIN, -1);
                 setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE2_PIN, -1);
                 setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE3_PIN, -1);
                 setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(CASE_FAN_PIN, -1);
                 setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(HEATER_PIN, -1);
                 setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
 #endif
                 break;
             }
             case DeviceType::SR6: {
+                LogHandler::debug(m_TAG, "Loading default channels and pins for SR6");
 #if CONFIG_IDF_TARGET_ESP32
                 setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH0_CH0);
                 setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH0_CH1);
@@ -1148,11 +1193,14 @@ private:
                 setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH2_CH5);
                 setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH3_CH6);
                 setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH3_CH7);
+                setValue(SQUEEZE_PIN, -1);
                 setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
                 setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
                 setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
                 setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
                 setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
+                setValue(ESP_L_TIMER0_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
+                setValue(ESP_L_TIMER1_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
                 setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
                 setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
 #elif CONFIG_IDF_TARGET_ESP32S3
@@ -1163,23 +1211,36 @@ private:
                 setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
                 setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH5);
                 setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
+                setValue(VALVE_SERVO_PIN, -1);
                 setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(SQUEEZE_PIN, -1);
                 setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE0_PIN, -1);
                 setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE1_PIN, -1);
                 setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE2_PIN, -1);
                 setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE3_PIN, -1);
                 setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
                 setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH7);
+                setValue(HEATER_PIN, -1);
                 setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
 #endif
                 break;
             }
             case DeviceType::SSR1: {
+                LogHandler::debug(m_TAG, "Loading default channels and pins for SSR1");
 #if CONFIG_IDF_TARGET_ESP32
+                setValue(RIGHT_SERVO_PIN, -1);
                 setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_SERVO_PIN, -1);
                 setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(RIGHT_UPPER_SERVO_PIN, -1);
                 setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_UPPER_SERVO_PIN, -1);
                 setValue(LEFT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(PITCH_LEFT_SERVO_PIN, -1);
                 setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
                 setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH0_CH0);
                 setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH2_CH4);
@@ -1189,42 +1250,66 @@ private:
                 setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
                 setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
                 setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
+                setValue(ESP_L_TIMER0_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
+                setValue(ESP_L_TIMER1_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
                 setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
                 setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
 #elif CONFIG_IDF_TARGET_ESP32S3
+                setValue(RIGHT_SERVO_PIN, -1);
                 setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_SERVO_PIN, -1);
                 setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(RIGHT_UPPER_SERVO_PIN, -1);
                 setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_UPPER_SERVO_PIN, -1);
                 setValue(LEFT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(PITCH_LEFT_SERVO_PIN, -1);
                 setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
                 setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
+                setValue(VALVE_SERVO_PIN, -1);
                 setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
                 setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
+                setValue(SQUEEZE_PIN, -1);
                 setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
                 setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
                 setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
                 setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
                 setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH5);
+                setValue(ESP_L_TIMER1_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
+                setValue(ESP_L_TIMER2_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
                 setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
                 setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH7);
 #endif
                 break;
             }
             case DeviceType::TVIBE: {
+                LogHandler::debug(m_TAG, "Loading default channels and pins for TVIBE");
+                setValue(RIGHT_SERVO_PIN, -1);
                 setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_SERVO_PIN, -1);
                 setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(RIGHT_UPPER_SERVO_PIN, -1);
                 setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_UPPER_SERVO_PIN, -1);
                 setValue(LEFT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(PITCH_LEFT_SERVO_PIN, -1);
                 setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(TWIST_SERVO_PIN, -1);
                 setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VALVE_SERVO_PIN, -1);
                 setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(PITCH_RIGHTSERVO_PIN, -1);
                 setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(SQUEEZE_PIN, -1);
                 setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
                 setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
                 setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
                 setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
                 setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
+                setValue(ESP_L_TIMER0_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
+                setValue(ESP_L_TIMER1_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
                 setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
+                setValue(HEATER_PIN, -1);
                 setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
             }
         }
@@ -1325,7 +1410,7 @@ private:
 
     void loadCommonCache() 
     {
-        if(!m_initialized) {
+        if(!m_commonFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadCommonCache called before initialized");
             return;
         }
@@ -1340,7 +1425,7 @@ private:
     }
 
     void loadPinCache() {
-        if(!m_initialized) {
+        if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadPinCache called before initialized");
             return;
         }
@@ -1362,7 +1447,7 @@ private:
 
     void loadCommonPins(PinMap* pinMap) 
     {
-        if(!m_initialized) {
+        if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadCommonPins called before initialized");
             return;
         }
@@ -1457,7 +1542,7 @@ private:
     }
     PinMapSSR1* loadSSR1Pins() 
     {
-        if(!m_initialized) {
+        if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadSSR1Pins called before initialized");
             return 0;
         }
@@ -1483,7 +1568,7 @@ private:
     }
     PinMapOSR* loadOSRPins() 
     {
-        if(!m_initialized) {
+        if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadSSR1Pins called before initialized");
             return 0;
         }
@@ -1508,7 +1593,7 @@ private:
     
     PinMapSR6* loadSR6Pins() 
     {
-        if(!m_initialized) {
+        if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadSR6Pins called before initialized");
             return 0;
         }
@@ -1545,7 +1630,7 @@ private:
     
     void syncCommonPinsToDoc(const PinMap* pinMap) 
     {
-        if(!m_initialized) {
+        if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "syncCommonPinsToDoc called before initialized");
             return;
         }
@@ -1573,14 +1658,28 @@ private:
         setValue(INTERNAL_TEMP_PIN, pinMap->internalTemp());
         setValue(DISPLAY_RST_PIN, pinMap->displayReset());
         setValue(TEMP_PIN, pinMap->sleeveTemp());
-        //setValue(I2C_SDA_PIN, pinMap->setButtonSetPins());
         setValue(I2C_SDA_PIN, pinMap->i2cSda());
         setValue(I2C_SCL_PIN, pinMap->i2cScl());
+#if CONFIG_IDF_TARGET_ESP32
+        setValue(ESP_H_TIMER0_FREQUENCY, pinMap->getTimerFrequency(0));
+        setValue(ESP_H_TIMER1_FREQUENCY, pinMap->getTimerFrequency(1));
+        setValue(ESP_H_TIMER2_FREQUENCY, pinMap->getTimerFrequency(2));
+        setValue(ESP_H_TIMER3_FREQUENCY, pinMap->getTimerFrequency(3));
+        setValue(ESP_L_TIMER0_FREQUENCY, pinMap->getTimerFrequency(4));
+        setValue(ESP_L_TIMER1_FREQUENCY, pinMap->getTimerFrequency(5));
+        setValue(ESP_L_TIMER2_FREQUENCY, pinMap->getTimerFrequency(6));
+        setValue(ESP_L_TIMER3_FREQUENCY, pinMap->getTimerFrequency(7));
+#elif CONFIG_IDF_TARGET_ESP32S3
+        setValue(ESP_L_TIMER0_FREQUENCY, pinMap->getTimerFrequency(0));
+        setValue(ESP_L_TIMER1_FREQUENCY, pinMap->getTimerFrequency(1));
+        setValue(ESP_L_TIMER2_FREQUENCY, pinMap->getTimerFrequency(2));
+        setValue(ESP_L_TIMER3_FREQUENCY, pinMap->getTimerFrequency(3));
+#endif
     }
 
     void syncSSR1AndCommonPinsToDisk(const PinMapSSR1* pinMap) 
     {
-        if(!m_initialized) {
+        if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "syncSSR1AndCommonPinsToDisk called before initialized");
             return;
         }
@@ -1597,7 +1696,7 @@ private:
 
     void syncOSRAndCommonPinsToDisk(const PinMapOSR* pinMap) 
     {
-        if(!m_initialized) {
+        if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "syncOSRAndCommonPinsToDisk called before initialized");
             return;
         }
@@ -1613,7 +1712,7 @@ private:
 
     void syncSR6AndCommonPinsToDisk(const PinMapSR6* pinMap) 
     {
-        if(!m_initialized) {
+        if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "syncSR6AndCommonPinsToDisk called before initialized");
             return;
         }

@@ -58,32 +58,38 @@ protected:
         m_tcode->read("D1");
         
         m_valveServoPin = pinMap->valve();
-        if(m_valveServoPin > -1) {
+        m_valveServoChannel = pinMap->valveChannel();
+        if(m_valveServoPin > -1 && m_valveServoChannel > -1) {
             m_tcode->AxisInput("A1",VALVE_DEFAULT,'I',3000);
             m_tcode->RegisterAxis("A1", "Suck");
             m_tcode->RegisterAxis("A0", "Valve");
-            m_valveServoChannel = pinMap->valveChannel();
             int freq = pinMap->getChannelFrequency(m_valveServoChannel);
             attachPin("valve servo", m_valveServoPin, freq, m_valveServoChannel);
             m_valveServo_Int = calcInt(freq);
+        } else {
+            m_valveServoPin = -1;
         }
 
         m_twistServoPin = pinMap->twist();
-        if(m_twistServoPin > -1) {
+        m_twistServoChannel = pinMap->twistChannel();
+        if(m_twistServoPin > -1 && m_twistServoChannel > -1) {
             m_tcode->RegisterAxis("R0", "Twist");
-            m_twistServoChannel = pinMap->twistChannel();
             int freq = pinMap->getChannelFrequency(m_twistServoChannel);
             attachPin("twist servo", m_twistServoPin, freq, m_twistServoChannel);
             m_twistServo_Int = calcInt(freq);
+        } else {
+            m_twistServoPin = -1;
         }
 
         m_squeezeServoPin = pinMap->squeeze();
-        if(m_squeezeServoPin > -1) {
+        m_squeezeServoChannel = pinMap->squeezeChannel();
+        if(m_squeezeServoPin > -1 && m_squeezeServoChannel > -1) {
             m_tcode->RegisterAxis("A3", "Squeeze");
-            m_squeezeServoChannel = pinMap->squeezeChannel();
             int freq = pinMap->getChannelFrequency(m_squeezeServoChannel);
             attachPin("aux servo", m_squeezeServoPin, freq, m_squeezeServoChannel);
             m_squeezeServo_Int = calcInt(freq);
+        } else {
+            m_squeezeServoPin = -1;
         }
 
         bool lubeEnabled = false; 
@@ -91,11 +97,11 @@ protected:
         if (lubeEnabled) {
             m_lubeButtonPin = pinMap->lubeButton();
             m_vib1Pin = pinMap->vibe1();
-            if(m_lubeButtonPin > -1 && m_vib1Pin > -1) {
+            m_vib1Channel = pinMap->vibe1Channel();
+            if(m_lubeButtonPin > -1 && m_vib1Pin > -1 && m_vib1Channel > -1) {
                 m_tcode->RegisterAxis("A2", "Lube");
                 m_tcode->AxisInput("A2",0,' ',0);
                 pinMode(m_lubeButtonPin, INPUT);
-                m_vib1Channel = pinMap->vibe1Channel();
                 int freq = pinMap->getChannelFrequency(m_vib1Channel);
                 attachPin("lube", m_vib1Pin, freq, m_vib1Channel, 8);
                 // m_vib1_Int = calcInt(freq);
@@ -105,38 +111,48 @@ protected:
 
         // Set vibration PWM pins
         m_vib0Pin = pinMap->vibe0();
-        if(m_vib0Pin > -1) {
+        m_vib0Channel = pinMap->vibe0Channel();
+        if(m_vib0Pin > -1 && m_vib0Channel > -1) {
             m_tcode->RegisterAxis("V0", "Vibe1");
-            m_vib0Channel = pinMap->vibe0Channel();
             int freq = pinMap->getChannelFrequency(m_vib0Channel);
             attachPin("vib 1", m_vib0Pin, freq, m_vib0Channel, 8);
             // m_vib0_Int = calcInt(freq);
+        } else {
+            m_vib0Pin = -1;
         }
+
         if(!lubeRegistered) {
             m_vib1Pin = pinMap->vibe1();
-            if(m_vib0Pin > -1) {
+            m_vib1Channel = pinMap->vibe1Channel();
+            if(m_vib1Pin > -1 && m_vib1Channel > -1) {
                 m_tcode->RegisterAxis("V1", "Vibe2");
-                m_vib1Channel = pinMap->vibe1Channel();
                 int freq = pinMap->getChannelFrequency(m_vib1Channel);
                 attachPin("vib 2", m_vib1Pin, freq, m_vib1Channel, 8);
                 // m_vib1_Int = calcInt(freq);
+            } else {
+                m_vib1Pin = -1;
             }
+
         }
         m_vib2Pin = pinMap->vibe2();
-        if(m_vib2Pin > -1) {
+        m_vib2Channel = pinMap->vibe2Channel();
+        if(m_vib2Pin > -1 && m_vib2Channel > -1) {
             m_tcode->RegisterAxis("V2", "Vibe3");
-            m_vib2Channel = pinMap->vibe2Channel();
             int freq = pinMap->getChannelFrequency(m_vib2Channel);
             attachPin("vib 3", m_vib2Pin, freq, m_vib2Channel, 8);
             // m_vib2_Int = calcInt(freq);
+        } else {
+            m_vib2Pin = -1;
         }
         m_vib3Pin = pinMap->vibe3();
-        if(m_vib3Pin > -1) {
+        m_vib3Channel = pinMap->vibe3Channel();
+        if(m_vib3Pin > -1 && m_vib3Channel > -1) {
             m_tcode->RegisterAxis("V3", "Vibe4");
-            m_vib3Channel = pinMap->vibe3Channel();
             int freq = pinMap->getChannelFrequency(m_vib3Channel);
             attachPin("vib 4", m_vib3Pin, freq, m_vib3Channel, 8);
             // m_vib3_Int = calcInt(freq);
+        } else {
+            m_vib3Pin = -1;
         }
 
         m_settingsFactory->getValue(FEEDBACK_TWIST, m_isTwistFeedBack);

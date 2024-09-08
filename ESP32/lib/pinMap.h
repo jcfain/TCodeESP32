@@ -216,13 +216,13 @@ public:
         }
         m_timers[timerIndex].frequency = frequency;
     }
-    // int getTimerFrequency(int8_t timer) {
-    //     if(timer > MAX_TIMERS - 1 || timer < 0) {
-    //         LogHandler::error("Pin_map", "Invalid timer '%d' when getting frequency", timer);
-    //         return -1;
-    //     }
-    //     return m_timerFreq[timer];
-    // }
+    int getTimerFrequency(int8_t timerIndex) const {
+        if(timerIndex > MAX_TIMERS - 1 || timerIndex < 0) {
+            //LogHandler::error("Pin_map", "Invalid timer '%d' when getting frequency", timer);
+            return -1;
+        }
+        return m_timers[timerIndex].frequency;
+    }
     ESPTimer* getTimer(uint8_t timerIndex) {
         if(timerIndex >= MAX_TIMERS || timerIndex < 0) {
             return 0;
@@ -238,45 +238,45 @@ protected:
     BoardType m_boardType;
     ESPTimer m_timers[MAX_TIMERS] = {
 #if CONFIG_IDF_TARGET_ESP32
-        { "High 0", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High 0 channel 0", ESPTimerChannelNum::HIGH0_CH0}, 
-                {"High 0 channel 1", ESPTimerChannelNum::HIGH0_CH1}
+        { ESP_H_TIMER0_FREQUENCY, "High 0", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"High 0 CH0", ESPTimerChannelNum::HIGH0_CH0}, 
+                {"High 0 CH1", ESPTimerChannelNum::HIGH0_CH1}
             }
         },
-        { "High 1", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High 1 channel 2", ESPTimerChannelNum::HIGH1_CH2}, 
-                {"High 1 channel 3", ESPTimerChannelNum::HIGH1_CH3}
+        { ESP_H_TIMER1_FREQUENCY, "High 1", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"High 1 CH2", ESPTimerChannelNum::HIGH1_CH2}, 
+                {"High 1 CH3", ESPTimerChannelNum::HIGH1_CH3}
             }
         },
-        { "High 2", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High 2 channel 4", ESPTimerChannelNum::HIGH2_CH4}, 
-                {"High 2 channel 5", ESPTimerChannelNum::HIGH2_CH5}
+        { ESP_H_TIMER2_FREQUENCY, "High 2", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"High 2 CH4", ESPTimerChannelNum::HIGH2_CH4}, 
+                {"High 2 CH5", ESPTimerChannelNum::HIGH2_CH5}
             }
         },
-        { "High 3", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High 3 channel 6", ESPTimerChannelNum::HIGH3_CH6}, 
-                {"High 3 channel 7", ESPTimerChannelNum::HIGH3_CH7}
+        { ESP_H_TIMER3_FREQUENCY, "High 3", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"High 3 CH6", ESPTimerChannelNum::HIGH3_CH6}, 
+                {"High 3 CH7", ESPTimerChannelNum::HIGH3_CH7}
             }
         },
 #endif
-        { "Low 0", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 0 channel 0", ESPTimerChannelNum::LOW0_CH0}, 
-                {"Low 0 channel 1", ESPTimerChannelNum::LOW0_CH1}
+        { ESP_L_TIMER0_FREQUENCY, "Low 0", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low 0 CH0", ESPTimerChannelNum::LOW0_CH0}, 
+                {"Low 0 CH1", ESPTimerChannelNum::LOW0_CH1}
             }
         },
-        { "Low 1", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 1 channel 2", ESPTimerChannelNum::LOW1_CH2}, 
-                {"Low 1 channel 3", ESPTimerChannelNum::LOW1_CH3}
+        { ESP_L_TIMER1_FREQUENCY, "Low 1", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low 1 CH2", ESPTimerChannelNum::LOW1_CH2}, 
+                {"Low 1 CH3", ESPTimerChannelNum::LOW1_CH3}
             }
         },
-        { "Low 2", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 2 channel 4", ESPTimerChannelNum::LOW2_CH4}, 
-                {"Low 2 channel 5", ESPTimerChannelNum::LOW2_CH5}
+        { ESP_L_TIMER2_FREQUENCY, "Low 2", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low 2 CH4", ESPTimerChannelNum::LOW2_CH4}, 
+                {"Low 2 CH5", ESPTimerChannelNum::LOW2_CH5}
             }
         },
-        { "Low 3", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 3 channel 6", ESPTimerChannelNum::LOW3_CH6}, 
-                {"Low 3 channel 7", ESPTimerChannelNum::LOW3_CH7}
+        { ESP_L_TIMER3_FREQUENCY, "Low 3", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low 3 CH6", ESPTimerChannelNum::LOW3_CH6}, 
+                {"Low 3 CH7", ESPTimerChannelNum::LOW3_CH7}
             }
         }
     };

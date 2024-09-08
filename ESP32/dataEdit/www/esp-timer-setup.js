@@ -23,6 +23,7 @@ SOFTWARE. */
 ESPTimer = {
     initialized: false,
     model: {},
+    debounces: [],
     show() {
         this.modal.show();
     },
@@ -35,13 +36,19 @@ ESPTimer = {
         let table = Utils.createModalTableSection(this.modal, "Timer setup");
         let availableTimers = systemInfo["availableTimers"];
         for (let index = 0; index < availableTimers.length; index++) {
-            const element = availableTimers[index];
-            let timerFrequencyRow = Utils.createNumericFormRow(0, element.name + " (hz)", 'timerFrequency'+index, element.frequency, 50, 80000000, 
-                function(element) {
-                    element.frequency = this.value;
-                    updateUserSettings();
-                }.bind(this, element));
-            timerFrequencyRow.title = `Set the frequency of this timer`
+            const timerObj = availableTimers[index];
+            let timerFrequencyRow = Utils.createNumericFormRow(0, timerObj.name + " (hz)", 'timerFrequency'+index, pinoutSettings[timerObj.id], 50, 80000000);
+            timerFrequencyRow.title = `Set the frequency of this timer`;
+            timerFrequencyRow.input.oninput = function(timerObj, timerFrequencyRow) {
+                if(this.debounces[timerObj.id])
+                    clearTimeout(this.debounces[timerObj.id]);
+                this.debounces[timerObj.id] = setTimeout( function(){
+                    if(validateIntControl(timerFrequencyRow.input, pinoutSettings, timerObj.id)) {
+                        setRestartRequired();
+                        postPinoutSettings(0);
+                    }
+                }, defaultDebounce);
+            }.bind(this, timerObj, timerFrequencyRow);
             
             table.body.appendChild(timerFrequencyRow.row);
         }

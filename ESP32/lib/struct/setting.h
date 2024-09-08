@@ -100,6 +100,7 @@ enum class SettingFile
 
 class SettingFileInfo {
 public:
+    bool initialized;
     const char* path;
     SettingFile file;
     JsonDocument doc;

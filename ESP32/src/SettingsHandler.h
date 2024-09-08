@@ -429,8 +429,8 @@ public:
         SR6["name"] = "SR6";
         SR6["value"] = DeviceType::SR6;
         JsonObject TVIBE = deviceTypes.add<JsonObject>();
-        SR6["name"] = "TVIBE";
-        SR6["value"] = DeviceType::TVIBE;
+        TVIBE["name"] = "TVIBE";
+        TVIBE["value"] = DeviceType::TVIBE;
     #elif MOTOR_TYPE == 1
         defaultDevice["name"] = "SSR1";
         defaultDevice["value"] = DeviceType::SSR1;
@@ -480,9 +480,9 @@ public:
         {
             JsonObject timerObj = availableTimers.add<JsonObject>();
             ESPTimer* timer = pinMap->getTimer(i);
+            timerObj["id"] = timer->id;
             timerObj["name"] = timer->name;
             timerObj["value"] = i;
-            timerObj["frequency"] = timer->frequency;
             for (size_t j = 0; j < 2; j++)
             {
                 JsonObject timerChannelObj = timerChannels.add<JsonObject>();
