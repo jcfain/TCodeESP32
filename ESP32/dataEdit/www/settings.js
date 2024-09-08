@@ -702,7 +702,6 @@ function setWifiSettings() {
     document.getElementById("friendlyName").value = wifiSettings["friendlyName"];
 }
 function setPinoutSettings() {
-    ESPTimer.setup();
     document.getElementById("TwistFeedBack_PIN").value = pinoutSettings["TwistFeedBack_PIN"];
     document.getElementById("RightServo_PIN").value = pinoutSettings["RightServo_PIN"];
     document.getElementById("LeftServo_PIN").value = pinoutSettings["LeftServo_PIN"];
@@ -735,16 +734,16 @@ function setPinoutSettings() {
     setPinChannel("Heater_CHANNEL", pinoutSettings["Heater_CHANNEL"]);
     setPinChannel("Case_Fan_CHANNEL", pinoutSettings["Case_Fan_CHANNEL"]);
 
-    if(isOSR() || isSR6()) {
+    // if(isOSR() || isSR6()) {
         setPinChannel("RightServo_CHANNEL", pinoutSettings["RightServo_CHANNEL"]);
         setPinChannel("LeftServo_CHANNEL", pinoutSettings["LeftServo_CHANNEL"]);
         setPinChannel("PitchLeftServo_CHANNEL", pinoutSettings["PitchLeftServo_CHANNEL"]);
-    }
-    if(isSR6()) {
+    // }
+    // if(isSR6()) {
         setPinChannel("RightUpperServo_CHANNEL", pinoutSettings["RightUpperServo_CHANNEL"]);
         setPinChannel("LeftUpperServo_CHANNEL", pinoutSettings["LeftUpperServo_CHANNEL"]);
         setPinChannel("PitchRightServo_CHANNEL", pinoutSettings["PitchRightServo_CHANNEL"]);
-    }
+    // }
 }
 function setUserSettings()
 {
@@ -789,8 +788,7 @@ function setUserSettings()
 	document.getElementById("continuousTwist").checked = userSettings["continuousTwist"];
 	document.getElementById("analogTwist").checked = userSettings["analogTwist"];
     
-    setPinoutSettings();
-
+    ESPTimer.setup();
     if(systemInfo.motorType === MotorType.BLDC) 
         BLDCMotor.setup();
 
@@ -1562,7 +1560,6 @@ function setupTimerChannels() {
             const option = document.createElement("option");
             option.innerText = systemInfo.timerChannels[i].name;
             option.value = systemInfo.timerChannels[i].value;
-            option.name = systemInfo.timerChannels[i].name;
             element.appendChild(option);
         }
     }
@@ -1617,27 +1614,22 @@ function disablePinValidation() {
 function setPinChannel(id, value) {
     let element = document.getElementById(id);
     element.value = value;
-    if(value > -1) {
-        const timerSelects = document.getElementsByName('timerChannels');
-        for (let index = 0; index < timerSelects.length; index++) {
-            const element = timerSelects[index +1];
-            element.options[element.selectedIndex].disabled = true;
-        }
-    }
+    toggleEnableTimerChannels(element);
 }
 function onSelectPinChannel(element) {
     pinoutSettings[element.id] = element.value;
     // let option = selectElement.options[selectElement.selectedIndex];
     // option.disabled = true
-    if(element.value > -1) {
-        const timerSelects = document.getElementsByName('timerChannels');
-        for (let index = 0; index < timerSelects.length; index++) {
-            const element = timerSelects[index +1];
-            element.options[element.selectedIndex].disabled = true;
-        }
+    toggleEnableTimerChannels(element);
+	postPinoutSettings();
+}
+function toggleEnableTimerChannels(element) {
+    const timerSelects = document.getElementsByName('timerChannels');
+    for (let index = 0; index < timerSelects.length; index++) {
+        const otherElement = timerSelects[index];
+        otherElement.options[element.selectedIndex].disabled = element.value > -1;
     }
 }
-
 function updatePins() 
 {
     if(systemInfo.motorType == MotorType.BLDC) {

@@ -1078,6 +1078,7 @@ private:
                 PinMapSR6MB* pinMap = PinMapSR6MB::getInstance();
                 pinMap->overideDefaults();
                 syncSR6AndCommonPinsToDisk(pinMap);
+                loadDefaultChannelsForDeviceType();
                 return saveToDisk(m_pinsFileInfo);
             }
             break;
@@ -1085,16 +1086,150 @@ private:
                 PinMapINControl* pinMap = PinMapINControl::getInstance();
                 pinMap->overideDefaults();
                 syncSR6AndCommonPinsToDisk(pinMap);
+                loadDefaultChannelsForDeviceType();
                 return saveToDisk(m_pinsFileInfo);
             }
             break;
             default: {
                 bool ret = loadDefault(m_pinsFileInfo);
-                return ret;
+                loadDefaultChannelsForDeviceType();
+                return saveToDisk(m_pinsFileInfo);
             }
         }
     }
 
+    void loadDefaultChannelsForDeviceType() {
+        DeviceType deviceType;
+        getValue(DEVICE_TYPE, deviceType);
+        switch(deviceType) {
+            case DeviceType::OSR: {
+#if CONFIG_IDF_TARGET_ESP32
+                setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH0_CH0);
+                setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH0_CH1);
+                setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH1_CH2);
+                setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH1_CH3);
+                setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH2_CH4);
+                setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
+                setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
+                setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
+                setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
+                setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
+                setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
+#elif CONFIG_IDF_TARGET_ESP32S3
+                setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
+                setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
+                setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
+                setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
+                setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH5);
+                setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+#endif
+                break;
+            }
+            case DeviceType::SR6: {
+#if CONFIG_IDF_TARGET_ESP32
+                setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH0_CH0);
+                setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH0_CH1);
+                setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH1_CH2);
+                setValue(LEFT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH1_CH3);
+                setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH2_CH4);
+                setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH2_CH5);
+                setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH3_CH6);
+                setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH3_CH7);
+                setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
+                setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
+                setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
+                setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
+                setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
+                setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
+#elif CONFIG_IDF_TARGET_ESP32S3
+                setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
+                setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
+                setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
+                setValue(LEFT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
+                setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
+                setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH5);
+                setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
+                setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH7);
+                setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+#endif
+                break;
+            }
+            case DeviceType::SSR1: {
+#if CONFIG_IDF_TARGET_ESP32
+                setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH0_CH0);
+                setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH2_CH4);
+                setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH0_CH1);
+                setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::HIGH1_CH2);
+                setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
+                setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
+                setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
+                setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
+                setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
+                setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
+#elif CONFIG_IDF_TARGET_ESP32S3
+                setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
+                setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
+                setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
+                setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
+                setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
+                setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH5);
+                setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
+                setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH7);
+#endif
+                break;
+            }
+            case DeviceType::TVIBE: {
+                setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(LEFT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+                setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
+                setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
+                setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
+                setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
+                setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
+                setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
+            }
+        }
+    }
+            
     bool loadAllFromDisk()
     {
         for(SettingFileInfo* settingsInfo : AllSettings)

@@ -451,6 +451,11 @@ button:disabled {
   height: 20px;
   margin-top: 5px;
 }
+
+select[name="timerChannels"] > option:disabled {
+  color: darkred
+}
+
 @keyframes loading-spinner {
   0% {
       transform: rotate(0deg);

@@ -233,66 +233,50 @@ protected:
     PinMap(DeviceType deviceType, BoardType boardType) {
         m_deviceType = deviceType;
         m_boardType = boardType;
-        // if(m_deviceType == DeviceType::OSR) {
-        //     instance.setTwistChannel((int8_t)ESPTimerChannelNum::HIGH2_CH4);
-        //     instance.setSqueezeChannel((int8_t)ESPTimerChannelNum::HIGH2_CH5);
-        //     instance.setValveChannel((int8_t)ESPTimerChannelNum::HIGH3_CH6);
-        //     instance.setVibe0Channel((int8_t)ESPTimerChannelNum::LOW0_CH0);
-        //     instance.setVibe1Channel((int8_t)ESPTimerChannelNum::LOW0_CH1);
-        //     instance.setVibe2Channel((int8_t)ESPTimerChannelNum::LOW1_CH2);
-        //     instance.setVibe3Channel((int8_t)ESPTimerChannelNum::LOW1_CH3);
-        //     instance.setHeaterChannel((int8_t)ESPTimerChannelNum::LOW2_CH4);
-        //     instance.setCaseFanChannel((int8_t)ESPTimerChannelNum::LOW3_CH6);
-        // } else if (m_deviceType == DeviceType::OSR) {
-        //     instance.setVibe0Channel((int8_t)ESPTimerChannelNum::LOW0_CH0);
-        //     instance.setVibe1Channel((int8_t)ESPTimerChannelNum::LOW0_CH1);
-        //     instance.setHeaterChannel((int8_t)ESPTimerChannelNum::LOW2_CH4);
-        //     instance.setCaseFanChannel((int8_t)ESPTimerChannelNum::LOW3_CH6);
-        // }
     }
     DeviceType m_deviceType;
     BoardType m_boardType;
     ESPTimer m_timers[MAX_TIMERS] = {
 #if CONFIG_IDF_TARGET_ESP32
         { "High 0", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High timer channel 0", ESPTimerChannelNum::HIGH0_CH0}, 
-                {"High timer channel 1", ESPTimerChannelNum::HIGH0_CH1}
+                {"High 0 channel 0", ESPTimerChannelNum::HIGH0_CH0}, 
+                {"High 0 channel 1", ESPTimerChannelNum::HIGH0_CH1}
             }
         },
         { "High 1", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High timer channel 2", ESPTimerChannelNum::HIGH1_CH2}, 
-                {"High timer channel 3", ESPTimerChannelNum::HIGH1_CH3}
+                {"High 1 channel 2", ESPTimerChannelNum::HIGH1_CH2}, 
+                {"High 1 channel 3", ESPTimerChannelNum::HIGH1_CH3}
             }
         },
         { "High 2", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High timer channel 4", ESPTimerChannelNum::HIGH2_CH4}, 
-                {"High timer channel 5", ESPTimerChannelNum::HIGH2_CH5}
+                {"High 2 channel 4", ESPTimerChannelNum::HIGH2_CH4}, 
+                {"High 2 channel 5", ESPTimerChannelNum::HIGH2_CH5}
             }
         },
         { "High 3", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High timer channel 6", ESPTimerChannelNum::HIGH3_CH6}, 
-                {"High timer channel 7", ESPTimerChannelNum::HIGH3_CH7}
+                {"High 3 channel 6", ESPTimerChannelNum::HIGH3_CH6}, 
+                {"High 3 channel 7", ESPTimerChannelNum::HIGH3_CH7}
             }
         },
 #endif
         { "Low 0", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low timer channel 0", ESPTimerChannelNum::LOW0_CH0}, 
-                {"Low timer channel 1", ESPTimerChannelNum::LOW0_CH1}
+                {"Low 0 channel 0", ESPTimerChannelNum::LOW0_CH0}, 
+                {"Low 0 channel 1", ESPTimerChannelNum::LOW0_CH1}
             }
         },
         { "Low 1", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low timer channel 2", ESPTimerChannelNum::LOW1_CH2}, 
-                {"Low timer channel 3", ESPTimerChannelNum::LOW1_CH3}
+                {"Low 1 channel 2", ESPTimerChannelNum::LOW1_CH2}, 
+                {"Low 1 channel 3", ESPTimerChannelNum::LOW1_CH3}
             }
         },
         { "Low 2", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low timer channel 4", ESPTimerChannelNum::LOW2_CH4}, 
-                {"Low timer channel 5", ESPTimerChannelNum::LOW2_CH5}
+                {"Low 2 channel 4", ESPTimerChannelNum::LOW2_CH4}, 
+                {"Low 2 channel 5", ESPTimerChannelNum::LOW2_CH5}
             }
         },
         { "Low 3", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low timer channel 6", ESPTimerChannelNum::LOW3_CH6}, 
-                {"Low timer channel 7", ESPTimerChannelNum::LOW3_CH7}
+                {"Low 3 channel 6", ESPTimerChannelNum::LOW3_CH6}, 
+                {"Low 3 channel 7", ESPTimerChannelNum::LOW3_CH7}
             }
         }
     };
@@ -421,7 +405,17 @@ private:
     int8_t m_rightServoChannel = RIGHT_SERVO_CHANNEL_DEFAULT;
     int8_t m_leftServo = LEFT_SERVO_PIN_DEFAULT;
     int8_t m_leftServoChannel = LEFT_SERVO_CHANNEL_DEFAULT;
-    void overideDefaults() override {}
+    void overideDefaults() override {
+        // setTwistChannel((int8_t)ESPTimerChannelNum::HIGH2_CH4);
+        // setSqueezeChannel((int8_t)ESPTimerChannelNum::HIGH2_CH5);
+        // setValveChannel((int8_t)ESPTimerChannelNum::HIGH3_CH6);
+        // setVibe0Channel((int8_t)ESPTimerChannelNum::LOW0_CH0);
+        // setVibe1Channel((int8_t)ESPTimerChannelNum::LOW0_CH1);
+        // setVibe2Channel((int8_t)ESPTimerChannelNum::LOW1_CH2);
+        // setVibe3Channel((int8_t)ESPTimerChannelNum::LOW1_CH3);
+        // setHeaterChannel((int8_t)ESPTimerChannelNum::LOW2_CH4);
+        // setCaseFanChannel((int8_t)ESPTimerChannelNum::LOW3_CH6);
+    }
 };
 
     // #define LowerLeftServo_PWM 0     // Lower Left Servo

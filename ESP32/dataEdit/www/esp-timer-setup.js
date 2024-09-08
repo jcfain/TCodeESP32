@@ -21,7 +21,29 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 ESPTimer = {
+    initialized: false,
+    model: {},
+    show() {
+        this.modal.show();
+    },
     setup() {
-
+        if(this.initialized) {
+            return;
+        }
+        this.initialized = true;
+        this.modal = document.getElementById("espTimerSetupModal");
+        let table = Utils.createModalTableSection(this.modal, "Timer setup");
+        let availableTimers = systemInfo["availableTimers"];
+        for (let index = 0; index < availableTimers.length; index++) {
+            const element = availableTimers[index];
+            let timerFrequencyRow = Utils.createNumericFormRow(0, element.name + " (hz)", 'timerFrequency'+index, element.frequency, 50, 80000000, 
+                function(element) {
+                    element.frequency = this.value;
+                    updateUserSettings();
+                }.bind(this, element));
+            timerFrequencyRow.title = `Set the frequency of this timer`
+            
+            table.body.appendChild(timerFrequencyRow.row);
+        }
     }
 };

@@ -109,6 +109,18 @@ Utils = {
         }
         return cell;
     },
+    createFormButtonRow(rowID, buttonID, buttonLabel) {
+        const row = this.createFormRow(rowID);
+        const emptyCell = this.createFormCell();
+        const buttonCell = this.createFormCell();
+        const button = document.createElement("button");
+        button.innerText = buttonLabel;
+        button.id = buttonID;
+        buttonCell.appendChild(button);
+        row.appendChild(emptyCell);
+        row.appendChild(buttonCell);
+        return {row: row, emptyCell: emptyCell, buttonCell: buttonCell, button: button};
+    },
     createTextInput(id, value, maxLength, callback) {
         const input = document.createElement("input");
         input.type = "text";
@@ -236,5 +248,33 @@ Utils = {
         row.appendChild(nameCell);
         row.appendChild(valueCell);
         return {row: row, input: undefined, nameCell: nameCell, valueCell: valueCell};
+    },
+    createTableSection() {
+        var rootdiv = document.createElement("div");
+        rootdiv.classList.add("formTable");
+        rootdiv.style = "box-shadow: none; width: 100%;"
+        var parent = document.createElement("div");
+        var header = document.createElement("div");
+        header.classList.add("tHeader")
+        rootdiv.appendChild(header);
+        rootdiv.appendChild(parent);
+
+        var tableDiv = document.createElement("div");
+        tableDiv.classList.add("formTable");
+        tableDiv.style = "box-shadow: none; width: auto; margin: 0; padding: 0;"
+        var tableBody = document.createElement("div");
+        tableDiv.appendChild(tableBody);
+        parent.appendChild(tableDiv);
+        return {root: rootdiv, table: tableDiv, body: tableBody, header: header, parent: parent}
+    },
+    createModalTableSection(modalElement, modelTitle) {
+        let title = document.createElement("span");
+        title.setAttribute("slot", "title");
+        title.innerText = modelTitle
+        let table = this.createTableSection();
+        modalElement.appendChild(title);
+        modalElement.appendChild(table.header);
+        modalElement.appendChild(table.root);
+        return table;
     }
 }

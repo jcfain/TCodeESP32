@@ -57,7 +57,7 @@
 		<div id="page-body" class="page-body">
 			<div class="rootTable">
 				<div id="wirelessSettingsTable" class="formTable">
-					<div>
+					<div id="wirelessSettingsTableBody">
 						<div>
 							<div class="tHeader">
 								<h3>Wireless</h3>
@@ -153,7 +153,7 @@
 					</div>
 				</div>
 				<div id="deviceSettingsTable" class="formTable">
-					<div>
+					<div id="deviceSettingsTableBody">
 						<div>
 							<div class="tHeader" colspan="3">
 								<h3>General</h3>
@@ -344,6 +344,14 @@
 								<input id="msPerRad" type="number" min="1" max="2147483647" oninput="updateMSPerRad()">
 							</div>
 						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span></span> 
+							</div>
+							<div class="tCell">
+								<button id="editTimersButton" onclick="ESPTimer.show()">Edit timers</button>
+							</div>
+						</div>
 						<div class="servoTable">
 							<div class="tRow servoHeader">
 								<div class="tCell">
@@ -470,7 +478,7 @@
 					</div>
 				</div>
 				<div id="deviceSR6SettingsTable" class="formTable sr6Only servoOnly hidden">
-					<div>
+					<div id="deviceSR6SettingsTableBody">
 						<div>
 							<div class="tHeader" colspan="3">
 								<h3>SR6</h3>
@@ -545,7 +553,7 @@
 					</div>
 				</div>
 				<div id="otherSettingsTable" class="formTable">
-					<div>
+					<div id="otherSettingsTableBody">
 						<div>
 							<div class="tHeader">
 								<h3>Other</h3>
@@ -617,7 +625,7 @@
 						</div>
 						<div class="tRow">
 							<div class="tCell">
-								<span>Vibe 1</span> 
+								<span>Vibe 1 PIN</span> 
 							</div>
 							<div class="tCell">
 								<input id="Vibe0_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
@@ -633,7 +641,7 @@
 						</div>
 						<div class="tRow">
 							<div class="tCell">
-								<span>Lube/Vibe 2</span> 
+								<span>Lube/Vibe 2 PIN</span> 
 							</div>
 							<div class="tCell">
 								<input id="Vibe1_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
@@ -649,7 +657,7 @@
 						</div>
 						<div class="tRow">
 							<div class="tCell">
-								<span>Vibe 3</span> 
+								<span>Vibe 3 PIN</span> 
 							</div>
 							<div class="tCell">
 								<input id="Vibe2_PIN" type="number"  min="-1" max="2147483647" oninput="updatePins()">
@@ -665,7 +673,7 @@
 						</div>
 						<div class="tRow">
 							<div class="tCell">
-								<span>Vibe 4</span> 
+								<span>Vibe 4 PIN</span> 
 							</div>
 							<div class="tCell">
 								<input id="Vibe3_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
@@ -759,7 +767,7 @@
 					</div>
 				</div>
 				<div id="tempSettingsDisplayTable" class="formTable build_temprature">
-					<div>
+					<div id="tempSettingsDisplayTableBody">
 						<div>
 							<div class="tHeader">
 								<h3>Sleeve temperature</h3>
@@ -874,7 +882,7 @@
 					</div>
 				</div>
 				<div id="internalTempTable" class="formTable build_temprature">
-					<div>
+					<div id="internalTempTableBody">
 						<div>
 							<div class="tHeader">
 								<h3>Internal temperature</h3>
@@ -953,7 +961,7 @@
 					</div>
 				</div>
 				<div id="displaySettingsDisplayTable" class="formTable build_display">
-					<div>
+					<div id="displaySettingsDisplayTableBody">
 						<div>
 							<div class="tHeader">
 								<h3>Display</h3>
@@ -1035,7 +1043,7 @@
 					</div>
 				</div>
 				<div id="batterySettingsTable" class="formTable">
-					<div>
+					<div id="batterySettingsTableBody">
 						<div>
 							<div class="tHeader">
 								<h3>Battery</h3>
@@ -1113,7 +1121,7 @@
 					</span>
 				</div>
 				<div id="motionGeneratorSettingsTable" class="formTable v3Only">
-					<div>
+					<div id="motionGeneratorSettingsTableBody">
 						<div>
 							<div class="tHeader">
 								<h3>Motion generator</h3>
@@ -1166,9 +1174,8 @@
 						</div>
 					</div>
 				</div>
-
 				<div id="voiceSettingsTable" class="formTable">
-					<div>
+					<div id="voiceSettingsTableBody">
 						<div>
 							<div class="tHeader">
 								<h3>Voice</h3>
@@ -1215,7 +1222,7 @@
 				<div id="channelTestsTable" class="formTable">
 				</div>
 				<div id="systemInfoTable" class="formTable">
-					<div>
+					<div id="systemInfoTableBody">
 						<div>
 							<div class="tHeader">
 								<h3>System information</h3>

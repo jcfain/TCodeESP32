@@ -52,7 +52,8 @@ enum class DeviceType: int
 {
     OSR,
     SR6,
-    SSR1
+    SSR1,
+    TVIBE
 };
 
 enum class BLDCEncoderType: int {

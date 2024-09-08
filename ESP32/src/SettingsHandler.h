@@ -424,24 +424,44 @@ public:
         JsonObject defaultDevice = deviceTypes.add<JsonObject>();
     #if MOTOR_TYPE == 0
         defaultDevice["name"] = "OSR";
-        defaultDevice["value"] = (uint8_t)DeviceType::OSR;
+        defaultDevice["value"] = DeviceType::OSR;
         JsonObject SR6 = deviceTypes.add<JsonObject>();
         SR6["name"] = "SR6";
-        SR6["value"] = (uint8_t)DeviceType::SR6;
+        SR6["value"] = DeviceType::SR6;
+        JsonObject TVIBE = deviceTypes.add<JsonObject>();
+        SR6["name"] = "TVIBE";
+        SR6["value"] = DeviceType::TVIBE;
     #elif MOTOR_TYPE == 1
         defaultDevice["name"] = "SSR1";
-        defaultDevice["value"] = (uint8_t)DeviceType::SSR1;
+        defaultDevice["value"] = DeviceType::SSR1;
         JsonArray encoderTypes = doc["encoderTypes"].to<JsonArray>();
         JsonObject defaultEncoder = encoderTypes.add<JsonObject>();
         defaultEncoder["name"] = "MT6701 SSI";
-        defaultEncoder["value"] = (uint8_t)BLDCEncoderType::MT6701;
+        defaultEncoder["value"] = BLDCEncoderType::MT6701;
         JsonObject PWM = encoderTypes.add<JsonObject>();
         PWM["name"] = "PWM";
-        PWM["value"] = (uint8_t)BLDCEncoderType::PWM;
+        PWM["value"] = BLDCEncoderType::PWM;
         JsonObject SPI = encoderTypes.add<JsonObject>();
         SPI["name"] = "SPI";
-        SPI["value"] = (uint8_t)BLDCEncoderType::SPI;
+        SPI["value"] = BLDCEncoderType::SPI;
     #endif
+
+        JsonArray bleDeviceTypes = doc["bleDeviceTypes"].to<JsonArray>();
+        JsonObject defaultBleDevice = bleDeviceTypes.add<JsonObject>();
+        defaultBleDevice["name"] = "TCode";
+        defaultBleDevice["value"] = BLEDeviceType::TCODE;
+        JsonObject loveDevice = bleDeviceTypes.add<JsonObject>();
+        loveDevice["name"] = "Love";
+        loveDevice["value"] = BLEDeviceType::LOVE;
+        JsonObject hcDevice = bleDeviceTypes.add<JsonObject>();
+        hcDevice["name"] = "HC";
+        hcDevice["value"] = BLEDeviceType::HC;
+
+        JsonArray bleLoveDevices = doc["bleLoveDeviceTypes"].to<JsonArray>();
+        JsonObject defaultLoveDevice = bleLoveDevices.add<JsonObject>();
+        defaultLoveDevice["name"] = "Edge";
+        defaultLoveDevice["value"] = BLELoveDeviceType::EDGE;
+        
 
         JsonArray availableChannels = doc["availableChannels"].to<JsonArray>();
         channelMap.serialize(availableChannels);
