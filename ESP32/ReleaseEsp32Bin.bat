@@ -18,29 +18,35 @@ ECHO.
 
 :MENU
 
-ECHO 1 - Base
-ECHO 2 - bldc
-ECHO 3 - Display
-ECHO 4 - Temp
-ECHO 5 - BlueTooth
-ECHO 6 - Debug
-ECHO 7 - EXIT
+ECHO 1 - ESP32 Devkit V1 Base
+ECHO 2 - ESP32 Devkit V1 bldc
+ECHO 3 - ESP32 Devkit V4 Base
+ECHO 4 - ESP32 Devkit V4 bldc
+ECHO 5 - S3 ZERO Base
+ECHO 6 - S3 ZERO bldc
+ECHO 7 - S3 DevkitC 1 N8R8 Base
+ECHO 8 - S3 DevkitC 1 N8R8 bldc
+rem ECHO 9 - Devkit V1 Debug
+ECHO 9 - EXIT
 ECHO.
 
 SET /P M=Build (1):
 IF NOT DEFINED M SET "M=1"
 
-IF %M%==1 SET BUILD_MODIFIER=
-IF %M%==2 SET BUILD_MODIFIER=-bldc
-IF %M%==3 SET BUILD_MODIFIER=-display
-IF %M%==4 SET BUILD_MODIFIER=-temperature
-IF %M%==5 SET BUILD_MODIFIER=-bluetooth
-IF %M%==6 SET BUILD_MODIFIER=-debug
-IF %M%==7 GOTO EOF
+IF %M%==1 SET BUILD_MODIFIER=-esp32doit-devkit-v1
+IF %M%==2 SET BUILD_MODIFIER=-esp32doit-devkit-v1-bldc
+IF %M%==3 SET BUILD_MODIFIER=-esp32-devkit-v4
+IF %M%==4 SET BUILD_MODIFIER=-esp32-devkit-v4-bldc
+IF %M%==5 SET BUILD_MODIFIER=-esp32-s3-zero
+IF %M%==6 SET BUILD_MODIFIER=-esp32-s3-zero-bldc
+IF %M%==7 SET BUILD_MODIFIER=-esp32-s3-devkitc-1-N8R8
+IF %M%==8 SET BUILD_MODIFIER=-esp32-s3-devkitc-1-N8R8-bldc
+rem IF %M%==9 SET BUILD_MODIFIER=-esp32doit-devkit-v1-debug
+IF %M%==9 GOTO EOF
 
 SET ESPTOOLDIR="%~dp0bin\esptool-v4.5.1-win64\"
 
-SET BUILD=esp32doit-devkit-v1%BUILD_MODIFIER%
+SET BUILD=%BUILD_MODIFIER%
 SET OUTDIR=%~dp0bin\Release%BUILD_MODIFIER%
 
 %userprofile%\.platformio\penv\Scripts\platformio.exe run --environment %BUILD%
