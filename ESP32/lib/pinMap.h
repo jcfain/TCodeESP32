@@ -4,9 +4,13 @@
 
 #include "espTimerMap.h"
 #if CONFIG_IDF_TARGET_ESP32
-#include "pinDefaultsWROOM32.h"
+    #include "pinDefaultsWROOM32.h"
 #elif CONFIG_IDF_TARGET_ESP32S3
-#include "pinDefaultsS3.h"
+    #ifdef S3_ZERO
+        #include "pinDefaultsS3Zero.h"
+    #else
+        #include "pinDefaultsS3.h"
+    #endif
 #endif
 
 // Common PWM
