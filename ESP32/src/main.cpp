@@ -20,6 +20,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
+#include "esp_idf_version.h"
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+#define ESP_ARDUINO3
+#endif
 #if DEBUG_BUILD
 #define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
 #include "esp_log.h"
@@ -840,7 +844,9 @@ void setup()
 								  pinMap->sleeveTemp(),
 								  pinMap->internalTemp(),
 								  pinMap->heater(),
+								  pinMap->heaterChannel(),
 								  pinMap->caseFan(),
+								  pinMap->caseFanChannel(),
 								  heaterFrequency,
 								  heaterResolution,
 								  fanControlEnabled,

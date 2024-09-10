@@ -126,10 +126,7 @@ public:
         driverA = new BLDCDriver3PWM(pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
 
         // Start serial connection and report status
-        m_tcode->setup(FIRMWARE_VERSION_NAME, m_settingsFactory->getTcodeVersionString());
-
-        read("D0");
-        read("D1");
+        m_tcode->setup(FIRMWARE_VERSION_NAME);
 
         // #ESP32# Enable EEPROM
         //EEPROM.begin(320); Done in TCode class
@@ -144,9 +141,8 @@ public:
             // Set pinmode for hall sensor
             pinMode(m_hallSensorPin, INPUT_PULLUP);
         } else if(m_useHallSensor) {
-            LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d. Reverting to no sensor.", pinMap->hallEffect());
+            LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d...ignoring", pinMap->hallEffect());
             m_useHallSensor = false;
-            m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
         }
         
         // initialise encoder hardware

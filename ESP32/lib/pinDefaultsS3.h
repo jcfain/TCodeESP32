@@ -1,4 +1,5 @@
 #pragma once
+// IMPORTANT: The pins in this file may be overriden in th pinMap class depending on the board/device type selected
 
 #include "enum.h"
 // https://www.waveshare.com/wiki/ESP32-S3-Zero

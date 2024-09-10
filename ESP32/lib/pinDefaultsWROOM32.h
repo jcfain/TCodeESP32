@@ -1,6 +1,7 @@
 #pragma once
 #include "enum.h"
-
+// IMPORTANT: The pins in this file may be overriden in th pinMap class depending on the board/device type selected
+#if MOTOR_TYPE == 0 // SERVO
 // Common PWM
 #define VALVE_SERVO_PIN_DEFAULT 25
 #define VALVE_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::HIGH3_CH6
@@ -34,6 +35,43 @@
 #define BUTTON_SET_PINS_2 -1
 #define BUTTON_SET_PINS_3 -1
 #define BUTTON_SET_PINS_4 -1
+
+#elif MOTOR_TYPE == 1 // BLDC motor
+// Common PWM
+#define VALVE_SERVO_PIN_DEFAULT 12
+#define VALVE_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::HIGH3_CH6
+#define TWIST_SERVO_PIN_DEFAULT 13
+#define TWIST_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::HIGH2_CH4
+#define SQUEEZE_PIN_DEFAULT 17
+#define SQUEEZE_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::HIGH2_CH5
+#define VIBE0_PIN_DEFAULT 2
+#define VIBE0_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::LOW0_CH0
+#define VIBE1_PIN_DEFAULT 4
+#define VIBE1_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::LOW0_CH1
+#define VIBE2_PIN_DEFAULT -1
+#define VIBE2_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::NONE
+#define VIBE3_PIN_DEFAULT -1
+#define VIBE3_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::NONE
+#define CASE_FAN_PIN_DEFAULT 16
+#define CASE_FAN_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::LOW3_CH6
+#define HEATER_PIN_DEFAULT 15
+#define HEATER_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::LOW2_CH4
+
+// Common Analog
+#define TWIST_FEEDBACK_PIN_DEFAULT -1
+#define LUBE_BUTTON_PIN_DEFAULT -1
+#define INTERNAL_TEMP_PIN_DEFAULT 34
+#define DISPLAY_RST_PIN_DEFAULT -1
+#define TEMP_PIN_DEFAULT 36
+#define I2C_SDA_PIN_DEFAULT 21
+#define I2C_SCL_PIN_DEFAULT 22
+#define BUTTON_SET_PINS_DEFAULT {}// Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
+#define BUTTON_SET_PINS_1 39
+#define BUTTON_SET_PINS_2 -1
+#define BUTTON_SET_PINS_3 -1
+#define BUTTON_SET_PINS_4 -1
+
+#endif
 
 // OSR
 #define RIGHT_SERVO_PIN_DEFAULT 13

@@ -34,6 +34,6 @@ struct ESPTimerChannel {
 struct ESPTimer {
     const char* id;
     const char* name;
-    int frequency = ESP_TIMER_FREQUENCY_DEFAULT;
+    int frequency;
     ESPTimerChannel channels[2];
 };

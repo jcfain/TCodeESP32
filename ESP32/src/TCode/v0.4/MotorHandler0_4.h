@@ -378,7 +378,7 @@ private:
         #ifdef ESP_ARDUINO3
         int pwmChannel = m_vib0Pin;
         #else
-        int pwmChannel = Vibe0_PWM;
+        int pwmChannel = m_vib0Channel;
         #endif
         TCodeAxis* vibChannel = 0;
         switch(index) {

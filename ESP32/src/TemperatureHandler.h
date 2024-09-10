@@ -79,7 +79,9 @@ public:
 				int8_t sleeveTempPin, 
 				int8_t internalTempPin, 
 				int8_t heaterPin, 
+				int8_t heaterChannel, 
 				int8_t caseFanPin,
+				int8_t caseFanChannel,
 				int heaterFrequency,
 				int heaterResolution,
 				bool fanControlEnabled,
@@ -91,7 +93,9 @@ public:
 		m_sleeveTempPin = sleeveTempPin;
 		m_internalTempPin = internalTempPin; 
 		m_heaterPin = heaterPin;
+		m_heatChannel = heaterChannel;
 		m_caseFanPin = caseFanPin;
+		m_caseFanChannel = caseFanChannel;
 		m_heaterFrequency = heaterFrequency;
 		m_heaterResolution = heaterResolution;
 		m_fanControlEnabled = fanControlEnabled;
@@ -103,71 +107,68 @@ public:
 		if(m_sleeveTempEnabled) {
 			setupSleeveTemp();
 		}
-		#ifdef ESP_ARDUINO3
-			m_caseFanAddress = m_caseFanPin;
-			m_heatAddress = m_heaterPin;
-		#else
-			m_caseFanAddress = CaseFan_PWM;
-			m_heatAddress = Heater_PWM;
-		#endif
 	}
 
 	void setupSleeveTemp() {
-		if(m_sleeveTempPin > -1) {
-			LogHandler::info(_TAG, "Starting sleeve temp on pin: %d", m_sleeveTempPin);
-			oneWireSleeve.begin(m_sleeveTempPin);
-			sensorsSleeve.setOneWire(&oneWireSleeve);
-			sensorsSleeve.getAddress(sleeveDeviceAddress, 0);
-			sensorsSleeve.begin();
-			sensorsSleeve.setResolution(sleeveDeviceAddress, resolution);
-			sensorsSleeve.setWaitForConversion(false);
-			requestSleeveTemp();
+		if(m_sleeveTempPin < 0 ) {
+			return;
+		}
+		LogHandler::info(_TAG, "Starting sleeve temp on pin: %d", m_sleeveTempPin);
+		oneWireSleeve.begin(m_sleeveTempPin);
+		sensorsSleeve.setOneWire(&oneWireSleeve);
+		sensorsSleeve.getAddress(sleeveDeviceAddress, 0);
+		sensorsSleeve.begin();
+		sensorsSleeve.setResolution(sleeveDeviceAddress, resolution);
+		sensorsSleeve.setWaitForConversion(false);
+		requestSleeveTemp();
 
-			// bootTime = true;
-			// bootTimer = millis() + SettingsHandler::getWarmUpTime();
+		// bootTime = true;
+		// bootTimer = millis() + SettingsHandler::getWarmUpTime();
+		if(m_heaterPin > -1 && m_heatChannel > -1) {
 			LogHandler::debug(_TAG, "Starting heat on pin: %d", m_heaterPin);
 			#ifdef ESP_ARDUINO3
-			ledcAttach(m_heaterPin, m_heaterFrequency, m_heaterResolution);
+			ledcAttachChannel(m_heaterPin, m_heaterFrequency, m_heaterResolution, m_heatChannel);
 			#else
-			ledcSetup(Heater_PWM, m_heaterFrequency, m_heaterResolution);
-			ledcAttachPin(m_heaterPin, Heater_PWM);
+			ledcSetup(m_heatChannel, m_heaterFrequency, m_heaterResolution);
+			ledcAttachPin(m_heaterPin, m_heatChannel);
 			#endif
-			sleeveTempInitialized = true;
 		}
+		sleeveTempInitialized = true;
 	}
 
 	void setupInternalTemp() {
-		if(m_internalTempPin > -1) {
-			LogHandler::info(_TAG, "Starting internal temp on pin: %d", m_internalTempPin);
-			oneWireInternal.begin(m_internalTempPin);
-			sensorsInternal.setOneWire(&oneWireInternal);
-			sensorsInternal.getAddress(internalDeviceAddress, 0);
-			sensorsInternal.begin();
-			sensorsInternal.setResolution(internalDeviceAddress, resolution);
-			sensorsInternal.setWaitForConversion(false);
-			//internalPID.setGains(0.12f, 0.0003f, 0);
-			//internalPID.setOutputRange();
-			requestInternalTemp();
-
-			if(m_fanControlEnabled && m_caseFanPin > -1) {
-				LogHandler::debug(_TAG, "Setting up fan, PIN: %i, hz: %i, resolution: %i, MAX PWM: %i", m_caseFanPin, m_fanFrequency, m_fanResolution, m_fanMaxDuty);
-				
-				#ifdef ESP_ARDUINO3
-				ledcAttach(m_caseFanPin, m_fanFrequency, m_fanResolution);
-				#else
-				ledcSetup(CaseFan_PWM, m_fanFrequency, m_fanResolution);
-				ledcAttachPin(m_caseFanPin, CaseFan_PWM);
-				#endif
-				//LogHandler::debug(_TAG, "Setting up PID: Output max: %i", m_fanMaxDuty);
-				//internalPID = new AutoPID(&_currentInternalTemp, &SettingsHandler::getInternalTempForFan(), &m_currentInternalTempDuty, m_fanMaxDuty, 0, 0.12, 0.0003, 0.0); 
-				// //if temperature is more than 4 degrees below or above setpoint, OUTPUT will be set to min or max respectively
-				//internalPID->setBangBang(2, 0);
-				// //set PID update interval to 4000ms
-				// internalPID->setTimeStep(4000);
-				fanControlInitialized = true;
-			}
-			internalTempInitialized = true;
+		if(m_internalTempPin < 0) {
+			return;
 		}
+		LogHandler::info(_TAG, "Starting internal temp on pin: %d", m_internalTempPin);
+		oneWireInternal.begin(m_internalTempPin);
+		sensorsInternal.setOneWire(&oneWireInternal);
+		sensorsInternal.getAddress(internalDeviceAddress, 0);
+		sensorsInternal.begin();
+		sensorsInternal.setResolution(internalDeviceAddress, resolution);
+		sensorsInternal.setWaitForConversion(false);
+		//internalPID.setGains(0.12f, 0.0003f, 0);
+		//internalPID.setOutputRange();
+		requestInternalTemp();
+
+		if(m_fanControlEnabled && m_caseFanPin > -1 && m_caseFanChannel > -1) {
+			LogHandler::debug(_TAG, "Setting up fan, PIN: %i, hz: %i, resolution: %i, MAX PWM: %i", m_caseFanPin, m_fanFrequency, m_fanResolution, m_fanMaxDuty);
+			
+			#ifdef ESP_ARDUINO3
+			ledcAttachChannel(m_caseFanPin, m_fanFrequency, m_fanResolution, m_caseFanChannel);
+			#else
+			ledcSetup(m_caseFanChannel, m_fanFrequency, m_fanResolution);
+			ledcAttachPin(m_caseFanPin, m_caseFanChannel);
+			#endif
+			//LogHandler::debug(_TAG, "Setting up PID: Output max: %i", m_fanMaxDuty);
+			//internalPID = new AutoPID(&_currentInternalTemp, &SettingsHandler::getInternalTempForFan(), &m_currentInternalTempDuty, m_fanMaxDuty, 0, 0.12, 0.0003, 0.0); 
+			// //if temperature is more than 4 degrees below or above setpoint, OUTPUT will be set to min or max respectively
+			//internalPID->setBangBang(2, 0);
+			// //set PID update interval to 4000ms
+			// internalPID->setTimeStep(4000);
+			fanControlInitialized = true;
+		}
+		internalTempInitialized = true;
 	}
 
 	static void startLoop(void * parameter) {
@@ -271,7 +272,7 @@ public:
 	}
 
 	void setFanState() {		
-		if (m_caseFanAddress < 0 || !m_fanControlEnabled || !_isRunning || !fanControlInitialized) {
+		if (m_caseFanPin < 0 || m_caseFanChannel < 0 || !m_fanControlEnabled || !_isRunning || !fanControlInitialized) {
 			return;
 		}
 		String currentState;
@@ -339,7 +340,11 @@ public:
 				m_lastInternalTempDuty = m_fanMaxDuty;
 				LogHandler::debug(_TAG, "Setting fan duty: %f", m_lastInternalTempDuty);
 			}
-			ledcWrite(m_caseFanAddress, m_fanMaxDuty);
+			#if ARDUINO_V3
+			ledcWrite(m_caseFanPin, m_fanMaxDuty);
+			#else
+			ledcWrite(m_caseFanChannel, m_fanMaxDuty);
+			#endif
 		} else {
 			if(m_fanControlEnabled && !fanControlInitialized)
 				currentState = TemperatureState::RESTART_REQUIRED;
@@ -356,13 +361,17 @@ public:
 
 	void setHeaterState() {		
 		//Serial.println(_currentTemp);
-		if (m_heatAddress < 0 || !m_sleeveTempEnabled || !_isRunning || !sleeveTempInitialized) {
+		if (m_heaterPin < 0 || m_heatChannel < 0 || !m_sleeveTempEnabled || !_isRunning || !sleeveTempInitialized) {
 			return;
 		}
 		String currentState;
 		if(m_sleeveTempEnabled && sleeveTempInitialized) {
 			if(failsafeTriggerSleeve) {
-				ledcWrite(m_heatAddress, 0);
+				#if ARDUINO_V3
+				ledcWrite(m_heatPin, 0);
+				#else
+				ledcWrite(m_heatChannel, 0);
+				#endif
 			} 
 			else {
 				double currentTemp = _currentSleeveTemp;
@@ -374,7 +383,11 @@ public:
 					if (definitelyLessThan(currentTemp, m_settingsFactory->getTargetTemp()) 
 					//|| (currentTemp > 0 && bootTime)
 					) {
-						ledcWrite(m_heatAddress, m_settingsFactory->getHeatPWM());
+						#if ARDUINO_V3
+						ledcWrite(m_heatPin, m_settingsFactory->getHeatPWM()));
+						#else
+						ledcWrite(m_heatChannel, m_settingsFactory->getHeatPWM());
+						#endif
 
 						// if(bootTime) 
 						// {
@@ -397,10 +410,18 @@ public:
 							if(message_callback)
 								message_callback(TemperatureType::SLEEVE, "tempReached", _currentSleeveTemp);
 						}
-						ledcWrite(m_heatAddress, m_settingsFactory->getHoldPWM());
+						#if ARDUINO_V3
+						ledcWrite(m_heatPin, m_settingsFactory->getHoldPWM()));
+						#else
+						ledcWrite(m_heatChannel, m_settingsFactory->getHoldPWM());
+						#endif
 						currentState = TemperatureState::HOLD;
 					} else {
-						ledcWrite(m_heatAddress, 0);
+						#if ARDUINO_V3
+						ledcWrite(m_heatPin, 0);
+						#else
+						ledcWrite(m_heatChannel, 0);
+						#endif
 						currentState = TemperatureState::OFF;
 					}
 				}
@@ -504,8 +525,8 @@ private:
 		int m_fanMaxDuty = pow(2, m_fanResolution) - 1;
 		float m_internalTempForFanOn = INTERNAL_TEMP_FOR_FAN_DEFAULT;
 
-		int8_t m_caseFanAddress = -1;
-		int8_t m_heatAddress = -1;
+		int8_t m_caseFanChannel = -1;
+		int8_t m_heatChannel = -1;
 
 		const int resolution = 9;
 		const int delayInMillis = 750 / (1 << (12 - resolution));

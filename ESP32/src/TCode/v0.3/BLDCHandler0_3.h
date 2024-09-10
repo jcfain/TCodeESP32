@@ -85,7 +85,7 @@ public:
         // Begin tracking encoder
         BLDCEncoderType encoderType = BLDCEncoderType::MT6701;
         m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
-        LogHandler::debug(_TAG, "Encoder type: %ld", encoderType);
+        LogHandler::debug(_TAG, "Encoder type: %d", encoderType);
 
         if(encoderType == BLDCEncoderType::MT6701) {
             LogHandler::info(_TAG, "Selected encoder: MT6701");
@@ -93,7 +93,7 @@ public:
                 LogHandler::info(_TAG, "Setup BLDC motor on MT6701 chip select pin: %d", pinMap->chipSelect());
                 sensorMT6701 = new MagneticSensorMT6701SSI(pinMap->chipSelect());
             } else {
-                LogHandler::error(_TAG, "Invalid ChipSelect pin %ld", pinMap->chipSelect());
+                LogHandler::error(_TAG, "Invalid ChipSelect pin %d", pinMap->chipSelect());
                 m_initFailed = true;
                 return;
             }
@@ -103,7 +103,7 @@ public:
                 LogHandler::info(_TAG, "Setup BLDC motor on PWM encoder pin: %d", pinMap->encoder());
                 sensorPWM = new MagneticSensorPWM(pinMap->encoder(), 5, 928);
             } else {
-                LogHandler::error(_TAG, "Invalid encoder pin %ld", pinMap->encoder());
+                LogHandler::error(_TAG, "Invalid encoder pin %d", pinMap->encoder());
                 m_initFailed = true;
                 return;
             }
@@ -113,7 +113,7 @@ public:
                 LogHandler::info(_TAG, "Setup BLDC motor on SPI chip select pin: %d", pinMap->chipSelect());
                 sensorSPI = new MagneticSensorSPI(pinMap->chipSelect(), 14, 0x3FFF);
             } else {
-                LogHandler::error(_TAG, "Invalid ChipSelect pin %ld", pinMap->chipSelect());
+                LogHandler::error(_TAG, "Invalid ChipSelect pin %d", pinMap->chipSelect());
                 m_initFailed = true;
                 return;
             }
@@ -125,10 +125,7 @@ public:
         driverA = new BLDCDriver3PWM(pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
 
         // Start serial connection and report status
-        m_tcode->setup(FIRMWARE_VERSION_NAME, m_settingsFactory->getTcodeVersionString());
-
-        read("D0");
-        read("D1");
+        m_tcode->setup(FIRMWARE_VERSION_NAME);
 
         // #ESP32# Enable EEPROM
         //EEPROM.begin(320); Done in TCode class
@@ -142,9 +139,9 @@ public:
             // Set pinmode for hall sensor
             pinMode(m_hallSensorPin, INPUT_PULLUP);
         } else if(m_useHallSensor) {
-            LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d. Reverting to no sensor.", pinMap->hallEffect());
+            LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d...ignoring", pinMap->hallEffect());
             m_useHallSensor = false;
-            m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
+            // m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
         }
         
         // initialise encoder hardware

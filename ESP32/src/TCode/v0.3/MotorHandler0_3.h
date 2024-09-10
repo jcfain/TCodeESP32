@@ -53,9 +53,6 @@ protected:
         m_tcode->setup(FIRMWARE_VERSION_NAME);
 
         m_servoPWMMaxDuty = static_cast<uint32_t>(pow(2, SERVO_PWM_RES) - 1);
-        // report status
-        m_tcode->read("D0");
-        m_tcode->read("D1");
         
         m_valveServoPin = pinMap->valve();
         m_valveServoChannel = pinMap->valveChannel();
@@ -180,6 +177,10 @@ protected:
                 }
             }
         } 
+        
+
+        read("D0");
+        read("D1");
     }
 
     void executeCommon(const int xLin) {

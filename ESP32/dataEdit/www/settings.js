@@ -1646,6 +1646,7 @@ function onSelectPinChannel(element) {
     // let option = selectElement.options[selectElement.selectedIndex];
     // option.disabled = true
     toggleEnableTimerChannels(element);
+    setRestartRequired();
 	postPinoutSettings();
 }
 function toggleEnableTimerChannels(element) {
