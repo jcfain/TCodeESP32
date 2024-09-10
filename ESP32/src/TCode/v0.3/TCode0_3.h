@@ -13,10 +13,9 @@ class TCode0_3 : public TCodeBase
 
 public:
 	// Setup function
-	void setup(const char *firmware, const char *tcode) override
+	void setup(const char *firmware) override
 	{
 		firmwareID = firmware;
-		tcodeID = tcode;
 
 		// #ESP32# Enable EEPROM
 		EEPROM.begin(320);
@@ -234,7 +233,6 @@ private:
 	const char *_TAG = TagHandler::TCodeHandler;
 	// Strings
 	const char *firmwareID;
-	const char *tcodeID;
 	String bufferString; // String to hold incomming commands
 
 	const static int CHANNELS = 11;
@@ -422,7 +420,7 @@ private:
 			break;
 
 			case 1:
-				sendMessage(tcodeID);
+				sendMessage("TCode v0.3\n");
 				break;
 
 			case 2:

@@ -1931,7 +1931,7 @@ private:
         buildFeatures[index] = BuildFeature::DEBUG;
         index++;
 #endif
-#if ESP32_DA
+#ifdef ESP32_DA
         LogHandler::debug("setBuildFeatures", "ESP32_DA");
         buildFeatures[index] = BuildFeature::DA;
         index++;

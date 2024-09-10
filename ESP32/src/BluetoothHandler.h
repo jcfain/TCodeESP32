@@ -26,8 +26,10 @@ SOFTWARE. */
 #include <BluetoothSerial.h>
 //#include <BLEHandler.h>
 #include "SettingsHandler.h"
-// #include "LogHandler.h"
+#include "logging/LogHandler.h"
 #include "TagHandler.h"
+#include "esp_coexist.h"
+#include "esp_bt.h"
 
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
 #error Bluetooth is not enabled! Please run `make menuconfig` to and enable it

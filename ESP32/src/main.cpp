@@ -384,7 +384,7 @@ void startBLETCode()
 #if BLUETOOTH_TCODE
 void startBlueTooth()
 {
-	if (!btHandler)
+	if (bluetoothEnabled && !btHandler)
 	{
 		displayPrint("Starting Bluetooth serial");
 		btHandler = new BluetoothHandler();
@@ -470,7 +470,7 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason)
 		else if (reason == WiFiReason::AP_MODE)
 		{
 			LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AP_MODE");
-			// #if !ESP32_DA
+			// #ifdef !ESP32_DA
 			// if(bleConfigurationHandler)
 			// 	bleConfigurationHandler->setup();
 			// #endif
@@ -885,18 +885,32 @@ void setup()
 #if BLE_TCODE
 	if (bluetoothEnabled)
 	{
-		if (WIFI_TCODE && !COEXIST)
-		{
-			WifiHandler::disable();
-		}
-		#if BLUETOOTH_TCODE
-			startBlueTooth();
-		#endif
 		startBLETCode();
 	}
 	else
 	{
 		BLEHandler::disable();
+	}
+#else
+	BLEHandler::disable();
+#endif
+#if BLUETOOTH_TCODE
+	if (bluetoothEnabled)
+	{
+		startBlueTooth();
+	}
+	else
+	{
+		BluetoothHandler::disable();
+	}
+#else
+	BluetoothHandler::disable();
+#endif
+
+#if BLE_TCODE || BLUETOOTH_TCODE
+	if (WIFI_TCODE && !COEXIST && bluetoothEnabled)
+	{
+		WifiHandler::disable();
 	}
 #endif
 
@@ -1071,7 +1085,7 @@ void processCommand()
 		if (systemCommandHandler && systemCommandHandler->isCommand(bluetoothData.c_str()))
 		{
 			// systemCommandHandler->process(bluetoothData.c_str());
-			executeTCode(bluetoothData);
+			readTCode(bluetoothData);
 		}
 	}
 #endif
@@ -1186,9 +1200,9 @@ void loop()
 #endif
 #if BLUETOOTH_TCODE
 				}
-				else if (!SettingsHandler::getGetMotionEnabled()() && bluetoothData.length() > 0)
+				else if (bluetoothData.length() > 0)
 				{
-					LogHandler::verbose(TagHandler::MainLoop, "bluetooth writing: %s", bluetoothData);
+					LogHandler::verbose(TagHandler::MainLoop, "bluetooth writing: %s", bluetoothData.c_str());
 					readTCode(bluetoothData);
 #endif
 				}

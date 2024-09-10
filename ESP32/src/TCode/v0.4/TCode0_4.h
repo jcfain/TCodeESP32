@@ -11,10 +11,9 @@ public:
 	// TCode0_4() : 
 	// m_axisPointers{&stroke_axis, &surge_axis, &sway_axis, &twist_axis, &roll_axis, &pitch_axis, &vibe0_axis, &vibe1_axis, &valve_axis, &suck_axis, &lube_axis} {}
 	// Setup function
-	void setup(const char *firmware, const char *tcode) override
+	void setup(const char *firmware) override
 	{
 		firmwareID = firmware;
-		tcodeID = tcode;
 
 		// #ESP32# Enable EEPROM
 		#warning implement output stream class
@@ -104,7 +103,6 @@ private:
 	const char *_TAG = TagHandler::TCodeHandler;
 	// Strings
 	const char *firmwareID;
-	const char *tcodeID;
 	const static int m_axisCount = 11;
 	TCodeManager m_tcode;
 

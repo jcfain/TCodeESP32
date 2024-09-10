@@ -50,7 +50,7 @@ protected:
         m_settingsFactory = SettingsFactory::getInstance();
         PinMap* pinMap = m_settingsFactory->getPins();
 
-        m_tcode->setup(FIRMWARE_VERSION_NAME, m_settingsFactory->getTcodeVersionString());
+        m_tcode->setup(FIRMWARE_VERSION_NAME);
 
         m_servoPWMMaxDuty = static_cast<uint32_t>(pow(2, SERVO_PWM_RES) - 1);
         // report status
