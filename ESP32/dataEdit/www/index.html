@@ -142,14 +142,30 @@
 								<input id="bluetoothEnabled" type="checkbox" onclick="updateBlueToothSettings()"></input>
 							</div>
 						</div>
-						<!-- <div class="tRow BLEOnly hidden">
+						<div class="tRow">
+							<div class="tCell">
+								<span>BLE enabled</span> 
+							</div>
+							<div class="tCell">
+								<input id="bleEnabled" type="checkbox" onclick="updateBleSettings()"></input>
+							</div>
+						</div>
+						<div class="tRow BLEOnly hidden">
 							<div class="tCell">
 								<span title="Choose the BLE device type">BLE device</span> 
 							</div>
 							<div class="tCell">
-								<select name="bleDeviceType" id="bleDeviceType" onchange="setEncoderType()"> </select>
+								<select name="bleDeviceType" id="bleDeviceType" onchange="setBLEDeviceType()"> </select>
 							</div>
-						</div> -->
+						</div>
+						<div class="tRow BLELoveOnly hidden">
+							<div class="tCell">
+								<span title="Choose the BLE love device type">BLE Love device</span> 
+							</div>
+							<div class="tCell">
+								<select name="bleDeviceType" id="bleLoveDeviceType" onchange="setBLELoveDeviceType()"> </select>
+							</div>
+						</div>
 					</div>
 				</div>
 				<div id="deviceSettingsTable" class="formTable">
@@ -762,6 +778,22 @@
 							</div>
 							<div class="tCell">
 								<input id="friendlyName" type="text" maxlength="100" oninput="updateFriendlyName()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>I2C SDA PIN</span> 
+							</div>
+							<div class="tCell">
+								<input id="i2cSda_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>I2C SCL PIN</span> 
+							</div>
+							<div class="tCell">
+								<input id="i2cScl_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
 					</div>

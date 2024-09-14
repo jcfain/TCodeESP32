@@ -36,8 +36,8 @@
 // Common Analog
 #define LUBE_BUTTON_PIN "LubeButton_PIN"
 #define INTERNAL_TEMP_PIN "Internal_Temp_PIN"
-#define I2C_SDA_PIN "i2cSdaPin"
-#define I2C_SCL_PIN "i2cSclPin"
+#define I2C_SDA_PIN "i2cSda_PIN"
+#define I2C_SCL_PIN "i2cScl_PIN"
 #define DISPLAY_RST_PIN "Display_Rst_PIN"
 #define TEMP_PIN "Temp_PIN"
 #define TWIST_FEEDBACK_PIN "TwistFeedBack_PIN"

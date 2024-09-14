@@ -170,7 +170,8 @@ char movement[MAX_COMMAND];
 ButtonModel *buttonCommand = 0;
 bool dStopped = false;
 bool tcodeV2Recieved = false;
-bool bluetoothEnabled = false;
+bool bluetoothEnabled = BLUETOOTH_ENABLED_DEFAULT;
+bool bleEnabled = BLE_ENABLED_DEFAULT;
 
 unsigned long bench[10];
 unsigned long benchLast[10];
@@ -330,7 +331,7 @@ void tempStateChangeCallBack(TemperatureType type, const char *state)
 #if WIFI_TCODE
 void startNetworking(const bool &apMode, const int &port, const int &udpPort, const char *hostname, const char *friendlyName)
 {
-	if((MODULE_CURRENT != ModuleType::WROOM32 || !bluetoothEnabled) && !webHandler) 
+	if((MODULE_CURRENT != ModuleType::WROOM32 || (!bluetoothEnabled && !bleEnabled)) && !webHandler) 
 	{
 		displayPrint("Starting web server");
 	#if !SECURE_WEB
@@ -431,7 +432,7 @@ void startConfigMode(const int &webPort, const int &udpPort, const char *hostnam
 #endif
 
 #if BLE_TCODE || BLUETOOTH_TCODE
-	if(bluetoothEnabled) {
+	if(bleEnabled || bluetoothEnabled) {
 		startBLEConfig();
 	}
 #endif
@@ -717,12 +718,18 @@ void setup()
 	SettingsHandler::setMessageCallback(settingChangeCallback);
 
 #if BLE_TCODE
+	settingsFactory->getValue(BLE_ENABLED, bleEnabled);
+	
+	//bleEnabled = true;
+#endif
+#if BLUETOOTH_TCODE
 	settingsFactory->getValue(BLUETOOTH_ENABLED, bluetoothEnabled);
+	
 	//bluetoothEnabled = true;
 #endif
 
 #if WIFI_TCODE
-	if (!bluetoothEnabled || COEXIST)
+	if ((!bluetoothEnabled && !bleEnabled) || COEXIST)
 		wifi.setWiFiStatusCallback(wifiStatusCallBack);
 #endif
 
@@ -826,10 +833,12 @@ void setup()
 #if BUILD_TEMP
 	bool sleeveTempEnabled;
 	bool internalTempEnabled;
-	int heaterFrequency = pinMap->getChannelFrequency(pinMap->heaterChannel());
+	int8_t heaterChannel = pinMap->heaterChannel();
+	int heaterFrequency = heaterChannel > -1 ? pinMap->getChannelFrequency(pinMap->heaterChannel()) : ESP_TIMER_FREQUENCY_DEFAULT;
 	int heaterResolution;
 	float heaterThreshold;
-	int caseFanFrequency = pinMap->getChannelFrequency(pinMap->caseFanChannel());
+	int8_t caseFanChannel = pinMap->caseFanChannel();
+	int caseFanFrequency = caseFanChannel > -1 ? pinMap->getChannelFrequency(pinMap->caseFanChannel()) : ESP_TIMER_FREQUENCY_DEFAULT;
 	int caseFanResolution;
 	settingsFactory->getValue(TEMP_SLEEVE_ENABLED, sleeveTempEnabled);
 	settingsFactory->getValue(TEMP_INTERNAL_ENABLED, internalTempEnabled);
@@ -844,9 +853,9 @@ void setup()
 								  pinMap->sleeveTemp(),
 								  pinMap->internalTemp(),
 								  pinMap->heater(),
-								  pinMap->heaterChannel(),
+								  heaterChannel,
 								  pinMap->caseFan(),
-								  pinMap->caseFanChannel(),
+								  caseFanChannel,
 								  heaterFrequency,
 								  heaterResolution,
 								  fanControlEnabled,
@@ -889,7 +898,7 @@ void setup()
 #endif
 
 #if BLE_TCODE
-	if (bluetoothEnabled)
+	if (bleEnabled)
 	{
 		startBLETCode();
 	}
@@ -898,7 +907,7 @@ void setup()
 		BLEHandler::disable();
 	}
 #else
-	BLEHandler::disable();
+	esp_bt_controller_mem_release(ESP_BT_MODE_BTDM)
 #endif
 #if BLUETOOTH_TCODE
 	if (bluetoothEnabled)
@@ -910,18 +919,18 @@ void setup()
 		BluetoothHandler::disable();
 	}
 #else
-	BluetoothHandler::disable();
+    esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
 #endif
 
 #if BLE_TCODE || BLUETOOTH_TCODE
-	if (WIFI_TCODE && !COEXIST && bluetoothEnabled)
+	if (WIFI_TCODE && !COEXIST && (bluetoothEnabled || bleEnabled))
 	{
 		WifiHandler::disable();
 	}
 #endif
 
 #if WIFI_TCODE
-	if (!bluetoothEnabled || COEXIST)
+	if ((!bluetoothEnabled && !bleEnabled) || COEXIST)
 	{
 		char ssid[SSID_LEN];
 		char wifiPass[WIFI_PASS_LEN];
@@ -1253,7 +1262,7 @@ void loop()
 		LogHandler::error(TagHandler::Main, "There was an issue in setup");
 		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	} else {
-        xTaskDelayUntil(&pxPreviousWakeTime, 10/portTICK_PERIOD_MS);
+        //xTaskDelayUntil(&pxPreviousWakeTime, 10/portTICK_PERIOD_MS);
 	}
 
 	benchFinish("Main loop", 0);

@@ -27,6 +27,7 @@ var systemInfo = {};
 var motionProviderSettings = {};
 var buttonSettings = {};
 var upDateTimeout;
+var upDatePinsTimeout;
 var restartRequired = false;
 var documentLoaded = false;
 var debugEnabled = true;
@@ -45,7 +46,7 @@ const TCodeVersion = {
     V3: 0,
     V4: 1
 }
-const latestTCodeVersion = TCodeVersion.V4;
+const latestTCodeVersion = TCodeVersion.V3;
 const MotorType = {
     Servo: 0,
     BLDC: 1
@@ -53,21 +54,6 @@ const MotorType = {
 const ModuleType = {
     WROOM32: 0,
     S3: 1
-}
-const BoardType = {
-    DEVKIT: 0,
-    CRIMZZON: 1,
-    ISAAC: 2
-};
-const DeviceType = {
-    OSR: 0,
-    SR6: 1,
-    SSR1: 2
-};
-const BLDCEncoderType = {
-    MT6701: 0,
-    SPI: 1,
-    PWM: 2
 };
 const BuildFeature = {
     NONE: 0,
@@ -80,7 +66,31 @@ const BuildFeature = {
     HAS_TCODE_V2: 7,
     HTTPS: 8,
     COEXIST: 9
-}
+};
+
+let BoardType = {
+    DEVKIT: 0,
+    CRIMZZON: 1,
+    ISAAC: 2
+};
+let DeviceType = {
+    OSR: 0,
+    SR6: 1,
+    SSR1: 2
+};
+let BLEDeviceType = {
+    TCODE: 0,
+    LOVE: 1,
+    HC: 2
+};
+let BLELoveDeviceType = {
+    EDGE: 0
+};
+let BLDCEncoderType = {
+    MT6701: 0,
+    SPI: 1,
+    PWM: 2
+};
 const servoDegreeValue180 = 637; 
 const servoDegreeValue270 = 425; 
 dubugMessages = [];
@@ -184,6 +194,7 @@ function getSystemInfo(chain) {
         clearTimeout(serverPollingTimeOut);
         serverPollingTimeOut = null;
     }
+    showLoading("Loading system info...");
     get("system info", EndPointType.System.uri, function(xhr) {
         systemInfo = xhr.response;
         if(!systemInfo) {
@@ -191,10 +202,15 @@ function getSystemInfo(chain) {
                 showError("Error getting system info!");
             startServerPoll();
             return;
+        } else if(systemInfo.status === "restarting") {
+            startServerPoll();
+            return;
         } else
             setSystemInfo();
         if(chain)
             getPinSettings(chain);
+        else if(!polling)
+            hideLoading();
         serverPollRetryCount = 0;
     }, function(xhr) {
         if(!polling)
@@ -203,6 +219,7 @@ function getSystemInfo(chain) {
     });
 }
 function getPinSettings(chain) {
+    showLoading("Loading pinout...");
     get("Pinout settings", EndPointType.Pins.uri, function(xhr) {
         pinoutSettings = xhr.response;
         if(!pinoutSettings) {
@@ -212,10 +229,13 @@ function getPinSettings(chain) {
             setPinoutSettings();
         if(chain)
             getWifiSettings(chain);
+        else
+            hideLoading();
     });
 }
 
 function getWifiSettings(chain) {
+    showLoading("Loading network settings...");
     get("wifi settings", EndPointType.Wifi.uri, function(xhr) {
         wifiSettings = xhr.response;
         if(!wifiSettings || !wifiSettings["ssid"]) {
@@ -230,10 +250,13 @@ function getWifiSettings(chain) {
         }
         if(chain)
             getMotionProviderSettings(chain);
+        else
+            hideLoading();
     });
 }
 
 function getMotionProviderSettings(chain) {
+    showLoading("Loading motion generator settings...");
     get("motion settings", EndPointType.MotionProfile.uri, function(xhr) {
         motionProviderSettings = xhr.response;
         if(!motionProviderSettings || !motionProviderSettings["motionProfiles"]) {
@@ -241,10 +264,13 @@ function getMotionProviderSettings(chain) {
         }
         if(chain)
             getButtonSettings(chain);
+        else
+            hideLoading();
     });
 }
 
 function getButtonSettings(chain) {
+    showLoading("Loading button settings...");
     get("button settings", EndPointType.Buttons.uri, function(xhr) {
         buttonSettings = xhr.response;
         if(!buttonSettings || !buttonSettings["bootButtonCommand"]) {
@@ -252,11 +278,28 @@ function getButtonSettings(chain) {
         }
         if(chain)
             getUserSettings();
+        else
+            hideLoading();
     });
 }
 
 function postCommonSettings(debounce, callback) {
     updateUserSettings(debounce, EndPointType.Common.uri, userSettings, callback);
+}
+function postAndValidatePinoutSettings(debounce, callback) {
+    if(!debounce || debounce < 0)
+        debounce = 0;
+    if(upDatePinsTimeout) 
+    {
+        clearTimeout(upDatePinsTimeout);
+    }
+    upDatePinsTimeout = setTimeout(() => 
+    {
+        if(validatePins()) {
+            updateUserSettings(0, EndPointType.Pins.uri, pinoutSettings, callback);
+        } else if(callback)
+            callback();
+    }, debounce);
 }
 function postPinoutSettings(debounce, callback) {
     updateUserSettings(debounce, EndPointType.Pins.uri, pinoutSettings, callback);
@@ -275,7 +318,7 @@ function updateALLUserSettings() {
     postCommonSettings(0, updatePinoutChain);
 }
 var updatePinoutChain = function() {
-    postPinoutSettings(0, updateWifiSettingsChain);
+    postAndValidatePinoutSettings(0, updateWifiSettingsChain);
 }
 var updateWifiSettingsChain = function() {
     postWifiSettings(0, updateButtonSettingsChain);
@@ -291,6 +334,7 @@ var updateMotionProfileSettings = function() {
 // This is so it can set all the values from the various sources and other
 // methods can call a single method instead of all of them.
 function getUserSettings() {
+    showLoading("Loading common settings...");
     get("common settings", EndPointType.Common.uri, function(xhr) {
         userSettings = xhr.response;
         if(!userSettings || userSettings["TCodeVersion"] == undefined) {
@@ -500,9 +544,8 @@ function postBoardType(newBoardType) {
                 showError("Error setting pinout default!");
             } else {
                 showInfoSuccess("Board changed!");
-                showLoading("Restarting...");
-                startServerPoll();
-                //document.getElementById('resetBtn').disabled = false ;
+                getPinSettings();
+                showRestartRequired();
             }
         }
     }
@@ -520,9 +563,8 @@ function postDeviceType(deviceType) {
                 showError("Error setting pinout default!");
             } else {
                 showInfoSuccess("Device changed!");
-                showLoading("Restarting...");
-                startServerPoll();
-                //document.getElementById('resetBtn').disabled = false ;
+                getPinSettings();
+                showRestartRequired();
             }
         }
     }
@@ -693,6 +735,24 @@ function setSystemInfo() {
         option.innerText = element;
         i2cAddressesElement.appendChild(option);
     });
+    var bleDeviceTypeElement = document.getElementById("bleDeviceType");
+    removeAllChildren(bleDeviceTypeElement);
+    systemInfo.bleDeviceTypes.forEach(element => {
+        var option = document.createElement("option");
+        option.value = element.value;
+        option.innerText = element.name;
+        bleDeviceTypeElement.appendChild(option);
+        BLEDeviceType[element.name] = element.value;
+    });
+    var bleLoveDeviceTypeElement = document.getElementById("bleLoveDeviceType");
+    removeAllChildren(bleLoveDeviceTypeElement);
+    systemInfo.bleLoveDeviceTypes.forEach(element => {
+        var option = document.createElement("option");
+        option.value = element.value;
+        option.innerText = element.name;
+        bleLoveDeviceTypeElement.appendChild(option);
+        BLELoveDeviceType[element.name] = element.value;
+    });
     if(systemInfo.motorType === MotorType.BLDC)
         setupEncoderTypes();
     else
@@ -711,6 +771,13 @@ function setWifiSettings() {
     document.getElementById("ssid").value = wifiSettings["ssid"];
     document.getElementById("wifiPass").value = wifiSettings["wifiPass"];
     document.getElementById('bluetoothEnabled').checked = wifiSettings["bluetoothEnabled"];
+
+    document.getElementById('bleEnabled').checked = wifiSettings["bleEnabled"];
+    document.getElementById('bleDeviceType').value = wifiSettings["bleDeviceType"];
+    toggleBLEDeviceTypes();
+    document.getElementById('bleLoveDeviceType').value = wifiSettings["bleLoveDeviceType"];
+    toggleBLELoveDeviceTypes();
+    
     document.getElementById("staticIP").checked = wifiSettings["staticIP"];
     document.getElementById("localIPInput").value = wifiSettings["localIP"];
     document.getElementById("gatewayInput").value = wifiSettings["gateway"];
@@ -745,6 +812,8 @@ function setPinoutSettings() {
 	document.getElementById("Heater_PIN").value = pinoutSettings["Heater_PIN"];
     document.getElementById('Case_Fan_PIN').value = pinoutSettings["Case_Fan_PIN"];
     document.getElementById('Internal_Temp_PIN').value = pinoutSettings["Internal_Temp_PIN"];
+    document.getElementById('i2cSda_PIN').value = pinoutSettings["i2cSda_PIN"];
+    document.getElementById('i2cScl_PIN').value = pinoutSettings["i2cScl_PIN"];
 
     setPinChannel("Vibe0_CHANNEL", pinoutSettings["Vibe0_CHANNEL"]);
     setPinChannel("Vibe1_CHANNEL", pinoutSettings["Vibe1_CHANNEL"]);
@@ -1469,7 +1538,7 @@ function updateAnalogTwist() {
         alert("Note, twist feedback pin reset to 26.\nPlease adjust your hardware accordingly.");
     }
     setRestartRequired();
-    postPinoutSettings(defaultDebounce, postCommonSettings);
+    postAndValidatePinoutSettings(defaultDebounce, postCommonSettings);
 }
 function updateFeedbackTwist() {
     var checked = document.getElementById('feedbackTwist').checked;
@@ -1526,6 +1595,7 @@ function setupBoardTypes() {
         boardTypeOption.innerText = systemInfo.boardTypes[i].name;
         boardTypeOption.value = systemInfo.boardTypes[i].value;
         boardTypeElement.appendChild(boardTypeOption);
+        BoardType[systemInfo.boardTypes[i].name] = systemInfo.boardTypes[i].value;
     }
 }
 function setEncoderType() {
@@ -1541,6 +1611,7 @@ function setupEncoderTypes() {
         option.innerText = systemInfo.encoderTypes[i].name;
         option.value = systemInfo.encoderTypes[i].value;
         element.appendChild(option);
+        BLDCEncoderType[systemInfo.encoderTypes[i].name] = systemInfo.encoderTypes[i].value;
     }
 }
 function setBoardType() {
@@ -1560,12 +1631,13 @@ function setupDeviceTypes() {
         option.innerText = systemInfo.deviceTypes[i].name;
         option.value = systemInfo.deviceTypes[i].value;
         element.appendChild(option);
+        DeviceType[systemInfo.deviceTypes[i].name] = systemInfo.deviceTypes[i].value;
     }
 }
 function setDeviceType() {
     var element = document.getElementById('deviceType');
     let newValue = element.value;
-    if(confirm("This will reset the current pinout to default and restart the device. Continue?")) {
+    if(confirm("This will reset the current pinout to default. Continue?")) {
         //toggleDeviceOptions(userSettings["deviceType"]);
         //setupChannelSliders();
         //setRestartRequired();
@@ -1679,7 +1751,7 @@ function updatePins()
             pinoutSettings["PitchRightServo_PIN"] = pinValues.pitchRight;
             updateCommonPins(pinValues);
             setRestartRequired();
-            postPinoutSettings();
+            postPinoutSettings(0);
         }
     }, defaultDebounce);
 }
@@ -1698,7 +1770,8 @@ function updateCommonPins(pinValues) {
     pinoutSettings["Temp_PIN"] = pinValues.temp;
     pinoutSettings["TwistFeedBack_PIN"] = pinValues.twistFeedBack;
     pinoutSettings["Internal_Temp_PIN"] = pinValues.internalTemp;
-    // if(userSettings.batteryLevelEnabled) {
+    pinoutSettings["i2cSda_PIN"] = pinValues.i2cSda;
+    pinoutSettings["i2cScl_PIN"] = pinValues.i2cScl;
     //     pinoutSettings["Battery_Voltage_PIN"] = pinValues.Battery_Voltage_PIN;
     // }
 
@@ -1840,7 +1913,7 @@ function validatePin(pin, pinName, assignedPins, duplicatePins, isInput, invalid
             duplicatePins.push(pinName+" pin and "+assignedPins[pinDupeIndex].name);
         }
         if(isInput === true && inputOnlypins.indexOf(pin) == -1 && validPWMpins.indexOf(pin) == -1) {
-            invalidPins.push(pinName+" pin: "+pinValues.lubeButton);
+            invalidPins.push(pinName+" pin: "+pin);
         }
         assignedPins.push({name:pinName, pin:pin});
     }
@@ -1868,93 +1941,16 @@ function validatePins() {
     if(userSettings["disablePinValidation"])
         return pinValues;
 
-    // var pinDupeIndex = -1;
-    // if(pinValues.rightPin > -1) {
-    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.rightPin);
-    //     if(pinDupeIndex > -1)
-    //         duplicatePins.push("Right servo pin and "+assignedPins[pinDupeIndex].name);
-    //     if(validPWMpins.indexOf(pinValues.rightPin) == -1)
-    //         pwmErrors.push("Right servo pin: "+pinValues.rightPin);
-    //     assignedPins.push({name:"Right servo", pin:pinValues.rightPin});
-    // }
     validatePWMPin(pinValues.rightPin, "Right servo", assignedPins, duplicatePins, pwmErrors);
 
     // OSR / SR6
-    // if(pinValues.leftPin > -1) {
-    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.leftPin);
-    //     if(pinDupeIndex > -1)
-    //         duplicatePins.push("Left servo pin and "+assignedPins[pinDupeIndex].name);
-    //     if(validPWMpins.indexOf(pinValues.leftPin) == -1)
-    //         pwmErrors.push("Left servo pin: "+pinValues.leftPin);
-    //     assignedPins.push({name:"Left servo", pin:pinValues.leftPin});
-    // }
     validatePWMPin(pinValues.leftPin, "Left servo", assignedPins, duplicatePins, pwmErrors);
-
-    // if(pinValues.pitchLeft > -1) {
-    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.pitchLeft);
-    //     if(pinDupeIndex > -1)
-    //         duplicatePins.push("Pitch left servo pin and "+assignedPins[pinDupeIndex].name);
-    //     if(validPWMpins.indexOf(pinValues.pitchLeft) == -1)
-    //         pwmErrors.push("Pitch left servo pin: "+pinValues.pitchLeft);
-    //     assignedPins.push({name:"Pitch left servo", pin:pinValues.pitchLeft});
-    // }
     validatePWMPin(pinValues.pitchLeft, "Pitch left servo", assignedPins, duplicatePins, pwmErrors);
 
     // SR6
-    // if(pinValues.rightUpper > -1) {
-    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.rightUpper);
-    //     if(pinDupeIndex > -1)
-    //         duplicatePins.push("Right upper servo pin and "+assignedPins[pinDupeIndex].name);
-    //     if(validPWMpins.indexOf(pinValues.rightUpper) == -1)
-    //         pwmErrors.push("Right upper servo pin: "+pinValues.rightUpper);
-    //     assignedPins.push({name:"Right upper servo", pin:pinValues.rightUpper});
-    // }
     validatePWMPin(pinValues.rightUpper, "Right upper servo", assignedPins, duplicatePins, pwmErrors);
-
-    // if(pinValues.leftUpper > -1) {
-    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.leftUpper);
-    //     if(pinDupeIndex > -1)
-    //         duplicatePins.push("Left upper servo pin and "+assignedPins[pinDupeIndex].name);
-    //     if(validPWMpins.indexOf(pinValues.leftUpper) == -1)
-    //         pwmErrors.push("Left upper servo pin: "+pinValues.leftUpper);
-    //     assignedPins.push({name:"Left upper servo", pin:pinValues.leftUpper});
-    // }
     validatePWMPin(pinValues.leftUpper, "Left upper servo", assignedPins, duplicatePins, pwmErrors);
-
-    // if(pinValues.pitchRight > -1) {
-    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.pitchRight);
-    //     if(pinDupeIndex> -1)
-    //         duplicatePins.push("Pitch right servo pin and "+assignedPins[pinDupeIndex].name);
-    //     if(validPWMpins.indexOf(pinValues.pitchRight) == -1)
-    //         pwmErrors.push("Pitch right servo pin: "+pinValues.pitchRight);
-    //     assignedPins.push({name:"Pitch right servo", pin:pinValues.pitchRight});
-    // }
     validatePWMPin(pinValues.pitchRight, "Pitch right servo", assignedPins, duplicatePins, pwmErrors);
-
-    // SSR1
-    // pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel1_PIN);
-    // if(pinDupeIndex > -1)
-    //     duplicatePins.push("BLDC pwm channel 1 pin and "+assignedPins[pinDupeIndex].name);
-    // if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel1_PIN) == -1)
-    //     pwmErrors.push("BLDC pwm channel 1 pin: "+pinValues.BLDC_PWMchannel1_PIN);
-    // assignedPins.push({name:"BLDC pwm channel 1", pin:pinValues.BLDC_PWMchannel1_PIN});
-    validatePWMPin(pinValues.BLDC_PWMchannel1_PIN, "BLDC pwm channel 1", assignedPins, duplicatePins, pwmErrors);
-
-    // pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel2_PIN);
-    // if(pinDupeIndex > -1)
-    //     duplicatePins.push("BLDC pwm channel 2 pin and "+assignedPins[pinDupeIndex].name);
-    // if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel2_PIN) == -1)
-    //     pwmErrors.push("BLDC pwm channel 2 pin: "+pinValues.BLDC_PWMchannel2_PIN);
-    // assignedPins.push({name:"BLDC pwm channel 2", pin:pinValues.BLDC_PWMchannel2_PIN});
-    validatePWMPin(pinValues.BLDC_PWMchannel2_PIN, "BLDC pwm channel 2", assignedPins, duplicatePins, pwmErrors);
-
-    // pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel3_PIN);
-    // if(pinDupeIndex > -1)
-    //     duplicatePins.push("BLDC pwm channel 3 pin and "+assignedPins[pinDupeIndex].name);
-    // if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel3_PIN) == -1)
-    //     pwmErrors.push("BLDC pwm channel 3 pin: "+pinValues.BLDC_PWMchannel3_PIN);
-    // assignedPins.push({name:"BLDC pwm channel 3", pin:pinValues.BLDC_PWMchannel3_PIN});
-    validatePWMPin(pinValues.BLDC_PWMchannel3_PIN, "BLDC pwm channel 3", assignedPins, duplicatePins, pwmErrors);
 
     validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors);
 
@@ -1986,184 +1982,69 @@ function validatePins() {
 
 
 function validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors) {
-
-    // var pinDupeIndex =  -1;
-
-    // if(pinValues.twistServo > -1) {
-    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.twistServo);
-    //     if(pinDupeIndex > -1)
-    //         duplicatePins.push("Twist servo pin and "+assignedPins[pinDupeIndex].name);
-    //     if(validPWMpins.indexOf(pinValues.twistServo) == -1)
-    //         pwmErrors.push("Twist servo pin: "+pinValues.twistServo);
-    //     assignedPins.push({name:"Twist servo", pin:pinValues.twistServo});
-    // }
     validatePWMPin(pinValues.twistServo, "Twist servo", assignedPins, duplicatePins, pwmErrors);
-
-    // if(pinValues.squeezeServo > -1) {
-    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.squeezeServo);
-    //     if(pinDupeIndex > -1)
-    //         duplicatePins.push("Squeeze servo pin and "+assignedPins[pinDupeIndex].name);
-    //     if(validPWMpins.indexOf(pinValues.squeezeServo) == -1)
-    //         pwmErrors.push("Squeeze servo pin: "+pinValues.squeezeServo);
-    //     assignedPins.push({name:"Squeeze servo", pin:pinValues.squeezeServo});
-    // }
     validatePWMPin(pinValues.squeezeServo, "Squeeze servo", assignedPins, duplicatePins, pwmErrors);
-
-    // if(pinValues.valveServo > -1) {
-    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.valveServo);
-    //     if(pinDupeIndex > -1)
-    //         duplicatePins.push("Valve servo pin and "+assignedPins[pinDupeIndex].name);
-    //     if(validPWMpins.indexOf(pinValues.valveServo) == -1)
-    //         pwmErrors.push("Valve servo pin: "+pinValues.valveServo);
-    //     assignedPins.push({name:"Valve servo", pin:pinValues.valveServo});
-    // }
     validatePWMPin(pinValues.valveServo, "Valve servo", assignedPins, duplicatePins, pwmErrors);
-
-    // if(pinValues.vibe0 > -1) {
-    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.vibe0);
-    //     if(pinDupeIndex > -1)
-    //         duplicatePins.push("Vibe 1 pin and "+assignedPins[pinDupeIndex].name);
-    //     if(validPWMpins.indexOf(pinValues.vibe0) == -1)
-    //         pwmErrors.push("Vibe 1 pin: "+pinValues.vibe0);
-    //     assignedPins.push({name:"Vibe 1", pin:pinValues.vibe0});
-    // }
     validatePWMPin(pinValues.vibe0, "Vibe 1", assignedPins, duplicatePins, pwmErrors);
-
-    // if(pinValues.vibe1 > -1) {
-    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.vibe1);
-    //     if(pinDupeIndex > -1)
-    //         duplicatePins.push("Lube/Vibe 2 pin and "+assignedPins[pinDupeIndex].name);
-    //     if(validPWMpins.indexOf(pinValues.vibe1) == -1)
-    //         pwmErrors.push("Lube/Vibe 1 pin: "+pinValues.vibe1);
-    //     assignedPins.push({name:"Lube/Vibe 1", pin:pinValues.vibe1});
-    // }
     validatePWMPin(pinValues.vibe1, "Vibe 2", assignedPins, duplicatePins, pwmErrors);
-
-    // if(pinValues.vibe2 > -1) {
-    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.vibe2);
-    //     if(pinDupeIndex > -1)
-    //         duplicatePins.push("Vibe 3 pin and "+assignedPins[pinDupeIndex].name);
-    //     if(validPWMpins.indexOf(pinValues.vibe2) == -1)
-    //         pwmErrors.push("Vibe 3 pin: "+pinValues.vibe2);
-    //     assignedPins.push({name:"Vibe 3", pin:pinValues.vibe2});
-    // }
     validatePWMPin(pinValues.vibe2, "Vibe 3", assignedPins, duplicatePins, pwmErrors);
-
-    // if(pinValues.vibe3 > -1) {
-    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.vibe3);
-    //     if(pinDupeIndex > -1)
-    //         duplicatePins.push("Vibe 4 pin and "+assignedPins[pinDupeIndex].name);
-    //     if(validPWMpins.indexOf(pinValues.vibe3) == -1)
-    //         pwmErrors.push("Vibe 4 pin: "+pinValues.vibe3);
-    //     assignedPins.push({name:"Vibe 4", pin:pinValues.vibe3});
-    // }
     validatePWMPin(pinValues.vibe3, "Vibe 4", assignedPins, duplicatePins, pwmErrors);
 
     if(userSettings.tempSleeveEnabled) {
-        // if(pinValues.heat > -1) {
-        //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.heat);
-        //     if(pinDupeIndex > -1)
-        //         duplicatePins.push("Heater pin and "+assignedPins[pinDupeIndex].name);
-        //     if(validPWMpins.indexOf(pinValues.heat) == -1)
-        //         pwmErrors.push("Heater pin: "+pinValues.heat);
-        //     assignedPins.push({name:"Heater", pin:pinValues.heat});
-        // }
         validatePWMPin(pinValues.heat, "Heater", assignedPins, duplicatePins, pwmErrors);
     }
     
     if(userSettings.tempInternalEnabled) {
-        // if(pinValues.caseFanPin > -1) {
-        //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.caseFanPin);
-        //     if(pinDupeIndex > -1)
-        //         duplicatePins.push("Case fan pin and "+assignedPins[pinDupeIndex].name);
-        //     if(validPWMpins.indexOf(pinValues.caseFanPin) == -1)
-        //         pwmErrors.push("Case fan pin: "+pinValues.caseFanPin);
-        //     assignedPins.push({name:"Case fan pin", pin:pinValues.caseFanPin});
-        // }
         validatePWMPin(pinValues.caseFanPin, "Case fan ", assignedPins, duplicatePins, pwmErrors);
     }
 }
 /** Does not show an error. Just returns true/false */
 function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues) {
-
-    var pinDupeIndex = -1;
-
     if(userSettings.displayEnabled || userSettings.voiceEnabled || userSettings.batteryLevelEnabled) {
-        // pinDupeIndex = assignedPins.findIndex(x => x.pin === 21);
-        // if(pinDupeIndex > -1)
-        //     duplicatePins.push("I2C pin 21 and "+assignedPins[pinDupeIndex].name);
-
-        // pinDupeIndex = assignedPins.findIndex(x => x.pin === 22);
-        // if(pinDupeIndex > -1)
-        //     duplicatePins.push("I2C pin 22 and "+assignedPins[pinDupeIndex].name);
-        validatePin(21, "I2C pin 21", assignedPins, duplicatePins);
-        validatePin(22, "I2C pin 22", assignedPins, duplicatePins);
+        let enabledValues = []; 
+        if(userSettings.displayEnabled) {
+            enabledValues.push("Display");
+        }
+        if(userSettings.voiceEnabled) {
+            enabledValues.push("Voice");
+        }
+        if(userSettings.batteryLevelEnabled) {
+            enabledValues.push("Battery level");
+        }
+        if(pinValues.i2cScl < 0) {
+            invalidPins.push("I2C SCL pin: "+pinValues.i2cScl + " and I2C modules enabled: " + enabledValues.join(","));
+        }
+        if(pinValues.i2cSda < 0) {
+            invalidPins.push("I2C SDA pin: "+pinValues.i2cSda + " and I2C modules enabled: " + enabledValues.join(","));
+        }
+        validatePin(pinValues.i2cSda, "I2C SDA", assignedPins, duplicatePins);
+        validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins);
     }
     
-    // if(pinValues.lubeButton > -1) {
-    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.lubeButton);
-    //     if(validPWMpins.indexOf(pinValues.lubeButton) == -1 && inputOnlypins.indexOf(pinValues.lubeButton) == -1)
-    //         invalidPins.push("Invalid Lube button pin: "+pinValues.lubeButton);
-    //     if(pinDupeIndex > -1)
-    //         duplicatePins.push("Lube button pin and "+assignedPins[pinDupeIndex].name);
-    //     assignedPins.push({name:"Lube button", pin:pinValues.lubeButton});
-    // }
     validatePin(pinValues.lubeButton, "Lube button", assignedPins, duplicatePins, true, invalidPins);
 
     if(userSettings.tempSleeveEnabled) {
-        // if(pinValues.temp > -1) {
-        //     if(validPWMpins.indexOf(pinValues.temp) == -1 && inputOnlypins.indexOf(pinValues.temp) == -1)
-        //         invalidPins.push("Invalid Sleeve temp pin: "+pinValues.temp);
-        //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.temp);
-        //     if(pinDupeIndex > -1)
-        //         duplicatePins.push("Temp pin and "+assignedPins[pinDupeIndex].name);
-        //     assignedPins.push({name:"Temp", pin:pinValues.temp});
-        // }
         validatePin(pinValues.temp, "Temp", assignedPins, duplicatePins, true, invalidPins);
     }
     if(userSettings.tempInternalEnabled) {
-        // if(pinValues.internalTemp > -1) {
-        //     if(validPWMpins.indexOf(pinValues.internalTemp) == -1 && inputOnlypins.indexOf(pinValues.internalTemp) == -1)
-        //         invalidPins.push("Invalid Internal temp pin: "+pinValues.internalTemp);
-        //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.internalTemp);
-        //     if(pinDupeIndex > -1)
-        //         duplicatePins.push("Internal temp pin and "+assignedPins[pinDupeIndex].name);
-        //     assignedPins.push({name:"Internal temp", pin:pinValues.internalTemp});
-        // }
         validatePin(pinValues.internalTemp, "Internal temp", assignedPins, duplicatePins, true, invalidPins);
     }
 
-    if(userSettings.batteryLevelEnabled) {
+    // if(userSettings.batteryLevelEnabled) {
         // if(adc1Pins.indexOf(pinValues.Battery_Voltage_PIN) == -1) 
         //     invalidPins.push("Battery voltage pin: "+pinValues.Battery_Voltage_PIN + " is not a valid adc1 pin.");
         // pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.Battery_Voltage_PIN);
         // if(pinDupeIndex > -1)
         //     duplicatePins.push("Battery voltage pin and "+assignedPins[pinDupeIndex].name);
         // assignedPins.push({name:"Battery voltage", pin:pinValues.Battery_Voltage_PIN});
-    }
+    // }
     
     if(userSettings.feedbackTwist && pinValues.twistFeedBack) {
-        // if(pinValues.twistFeedBack > -1) {
-        //     if(validPWMpins.indexOf(pinValues.twistFeedBack) == -1 && inputOnlypins.indexOf(pinValues.twistFeedBack) == -1)
-        //         invalidPins.push("Invalid Twist feedback pin: "+pinValues.twistFeedBack);
-        //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.twistFeedBack);
-        //     if(pinDupeIndex > -1)
-        //         duplicatePins.push("Twist feedback pin and "+assignedPins[pinDupeIndex].name);
-        //     assignedPins.push({name:"Twist feed back", pin:pinValues.twistFeedBack});
-        // }
         validatePin(pinValues.twistFeedBack, "Twist feedback", assignedPins, duplicatePins, true, invalidPins);
     }
     
     for(var i=0; i<pinValues.buttonSets.length; i++) {
         var buttonSetPin = pinValues.buttonSets[i];
-        // if(buttonSetPin > -1) {
-        //     if(validPWMpins.indexOf(buttonSetPin) == -1 && inputOnlypins.indexOf(buttonSetPin) == -1)
-        //         invalidPins.push("Invalid button set "+i+" pin: "+buttonSetPin);
-        //     pinDupeIndex = assignedPins.findIndex(x => x.pin === buttonSetPin);
-        //     if(pinDupeIndex > -1)
-        //         duplicatePins.push("Button set "+i+" pin and "+assignedPins[pinDupeIndex].name);
-        //     assignedPins.push({name:"Button set "+i, pin:pinDupeIndex});
-        // }
         validatePin(buttonSetPin, "Button set "+i, assignedPins, duplicatePins, true, invalidPins);
     }
 
@@ -2198,6 +2079,9 @@ function getCommonPinValues(pinValues) {
     pinValues.heat = parseInt(document.getElementById('Heater_PIN').value);
 
     pinValues.caseFanPin = parseInt(document.getElementById('Case_Fan_PIN').value);
+
+    pinValues.i2cSda = parseInt(document.getElementById('i2cSda_PIN').value);
+    pinValues.i2cScl = parseInt(document.getElementById('i2cScl_PIN').value);
 
     pinValues.lubeButton = parseInt(document.getElementById('LubeButton_PIN').value);
     pinValues.temp = parseInt(document.getElementById('Temp_PIN').value);
@@ -2313,7 +2197,10 @@ function setDiplayIs32Px() {
 }
 function setDisplaySettings()
 {
-    userSettings["displayEnabled"] = document.getElementById('displayEnabled').checked;
+    const enabled = document.getElementById('displayEnabled').checked;
+    if(!userSettings["displayEnabled"] && enabled) 
+        validatePins();
+    userSettings["displayEnabled"] = enabled;
     // userSettings["Display_Screen_Width"] = parseInt(document.getElementById('Display_Screen_Width').value);
     // userSettings["Display_Screen_Height"] = parseInt(document.getElementById('Display_Screen_Height').value);
 
@@ -2322,10 +2209,10 @@ function setDisplaySettings()
     userSettings["sleeveTempDisplayed"] = document.getElementById('sleeveTempDisplayed').checked;
     userSettings["internalTempDisplayed"] = document.getElementById('internalTempDisplayed').checked;
     userSettings["versionDisplayed"] = document.getElementById('versionDisplayed').checked;
-    if(validatePins()) {
-        setRestartRequired();
-        updateUserSettings();
-    }
+    setRestartRequired();
+    if(userSettings["displayEnabled"]) 
+        validatePins();
+    updateUserSettings();
 }
 function setDisplayAddress() {
     var selectValue = document.getElementById('Display_I2C_Address').value;
@@ -2335,7 +2222,10 @@ function setDisplayAddress() {
     updateUserSettings();
 }
 function setTempSettings() {
-    userSettings["tempSleeveEnabled"] = document.getElementById('tempSleeveEnabled').checked;
+    const enabled = document.getElementById('tempSleeveEnabled').checked;
+    if(!userSettings["tempSleeveEnabled"] && enabled) 
+        validatePins();
+    userSettings["tempSleeveEnabled"] = enabled;
     userSettings["TargetTemp"] = parseFloat(document.getElementById('TargetTemp').value);
     userSettings["HeatPWM"] = parseInt(document.getElementById('HeatPWM').value);
     userSettings["HoldPWM"] = parseInt(document.getElementById('HoldPWM').value);
@@ -2343,10 +2233,8 @@ function setTempSettings() {
     userSettings["heaterResolution"] = parseInt(document.getElementById('heaterResolution').value);
 
     Utils.toggleControlVisibilityByID('sleeveTempDisplayedRow', hasFeature(BuildFeature.TEMP) && userSettings["tempSleeveEnabled"]);
-    if(validatePins()) {
-        setRestartRequired();
-        updateUserSettings();
-    }
+    setRestartRequired();
+    updateUserSettings();
 }
 function setInternalTempSettings() {
     userSettings["tempInternalEnabled"] = document.getElementById('tempInternalEnabled').checked;
@@ -2359,10 +2247,10 @@ function setInternalTempSettings() {
 
 function toggleVoiceSettings() {
     userSettings['voiceEnabled'] = document.getElementById('voiceEnabled').checked;  
-    if(validatePins()) {
-        setRestartRequired();
-        updateUserSettings();
-    }
+    setRestartRequired();
+    if(userSettings["voiceEnabled"]) 
+        validatePins();
+    updateUserSettings();
 }
 function setVoiceSettings() {
     userSettings['voiceMuted'] = document.getElementById('voiceMuted').checked;  
@@ -2375,10 +2263,10 @@ function setFanControl() {
     userSettings["fanControlEnabled"] = document.getElementById('fanControlEnabled').checked;
     toggleFanControlSettings(userSettings["fanControlEnabled"]);
     
-    if(validatePins()) {
-        setRestartRequired();
-        updateUserSettings();
-    }
+    setRestartRequired();
+    if(userSettings["fanControlEnabled"]) 
+        validatePins();
+    updateUserSettings();
 }
 
 function setFanOnTemp() {
@@ -2541,6 +2429,11 @@ function updateBlueToothSettings()
     const element = document.getElementById('bluetoothEnabled');
     let value = element.checked;
     if(value && systemInfo["moduleType"] == ModuleType.WROOM32) {
+        if(wifiSettings["bleEnabled"]) {
+            alert("BLE and Bluetooth classic cannot be enabled at the same time due to ram constraints.")
+            element.checked = false;
+            return;
+        }
         let message = "This will disable this web server. The Wroom32 chip does not have enough memory for bluetooth and the web server.\n\nYou will need to disable bluetooth to see this web page again.\n\nMost settings can be configured via tcode command #setting.\nUse the tcode command #help for more information\n\nUDP TCode will probably still work.\n\nYuu will be able to continue configuration on this page until you reboot the board.";
         if(confirm(message+"\n\nContinue?")) {
             wifiSettings["bluetoothEnabled"] = value;
@@ -2554,6 +2447,65 @@ function updateBlueToothSettings()
         setRestartRequired();
         postWifiSettings();
     }
+}
+function updateBleSettings()
+{
+    const element = document.getElementById('bleEnabled');
+    let value = element.checked;
+    if(value && systemInfo["moduleType"] == ModuleType.WROOM32) {
+        if(wifiSettings["bluetoothEnabled"]) {
+            alert("BLE and Bluetooth classic cannot be enabled at the same time due to ram constraints.")
+            element.checked = false;
+            return;
+        }
+        let message = "This will disable this web server. The Wroom32 chip does not have enough memory for bluetooth and the web server.\n\nYou will need to disable bluetooth to see this web page again.\n\nMost settings can be configured via tcode command #setting.\nUse the tcode command #help for more information\n\nUDP TCode will probably still work.\n\nYuu will be able to continue configuration on this page until you reboot the board.";
+        if(confirm(message+"\n\nContinue?")) {
+            wifiSettings["bleEnabled"] = value;
+            setRestartRequired();
+            postWifiSettings();
+        } else {
+            element.checked = false;
+        }
+    } else {
+        wifiSettings["bleEnabled"] = value;
+        setRestartRequired();
+        postWifiSettings();
+    }
+    toggleBLEDeviceTypes(wifiSettings["bleEnabled"]);
+}
+
+function toggleBLEDeviceTypes() {
+    const elements = document.getElementsByClassName("BLEOnly")
+    
+    for(var i=0;i < elements.length; i++){
+        if(wifiSettings["bleEnabled"])
+            elements[i].classList.remove("hidden");
+        else
+            elements[i].classList.add("hidden");
+    };
+    
+}
+
+function setBLEDeviceType() {
+    wifiSettings["bleDeviceType"] = document.getElementById('bleDeviceType').value;
+    toggleBLELoveDeviceTypes();
+    setRestartRequired();
+    postWifiSettings();
+}
+
+function toggleBLELoveDeviceTypes() {
+    const elements = document.getElementsByClassName("BLELoveOnly");
+    for(var i=0;i < elements.length; i++){
+        if(wifiSettings["bleDeviceType"] == BLEDeviceType.LOVE)
+            elements[i].classList.remove("hidden");
+        else
+            elements[i].classList.add("hidden");
+    };
+}
+function setBLELoveDeviceType() {
+    wifiSettings["bleLoveDeviceType"] = document.getElementById('bleLoveDeviceType').value;
+    setRestartRequired();
+    postWifiSettings();
 }
 
 function setTCodeVersion() 
@@ -2580,10 +2532,8 @@ function updateVibTimeout() {
 function updateLubeEnabled() {
     userSettings["lubeEnabled"] = document.getElementById('lubeEnabled').checked;
     
-    if(validatePins()) {
-        setRestartRequired();
-        updateUserSettings();
-    }
+    setRestartRequired();
+    updateUserSettings();
 }
 
 function toggleSounds() {
@@ -2656,10 +2606,8 @@ function importSettings() {
             setWifiSettings();
             setUserSettings();
             setPinoutSettings();
-            if(validatePins()) {// Do not save if pin values are invalid.
-                setRestartRequired();
-                updateALLUserSettings();
-            }
+            setRestartRequired();
+            updateALLUserSettings();
         }, false);
 
         reader.readAsText(json);

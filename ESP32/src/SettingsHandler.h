@@ -1114,7 +1114,7 @@ public:
         int8_t sclPin = I2C_SCL_PIN_DEFAULT;
         m_settingsFactory->getValue(I2C_SCL_PIN, sclPin);
         if(sdaPin < 0 || sclPin < 0) {
-		    LogHandler::debug(_TAG, "SDA or SCL is disabled when scaning for I2C devices sdaPin: %ld, sclPin: %ld", sdaPin, sclPin);
+		    LogHandler::debug(_TAG, "SDA or SCL is disabled when scaning for I2C devices sdaPin: %d, sclPin: %d", sdaPin, sclPin);
             return false;
         }
 		Wire.begin(sdaPin, sclPin);

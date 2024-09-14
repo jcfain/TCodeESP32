@@ -265,13 +265,18 @@ private:
 		return validateBool("Motion", false, SettingsHandler::getMotionEnabled(), [this](bool value) -> bool {
 			SettingsHandler::setMotionEnabled(value);
 			LogHandler::debug(_TAG, "Motion disabled");
+			writeTCode("DSTOP");
 			return true;
 		});
 	}};
     const Command MOTION_TOGGLE{{"Motion toggle", "#motion-toggle", "Toggles the motion generator", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
-			SettingsHandler::setMotionEnabled(!SettingsHandler::getMotionEnabled());
-			LogHandler::debug(_TAG, SettingsHandler::getMotionEnabled() ? "Motion enabled" : "Motion disabled");
+			bool enabled = SettingsHandler::getMotionEnabled();
+			SettingsHandler::setMotionEnabled(!enabled);
+			LogHandler::debug(_TAG, enabled ? "Motion enabled" : "Motion disabled");
+			if(!enabled) {
+				writeTCode("DSTOP");
+			}
 			return true;
 		});
 	}};

@@ -791,7 +791,8 @@ private:
             {WEBSERVER_PORT, "Web port", "The Web port for the web server", SettingType::Number, WEBSERVER_PORT_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {HOST_NAME, "Hostname", "The hostname for network com", SettingType::String, HOST_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {FRIENDLY_NAME, "Friendly name", "The friendly name displayed when connecting", SettingType::String, FRIENDLY_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {BLUETOOTH_ENABLED, "BLE enabled", "BLE TCode. Note: this disabled wifi and the website. Use the setting command to switch back", SettingType::Boolean, BLUETOOTH_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth, SettingProfile::Wireless}},
+            {BLUETOOTH_ENABLED, "Bluetooth classic enabled", "Bluetooth classic TCode. Note: this disabled wifi and the website. Use the setting command to switch back", SettingType::Boolean, BLUETOOTH_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth, SettingProfile::Wireless}},
+            {BLE_ENABLED, "BLE enabled", "BLE TCode. Note: this disabled wifi and the website. Use the setting command to switch back", SettingType::Boolean, BLE_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Ble, SettingProfile::Wireless}},
             {BLE_DEVICE_TYPE, "BLE device type", "BLE device type", SettingType::Number, BLE_DEVICE_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth, SettingProfile::Wireless}},
             {BLE_LOVE_DEVICE_TYPE, "BLE love device type", "BLE love device type", SettingType::Number, BLE_LOVE_DEVICE_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth, SettingProfile::Wireless}}     
         }

@@ -52,7 +52,7 @@ class WebHandler : public HTTPBase {
             m_settingsFactory = SettingsFactory::getInstance();
             server->on("/wifiSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                char info[350];
+                char info[400];
                 SettingsHandler::getWifiInfo(info);
                 if (strlen(info) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting wifi settings");
@@ -77,6 +77,11 @@ class WebHandler : public HTTPBase {
 
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
+                if(SettingsHandler::restartRequired > -1) {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"status\": \"restarting\"}");
+                    request->send(response);
+                    return;
+                }
                 String systemInfo;
                 SettingsHandler::getSystemInfo(systemInfo);
                 if (!systemInfo.length()) {
@@ -171,7 +176,6 @@ class WebHandler : public HTTPBase {
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
-			        SettingsHandler::restart(5);
                 } 
                 else 
                 {
@@ -190,7 +194,6 @@ class WebHandler : public HTTPBase {
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
-			        SettingsHandler::restart(5);
                 } 
                 else 
                 {

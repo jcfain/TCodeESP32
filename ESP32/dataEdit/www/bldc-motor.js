@@ -106,7 +106,7 @@ function validateBLDCPins() {
     clearErrors("pinValidation"); 
     var assignedPins = [];
     var duplicatePins = [];
-    var pmwErrors = [];
+    var pwmErrors = [];
     var pinValues = getBLDCPinValues();
     if(userSettings["disablePinValidation"])
         return pinValues;
@@ -117,62 +117,70 @@ function validateBLDCPins() {
     if(isBLDCSPI()) {
         assignedPins.push({name:"SPI3", pin:23});
     }
-    var pinDupeIndex = -1;
-    if(pinValues.BLDC_Encoder_PIN > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_Encoder_PIN);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Encoder pin and "+assignedPins[pinDupeIndex].name);
-        assignedPins.push({name:"Encoder", pin:pinValues.BLDC_Encoder_PIN});
-    }
+    // var pinDupeIndex = -1;
+    // if(pinValues.BLDC_Encoder_PIN > -1) {
+    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_Encoder_PIN);
+    //     if(pinDupeIndex > -1)
+    //         duplicatePins.push("Encoder pin and "+assignedPins[pinDupeIndex].name);
+    //     assignedPins.push({name:"Encoder", pin:pinValues.BLDC_Encoder_PIN});
+    // }
+    validatePin(pinValues.BLDC_Encoder_PIN, "Encoder", assignedPins, duplicatePins);
+
     
-    if(pinValues.BLDC_ChipSelect_PIN > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_ChipSelect_PIN);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Chip select and "+assignedPins[pinDupeIndex].name);
-        assignedPins.push({name:"Chip select", pin:pinValues.BLDC_ChipSelect_PIN});
-    }
+    // if(pinValues.BLDC_ChipSelect_PIN > -1) {
+    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_ChipSelect_PIN);
+    //     if(pinDupeIndex > -1)
+    //         duplicatePins.push("Chip select and "+assignedPins[pinDupeIndex].name);
+    //     assignedPins.push({name:"Chip select", pin:pinValues.BLDC_ChipSelect_PIN});
+    // }
+    validatePin(pinValues.BLDC_ChipSelect_PIN, "Chip select", assignedPins, duplicatePins);
 
-    if(pinValues.BLDC_Enable_PIN > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_Enable_PIN);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Enable pin and "+assignedPins[pinDupeIndex].name);
-        assignedPins.push({name:"Enable", pin:pinValues.BLDC_Enable_PIN});
-    }
+    // if(pinValues.BLDC_Enable_PIN > -1) {
+    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_Enable_PIN);
+    //     if(pinDupeIndex > -1)
+    //         duplicatePins.push("Enable pin and "+assignedPins[pinDupeIndex].name);
+    //     assignedPins.push({name:"Enable", pin:pinValues.BLDC_Enable_PIN});
+    // }
+    validatePin(pinValues.BLDC_Enable_PIN, "Enable", assignedPins, duplicatePins);
 
-    if(pinValues.BLDC_PWMchannel1_PIN > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel1_PIN);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("PWMchannel1 pin and "+assignedPins[pinDupeIndex].name);
-        if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel1_PIN) == -1)
-            pmwErrors.push("PWMchannel1 pin: "+pinValues.BLDC_PWMchannel1_PIN);
-        assignedPins.push({name:"PWMchannel1", pin:pinValues.BLDC_PWMchannel1_PIN});
-    }
+    // if(pinValues.BLDC_PWMchannel1_PIN > -1) {
+    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel1_PIN);
+    //     if(pinDupeIndex > -1)
+    //         duplicatePins.push("PWMchannel1 pin and "+assignedPins[pinDupeIndex].name);
+    //     if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel1_PIN) == -1)
+    //         pmwErrors.push("PWMchannel1 pin: "+pinValues.BLDC_PWMchannel1_PIN);
+    //     assignedPins.push({name:"PWMchannel1", pin:pinValues.BLDC_PWMchannel1_PIN});
+    // }
+    validatePWMPin(pinValues.rightPin, "PWMchannel1", assignedPins, duplicatePins, pwmErrors);
 
-    if(pinValues.BLDC_PWMchannel2_PIN > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel2_PIN);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("PWMchannel2 pin and "+assignedPins[pinDupeIndex].name);
-        if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel2_PIN) == -1)
-            pmwErrors.push("PWMchannel2 pin: "+pinValues.BLDC_PWMchannel2_PIN);
-        assignedPins.push({name:"PWMchannel2", pin:pinValues.BLDC_PWMchannel2_PIN});
-    }
+    // if(pinValues.BLDC_PWMchannel2_PIN > -1) {
+    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel2_PIN);
+    //     if(pinDupeIndex > -1)
+    //         duplicatePins.push("PWMchannel2 pin and "+assignedPins[pinDupeIndex].name);
+    //     if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel2_PIN) == -1)
+    //         pmwErrors.push("PWMchannel2 pin: "+pinValues.BLDC_PWMchannel2_PIN);
+    //     assignedPins.push({name:"PWMchannel2", pin:pinValues.BLDC_PWMchannel2_PIN});
+    // }
+    validatePWMPin(pinValues.rightPin, "PWMchannel2", assignedPins, duplicatePins, pwmErrors);
 
-    if(pinValues.BLDC_PWMchannel3_PIN > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel3_PIN);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("PWMchannel3 pin and "+assignedPins[pinDupeIndex].name);
-        if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel3_PIN) == -1)
-            pmwErrors.push("PWMchannel3pin: "+pinValues.BLDC_PWMchannel3_PIN);
-        assignedPins.push({name:"PWMchannel3", pin:pinValues.BLDC_PWMchannel3_PIN});
-    }
+    // if(pinValues.BLDC_PWMchannel3_PIN > -1) {
+    //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_PWMchannel3_PIN);
+    //     if(pinDupeIndex > -1)
+    //         duplicatePins.push("PWMchannel3 pin and "+assignedPins[pinDupeIndex].name);
+    //     if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel3_PIN) == -1)
+    //         pmwErrors.push("PWMchannel3pin: "+pinValues.BLDC_PWMchannel3_PIN);
+    //     assignedPins.push({name:"PWMchannel3", pin:pinValues.BLDC_PWMchannel3_PIN});
+    // }
+    validatePWMPin(pinValues.BLDC_PWMchannel3_PIN, "PWMchannel3", assignedPins, duplicatePins, pwmErrors);
 
     if(userSettings["BLDC_UseHallSensor"]) {
-        if(pinValues.BLDC_HallEffect_PIN > -1) {
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_HallEffect_PIN);
-            if(pinDupeIndex > -1)
-                duplicatePins.push("Hall effect pin and "+assignedPins[pinDupeIndex].name);
-            assignedPins.push({name:"HallEffect", pin:pinValues.BLDC_HallEffect_PIN});
-        }
+        // if(pinValues.BLDC_HallEffect_PIN > -1) {
+        //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_HallEffect_PIN);
+        //     if(pinDupeIndex > -1)
+        //         duplicatePins.push("Hall effect pin and "+assignedPins[pinDupeIndex].name);
+        //     assignedPins.push({name:"HallEffect", pin:pinValues.BLDC_HallEffect_PIN});
+        // }
+        validatePin(pinValues.BLDC_HallEffect_PIN, "HallEffect", assignedPins, duplicatePins);
     }
     
     validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pmwErrors);

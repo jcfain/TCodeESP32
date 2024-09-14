@@ -42,6 +42,12 @@ public:
         m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
         m_settingsFactory->getValue(MS_PER_RAD, ms_per_rad);
         LogHandler::debug(_TAG, "DEVICE_TYPE: %d", m_deviceType);
+        if(m_deviceType == DeviceType::TVIBE) {
+            LogHandler::info(_TAG, "Setting up motor for device type TVibe");
+            setupCommon();
+            m_tcode->sendMessage("Ready!");
+            return;
+        }
         LogHandler::debug(_TAG, "MS_PER_RAD: %d", ms_per_rad);
 
         // Set SR6 arms to startup positions
@@ -176,21 +182,24 @@ public:
         if(m_initFailed) {
             return;
         }
-        // Collect inputs
-        // These functions query the t-code object for the position/level at a specified time
-        // Number recieved will be an integer, 0-9999
-        xLin = m_tcode->AxisRead("L0");
-        yRot = m_tcode->AxisRead("R1");
-        zRot = m_tcode->AxisRead("R2");
-        // If you want to mix your servos differently, enter your code below:
+        if(m_deviceType != DeviceType::TVIBE)
+        {
+            // Collect inputs
+            // These functions query the t-code object for the position/level at a specified time
+            // Number recieved will be an integer, 0-9999
+            xLin = m_tcode->AxisRead("L0");
+            yRot = m_tcode->AxisRead("R1");
+            zRot = m_tcode->AxisRead("R2");
+            // If you want to mix your servos differently, enter your code below:
 
-        if(m_deviceType == DeviceType::OSR)
-        {
-            executeOSR(xLin, yRot, zRot);
-        }
-        else if(m_deviceType == DeviceType::SR6)
-        {
-            executeSR6(xLin, yRot, zRot);
+            if(m_deviceType == DeviceType::OSR)
+            {
+                executeOSR(xLin, yRot, zRot);
+            }
+            else if(m_deviceType == DeviceType::SR6)
+            {
+                executeSR6(xLin, yRot, zRot);
+            }
         }
 
         executeCommon(xLin);
@@ -229,7 +238,9 @@ private:
     // This uses the t-code object above
     // Declare operating variables
     // Position variables
-    int xLin,yLin,zLin;
+    int xLin = 5000,
+        yLin = 5000,
+        zLin = 5000;
     // Rotation variables
     int yRot,zRot;
 
