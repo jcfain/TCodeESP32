@@ -453,9 +453,10 @@ public:
         JsonObject loveDevice = bleDeviceTypes.add<JsonObject>();
         loveDevice["name"] = "Love";
         loveDevice["value"] = BLEDeviceType::LOVE;
-        JsonObject hcDevice = bleDeviceTypes.add<JsonObject>();
-        hcDevice["name"] = "HC";
-        hcDevice["value"] = BLEDeviceType::HC;
+        // JsonObject hcDevice = bleDeviceTypes.add<JsonObject>();
+        // HC has an unknown formatting.
+        // hcDevice["name"] = "HC";
+        // hcDevice["value"] = BLEDeviceType::HC;
 
         JsonArray bleLoveDevices = doc["bleLoveDeviceTypes"].to<JsonArray>();
         JsonObject defaultLoveDevice = bleLoveDevices.add<JsonObject>();
