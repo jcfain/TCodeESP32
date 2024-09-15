@@ -61,7 +61,7 @@ public:
 
     static ChannelMap channelMap;
     static std::vector<Channel> currentChannels;
-    static BuildFeature buildFeatures[featureCount];
+    static BuildFeature buildFeatures[(int)BuildFeature::MAX_FEATURES];
     
     // static TCodeVersion TCodeVersionEnum;
     // static MotorType motorType;
@@ -253,25 +253,28 @@ public:
     //     return m_settingsFactory->getBoardType() == value;
     // }
 
-    static void printFree() {
-        LogHandler::debug(_TAG, "Free heap: %u", ESP.getFreeHeap());
-        LogHandler::debug(_TAG, "Total heap: %u", ESP.getHeapSize());
-        LogHandler::debug(_TAG, "Free psram: %u", ESP.getFreePsram());
-        LogHandler::debug(_TAG, "Total Psram: %u", ESP.getPsramSize());
-        LogHandler::debug(_TAG, "LittleFS used: %i", LittleFS.usedBytes());
-        LogHandler::debug(_TAG, "LittleFS total: %i", LittleFS.totalBytes());
-        //https://esp32.com/viewtopic.php?t=27780
-        //https://github.com/espressif/esp-idf/blob/master/components/heap/include/esp_heap_caps.h#L20-L37
-        uint32_t freeHEap = ESP.getFreeHeap();
-        uint32_t heapSize = ESP.getHeapSize();
-        //esp_get_free_internal_heap_size
-        LogHandler::debug(_TAG, "Used heap INTERNAL: %u/%u Free: %u", heapSize - freeHEap, heapSize, freeHEap);
-        //LogHandler::debug(_TAG, "Used Psram: %u/%u", ESP.getPsramSize() - ESP.getFreePsram(), ESP.getPsramSize());
-        LogHandler::debug(_TAG, "Used sketch size: %u/%u", ESP.getSketchSize(), ESP.getSketchSize() + ESP.getFreeSketchSpace());
-        LogHandler::debug(_TAG, "DRAM %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-        LogHandler::debug(_TAG, "IRAM %u", heap_caps_get_free_size(MALLOC_CAP_32BIT));
-        LogHandler::debug(_TAG, "FREE_HEAP Default %u", esp_get_free_heap_size());
-        LogHandler::debug(_TAG, "MIN_FREE_HEAP %u", esp_get_minimum_free_heap_size() );
+    static void printFree(bool forcePrint = false) {
+        if(forcePrint || LogHandler::getLogLevel() == LogLevel::DEBUG)
+        {
+            Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
+            Serial.printf("Total heap: %u\n", ESP.getHeapSize());
+            Serial.printf("Free psram: %u\n", ESP.getFreePsram());
+            Serial.printf("Total Psram: %u\n", ESP.getPsramSize());
+            Serial.printf("LittleFS used: %i\n", LittleFS.usedBytes());
+            Serial.printf("LittleFS total: %i\n", LittleFS.totalBytes());
+            //https://esp32.com/viewtopic.php?t=27780
+            //https://github.com/espressif/esp-idf/blob/master/components/heap/include/esp_heap_caps.h#L20-L37
+            uint32_t freeHEap = ESP.getFreeHeap();
+            uint32_t heapSize = ESP.getHeapSize();
+            //esp_get_free_internal_heap_size
+            Serial.printf("Used heap INTERNAL: %u/%u Free: %u\n", heapSize - freeHEap, heapSize, freeHEap);
+            //LogHandler::debug(_TAG, "Used Psram: %u/%u", ESP.getPsramSize() - ESP.getFreePsram(), ESP.getPsramSize());
+            Serial.printf("Used sketch size: %u/%u\n", ESP.getSketchSize(), ESP.getSketchSize() + ESP.getFreeSketchSpace());
+            Serial.printf("DRAM %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+            Serial.printf("IRAM %u\n", heap_caps_get_free_size(MALLOC_CAP_32BIT));
+            Serial.printf("FREE_HEAP Default %u\n", esp_get_free_heap_size());
+            Serial.printf("MIN_FREE_HEAP %u\n", esp_get_minimum_free_heap_size() );
+        }
     }
 
 	static void restart(const int delayInSec = 0) {
@@ -453,10 +456,10 @@ public:
         JsonObject loveDevice = bleDeviceTypes.add<JsonObject>();
         loveDevice["name"] = "Love";
         loveDevice["value"] = BLEDeviceType::LOVE;
-        // JsonObject hcDevice = bleDeviceTypes.add<JsonObject>();
+        JsonObject hcDevice = bleDeviceTypes.add<JsonObject>();
         // HC has an unknown formatting.
-        // hcDevice["name"] = "HC";
-        // hcDevice["value"] = BLEDeviceType::HC;
+        hcDevice["name"] = "HC";
+        hcDevice["value"] = BLEDeviceType::HC;
 
         JsonArray bleLoveDevices = doc["bleLoveDeviceTypes"].to<JsonArray>();
         JsonObject defaultLoveDevice = bleLoveDevices.add<JsonObject>();
@@ -1927,6 +1930,11 @@ private:
         buildFeatures[index] = BuildFeature::BLUETOOTH;
         index++;
 #endif
+#if BLE_TCODE
+        LogHandler::debug("setBuildFeatures", "BLE_TCODE");
+        buildFeatures[index] = BuildFeature::BLE;
+        index++;
+#endif
 #if DEBUG_BUILD
         LogHandler::debug("setBuildFeatures", "DEBUG_BUILD");
         buildFeatures[index] = BuildFeature::DEBUG;
@@ -1962,7 +1970,7 @@ private:
         buildFeatures[index] = BuildFeature::COEXIST_FEATURE;
         index++;
 #endif
-        buildFeatures[featureCount - 1] = {};
+        buildFeatures[(int)BuildFeature::MAX_FEATURES - 1] = {};
     }
 
     static void setMotorType()
@@ -2365,7 +2373,7 @@ bool SettingsHandler::fullBuild = false;
 bool SettingsHandler::apMode = false;
 
 // BoardType SettingsHandler::boardType = BoardType::DEVKIT;
-BuildFeature SettingsHandler::buildFeatures[featureCount];
+BuildFeature SettingsHandler::buildFeatures[(int)BuildFeature::MAX_FEATURES];
 const char *SettingsHandler::_TAG = TagHandler::SettingsHandler;
 std::vector<int> SettingsHandler::systemI2CAddresses;
 SETTING_STATE_FUNCTION_PTR_T SettingsHandler::message_callback = 0;

@@ -151,7 +151,7 @@ void executeEdgeDevice(std::string rxValue) {
                 m_pTxCharacteristic->notify();
             }
         }
-        LogHandler::verbose(TagHandler::BLEHandler, "Recieve love tcode: %s", tcodeBuffer);
+        LogHandler::verbose(TagHandler::BLEHandler, "Receive love tcode: %s", tcodeBuffer);
         if(xQueueSend(m_TCodeQueue, tcodeBuffer, 0) != pdTRUE) {
             LogHandler::error(TagHandler::BLEHandler, "Failed to write to queue");
         }

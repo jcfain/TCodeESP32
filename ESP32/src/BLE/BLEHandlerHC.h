@@ -38,12 +38,17 @@ SOFTWARE. */
 
 class BLEHandlerHC :public BLEHandlerBase {
 public:
-    BLEHandlerHC() : BLEHandlerBase("TCODE-ESP32", "ff1b451d-3070-4276-9c81-5dc5ea1043bc") { }
+    BLEHandlerHC() : BLEHandlerBase("OSR-ESP32", "00004000-0000-1000-8000-0000101A2B3C") { }
 private:
     const char* CHARACTERISTIC_UUID = "00002000-0001-1000-8000-0000101A2B3C";
     const char* CHARACTERISTIC_UUID2 = "00002000-0002-1000-8000-0000101A2B3C";
     BLECharacteristic* m_characteristic;
     BLECharacteristic* m_characteristic2;
+    // Haptics connect UUID's
+    // const char* NAME = "OSR-ESP32";
+    // const char* SERVICE_UUID = "00004000-0000-1000-8000-0000101A2B3C";
+    // const char* CHARACTERISTIC_UUID = "00002000-0001-1000-8000-0000101A2B3C";
+    // const char* CHARACTERISTIC_UUID2_HC = "00002000-0002-1000-8000-0000101A2B3C";
 
     void setupCharacteristics(BLEService *pService, BLEAdvertising *pAdvertising, QueueHandle_t tcodeQueue) override {
         m_characteristic = new BLECharacteristic(CHARACTERISTIC_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);

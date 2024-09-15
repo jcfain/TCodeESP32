@@ -60,12 +60,13 @@ const BuildFeature = {
     DEBUG: 1,
     WIFI: 2,
     BLUETOOTH: 3,
-    DA: 4,
-    DISPLAY_: 5,
-    TEMP: 6,
-    HAS_TCODE_V2: 7,
+    BLE: 4,
+    DA: 5,
+    DISPLAY_: 6,
+    TEMP: 7,
     HTTPS: 8,
-    COEXIST: 9
+    COEXIST: 9,
+    MAX_FEATURE: 10
 };
 
 let BoardType = {
@@ -113,10 +114,10 @@ var startUpLocalIP;
 const defaultDebounce = 3000;
 
 //PWM availible on: 2,4,5,12-19,21-23,25-27,32-33
-const validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33];
-const inputOnlypins = [34,35,36,39];
-const adc1Pins = [36,37,38,39,32,33,34,35];
-const adc2Pins = [4,0,2,15,13,12,14,27,25,26];
+let validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33];
+let inputOnlypins = [34,35,36,39];
+let adc1Pins = [36,37,38,39,32,33,34,35];
+let adc2Pins = [4,0,2,15,13,12,14,27,25,26];
 
 const AvailibleChannelsV3 = [
     {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
@@ -761,9 +762,19 @@ function setSystemInfo() {
     toggleBuildOptions();
     toggleMotorTypeOptions();
     setupTimerChannels();
+    toggleBLESettings();
+    toggleBluetoothSettings();
     
-    //validPWMpins = [17,25,27];
-    //validPWMpins = [2,4,5,12,13,14,15,17,21,22,25,27,32];
+    if(systemInfo["moduleType"] == ModuleType.S3) {
+        validPWMpins = [];
+        for(let i=1;i<44;i++) {
+            validPWMpins.push(i);
+        }
+        inputOnlypins = [46];
+        
+        adc1Pins = [1,2,3,4,5,6,7,8,9,10];
+        adc2Pins = [11,12,13,14,15,16,17,18,19,20];
+    }
 
     document.getElementById('lastRebootReason').value = systemInfo.lastRebootReason;
 }
@@ -2448,6 +2459,15 @@ function updateBlueToothSettings()
         postWifiSettings();
     }
 }
+function toggleBluetoothSettings() {
+    
+    if(!hasFeature(BuildFeature.BLUETOOTH)) {
+        const elements = document.getElementsByClassName("bluetoothOnly")
+        for(var i=0;i < elements.length; i++){
+            elements[i].classList.add("hidden");
+        };
+    }
+}
 function updateBleSettings()
 {
     const element = document.getElementById('bleEnabled');
@@ -2474,11 +2494,21 @@ function updateBleSettings()
     toggleBLEDeviceTypes(wifiSettings["bleEnabled"]);
 }
 
+function toggleBLESettings() {
+    if(!hasFeature(BuildFeature.BLE)) {
+        const elements = document.getElementsByClassName("BLEOnly")
+        for(var i=0;i < elements.length; i++){
+            elements[i].classList.add("hidden");
+        };
+        return;
+    }
+}
+
 function toggleBLEDeviceTypes() {
-    const elements = document.getElementsByClassName("BLEOnly")
+    const elements = document.getElementsByClassName("BLEEnabled")
     
     for(var i=0;i < elements.length; i++){
-        if(wifiSettings["bleEnabled"])
+        if(wifiSettings["bleEnabled"] && hasFeature(BuildFeature.BLE))
             elements[i].classList.remove("hidden");
         else
             elements[i].classList.add("hidden");
@@ -2496,7 +2526,7 @@ function setBLEDeviceType() {
 function toggleBLELoveDeviceTypes() {
     const elements = document.getElementsByClassName("BLELoveOnly");
     for(var i=0;i < elements.length; i++){
-        if(wifiSettings["bleDeviceType"] == BLEDeviceType.LOVE)
+        if(wifiSettings["bleDeviceType"] == BLEDeviceType.LOVE && hasFeature(BuildFeature.BLE))
             elements[i].classList.remove("hidden");
         else
             elements[i].classList.add("hidden");

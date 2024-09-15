@@ -217,6 +217,12 @@ private:
 			return true;
 		});
 	}};
+    const Command PRINT_MEMORY{{"Print memory", "#print-mem", "Print the system memory info to serial", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
+		return execute([this]() -> bool {
+			SettingsHandler::printFree(true);
+			return true;
+		});
+	}};
     const Command SAVE{{"Save", "$save", "Saves all settings", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			SettingsHandler::saveAll();
@@ -500,9 +506,10 @@ private:
         DEFAULT_ALL,
 	};
 
-    Command commands[13] = {
+    Command commands[14] = {
         HELP,
 		AVAILABLE_SETTINGS,
+		PRINT_MEMORY,
         RESTART,
         CLEAR_LOGS_INCLUDE,
         CLEAR_LOGS_EXCLUDE,

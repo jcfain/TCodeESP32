@@ -134,7 +134,7 @@
 								<input id="dns2Input" type="text" maxlength="15" oninput="updateWifiSettings()">
 							</div>
 						</div>
-						<div class="tRow">
+						<div class="tRow bluetoothOnly hidden">
 							<div class="tCell">
 								<span>Bluetooth enabled</span> 
 							</div>
@@ -142,7 +142,7 @@
 								<input id="bluetoothEnabled" type="checkbox" onclick="updateBlueToothSettings()"></input>
 							</div>
 						</div>
-						<div class="tRow">
+						<div class="tRow BLEOnly">
 							<div class="tCell">
 								<span>BLE enabled</span> 
 							</div>
@@ -150,7 +150,7 @@
 								<input id="bleEnabled" type="checkbox" onclick="updateBleSettings()"></input>
 							</div>
 						</div>
-						<div class="tRow BLEOnly hidden">
+						<div class="tRow BLEOnly BLEEnabled hidden">
 							<div class="tCell">
 								<span title="Choose the BLE device type">BLE device</span> 
 							</div>

@@ -21,12 +21,13 @@ enum class BuildFeature: int
     DEBUG,
     WIFI,
     BLUETOOTH,
+    BLE,
     DA,
     DISPLAY_,
     TEMP,
-    HAS_TCODE_V2,
     HTTPS,
-    COEXIST_FEATURE
+    COEXIST_FEATURE,
+    MAX_FEATURES
 };
 
 enum class ModuleType: int
