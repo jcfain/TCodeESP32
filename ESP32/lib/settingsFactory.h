@@ -790,11 +790,15 @@ private:
             {UDP_SERVER_PORT, "Udp port", "The UDP port for TCode input", SettingType::Number, UDP_SERVER_PORT_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {WEBSERVER_PORT, "Web port", "The Web port for the web server", SettingType::Number, WEBSERVER_PORT_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {HOST_NAME, "Hostname", "The hostname for network com", SettingType::String, HOST_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {FRIENDLY_NAME, "Friendly name", "The friendly name displayed when connecting", SettingType::String, FRIENDLY_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {BLUETOOTH_ENABLED, "Bluetooth classic enabled", "Bluetooth classic TCode. Note: this disabled wifi and the website. Use the setting command to switch back", SettingType::Boolean, BLUETOOTH_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth, SettingProfile::Wireless}},
-            {BLE_ENABLED, "BLE enabled", "BLE TCode. Note: this disabled wifi and the website. Use the setting command to switch back", SettingType::Boolean, BLE_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Ble, SettingProfile::Wireless}},
+            {FRIENDLY_NAME, "Friendly name", "The friendly name displayed when connecting", SettingType::String, FRIENDLY_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}}
+#if BLUETOOTH_TCODE
+            ,{BLUETOOTH_ENABLED, "Bluetooth classic enabled", "Bluetooth classic TCode. Note: this disabled wifi and the website. Use the setting command to switch back", SettingType::Boolean, BLUETOOTH_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth, SettingProfile::Wireless}}
+#endif             
+#if BLE_TCODE
+            ,{BLE_ENABLED, "BLE enabled", "BLE TCode. Note: this disabled wifi and the website. Use the setting command to switch back", SettingType::Boolean, BLE_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Ble, SettingProfile::Wireless}},
             {BLE_DEVICE_TYPE, "BLE device type", "BLE device type", SettingType::Number, BLE_DEVICE_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth, SettingProfile::Wireless}},
-            {BLE_LOVE_DEVICE_TYPE, "BLE love device type", "BLE love device type", SettingType::Number, BLE_LOVE_DEVICE_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth, SettingProfile::Wireless}}     
+            {BLE_LOVE_DEVICE_TYPE, "BLE love device type", "BLE love device type", SettingType::Number, BLE_LOVE_DEVICE_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth, SettingProfile::Wireless}}    
+#endif 
         }
     };
 
@@ -811,8 +815,9 @@ private:
             {MS_PER_RAD, "Ms per rad", "Micro seconds per radian for servos", SettingType::Number, MS_PER_RAD_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {CONTINUOUS_TWIST, "Continous twist", "Ignores any feedback signal", SettingType::Boolean, CONTINUOUS_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {FEEDBACK_TWIST, "Feedback twist", "For feed back servos", SettingType::Boolean, FEEDBACK_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
-            {ANALOG_TWIST, "Analog twist", "Analog feedback servo", SettingType::Boolean, ANALOG_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
-            {BLDC_ENCODER, "BLDC encoder type", "Select the type of bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {ANALOG_TWIST, "Analog twist", "Analog feedback servo", SettingType::Boolean, ANALOG_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}}
+#if MOTOR_TYPE == 1
+            ,{BLDC_ENCODER, "BLDC encoder type", "Select the type of bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_USEHALLSENSOR, "Use hall sensor", "Use Hall sensor for BLDC sensor", SettingType::Boolean, BLDC_USEHALLSENSOR_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_PULLEY_CIRCUMFERENCE, "Pull circumference", "The pulley circumference for BLDC motor", SettingType::Number, BLDC_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_MOTORA_VOLTAGE, "Motor A voltage", "BLDC Motor A voltage", SettingType::Float, BLDC_MOTORA_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
@@ -820,14 +825,16 @@ private:
             {BLDC_MOTORA_PARAMETERSKNOWN, "Motor A parameters known", "BLDC Motor A params known", SettingType::Boolean, BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_MOTORA_ZEROELECANGLE, "Motor A ZeroElecAngle", "BLDC Motor A ZeroElecAngle", SettingType::Float, BLDC_MOTORA_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_RAILLENGTH, "Rail length", "SSR1 rail length", SettingType::Number, BLDC_RAILLENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {RIGHT_SERVO_ZERO, "Right servo zero", "The zero calibration for the right servo", SettingType::Number, RIGHT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
+            {BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}}
+#elif MOTOR_TYPE == 0
+            ,{RIGHT_SERVO_ZERO, "Right servo zero", "The zero calibration for the right servo", SettingType::Number, RIGHT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {LEFT_SERVO_ZERO, "Left servo zero", "The zero calibration for the left servo", SettingType::Number, LEFT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {RIGHT_UPPER_SERVO_ZERO, "Right upper servo zero", "The zero calibration for the right upper servo", SettingType::Number, RIGHT_UPPER_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {LEFT_UPPER_SERVO_ZERO, "Left upper servo zero", "The zero calibration for the left upper servo", SettingType::Number, LEFT_UPPER_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {PITCH_LEFT_SERVO_ZERO, "Pitch left servo zero", "The zero calibration for the pitch left servo", SettingType::Number, PITCH_LEFT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
-            {PITCH_RIGHT_SERVO_ZERO, "Pitch right servo zero", "The zero calibration for the pitch right servo", SettingType::Number, PITCH_RIGHT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
-            {TWIST_SERVO_ZERO, "Twist servo zero", "The zero calibration for the twist servo", SettingType::Number, TWIST_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
+            {PITCH_RIGHT_SERVO_ZERO, "Pitch right servo zero", "The zero calibration for the pitch right servo", SettingType::Number, PITCH_RIGHT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}}
+#endif
+            ,{TWIST_SERVO_ZERO, "Twist servo zero", "The zero calibration for the twist servo", SettingType::Number, TWIST_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {VALVE_SERVO_ZERO, "Valve servo zero", "The zero calibration for the valve servo", SettingType::Number, VALVE_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {SQUEEZE_ZERO, "Squeeze servo zero", "The zero calibration for the squeeze servo", SettingType::Number, SQUEEZE_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {AUTO_VALVE, "Auto valve", "Enable valve auto behavior", SettingType::Boolean, AUTO_VALVE_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},

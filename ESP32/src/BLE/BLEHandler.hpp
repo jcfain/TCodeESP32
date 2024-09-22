@@ -150,7 +150,7 @@ public:
 
     static void disable()
     {
-        LogHandler::info(_TAG, "Disable bluetooth");
+        LogHandler::info(_TAG, "Disable BLE");
         //BLEDevice::deinit();
         //esp_err_t disable = esp_bt_controller_deinit();
         esp_err_t disable = esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);

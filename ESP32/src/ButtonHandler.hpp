@@ -43,7 +43,7 @@ public:
         buttonIndexMap[3] = 4096;
     }
 
-    void init(uint16_t analogDebounce, const char bootButtonCommand[MAX_COMMAND], ButtonSet buttonSets[MAX_BUTTON_SETS]) {
+    void init(uint16_t analogDebounce, const char bootButtonCommand[MAX_COMMAND], ButtonSet *buttonSets) {
         if(m_initialized) {
             return;
         }
@@ -64,18 +64,19 @@ public:
         m_initialized = true;
     }
 
-    void initAnalogButtons(ButtonSet buttonSets[MAX_BUTTON_SETS]) {
+    void initAnalogButtons(ButtonSet *buttonSets) {
         for(int i = 0; i < MAX_BUTTON_SETS; i++) {
             m_buttonSets[i] = ButtonSet(buttonSets[i]);
             auto buttonSet = m_buttonSets[i];
             auto buttonPin = buttonSet.pin;
             if(buttonPin > -1) {
-                auto pin = digitalPinToInterrupt(buttonPin);
+                //LogHandler::debug(_TAG, "initAnalogButtons '%s' pin: %d, buton 0 name: %s", buttonSet.name, buttonPin, buttonSet.buttons[0].name);
+                auto pin = digitalPinToInterrupt(buttonPin);// Check valid pin iterrupt
                 if(pin == -1) {
-                    LogHandler::error(_TAG, "Invalid interupt button pin: %ld", buttonPin);
+                    LogHandler::error(_TAG, "Invalid interupt button pin: %d", buttonPin);
                     continue;
                 };    
-                xTaskCreate(&analog_button_task, "buttonTask", 3096, this, 5, &buttonTask);
+                xTaskCreate(&analog_button_task, "buttonTask", (uint16_t)configMINIMAL_STACK_SIZE, this, 5, &buttonTask);
                 return;
                 // LogHandler::debug(_TAG, "Checking button set: %s, pin: %ld", buttonSet.name, buttonPin);
                 // if(buttonSet.pullMode == gpio_pull_mode_t::GPIO_PULLDOWN_ONLY) {
@@ -170,10 +171,11 @@ private:
                 for(int j = 0; j < MAX_BUTTONS; j++) {
                     auto value = analogRead(m_buttonSets[i].pin);
                     auto index = m_buttonSets[i].buttons[j].index;
-                    LogHandler::verbose(_TAG, "readButtons value: %ld, index: %ld, index value: %ld", value, index, buttonIndexMap[index]);
+                    // LogHandler causes stack overflow.
+                    //LogHandler::verbose(_TAG, "readButtons value: %ld, index: %ld, index value: %ld", value, index, buttonIndexMap[index]);
                     bool isPressedValue = value >= buttonIndexMap[index] - buttonAnalogTolorance && value <= buttonIndexMap[index] + buttonAnalogTolorance;
                     if(!m_buttonSets[i].buttons[j].isPressed() && isPressedValue) {
-                        LogHandler::debug(_TAG, "Button '%s' pressed: %u, set index: %u button index: %u", m_buttonSets[i].buttons[j].name, value, i, j);
+                        //LogHandler::debug(_TAG, "Button '%s' pressed: %u, set index: %u button index: %u", m_buttonSets[i].buttons[j].name, value, i, j);
                         // xSemaphoreTake(xMutex, portMAX_DELAY);
                         m_buttonSets[i].buttons[j].press();
                         struct ButtonModel *pxMessage = &(m_buttonSets[i].buttons[j]);// Why did I have to do all this!?
@@ -181,7 +183,7 @@ private:
                         // xSemaphoreGive(xMutex);
                         return true;
                     } else if(m_buttonSets[i].buttons[j].isPressed() && !isPressedValue) {
-                        LogHandler::debug(_TAG, "Button '%s' released", m_buttonSets[i].buttons[j].name);
+                        //LogHandler::debug(_TAG, "Button '%s' released", m_buttonSets[i].buttons[j].name);
                         m_buttonSets[i].buttons[j].release();
                         struct ButtonModel *pxMessage = &(m_buttonSets[i].buttons[j]);// Why did I have to do all this!?
                         xQueueSend(m_buttonQueue, ( void * ) &pxMessage, portMAX_DELAY);

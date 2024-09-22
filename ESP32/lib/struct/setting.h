@@ -109,7 +109,7 @@ public:
         std::vector<Setting>::const_iterator it = 
                 std::find_if(settings.begin(), settings.end(), 
                     [name](const Setting &setting) {
-                        return setting.name == name;
+                        return !strcmp(setting.name, name);
                 });
         if(it != settings.end()) {
             return it.base();

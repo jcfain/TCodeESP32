@@ -256,24 +256,24 @@ public:
     static void printFree(bool forcePrint = false) {
         if(forcePrint || LogHandler::getLogLevel() == LogLevel::DEBUG)
         {
-            Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
-            Serial.printf("Total heap: %u\n", ESP.getHeapSize());
+            uint32_t freeHEap = ESP.getFreeHeap();
+            uint32_t heapSize = ESP.getHeapSize();
+            //https://esp32.com/viewtopic.php?t=27780
+            //https://github.com/espressif/esp-idf/blob/master/components/heap/include/esp_heap_caps.h#L20-L37
+            //esp_get_free_internal_heap_size
+            Serial.printf("Used heap INTERNAL: %u/%u Free: %u\n", heapSize - freeHEap, heapSize, freeHEap);
             Serial.printf("Free psram: %u\n", ESP.getFreePsram());
             Serial.printf("Total Psram: %u\n", ESP.getPsramSize());
             Serial.printf("LittleFS used: %i\n", LittleFS.usedBytes());
             Serial.printf("LittleFS total: %i\n", LittleFS.totalBytes());
-            //https://esp32.com/viewtopic.php?t=27780
-            //https://github.com/espressif/esp-idf/blob/master/components/heap/include/esp_heap_caps.h#L20-L37
-            uint32_t freeHEap = ESP.getFreeHeap();
-            uint32_t heapSize = ESP.getHeapSize();
-            //esp_get_free_internal_heap_size
-            Serial.printf("Used heap INTERNAL: %u/%u Free: %u\n", heapSize - freeHEap, heapSize, freeHEap);
             //LogHandler::debug(_TAG, "Used Psram: %u/%u", ESP.getPsramSize() - ESP.getFreePsram(), ESP.getPsramSize());
-            Serial.printf("Used sketch size: %u/%u\n", ESP.getSketchSize(), ESP.getSketchSize() + ESP.getFreeSketchSpace());
-            Serial.printf("DRAM %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+            Serial.printf("Sketch size: %u\n", ESP.getSketchSize());
+            Serial.printf("Sketch free space: %u\n", ESP.getFreeSketchSpace());
+            Serial.printf("DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
             Serial.printf("IRAM %u\n", heap_caps_get_free_size(MALLOC_CAP_32BIT));
             Serial.printf("FREE_HEAP Default %u\n", esp_get_free_heap_size());
             Serial.printf("MIN_FREE_HEAP %u\n", esp_get_minimum_free_heap_size() );
+            //uxTaskGetStackHighWaterMark
         }
     }
 
@@ -762,7 +762,7 @@ public:
         return true;
     }
 
-    static std::vector<MotionChannel> getMotionChannels()
+    static std::vector<MotionChannel>& getMotionChannels()
     {
         return motionProfiles[motionSelectedProfileIndex].channels;
     }

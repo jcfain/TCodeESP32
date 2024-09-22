@@ -63,11 +63,8 @@ SOFTWARE. */
 #endif
 #include "TCode/MotorHandler.h"
 // #include "BLEConfigurationHandler.h"
-#if MOTOR_TYPE == 0
-// #if TCODE_V2//Too much memory needed with debug
-// 	//#include "TCode/v0.2/ServoHandler0_2.h"
-// #endif
 
+#if MOTOR_TYPE == 0
 #include "TCode/v0.3/ServoHandler0_3.h"
 #include "TCode/v0.4/ServoHandler0_4.h"
 #elif MOTOR_TYPE == 1
@@ -355,12 +352,15 @@ void startNetworking(const bool &apMode, const int &port, const int &udpPort, co
 		}
 	#endif
 		webHandler->setup(port, webSocketHandler, apMode);
+    	LogHandler::debug(TagHandler::Main, "Web DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 	} else {
 		displayPrint("WebServer disabled");
 		LogHandler::info(TagHandler::Main, "WebServer disabled due to bluetooth and chip model");
 	}
-	if (!apMode) // mdns breaks apmode?
+	if (!apMode) {// mdns breaks apmode?
 		mdnsHandler.setup(hostname, friendlyName, port, udpPort);
+    	LogHandler::debug(TagHandler::Main, "MDNS DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+	}
 }
 #endif
 
@@ -670,6 +670,7 @@ void setup()
 	// digitalWrite(5, LOW);// Turn off on-board blue led
 
 	Serial.begin(115200);
+    Serial.printf("Startup DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
 	LogHandler::setLogLevel(LogLevel::INFO);
 	LogHandler::setMessageCallback(logCallBack);
@@ -701,6 +702,7 @@ void setup()
 		setupSucceeded = false;
 		return;
 	}
+    LogHandler::debug(TagHandler::Main, "LittleFS DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
 	// LogHandler::setLogLevel(LogLevel::DEBUG);
 	settingsFactory = SettingsFactory::getInstance();
@@ -710,12 +712,14 @@ void setup()
 		LogHandler::error(TagHandler::Main, "Failed to load settings...");
 		return;
 	}
+    LogHandler::debug(TagHandler::Main, "Settings factory  DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 	// LogHandler::setLogLevel(LogLevel::DEBUG);
 
 	const PinMap *pinMap = settingsFactory->getPins();
 
 	SettingsHandler::init();
 	SettingsHandler::setMessageCallback(settingChangeCallback);
+    LogHandler::debug(TagHandler::Main, "Settings handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
 #if BLE_TCODE
 	settingsFactory->getValue(BLE_ENABLED, bleEnabled);
@@ -794,6 +798,7 @@ void setup()
 
 	systemCommandHandler = new SystemCommandHandler();
 	systemCommandHandler->registerExternalCommandCallback(TCodePassthroughCommandCallback);
+    LogHandler::debug(TagHandler::Main, "System command handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
 #if MOTOR_TYPE == 0
 	if (settingsFactory->getTcodeVersion() == TCodeVersion::v0_3)
@@ -828,6 +833,7 @@ void setup()
 #endif
 
 	motorHandler->setMessageCallback(TCodeCommandCallback);
+    LogHandler::debug(TagHandler::Main, "Motor handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 	// SystemCommandHandler::registerOtherCommandCallback(TCodeCommandCallback);
 
 #if BUILD_TEMP
@@ -876,6 +882,7 @@ void setup()
 		{
 			LogHandler::error(TagHandler::Main, "Could not start temperature task.");
 		}
+    	LogHandler::debug(TagHandler::Main, "Temp DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 	}
 
 #endif
@@ -895,6 +902,7 @@ void setup()
 		// 		APP_CPU_NUM); /* Core where the task should run */
 		// #endif
 	}
+    LogHandler::debug(TagHandler::Main, "Display DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 #endif
 
 #if BLE_TCODE
@@ -906,6 +914,7 @@ void setup()
 	{
 		BLEHandler::disable();
 	}
+    LogHandler::debug(TagHandler::Main, "BLE DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 #else
 	esp_bt_controller_mem_release(ESP_BT_MODE_BTDM)
 #endif
@@ -918,6 +927,7 @@ void setup()
 	{
 		BluetoothHandler::disable();
 	}
+    LogHandler::debug(TagHandler::Main, "Bluetooth DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 #else
     esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
 #endif
@@ -926,6 +936,7 @@ void setup()
 	if (WIFI_TCODE && !COEXIST && (bluetoothEnabled || bleEnabled))
 	{
 		WifiHandler::disable();
+    	LogHandler::debug(TagHandler::Main, "Wifi disable DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 	}
 #endif
 
@@ -969,6 +980,7 @@ void setup()
 					LogHandler::error(TagHandler::Main, "Error starting UDP server!");
 					return;
 				}
+    			LogHandler::debug(TagHandler::Main, "UDP DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 				startNetworking(false,
 						 settingsFactory->getWebServerPort(),
 						 settingsFactory->getUdpServerPort(),
@@ -989,8 +1001,11 @@ void setup()
 	// otaHandler.setup();
 	displayPrint("Setting up motor");
 	motorHandler->setup();
+    LogHandler::debug(TagHandler::Main, "Motor DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 	motionHandler.setup(settingsFactory->getTcodeVersion());
+    LogHandler::debug(TagHandler::Main, "Motion handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 	loadI2CModules(displayEnabled, batteryLevelEnabled, voiceEnabled);
+    LogHandler::debug(TagHandler::Main, "I2C DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
 	if (bootButtonEnabled || buttonSetsEnabled)
 	{

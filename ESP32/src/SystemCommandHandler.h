@@ -38,7 +38,6 @@ public:
 			LogHandler::error(_TAG, "Error creating the tcode queue");
 		}
 		m_settingsFactory = SettingsFactory::getInstance();
-		setupSettingsCommands();
 	}
     bool process(const char* in) {
 		xSemaphoreTake(xMutex, portMAX_DELAY);
@@ -271,7 +270,7 @@ private:
 		return validateBool("Motion", false, SettingsHandler::getMotionEnabled(), [this](bool value) -> bool {
 			SettingsHandler::setMotionEnabled(value);
 			LogHandler::debug(_TAG, "Motion disabled");
-			writeTCode("DSTOP");
+			writeTCode("DSTOP\n");
 			return true;
 		});
 	}};
@@ -279,9 +278,9 @@ private:
 		return execute([this]() -> bool {
 			bool enabled = SettingsHandler::getMotionEnabled();
 			SettingsHandler::setMotionEnabled(!enabled);
-			LogHandler::debug(_TAG, enabled ? "Motion enabled" : "Motion disabled");
+			LogHandler::debug(_TAG, !enabled ? "Motion enabled" : "Motion disabled");
 			if(!enabled) {
-				writeTCode("DSTOP");
+				writeTCode("DSTOP\n");
 			}
 			return true;
 		});
@@ -355,8 +354,12 @@ private:
 	}};
     const CommandValue<const char*>ADD_LOG_INCLUDE{{"Add log include", "#add-log-include", "Adds a tag to the log includes", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
 		return executeValue<const char*>(value, [this](const char* value) -> bool {
+			if(!TagHandler::HasTag(value)) {
+				LogHandler::error(_TAG, "Invalid value: %s", value);
+				return false;
+			}
 			if(!LogHandler::addInclude(value)) {
-				Serial.printf("Tag already exists: %s\n", value);
+				LogHandler::error(_TAG, "Tag already exists: %s", value);
 				return false;
 			}
 			
@@ -365,8 +368,12 @@ private:
 	}};
     const CommandValue<const char*>REMOVE_LOG_INCLUDE{{"Remove log include", "#remove-log-include", "Removes a tag from the log includes", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
 		return executeValue<const char*>(value, [this](const char* value) -> bool {
+			if(!TagHandler::HasTag(value)) {
+				LogHandler::error(_TAG, "Invalid value: %s", value);
+				return false;
+			}
 			if(!LogHandler::removeInclude(value)) {
-				Serial.printf("Tag did not exist: %s\n", value);
+				LogHandler::error(_TAG, "Tag did not exist: %s", value);
 				return false;
 			}
 			return m_settingsFactory->setValue(LOG_INCLUDETAGS, LogHandler::getIncludes()) != SettingFile::NONE;
@@ -374,8 +381,12 @@ private:
 	}};
     const CommandValue<const char*>ADD_LOG_EXCLUDE{{"Add log exclude", "#add-log-exclude", "Adds a tag to the log excludes", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
 		return executeValue<const char*>(value, [this](const char* value) -> bool {
+			if(!TagHandler::HasTag(value)) {
+				LogHandler::error(_TAG, "Invalid value: %s", value);
+				return false;
+			}
 			if(!LogHandler::addExclude(value)) {
-			Serial.printf("Tag filter already exists: %s\n", value);
+			LogHandler::error(_TAG, "Tag filter already exists: %s", value);
 				return false;
 			}
 			return m_settingsFactory->setValue(LOG_EXCLUDETAGS, LogHandler::getExcludes()) != SettingFile::NONE;
@@ -383,8 +394,12 @@ private:
 	}};
     const CommandValue<const char*>REMOVE_LOG_EXCLUDE{{"Remove log exclude", "#remove-log-exclude", "Removes a tag from the log excludes", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
 		return executeValue<const char*>(value, [this](const char* value) -> bool {
+			if(!TagHandler::HasTag(value)) {
+				LogHandler::error(_TAG, "Invalid value: %s", value);
+				return false;
+			}
 			if(!LogHandler::removeExclude(value)) {
-				Serial.printf("Tag filter did not exist: %s\n", value);
+				LogHandler::error(_TAG, "Tag filter did not exist: %s", value);
 				return false;
 			}
 			return m_settingsFactory->setValue(LOG_EXCLUDETAGS, LogHandler::getExcludes()) != SettingFile::NONE;
@@ -431,73 +446,76 @@ private:
 		}
 		return true;
 	}};
-    const CommandValue<const char*> SETTING{{"Setting", "#setting", "Modify a setting ex. #setting:<name>:<value>", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
+    const CommandValue<const char*> SETTING{{"Setting", "#setting", "Modify a setting ex. #setting:<name>:<value>", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {	
 		CommandValuePair valuePair;
 		if(!getCommandValue(value, valuePair)) 
 			return false;
-		
-		LogHandler::debug(_TAG, "Searching for setting command '%s' value: '%s'", valuePair.command, valuePair.value);
-		for(auto command : commandStringSetting) {
-			if(match(valuePair.command, command.command)) {
-				LogHandler::debug(_TAG, "Setting string match");
-				command.callback(valuePair.value);
-				xSemaphoreGive(xMutex);
-				return true;
-			}
+		const Setting* setting = m_settingsFactory->getSetting(valuePair.command);	
+		if(!setting) {
+			return false;
 		}
-		for(auto command : commandIntSetting) {
-			if(match(valuePair.command, command.command)) {
-				LogHandler::debug(_TAG, "Setting int match");
-				bool error = false;
-				int value = getInt(valuePair.value, error);
-				if(error)
-					return false;
-				LogHandler::debug(_TAG, "value: %ld", value);
-				command.callback(value);
-				xSemaphoreGive(xMutex);
-				return true;
+		return executeValue<const char*>(value, [this, setting, valuePair](const char* value) -> bool {
+			
+			LogHandler::debug(_TAG, "Searching for setting command '%s' value: '%s'", valuePair.command, valuePair.value);
+			bool error = false;
+			switch(setting->type) {
+				case SettingType::String: {
+					if(m_settingsFactory->setValue(setting->name, valuePair.value) != SettingFile::NONE) {
+						return true;
+					}
+				}
+				break;
+				case SettingType::Number: {
+					int value = getInt(valuePair.value, error);
+					if(error)
+						return false;
+					if(m_settingsFactory->setValue(setting->name, value) != SettingFile::NONE) {
+						return true;
+					}
+					LogHandler::debug(_TAG, "value: %d", value);
+				}
+				break;
+				case SettingType::Float: {
+					float value = getFloat(valuePair.value, error);
+					if(error)
+						return false;
+					if(m_settingsFactory->setValue(setting->name, value) != SettingFile::NONE) {
+						return true;
+					}
+					LogHandler::debug(_TAG, "value: %f", value);
+				}
+				break;
+				case SettingType::Double: {
+					double value = getDouble(valuePair.value, error);
+					if(error)
+						return false;
+					if(m_settingsFactory->setValue(setting->name, value) != SettingFile::NONE) {
+						return true;
+					}
+					LogHandler::debug(_TAG, "value: %f", value);
+				}
+				break;
+				case SettingType::Boolean: {
+					bool value = getBoolean(valuePair.value, error);
+					if(error)
+						return false;
+					if(m_settingsFactory->setValue(setting->name, value) != SettingFile::NONE) {
+						return true;
+					}
+					LogHandler::debug(_TAG, "value: %d", value);
+				}
+				break;
+				case SettingType::ArrayString: {
+				}
+				break;
+				case SettingType::ArrayInt: {
+				}
+				break;
+				default:
+					LogHandler::error(_TAG, "Invalid setting type: %ld", (int)setting->type);
 			}
-		}
-		for(auto command : commandFloatSetting) {
-			if(match(valuePair.command, command.command)) {
-				LogHandler::debug(_TAG, "Setting float match");
-				bool error = false;
-				float value = getFloat(valuePair.value, error);
-				if(error)
-					return false;
-				LogHandler::debug(_TAG, "value: %f", value);
-				command.callback(value);
-				xSemaphoreGive(xMutex);
-				return true;
-			}
-		}
-		for(auto command : commandDoubleSetting) {
-			if(match(valuePair.command, command.command)) {
-				LogHandler::debug(_TAG, "Setting double match");
-				bool error = false;
-				double value = getDouble(valuePair.value, error);
-				if(error)
-					return false;
-				LogHandler::debug(_TAG, "value: %f", value);
-				command.callback(value);
-				xSemaphoreGive(xMutex);
-				return true;
-			}
-		}
-		for(auto command : commandBooleanSetting) {
-			if(match(valuePair.command, command.command)) {
-				LogHandler::debug(_TAG, "Setting bool match");
-				bool error = false;
-				bool value = getBoolean(valuePair.value, error);
-				if(error)
-					return false;
-				LogHandler::debug(_TAG, "value: %ld", value);
-				command.callback(value);
-				xSemaphoreGive(xMutex);
-				return true;
-			}
-		}
-		return false;
+			return false;
+		}, SaveRequired::YES, setting->isRestartRequired);
 	}};
 	
 
@@ -545,61 +563,61 @@ private:
         RIGHT,
         OK
     };
-    std::vector<CommandValue<const char*>> commandStringSetting;
-    std::vector<CommandValue<int>> commandIntSetting;
-    std::vector<CommandValue<float>> commandFloatSetting;
-    std::vector<CommandValue<double>> commandDoubleSetting;
-    std::vector<CommandValue<bool>> commandBooleanSetting;
+    // std::vector<CommandValue<const char*>> commandStringSetting;
+    // std::vector<CommandValue<int>> commandIntSetting;
+    // std::vector<CommandValue<float>> commandFloatSetting;
+    // std::vector<CommandValue<double>> commandDoubleSetting;
+    // std::vector<CommandValue<bool>> commandBooleanSetting;
 
-	void setupSettingsCommands() {
+	// void setupSettingsCommands() {
 
-		auto allSettings = m_settingsFactory->AllSettings;
+	// 	auto allSettings = m_settingsFactory->AllSettings;
 		
-        for(SettingFileInfo* settingsInfo : allSettings)
-        {
-			for(const Setting& setting : settingsInfo->settings)
-			{
-				switch(setting.type) {
-					case SettingType::String: {
-						// const CommandValue<const char*> command{{setting.friendlyName, commandValue, setting.description, SaveRequired::YES, setting.isRestartRequired, setting.type}, [this, setting](const char* in) -> bool {
-						// 	return m_settingsFactory->setValue(setting.name, in) != SettingFile::NONE;
-						// }};
-						auto command = setupSettingsCommand<const char*>(setting);
-						commandStringSetting.push_back(command);
-					}
-					break;
-					case SettingType::Number: {
-						auto command = setupSettingsCommand<int>(setting);
-						commandIntSetting.push_back(command);
-					}
-					break;
-					case SettingType::Float: {
-						auto command = setupSettingsCommand<float>(setting);
-						commandFloatSetting.push_back(command);
-					}
-					break;
-					case SettingType::Double: {
-						auto command = setupSettingsCommand<double>(setting);
-						commandDoubleSetting.push_back(command);
-					}
-					break;
-					case SettingType::Boolean: {
-						auto command = setupSettingsCommand<bool>(setting);
-						commandBooleanSetting.push_back(command);
-					}
-					break;
-					case SettingType::ArrayString: {
-					}
-					break;
-					case SettingType::ArrayInt: {
-					}
-					break;
-					default:
-						LogHandler::error(_TAG, "Invalid setting type: %ld", (int)setting.type);
-				}
-			}
-        }
-	}
+    //     for(SettingFileInfo* settingsInfo : allSettings)
+    //     {
+	// 		for(const Setting& setting : settingsInfo->settings)
+	// 		{
+	// 			switch(setting.type) {
+	// 				case SettingType::String: {
+	// 					// const CommandValue<const char*> command{{setting.friendlyName, commandValue, setting.description, SaveRequired::YES, setting.isRestartRequired, setting.type}, [this, setting](const char* in) -> bool {
+	// 					// 	return m_settingsFactory->setValue(setting.name, in) != SettingFile::NONE;
+	// 					// }};
+	// 					auto command = setupSettingsCommand<const char*>(setting);
+	// 					commandStringSetting.push_back(command);
+	// 				}
+	// 				break;
+	// 				case SettingType::Number: {
+	// 					auto command = setupSettingsCommand<int>(setting);
+	// 					commandIntSetting.push_back(command);
+	// 				}
+	// 				break;
+	// 				case SettingType::Float: {
+	// 					auto command = setupSettingsCommand<float>(setting);
+	// 					commandFloatSetting.push_back(command);
+	// 				}
+	// 				break;
+	// 				case SettingType::Double: {
+	// 					auto command = setupSettingsCommand<double>(setting);
+	// 					commandDoubleSetting.push_back(command);
+	// 				}
+	// 				break;
+	// 				case SettingType::Boolean: {
+	// 					auto command = setupSettingsCommand<bool>(setting);
+	// 					commandBooleanSetting.push_back(command);
+	// 				}
+	// 				break;
+	// 				case SettingType::ArrayString: {
+	// 				}
+	// 				break;
+	// 				case SettingType::ArrayInt: {
+	// 				}
+	// 				break;
+	// 				default:
+	// 					LogHandler::error(_TAG, "Invalid setting type: %ld", (int)setting.type);
+	// 			}
+	// 		}
+    //     }
+	// }
 	template <typename T>
 	const CommandValue<T> setupSettingsCommand(const Setting &setting) {
 		const CommandValue<T> command{setting, [this, setting](T in) -> bool {
@@ -618,7 +636,7 @@ private:
         	xQueueSend(tCodeQueue, tcode, 0);
 	}
 
-	struct CommandValuePair {
+	struct  CommandValuePair {
 		const char* command;
 		const char* value;
 	};
@@ -810,85 +828,29 @@ private:
 		}
 	}
 	void printCommandHelp() {
-		char buf[2500];
-		printCommandHelp(buf);
-		Serial.println(buf);
-	}
-	void printCommandHelp(char* buf) {
-		// Serial.println("");
-		// Serial.println("");
-		// Serial.println("");
-		// Serial.println("");
-		buf[0] = '\0';
-		strcat(buf, "\n");
-		strcat(buf, "\n");
-		strcat(buf, "\n");
-		strcat(buf, "\n");
-		strcat(buf, "Available commands:\n");
+		char buf[MAX_COMMAND] = {0};
+		Serial.println();
+		Serial.println();
+		Serial.println();
+		Serial.println();
+		Serial.println("Available commands:");
+		Serial.println();
 		for(Command command : saveCommands) {
-			formatCommand(command, buf);
+			formatPrintCommand(command, buf, sizeof(buf));
 		}
-    // std::vector<CommandValue<const char*>> commandStringSetting;
-    // std::vector<CommandValue<int>> commandIntSetting;
-    // std::vector<CommandValue<float>> commandFloatSetting;
-    // std::vector<CommandValue<double>> commandDoubleSetting;
-    // std::vector<CommandValue<bool>> commandBooleanSetting;
-
-		// Serial.println("#help ------------------------- Print this.");
-		// Serial.println("$save ------------------------- Flush ALL settings to disk.");
-		// Serial.println("$defaultAll ------------------- Reset ALL settings to default");
-		// Serial.println("#restart ---------------------- Restart the esp");
 		strcat(buf, "\n");
 		for(Command command : commands) {
-			formatCommand(command, buf);
+			formatPrintCommand(command, buf, sizeof(buf));
 		}
-
 		for(auto command : commandExternal) {
-			formatCommand(command, buf);
+			formatPrintCommand(command, buf, sizeof(buf));
 		}
-		// Serial.println("Wifi:");
-		// Serial.println("#wifi-ssid:value -------------- Change the wifi ssid.");
-		// Serial.println("#wifi-pass:value -------------- Change the wifi password.");
 		for(auto command : commandCharValues) {
-			formatCommand(command, buf);
+			formatPrintCommand(command, buf, sizeof(buf));
 		}
 		for(auto command : commandNumberValues) {
-			formatCommand(command, buf);
+			formatPrintCommand(command, buf, sizeof(buf));
 		}
-		// Serial.println("Log:");
-		// Serial.println("#log-level:value -------------- Change the log level.");
-		// Serial.println("    Log level values: ");
-		// Serial.println("         0 -- error");
-		// Serial.println("         1 -- info");
-		// Serial.println("         2 -- warning");
-		// Serial.println("         3 -- debug");
-		// Serial.println("         4 -- verbose");
-		// Serial.println("#add-log-include:value --------- Add a log tag to include");
-		// Serial.println("#remove-log-include:value ------ Remove a log tag to include");
-		// Serial.println("#clear-log-include ------------- Clear all included log tags");
-		// Serial.println("#add-log-exclude:value --------- Add a log tag to exclude");
-		// Serial.println("#remove-log-exclude:value ------ Remove a log tag to exclude");
-		// Serial.println("#clear-log-exclude ------------- Clear all excluded log tags");
-		// Serial.println("");
-		// Serial.println("Motion generator:");
-		// Serial.println("#motion-enable ----------------- Enable motion generator");
-		// Serial.println("#motion-disable ---------------- Disable motion generator");
-		// Serial.println("#motion-profile-set:value ------ Set the current profile");
-		// Serial.printf("    Motion profile values: 1-%ld\n", maxMotionProfileCount);
-		// Serial.println("#motion-toggle ----------------- Toggle motion generator");
-		// Serial.println("#motion-profile-cycle ---------- Toggle and cycle through the motion profiles");
-		// Serial.println("#motion-period-random-on ------- Period random on for the current profile");
-		// Serial.println("#motion-period-random-off ------ Period random off for the current profile");
-		// Serial.println("#motion-amplitude-random-on ---- Amplitude random on for the current profile");
-		// Serial.println("#motion-amplitude-random-off --- Amplitude random off for the current profile");
-		// Serial.println("#motion-offset-random-on ------- Offset random on for the current profile");
-		// Serial.println("#motion-offset-random-off ------ Offset random off for the current profile");
-		// Serial.println("#motion-period:value ----------- Set period for the current profile");
-		// Serial.println("#motion-update:value ----------- Set update rate for the current profile");
-		// Serial.println("#motion-amplitude:value -------- Set amplitude for the current profile");
-		// Serial.println("#motion-offset:value ----------- Set offset for the current profile");
-		// Serial.println("#motion-phase:value ------------ Set phase for the current profile");
-		// Serial.println("#motion-reverse:value ---------- Set reverse for the current profile");
 	}
 
 	void printAvailableSettings() {
@@ -899,55 +861,57 @@ private:
 		Serial.println("Available settings:");
 		Serial.println();
 		char buf[MAX_COMMAND] = {0};
-		for(auto command : commandStringSetting) {
-			formatPrintCommand(command, buf, sizeof(buf));
-		}
-		for(auto command : commandIntSetting) {
-			formatPrintCommand(command, buf, sizeof(buf));
-		}
-		for(auto command : commandFloatSetting) {
-			formatPrintCommand(command, buf, sizeof(buf));
-		}
-		for(auto command : commandDoubleSetting) {
-			formatPrintCommand(command, buf, sizeof(buf));
-		}
-		for(auto command : commandBooleanSetting) {
-			formatPrintCommand(command, buf, sizeof(buf));
-		}
+
+		auto allSettings = m_settingsFactory->AllSettings;
+		
+        for(SettingFileInfo* settingsInfo : allSettings)
+        {
+			for(const Setting& setting : settingsInfo->settings)
+			{
+				formatPrintCommand(setting, buf, sizeof(buf));
+			}
+        }
 	}
-	void formatPrintCommand(CommandBase command, char* buf, size_t len) {
+
+	void formatPrintCommand(const Setting& setting, char* buf, const size_t& len) {
 		buf[0] = {0};
-		formatCommand(command, buf);
+		formatCommand(setting.name, setting.friendlyName, setting.type, buf);
 		Serial.print(buf);
 	}
 
-	void formatCommand(CommandBase command, char* buf) {
+	void formatPrintCommand(const CommandBase& command, char* buf, const size_t& len) {
+		buf[0] = {0};
+		formatCommand(command.command, command.description, command.valueType, buf);
+		Serial.print(buf);
+	}
+
+	void formatCommand(const char* command, const char* description, const SettingType& valueType, char* buf) {
 		char temp[MAX_COMMAND] = {0};
-		switch(command.valueType)
+		switch(valueType)
 		{
 			case SettingType::Number:
-				snprintf (temp, MAX_COMMAND, "%s%s", command.command, ":<int>");
+				snprintf (temp, MAX_COMMAND, "%s%s", command, ":<int>");
 				break;
 			case SettingType::Boolean:
-				snprintf (temp, MAX_COMMAND, "%s%s", command.command, ":<bool/bit>");
+				snprintf (temp, MAX_COMMAND, "%s%s", command, ":<bool/bit>");
 				break;
 			case SettingType::String:
-				snprintf (temp, MAX_COMMAND, "%s%s", command.command, ":<string>");
+				snprintf (temp, MAX_COMMAND, "%s%s", command, ":<string>");
 				break;
 			case SettingType::Double:
-				snprintf (temp, MAX_COMMAND,  "%s%s", command.command, ":<double>");
+				snprintf (temp, MAX_COMMAND,  "%s%s", command, ":<double>");
 				break;
 			case SettingType::Float:
-				snprintf (temp, MAX_COMMAND, "%s%s", command.command, ":<float>");
+				snprintf (temp, MAX_COMMAND, "%s%s", command, ":<float>");
 				break;
 			default:
-				snprintf (temp, MAX_COMMAND, "%s%s", command.command, "");
+				snprintf (temp, MAX_COMMAND, "%s%s", command, "");
 				break;
 		}
 		sprintf(temp, "%-40s", temp);
     	std::replace(temp, temp + strlen(temp), ' ', '-');
 		strcat(buf, temp);
-		sprintf(temp, "%s\n", command.description);
+		sprintf(temp, "%s\n", description);
 		strcat(buf, temp);
 	}
 };

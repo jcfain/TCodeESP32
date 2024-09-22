@@ -55,6 +55,7 @@ class TagHandler {
     static const char* SettingsFactory;
 
     static const std::vector<const char *> AvailableTags;
+    static bool HasTag(const char*);
 };
 
 const char* TagHandler::Main = "main";
@@ -85,6 +86,7 @@ const char* TagHandler::VoiceHandler = "voice-handler";
 const char* TagHandler::ButtonHandler = "button-handler";
 const char* TagHandler::MdnsHandler = "mdns-handler";
 const char* TagHandler::SettingsFactory = "settings-factory";
+
 
 const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::Main,
@@ -122,4 +124,11 @@ const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::MdnsHandler,
     TagHandler::SettingsFactory
 
+};
+
+bool TagHandler::HasTag(const char* name) {
+    return std::find_if(AvailableTags.begin(), AvailableTags.end(), 
+        [name](const char *tagName) {
+            return !strcmp(tagName, name);
+    }) != AvailableTags.end();
 };
