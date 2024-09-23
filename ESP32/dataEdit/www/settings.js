@@ -2114,59 +2114,61 @@ function updateZeros()
     }
     upDateTimeout = setTimeout(() => 
     {
+        const maxZero = 2500;
+        const minZero = 500;
         clearErrors("zeroValidation"); 
         var validValue = true;
         var invalidValues = [];
         var RightServo_ZERO = parseInt(document.getElementById('RightServo_ZERO').value);
-        if(!RightServo_ZERO || RightServo_ZERO > 1750 || RightServo_ZERO < 1250)
+        if(!RightServo_ZERO || RightServo_ZERO > maxZero || RightServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Right servo ZERO")
         }
         var LeftServo_ZERO = parseInt(document.getElementById('LeftServo_ZERO').value);
-        if(!LeftServo_ZERO || LeftServo_ZERO > 1750 || LeftServo_ZERO < 1250)
+        if(!LeftServo_ZERO || LeftServo_ZERO > maxZero || LeftServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Left servo ZERO")
         }
         var RightUpperServo_ZERO = parseInt(document.getElementById('RightUpperServo_ZERO').value);
-        if(!RightUpperServo_ZERO || RightUpperServo_ZERO > 1750 || RightUpperServo_ZERO < 1250)
+        if(!RightUpperServo_ZERO || RightUpperServo_ZERO > maxZero || RightUpperServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Right upper servo ZERO")
         }
         var LeftUpperServo_ZERO = parseInt(document.getElementById('LeftUpperServo_ZERO').value);
-        if(!LeftUpperServo_ZERO || LeftUpperServo_ZERO > 1750 || LeftUpperServo_ZERO < 1250)
+        if(!LeftUpperServo_ZERO || LeftUpperServo_ZERO > maxZero || LeftUpperServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Left upper servo ZERO")
         }
         var PitchLeftServo_ZERO = parseInt(document.getElementById('PitchLeftServo_ZERO').value);
-        if(!PitchLeftServo_ZERO || PitchLeftServo_ZERO > 1750 || PitchLeftServo_ZERO < 1250)
+        if(!PitchLeftServo_ZERO || PitchLeftServo_ZERO > maxZero || PitchLeftServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Pitch left servo ZERO")
         }
         var PitchRightServo_ZERO = parseInt(document.getElementById('PitchRightServo_ZERO').value);
-        if(!PitchRightServo_ZERO || PitchRightServo_ZERO > 1750 || PitchRightServo_ZERO < 1250)
+        if(!PitchRightServo_ZERO || PitchRightServo_ZERO > maxZero || PitchRightServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Pitch right servo ZERO")
         }
         var ValveServo_ZERO = parseInt(document.getElementById('ValveServo_ZERO').value);
-        if(!ValveServo_ZERO || ValveServo_ZERO > 1750 || ValveServo_ZERO < 1250)
+        if(!ValveServo_ZERO || ValveServo_ZERO > maxZero || ValveServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Valve servo ZERO")
         }
         var TwistServo_ZERO = parseInt(document.getElementById('TwistServo_ZERO').value);
-        if(!TwistServo_ZERO || TwistServo_ZERO > 1750 || TwistServo_ZERO < 1250)
+        if(!TwistServo_ZERO || TwistServo_ZERO > maxZero || TwistServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Twist servo ZERO")
         }
         var Squeeze_ZERO = parseInt(document.getElementById('Squeeze_ZERO').value);
-        if(!Squeeze_ZERO || Squeeze_ZERO > 1750 || Squeeze_ZERO < 1250)
+        if(!Squeeze_ZERO || Squeeze_ZERO > maxZero || Squeeze_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Squeeze servo ZERO")
@@ -2186,7 +2188,7 @@ function updateZeros()
         }
         else
         {
-            showError("<div name='zeroValidation'>Zeros NOT saved due to invalid input.<br><div style='margin-left: 25px;'>The values should be between 1250 and 1750 for the following:<br><div style='color: white; margin-left: 25px;'>"+invalidValues.join("<br>")+"</div></div></div>");
+            showError("<div name='zeroValidation'>Zeros NOT saved due to invalid input.<br><div style='margin-left: 25px;'>The values should be between "+minZero+" and "+maxZero+" for the following:<br><div style='color: white; margin-left: 25px;'>"+invalidValues.join("<br>")+"</div></div></div>");
         }
     }, 2000);
 }
