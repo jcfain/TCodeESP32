@@ -189,7 +189,7 @@ public:
              typename = std::enable_if<!std::is_const<T>::value || std::is_integral<T>::value || std::is_enum<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
     SettingFile getValue(const char* name, T &value)
     {
-        if (m_networkFileInfo.doc.containsKey(name)) 
+        if (m_networkFileInfo.doc[name].is<T>()) 
         {
             if(!m_networkFileInfo.initialized) {
                 LogHandler::error(m_TAG, "getValue T called before network file initialized");
@@ -200,7 +200,7 @@ public:
             xSemaphoreGive(m_networkSemaphore);
             return SettingFile::Network;
         } 
-        else if (m_commonFileInfo.doc.containsKey(name)) 
+        else if (m_commonFileInfo.doc[name].is<T>()) 
         {
             if(!m_commonFileInfo.initialized) {
                 LogHandler::error(m_TAG, "getValue T called before common file initialized");
@@ -211,7 +211,7 @@ public:
             xSemaphoreGive(m_commonSemaphore);
             return SettingFile::Common;
         }    
-        else if (m_pinsFileInfo.doc.containsKey(name)) 
+        else if (m_pinsFileInfo.doc[name].is<T>()) 
         {
             if(!m_pinsFileInfo.initialized) {
                 LogHandler::error(m_TAG, "getValue T called before pins file initialized");
@@ -236,7 +236,7 @@ public:
             return SettingFile::NONE;
         }
         strncpy(value, constvalue, len);
-        if (m_networkFileInfo.doc.containsKey(name)) 
+        if (m_networkFileInfo.doc[name].is<const char*>()) 
         {
             if(!m_networkFileInfo.initialized) {
                 LogHandler::error(m_TAG, "getValue char* len called before network file initialized");
@@ -245,7 +245,7 @@ public:
             LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DONOTCHANGE_DEFAULT) ? value : "<Redacted>");
             return SettingFile::Network;
         } 
-        else if (m_commonFileInfo.doc.containsKey(name)) 
+        else if (m_commonFileInfo.doc[name].is<const char*>()) 
         {
             if(!m_commonFileInfo.initialized) {
                 LogHandler::error(m_TAG, "getValue char* len called before common file initialized");
@@ -259,7 +259,7 @@ public:
     
     const char* getValue(const char* name)
     {
-        if (m_networkFileInfo.doc.containsKey(name)) 
+        if (m_networkFileInfo.doc[name].is<const char*>()) 
         {
             if(!m_networkFileInfo.initialized) {
                 LogHandler::error(m_TAG, "getValue char* called before network file initialized");
@@ -271,7 +271,7 @@ public:
             xSemaphoreGive(m_networkSemaphore);
             return constvalue;
         } 
-        else if (m_commonFileInfo.doc.containsKey(name)) 
+        else if (m_commonFileInfo.doc[name].is<const char*>()) 
         {
             if(!m_commonFileInfo.initialized) {
                 LogHandler::error(m_TAG, "getValue char* called before common file initialized");
@@ -342,7 +342,7 @@ public:
     SettingFile setValue(const char* name, const T &value) 
     {
         LogHandler::debug(m_TAG, "Enter setValue T: %s", name);
-        if (m_networkFileInfo.doc.containsKey(name))
+        if (m_networkFileInfo.doc[name].is<T>())
         {
             if(!m_networkFileInfo.initialized) {
                 LogHandler::error(m_TAG, "setValue T called before network file initialized");
@@ -359,7 +359,7 @@ public:
             }
             return SettingFile::Network;
         }
-        else if (m_commonFileInfo.doc.containsKey(name))
+        else if (m_commonFileInfo.doc[name].is<T>())
         {
             if(!m_commonFileInfo.initialized) {
                 LogHandler::error(m_TAG, "setValue T called before common file initialized");
@@ -376,7 +376,7 @@ public:
             }
             return SettingFile::Common;
         }
-        else if (m_pinsFileInfo.doc.containsKey(name))
+        else if (m_pinsFileInfo.doc[name].is<T>())
         {
             if(!m_pinsFileInfo.initialized) {
                 LogHandler::error(m_TAG, "setValue T called before pins file initialized");

@@ -631,7 +631,7 @@ private:
 		return command;
 	}
 
-	void writeTCode(char tcode[MAX_COMMAND]) {
+	void writeTCode(const char tcode[MAX_COMMAND]) {
 		if(tCodeQueue)
         	xQueueSend(tCodeQueue, tcode, 0);
 	}

@@ -65,8 +65,11 @@ protected:
     }
     #endif
     
-
-    int calcInt(int freq) {
+    /**
+     * This method gets the period of the frequency 1/f
+     * and converts the units to microseconds * 1000000
+     */
+    int frequencyToMicroseconds(int freq) {
         return 1000000/freq;
     }
 };

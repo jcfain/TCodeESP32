@@ -1061,6 +1061,8 @@ void getTCodeInput()
 	if (Serial.available() > 0)
 	{
 		serialData = Serial.readStringUntil('\n');
+		if(!serialData.isEmpty())
+			serialData += '\n';
 	}
 	else if (serialData.length())
 	{

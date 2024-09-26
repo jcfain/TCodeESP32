@@ -27,6 +27,8 @@ SOFTWARE. */
 
 #include <TCode.h>
 using namespace TCode;
+using namespace TCode::Axis;
+using namespace TCode::Datatypes;
 
 class TCodeBaseV4 : public TCodeBase {
 public:

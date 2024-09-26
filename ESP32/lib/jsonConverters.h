@@ -10,12 +10,18 @@ void convertFromJson(JsonVariantConst src, TCodeVersion& dst) {
 bool convertToJson(const TCodeVersion& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
 }
+bool canConvertFromJson(JsonVariantConst src, const TCodeVersion&) {
+  return src.is<uint8_t>();
+}
 
 void convertFromJson(JsonVariantConst src, LogLevel& dst) {
     dst = static_cast<LogLevel>(src.as<uint8_t>());
 }
 bool convertToJson(const LogLevel& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
+}
+bool canConvertFromJson(JsonVariantConst src, const LogLevel&) {
+  return src.is<uint8_t>();
 }
 
 void convertFromJson(JsonVariantConst src, BuildFeature& dst) {
@@ -24,12 +30,18 @@ void convertFromJson(JsonVariantConst src, BuildFeature& dst) {
 bool convertToJson(const BuildFeature& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
 }
+bool canConvertFromJson(JsonVariantConst src, const BuildFeature&) {
+  return src.is<uint8_t>();
+}
 
 void convertFromJson(JsonVariantConst src, BoardType& dst) {
     dst = static_cast<BoardType>(src.as<uint8_t>());
 }
 bool convertToJson(const BoardType& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
+}
+bool canConvertFromJson(JsonVariantConst src, const BoardType&) {
+  return src.is<uint8_t>();
 }
 
 void convertFromJson(JsonVariantConst src, MotorType& dst) {
@@ -38,12 +50,19 @@ void convertFromJson(JsonVariantConst src, MotorType& dst) {
 bool convertToJson(const MotorType& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
 }
+bool canConvertFromJson(JsonVariantConst src, const MotorType&) {
+  return src.is<uint8_t>();
+}
+
 
 void convertFromJson(JsonVariantConst src, DeviceType& dst) {
     dst = static_cast<DeviceType>(src.as<uint8_t>());
 }
 bool convertToJson(const DeviceType& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
+}
+bool canConvertFromJson(JsonVariantConst src, const DeviceType&) {
+  return src.is<uint8_t>();
 }
 
 void convertFromJson(JsonVariantConst src, BLDCEncoderType& dst) {
@@ -52,23 +71,38 @@ void convertFromJson(JsonVariantConst src, BLDCEncoderType& dst) {
 bool convertToJson(const BLDCEncoderType& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
 }
+bool canConvertFromJson(JsonVariantConst src, const BLDCEncoderType&) {
+  return src.is<uint8_t>();
+}
+
 void convertFromJson(JsonVariantConst src, BLEDeviceType& dst) {
     dst = static_cast<BLEDeviceType>(src.as<uint8_t>());
 }
 bool convertToJson(const BLEDeviceType& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
 }
+bool canConvertFromJson(JsonVariantConst src, const BLEDeviceType&) {
+  return src.is<uint8_t>();
+}
+
 void convertFromJson(JsonVariantConst src, BLELoveDeviceType& dst) {
     dst = static_cast<BLELoveDeviceType>(src.as<uint8_t>());
 }
 bool convertToJson(const BLELoveDeviceType& src, JsonVariant dst) {
     return dst.set(static_cast<uint8_t>(src));
 }
+bool canConvertFromJson(JsonVariantConst src, const BLELoveDeviceType&) {
+  return src.is<uint8_t>();
+}
+
 void convertFromJson(JsonVariantConst src, ESPTimerChannelNum& dst) {
     dst = static_cast<ESPTimerChannelNum>(src.as<int8_t>());
 }
 bool convertToJson(const ESPTimerChannelNum& src, JsonVariant dst) {
     return dst.set(static_cast<int8_t>(src));
+}
+bool canConvertFromJson(JsonVariantConst src, const ESPTimerChannelNum&) {
+  return src.is<int8_t>();
 }
 // void convertFromJson(JsonVariantConst src, std::vector<const char*>& dst) {
 //     for (const char* item : src.as<JsonArrayConst>())

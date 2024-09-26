@@ -64,7 +64,7 @@ protected:
             m_tcode->RegisterAxis(suck_axis);
             int freq = pinMap->getChannelFrequency(m_valveServoChannel);
             attachPin("valve servo", m_valveServoPin, freq, m_valveServoChannel);
-            m_valveServo_Int = calcInt(freq);
+            m_valveServo_Int = frequencyToMicroseconds(freq);
         }
 
         m_twistServoPin = pinMap->twist();
@@ -74,7 +74,7 @@ protected:
             m_tcode->RegisterAxis(twist_axis);
             int freq = pinMap->getChannelFrequency(m_twistServoChannel);
             attachPin("twist servo", m_twistServoPin, freq, m_twistServoChannel);
-            m_twistServo_Int = calcInt(freq);
+            m_twistServo_Int = frequencyToMicroseconds(freq);
         }
 
         m_squeezeServoPin = pinMap->squeeze();
@@ -84,7 +84,7 @@ protected:
             m_tcode->RegisterAxis(squeeze_axis);
             int freq = pinMap->getChannelFrequency(m_squeezeServoChannel);
             attachPin("aux servo", m_squeezeServoPin, freq, m_squeezeServoChannel);
-            m_squeezeServo_Int = calcInt(freq);
+            m_squeezeServo_Int = frequencyToMicroseconds(freq);
         }
 
         bool lubeEnabled = false; 
@@ -183,6 +183,7 @@ protected:
             executeLube();
         executeVibe(2);
         executeVibe(3);
+
     }
     
 private:

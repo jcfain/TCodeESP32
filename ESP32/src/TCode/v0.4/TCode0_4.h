@@ -4,20 +4,19 @@
 #include <vector>
 #include "TCodeBaseV4.h"
 #include "../../TagHandler.h"
+#include "OutputStream.h"
+
+
 class TCode0_4 : public TCodeBaseV4
 {
 
 public:
-	// TCode0_4() : 
-	// m_axisPointers{&stroke_axis, &surge_axis, &sway_axis, &twist_axis, &roll_axis, &pitch_axis, &vibe0_axis, &vibe1_axis, &valve_axis, &suck_axis, &lube_axis} {}
-	// Setup function
 	void setup(const char *firmware) override
 	{
 		firmwareID = firmware;
 
 		// #ESP32# Enable EEPROM
-		#warning implement output stream class
-		//m_tcode.setOutputStream(&Serial);
+		m_tcode.setOutputStream(&m_outputStream);
 
 		// m_tcode.registerInterface(&button);
 	}
@@ -79,10 +78,17 @@ public:
 		setAxisData(channel, data);
 	}
 
+// float lastXLin = 0;
 	// Function to read the current position of an axis
-	uint16_t getAxisPosition(TCodeAxis* channel) override
+	uint16_t  getAxisPosition(TCodeAxis* channel) override
 	{
-		return channel->getPosition() * 10000;
+		float value = channel->getPosition();
+        // if(channel->getId().channel == 0 && channel->getId().type == AxisType::Linear && lastXLin != value) {
+        //     Serial.print("getAxisPosition: ");
+        //     Serial.println(value);
+        //     lastXLin = value;
+        // }
+		return value * 10000;
 	}
 
 	// Function to query when an axis was last commanded
@@ -101,7 +107,7 @@ public:
 	}
 private:
 	const char *_TAG = TagHandler::TCodeHandler;
-	// Strings
+	OutputStream m_outputStream;
 	const char *firmwareID;
 	const static int m_axisCount = 11;
 	TCodeManager m_tcode;
