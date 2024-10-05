@@ -5,6 +5,7 @@
 #include "TCodeBaseV4.h"
 #include "../../TagHandler.h"
 #include "OutputStream.h"
+#include "EventHandler.h"
 
 
 class TCode0_4 : public TCodeBaseV4
@@ -17,6 +18,7 @@ public:
 
 		// #ESP32# Enable EEPROM
 		m_tcode.setOutputStream(&m_outputStream);
+		m_tcode.registerEventObserver(&m_eventHandler);
 
 		// m_tcode.registerInterface(&button);
 	}
@@ -66,6 +68,12 @@ public:
 		};
 		setAxisData(channel, data);
 	}
+
+	void setMessageCallback(TCODE_FUNCTION_PTR_T f) override
+	{
+		m_eventHandler.registerOnNotify(f);
+		TCodeBaseV4::setMessageCallback(f);
+	}
 	
     virtual void setAxisData(TCodeAxis* channel, const float value, const AxisExtentionType extentionType, const unsigned long commandExtension) {
 		AxisData data = {
@@ -105,6 +113,8 @@ public:
 	{
 		//m_tcode.
 	}
+protected:
+	EventHandler m_eventHandler;
 private:
 	const char *_TAG = TagHandler::TCodeHandler;
 	OutputStream m_outputStream;

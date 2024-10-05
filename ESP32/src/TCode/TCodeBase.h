@@ -37,7 +37,7 @@ public:
 	virtual void setup(const char* firmware) = 0;
 	virtual void read(byte inByte) = 0;
 	virtual void read(const String &input) = 0;
-	void setMessageCallback(TCODE_FUNCTION_PTR_T f) // Sets the callback function used by TCode
+	virtual void setMessageCallback(TCODE_FUNCTION_PTR_T f) // Sets the callback function used by TCode
 	{
 		if (f == nullptr)
 		{

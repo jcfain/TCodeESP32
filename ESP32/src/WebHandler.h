@@ -65,14 +65,14 @@ class WebHandler : public HTTPBase {
 
             server->on("/settings", HTTP_GET, [this](AsyncWebServerRequest *request)
             {
-                // request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
-                sendChunked(request, COMMON_SETTINGS_PATH);
+                request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
+                //sendChunked(request, COMMON_SETTINGS_PATH);
             });
 
             server->on("/pins", HTTP_GET, [this](AsyncWebServerRequest *request) 
             {
-                //request->send(LittleFS, PIN_SETTINGS_PATH, "application/json");
-                sendChunked(request, PIN_SETTINGS_PATH);
+                request->send(LittleFS, PIN_SETTINGS_PATH, "application/json");
+                //sendChunked(request, PIN_SETTINGS_PATH);
             }); 
 
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
@@ -95,14 +95,14 @@ class WebHandler : public HTTPBase {
 
             server->on("/motionProfiles", HTTP_GET, [this](AsyncWebServerRequest *request) 
             {
-                //request->send(LittleFS, MOTION_PROFILE_SETTINGS_PATH, "application/json");
-                sendChunked(request, MOTION_PROFILE_SETTINGS_PATH);
+                request->send(LittleFS, MOTION_PROFILE_SETTINGS_PATH, "application/json");
+                //sendChunked(request, MOTION_PROFILE_SETTINGS_PATH);
             });   
 
             server->on("/buttonSettings", HTTP_GET, [this](AsyncWebServerRequest *request) 
             {
-                //request->send(LittleFS, BUTTON_SETTINGS_PATH, "application/json");
-                sendChunked(request, BUTTON_SETTINGS_PATH);
+                request->send(LittleFS, BUTTON_SETTINGS_PATH, "application/json");
+                //sendChunked(request, BUTTON_SETTINGS_PATH);
             });  
             
             server->on("/log", HTTP_GET, [this](AsyncWebServerRequest *request) 
@@ -216,9 +216,8 @@ class WebHandler : public HTTPBase {
                 message += apMode ? "true}" : "false}";
                 AsyncWebServerResponse *response = request->beginResponse(200, "application/json", message);
                 request->send(response);
-                delay(2000);
                 webSocketHandler->closeAll();
-                SettingsHandler::restart();
+                SettingsHandler::restart(2);
             });
 
             server->on("/default", HTTP_POST, [this](AsyncWebServerRequest *request)
@@ -381,14 +380,14 @@ class WebHandler : public HTTPBase {
             //     Serial.printf("JS file: %s\n", filename);
             //     sendChunked(request, filename, "application/javascript");
             // });
-            server->on("/settings-min.js", HTTP_GET, [this](AsyncWebServerRequest *request)
-            {
-                sendChunked(request, "/www/settings-min.js", 4096, "application/javascript");
-            });
-            server->on("/motion-generator-min.js", HTTP_GET, [this](AsyncWebServerRequest *request)
-            {
-                sendChunked(request, "/www/motion-generator-min.js", 1024, "application/javascript");
-            });
+            // server->on("/settings-min.js", HTTP_GET, [this](AsyncWebServerRequest *request)
+            // {
+            //     sendChunked(request, "/www/settings-min.js", 4096, "application/javascript");
+            // });
+            // server->on("/motion-generator-min.js", HTTP_GET, [this](AsyncWebServerRequest *request)
+            // {
+            //     sendChunked(request, "/www/motion-generator-min.js", 1024, "application/javascript");
+            // });
 
             //server->rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
             server->serveStatic("/", LittleFS, "/www/")

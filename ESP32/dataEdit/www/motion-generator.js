@@ -281,6 +281,9 @@ MotionGenerator = {
             button.classList.add("button-toggle-start");
         }
     },
+    /*
+    * Warning motionChannelIndex is the channel index in the motion profile and NOT the index of the AvailableChannels array!
+    */
     updateSettings(profileIndex, motionChannelIndex, debounce) {
         if(profileIndex && motionChannelIndex) {
             this.setEdited(profileIndex, motionChannelIndex);
@@ -460,7 +463,7 @@ function setMotionGeneratorSettings(profileIndex, channelIndex, channelName) {
 
         
         //userSettings["motionReversed"] = document.getElementById('motionReversed').checked;
-        MotionGenerator.updateSettings(profileIndex, channelIndex, 0);
+        MotionGenerator.updateSettings(profileIndex, motionChannelIndex, 0);
     }.bind(this, profileIndex, channelIndex, channelName), 3000);
 }
 var setMotionGeneratorNameDebounce;
@@ -519,7 +522,8 @@ function updateMotionProfileName(profileIndex) {
 function setMotionGeneratorSettingsDefault(profileIndex, channelIndex, channelName) {
     if (confirm(`Are you sure you want to set the current channel '${channelName}' in profile '${motionProviderSettings['motionProfiles'][profileIndex]["name"]}' to the default settings?`)) {
         setProfileMotionGeneratorSettingsDefault(profileIndex, channelIndex, channelName);
-        MotionGenerator.updateSettings(profileIndex, channelIndex, 0);
+        const motionChannelIndex = getMotionChannelIndex(profileIndex, channelName);
+        MotionGenerator.updateSettings(profileIndex, motionChannelIndex, 0);
     }
 }
 function getMotionChannelIndex(profileIndex, channelName) {
