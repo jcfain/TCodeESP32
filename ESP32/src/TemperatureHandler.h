@@ -296,6 +296,7 @@ public:
 						(definitelyGreaterThanOREssentiallyEqual(currentTemp, m_settingsFactory->getInternalMaxTemp() - 5) && m_lastInternalTempDuty > 0)) {
 						//LogHandler::debug(_TAG, "definitelyGreaterThanOREssentiallyEqual: %f >= %f", currentTemp, SettingsHandler::getInternalTempForFan());
 						currentState = TemperatureState::COOLING;
+						m_lastInternalTempDuty = m_fanMaxDuty;
 							// Calculate pwm based on user entered values.
 							// double maxTemp = SettingsHandler::getInternalTempForFan() + SettingsHandler::getInternalTempForFan() * 0.50;
 							// if(definitelyGreaterThanOREssentiallyEqual(currentTemp, maxTemp))
@@ -332,18 +333,18 @@ public:
 						
 					} else {
 						currentState = TemperatureState::OFF;
-						m_fanMaxDuty = 0;
+						m_lastInternalTempDuty = 0;
 					}
 				}
 			}
-			if (m_lastInternalTempDuty != m_fanMaxDuty) {
-				m_lastInternalTempDuty = m_fanMaxDuty;
-				LogHandler::debug(_TAG, "Setting fan duty: %f", m_lastInternalTempDuty);
-			}
-			#if ARDUINO_V3
-			ledcWrite(m_caseFanPin, m_fanMaxDuty);
+			// if (m_lastInternalTempDuty != m_fanMaxDuty) {
+			// 	m_lastInternalTempDuty = m_fanMaxDuty;
+			// 	LogHandler::debug(_TAG, "Setting fan duty: %f", m_lastInternalTempDuty);
+			// }
+			#ifdef ESP_ARDUINO3
+			ledcWrite(m_caseFanPin, m_lastInternalTempDuty);
 			#else
-			ledcWrite(m_caseFanChannel, m_fanMaxDuty);
+			ledcWrite(m_caseFanChannel, m_lastInternalTempDuty);
 			#endif
 		} else {
 			if(m_fanControlEnabled && !fanControlInitialized)
@@ -367,8 +368,8 @@ public:
 		String currentState;
 		if(m_sleeveTempEnabled && sleeveTempInitialized) {
 			if(failsafeTriggerSleeve) {
-				#if ARDUINO_V3
-				ledcWrite(m_heatPin, 0);
+				#ifdef ESP_ARDUINO3
+				ledcWrite(m_heaterPin, 0);
 				#else
 				ledcWrite(m_heatChannel, 0);
 				#endif
@@ -383,8 +384,8 @@ public:
 					if (definitelyLessThan(currentTemp, m_settingsFactory->getTargetTemp()) 
 					//|| (currentTemp > 0 && bootTime)
 					) {
-						#if ARDUINO_V3
-						ledcWrite(m_heatPin, m_settingsFactory->getHeatPWM()));
+						#ifdef ESP_ARDUINO3
+						ledcWrite(m_heaterPin, m_settingsFactory->getHeatPWM());
 						#else
 						ledcWrite(m_heatChannel, m_settingsFactory->getHeatPWM());
 						#endif
@@ -410,15 +411,15 @@ public:
 							if(message_callback)
 								message_callback(TemperatureType::SLEEVE, "tempReached", _currentSleeveTemp);
 						}
-						#if ARDUINO_V3
-						ledcWrite(m_heatPin, m_settingsFactory->getHoldPWM()));
+						#ifdef ESP_ARDUINO3
+						ledcWrite(m_heaterPin, m_settingsFactory->getHoldPWM());
 						#else
 						ledcWrite(m_heatChannel, m_settingsFactory->getHoldPWM());
 						#endif
 						currentState = TemperatureState::HOLD;
 					} else {
-						#if ARDUINO_V3
-						ledcWrite(m_heatPin, 0);
+						#ifdef ESP_ARDUINO3
+						ledcWrite(m_heaterPin, 0);
 						#else
 						ledcWrite(m_heatChannel, 0);
 						#endif

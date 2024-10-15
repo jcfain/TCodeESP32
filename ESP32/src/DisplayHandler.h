@@ -73,7 +73,7 @@ public:
     		LogHandler::info(_TAG, "Could not connect address");
 			return;
 		}
-		delay(2000);
+		vTaskDelay(2000/portTICK_PERIOD_MS);
 		if(displayConnected)
 		{
 			//display.setFont(Adafruit5x7);

@@ -49,7 +49,7 @@ MotionGenerator = {
             for(var i = 0; i < channels.length; i++) {
               const channelIndex = i;
               var channel = channels[i];
-                if(!userSettings.sr6Mode && channel.sr6Only) {
+                if(!isSR6() && channel.sr6Only) {
                     continue;
                 }
                 var name = channel.channel;
@@ -262,10 +262,10 @@ MotionGenerator = {
         defaultMotionProfileButton.innerText = "Set selected profile as default";
         defaultMotionProfileButton.onclick = setMotionProfileDefault;
         motionProfilesElement.appendChild(defaultMotionProfileButton);
-        const rangeSliderButton = document.createElement("button");
-        rangeSliderButton.innerText = "Edit device range limits";
-        rangeSliderButton.onclick = DeviceRangeSlider.show;
-        motionProfilesElement.appendChild(rangeSliderButton);
+        // const rangeSliderButton = document.createElement("button");
+        // rangeSliderButton.innerText = "Edit device range limits";
+        // rangeSliderButton.onclick = DeviceRangeSlider.show;
+        // motionProfilesElement.appendChild(rangeSliderButton);
         
         selectMotionProfile(systemInfo["motionSelectedProfileIndex"]);
         this.setEnabledStatus();
@@ -567,7 +567,7 @@ function setMotionGeneratorSettingsProfile(profileIndex) {
     for(var i = 0; i < channels.length; i++) {
         const channelIndex = i;
         const channel = channels[i];
-        if (!userSettings.sr6Mode && channel.sr6Only) 
+        if (!isSR6() && channel.sr6Only) 
             continue;
         const motionChannelIndex = getMotionChannelIndex(profileIndex, channel.channel);
         const profileHasChannel = motionChannelIndex > -1;

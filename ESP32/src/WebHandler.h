@@ -105,56 +105,56 @@ class WebHandler : public HTTPBase {
                 //sendChunked(request, BUTTON_SETTINGS_PATH);
             });  
             
-            server->on("/log", HTTP_GET, [this](AsyncWebServerRequest *request) 
-            {
-                Serial.println("Get log...");
-                //request->send(LittleFS, LOG_PATH);
-                sendChunked(request, LOG_PATH);
-            });   
+            // server->on("/log", HTTP_GET, [this](AsyncWebServerRequest *request) 
+            // {
+            //     Serial.println("Get log...");
+            //     //request->send(LittleFS, LOG_PATH);
+            //     sendChunked(request, LOG_PATH);
+            // });   
 
-            server->on("/connectWifi", HTTP_POST, [this](AsyncWebServerRequest *request) 
-            {
-                WifiHandler wifi;
-                //const size_t capacity = JSON_OBJECT_SIZE(2);
-                JsonDocument doc;
-                char ssid[SSID_LEN] = {0};
-                char pass[WIFI_PASS_LEN] = {0};
-                m_settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
-                m_settingsFactory->getValue(WIFI_PASS_SETTING, pass, WIFI_PASS_LEN);
-                if (wifi.connect(ssid, pass)) 
-                {
+            // server->on("/connectWifi", HTTP_POST, [this](AsyncWebServerRequest *request) 
+            // {
+            //     WifiHandler wifi;
+            //     //const size_t capacity = JSON_OBJECT_SIZE(2);
+            //     JsonDocument doc;
+            //     char ssid[SSID_LEN] = {0};
+            //     char pass[WIFI_PASS_LEN] = {0};
+            //     m_settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
+            //     m_settingsFactory->getValue(WIFI_PASS_SETTING, pass, WIFI_PASS_LEN);
+            //     if (wifi.connect(ssid, pass)) 
+            //     {
 
-                    doc["connected"] = true;
-                    doc["IPAddress"] = wifi.ip().toString();
-                }
-                else 
-                {
-                    doc["connected"] = false;
-                    doc["IPAddress"] = "0.0.0.0";
+            //         doc["connected"] = true;
+            //         doc["IPAddress"] = wifi.ip().toString();
+            //     }
+            //     else 
+            //     {
+            //         doc["connected"] = false;
+            //         doc["IPAddress"] = "0.0.0.0";
 
-                }
-                String output;
-                serializeJson(doc, output);
-                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", output);
-                request->send(response);
-            });
+            //     }
+            //     String output;
+            //     serializeJson(doc, output);
+            //     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", output);
+            //     request->send(response);
+            // });
 
-            server->on("/toggleContinousTwist", HTTP_POST, [this](AsyncWebServerRequest *request) 
-            {
-				m_settingsFactory->setValue(CONTINUOUS_TWIST, !m_settingsFactory->getContinuousTwist());
-				if (m_settingsFactory->saveCommon()) 
-				{
-					char returnJson[45];
-					sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", m_settingsFactory->getContinuousTwist() ? "true" : "false");
-					AsyncWebServerResponse *response = request->beginResponse(200, "application/json", returnJson);
-					request->send(response);
-				} 
-				else 
-				{
-					AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"Error saving settings\"}");
-					request->send(response);
-				}
-            });
+            // server->on("/toggleContinousTwist", HTTP_POST, [this](AsyncWebServerRequest *request) 
+            // {
+			// 	m_settingsFactory->setValue(CONTINUOUS_TWIST, !m_settingsFactory->getContinuousTwist());
+			// 	if (m_settingsFactory->saveCommon()) 
+			// 	{
+			// 		char returnJson[45];
+			// 		sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", m_settingsFactory->getContinuousTwist() ? "true" : "false");
+			// 		AsyncWebServerResponse *response = request->beginResponse(200, "application/json", returnJson);
+			// 		request->send(response);
+			// 	} 
+			// 	else 
+			// 	{
+			// 		AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"Error saving settings\"}");
+			// 		request->send(response);
+			// 	}
+            // });
 
             server->on("^\\/sensor\\/([0-9]+)$", HTTP_GET, [] (AsyncWebServerRequest *request) 
             {
@@ -311,6 +311,7 @@ class WebHandler : public HTTPBase {
                     request->send(response);
                 }
             }, 10000U );//Bad request? increase the size.
+
             // //To upload through terminal you can use: curl -F "image=@firmware.bin" esp8266-webupdate.local/update
             // server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request){
             //         // the request handler is triggered after the upload has finished... 

@@ -525,6 +525,9 @@ public:
     void overideDefaults() override {
         setVibe3(26);
         setInternalTemp(32);
+        // Feed back was on 0 but this firmware has the potental to use that as an action button so disable feedback by default.
+        setTwistFeedBack(-1);
+
 
         // // EXT
         // //  EXT_Input2_PIN = 34;
@@ -536,9 +539,6 @@ public:
         // caseFanResolution = json["caseFanResolution"] | 10;
         // caseFanFrequency = json["caseFanFrequency"] | 25;
         // Display_Screen_Height = json["Display_Screen_Height"] | 32;
-
-        setTwistFeedBack(0);
-
     }
 protected: 
     PinMapSR6MB(DeviceType deviceType, BoardType boardType) : PinMapSR6(deviceType, boardType) {}

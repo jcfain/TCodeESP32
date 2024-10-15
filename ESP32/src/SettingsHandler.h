@@ -394,12 +394,14 @@ public:
         JsonObject devkit = boardTypes.add<JsonObject>();
         devkit["name"] = "Devkit/NexusPRO";
         devkit["value"] = (uint8_t)BoardType::DEVKIT;
+#if CONFIG_IDF_TARGET_ESP32
         JsonObject SR6MB = boardTypes.add<JsonObject>();
         SR6MB["name"] = "SR6MB";
         SR6MB["value"] = (uint8_t)BoardType::CRIMZZON;
         JsonObject INControl = boardTypes.add<JsonObject>();
         INControl["name"] = "IN-Control";
         INControl["value"] = (uint8_t)BoardType::ISAAC;
+#endif
         int motorType = MOTOR_TYPE_DEFAULT;
         m_settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);
         doc["motorType"] = motorType;
