@@ -6,6 +6,9 @@ jobs:
   build:
 
     runs-on: [ubuntu-latest]
+    # strategy:
+    #   matrix:
+    #     example: [board=esp32doit-devkit-v1, esp32doit-devkit-v1-bldc]
 
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +30,6 @@ jobs:
       #     unzip /tmp/spi4teensy3.zip -d /tmp
 
       - name: Run PlatformIO
-        run: pio ci --lib="." --lib="/tmp/esp32" --board=uno --board=esp32doit-devkit-v1 --board=esp32doit-devkit-v1-bldc
-        env:
-          PLATFORMIO_CI_SRC: ${{ matrix.example }}
+        run: pio run --environment esp32doit-devkit-v1
+        # env:
+        #   PLATFORMIO_CI_SRC: ${{ matrix.example }}
