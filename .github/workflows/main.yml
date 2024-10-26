@@ -1,8 +1,14 @@
 name: PlatformIO CI
 
+defaults:
+  run:
+    shell: bash
+    working-directory: ./ESP32
+      
 on: [push]
 
 jobs:
+
   build:
 
     runs-on: [ubuntu-latest]
