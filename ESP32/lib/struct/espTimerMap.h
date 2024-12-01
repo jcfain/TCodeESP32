@@ -23,8 +23,8 @@ SOFTWARE. */
 #pragma once
 
 #include <ArduinoJson.h>
-#include "../constants.h"
-#include "../enum.h"
+#include "constants.h"
+#include "enum.h"
 
 struct ESPTimerChannel {
     const char* name;

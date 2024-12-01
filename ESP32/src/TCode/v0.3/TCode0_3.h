@@ -3,8 +3,8 @@
 
 #include <EEPROM.h>
 #include "Axis.h"
-#include "../TCodeBase.h"
-#include "../../TagHandler.h"
+#include "TCodeBase.h"
+#include "TagHandler.h"
 // -----------------------------
 // Class to manage Toy Comms
 // -----------------------------

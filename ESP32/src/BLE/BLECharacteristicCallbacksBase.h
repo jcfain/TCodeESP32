@@ -32,7 +32,7 @@ SOFTWARE. */
 
 #include "BLEServerCallbacksBase.h"
 #include "TagHandler.h"
-#include "../lib/constants.h"
+#include "constants.h"
 
 class BLECharacteristicCallbacksBase: public NimBLECharacteristicCallbacks {
 public:

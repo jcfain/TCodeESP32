@@ -31,7 +31,7 @@ SOFTWARE. */
 #include "logging/LogHandler.h"
 
 #include "BLETCodeControlCallback.h"
-#include "../lib/constants.h"
+#include "constants.h"
 #include "TagHandler.h"
 #include "BLEHandlerBase.h"
 

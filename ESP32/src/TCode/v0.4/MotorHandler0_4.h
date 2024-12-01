@@ -23,11 +23,11 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
-#include "../Global.h"
-#include "../MotorHandler.h"
+#include "Global.h"
+#include "MotorHandler.h"
 #include "TCode0_4.h"
-#include "../../SettingsHandler.h"
-#include "../../TagHandler.h"
+#include "SettingsHandler.h"
+#include "TagHandler.h"
 
 class MotorHandler0_4: public MotorHandler {
 public:

@@ -24,7 +24,7 @@ SOFTWARE. */
 
 
 #include <Arduino.h>
-#include <AsyncUdp.h>
+#include <AsyncUDP.h>
 #include <ArduinoJson.h>
 #include "SettingsHandler.h"
 #include "logging/LogHandler.h"

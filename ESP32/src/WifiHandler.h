@@ -35,7 +35,8 @@ SOFTWARE. */
 enum class WiFiStatus
 {
 	CONNECTED,
-	DISCONNECTED
+	DISCONNECTED,
+	IP
 };
 enum class WiFiReason
 {
@@ -139,7 +140,7 @@ public:
 		int connectStartTimeout = millis() + connectTimeOut;
 		while (!isConnected() && millis() < connectStartTimeout)
 		{
-			delay(1000);
+			vTaskDelay(1000/portTICK_PERIOD_MS);
 			Serial.print(".");
 		}
 		if (millis() >= connectStartTimeout)
@@ -148,9 +149,6 @@ public:
 			WiFi.disconnect(true, true);
 			return false;
 		}
-		IPAddress ipAddress = ip();
-		LogHandler::info(_TAG, "Connected IP: %s", ip().toString().c_str());
-		SettingsHandler::printWebAddress(ip().toString().c_str());
 
 		WiFi.setSleep(false);
 		_apMode = false;
@@ -177,12 +175,15 @@ public:
 			LogHandler::info(_TAG, "Station Mode Started");
 			break;
 		case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-			strcpy(SettingsHandler::currentIP, WiFi.localIP().toString().c_str());
-			strcpy(SettingsHandler::currentGateway, WiFi.subnetMask().toString().c_str());
-			strcpy(SettingsHandler::currentSubnet, WiFi.gatewayIP().toString().c_str());
-			strcpy(SettingsHandler::currentDns1, WiFi.dnsIP().toString().c_str());
+			strncpy(SettingsHandler::currentIP, WiFi.localIP().toString().c_str(), IP4ADDR_STRLEN_MAX);
+			strncpy(SettingsHandler::currentGateway, WiFi.subnetMask().toString().c_str(), IP4ADDR_STRLEN_MAX);
+			strncpy(SettingsHandler::currentSubnet, WiFi.gatewayIP().toString().c_str(), IP4ADDR_STRLEN_MAX);
+			strncpy(SettingsHandler::currentDns1, WiFi.dnsIP().toString().c_str(), IP4ADDR_STRLEN_MAX);
 			LogHandler::info(_TAG, "Connected to: %s", WiFi.SSID().c_str());
 			LogHandler::info(_TAG, "IP Address: %s", SettingsHandler::currentIP);
+			if (wifiStatus_callback)
+				wifiStatus_callback(WiFiStatus::IP, WiFiReason::UNKNOWN);
+			//SettingsHandler::printWebAddress(SettingsHandler::currentIP);
 			break;
 		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
 		{

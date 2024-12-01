@@ -20,14 +20,14 @@
 
 #include <SimpleFOC.h>
 #include <SimpleFOCDrivers.h>
-#include <encoders/MT6701/MagneticSensorMT6701SSI.h>
+#include <encoders/mt6701/MagneticSensorMT6701SSI.h>
 
 #include "TCode0_4.h"
-#include "../../SettingsHandler.h"
-#include "../Global.h"
+#include "SettingsHandler.h"
+#include "Global.h"
 #include "MotorHandler0_4.h"
-#include "../../TagHandler.h"
-#include "../../lib/settingsFactory.h"
+#include "TagHandler.h"
+#include "settingsFactory.h"
 
 
 // Control constants

@@ -29,6 +29,7 @@ SOFTWARE. */
 #include "esp_log.h"
 #endif
 #include <Arduino.h>
+#include <EEPROM.h>
 
 #if PICO_BUILD
 // #include <FreeRTOS.h>
@@ -65,11 +66,11 @@ SOFTWARE. */
 // #include "BLEConfigurationHandler.h"
 
 #if MOTOR_TYPE == 0
-#include "TCode/v0.3/ServoHandler0_3.h"
-#include "TCode/v0.4/ServoHandler0_4.h"
+#include "ServoHandler0_3.h"
+#include "ServoHandler0_4.h"
 #elif MOTOR_TYPE == 1
-#include "TCode/v0.3/BLDCHandler0_3.h"
-#include "TCode/v0.4/BLDCHandler0_4.h"
+#include "BLDCHandler0_3.h"
+#include "BLDCHandler0_4.h"
 #endif
 
 #if WIFI_TCODE
@@ -87,7 +88,7 @@ SOFTWARE. */
 #endif
 // #include "OTAHandler.h"
 #if BLE_TCODE
-#include "BLE/BLEHandler.hpp"
+#include "BLEHandler.hpp"
 #endif
 
 #if WIFI_TCODE
@@ -100,7 +101,7 @@ SOFTWARE. */
 #endif
 
 #include "BatteryHandler.h"
-#include "Motion/MotionHandler.hpp"
+#include "MotionHandler.hpp"
 #include "VoiceHandler.hpp"
 #include "ButtonHandler.hpp"
 
@@ -451,7 +452,7 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason)
 			//   bleConfigurationHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
 		}
 	}
-	else
+	else if(status == WiFiStatus::DISCONNECTED)
 	{
 		// wifi.dispose();
 		// startApMode();
@@ -480,6 +481,14 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason)
 			// 	bleConfigurationHandler->setup();
 			// #endif
 		}
+	} 
+	else if(status == WiFiStatus::IP) 
+	{
+#if BUILD_DISPLAY
+		String ipaddress = wifi.ip().toString();
+		displayPrint("Connected IP: " + ipaddress);
+		displayHandler->setLocalIPAddress(wifi.ip());
+#endif
 	}
 }
 #endif
@@ -969,12 +978,12 @@ void setup()
 			displayPrint(ssid);
 			if (wifi.connect(ssid, wifiPass))
 			{
-				String ipaddress = wifi.ip().toString();
-				displayPrint("Connected IP: " + ipaddress);
-				LogHandler::info(TagHandler::Main, "Connected IP: %s", ipaddress.c_str());
-#if BUILD_DISPLAY
-				displayHandler->setLocalIPAddress(wifi.ip());
-#endif
+// 				String ipaddress = wifi.ip().toString();
+// 				displayPrint("Connected IP: " + ipaddress);
+// 				LogHandler::info(TagHandler::Main, "Connected IP: %s", ipaddress.c_str());
+// #if BUILD_DISPLAY
+// 				displayHandler->setLocalIPAddress(wifi.ip());
+// #endif
 				if (!startUDPTCode(settingsFactory->getUdpServerPort()))
 				{
 					LogHandler::error(TagHandler::Main, "Error starting UDP server!");

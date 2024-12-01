@@ -18,11 +18,7 @@
 	<script defer type="text/javascript" src="buttons-min.js"></script>
 	<script defer type="text/javascript" src="range-slider-min.js"></script>
 	<script defer type="text/javascript" src="esp-timer-setup-min.js"></script>
-	<!-- 
-	For some reason AsyncTCP crashes when settings-min.js is defer. Increasing the async queue to 64 from 32 https://github.com/me-no-dev/ESPAsyncWebServer/issues/686
-	 Solves the issue but id rather modify my code than a third parties code. So this stays synchronus untill another solution is found.
-	 -->
-	<script type="text/javascript" src="settings-min.js"></script>
+	<script defer type="text/javascript" src="settings-min.js"></script>
   <script>
     /*to prevent Firefox FOUC, this must be here*/
 	// https://stackoverflow.com/questions/21147149/flash-of-unstyled-content-fouc-in-firefox-only-is-ff-slow-renderer

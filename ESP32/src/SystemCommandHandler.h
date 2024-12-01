@@ -27,8 +27,8 @@ SOFTWARE. */
 #include "SettingsHandler.h"
 #include "utils.h"
 #include "TagHandler.h"
-#include "../lib/struct/command.hpp"
-#include "../lib/settingsFactory.h"
+#include "struct/command.hpp"
+#include "settingsFactory.h"
 
 class SystemCommandHandler {
 public: 

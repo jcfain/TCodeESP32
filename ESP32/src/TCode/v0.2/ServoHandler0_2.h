@@ -21,11 +21,11 @@
 #pragma once
 
 #include <ESP32Servo.h>
-#include "../../SettingsHandler.h"
+#include "SettingsHandler.h"
 #include "ToyComs.h"
-#include "../Global.h"
-#include "../MotorHandler.h"
-#include "../../TagHandler.h"
+#include "Global.h"
+#include "MotorHandler.h"
+#include "TagHandler.h"
 
 /* volatile int twistFeedBackPin = m_settingsFactory->TwistFeedBack_PIN;
 // Twist position monitor variables

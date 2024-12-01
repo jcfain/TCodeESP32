@@ -23,7 +23,7 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
-#include "../TCodeBase.h"
+#include "TCodeBase.h"
 
 #include <TCode.h>
 using namespace TCode;

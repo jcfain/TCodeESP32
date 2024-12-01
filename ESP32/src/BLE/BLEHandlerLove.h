@@ -30,7 +30,7 @@ SOFTWARE. */
 #include "logging/LogHandler.h"
 
 #include "BLELoveControlCallback.h"
-#include "../lib/constants.h"
+#include "constants.h"
 #include "TagHandler.h"
 #include "BLEHandlerBase.h"
 

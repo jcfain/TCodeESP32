@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 // #include "LogHandler.h"
-#include "../BatteryHandler.h"
+#include "BatteryHandler.h"
 
 class WebSocketBase {
     public:

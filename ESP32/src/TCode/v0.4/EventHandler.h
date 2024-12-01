@@ -21,8 +21,8 @@
 
 #include "datatypes/CommandDataTypes.h"
 #include "observer/TObserver.h"
-#include "../Global.h"
-#include "../../lib/constants.h"
+#include "Global.h"
+#include "constants.h"
 
 using namespace TCode::Observer;
 using namespace TCode::Datatypes;

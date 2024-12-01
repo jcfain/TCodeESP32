@@ -23,7 +23,7 @@ SOFTWARE. */
 #pragma once
 
 #include "Arduino.h"
-#include "outputStream\TOutputStreamInterface.h"
+#include "outputstream/TOutputStreamInterface.h"
 
 class OutputStream : public TCode::Output::TCodeIOutputStream {
     public:

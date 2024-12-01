@@ -31,7 +31,7 @@ SOFTWARE. */
 #include "logging/LogHandler.h"
 
 #include "TagHandler.h"
-#include "../lib/constants.h"
+#include "constants.h"
 
 
 class ServerCallbacks: public NimBLEServerCallbacks {  

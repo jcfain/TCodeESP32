@@ -24,7 +24,7 @@ SOFTWARE. */
 
 #include <ArduinoJson.h>
 #include "buttonModel.h"
-#include "../constants.h"
+#include "constants.h"
 
 struct ButtonSet {
     char name[26] = "Default";

@@ -24,8 +24,8 @@
 // Leave this section of the code alone unless you know what you're doing
 #pragma once
 
-#include "../TCodeBase.h"
-#include "../../TagHandler.h"
+#include "TCodeBase.h"
+#include "TagHandler.h"
 
 class ToyComms : public TCodeBase {
   public:

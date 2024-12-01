@@ -27,9 +27,9 @@ SOFTWARE. */
 // #include "LogHandler.h"
 #include "TagHandler.h"
 #include "SettingsHandler.h"
-#include "../lib/constants.h"
-#include "../lib/struct/buttonSet.h"
-#include "../lib/settingsFactory.h"
+#include "constants.h"
+#include "struct/buttonSet.h"
+#include "settingsFactory.h"
 
 
 class ButtonHandler {

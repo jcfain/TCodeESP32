@@ -33,7 +33,7 @@ SOFTWARE. */
 
 #include "BLECharacteristicCallbacksBase.h"
 #include "TagHandler.h"
-#include "../lib/constants.h"
+#include "constants.h"
 
 class BLEHCControlCallback: public BLECharacteristicCallbacksBase  
 {

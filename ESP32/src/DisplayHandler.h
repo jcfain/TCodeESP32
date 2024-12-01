@@ -24,7 +24,7 @@ SOFTWARE. */
 
 #include <Wire.h>
 #include <Adafruit_GFX.h>
-#include "../lib/Ext/Adafruit_SSD1306_RSB.h"
+#include "Adafruit_SSD1306_RSB.h"
 #include "SettingsHandler.h"
 // #include "LogHandler.h"
 #if WIFI_TCODE
@@ -37,7 +37,7 @@ SOFTWARE. */
 #include "BatteryHandler.h"
 #include "TagHandler.h"
 // #if ISAAC_NEWTONGUE_BUILD
-// #include "../lib/animationFrames.h"
+// #include "animationFrames.h"
 // #endif
 
 class DisplayHandler

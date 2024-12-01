@@ -29,7 +29,7 @@ SOFTWARE. */
 #include <queue>
 #include <sstream>
 #include "esp_coexist.h"
-#include "../lib/constants.h"
+#include "constants.h"
 // #include "LogHandler.h"
 #include "TagHandler.h"
 #include "TCode/MotorHandler.h"
@@ -37,7 +37,7 @@ SOFTWARE. */
 #include "BLEHandlerBase.h"
 #include "BLEHandlerTCode.h"
 #include "BLEHandlerLove.h"
-#include "BLEHandlerHc.h"
+#include "BLEHandlerHC.h"
 
 class BLEHandler
 {

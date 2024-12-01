@@ -22,12 +22,12 @@
 #pragma once
 
 #include "TCode0_3.h"
-#include "../../SettingsHandler.h"
-#include "../Global.h"
+#include "SettingsHandler.h"
+#include "Global.h"
 #include "MotorHandler0_3.h"
-#include "../../TagHandler.h"
-#include "../settingsFactory.h"
-#include "../PinMap.h"
+#include "TagHandler.h"
+#include "settingsFactory.h"
+#include "pinMap.h"
 
 class ServoHandler0_3 : public MotorHandler0_3 {
 
