@@ -301,7 +301,10 @@ private:
                     int jitter = 1;
                     twist += jitter;
                     jitter *= -1;
-                    twist = -constrain(twist, -500, 500);
+                    if(m_settingsFactory->getInverseTwist())
+                        twist = -constrain(twist, 500, -500);
+                    else
+                        twist = -constrain(twist, -500, 500);
                     // if(twist != testVar2) {
                     //     testVar2 = twist;
                     //     Serial.print("twist: ");
@@ -313,9 +316,12 @@ private:
                     //}
                 }
             } 
-            else 
+            else
             {
-                twist  = map(xRot,0,9999,1000,-1000);
+                if(m_settingsFactory->getInverseTwist())
+                    twist = map(xRot,0,9999,-1000,1000);
+                else
+                    twist = map(xRot,0,9999,1000,-1000);
             }
             #ifdef ESP_ARDUINO3
             ledcWrite(m_twistServoPin, map(m_settingsFactory->getTwistServo_ZERO() + twist,0,m_twistServo_Int,0,m_servoPWMMaxDuty));

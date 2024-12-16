@@ -81,6 +81,7 @@
 #define VIB_TIMEOUT_DEFAULT 2000
 #define INVERSE_STROKE_DEFAULT false
 #define INVERSE_PITCH_DEFAULT false
+#define INVERSE_TWIST_DEFAULT false
 #define LUBE_AMOUNT_DEFAULT 255
 #define LUBE_ENABLED_DEFAULT false
 #define DISPLAY_ENABLED_DEFAULT true
@@ -176,6 +177,7 @@
 #define VIB_TIMEOUT "vibTimeout"
 #define INVERSE_STROKE "inverseStroke"
 #define INVERSE_PITCH "inversePitch"
+#define INVERSE_TWIST "inverseTwist"
 #define LUBE_AMOUNT "lubeAmount"
 #define LUBE_ENABLED "lubeEnabled"
 #define DISPLAY_ENABLED "displayEnabled"

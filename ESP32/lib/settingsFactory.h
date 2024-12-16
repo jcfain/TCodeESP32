@@ -99,7 +99,8 @@ public:
     bool getInversePitch() const { return inversePitch; }
     bool getValveServo90Degrees() const { return valveServo90Degrees; }
     bool getAutoValve() const { return autoValve; }
-    bool getInverseValve() const { return inverseValve; }
+    bool getInverseValve() const { return inverseTwist; }
+    bool getInverseTwist() const { return inverseValve; }
     bool getContinuousTwist() const { return continuousTwist; }
     int getLubeAmount() const { return lubeAmount; }
     int getBatteryCapacityMax() const { return batteryCapacityMax; }
@@ -625,6 +626,10 @@ public:
             getValue(INVERSE_PITCH, inversePitch);
             if(targeted) {initCommonMessages(name); return;}
         }
+        if(!name || !strcmp(name, INVERSE_TWIST)) {
+            getValue(INVERSE_TWIST, inverseTwist);
+            if(targeted) {initCommonMessages(name); return;}
+        }
         if(!name || !strcmp(name, VALVE_SERVO_90DEGREES)) {
             getValue(VALVE_SERVO_90DEGREES, valveServo90Degrees);
             if(targeted) {initCommonMessages(name); return;}
@@ -838,10 +843,11 @@ private:
             {VALVE_SERVO_ZERO, "Valve servo zero", "The zero calibration for the valve servo", SettingType::Number, VALVE_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {SQUEEZE_ZERO, "Squeeze servo zero", "The zero calibration for the squeeze servo", SettingType::Number, SQUEEZE_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {AUTO_VALVE, "Auto valve", "Enable valve auto behavior", SettingType::Boolean, AUTO_VALVE_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
-            {INVERSE_VALVE, "Inverse valve", "Inverse the valve movement", SettingType::Boolean, INVERSE_VALVE_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
+            {INVERSE_VALVE, "Inverse valve", "Inverse the valve movement", SettingType::Boolean, INVERSE_VALVE_DEFAULT, RestartRequired::NO, {SettingProfile::Servo}},
             {VALVE_SERVO_90DEGREES, "Valve 90 degree servo", "The valve is 90 degrees max", SettingType::Boolean, VALVE_SERVO_90DEGREES_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
-            {INVERSE_STROKE, "Inverse stroke", "Inverse stroke", SettingType::Boolean, INVERSE_STROKE_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
-            {INVERSE_PITCH, "Inverse pitch", "Inverse pitch", SettingType::Boolean, INVERSE_PITCH_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
+            {INVERSE_STROKE, "Inverse stroke", "Inverse stroke", SettingType::Boolean, INVERSE_STROKE_DEFAULT, RestartRequired::NO, {SettingProfile::Servo}},
+            {INVERSE_PITCH, "Inverse pitch", "Inverse pitch", SettingType::Boolean, INVERSE_PITCH_DEFAULT, RestartRequired::NO, {SettingProfile::Servo}},
+            {INVERSE_TWIST, "Inverse twist", "Inverse twist", SettingType::Boolean, INVERSE_TWIST_DEFAULT, RestartRequired::NO, {SettingProfile::Servo}},
             {LUBE_AMOUNT, "Lube amount", "Amount of lube in PWM", SettingType::Number, LUBE_AMOUNT_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
             {LUBE_ENABLED, "Lube enabled", "Enable lube", SettingType::Boolean, LUBE_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
             {VIB_TIMEOUT_ENABLED, "Vib timeout Enabled", "If disabled the vibs must be manually stopped", SettingType::Boolean, VIB_TIMEOUT_ENABLED_DEFAULT, RestartRequired::NO, {SettingProfile::Vib}},
@@ -968,6 +974,7 @@ private:
     std::vector<const char*> logExcludes;
     bool inverseStroke;
     bool inversePitch;
+    bool inverseTwist;
     bool valveServo90Degrees;
     bool autoValve;
     bool inverseValve;
