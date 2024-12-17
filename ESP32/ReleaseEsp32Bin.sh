@@ -16,28 +16,6 @@ esp32ArduinoCoredir="framework-arduinoespressif32@src-a01c93a63f3ed4184a2ede3960
 echo "Enter a version (example: 0.255b):"
 read version
 
-echo
-echo
-# echo. [43mWARNING: This will NOT build the project.[0m
-# echo. [43mYou need to do that manually in platformIO first[0m
-echo "..............................................."
-echo "Select the build to deploy, or 9 to EXIT."
-echo "..............................................."
-echo
-
-builds=(
-	"esp32doit-devkit-v1" 
-	"esp32doit-devkit-v1-bldc" 
-	"esp32-devkit-v4" 
-	"esp32-devkit-v4-bldc" 
-	"esp32-s3-zero" 
-	"esp32-s3-zero-bldc" 
-	"esp32-s3-devkitc-1-N8R8" 
-	"esp32-s3-devkitc-1-N8R8-bldc" 
-	"EXIT"
-)
-
-
 # echo 1 - ESP32 Devkit V1 Base
 # echo 2 - ESP32 Devkit V1 bldc
 # echo 3 - ESP32 Devkit V4 Base
@@ -52,6 +30,23 @@ builds=(
 
 function printMenu
 {
+	echo
+	echo
+	echo "-----------------------------------------------"
+	echo "Select the build to deploy, or 9 to EXIT."
+	echo "-----------------------------------------------"
+	echo
+	local builds=(
+		"esp32doit-devkit-v1" 
+		"esp32doit-devkit-v1-bldc" 
+		"esp32-devkit-v4" 
+		"esp32-devkit-v4-bldc" 
+		"esp32-s3-zero" 
+		"esp32-s3-zero-bldc" 
+		"esp32-s3-devkitc-1-N8R8" 
+		"esp32-s3-devkitc-1-N8R8-bldc" 
+		"EXIT"
+	)
 	select build in "${builds[@]}"
 
 	do
@@ -60,41 +55,49 @@ function printMenu
 			BUILD_MODIFIER=$build
 			MODULE_TYPE=0
 			buildAndDeploy
+			break
 		  ;;
 		"esp32doit-devkit-v1-bldc")
 			BUILD_MODIFIER=$build
 			MODULE_TYPE=0
 			buildAndDeploy
+			break
 		  ;;
 		"esp32-devkit-v4")
 			BUILD_MODIFIER=$build
 			MODULE_TYPE=0
 			buildAndDeploy
+			break
 		  ;;
 		"esp32-devkit-v4-bldc")
 			BUILD_MODIFIER=$build
 			MODULE_TYPE=0
 			buildAndDeploy
+			break
 		  ;;
 		"esp32-s3-zero")
 			BUILD_MODIFIER=$build
 			MODULE_TYPE=1
 			buildAndDeploy
+			break
 		  ;;
 		"esp32-s3-zero-bldc")
 			BUILD_MODIFIER=$build
 			MODULE_TYPE=1
 			buildAndDeploy
+			break
 		  ;;
 		"esp32-s3-devkitc-1-N8R8")
 			BUILD_MODIFIER=$build
 			MODULE_TYPE=2
 			buildAndDeploy
+			break
 		  ;;
 		"esp32-s3-devkitc-1-N8R8-bldc")
 			BUILD_MODIFIER=$build
 			MODULE_TYPE=2
 			buildAndDeploy
+			break
 		  ;;
 		"EXIT")
 		  echo "EXIT"
@@ -102,6 +105,7 @@ function printMenu
 		  ;;
 		*) 
 		  echo "Invalid choice"
+			break
 		  ;;
 	  esac
 	done
