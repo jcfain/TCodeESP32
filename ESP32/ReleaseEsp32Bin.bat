@@ -116,10 +116,10 @@ IF EXIST %releaseZip% DEL /F %releaseZip%
 GOTO MENU
 
 
-REM "C:\Users\jay\.platformio\penv\Scripts\python.exe" 
-REM "C:\Users\jay\.platformio\packages\tool-esptoolpy\esptool.py" 
+REM "%userprofile%.platformio\penv\Scripts\python.exe" 
+REM "%userprofile%.platformio\packages\tool-esptoolpy\esptool.py" 
 REM --chip esp32s3 --port "COM14" --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 8MB 
-REM 0x0000 C:\Users\jay\git\TCodeESP32\ESP32\.pio\build\esp32-s3-devkitc-1-N8R8\bootloader.bin 
-REM 0x8000 C:\Users\jay\git\TCodeESP32\ESP32\.pio\build\esp32-s3-devkitc-1-N8R8\partitions.bin 
-REM 0xe000 C:\Users\jay\.platformio\packages\framework-arduinoespressif32\tools\partitions\boot_app0.bin 
+REM 0x0000 %userprofile%git\TCodeESP32\ESP32\.pio\build\esp32-s3-devkitc-1-N8R8\bootloader.bin 
+REM 0x8000 C%userprofile%git\TCodeESP32\ESP32\.pio\build\esp32-s3-devkitc-1-N8R8\partitions.bin 
+REM 0xe000 %userprofile%.platformio\packages\framework-arduinoespressif32\tools\partitions\boot_app0.bin 
 REM 0x10000 .pio\build\esp32-s3-devkitc-1-N8R8\firmware.bin
