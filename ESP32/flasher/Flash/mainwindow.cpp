@@ -33,11 +33,19 @@ MainWindow::MainWindow(QWidget *parent)
     //flashProcess = new QProcess(this);
     connect(flashProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::on_flashFinished);
     connect(flashProcess, &QProcess::readyRead, this,  &MainWindow::on_flashUpdate);
+    connect(flashProcess, &QProcess::errorOccurred, this,  [this](QProcess::ProcessError error) {
+        on_flashError();
+    });
+
 
     //m_serialPort = new QSerialPort(this);
     connect(m_serialPort, &QSerialPort::readyRead, this, &MainWindow::on_serailReadyRead);
     ui->binFilePath->setText(QApplication::applicationDirPath() + QDir::separator() + "release.bin");
+#ifdef Q_OS_LINUX
+    ui->espToolInput->setText(QApplication::applicationDirPath() + QDir::separator() + "esptool" + QDir::separator() + "linux" + QDir::separator() + "esptool" + QDir::separator() + "esptool");
+#elif defined(Q_OS_WIN)
     ui->espToolInput->setText(QApplication::applicationDirPath() + QDir::separator() + "esptool" + QDir::separator() + "esptool.exe");
+#endif
 }
 
 MainWindow::~MainWindow()
@@ -66,6 +74,8 @@ bool MainWindow::checkAndConnectSerial()
     if(!m_serialPort->isOpen() || (m_serialPort->isOpen() && m_serialPort->portName() != portName)) {
         closeSerial();
         ui->serialOutputTextBrowser->clear();
+        if(portName.isEmpty())
+            return false;
         m_serialPort->setPortName(portName);
         if(m_serialPort->open(QIODevice::ReadWrite)) {
             if(!m_serialPort->setBaudRate(QSerialPort::BaudRate::Baud115200)) {
@@ -98,6 +108,8 @@ bool MainWindow::checkAndConnectSerial()
             //     closeSerial();
             //     return false;
             // }
+            m_serialPort->setRequestToSend(false);
+            m_serialPort->setDataTerminalReady(false);
             appendToSerialOutput("Connected to: "+portName +"\n");
             ui->sterialStateInput->setText("Connected to: "+portName);
         } else {
@@ -141,12 +153,17 @@ void MainWindow::flashFirmware(QString esptoolPath, QString firmwarePath, QStrin
     }
     if(!QFileInfo::exists(esptoolPath)) {
         QMessageBox::critical(this, tr("Error"),
-                              tr("Invalie esptool path\n") + esptoolPath);
+                              tr("Invalid esptool path\n") + esptoolPath);
         return;
     }
     if(!QFileInfo::exists(firmwarePath)) {
         QMessageBox::critical(this, tr("Error"),
-                              tr("Invalie firmware path\n") + firmwarePath);
+                              tr("Invalid firmware path\n") + firmwarePath);
+        return;
+    }
+    if(!QFileInfo(esptoolPath).permission(QFile::Permission::ExeOwner)) {
+        QMessageBox::critical(this, tr("Error"),
+                              tr("Esptool is NOT executable\n") + firmwarePath);
         return;
     }
     const QStringList args = {
@@ -276,10 +293,20 @@ void MainWindow::on_refreshComports_clicked()
     int currentIndex = 0;
     int esp32Index = -1;
     ui->serialSelectorCombobox->clear();
+    if(QSerialPortInfo::availablePorts().empty())
+    {
+        QMessageBox::critical(this, tr("Empty"),
+                              tr("No serial ports available"));
+        return;
+    }
 
     foreach (const QSerialPortInfo &serialPortInfo, QSerialPortInfo::availablePorts())
     {
+#ifdef Q_OS_LINUX
+        QVariant comport(serialPortInfo.systemLocation());
+#elif defined(Q_OS_WIN)
         QVariant comport(serialPortInfo.portName());
+#endif
         ui->serialSelectorCombobox->addItem(serialPortInfo.portName() + " - " + serialPortInfo.description(), comport);
         if(serialPortInfo.description().contains("CP210x", Qt::CaseInsensitive) || serialPortInfo.description().contains("CH340", Qt::CaseInsensitive)) {
             esp32Index = currentIndex;
@@ -328,16 +355,18 @@ void MainWindow::on_saveWiFiCredsButton_clicked()
 //        QMessageBox::critical(this, tr("Invalid form"),
 //                              tr("SSID has invalid characters"));
 //    }
+    QStringList messages;
     if(!ssid.isEmpty()) {
-        sendSerial("#wifi-ssid:"+ssid);
+        messages << "#wifi-ssid:"+ssid;
         modified = true;
     }
     if(!password.isEmpty()) {
-        sendSerial("#wifi-pass:"+password);
+        messages  << "#wifi-pass:"+password;
         modified = true;
     }
     if(modified) {
-        sendSerial("$save #restart");
+        messages << "$save #restart";
+        sendSerial(messages.join(" "));
         ui->tabWidget->setCurrentIndex(3);
     } else {
         QMessageBox::warning(this, tr("Warning"), tr("Nothing to modify"));
