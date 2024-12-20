@@ -2525,7 +2525,7 @@ function toggleBLEDeviceTypes() {
 }
 
 function setBLEDeviceType() {
-    wifiSettings["bleDeviceType"] = document.getElementById('bleDeviceType').value;
+    wifiSettings["bleDeviceType"] = parseInt(document.getElementById('bleDeviceType').value);
     toggleBLELoveDeviceTypes();
     setRestartRequired();
     postWifiSettings();
@@ -2541,7 +2541,7 @@ function toggleBLELoveDeviceTypes() {
     };
 }
 function setBLELoveDeviceType() {
-    wifiSettings["bleLoveDeviceType"] = document.getElementById('bleLoveDeviceType').value;
+    wifiSettings["bleLoveDeviceType"] = parseInt(document.getElementById('bleLoveDeviceType').value);
     setRestartRequired();
     postWifiSettings();
 }
