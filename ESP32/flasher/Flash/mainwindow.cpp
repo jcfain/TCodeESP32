@@ -10,6 +10,17 @@
 #include <QFileInfo>
 #include <QDir>
 
+struct ModuleConfig
+{
+    const QString friendlyName;
+    const QString name;
+    const QString flashMode;
+    const QString flashFreq;
+    const QString flashSize;
+    const QString flashStart;
+    const QString baud;
+};
+Q_DECLARE_METATYPE(ModuleConfig)
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -20,6 +31,16 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     on_refreshComports_clicked();
+
+    const QList<ModuleConfig> modules =
+    {
+        {"Esp32", "esp32", "dio", "40m", "4MB", "0x1000", "921600"}
+        ,{"Esp32 S3 zero", "esp32s3", "dio", "80m", "4MB", "0x0000", "921600"}
+        ,{"Esp32 S3 N8R8", "esp32s3", "qio", "80m", "8MB", "0x0000", "921600"}// Need to check these
+    };
+
+    ui->modulePropertiesGrpBx->setHidden(true);
+    ui->moduleAdvancedBtn->setCheckable(true);
 
 //    m_finder = new QTimer(this);
 //    m_finder->setInterval(1000);
@@ -36,7 +57,19 @@ MainWindow::MainWindow(QWidget *parent)
     connect(flashProcess, &QProcess::errorOccurred, this,  [this](QProcess::ProcessError error) {
         on_flashError();
     });
+    connect(ui->moduleAdvancedBtn, &QPushButton::clicked, this, [this](bool checked){
+        ui->modulePropertiesGrpBx->setHidden(!checked);
+    });
 
+    connect(ui->moduleSelectCmb, &QComboBox::currentIndexChanged, this, [this](int index){
+        ModuleConfig moduleData = ui->moduleSelectCmb->currentData().value<ModuleConfig>();
+        ui->moduleNameTxt->setText(moduleData.name);
+        ui->moduleFreqTxt->setText(moduleData.flashFreq);
+        ui->moduleModeTxt->setText(moduleData.flashMode);
+        ui->moduleSizeTxt->setText(moduleData.flashSize);
+        ui->moduleStartTxt->setText(moduleData.flashStart);
+        ui->moduleBaudTxt->setText(moduleData.baud);
+    });
 
     //m_serialPort = new QSerialPort(this);
     connect(m_serialPort, &QSerialPort::readyRead, this, &MainWindow::on_serailReadyRead);
@@ -46,6 +79,9 @@ MainWindow::MainWindow(QWidget *parent)
 #elif defined(Q_OS_WIN)
     ui->espToolInput->setText(QApplication::applicationDirPath() + QDir::separator() + "esptool" + QDir::separator() + "esptool.exe");
 #endif
+    foreach (auto module, modules) {
+        ui->moduleSelectCmb->addItem(module.name, QVariant::fromValue(module));
+    }
 }
 
 MainWindow::~MainWindow()
@@ -166,23 +202,43 @@ void MainWindow::flashFirmware(QString esptoolPath, QString firmwarePath, QStrin
                               tr("Esptool is NOT executable\n") + firmwarePath);
         return;
     }
+    ModuleConfig moduleData = ui->moduleSelectCmb->currentData().value<ModuleConfig>();
+    if(ui->moduleNameTxt->text().isEmpty()) {
+        ui->moduleNameTxt->setText(moduleData.name);
+    }
+    if(ui->moduleBaudTxt->text().isEmpty()) {
+        ui->moduleBaudTxt->setText(moduleData.baud);
+    }
+    if(ui->moduleModeTxt->text().isEmpty()) {
+        ui->moduleModeTxt->setText(moduleData.flashMode);
+    }
+    if(ui->moduleFreqTxt->text().isEmpty()) {
+        ui->moduleFreqTxt->setText(moduleData.flashFreq);
+    }
+    if(ui->moduleSizeTxt->text().isEmpty()) {
+        ui->moduleSizeTxt->setText(moduleData.flashSize);
+    }
+
     const QStringList args = {
-        "--chip","esp32",
+        "--chip",ui->moduleNameTxt->text(),
         "--port", comport,
-        "--baud","921600",
+        "--baud",ui->moduleBaudTxt->text(),
         "--before","default_reset",
         "--after","hard_reset",
         "write_flash",
         "-z",
-        "--flash_mode","dio",
-        "--flash_freq","40m",
-        "--flash_size","4MB",
+        "--flash_mode", ui->moduleModeTxt->text(),
+        "--flash_freq", ui->moduleFreqTxt->text(),
+        "--flash_size", ui->moduleSizeTxt->text(), // --flash_size detect 0x0000
         "--erase-all",
         "0x0",
         firmwarePath
     };
     closeSerial();
     setFlashMode(true);
+
+    appendToFlashOutput("Execute command: ");
+    appendToFlashOutput(esptoolPath + " " +args.join(" ") + "\n");
     flashProcess->start(esptoolPath, args);
     //QFileInfo espToolInfo(esptool);
     //process.setWorkingDirectory(QApplication::applicationDirPath());
@@ -191,6 +247,9 @@ void MainWindow::flashFirmware(QString esptoolPath, QString firmwarePath, QStrin
 
     //    ui->wifiPasswordInput->setEnabled(true);
     //    ui->availableWifiNetworks->setEnabled(true);
+
+    // Zero
+    // "/home/jay/.platformio/penv/bin/python" "/home/jay/.platformio/packages/tool-esptoolpy@src-0fed74e9a0661ea9c83289dd49725739/esptool.py" --chip esp32s3 --port "/dev/ttyACM0" --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size detect 0x0000 /home/jay/git/TCodeESP32/ESP32/.pio/build/esp32-s3-zero-bldc/bootloader.bin 0x8000 /home/jay/git/TCodeESP32/ESP32/.pio/build/esp32-s3-zero-bldc/partitions.bin 0xe000 /home/jay/.platformio/packages/framework-arduinoespressif32@src-a01c93a63f3ed4184a2ede3960108545/tools/partitions/boot_app0.bin 0x10000 .pio/build/esp32-s3-zero-bldc/firmware.bin
 }
 
 void MainWindow::setFlashMode(bool flashing)

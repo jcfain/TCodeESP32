@@ -3,7 +3,7 @@
 #include "struct/channel.h"
 
 //#define FIRMWARE_VERSION 0.32f Not used currently
-#define FIRMWARE_VERSION_NAME "0.391a\n"
+#define FIRMWARE_VERSION_NAME "0.392a\n"
 #define MAX_BUTTON_SETS 4
 #define MAX_BUTTONS 4
 #define MAX_COMMAND 256

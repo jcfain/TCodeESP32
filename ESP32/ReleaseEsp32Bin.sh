@@ -148,11 +148,11 @@ function buildAndDeploy
 	
 	# S3 ZERO
 	elif [ $MODULE_TYPE -eq 1 ]; then
-		$ESPTOOLDIR/esptool --chip esp32 merge_bin -o $OUTDIR/release.bin --flash_mode qio --flash_freq 80m --flash_size 4MB 0x1000 $BUILD_DIR/bootloader.bin 0x8000 $BUILD_DIR/partitions.bin 0xe000 ~/.platformio/packages/$esp32ArduinoCoredir/tools/partitions/boot_app0.bin 0x10000 $BUILD_DIR/firmware.bin 0x310000 $BUILD_DIR/littlefs.bin
+		$ESPTOOLDIR/esptool --chip esp32s3 merge_bin -o $OUTDIR/release.bin --flash_mode dio --flash_freq 80m --flash_size 4MB 0x0000 $BUILD_DIR/bootloader.bin 0x8000 $BUILD_DIR/partitions.bin 0xe000 ~/.platformio/packages/$esp32ArduinoCoredir/tools/partitions/boot_app0.bin 0x10000 $BUILD_DIR/firmware.bin 0x310000 $BUILD_DIR/littlefs.bin
 	
 	# S3 N8 8mb
 	elif [ $MODULE_TYPE -eq 2 ]; then
-		$ESPTOOLDIR/esptool --chip esp32 merge_bin -o $OUTDIR/release.bin --flash_mode qio --flash_freq 80m --flash_size 8MB 0x0000 $BUILD_DIR/bootloader.bin 0x8000 $BUILD_DIR/partitions.bin 0xe000 ~/.platformio/packages/$esp32ArduinoCoredir/tools/partitions/boot_app0.bin 0x10000 $BUILD_DIR/firmware.bin 0x00670000 $BUILD_DIR/littlefs.bin
+		$ESPTOOLDIR/esptool --chip esp32s3 merge_bin -o $OUTDIR/release.bin --flash_mode qio --flash_freq 80m --flash_size 8MB 0x0000 $BUILD_DIR/bootloader.bin 0x8000 $BUILD_DIR/partitions.bin 0xe000 ~/.platformio/packages/$esp32ArduinoCoredir/tools/partitions/boot_app0.bin 0x10000 $BUILD_DIR/firmware.bin 0x00670000 $BUILD_DIR/littlefs.bin
 	fi
 	if [ $? -ne 0 ]; then 
 		echo "Error merging bin"
