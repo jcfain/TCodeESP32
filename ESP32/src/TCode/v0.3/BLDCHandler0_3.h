@@ -143,15 +143,18 @@ public:
             m_useHallSensor = false;
             // m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
         }
+
         
         // initialise encoder hardware
         if(sensorMT6701) {
+            //SPI.begin(pinMap->i2cScl(), pinMap->i2cSda(), 11, pinMap->chipSelect()); // Do we need MOSI custom?
             sensorMT6701->init();
             LogHandler::debug(_TAG, "init sensorMT6701");
         } else if (sensorPWM) { 
             sensorPWM->init(); 
             LogHandler::debug(_TAG, "init sensorPWM");
         } else { 
+            //SPI.begin(pinMap->i2cScl(), pinMap->i2cSda(), 11, pinMap->chipSelect()); // Do we need this custom?
             sensorSPI->init(); 
             LogHandler::debug(_TAG, "init sensorSPI");
         }

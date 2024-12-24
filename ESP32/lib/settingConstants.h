@@ -30,7 +30,15 @@
 #define DEFAULT_IP "192.168.69.1"
 #define DEFAULT_GATEWAY "192.168.69.254"
 #define DEFAULT_SUBNET "255.255.255.0"
-#define BOARD_TYPE_DEFAULT (uint8_t)BoardType::DEVKIT
+#if CONFIG_IDF_TARGET_ESP32
+    #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::DEVKIT
+#elif CONFIG_IDF_TARGET_ESP32S3
+    #ifdef S3_ZERO
+        #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::ZERO
+    #else
+        #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::N8R8
+    #endif
+#endif
 #define LOG_LEVEL_DEFAULT (uint8_t)LogLevel::INFO
 //#define FULL_BUILD_DEFAULT false
 #define TCODE_VERSION_DEFAULT (uint8_t)TCodeVersion::v0_3

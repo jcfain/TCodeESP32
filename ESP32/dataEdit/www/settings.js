@@ -71,8 +71,10 @@ const BuildFeature = {
 
 let BoardType = {
     DEVKIT: 0,
-    CRIMZZON: 1,
-    ISAAC: 2
+    ZERO: 1,
+    N8R8: 2,
+    CRIMZZON: 3,
+    ISAAC: 4
 };
 let DeviceType = {
     OSR: 0,
@@ -651,6 +653,18 @@ function isOSR() {
 function isSSR1() {
     return userSettings["deviceType"] == DeviceType.SSR1;
 }
+function isBoardType(boardType) {
+    return userSettings["boardType"] === boardType;
+}
+function isModuleType(moduleType) {
+    return systemInfo["moduleType"] == moduleType;
+}
+function isMotorType(motorType) {
+    return systemInfo.motorType == motorType
+}
+function isBLDCSPI() {
+    return userSettings["BLDC_Encoder"] == BLDCEncoderType.SPI || userSettings["BLDC_Encoder"] == BLDCEncoderType.MT6701;
+}
 
 function startServerPoll() {
     if(serverPollRetryCount > 10) {
@@ -754,9 +768,9 @@ function setSystemInfo() {
         bleLoveDeviceTypeElement.appendChild(option);
         BLELoveDeviceType[element.name] = element.value;
     });
-    if(systemInfo.motorType === MotorType.BLDC)
+    if(systemInfo.motorType === MotorType.BLDC) {
         setupEncoderTypes();
-    else
+    } else
         setupBoardTypes();
     setupDeviceTypes();
     toggleBuildOptions();
@@ -883,7 +897,7 @@ function setUserSettings()
     //updateSpeedUI(userSettings["speed"]);
     
     document.getElementById('boardType').value = userSettings["boardType"];
-    if(userSettings["boardType"] === BoardType.CRIMZZON || userSettings["boardType"] === BoardType.ISAAC) {
+    if(isBoardType(BoardType.CRIMZZON) || isBoardType(BoardType.ISAAC)) {
         document.getElementById("deviceType").disabled = true;
     }
 
@@ -1037,6 +1051,11 @@ function toggleMotorTypeOptions() {
     } else {
         Utils.toggleControlVisibilityByClassName('BLDCOnly', true);
     }
+}
+
+function toggleBLDCEncoderOptions() {
+    Utils.toggleControlVisibilityByClassName("BLDCPWM", userSettings["BLDC_Encoder"] == BLDCEncoderType.PWM);
+    Utils.toggleControlVisibilityByClassName("BLDCSPI", isBLDCSPI());
 }
 
 function updateUserSettings(debounceInMs, uri, objectToSave, callback) 
@@ -1613,12 +1632,12 @@ function setupBoardTypes() {
 }
 function setEncoderType() {
     userSettings["BLDC_Encoder"] = document.getElementById('BLDC_Encoder').value;
-    Utils.toggleControlVisibilityByClassName("BLDCPWM", userSettings["BLDC_Encoder"] == BLDCEncoderType.PWM);
-    Utils.toggleControlVisibilityByClassName("BLDCSPI", userSettings["BLDC_Encoder"] == BLDCEncoderType.SPI);
+    toggleBLDCEncoderOptions();
     updateUserSettings(0);
 }
 function setupEncoderTypes() {
     const element = document.getElementById('BLDC_Encoder');
+    removeAllChildren(element);
     for(let i=0;i<systemInfo.encoderTypes.length;i++) {
         const option = document.createElement("option");
         option.innerText = systemInfo.encoderTypes[i].name;
@@ -2036,6 +2055,15 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
         }
         validatePin(pinValues.i2cSda, "I2C SDA", assignedPins, duplicatePins);
         validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins);
+    } else if(isMotorType(MotorType.BLDC) && isBLDCSPI()) {
+        if(pinValues.i2cScl < 0) {
+            invalidPins.push("I2C SCL pin: "+pinValues.i2cScl);
+        }
+        if(pinValues.i2cSda < 0) {
+            invalidPins.push("I2C SDA pin: "+pinValues.i2cSda);
+        }
+        validatePin(pinValues.i2cSda, "I2C SDA", assignedPins, duplicatePins);
+        validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins);
     }
     
     validatePin(pinValues.lubeButton, "Lube button", assignedPins, duplicatePins, true, invalidPins);
@@ -2060,9 +2088,11 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
         validatePin(pinValues.twistFeedBack, "Twist feedback", assignedPins, duplicatePins, true, invalidPins);
     }
     
-    for(var i=0; i<pinValues.buttonSets.length; i++) {
-        var buttonSetPin = pinValues.buttonSets[i];
-        validatePin(buttonSetPin, "Button set "+i, assignedPins, duplicatePins, true, invalidPins);
+    if(Buttons.isButtonSetsEnabled()) {
+        for(var i=0; i<pinValues.buttonSets.length; i++) {
+            var buttonSetPin = pinValues.buttonSets[i];
+            validatePin(buttonSetPin, "Button set "+i, assignedPins, duplicatePins, true, invalidPins);
+        }
     }
 
     if(duplicatePins.length || invalidPins.length) 
@@ -2725,7 +2755,7 @@ function handleImportRenames(key, value) {
         });
         return;
         case "sr6Mode":
-        if(systemInfo.motorType == MotorType.BLDC)
+        if(isMotorType(MotorType.BLDC))
             userSettings.deviceType = DeviceType.SSR1
         else
             userSettings.deviceType = value ? DeviceType.SR6 : DeviceType.OSR;

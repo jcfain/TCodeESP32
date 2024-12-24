@@ -391,16 +391,26 @@ public:
         v04["name"] = "v0.4 (Experimental)";
         v04["value"] = TCodeVersion::v0_4;
         JsonArray boardTypes = doc["boardTypes"].to<JsonArray>();
+#if CONFIG_IDF_TARGET_ESP32
         JsonObject devkit = boardTypes.add<JsonObject>();
         devkit["name"] = "Devkit/NexusPRO";
         devkit["value"] = (uint8_t)BoardType::DEVKIT;
-#if CONFIG_IDF_TARGET_ESP32
         JsonObject SR6MB = boardTypes.add<JsonObject>();
         SR6MB["name"] = "SR6MB";
         SR6MB["value"] = (uint8_t)BoardType::CRIMZZON;
         JsonObject INControl = boardTypes.add<JsonObject>();
         INControl["name"] = "IN-Control";
         INControl["value"] = (uint8_t)BoardType::ISAAC;
+#elif CONFIG_IDF_TARGET_ESP32S3
+    #ifdef S3_ZERO
+        JsonObject S3_Zero = boardTypes.add<JsonObject>();
+        S3_Zero["name"] = "S3 Zero";
+        S3_Zero["value"] = (uint8_t)BoardType::ZERO;
+    #else
+        JsonObject N8R8 = boardTypes.add<JsonObject>();
+        N8R8["name"] = "S3 N8R8";
+        N8R8["value"] = (uint8_t)BoardType::N8R8;
+    #endif
 #endif
         int motorType = MOTOR_TYPE_DEFAULT;
         m_settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);

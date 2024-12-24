@@ -39,18 +39,12 @@ BLDCMotor = {
         document.getElementById("BLDC_RailLength").value = userSettings["BLDC_RailLength"];
         document.getElementById("BLDC_StrokeLength").value = userSettings["BLDC_StrokeLength"];
 
-        Utils.toggleControlVisibilityByClassName("BLDCPWM", userSettings["BLDC_Encoder"] == BLDCEncoderType.PWM);
-        Utils.toggleControlVisibilityByClassName("BLDCSPI", userSettings["BLDC_Encoder"] == BLDCEncoderType.SPI);
+        toggleBLDCEncoderOptions();
         Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
         Utils.toggleControlVisibilityByID("ZeroElecAngle", userSettings["BLDC_MotorA_ParametersKnown"]);
     }
     // TODO: move bldc stuff in to here. Follow this pattern moving forward.
 }
-
-function isBLDCSPI() {
-    return userSettings["BLDC_Encoder"] == BLDCEncoderType.SPI;
-}
-
 function updateBLDCSettings() {
     userSettings["BLDC_UseHallSensor"] = document.getElementById('BLDC_UseHallSensor').checked;
     Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
@@ -111,11 +105,30 @@ function validateBLDCPins() {
     if(userSettings["disablePinValidation"])
         return pinValues;
 
-    //assignedPins.push({name:"SPI1", pin:5});
-    assignedPins.push({name:"SPI1", pin:18});
-    assignedPins.push({name:"SPI2", pin:19});
-    if(isBLDCSPI()) {
-        assignedPins.push({name:"SPI3", pin:23});
+    if(isModuleType(ModuleType.S3))
+    {
+        if(isBoardType(BoardType.ZERO)) {
+            if(isBLDCSPI()) {
+                assignedPins.push({name:"SPI MOSI", pin:11});
+            }
+        } else {
+            // TODO validate this for N8R8
+            //assignedPins.push({name:"SPI1", pin:5});
+            assignedPins.push({name:"SPI CLK", pin:18});
+            assignedPins.push({name:"SPI MISO", pin:19});
+            if(isBLDCSPI()) {
+                assignedPins.push({name:"SPI MOSI", pin:23});
+            }
+        }
+    }
+    else 
+    {
+        //assignedPins.push({name:"SPI1", pin:5});
+        assignedPins.push({name:"SPI CLK", pin:18});
+        assignedPins.push({name:"SPI MISO", pin:19});
+        if(isBLDCSPI()) {
+            assignedPins.push({name:"SPI MOSI", pin:23});
+        }
     }
     // var pinDupeIndex = -1;
     // if(pinValues.BLDC_Encoder_PIN > -1) {
@@ -148,7 +161,7 @@ function validateBLDCPins() {
     //     if(pinDupeIndex > -1)
     //         duplicatePins.push("PWMchannel1 pin and "+assignedPins[pinDupeIndex].name);
     //     if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel1_PIN) == -1)
-    //         pmwErrors.push("PWMchannel1 pin: "+pinValues.BLDC_PWMchannel1_PIN);
+    //         pwmErrors.push("PWMchannel1 pin: "+pinValues.BLDC_PWMchannel1_PIN);
     //     assignedPins.push({name:"PWMchannel1", pin:pinValues.BLDC_PWMchannel1_PIN});
     // }
     validatePWMPin(pinValues.rightPin, "PWMchannel1", assignedPins, duplicatePins, pwmErrors);
@@ -158,7 +171,7 @@ function validateBLDCPins() {
     //     if(pinDupeIndex > -1)
     //         duplicatePins.push("PWMchannel2 pin and "+assignedPins[pinDupeIndex].name);
     //     if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel2_PIN) == -1)
-    //         pmwErrors.push("PWMchannel2 pin: "+pinValues.BLDC_PWMchannel2_PIN);
+    //         pwmErrors.push("PWMchannel2 pin: "+pinValues.BLDC_PWMchannel2_PIN);
     //     assignedPins.push({name:"PWMchannel2", pin:pinValues.BLDC_PWMchannel2_PIN});
     // }
     validatePWMPin(pinValues.rightPin, "PWMchannel2", assignedPins, duplicatePins, pwmErrors);
@@ -168,7 +181,7 @@ function validateBLDCPins() {
     //     if(pinDupeIndex > -1)
     //         duplicatePins.push("PWMchannel3 pin and "+assignedPins[pinDupeIndex].name);
     //     if(validPWMpins.indexOf(pinValues.BLDC_PWMchannel3_PIN) == -1)
-    //         pmwErrors.push("PWMchannel3pin: "+pinValues.BLDC_PWMchannel3_PIN);
+    //         pwmErrors.push("PWMchannel3pin: "+pinValues.BLDC_PWMchannel3_PIN);
     //     assignedPins.push({name:"PWMchannel3", pin:pinValues.BLDC_PWMchannel3_PIN});
     // }
     validatePWMPin(pinValues.BLDC_PWMchannel3_PIN, "PWMchannel3", assignedPins, duplicatePins, pwmErrors);
@@ -183,12 +196,12 @@ function validateBLDCPins() {
         validatePin(pinValues.BLDC_HallEffect_PIN, "HallEffect", assignedPins, duplicatePins);
     }
     
-    validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pmwErrors);
+    validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors);
 
     var invalidPins = [];
     validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues);
 
-    if (duplicatePins.length || pmwErrors.length || invalidPins.length) {
+    if (duplicatePins.length || pwmErrors.length || invalidPins.length) {
         var errorString = "<div name='pinValidation'>Pins NOT saved due to invalid input.<br>";
         if(duplicatePins.length )
             errorString += "<div style='margin-left: 25px;'>The following pins are duplicated:<br><div style='color: white; margin-left: 25px;'>"+duplicatePins.join("<br>")+"</div></div>";
@@ -197,11 +210,11 @@ function validateBLDCPins() {
                 errorString += "<br>";
             errorString += "<div style='margin-left: 25px;'>The following pins are invalid:<br><div style='color: white; margin-left: 25px;'>"+invalidPins.join("<br>")+"</div></div>";
         }
-        if (pmwErrors.length) {
+        if (pwmErrors.length) {
             if(duplicatePins.length || invalidPins.length) {
                 errorString += "<br>";
             } 
-            errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pmwErrors.join("<br>")+"</div></div>";
+            errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pwmErrors.join("<br>")+"</div></div>";
         }
         
         errorString += "</div>";

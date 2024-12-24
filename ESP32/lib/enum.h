@@ -39,6 +39,8 @@ enum class ModuleType: int
 enum class BoardType: int
 {
     DEVKIT,
+    ZERO,
+    N8R8,
     CRIMZZON,
     ISAAC
 };
