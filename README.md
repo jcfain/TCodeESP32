@@ -31,7 +31,7 @@ It adds the following features:
   3. Point VSCode to the directory containing platformio.ini
   4. Select the build you want from the bottom toolbar
   5. Select Upload button on the bottom toolbar. (Has an arrow pointing right)
-  6. On the left side of VSCode, there should be an alien head. Select it and execute "Upload file system".
+  6. On the left side of VSCode, there should be an alien head. Select it and execute "Upload Filesystem Image".
   7. Profit
      
   For more infor here are some good placees:
