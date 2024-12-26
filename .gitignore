@@ -354,3 +354,4 @@ ESP32/flasher/build*
 /ESP32/cache
 /ESP32/managed_components
 /ESP32/build
+/ESP32/flasher/Flash/build
