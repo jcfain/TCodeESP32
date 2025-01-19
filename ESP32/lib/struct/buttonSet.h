@@ -24,7 +24,7 @@ SOFTWARE. */
 
 #include <ArduinoJson.h>
 #include "buttonModel.h"
-#include "../constants.h"
+#include "constants.h"
 
 struct ButtonSet {
     char name[26] = "Default";
@@ -47,7 +47,7 @@ struct ButtonSet {
         obj["name"] = name;
         obj["pin"] = pin;
         obj["pullMode"] = (uint8_t)pullMode;
-        auto array = obj.createNestedArray("buttons");
+        auto array = obj["buttons"].to<JsonArray>();
         for(int i = 0; i<MAX_BUTTONS; i++) {
             JsonObject buttonOBJ;
             buttons[i].toJson(buttonOBJ);

@@ -25,7 +25,7 @@ SOFTWARE. */
 #include <Arduino.h>
 #include "DFRobot_DF2301Q.h"
 #include <Wire.h>
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #include "TagHandler.h"
 
 using VOICE_COMMAND_FUNCTION_PTR_T = void (*)(const char* tcodeCommand);
@@ -50,12 +50,12 @@ public:
         }
         _isConnected = true;
         LogHandler::info(_TAG, "Begin ok!");
-        
-        if(SettingsHandler::getVoiceVolume() > 0) {
-            setVolume(SettingsHandler::getVoiceVolume());
+        SettingsFactory* settingsFactory = SettingsFactory::getInstance();
+        if(settingsFactory->getVoiceVolume() > 0) {
+            setVolume(settingsFactory->getVoiceVolume());
         }
-        setMuteMode(SettingsHandler::getVoiceMuted());
-        setWakeTime(SettingsHandler::getVoiceWakeTime());
+        setMuteMode(settingsFactory->getVoiceMuted());
+        setWakeTime(settingsFactory->getVoiceWakeTime());
         /**
              @brief Get wake-up duration
             @return The currently-set wake-up period
@@ -125,10 +125,11 @@ private:
         @return Return the obtained command word ID, returning 0 means no valid ID is obtained
     */
 		_isRunning = true;
-		LogHandler::debug(_TAG, "Battery task cpu core: %u", xPortGetCoreID());
+		LogHandler::debug(_TAG, "Voice task cpu core: %u", xPortGetCoreID());
+        TickType_t pxPreviousWakeTime = millis();
 		while(_isRunning) {
             toTCode(asr.getCMDID());
-            vTaskDelay(300/portTICK_PERIOD_MS);
+            xTaskDelayUntil(&pxPreviousWakeTime, 1000/portTICK_PERIOD_MS);
         }
     }
 
@@ -138,45 +139,45 @@ private:
             case 5:
             LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
             sendMessage("#motion-enable");
-            char command[22];
-            sprintf(command, "#motion-profile-set:%ld", SettingsHandler::getMotionDefaultProfileIndex() +1);
+            char command[32];
+            sprintf(command, "#motion-profile-set:%d", SettingsHandler::getMotionDefaultProfileIndex() +1);
             sendMessage(command);
             break;
             case 6:
-            LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
+            LogHandler::verbose(_TAG, "Custom Command: %d", voiceCommand); 
             sendMessage("#motion-enable");
             sendMessage("#motion-profile-set:1");
             break;
             case 7:
-            LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
+            LogHandler::verbose(_TAG, "Custom Command: %d", voiceCommand); 
             sendMessage("#motion-enable");
             sendMessage("#motion-profile-set:2");
             break;
             case 8:
-            LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
+            LogHandler::verbose(_TAG, "Custom Command: %d", voiceCommand); 
             sendMessage("#motion-enable");
             sendMessage("#motion-profile-set:3");
             break;
             case 9:
-            LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
+            LogHandler::verbose(_TAG, "Custom Command: %d", voiceCommand); 
             sendMessage("#motion-enable");
             sendMessage("#motion-profile-set:4");
             break;
             case 10:
-            LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
+            LogHandler::verbose(_TAG, "Custom Command: %d", voiceCommand); 
             sendMessage("#motion-enable");
             sendMessage("#motion-profile-set:5");
             break;
             case 11:
-            LogHandler::verbose(_TAG, "Custom Command: %ld", voiceCommand); 
+            LogHandler::verbose(_TAG, "Custom Command: %d", voiceCommand); 
             sendMessage("#motion-disable");
             break;
         
             default:if (voiceCommand == 1 || voiceCommand == 2) {
-                LogHandler::verbose(_TAG, "Wakup command: %ld", voiceCommand);
+                LogHandler::verbose(_TAG, "Wakup command: %d", voiceCommand);
             }
              else if (voiceCommand != 0) {
-                LogHandler::verbose(_TAG, "Command not used: %ld", voiceCommand);
+                LogHandler::verbose(_TAG, "Command not used: %d", voiceCommand);
             } 
         }
     }

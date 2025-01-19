@@ -1,1 +1,11 @@
-esptool.exe --chip esp32 --port %comport% --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 40m --flash_size 4MB --erase-all 0x0 release.bin
+# Replace <Serial COM> with youre serial port. 
+# For example on windows COM4 or linux /dev/ttyACM0
+# see your system information to determine which com you need
+
+# Make sure release.bin is pointing to the actual location and esptool is accessible and executable
+
+# ESP32 Devkit
+esptool --chip esp32 --port <Serial COM> --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 40m --flash_size 4MB --erase-all 0x0 release.bin
+
+# ESP32 S3 Zero
+esptool --chip esp32s3 --port <Serial COM> --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB --erase-all 0x0 release.bin

@@ -2,8 +2,8 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include "LogHandler.h"
-#include "../BatteryHandler.h"
+// #include "LogHandler.h"
+#include "BatteryHandler.h"
 
 class WebSocketBase {
     public:
@@ -78,7 +78,7 @@ protected:
         }
         else
         {
-            DynamicJsonDocument doc(255);
+            JsonDocument doc; //255
             DeserializationError error = deserializeJson(doc, msg);
             if (error) 
             {
@@ -100,15 +100,15 @@ protected:
                 // if(tCodeInQueue == NULL)return;
                 // xQueueSend(tCodeInQueue, &message, 0);
             } 
-            else 
-            {
-                LogHandler::verbose(_TAG, "Websocket tcode in JSON: %s", msg);
-                char tcode[MAX_COMMAND];
-                SettingsHandler::processTCodeJson(tcode, msg);
-                // Serial.print("tcode JSON converted:");
-                // Serial.println(tcode);
-                xQueueSend(tCodeInQueue, tcode, 0);
-            }
+            // else 
+            // {
+            //     LogHandler::verbose(_TAG, "Websocket tcode in JSON: %s", msg);
+            //     char tcode[MAX_COMMAND];
+            //     SettingsHandler::processTCodeJson(tcode, msg);
+            //     // Serial.print("tcode JSON converted:");
+            //     // Serial.println(tcode);
+            //     xQueueSend(tCodeInQueue, tcode, 0);
+            // }
         }
     }
 

@@ -26,8 +26,11 @@ SOFTWARE. */
 #include <sstream>
 #include <vector>
 #include <math.h>
-#include "driver/adc.h"
-#include "esp_adc_cal.h"
+// #ifdef ESP32
+// #include "driver/adc.h"
+// #include "esp_adc_cal.h"
+// // #include "sp_adc/adc_cali.h"
+// #endif
 
 int getposition(const char *array, const size_t& size, const char& c)
 {
@@ -73,27 +76,29 @@ double mapf(const double& x, const double& in_min, const double& in_max, const d
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-adc1_channel_t gpioToADC1(const int& gpioPin) {
-    switch(gpioPin) {
-        case 36:
-            return ADC1_CHANNEL_0;
-        case 37:
-            return ADC1_CHANNEL_1;
-        case 38:
-            return ADC1_CHANNEL_2;
-        case 39:
-            return ADC1_CHANNEL_3;
-        case 32:
-            return ADC1_CHANNEL_4;
-        case 33:
-            return ADC1_CHANNEL_5;
-        case 34:
-            return ADC1_CHANNEL_6;
-        case 35:
-            return ADC1_CHANNEL_7;
-        default: return ADC1_CHANNEL_MAX;
-    }
-}
+// #ifdef ESP32
+// adc1_channel_t gpioToADC1(const int& gpioPin) {
+//     switch(gpioPin) {
+//         case 36:
+//             return ADC1_CHANNEL_0;
+//         case 37:
+//             return ADC1_CHANNEL_1;
+//         case 38:
+//             return ADC1_CHANNEL_2;
+//         case 39:
+//             return ADC1_CHANNEL_3;
+//         case 32:
+//             return ADC1_CHANNEL_4;
+//         case 33:
+//             return ADC1_CHANNEL_5;
+//         case 34:
+//             return ADC1_CHANNEL_6;
+//         case 35:
+//             return ADC1_CHANNEL_7;
+//         default: return ADC1_CHANNEL_MAX;
+//     }
+// }
+// #endif
 
 bool contains_duplicate(const std::vector<const char*>& values ) {
     for( std::size_t i = 0 ; i < values.size() ; ++i )

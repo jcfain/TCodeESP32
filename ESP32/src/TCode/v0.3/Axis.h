@@ -26,7 +26,7 @@ class Axis {
   }
 
   // Function to set the axis dynamic parameters
-  void Set(int x, char ext, long y) {
+  void Set(int x, char ext, unsigned long y) {
     unsigned long t = millis(); // This is the time now
     x = constrain(x,0,9999);
     y = constrain(y,0,9999999);

@@ -21,13 +21,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 #pragma once
+#if ESP8266 == 1
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <ESP8266HTTPClient.h>
+#include <ESP8266HTTPUpdateServer.h>
+#include <ESP8266WebServer.h>
+#else
 #include <ESPmDNS.h>
+#endif
 #include "SettingsHandler.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 class MDNSHandler {
     public:
-        void setup(char* hostName, char* friendlyName) {
-            startMDNS(hostName, friendlyName);
+        void setup(const char* hostName, const char* friendlyName, const int udpPort, const uint8_t webPort = 0, const uint8_t securePort = 0) {
+            if(!MDNSInitialized)
+                startMDNS(hostName, friendlyName, webPort, udpPort);
         }
         void stop() {
             if(MDNSInitialized)
@@ -37,9 +46,9 @@ class MDNSHandler {
             }
         }
         private: 
-        const char* _TAG = TagHandler::WebHandler;
+        const char* _TAG = TagHandler::MdnsHandler;
         bool MDNSInitialized = false;
-        void startMDNS(char* hostName, char* friendlyName)
+        void startMDNS(const char* hostName, const char* friendlyName, const int udpPort, const uint8_t webPort = 0, const uint8_t securePort = 0)
         {
             LogHandler::info(_TAG, "Setting up MDNS");
             if(MDNSInitialized)
@@ -48,14 +57,18 @@ class MDNSHandler {
                 printf("MDNS Init failed");
                 return;
             }
-            char hostLen = strlen(hostName) + 7;
-            char domainName[hostLen];
-            sprintf(domainName, "%s.local", hostName);
-            SettingsHandler::printWebAddress(domainName);
             MDNS.setInstanceName(friendlyName);
-            MDNS.addService("http", "tcp", SettingsHandler::webServerPort);
-            MDNS.addService("https", "tcp", 443);
-            MDNS.addService("tcode", "udp", SettingsHandler::udpServerPort);
+            if(webPort) 
+                MDNS.addService("http", "tcp", webPort);
+            if(securePort)
+                MDNS.addService("https", "tcp", securePort);
+            if(webPort || securePort) {
+                char hostLen = strlen(hostName) + 7;
+                char domainName[hostLen];
+                sprintf(domainName, "%s.local", hostName);
+                SettingsHandler::printWebAddress(domainName);
+            }
+            MDNS.addService("tcode", "udp", udpPort);
             MDNSInitialized = true;
         }
   };

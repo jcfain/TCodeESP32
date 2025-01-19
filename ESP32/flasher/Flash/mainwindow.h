@@ -65,6 +65,7 @@ private:
     QSerialPort* m_serialPort = 0;
     QRegularExpression urlRegex;
 
+
     void sendSerial(QString data);
     bool checkAndConnectSerial();
     void closeSerial();

@@ -49,7 +49,7 @@ MotionGenerator = {
             for(var i = 0; i < channels.length; i++) {
               const channelIndex = i;
               var channel = channels[i];
-                if(!userSettings.sr6Mode && channel.sr6Only) {
+                if(!isSR6() && channel.sr6Only) {
                     continue;
                 }
                 var name = channel.channel;
@@ -262,10 +262,10 @@ MotionGenerator = {
         defaultMotionProfileButton.innerText = "Set selected profile as default";
         defaultMotionProfileButton.onclick = setMotionProfileDefault;
         motionProfilesElement.appendChild(defaultMotionProfileButton);
-        const rangeSliderButton = document.createElement("button");
-        rangeSliderButton.innerText = "Edit device range limits";
-        rangeSliderButton.onclick = DeviceRangeSlider.show;
-        motionProfilesElement.appendChild(rangeSliderButton);
+        // const rangeSliderButton = document.createElement("button");
+        // rangeSliderButton.innerText = "Edit device range limits";
+        // rangeSliderButton.onclick = DeviceRangeSlider.show;
+        // motionProfilesElement.appendChild(rangeSliderButton);
         
         selectMotionProfile(systemInfo["motionSelectedProfileIndex"]);
         this.setEnabledStatus();
@@ -281,6 +281,9 @@ MotionGenerator = {
             button.classList.add("button-toggle-start");
         }
     },
+    /*
+    * Warning motionChannelIndex is the channel index in the motion profile and NOT the index of the AvailableChannels array!
+    */
     updateSettings(profileIndex, motionChannelIndex, debounce) {
         if(profileIndex && motionChannelIndex) {
             this.setEdited(profileIndex, motionChannelIndex);
@@ -388,7 +391,7 @@ function setMotionPhaseRandomClicked(profileIndex, channelIndex, channelName) {
 
 function setMotionProfileDefault() {
     motionProviderSettings["motionDefaultProfileIndex"] = getMotionProfileSelectedIndex();
-    MotionGenerator.updateSettings(1);
+    MotionGenerator.updateSettings(undefined, undefined, 0);
 }
 var selectedMotionProfileIndex = 0;
 function getMotionProfileSelectedIndex() {
@@ -460,7 +463,7 @@ function setMotionGeneratorSettings(profileIndex, channelIndex, channelName) {
 
         
         //userSettings["motionReversed"] = document.getElementById('motionReversed').checked;
-        MotionGenerator.updateSettings(1);
+        MotionGenerator.updateSettings(profileIndex, motionChannelIndex, 0);
     }.bind(this, profileIndex, channelIndex, channelName), 3000);
 }
 var setMotionGeneratorNameDebounce;
@@ -472,7 +475,7 @@ function setMotionGeneratorName(profileIndex) {
     setMotionGeneratorNameDebounce = setTimeout(function(profileIndex) {
         if(validateStringControl("motionProfileName"+profileIndex, motionProviderSettings['motionProfiles'][profileIndex], "name")) {
             updateMotionProfileName(profileIndex);
-            MotionGenerator.updateSettings(1);
+            MotionGenerator.updateSettings(profileIndex, -1, 1);
         }
     }.bind(this, profileIndex), 3000);
 }
@@ -519,7 +522,8 @@ function updateMotionProfileName(profileIndex) {
 function setMotionGeneratorSettingsDefault(profileIndex, channelIndex, channelName) {
     if (confirm(`Are you sure you want to set the current channel '${channelName}' in profile '${motionProviderSettings['motionProfiles'][profileIndex]["name"]}' to the default settings?`)) {
         setProfileMotionGeneratorSettingsDefault(profileIndex, channelIndex, channelName);
-        MotionGenerator.updateSettings(1);
+        const motionChannelIndex = getMotionChannelIndex(profileIndex, channelName);
+        MotionGenerator.updateSettings(profileIndex, motionChannelIndex, 0);
     }
 }
 function getMotionChannelIndex(profileIndex, channelName) {
@@ -563,7 +567,7 @@ function setMotionGeneratorSettingsProfile(profileIndex) {
     for(var i = 0; i < channels.length; i++) {
         const channelIndex = i;
         const channel = channels[i];
-        if (!userSettings.sr6Mode && channel.sr6Only) 
+        if (!isSR6() && channel.sr6Only) 
             continue;
         const motionChannelIndex = getMotionChannelIndex(profileIndex, channel.channel);
         const profileHasChannel = motionChannelIndex > -1;

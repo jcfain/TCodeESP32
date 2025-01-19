@@ -22,10 +22,12 @@ SOFTWARE. */
 
 var userSettings = {};
 var wifiSettings = {};
+var pinoutSettings = {};
 var systemInfo = {};
 var motionProviderSettings = {};
 var buttonSettings = {};
 var upDateTimeout;
+var upDatePinsTimeout;
 var restartRequired = false;
 var documentLoaded = false;
 var debugEnabled = true;
@@ -35,58 +37,75 @@ var websocket;
 const EndPointType = {
     System: { uri: "/systemInfo"},
     Common: {uri: "/settings"},
+    Pins: {uri: "/pins"},
     Wifi: {uri: "/wifiSettings"},
     MotionProfile: {uri: "/motionProfiles"},
     Buttons: {uri: "/buttonSettings"}
 }
 const TCodeVersion = {
-    V2: 0,
-    V3: 1
+    V3: 0,
+    V4: 1
 }
-// Modified in toggleBuildOptions if TCode V2 is not in build
-const availableVersions = [
-    {version: TCodeVersion.V2, versionName: "v0.2"},
-    {version: TCodeVersion.V3, versionName: "v0.3"},
-] 
 const latestTCodeVersion = TCodeVersion.V3;
-const LogLevel = {
-    ERROR: 0,
-    WARNING: 1,
-    INFO: 2,
-    DEBUG: 3,
-    VERBOSE: 4
+const MotorType = {
+    Servo: 0,
+    BLDC: 1
 };
-const BoardType = {
-    DEVKIT: 0,
-    CRIMZZON: 1,
-    ISAAC: 2
-}
+const ModuleType = {
+    WROOM32: 0,
+    S3: 1
+};
 const BuildFeature = {
     NONE: 0,
     DEBUG: 1,
     WIFI: 2,
     BLUETOOTH: 3,
-    DA: 4,
-    DISPLAY_: 5,
-    TEMP: 6,
-    HAS_TCODE_V2: 7,
-    HTTPS: 8
-}
-const MotorType = {
-    Servo: 0,
-    BLDC: 1
+    BLE: 4,
+    DA: 5,
+    DISPLAY_: 6,
+    TEMP: 7,
+    HTTPS: 8,
+    COEXIST: 9,
+    MAX_FEATURE: 10
+};
+
+let BoardType = {
+    DEVKIT: 0,
+    ZERO: 1,
+    N8R8: 2,
+    CRIMZZON: 3,
+    ISAAC: 4
+};
+let DeviceType = {
+    OSR: 0,
+    SR6: 1,
+    SSR1: 2
+};
+let BLEDeviceType = {
+    TCODE: 0,
+    LOVE: 1,
+    HC: 2
+};
+let BLELoveDeviceType = {
+    EDGE: 0
+};
+let BLDCEncoderType = {
+    MT6701: 0,
+    SPI: 1,
+    PWM: 2
 };
 const servoDegreeValue180 = 637; 
 const servoDegreeValue270 = 425; 
 dubugMessages = [];
-
+var tcodeVersions = [];
 var testDeviceUseIModifier = false;
 var testDeviceDisableModifier = false;
 var testDeviceModifierValue = "1000";
 var restartClicked = false;
 var serverPollingTimeOut = null;
 var staticIPAddressTimeout = null;
-var websocketRetryCount = 0;
+var hostnameTimeout = null;
+var serverPollRetryCount = 0;
 var channelSliderList = [];
 var restartingAndChangingAddress = false;
 var resettingAllToDefault = false;
@@ -94,24 +113,14 @@ var startUpHostName;
 var startUpWebPort;
 var startUpStaticIP;
 var startUpLocalIP;
+const defaultDebounce = 3000;
 
 //PWM availible on: 2,4,5,12-19,21-23,25-27,32-33
-const validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33];
-const inputOnlypins = [34,35,36,39];
-const adc1Pins = [36,37,38,39,32,33,34,35];
-const adc2Pins = [4,0,2,15,13,12,14,27,25,26];
+let validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33];
+let inputOnlypins = [34,35,36,39];
+let adc1Pins = [36,37,38,39,32,33,34,35];
+let adc2Pins = [4,0,2,15,13,12,14,27,25,26];
 
-const AvailibleChannelsV2 = [
-    {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
-    {channel: "L1", channelName: "Surge", switch: false, sr6Only: true},
-    {channel: "L2", channelName: "Sway", switch: false, sr6Only: true},
-    {channel: "L3", channelName: "Suck", switch: false, sr6Only: false},
-    {channel: "R0", channelName: "Twist", switch: false, sr6Only: false},
-    {channel: "R1", channelName: "Roll", switch: false, sr6Only: false},
-    {channel: "R2", channelName: "Pitch", switch: false, sr6Only: false},
-    {channel: "V0", channelName: "Vibe 0", switch: true, sr6Only: false},
-    {channel: "V1", channelName: "Vibe 1/Lube", switch: true, sr6Only: false}
-]
 const AvailibleChannelsV3 = [
     {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
     {channel: "L1", channelName: "Surge", switch: false, sr6Only: true},
@@ -126,7 +135,7 @@ const AvailibleChannelsV3 = [
     {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
     {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
     {channel: "A2", channelName: "Lube", switch: true, sr6Only: false},
-    {channel: "A3", channelName: "Squeeze", switch: false, sr6Only: false}
+    {channel: "A3", channelName: "Aux", switch: false, sr6Only: false}
 ]
 const AvailibleChannelsBLDC = [
     {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
@@ -138,11 +147,13 @@ const AvailibleChannelsBLDC = [
     {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
     {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
     {channel: "A2", channelName: "Lube", switch: true, sr6Only: false},
-    {channel: "A3", channelName: "Squeeze", switch: false, sr6Only: false}
+    {channel: "A3", channelName: "Aux", switch: false, sr6Only: false}
 ]
 
 document.addEventListener("DOMContentLoaded", function() {
     onDocumentLoad();
+    document.getElementById("page-body").style.visibility = "visible";
+    hideLoading();
 });
 
 function logdebug(message) {
@@ -164,63 +175,137 @@ function get(name, uri, callback, callbackFail) {
                 callback(xhr);
 		}
 	};
+    if(callbackFail) {
+        xhr.onerror = function() {
+            callbackFail(xhr);
+        }
+    }
 	xhr.send();
 }
 function onDocumentLoad() {
-    getSystemInfo();
+    getSystemInfo(true);
     createImportSettingsInputElement();
     
     // debugTextElement = document.getElementById("debugText");
     // debugTextElement.scrollTop = debugTextElement.scrollHeight;
 }
 
-function getSystemInfo() {
+function getSystemInfo(chain) {
+    let polling = false;
+    if(serverPollingTimeOut) {
+        polling = true;
+        clearTimeout(serverPollingTimeOut);
+        serverPollingTimeOut = null;
+    }
+    showLoading("Loading system info...");
     get("system info", EndPointType.System.uri, function(xhr) {
         systemInfo = xhr.response;
         if(!systemInfo) {
-            showError("Error getting system info!");
+            if(!polling)
+                showError("Error getting system info!");
+            startServerPoll();
             return;
+        } else if(systemInfo.status === "restarting") {
+            startServerPoll();
+            return;
+        } else
+            setSystemInfo();
+        if(chain)
+            getPinSettings(chain);
+        else if(!polling)
+            hideLoading();
+        serverPollRetryCount = 0;
+    }, function(xhr) {
+        if(!polling)
+            showError("Error getting system info!");
+        startServerPoll();
+    });
+}
+function getPinSettings(chain) {
+    showLoading("Loading pinout...");
+    get("Pinout settings", EndPointType.Pins.uri, function(xhr) {
+        pinoutSettings = xhr.response;
+        if(!pinoutSettings) {
+            showError("Error getting pinout!");
         }
-        setSystemInfo();
-        getWifiSettings();
+        else
+            setPinoutSettings();
+        if(chain)
+            getWifiSettings(chain);
+        else
+            hideLoading();
     });
 }
 
-function getWifiSettings() {
+function getWifiSettings(chain) {
+    showLoading("Loading network settings...");
     get("wifi settings", EndPointType.Wifi.uri, function(xhr) {
         wifiSettings = xhr.response;
         if(!wifiSettings || !wifiSettings["ssid"]) {
             showError("Error getting wifi settings!");
-            return;
         }
-        getMotionProviderSettings();
+        else {
+            startUpStaticIP = wifiSettings["staticIP"];
+            startUpLocalIP = wifiSettings["localIP"];
+            startUpWebPort = wifiSettings["webServerPort"];
+            startUpHostName = wifiSettings["hostname"];
+            setWifiSettings();
+        }
+        if(chain)
+            getMotionProviderSettings(chain);
+        else
+            hideLoading();
     });
 }
 
-function getMotionProviderSettings() {
+function getMotionProviderSettings(chain) {
+    showLoading("Loading motion generator settings...");
     get("motion settings", EndPointType.MotionProfile.uri, function(xhr) {
         motionProviderSettings = xhr.response;
         if(!motionProviderSettings || !motionProviderSettings["motionProfiles"]) {
             showError("Error getting motion provider settings!");
-            return;
         }
-        getButtonSettings();
+        if(chain)
+            getButtonSettings(chain);
+        else
+            hideLoading();
     });
 }
 
-function getButtonSettings() {
+function getButtonSettings(chain) {
+    showLoading("Loading button settings...");
     get("button settings", EndPointType.Buttons.uri, function(xhr) {
         buttonSettings = xhr.response;
         if(!buttonSettings || !buttonSettings["bootButtonCommand"]) {
             showError("Error getting button settings!");
-            return;
         }
-        getUserSettings();
+        if(chain)
+            getUserSettings();
+        else
+            hideLoading();
     });
 }
 
 function postCommonSettings(debounce, callback) {
     updateUserSettings(debounce, EndPointType.Common.uri, userSettings, callback);
+}
+function postAndValidatePinoutSettings(debounce, callback) {
+    if(!debounce || debounce < 0)
+        debounce = 0;
+    if(upDatePinsTimeout) 
+    {
+        clearTimeout(upDatePinsTimeout);
+    }
+    upDatePinsTimeout = setTimeout(() => 
+    {
+        if(validatePins()) {
+            updateUserSettings(0, EndPointType.Pins.uri, pinoutSettings, callback);
+        } else if(callback)
+            callback();
+    }, debounce);
+}
+function postPinoutSettings(debounce, callback) {
+    updateUserSettings(debounce, EndPointType.Pins.uri, pinoutSettings, callback);
 }
 function postWifiSettings(debounce, callback) {
     updateUserSettings(debounce, EndPointType.Wifi.uri, wifiSettings, callback);
@@ -229,11 +314,14 @@ function postButtonSettings(debounce, callback) {
     updateUserSettings(debounce, EndPointType.Buttons.uri, buttonSettings, callback);
 }
 function postMotionProfileSettings(debounce) {
-    MotionGenerator.updateSettings(debounce, null, 0);
+    MotionGenerator.updateSettings(null, null, debounce);
 }
 
 function updateALLUserSettings() {
-    postCommonSettings(0, updateWifiSettingsChain);
+    postCommonSettings(0, updatePinoutChain);
+}
+var updatePinoutChain = function() {
+    postAndValidatePinoutSettings(0, updateWifiSettingsChain);
 }
 var updateWifiSettingsChain = function() {
     postWifiSettings(0, updateButtonSettingsChain);
@@ -242,20 +330,21 @@ var updateButtonSettingsChain = function() {
     postButtonSettings(0, updateMotionProfileSettings);
 }
 var updateMotionProfileSettings = function() {
-    postMotionProfileSettings();
+    postMotionProfileSettings(0);
 }
 
 // ALWAYS CALL setUserSettings/getUserSettings LAST! 
 // This is so it can set all the values from the various sources and other
 // methods can call a single method instead of all of them.
 function getUserSettings() {
+    showLoading("Loading common settings...");
     get("common settings", EndPointType.Common.uri, function(xhr) {
         userSettings = xhr.response;
-        if(!userSettings || !userSettings["TCodeVersion"]) {
+        if(!userSettings || userSettings["TCodeVersion"] == undefined) {
             showError("Error getting user settings!");
-            return;
-        }
-        setUserSettings();
+        } 
+        else
+            setUserSettings();
         initWebSocket();
     });
 }
@@ -265,7 +354,7 @@ function initWebSocket() {
 		var wsUri = (hasFeature(BuildFeature.HTTPS) ? "wss://" : "ws://") + window.location.host + "/ws";
 		if (typeof MozWebSocket == 'function')
 			WebSocket = MozWebSocket;
-		if ( websocket && websocket.readyState == 1 )
+		if ( websocket )
 			websocket.close();
 		websocket = new WebSocket( wsUri );
 		websocket.onopen = function (evt) {
@@ -280,7 +369,6 @@ function initWebSocket() {
                 clearTimeout(serverPollingTimeOut);
                 serverPollingTimeOut = null;
             }
-            websocketRetryCount = 0;
 			//updateSettingsUI();
 		};
 		websocket.onclose = function (evt) {
@@ -292,7 +380,7 @@ function initWebSocket() {
                     message += "\n(Hint: Make sure you are connected to the AP in wifi networks."
                 }
                 showLoading(message);
-                checkForServer();
+                startServerPoll();
             }
             //alert('Web socket disconnected: To use some features you need to make sure the device is on and connected and refresh the page.');
 			//xtpConnected = false;
@@ -304,7 +392,7 @@ function initWebSocket() {
 		websocket.onerror = function (evt) {
             if(!serverPollingTimeOut && !restartingAndChangingAddress) {
                 showLoading("Server error, waiting for restart...");
-                checkForServer();
+                startServerPoll();
             }
 			//alert('ERROR: ' + evt.data + ", Address: "+wsUri);
 			//xtpConnected = false;
@@ -312,7 +400,7 @@ function initWebSocket() {
 	} catch (exception) {
         if(!serverPollingTimeOut && !restartingAndChangingAddress) {
             showLoading("Server exception, waiting for restart...");
-            checkForServer();
+            startServerPoll();
         }
         //alert('ERROR: ' + exception + ", Address: "+wsUri);
 		//xtpConnected = false;
@@ -367,15 +455,26 @@ function debug(message) {
     }
 }
 
-function setDebug() {
-    userSettings["logLevel"] = parseInt(document.getElementById('debug').value);
+function setLogLevelUI() {
+    const clearTagsButton = document.getElementById('clearTagsButton');
+    const clearFiltersButton = document.getElementById('clearFiltersButton');
+    const selectedIncludes = userSettings["log-include-tags"];
+    const selectedExcludes = userSettings["log-exclude-tags"];
+    clearTagsButton.disabled = !selectedIncludes?.length;
+    clearFiltersButton.disabled = !selectedExcludes?.length;
 
+    clearTagsButton.innerText = "Clear included" + (selectedIncludes.length ? ": "+ selectedIncludes.length : "");
+    clearFiltersButton.innerText = "Clear excluded" + (selectedExcludes.length ? ": "+ selectedExcludes.length : "");
+}
+function setLogLevel() {
+    userSettings["logLevel"] = parseInt(document.getElementById('logLevel').value);
     const selectedIncludes = document.querySelectorAll('#log-include-tags option:checked');
     userSettings["log-include-tags"] =  Array.from(selectedIncludes).map(el => el.value);
 
     const selectedExcludes = document.querySelectorAll('#log-exclude-tags option:checked');
     userSettings["log-exclude-tags"] = Array.from(selectedExcludes).map(el => el.value);
 
+    setLogLevelUI();
     //document.getElementById("log-exclude-tags").disabled = selectedIncludes.length > 0;
     // if(userSettings["logLevel"] == LogLevel.VERBOSE)
     //     alert("There are not enough resources to send VERBOSE messages to the site.\nUse serial to view them.")
@@ -387,6 +486,7 @@ function clearTags(name) {
     for (var i = 0; i < element.options.length; i++) {
         element.options[i].selected = false;
     }
+    setLogLevelUI();
 	updateUserSettings();
 }
 function clearLog() {
@@ -414,7 +514,7 @@ function onDefaultClick()
 {		
 	if (confirm("WARNING! Are you sure you wish to reset ALL settings?\nThis will restart your device and you may need to reconfigure your WiFi settings!")) 
 	{
-        showInfo("Resetting...");
+        showInfo("Setting default...");
 		var xhr = new XMLHttpRequest();
 		xhr.open("POST", "/default", true);
 		xhr.onreadystatechange = function() 
@@ -425,18 +525,20 @@ function onDefaultClick()
                     showError("Error setting default!");
                 } else {
                     showInfoSuccess("Settings reset!");
-                    resettingAllToDefault = true;
-                    onRestartClick("\nYou may need to reconfigure your wifi with the instructions provided in the zip.");
+                    //resettingAllToDefault = true;
+                    showLoading("Restarting...");
+                    startServerPoll();
+                    //onRestartClick("\nYou may need to reconfigure your wifi with the instructions provided in the zip.");
                 }
 			}
 		}
 		xhr.send();
 	}
 }
-function setPinoutDefault(newBoardType) {
-    showInfo("Resetting pinout...");
+function postBoardType(newBoardType) {
+    showInfo("Changing board...");
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "/pinoutDefault/"+newBoardType, true);
+    xhr.open("POST", "/changeBoard/"+newBoardType, true);
     xhr.onreadystatechange = function() 
     {
         if (xhr.readyState === 4) 
@@ -444,10 +546,28 @@ function setPinoutDefault(newBoardType) {
             if (xhr.status !== 200) {
                 showError("Error setting pinout default!");
             } else {
-                getUserSettings();
-                showInfoSuccess("Pinout reset!");
+                showInfoSuccess("Board changed!");
+                getPinSettings();
                 showRestartRequired();
-                //document.getElementById('resetBtn').disabled = false ;
+            }
+        }
+    }
+    xhr.send();
+}
+function postDeviceType(deviceType) {
+    showInfo("Changing device...");
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/changeDevice/"+deviceType, true);
+    xhr.onreadystatechange = function() 
+    {
+        if (xhr.readyState === 4) 
+        {
+            if (xhr.status !== 200) {
+                showError("Error setting pinout default!");
+            } else {
+                showInfoSuccess("Device changed!");
+                getPinSettings();
+                showRestartRequired();
             }
         }
     }
@@ -471,8 +591,14 @@ function onRestartClick(optionalMessage)
         {
             if(xhr.status == 200) {
                 var response = xhr.response;
+                var message = "";
                 logdebug("Restart succeed!");
-
+                if(wifiSettings["bluetoothEnabled"] && systemInfo["moduleType"] == ModuleType.WROOM32) {
+                    message += "The web server will be disabled because bluetooth has been enabled.<br>You will need to disable bluetooth via serial usb commands<br>to get back to this page after rebooting.<br><br>";
+                    
+                    showLoading(message);
+                    return;
+                }
                 if(!resettingAllToDefault) {// There redirect should be to the default IP address.
                     checkRestartRedirect();
                 } else {
@@ -480,10 +606,10 @@ function onRestartClick(optionalMessage)
                 }
                 
                 if(restartingAndChangingAddress) {
-                    var isIPStatic = userSettings["staticIP"];
-                    var localIP = userSettings["localIP"];
-                    var webServerPort = userSettings["webServerPort"];
-                    var hostname = userSettings["hostname"];
+                    var isIPStatic = wifiSettings["staticIP"];
+                    var localIP = wifiSettings["localIP"];
+                    var webServerPort = wifiSettings["webServerPort"];
+                    var hostname = wifiSettings["hostname"];
                     var url = "http://"+hostname+".local";
                     url += webServerPort === 80 ? "" : ":"+webServerPort;
                     if(resettingAllToDefault) {
@@ -492,7 +618,7 @@ function onRestartClick(optionalMessage)
                     }
                     var staticIPUrl = "http://"+localIP;
                     staticIPUrl += webServerPort === 80 ? "" : ":"+webServerPort;
-                    var message = "Device restarting, the page will redirect to<br><a href='"+url+"'>"+url+"</a> in 10 seconds<br>";
+                    message += "Device restarting, the page will redirect to<br><a href='"+url+"'>"+url+"</a> in 10 seconds<br>";
                     if(!resettingAllToDefault) {
                         message += isIPStatic ? "If this doesnt work, you can try using this url<br><a href='"+staticIPUrl+"'>"+staticIPUrl+"</a> when the device reboots." 
                             : "If this doesnt work, you will need<br>to find the dymanic ip address of the esp32."
@@ -502,6 +628,7 @@ function onRestartClick(optionalMessage)
                         logdebug("Redirecting to: " + url)
                         window.location.href = url;
                     }, 10000);
+                    //startServerPoll(url);
                 }
                 hideRestartRequired();
             } else {
@@ -514,35 +641,69 @@ function onRestartClick(optionalMessage)
 function isWebSocketConnected() {
     if(!websocket)
         return false;
-    return websocket.readyState !== WebSocket.OPEN;
+    return websocket.readyState === WebSocket.OPEN;
 }
-function checkForServer() {
-    if(serverPollingTimeOut) {
-        clearTimeout(serverPollingTimeOut);
-        serverPollingTimeOut = null;
-    }
-    if(websocketRetryCount > 10) {
-        showLoading("Websocket timed out. Please refresh the page for full functionality.");
+
+function isSR6() {
+    return userSettings["deviceType"] == DeviceType.SR6;
+}
+function isOSR() {
+    return userSettings["deviceType"] == DeviceType.OSR;
+}
+function isSSR1() {
+    return userSettings["deviceType"] == DeviceType.SSR1;
+}
+function isBoardType(boardType) {
+    return userSettings["boardType"] === boardType;
+}
+function isModuleType(moduleType) {
+    return systemInfo["moduleType"] == moduleType;
+}
+function isMotorType(motorType) {
+    return systemInfo.motorType == motorType
+}
+function isBLDCSPI() {
+    return userSettings["BLDC_Encoder"] == BLDCEncoderType.SPI || userSettings["BLDC_Encoder"] == BLDCEncoderType.MT6701;
+}
+
+function startServerPoll() {
+    if(serverPollRetryCount > 10) {
+        showLoading("Waiting for restart timed out<br>Please manually refresh the page when the device is back online.");
         return;
     }
-    if(isWebSocketConnected() && websocket.readyState !== WebSocket.CONNECTING) {
-        logdebug("Websocket closed retrying..");
-        initWebSocket();
-        websocketRetryCount++;
-        serverPollingTimeOut = setTimeout(checkForServer, 2000);
-    } else if(isWebSocketConnected()) {
-        logdebug("Websocket open..");
-        if(serverPollingTimeOut) {
-            clearTimeout(serverPollingTimeOut);
-            serverPollingTimeOut = null;
-        }
-    }
+    if(serverPollingTimeOut)
+        clearTimeout(serverPollingTimeOut);
+    serverPollRetryCount++;
+    serverPollingTimeOut = setTimeout(function() {getSystemInfo(true);}, 2000);
+}
+function checkForServer() {
+    // if(serverPollingTimeOut) {
+    //     clearTimeout(serverPollingTimeOut);
+    //     serverPollingTimeOut = null;
+    // }
+    // if(serverPollRetryCount > 10) {
+    //     showLoading("Websocket timed out. Please refresh the page for full functionality.");
+    //     return;
+    // }
+    // if(isWebSocketConnected() && websocket.readyState !== WebSocket.CONNECTING) {
+    //     logdebug("Websocket closed retrying..");
+    //     initWebSocket();
+    //     serverPollRetryCount++;
+    //     serverPollingTimeOut = setTimeout(checkForServer, 2000);
+    // } else if(isWebSocketConnected()) {
+    //     logdebug("Websocket open..");
+    //     if(serverPollingTimeOut) {
+    //         clearTimeout(serverPollingTimeOut);
+    //         serverPollingTimeOut = null;
+    //     }
+    // }
 }
 
 function setSystemInfo() {
     if(!systemInfo)
         showError("Error getting system info!");
     document.getElementById('version').value = systemInfo.esp32Version;
+    document.getElementById('macAddressSystemInfo').value = systemInfo.mac;
     document.getElementById('ipAddressSystemInfo').value = systemInfo.localIP;
     document.getElementById('gatewaySystemInfo').value = systemInfo.gateway;
     document.getElementById('subnetSystemInfo').value = systemInfo.subnet;
@@ -552,7 +713,19 @@ function setSystemInfo() {
     document.getElementById('chipCores').value = systemInfo.chipCores;
     document.getElementById('chipID').value = systemInfo.chipID;
 
+    tcodeVersions = systemInfo.tcodeVersions;
+
+    const logLevelElement = document.getElementById('logLevel');
+    removeAllChildren(logLevelElement);
+    for(let i=0;i<systemInfo.logLevels.length;i++) {
+        const option = document.createElement("option");
+        option.innerText = systemInfo.logLevels[i].name;
+        option.value = systemInfo.logLevels[i].value;
+        logLevelElement.appendChild(option);
+    }
+
     var excludedTagsElement = document.getElementById('log-exclude-tags');
+    removeAllChildren(excludedTagsElement);
     systemInfo.availableTags.forEach(element => {
         var option = document.createElement("option");
         option.value = element;
@@ -561,6 +734,7 @@ function setSystemInfo() {
     });
 
     var includedTagsElement = document.getElementById('log-include-tags');
+    removeAllChildren(includedTagsElement);
     systemInfo.availableTags.forEach(element => {
         var option = document.createElement("option");
         option.value = element;
@@ -569,33 +743,130 @@ function setSystemInfo() {
     });
     
     var i2cAddressesElement = document.getElementById("Display_I2C_Address");
+    removeAllChildren(i2cAddressesElement);
     systemInfo.systemI2CAddresses.forEach(element => {
         var option = document.createElement("option");
         option.value = element;
         option.innerText = element;
         i2cAddressesElement.appendChild(option);
     });
-    
-    setupBoardTypes();
+    var bleDeviceTypeElement = document.getElementById("bleDeviceType");
+    removeAllChildren(bleDeviceTypeElement);
+    systemInfo.bleDeviceTypes.forEach(element => {
+        var option = document.createElement("option");
+        option.value = element.value;
+        option.innerText = element.name;
+        bleDeviceTypeElement.appendChild(option);
+        BLEDeviceType[element.name] = element.value;
+    });
+    var bleLoveDeviceTypeElement = document.getElementById("bleLoveDeviceType");
+    removeAllChildren(bleLoveDeviceTypeElement);
+    systemInfo.bleLoveDeviceTypes.forEach(element => {
+        var option = document.createElement("option");
+        option.value = element.value;
+        option.innerText = element.name;
+        bleLoveDeviceTypeElement.appendChild(option);
+        BLELoveDeviceType[element.name] = element.value;
+    });
+    if(systemInfo.motorType === MotorType.BLDC) {
+        setupEncoderTypes();
+    } else
+        setupBoardTypes();
+    setupDeviceTypes();
     toggleBuildOptions();
     toggleMotorTypeOptions();
+    setupTimerChannels();
+    toggleBLESettings();
+    toggleBluetoothSettings();
     
-    //validPWMpins = [17,25,27];
-    //validPWMpins = [2,4,5,12,13,14,15,17,21,22,25,27,32];
+    if(systemInfo["moduleType"] == ModuleType.S3) {
+        validPWMpins = [];
+        for(let i=1;i<44;i++) {
+            validPWMpins.push(i);
+        }
+        inputOnlypins = [46];
+        
+        adc1Pins = [1,2,3,4,5,6,7,8,9,10];
+        adc2Pins = [11,12,13,14,15,16,17,18,19,20];
+    }
 
     document.getElementById('lastRebootReason').value = systemInfo.lastRebootReason;
 }
 function setWifiSettings() {
     document.getElementById("ssid").value = wifiSettings["ssid"];
     document.getElementById("wifiPass").value = wifiSettings["wifiPass"];
+    document.getElementById('bluetoothEnabled').checked = wifiSettings["bluetoothEnabled"];
+
+    document.getElementById('bleEnabled').checked = wifiSettings["bleEnabled"];
+    document.getElementById('bleDeviceType').value = wifiSettings["bleDeviceType"];
+    toggleBLEDeviceTypes();
+    document.getElementById('bleLoveDeviceType').value = wifiSettings["bleLoveDeviceType"];
+    toggleBLELoveDeviceTypes();
+    
+    document.getElementById("staticIP").checked = wifiSettings["staticIP"];
+    document.getElementById("localIPInput").value = wifiSettings["localIP"];
+    document.getElementById("gatewayInput").value = wifiSettings["gateway"];
+    document.getElementById("subnetInput").value = wifiSettings["subnet"];
+    document.getElementById("dns1Input").value = wifiSettings["dns1"];
+    document.getElementById("dns2Input").value = wifiSettings["dns2"];
+    toggleStaticIPSettings(wifiSettings["staticIP"]);
+    document.getElementById("udpServerPort").value = wifiSettings["udpServerPort"];
+    document.getElementById("webServerPort").value = wifiSettings["webServerPort"];
+    document.getElementById("hostname").value = wifiSettings["hostname"];
+    document.getElementById("friendlyName").value = wifiSettings["friendlyName"];
 }
-function setUserSettings() 
+function setPinoutSettings() {
+    document.getElementById("TwistFeedBack_PIN").value = pinoutSettings["TwistFeedBack_PIN"];
+    document.getElementById("RightServo_PIN").value = pinoutSettings["RightServo_PIN"];
+    document.getElementById("LeftServo_PIN").value = pinoutSettings["LeftServo_PIN"];
+    document.getElementById("RightUpperServo_PIN").value = pinoutSettings["RightUpperServo_PIN"];
+    document.getElementById("LeftUpperServo_PIN").value = pinoutSettings["LeftUpperServo_PIN"];
+    document.getElementById("PitchLeftServo_PIN").value = pinoutSettings["PitchLeftServo_PIN"];
+    document.getElementById("PitchRightServo_PIN").value = pinoutSettings["PitchRightServo_PIN"];
+    document.getElementById("ValveServo_PIN").value = pinoutSettings["ValveServo_PIN"];
+	document.getElementById("TwistServo_PIN").value = pinoutSettings["TwistServo_PIN"];
+    document.getElementById("Vibe0_PIN").value = pinoutSettings["Vibe0_PIN"];
+    document.getElementById("Vibe1_PIN").value = pinoutSettings["Vibe1_PIN"];
+    document.getElementById("Vibe2_PIN").value = pinoutSettings["Vibe2_PIN"];
+    document.getElementById("Vibe3_PIN").value = pinoutSettings["Vibe3_PIN"];
+	document.getElementById("LubeButton_PIN").value = pinoutSettings["LubeButton_PIN"];
+	document.getElementById("Squeeze_PIN").value = pinoutSettings["Squeeze_PIN"];
+	// document.getElementById("Display_Rst_PIN").value = pinoutSettings["Display_Rst_PIN"];
+	// document.getElementById("Display_Rst_PIN").readOnly = true;
+	document.getElementById("Temp_PIN").value = pinoutSettings["Temp_PIN"];
+	document.getElementById("Heater_PIN").value = pinoutSettings["Heater_PIN"];
+    document.getElementById('Case_Fan_PIN').value = pinoutSettings["Case_Fan_PIN"];
+    document.getElementById('Internal_Temp_PIN').value = pinoutSettings["Internal_Temp_PIN"];
+    document.getElementById('i2cSda_PIN').value = pinoutSettings["i2cSda_PIN"];
+    document.getElementById('i2cScl_PIN').value = pinoutSettings["i2cScl_PIN"];
+
+    setPinChannel("Vibe0_CHANNEL", pinoutSettings["Vibe0_CHANNEL"]);
+    setPinChannel("Vibe1_CHANNEL", pinoutSettings["Vibe1_CHANNEL"]);
+    setPinChannel("Vibe2_CHANNEL", pinoutSettings["Vibe2_CHANNEL"]);
+    setPinChannel("Vibe3_CHANNEL", pinoutSettings["Vibe3_CHANNEL"]);
+    setPinChannel("ValveServo_CHANNEL", pinoutSettings["ValveServo_CHANNEL"]);
+    setPinChannel("TwistServo_CHANNEL", pinoutSettings["TwistServo_CHANNEL"]);
+    setPinChannel("Squeeze_CHANNEL", pinoutSettings["Squeeze_CHANNEL"]);
+    setPinChannel("Heater_CHANNEL", pinoutSettings["Heater_CHANNEL"]);
+    setPinChannel("Case_Fan_CHANNEL", pinoutSettings["Case_Fan_CHANNEL"]);
+
+    // if(isOSR() || isSR6()) {
+        setPinChannel("RightServo_CHANNEL", pinoutSettings["RightServo_CHANNEL"]);
+        setPinChannel("LeftServo_CHANNEL", pinoutSettings["LeftServo_CHANNEL"]);
+        setPinChannel("PitchLeftServo_CHANNEL", pinoutSettings["PitchLeftServo_CHANNEL"]);
+    // }
+    // if(isSR6()) {
+        setPinChannel("RightUpperServo_CHANNEL", pinoutSettings["RightUpperServo_CHANNEL"]);
+        setPinChannel("LeftUpperServo_CHANNEL", pinoutSettings["LeftUpperServo_CHANNEL"]);
+        setPinChannel("PitchRightServo_CHANNEL", pinoutSettings["PitchRightServo_CHANNEL"]);
+    // }
+}
+function setUserSettings()
 {
     document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
+    setLogLevelUI();
     toggleNonTCodev3Options();
-    toggleDeviceOptions(userSettings["sr6Mode"]);
-    toggleStaticIPSettings(userSettings["staticIP"]);
-    togglePitchServoFrequency(userSettings["pitchFrequencyIsDifferent"]);
+    toggleDeviceOptions(userSettings["deviceType"]);
     toggleFeedbackTwistSettings(userSettings["feedbackTwist"]);
     toggleBatterySettings(userSettings["batteryLevelEnabled"]);
     MotionGenerator.setEnabledStatus();
@@ -626,40 +897,17 @@ function setUserSettings()
     //updateSpeedUI(userSettings["speed"]);
     
     document.getElementById('boardType').value = userSettings["boardType"];
+    if(isBoardType(BoardType.CRIMZZON) || isBoardType(BoardType.ISAAC)) {
+        document.getElementById("deviceType").disabled = true;
+    }
 
-    document.getElementById("udpServerPort").value = userSettings["udpServerPort"];
-    document.getElementById("webServerPort").value = userSettings["webServerPort"];
-    startUpWebPort = userSettings["webServerPort"];
-    document.getElementById("hostname").value = userSettings["hostname"];
-    startUpHostName = userSettings["hostname"];
-    document.getElementById("friendlyName").value = userSettings["friendlyName"];
-	document.getElementById("servoFrequency").value = userSettings["servoFrequency"];
-	document.getElementById("pitchFrequency").value = userSettings["pitchFrequency"];
-	document.getElementById("valveFrequency").value = userSettings["valveFrequency"];
-	document.getElementById("twistFrequency").value = userSettings["twistFrequency"];
-    document.getElementById("squeezeFrequency").value = userSettings.squeezeFrequency,
 	document.getElementById("msPerRad").value = userSettings["msPerRad"];
 	
 	document.getElementById("feedbackTwist").checked = userSettings["feedbackTwist"];
 	document.getElementById("continuousTwist").checked = userSettings["continuousTwist"];
 	document.getElementById("analogTwist").checked = userSettings["analogTwist"];
     
-    document.getElementById("TwistFeedBack_PIN").value = userSettings["TwistFeedBack_PIN"];
-    document.getElementById("RightServo_PIN").value = userSettings["RightServo_PIN"];
-    document.getElementById("LeftServo_PIN").value = userSettings["LeftServo_PIN"];
-    document.getElementById("RightUpperServo_PIN").value = userSettings["RightUpperServo_PIN"];
-    document.getElementById("LeftUpperServo_PIN").value = userSettings["LeftUpperServo_PIN"];
-    document.getElementById("PitchLeftServo_PIN").value = userSettings["PitchLeftServo_PIN"];
-    document.getElementById("PitchRightServo_PIN").value = userSettings["PitchRightServo_PIN"];
-    document.getElementById("ValveServo_PIN").value = userSettings["ValveServo_PIN"];
-	document.getElementById("TwistServo_PIN").value = userSettings["TwistServo_PIN"];
-    document.getElementById("Vibe0_PIN").value = userSettings["Vibe0_PIN"];
-    document.getElementById("Vibe1_PIN").value = userSettings["Vibe1_PIN"];
-    document.getElementById("Vibe2_PIN").value = userSettings["Vibe2_PIN"];
-    document.getElementById("Vibe3_PIN").value = userSettings["Vibe3_PIN"];
-	document.getElementById("LubeButton_PIN").value = userSettings["LubeButton_PIN"];
-	document.getElementById("Squeeze_PIN").value = userSettings["Squeeze_PIN"];
-
+    ESPTimer.setup();
     if(systemInfo.motorType === MotorType.BLDC) 
         BLDCMotor.setup();
 
@@ -676,12 +924,14 @@ function setUserSettings()
 	document.getElementById("Squeeze_ZERO").value = userSettings["Squeeze_ZERO"];
 	document.getElementById("lubeEnabled").checked = userSettings["lubeEnabled"];
 	document.getElementById("lubeAmount").value = userSettings["lubeAmount"];
-	document.getElementById("sr6Mode").checked = userSettings["sr6Mode"];
+	document.getElementById("deviceType").value = userSettings["deviceType"];
 	document.getElementById("autoValve").checked = userSettings["autoValve"];
 	document.getElementById("inverseValve").checked = userSettings["inverseValve"];
 	document.getElementById("valveServo90Degrees").checked = userSettings["valveServo90Degrees"];
 	document.getElementById("inverseStroke").checked = userSettings["inverseStroke"];
 	document.getElementById("inversePitch").checked = userSettings["inversePitch"];
+	document.getElementById("inverseTwist").checked = userSettings["inverseTwist"];
+    
 
 	document.getElementById("displayEnabled").checked = userSettings["displayEnabled"];
 	document.getElementById("sleeveTempDisplayed").checked = userSettings["sleeveTempDisplayed"];
@@ -689,7 +939,6 @@ function setUserSettings()
 	document.getElementById("versionDisplayed").checked = userSettings["versionDisplayed"];
 	document.getElementById("tempSleeveEnabled").checked = userSettings["tempSleeveEnabled"];
     document.getElementById('tempInternalEnabled').checked = userSettings["tempInternalEnabled"];
-	document.getElementById("pitchFrequencyIsDifferent").checked = userSettings["pitchFrequencyIsDifferent"];
 	document.getElementById("Display_Screen_Width").value = userSettings["Display_Screen_Width"];
 	document.getElementById("Display_Screen_Height").value = userSettings["Display_Screen_Height"];
     
@@ -701,41 +950,25 @@ function setUserSettings()
 	document.getElementById("HoldPWM").value = userSettings["HoldPWM"];
 	document.getElementById("Display_I2C_Address").value = userSettings["Display_I2C_Address"];
     document.getElementById("Display_I2C_Address_text").value = userSettings["Display_I2C_Address"];
-	// document.getElementById("Display_Rst_PIN").value = userSettings["Display_Rst_PIN"];
-	document.getElementById("Temp_PIN").value = userSettings["Temp_PIN"];
-	document.getElementById("Heater_PIN").value = userSettings["Heater_PIN"];
 	// document.getElementById("heaterFailsafeTime").value = userSettings["heaterFailsafeTime"];
 	document.getElementById("heaterThreshold").value = userSettings["heaterThreshold"];
 	document.getElementById("heaterResolution").value = userSettings["heaterResolution"];
-	document.getElementById("heaterFrequency").value = userSettings["heaterFrequency"];
-	
-    setWifiSettings();
-    document.getElementById("staticIP").checked = userSettings["staticIP"];
-    startUpStaticIP = userSettings["staticIP"];
-    document.getElementById("localIPInput").value = userSettings["localIP"];
-    startUpLocalIP = userSettings["localIP"];
-    document.getElementById("gatewayInput").value = userSettings["gateway"];
-    document.getElementById("subnetInput").value = userSettings["subnet"];
-    document.getElementById("dns1Input").value = userSettings["dns1"];
-    document.getElementById("dns2Input").value = userSettings["dns2"];
-    //document.getElementById('bluetoothEnabled').checked = userSettings["bluetoothEnabled"];
     
 	// document.getElementById("Display_Rst_PIN").readOnly = newtoungeHatExists;
 
 	document.getElementById("Display_Screen_Width").readOnly = true;
 	document.getElementById("Display_Screen_Height").readOnly = true;
-	// document.getElementById("Display_Rst_PIN").readOnly = true;
-    document.getElementById('Internal_Temp_PIN').value = userSettings["Internal_Temp_PIN"];
     document.getElementById('fanControlEnabled').checked = userSettings["fanControlEnabled"];
     document.getElementById('internalTempForFan').value = userSettings["internalTempForFan"];
     document.getElementById('internalMaxTemp').value = userSettings["internalMaxTemp"];
-    document.getElementById('Case_Fan_PIN').value = userSettings["Case_Fan_PIN"];
     document.getElementById('caseFanResolution').value = userSettings["caseFanResolution"];
-    document.getElementById('caseFanFrequency').value = userSettings["caseFanFrequency"];
+
+    document.getElementById('vibTimeout').value = userSettings["vibTimeout"];
+    document.getElementById('vibTimeoutEnabled').checked = userSettings["vibTimeoutEnabled"];
 
     batterySetup();
     
-    document.getElementById('debug').value = userSettings["logLevel"];
+    document.getElementById('logLevel').value = userSettings["logLevel"];
 
     var includedElement = document.getElementById('log-include-tags');
     for (var i = 0; i < includedElement.options.length; i++) {
@@ -804,13 +1037,10 @@ function toggleBuildOptions() {
         
     var tcodeVersionElement = document.getElementById('TCodeVersion');
 
-    if(!hasTCodeV2()) {
-        availableVersions.splice(availableVersions.findIndex(x => x.version === TCodeVersion.V2), 1);
-    }
-    availableVersions.forEach(x => {
+    tcodeVersions.forEach(x => {
         const optionElement = document.createElement("option");
-        optionElement.value=x.version;
-        optionElement.innerText=x.versionName;
+        optionElement.value=x.value;
+        optionElement.innerText=x.name;
         tcodeVersionElement.appendChild(optionElement);
     });
 }
@@ -823,11 +1053,16 @@ function toggleMotorTypeOptions() {
     }
 }
 
+function toggleBLDCEncoderOptions() {
+    Utils.toggleControlVisibilityByClassName("BLDCPWM", userSettings["BLDC_Encoder"] == BLDCEncoderType.PWM);
+    Utils.toggleControlVisibilityByClassName("BLDCSPI", isBLDCSPI());
+}
+
 function updateUserSettings(debounceInMs, uri, objectToSave, callback) 
 {
     if (documentLoaded) {
         if(debounceInMs == null || debounceInMs == undefined) {
-            debounceInMs = 3000;
+            debounceInMs = defaultDebounce;
         }
         if(!uri) {
             uri = "/settings"
@@ -851,13 +1086,17 @@ function updateUserSettings(debounceInMs, uri, objectToSave, callback)
             {
                 if (xhr.readyState === 4) 
 				{
-                    if(xhr.responseText === '')
+                    if(!xhr.responseText.length)
                     {
                         response["msg"] = xhr.status + ': ' + xhr.statusText;
                     }
-                    else 
+                    else if(xhr.responseText.startsWith("{"))
                     {
                         response = JSON.parse(xhr.responseText);
+                    } 
+                    else
+                    {
+                        response["msg"] = xhr.responseText;
                     }
                     if (response["msg"] !== "done") 
                     {
@@ -904,13 +1143,13 @@ function checkRestartRedirect() {
         } else {// Connect to wifi configuration
             //Uri change
             const isPort80 = window.location.port.length == 0;
-            const isUserPort80 = userSettings["webServerPort"] == 80;
+            const isUserPort80 = wifiSettings["webServerPort"] == 80;
             const port80Changed = isPort80 && !isUserPort80 || !isPort80 && isUserPort80;
-            const portChanged = port80Changed || (!isPort80 && window.location.port != userSettings["webServerPort"]);
+            const portChanged = port80Changed || (!isPort80 && window.location.port != wifiSettings["webServerPort"]);
             const connectedAndPortChanged = !systemInfo.apMode && portChanged; 
             //Not using IP address and hostname change
             const isCurrentIPAddress = isValidIP(window.location.hostname);
-            const connectedAndHostnameChanged = !isCurrentIPAddress && !systemInfo.apMode && window.location.hostname != userSettings["hostname"];
+            const connectedAndHostnameChanged = !isCurrentIPAddress && !systemInfo.apMode && window.location.hostname != wifiSettings["hostname"];
 
             if(connectedAndPortChanged || connectedAndHostnameChanged) {
                 restartingAndChangingAddress = true;
@@ -921,6 +1160,9 @@ function checkRestartRedirect() {
 
 function isValidIP(ip) {
     return ip && ip.match(/^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/);
+}
+function isValidHostName(hostname) {
+    return hostname && hostname.match(/^(?![0-9]+$)(?!.*-$)(?!-)[a-zA-Z0-9-_]{1,63}$/g)
 }
 
 function showRestartRequired() {
@@ -959,24 +1201,34 @@ function toggleMenu() {
 function clearErrors(name) 
 {
     var errorText = document.getElementById("errorText");
-    var errors = document.getElementsByName(name);
-    for(var i=0;i<errors.length;i++) {
-        errorText.removeChild(errors[i]);
-    }
-    if(errorText.innerText == "" && !errorText.firstChild) {
-        closeError();
-    }
+    if(name) {
+        var errors = document.getElementsByName(name);
+        for(var i=0;i<errors.length;i++) {
+            errorText.removeChild(errors[i].parentNode);
+        }
+        errors = document.getElementsByName("errorItem");
+        if(!errors.length) {
+            document.getElementById("errorMessage").hidden = true;
+        }
+    } 
+    // else {
+    //     closeError();
+    // }
 }
 
 function closeError() 
 {
-    document.getElementById("errorText").innerHTML = "";
+    var errorText = document.getElementById("errorText");
+    removeAllChildren(errorText);
     document.getElementById("errorMessage").hidden = true;
 }
 
 function showError(message) 
 {
-    document.getElementById("errorText").innerHTML += message;
+    var div = document.createElement("div");
+    div.setAttribute("name", "errorItem");
+    div.innerHTML = message;
+    document.getElementById("errorText").appendChild(div);
     document.getElementById("errorMessage").hidden = false;
 }
 
@@ -1026,10 +1278,18 @@ function hideInfo() {
 }
 
 function sendWebsocketCommand(command, message) {
+    if(!isWebSocketConnected()) {
+        startServerPoll();
+        return;
+    }
     websocket.send("{\"command\":\""+command+"\", \"message\": \""+message+"\"}")
 }
 
 function sendTCode(tcode) {
+    if(!isWebSocketConnected()) {
+        startServerPoll();
+        return;
+    }
     websocket.send(tcode+String.fromCharCode(10))
 }
 
@@ -1087,7 +1347,7 @@ function setupChannelSliders()
     var availibleChannels = getChannelMap();
     for(var i=0; i<availibleChannels.length;i++)
     {
-        if(!userSettings.sr6Mode && availibleChannels[i].sr6Only) {
+        if(!isSR6() && availibleChannels[i].sr6Only) {
             continue;
         }
         var channel = availibleChannels[i].channel;
@@ -1208,16 +1468,13 @@ function hasTCodeV2()  {
     return hasFeature(BuildFeature.HAS_TCODE_V2);
 }
 function getTCodeMax() {
-    return isTCodeV3() ? 9999 : 999;
+    return 9999;
 }
 function getChannelMap() {
-    return systemInfo["motorType"] == MotorType.Servo ? isTCodeV3() ? AvailibleChannelsV3 : AvailibleChannelsV2 : AvailibleChannelsBLDC;
+    return systemInfo["motorType"] == MotorType.Servo ? AvailibleChannelsV3 : AvailibleChannelsBLDC;
 };
 function onChannelSliderInput(channel, value) {
-    sendTCode(channel+value.toString().padStart(isTCodeV3() ? 4 : 3, "0") + "S1000");
-}
-function getTCodeMax() {
-    return isTCodeV3() ? 9999 : 999
+    sendTCode(channel+value.toString().padStart(4, "0") + "S1000");
 }
 function tcodeToPercentage(tcodeValue) {
     return convertRange(0, getTCodeMax(), 0, 99, tcodeValue);
@@ -1237,57 +1494,17 @@ function onSpeedInput() {
 }
 
 function updateUdpPort() {
-    userSettings["udpServerPort"] = parseInt(document.getElementById('udpServerPort').value);
+    wifiSettings["udpServerPort"] = parseInt(document.getElementById('udpServerPort').value);
     setRestartRequired();
-    updateUserSettings();
+    postWifiSettings();
 }
 
 function updateWebPort() {
-    userSettings["webServerPort"] = parseInt(document.getElementById('webServerPort').value);
+    wifiSettings["webServerPort"] = parseInt(document.getElementById('webServerPort').value);
     setRestartRequired();
-    updateUserSettings();
+    postWifiSettings();
 }
 
-function setPitchFrequencyIsDifferent() {
-    var isChecked = document.getElementById('pitchFrequencyIsDifferent').checked;
-    userSettings["pitchFrequencyIsDifferent"] = isChecked;
-    togglePitchServoFrequency(isChecked);
-}
-
-function updateServoFrequency() {
-    var servoFrequencyControl = document.getElementById('servoFrequency');
-    if(!servoFrequencyControl.checkValidity()) {
-        showError(servoFrequencyControl.validationMessage);
-    } else
-        userSettings["servoFrequency"] = parseInt(servoFrequencyControl.value);
-        
-    var pitchFrequencyControl = document.getElementById('pitchFrequency');
-    if(!pitchFrequencyControl.checkValidity()) {
-        showError(pitchFrequencyControl.validationMessage);
-    } else
-        userSettings["pitchFrequency"] = parseInt(pitchFrequencyControl.value);
-
-    var valveFrequencyControl = document.getElementById('valveFrequency');
-    if(!valveFrequencyControl.checkValidity()) {
-        showError(valveFrequencyControl.validationMessage);
-    } else
-        userSettings["valveFrequency"] = parseInt(valveFrequencyControl.value);
-
-    var twistFrequencyControl = document.getElementById('twistFrequency');
-    if(!twistFrequencyControl.checkValidity()) {
-        showError(twistFrequencyControl.validationMessage);
-    } else
-        userSettings["twistFrequency"] = parseInt(twistFrequencyControl.value);
-        var twistFrequencyControl = document.getElementById('twistFrequency');
-
-    var squeezeFrequencyControl = document.getElementById('squeezeFrequency');
-    if(!squeezeFrequencyControl.checkValidity()) {
-        showError(squeezeFrequencyControl.validationMessage);
-    } else
-        userSettings["squeezeFrequency"] = parseInt(squeezeFrequencyControl.value);
-    setRestartRequired();
-    updateUserSettings();
-}
 function updateMSPerRad(userChecked) {
     var control = document.getElementById('msPerRad');
     if(!control.checkValidity()) {
@@ -1344,16 +1561,16 @@ function updateAnalogTwist() {
     
     if(checked ) {
         document.getElementById("TwistFeedBack_PIN").value = 32;
-        userSettings["TwistFeedBack_PIN"] = 32;
+        pinoutSettings["TwistFeedBack_PIN"] = 32;
         //if(!newtoungeHatExists)
         alert("Note, twist feedback pin has been changed to analog input pin 32.\nPlease adjust your hardware accordingly.");
     } else {
         document.getElementById("TwistFeedBack_PIN").value = 26;
-        userSettings["TwistFeedBack_PIN"] = 26;
+        pinoutSettings["TwistFeedBack_PIN"] = 26;
         alert("Note, twist feedback pin reset to 26.\nPlease adjust your hardware accordingly.");
     }
     setRestartRequired();
-    updateUserSettings();
+    postAndValidatePinoutSettings(defaultDebounce, postCommonSettings);
 }
 function updateFeedbackTwist() {
     var checked = document.getElementById('feedbackTwist').checked;
@@ -1374,41 +1591,107 @@ function toggleFeedbackTwistSettings(feedbackChecked) {
 }
 function updateHostName() 
 {
-    userSettings["hostname"] = document.getElementById('hostname').value;
-    setRestartRequired();
-    updateUserSettings();
+    if(hostnameTimeout !== null) 
+    {
+        clearTimeout(hostnameTimeout);
+    }
+    hostnameTimeout = setTimeout(() => 
+    {
+        clearErrors("hostnameValidation");
+        let value = document.getElementById('hostname').value;
+        if(isValidHostName(value)) 
+        {
+            wifiSettings["hostname"] = value;
+            setRestartRequired();
+            postWifiSettings(0);
+        } else {
+            var errorString = "<div name='hostnameValidation'>Invalid hostname</div>";
+            
+            errorString += "</div>";
+            showError(errorString);
+        }
+    }, defaultDebounce);
 }
 
 function updateFriendlyName() 
 {
-    userSettings["friendlyName"] = document.getElementById('friendlyName').value;
+    wifiSettings["friendlyName"] = document.getElementById('friendlyName').value;
     setRestartRequired();
-    updateUserSettings();
+    postWifiSettings();
 }
 function setupBoardTypes() {
     const boardTypeElement = document.getElementById('boardType');
+    removeAllChildren(boardTypeElement);
     for(let i=0;i<systemInfo.boardTypes.length;i++) {
         const boardTypeOption = document.createElement("option");
         boardTypeOption.innerText = systemInfo.boardTypes[i].name;
         boardTypeOption.value = systemInfo.boardTypes[i].value;
         boardTypeElement.appendChild(boardTypeOption);
+        BoardType[systemInfo.boardTypes[i].name] = systemInfo.boardTypes[i].value;
+    }
+}
+function setEncoderType() {
+    userSettings["BLDC_Encoder"] = document.getElementById('BLDC_Encoder').value;
+    toggleBLDCEncoderOptions();
+    updateUserSettings(0);
+}
+function setupEncoderTypes() {
+    const element = document.getElementById('BLDC_Encoder');
+    removeAllChildren(element);
+    for(let i=0;i<systemInfo.encoderTypes.length;i++) {
+        const option = document.createElement("option");
+        option.innerText = systemInfo.encoderTypes[i].name;
+        option.value = systemInfo.encoderTypes[i].value;
+        element.appendChild(option);
+        BLDCEncoderType[systemInfo.encoderTypes[i].name] = systemInfo.encoderTypes[i].value;
     }
 }
 function setBoardType() {
     var element = document.getElementById('boardType');
     var newBoardType = element.value;
-    if(confirm("This will reset the current pinout to default. Continue?")) {
-        setPinoutDefault(newBoardType);
+    if(confirm("This will reset the current pinout to default and restart the device. Continue?")) {
+        postBoardType(newBoardType);
     } else {
         element.value = userSettings["boardType"];
     }
 }
-function setSR6Mode() {
-    userSettings["sr6Mode"] = document.getElementById('sr6Mode').checked;
-    toggleDeviceOptions(userSettings["sr6Mode"]);
-    setupChannelSliders();
-    setRestartRequired();
-	updateUserSettings(1);
+function setupDeviceTypes() {
+    const element = document.getElementById('deviceType');
+    removeAllChildren(element);
+    for(let i=0;i<systemInfo.deviceTypes.length;i++) {
+        const option = document.createElement("option");
+        option.innerText = systemInfo.deviceTypes[i].name;
+        option.value = systemInfo.deviceTypes[i].value;
+        element.appendChild(option);
+        DeviceType[systemInfo.deviceTypes[i].name] = systemInfo.deviceTypes[i].value;
+    }
+}
+function setDeviceType() {
+    var element = document.getElementById('deviceType');
+    let newValue = element.value;
+    if(confirm("This will reset the current pinout to default. Continue?")) {
+        //toggleDeviceOptions(userSettings["deviceType"]);
+        //setupChannelSliders();
+        //setRestartRequired();
+        //updateUserSettings(1);
+        postDeviceType(newValue);
+    } else {
+        element.value = userSettings["deviceType"];
+    }
+}
+
+function setupTimerChannels() {
+    const elements = document.getElementsByName('timerChannels');
+    for (let index = 0; index < elements.length; index++) {
+        const element = elements[index];
+        removeAllChildren(element);
+        for(let i=0;i<systemInfo.timerChannels.length;i++) {
+            const option = document.createElement("option");
+            option.innerText = systemInfo.timerChannels[i].name;
+            option.value = systemInfo.timerChannels[i].value;
+            element.appendChild(option);
+        }
+    }
 }
 
 function setAutoValve() {
@@ -1447,6 +1730,10 @@ function setInversePitch() {
     userSettings["inversePitch"] = document.getElementById('inversePitch').checked;
 	updateUserSettings();
 }
+function setInverseTwist() {
+    userSettings["inverseTwist"] = document.getElementById('inverseTwist').checked;
+	updateUserSettings();
+}
 function disablePinValidation() {
     if (!userSettings["disablePinValidation"] && confirm("This will disable ALL PIN validations.\nBe sure you know what you're doing!")) {
         userSettings["disablePinValidation"] = true;
@@ -1457,6 +1744,27 @@ function disablePinValidation() {
 	updateUserSettings();
 }
 
+function setPinChannel(id, value) {
+    let element = document.getElementById(id);
+    element.value = value;
+    toggleEnableTimerChannels(element);
+}
+function onSelectPinChannel(element) {
+    pinoutSettings[element.id] = element.value;
+    // let option = selectElement.options[selectElement.selectedIndex];
+    // option.disabled = true
+    toggleEnableTimerChannels(element);
+    setRestartRequired();
+	postPinoutSettings();
+}
+function toggleEnableTimerChannels(element) {
+    const timerSelects = document.getElementsByName('timerChannels');
+    for (let index = 0; index < timerSelects.length; index++) {
+        const otherElement = timerSelects[index];
+        if(element.id !== otherElement.id)
+            otherElement.options[element.selectedIndex].disabled = element.value > -1;
+    }
+}
 function updatePins() 
 {
     if(systemInfo.motorType == MotorType.BLDC) {
@@ -1471,45 +1779,36 @@ function updatePins()
     {
         var pinValues = validatePins();
         if(pinValues) {
-            userSettings["RightServo_PIN"] = pinValues.rightPin;
-            userSettings["LeftServo_PIN"] = pinValues.leftPin;
-            userSettings["RightUpperServo_PIN"] = pinValues.rightUpper;
-            userSettings["LeftUpperServo_PIN"] = pinValues.leftUpper;
-            userSettings["PitchLeftServo_PIN"] = pinValues.pitchLeft;
-            userSettings["PitchRightServo_PIN"] = pinValues.pitchRight;
+            pinoutSettings["RightServo_PIN"] = pinValues.rightPin;
+            pinoutSettings["LeftServo_PIN"] = pinValues.leftPin;
+            pinoutSettings["RightUpperServo_PIN"] = pinValues.rightUpper;
+            pinoutSettings["LeftUpperServo_PIN"] = pinValues.leftUpper;
+            pinoutSettings["PitchLeftServo_PIN"] = pinValues.pitchLeft;
+            pinoutSettings["PitchRightServo_PIN"] = pinValues.pitchRight;
             updateCommonPins(pinValues);
             setRestartRequired();
-            updateUserSettings();
+            postPinoutSettings(0);
         }
-    }, 2000);
+    }, defaultDebounce);
 }
 
 function updateCommonPins(pinValues) {
-    userSettings["TwistServo_PIN"] = pinValues.twistServo;
-    userSettings["ValveServo_PIN"] = pinValues.valveServo;
-    userSettings["Squeeze_PIN"] = pinValues.squeezeServo;
-    userSettings["Vibe0_PIN"] = pinValues.vibe0;
-    userSettings["Vibe1_PIN"] = pinValues.vibe1;
-    userSettings["Vibe2_PIN"] = pinValues.vibe2;
-    userSettings["Vibe3_PIN"] = pinValues.vibe3;
-    userSettings["LubeButton_PIN"] = pinValues.lubeButton;
-    if(userSettings.tempSleeveEnabled) {
-        userSettings["Heater_PIN"] = pinValues.heat;
-    }
-    if(userSettings.tempInternalEnabled) {
-        userSettings["Case_Fan_PIN"] = pinValues.caseFanPin;
-    }
-    if(userSettings.tempSleeveEnabled) {
-        userSettings["Temp_PIN"] = pinValues.temp;
-    }
-    if(userSettings.feedbackTwist) {
-        userSettings["TwistFeedBack_PIN"] = pinValues.twistFeedBack;
-    }
-    if(userSettings.tempInternalEnabled) {
-        userSettings["Internal_Temp_PIN"] = pinValues.internalTemp;
-    }
-    // if(userSettings.batteryLevelEnabled) {
-    //     userSettings["Battery_Voltage_PIN"] = pinValues.Battery_Voltage_PIN;
+    pinoutSettings["TwistServo_PIN"] = pinValues.twistServo;
+    pinoutSettings["ValveServo_PIN"] = pinValues.valveServo;
+    pinoutSettings["Squeeze_PIN"] = pinValues.squeezeServo;
+    pinoutSettings["Vibe0_PIN"] = pinValues.vibe0;
+    pinoutSettings["Vibe1_PIN"] = pinValues.vibe1;
+    pinoutSettings["Vibe2_PIN"] = pinValues.vibe2;
+    pinoutSettings["Vibe3_PIN"] = pinValues.vibe3;
+    pinoutSettings["LubeButton_PIN"] = pinValues.lubeButton;
+    pinoutSettings["Heater_PIN"] = pinValues.heat;
+    pinoutSettings["Case_Fan_PIN"] = pinValues.caseFanPin
+    pinoutSettings["Temp_PIN"] = pinValues.temp;
+    pinoutSettings["TwistFeedBack_PIN"] = pinValues.twistFeedBack;
+    pinoutSettings["Internal_Temp_PIN"] = pinValues.internalTemp;
+    pinoutSettings["i2cSda_PIN"] = pinValues.i2cSda;
+    pinoutSettings["i2cScl_PIN"] = pinValues.i2cScl;
+    //     pinoutSettings["Battery_Voltage_PIN"] = pinValues.Battery_Voltage_PIN;
     // }
 
 }
@@ -1589,35 +1888,78 @@ function setElementsIntMinAndMax(minElement, maxElement) {
     maxElement.setAttribute('min', parseInt(minElement.value) + 1);
 }
 /** additionalValidations takes a parameter with the value */
-function validateIntControl(controlID, settingsObject, settingVariableName, additionalValidations) {
-    var control = document.getElementById(controlID);
+function validateIntControl(controlIDOrElement, settingsObject, settingVariableName, additionalValidations) {
+    var control = controlIDOrElement;
+    if(typeof controlIDOrElement === "string") {
+        control = document.getElementById(controlIDOrElement);
+    }
+    clearErrors(control.id);
     if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
         settingsObject[settingVariableName] = parseInt(control.value);
         return true;
     }
-    showError(`${controlID} is invalid: ${control.errorText}`)
+    var message = control.validationMessage;
+    if(!message) {
+        message = control.errorText;
+    }
+    showError(`<div name="${control.id}"> ${control.id} is invalid: ${message ??  ""}</div>`);
     return false;
 }
-var validateFloatDebounce;
 /** additionalValidations takes a parameter with the value */
-function validateFloatControl(controlID, settingsObject, settingVariableName, additionalValidations) {
-    var control = document.getElementById(controlID);
+function validateFloatControl(controlIDOrElement, settingsObject, settingVariableName, additionalValidations) {
+    var control = controlIDOrElement;
+    if(typeof controlIDOrElement === "string") {
+        control = document.getElementById(controlIDOrElement);
+    }
+    clearErrors(control.id);
     if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
         settingsObject[settingVariableName] = parseFloat(control.value);
         return true;
     }
-    showError(`${controlID} is invalid: ${control.errorText}`)
+    var message = control.validationMessage;
+    if(!message) {
+        message = control.errorText;
+    }
+    showError(`<div name="${control.id}"> ${control.id} is invalid: ${message ??  ""}</div>`);
     return false;
 }
 /** additionalValidations takes a parameter with the value */
-function validateStringControl(controlID, settingsObject, settingVariableName, additionalValidations) {
-    var control = document.getElementById(controlID);
+function validateStringControl(controlIDOrElement, settingsObject, settingVariableName, additionalValidations) {
+    var control = controlIDOrElement;
+    if(typeof controlIDOrElement === "string") {
+        control = document.getElementById(controlIDOrElement);
+    }
+    clearErrors(control.id);
     if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
         settingsObject[settingVariableName && settingVariableName.trim().length ? settingVariableName : controlID] = control.value;
         return true;
     }
-    showError(`${controlID} is invalid: ${control.errorText}`)
+    var message = control.validationMessage;
+    if(!message) {
+        message = control.errorText;
+    }
+    showError(`<div name="${control.id}"> ${control.id} is invalid: ${message ??  ""}</div>`);
     return false;
+}
+
+function validatePin(pin, pinName, assignedPins, duplicatePins, isInput, invalidPins) {
+    if(pin > -1) {
+        let pinDupeIndex = assignedPins.findIndex(x => x.pin === pin);
+        if(pinDupeIndex > -1) {
+            duplicatePins.push(pinName+" pin and "+assignedPins[pinDupeIndex].name);
+        }
+        if(isInput === true && inputOnlypins.indexOf(pin) == -1 && validPWMpins.indexOf(pin) == -1) {
+            invalidPins.push(pinName+" pin: "+pin);
+        }
+        assignedPins.push({name:pinName, pin:pin});
+    }
+}
+function validatePWMPin(pin, pinName, assignedPins, duplicatePins, pwmErrors) {
+    if(pin > -1) {
+        validatePin(pin, pinName, assignedPins, duplicatePins)
+        if(validPWMpins.indexOf(pin) == -1)
+            pwmErrors.push(pinName+" pin: "+pin);
+    }
 }
 /** 
  * Validates the pin number values in the forms inputs. 
@@ -1630,72 +1972,28 @@ function validatePins() {
     clearErrors("pinValidation"); 
     var assignedPins = [];
     var duplicatePins = [];
-    var pmwErrors = [];
+    var pwmErrors = [];
     var pinValues = getServoPinValues();
     if(userSettings["disablePinValidation"])
         return pinValues;
 
-    var pinDupeIndex = -1;
-    if(pinValues.rightPin > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.rightPin);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Right servo pin and "+assignedPins[pinDupeIndex].name);
-        if(validPWMpins.indexOf(pinValues.rightPin) == -1)
-            pmwErrors.push("Right servo pin: "+pinValues.rightPin);
-        assignedPins.push({name:"Right servo", pin:pinValues.rightPin});
-    }
+    validatePWMPin(pinValues.rightPin, "Right servo", assignedPins, duplicatePins, pwmErrors);
 
-    if(pinValues.leftPin > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.leftPin);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Left servo pin and "+assignedPins[pinDupeIndex].name);
-        if(validPWMpins.indexOf(pinValues.leftPin) == -1)
-            pmwErrors.push("Left servo pin: "+pinValues.leftPin);
-        assignedPins.push({name:"Left servo", pin:pinValues.leftPin});
-    }
+    // OSR / SR6
+    validatePWMPin(pinValues.leftPin, "Left servo", assignedPins, duplicatePins, pwmErrors);
+    validatePWMPin(pinValues.pitchLeft, "Pitch left servo", assignedPins, duplicatePins, pwmErrors);
 
-    if(userSettings["sr6Mode"]) {
-        if(pinValues.rightUpper > -1) {
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.rightUpper);
-            if(pinDupeIndex > -1)
-                duplicatePins.push("Right upper servo pin and "+assignedPins[pinDupeIndex].name);
-            if(validPWMpins.indexOf(pinValues.rightUpper) == -1)
-                pmwErrors.push("Right upper servo pin: "+pinValues.rightUpper);
-            assignedPins.push({name:"Right upper servo", pin:pinValues.rightUpper});
-        }
-        if(pinValues.leftUpper > -1) {
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.leftUpper);
-            if(pinDupeIndex > -1)
-                duplicatePins.push("Left upper servo pin and "+assignedPins[pinDupeIndex].name);
-            if(validPWMpins.indexOf(pinValues.leftUpper) == -1)
-                pmwErrors.push("Left upper servo pin: "+pinValues.leftUpper);
-            assignedPins.push({name:"Left upper servo", pin:pinValues.leftUpper});
-        }
-        if(pinValues.pitchRight > -1) {
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.pitchRight);
-            if(pinDupeIndex> -1)
-                duplicatePins.push("Pitch right servo pin and "+assignedPins[pinDupeIndex].name);
-            if(validPWMpins.indexOf(pinValues.pitchRight) == -1)
-                pmwErrors.push("Pitch right servo pin: "+pinValues.pitchRight);
-            assignedPins.push({name:"Pitch right servo", pin:pinValues.pitchRight});
-        }
-    }
+    // SR6
+    validatePWMPin(pinValues.rightUpper, "Right upper servo", assignedPins, duplicatePins, pwmErrors);
+    validatePWMPin(pinValues.leftUpper, "Left upper servo", assignedPins, duplicatePins, pwmErrors);
+    validatePWMPin(pinValues.pitchRight, "Pitch right servo", assignedPins, duplicatePins, pwmErrors);
 
-    if(pinValues.pitchLeft > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.pitchLeft);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Pitch left servo pin and "+assignedPins[pinDupeIndex].name);
-        if(validPWMpins.indexOf(pinValues.pitchLeft) == -1)
-            pmwErrors.push("Pitch left servo pin: "+pinValues.pitchLeft);
-        assignedPins.push({name:"Pitch left servo", pin:pinValues.pitchLeft});
-    }
-
-    validateCommonPWMPins(assignedPins, duplicatePins, pinValues);
+    validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors);
 
     var invalidPins = [];
     validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues);
 
-    if (duplicatePins.length || pmwErrors.length || invalidPins.length) {
+    if (duplicatePins.length || pwmErrors.length || invalidPins.length) {
         var errorString = "<div name='pinValidation'>Pins NOT saved due to invalid input.<br>";
         if(duplicatePins.length )
             errorString += "<div style='margin-left: 25px;'>The following pins are duplicated:<br><div style='color: white; margin-left: 25px;'>"+duplicatePins.join("<br>")+"</div></div>";
@@ -1704,11 +2002,11 @@ function validatePins() {
                 errorString += "<br>";
             errorString += "<div style='margin-left: 25px;'>The following pins are invalid:<br><div style='color: white; margin-left: 25px;'>"+invalidPins.join("<br>")+"</div></div>";
         }
-        if (pmwErrors.length) {
+        if (pwmErrors.length) {
             if(duplicatePins.length || invalidPins.length) {
                 errorString += "<br>";
             } 
-            errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pmwErrors.join("<br>")+"</div></div>";
+            errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pwmErrors.join("<br>")+"</div></div>";
         }
         
         errorString += "</div>";
@@ -1719,169 +2017,81 @@ function validatePins() {
 }
 
 
-function validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pmwErrors) {
-
-    var pinDupeIndex =  -1;
-
-    if(pinValues.twistServo > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.twistServo);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Twist servo pin and "+assignedPins[pinDupeIndex].name);
-        if(validPWMpins.indexOf(pinValues.twistServo) == -1)
-            pmwErrors.push("Twist servo pin: "+pinValues.twistServo);
-        assignedPins.push({name:"Twist servo", pin:pinValues.twistServo});
-    }
-
-    if(pinValues.squeezeServo > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.squeezeServo);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Squeeze servo pin and "+assignedPins[pinDupeIndex].name);
-        if(validPWMpins.indexOf(pinValues.squeezeServo) == -1)
-            pmwErrors.push("Squeeze servo pin: "+pinValues.squeezeServo);
-        assignedPins.push({name:"Squeeze servo", pin:pinValues.squeezeServo});
-    }
-
-    if(pinValues.valveServo > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.valveServo);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Valve servo pin and "+assignedPins[pinDupeIndex].name);
-        if(validPWMpins.indexOf(pinValues.valveServo) == -1)
-            pmwErrors.push("Valve servo pin: "+pinValues.valveServo);
-        assignedPins.push({name:"Valve servo", pin:pinValues.valveServo});
-    }
-
-    if(pinValues.vibe0 > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.vibe0);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Vibe 1 pin and "+assignedPins[pinDupeIndex].name);
-        if(validPWMpins.indexOf(pinValues.vibe0) == -1)
-            pmwErrors.push("Vibe 1 pin: "+pinValues.vibe0);
-        assignedPins.push({name:"Vibe 1", pin:pinValues.vibe0});
-    }
-
-    if(pinValues.vibe1 > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.vibe1);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Lube/Vibe 2 pin and "+assignedPins[pinDupeIndex].name);
-        if(validPWMpins.indexOf(pinValues.vibe1) == -1)
-            pmwErrors.push("Lube/Vibe 1 pin: "+pinValues.vibe1);
-        assignedPins.push({name:"Lube/Vibe 1", pin:pinValues.vibe1});
-    }
-
-    if(pinValues.vibe2 > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.vibe2);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Vibe 3 pin and "+assignedPins[pinDupeIndex].name);
-        if(validPWMpins.indexOf(pinValues.vibe2) == -1)
-            pmwErrors.push("Vibe 3 pin: "+pinValues.vibe2);
-        assignedPins.push({name:"Vibe 3", pin:pinValues.vibe2});
-    }
-
-    if(pinValues.vibe3 > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.vibe3);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Vibe 4 pin and "+assignedPins[pinDupeIndex].name);
-        if(validPWMpins.indexOf(pinValues.vibe3) == -1)
-            pmwErrors.push("Vibe 4 pin: "+pinValues.vibe3);
-        assignedPins.push({name:"Vibe 4", pin:pinValues.vibe3});
-    }
+function validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors) {
+    validatePWMPin(pinValues.twistServo, "Twist servo", assignedPins, duplicatePins, pwmErrors);
+    validatePWMPin(pinValues.squeezeServo, "Squeeze servo", assignedPins, duplicatePins, pwmErrors);
+    validatePWMPin(pinValues.valveServo, "Valve servo", assignedPins, duplicatePins, pwmErrors);
+    validatePWMPin(pinValues.vibe0, "Vibe 1", assignedPins, duplicatePins, pwmErrors);
+    validatePWMPin(pinValues.vibe1, "Vibe 2", assignedPins, duplicatePins, pwmErrors);
+    validatePWMPin(pinValues.vibe2, "Vibe 3", assignedPins, duplicatePins, pwmErrors);
+    validatePWMPin(pinValues.vibe3, "Vibe 4", assignedPins, duplicatePins, pwmErrors);
 
     if(userSettings.tempSleeveEnabled) {
-        if(pinValues.heat > -1) {
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.heat);
-            if(pinDupeIndex > -1)
-                duplicatePins.push("Heater pin and "+assignedPins[pinDupeIndex].name);
-            if(validPWMpins.indexOf(pinValues.heat) == -1)
-                pmwErrors.push("Heater pin: "+pinValues.heat);
-            assignedPins.push({name:"Heater", pin:pinValues.heat});
-        }
+        validatePWMPin(pinValues.heat, "Heater", assignedPins, duplicatePins, pwmErrors);
     }
     
     if(userSettings.tempInternalEnabled) {
-        if(pinValues.caseFanPin > -1) {
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.caseFanPin);
-            if(pinDupeIndex > -1)
-                duplicatePins.push("Case fan pin and "+assignedPins[pinDupeIndex].name);
-            if(validPWMpins.indexOf(pinValues.caseFanPin) == -1)
-                pmwErrors.push("Case fan pin: "+pinValues.caseFanPin);
-            assignedPins.push({name:"Case fan pin", pin:pinValues.caseFanPin});
-        }
+        validatePWMPin(pinValues.caseFanPin, "Case fan ", assignedPins, duplicatePins, pwmErrors);
     }
 }
 /** Does not show an error. Just returns true/false */
 function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues) {
-
-    var pinDupeIndex = -1;
-
     if(userSettings.displayEnabled || userSettings.voiceEnabled || userSettings.batteryLevelEnabled) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === 21);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("I2C pin 21 and "+assignedPins[pinDupeIndex].name);
-
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === 22);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("I2C pin 22 and "+assignedPins[pinDupeIndex].name);
+        let enabledValues = []; 
+        if(userSettings.displayEnabled) {
+            enabledValues.push("Display");
+        }
+        if(userSettings.voiceEnabled) {
+            enabledValues.push("Voice");
+        }
+        if(userSettings.batteryLevelEnabled) {
+            enabledValues.push("Battery level");
+        }
+        if(pinValues.i2cScl < 0) {
+            invalidPins.push("I2C SCL pin: "+pinValues.i2cScl + " and I2C modules enabled: " + enabledValues.join(","));
+        }
+        if(pinValues.i2cSda < 0) {
+            invalidPins.push("I2C SDA pin: "+pinValues.i2cSda + " and I2C modules enabled: " + enabledValues.join(","));
+        }
+        validatePin(pinValues.i2cSda, "I2C SDA", assignedPins, duplicatePins);
+        validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins);
+    } else if(isMotorType(MotorType.BLDC) && isBLDCSPI()) {
+        if(pinValues.i2cScl < 0) {
+            invalidPins.push("I2C SCL pin: "+pinValues.i2cScl);
+        }
+        if(pinValues.i2cSda < 0) {
+            invalidPins.push("I2C SDA pin: "+pinValues.i2cSda);
+        }
+        validatePin(pinValues.i2cSda, "I2C SDA", assignedPins, duplicatePins);
+        validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins);
     }
     
-    if(pinValues.lubeButton > -1) {
-        pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.lubeButton);
-        if(validPWMpins.indexOf(pinValues.lubeButton) == -1 && inputOnlypins.indexOf(pinValues.lubeButton) == -1)
-            invalidPins.push("Invalid Lube button pin: "+pinValues.lubeButton);
-        if(pinDupeIndex > -1)
-            duplicatePins.push("Lube button pin and "+assignedPins[pinDupeIndex].name);
-        assignedPins.push({name:"Lube button", pin:pinValues.lubeButton});
-    }
+    validatePin(pinValues.lubeButton, "Lube button", assignedPins, duplicatePins, true, invalidPins);
 
     if(userSettings.tempSleeveEnabled) {
-        if(pinValues.temp > -1) {
-            if(validPWMpins.indexOf(pinValues.temp) == -1 && inputOnlypins.indexOf(pinValues.temp) == -1)
-                invalidPins.push("Invalid Sleeve temp pin: "+pinValues.temp);
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.temp);
-            if(pinDupeIndex > -1)
-                duplicatePins.push("Temp pin and "+assignedPins[pinDupeIndex].name);
-            assignedPins.push({name:"Temp", pin:pinValues.temp});
-        }
+        validatePin(pinValues.temp, "Temp", assignedPins, duplicatePins, true, invalidPins);
     }
     if(userSettings.tempInternalEnabled) {
-        if(pinValues.internalTemp > -1) {
-            if(validPWMpins.indexOf(pinValues.internalTemp) == -1 && inputOnlypins.indexOf(pinValues.internalTemp) == -1)
-                invalidPins.push("Invalid Internal temp pin: "+pinValues.internalTemp);
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.internalTemp);
-            if(pinDupeIndex > -1)
-                duplicatePins.push("Internal temp pin and "+assignedPins[pinDupeIndex].name);
-            assignedPins.push({name:"Internal temp", pin:pinValues.internalTemp});
-        }
+        validatePin(pinValues.internalTemp, "Internal temp", assignedPins, duplicatePins, true, invalidPins);
     }
 
-    if(userSettings.batteryLevelEnabled) {
+    // if(userSettings.batteryLevelEnabled) {
         // if(adc1Pins.indexOf(pinValues.Battery_Voltage_PIN) == -1) 
         //     invalidPins.push("Battery voltage pin: "+pinValues.Battery_Voltage_PIN + " is not a valid adc1 pin.");
         // pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.Battery_Voltage_PIN);
         // if(pinDupeIndex > -1)
         //     duplicatePins.push("Battery voltage pin and "+assignedPins[pinDupeIndex].name);
         // assignedPins.push({name:"Battery voltage", pin:pinValues.Battery_Voltage_PIN});
-    }
+    // }
     
     if(userSettings.feedbackTwist && pinValues.twistFeedBack) {
-        if(pinValues.twistFeedBack > -1) {
-            if(validPWMpins.indexOf(pinValues.twistFeedBack) == -1 && inputOnlypins.indexOf(pinValues.twistFeedBack) == -1)
-                invalidPins.push("Invalid Twist feedback pin: "+pinValues.twistFeedBack);
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.twistFeedBack);
-            if(pinDupeIndex > -1)
-                duplicatePins.push("Twist feedback pin and "+assignedPins[pinDupeIndex].name);
-            assignedPins.push({name:"Twist feed back", pin:pinValues.twistFeedBack});
-        }
+        validatePin(pinValues.twistFeedBack, "Twist feedback", assignedPins, duplicatePins, true, invalidPins);
     }
     
-    for(var i=0; i<pinValues.buttonSets.length; i++) {
-        var buttonSetPin = pinValues.buttonSets[i];
-        if(buttonSetPin > -1) {
-            if(validPWMpins.indexOf(buttonSetPin) == -1 && inputOnlypins.indexOf(buttonSetPin) == -1)
-                invalidPins.push("Invalid button set "+i+" pin: "+buttonSetPin);
-            pinDupeIndex = assignedPins.findIndex(x => x.pin === buttonSetPin);
-            if(pinDupeIndex > -1)
-                duplicatePins.push("Button set "+i+" pin and "+assignedPins[pinDupeIndex].name);
-            assignedPins.push({name:"Button set "+i, pin:pinDupeIndex});
+    if(Buttons.isButtonSetsEnabled()) {
+        for(var i=0; i<pinValues.buttonSets.length; i++) {
+            var buttonSetPin = pinValues.buttonSets[i];
+            validatePin(buttonSetPin, "Button set "+i, assignedPins, duplicatePins, true, invalidPins);
         }
     }
 
@@ -1917,6 +2127,9 @@ function getCommonPinValues(pinValues) {
 
     pinValues.caseFanPin = parseInt(document.getElementById('Case_Fan_PIN').value);
 
+    pinValues.i2cSda = parseInt(document.getElementById('i2cSda_PIN').value);
+    pinValues.i2cScl = parseInt(document.getElementById('i2cScl_PIN').value);
+
     pinValues.lubeButton = parseInt(document.getElementById('LubeButton_PIN').value);
     pinValues.temp = parseInt(document.getElementById('Temp_PIN').value);
     pinValues.internalTemp = parseInt(document.getElementById('Internal_Temp_PIN').value);
@@ -1937,59 +2150,61 @@ function updateZeros()
     }
     upDateTimeout = setTimeout(() => 
     {
+        const maxZero = 2500;
+        const minZero = 500;
         clearErrors("zeroValidation"); 
         var validValue = true;
         var invalidValues = [];
         var RightServo_ZERO = parseInt(document.getElementById('RightServo_ZERO').value);
-        if(!RightServo_ZERO || RightServo_ZERO > 1750 || RightServo_ZERO < 1250)
+        if(!RightServo_ZERO || RightServo_ZERO > maxZero || RightServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Right servo ZERO")
         }
         var LeftServo_ZERO = parseInt(document.getElementById('LeftServo_ZERO').value);
-        if(!LeftServo_ZERO || LeftServo_ZERO > 1750 || LeftServo_ZERO < 1250)
+        if(!LeftServo_ZERO || LeftServo_ZERO > maxZero || LeftServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Left servo ZERO")
         }
         var RightUpperServo_ZERO = parseInt(document.getElementById('RightUpperServo_ZERO').value);
-        if(!RightUpperServo_ZERO || RightUpperServo_ZERO > 1750 || RightUpperServo_ZERO < 1250)
+        if(!RightUpperServo_ZERO || RightUpperServo_ZERO > maxZero || RightUpperServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Right upper servo ZERO")
         }
         var LeftUpperServo_ZERO = parseInt(document.getElementById('LeftUpperServo_ZERO').value);
-        if(!LeftUpperServo_ZERO || LeftUpperServo_ZERO > 1750 || LeftUpperServo_ZERO < 1250)
+        if(!LeftUpperServo_ZERO || LeftUpperServo_ZERO > maxZero || LeftUpperServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Left upper servo ZERO")
         }
         var PitchLeftServo_ZERO = parseInt(document.getElementById('PitchLeftServo_ZERO').value);
-        if(!PitchLeftServo_ZERO || PitchLeftServo_ZERO > 1750 || PitchLeftServo_ZERO < 1250)
+        if(!PitchLeftServo_ZERO || PitchLeftServo_ZERO > maxZero || PitchLeftServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Pitch left servo ZERO")
         }
         var PitchRightServo_ZERO = parseInt(document.getElementById('PitchRightServo_ZERO').value);
-        if(!PitchRightServo_ZERO || PitchRightServo_ZERO > 1750 || PitchRightServo_ZERO < 1250)
+        if(!PitchRightServo_ZERO || PitchRightServo_ZERO > maxZero || PitchRightServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Pitch right servo ZERO")
         }
         var ValveServo_ZERO = parseInt(document.getElementById('ValveServo_ZERO').value);
-        if(!ValveServo_ZERO || ValveServo_ZERO > 1750 || ValveServo_ZERO < 1250)
+        if(!ValveServo_ZERO || ValveServo_ZERO > maxZero || ValveServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Valve servo ZERO")
         }
         var TwistServo_ZERO = parseInt(document.getElementById('TwistServo_ZERO').value);
-        if(!TwistServo_ZERO || TwistServo_ZERO > 1750 || TwistServo_ZERO < 1250)
+        if(!TwistServo_ZERO || TwistServo_ZERO > maxZero || TwistServo_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Twist servo ZERO")
         }
         var Squeeze_ZERO = parseInt(document.getElementById('Squeeze_ZERO').value);
-        if(!Squeeze_ZERO || Squeeze_ZERO > 1750 || Squeeze_ZERO < 1250)
+        if(!Squeeze_ZERO || Squeeze_ZERO > maxZero || Squeeze_ZERO < minZero)
         {
             validValue = false;
             invalidValues.push("Squeeze servo ZERO")
@@ -2009,7 +2224,7 @@ function updateZeros()
         }
         else
         {
-            showError("<div name='zeroValidation'>Zeros NOT saved due to invalid input.<br><div style='margin-left: 25px;'>The values should be between 1250 and 1750 for the following:<br><div style='color: white; margin-left: 25px;'>"+invalidValues.join("<br>")+"</div></div></div>");
+            showError("<div name='zeroValidation'>Zeros NOT saved due to invalid input.<br><div style='margin-left: 25px;'>The values should be between "+minZero+" and "+maxZero+" for the following:<br><div style='color: white; margin-left: 25px;'>"+invalidValues.join("<br>")+"</div></div></div>");
         }
     }, 2000);
 }
@@ -2031,19 +2246,22 @@ function setDiplayIs32Px() {
 }
 function setDisplaySettings()
 {
-    userSettings["displayEnabled"] = document.getElementById('displayEnabled').checked;
+    const enabled = document.getElementById('displayEnabled').checked;
+    if(!userSettings["displayEnabled"] && enabled) 
+        validatePins();
+    userSettings["displayEnabled"] = enabled;
     // userSettings["Display_Screen_Width"] = parseInt(document.getElementById('Display_Screen_Width').value);
     // userSettings["Display_Screen_Height"] = parseInt(document.getElementById('Display_Screen_Height').value);
 
-    // userSettings["Display_Rst_PIN"] = parseInt(document.getElementById('Display_Rst_PIN').value);
+    // pinoutSettings["Display_Rst_PIN"] = parseInt(document.getElementById('Display_Rst_PIN').value);
     userSettings["Display_I2C_Address"] = document.getElementById('Display_I2C_Address_text').value;
     userSettings["sleeveTempDisplayed"] = document.getElementById('sleeveTempDisplayed').checked;
     userSettings["internalTempDisplayed"] = document.getElementById('internalTempDisplayed').checked;
     userSettings["versionDisplayed"] = document.getElementById('versionDisplayed').checked;
-    if(validatePins()) {
-        setRestartRequired();
-        updateUserSettings();
-    }
+    setRestartRequired();
+    if(userSettings["displayEnabled"]) 
+        validatePins();
+    updateUserSettings();
 }
 function setDisplayAddress() {
     var selectValue = document.getElementById('Display_I2C_Address').value;
@@ -2053,24 +2271,23 @@ function setDisplayAddress() {
     updateUserSettings();
 }
 function setTempSettings() {
-    userSettings["tempSleeveEnabled"] = document.getElementById('tempSleeveEnabled').checked;
+    const enabled = document.getElementById('tempSleeveEnabled').checked;
+    if(!userSettings["tempSleeveEnabled"] && enabled) 
+        validatePins();
+    userSettings["tempSleeveEnabled"] = enabled;
     userSettings["TargetTemp"] = parseFloat(document.getElementById('TargetTemp').value);
     userSettings["HeatPWM"] = parseInt(document.getElementById('HeatPWM').value);
     userSettings["HoldPWM"] = parseInt(document.getElementById('HoldPWM').value);
     userSettings["heaterThreshold"] = parseInt(document.getElementById('heaterThreshold').value);
     userSettings["heaterResolution"] = parseInt(document.getElementById('heaterResolution').value);
-    userSettings["heaterFrequency"] = parseInt(document.getElementById('heaterFrequency').value);
 
     Utils.toggleControlVisibilityByID('sleeveTempDisplayedRow', hasFeature(BuildFeature.TEMP) && userSettings["tempSleeveEnabled"]);
-    if(validatePins()) {
-        setRestartRequired();
-        updateUserSettings();
-    }
+    setRestartRequired();
+    updateUserSettings();
 }
 function setInternalTempSettings() {
     userSettings["tempInternalEnabled"] = document.getElementById('tempInternalEnabled').checked;
     userSettings["caseFanResolution"] = parseInt(document.getElementById('caseFanResolution').value);
-    userSettings["caseFanFrequency"] = parseInt(document.getElementById('caseFanFrequency').value);
 
     Utils.toggleControlVisibilityByID('internalTempDisplayedRow', hasFeature(BuildFeature.TEMP) && userSettings["tempInternalEnabled"]);
     setRestartRequired();
@@ -2079,25 +2296,26 @@ function setInternalTempSettings() {
 
 function toggleVoiceSettings() {
     userSettings['voiceEnabled'] = document.getElementById('voiceEnabled').checked;  
-    if(validatePins()) {
-        setRestartRequired();
-        updateUserSettings();
-    }
+    setRestartRequired();
+    if(userSettings["voiceEnabled"]) 
+        validatePins();
+    updateUserSettings();
 }
 function setVoiceSettings() {
     userSettings['voiceMuted'] = document.getElementById('voiceMuted').checked;  
-    validateIntControl("voiceVolume", userSettings, "voiceVolume");
-    validateIntControl("voiceWakeTime", userSettings, "voiceWakeTime");
-    updateUserSettings();
+    if(validateIntControl("voiceVolume", userSettings, "voiceVolume") && validateIntControl("voiceWakeTime", userSettings, "voiceWakeTime")) {
+        setRestartRequired();
+        updateUserSettings(0);
+    }
 }
 function setFanControl() {
     userSettings["fanControlEnabled"] = document.getElementById('fanControlEnabled').checked;
     toggleFanControlSettings(userSettings["fanControlEnabled"]);
     
-    if(validatePins()) {
-        setRestartRequired();
-        updateUserSettings();
-    }
+    setRestartRequired();
+    if(userSettings["fanControlEnabled"]) 
+        validatePins();
+    updateUserSettings();
 }
 
 function setFanOnTemp() {
@@ -2176,16 +2394,16 @@ function updateWifiSettings() {
         ips.dns1 = document.getElementById('dns1Input').value;
         ips.dns2 = document.getElementById('dns2Input').value;
         if(validateStaticIPAddresses(ips)) {
-            userSettings["staticIP"] = staticIP;
-            userSettings["localIP"] = ips.localIP;
-            userSettings["gateway"] = ips.gateway;
-            userSettings["subnet"] = ips.subnet;
-            userSettings["dns1"] = ips.dns1;
-            userSettings["dns2"] = ips.dns2;
+            wifiSettings["staticIP"] = staticIP;
+            wifiSettings["localIP"] = ips.localIP;
+            wifiSettings["gateway"] = ips.gateway;
+            wifiSettings["subnet"] = ips.subnet;
+            wifiSettings["dns1"] = ips.dns1;
+            wifiSettings["dns2"] = ips.dns2;
             setRestartRequired();
-            updateUserSettings(0);
+            postWifiSettings(0);
         }
-    }, 3000);
+    }, defaultDebounce);
 }
 
 function validateStaticIPAddresses(ips) {
@@ -2217,11 +2435,6 @@ function validateStaticIPAddresses(ips) {
     return true;
 }
 
-
-function togglePitchServoFrequency(isChecked) 
-{
-    Utils.toggleControlVisibilityByID('pitchFrequencyRow', isChecked);
-}
 function toggleStaticIPSettings(isStatic)
 {
     Utils.toggleControlVisibilityByID('localIP', isStatic);
@@ -2230,16 +2443,18 @@ function toggleStaticIPSettings(isStatic)
     Utils.toggleControlVisibilityByID('dns1', isStatic);
     Utils.toggleControlVisibilityByID('dns2', isStatic);
 }
-function toggleDeviceOptions(sr6Mode)
+function toggleDeviceOptions(deviceType)
 {
     var osrOnly = document.getElementsByClassName('osrOnly');
     var sr6Only = document.getElementsByClassName('sr6Only');
     for(var i=0;i < sr6Only.length; i++)
-        sr6Only[i].style.display = sr6Mode ? "flex" : "none";
+        sr6Only[i].style.display = deviceType == DeviceType.SR6 && deviceType != DeviceType.SSR1 ? "flex" : "none";
     for(var i=0;i < osrOnly.length; i++)
-        osrOnly[i].style.display = sr6Mode ? "none" : "flex";
+        osrOnly[i].style.display = deviceType == DeviceType.OSR && deviceType != DeviceType.SSR1 ? "flex" : "none";
         
-    if(sr6Mode && userSettings["msPerRad"] == servoDegreeValue270) {
+    if(deviceType == DeviceType.SR6 && 
+        deviceType != DeviceType.SSR1 && 
+        userSettings["msPerRad"] == servoDegreeValue270) {
         document.getElementById('msPerRadIs270').checked = true;
     }
 }
@@ -2260,11 +2475,105 @@ function toggleNonTCodev3Options()
 
 function updateBlueToothSettings()
 {
-    userSettings["bluetoothEnabled"] = document.getElementById('bluetoothEnabled').checked;
-    if(userSettings["bluetoothEnabled"])
-        alert("EXPEREMENTAL! this is a bit slow and will not work will with fast input!\nThis will DISABLE Wifi connection and this configuration web page upon device reboot!\nThe BLE app will be REQUIRED for future configuration changes.")
-	setRestartRequired();
-	updateUserSettings();
+    const element = document.getElementById('bluetoothEnabled');
+    let value = element.checked;
+    if(value && systemInfo["moduleType"] == ModuleType.WROOM32) {
+        if(wifiSettings["bleEnabled"]) {
+            alert("BLE and Bluetooth classic cannot be enabled at the same time due to ram constraints.")
+            element.checked = false;
+            return;
+        }
+        let message = "This will disable this web server. The Wroom32 chip does not have enough memory for bluetooth and the web server.\n\nYou will need to disable bluetooth to see this web page again.\n\nMost settings can be configured via tcode command #setting.\nUse the tcode command #help for more information\n\nUDP TCode will probably still work.\n\nYuu will be able to continue configuration on this page until you reboot the board.";
+        if(confirm(message+"\n\nContinue?")) {
+            wifiSettings["bluetoothEnabled"] = value;
+            setRestartRequired();
+            postWifiSettings();
+        } else {
+            element.checked = false;
+        }
+    } else {
+        wifiSettings["bluetoothEnabled"] = value;
+        setRestartRequired();
+        postWifiSettings();
+    }
+}
+function toggleBluetoothSettings() {
+    
+    if(!hasFeature(BuildFeature.BLUETOOTH)) {
+        const elements = document.getElementsByClassName("bluetoothOnly")
+        for(var i=0;i < elements.length; i++){
+            elements[i].classList.add("hidden");
+        };
+    }
+}
+function updateBleSettings()
+{
+    const element = document.getElementById('bleEnabled');
+    let value = element.checked;
+    if(value && systemInfo["moduleType"] == ModuleType.WROOM32) {
+        if(wifiSettings["bluetoothEnabled"]) {
+            alert("BLE and Bluetooth classic cannot be enabled at the same time due to ram constraints.")
+            element.checked = false;
+            return;
+        }
+        let message = "This will disable this web server. The Wroom32 chip does not have enough memory for bluetooth and the web server.\n\nYou will need to disable bluetooth to see this web page again.\n\nMost settings can be configured via tcode command #setting.\nUse the tcode command #help for more information\n\nUDP TCode will probably still work.\n\nYuu will be able to continue configuration on this page until you reboot the board.";
+        if(confirm(message+"\n\nContinue?")) {
+            wifiSettings["bleEnabled"] = value;
+            setRestartRequired();
+            postWifiSettings();
+        } else {
+            element.checked = false;
+        }
+    } else {
+        wifiSettings["bleEnabled"] = value;
+        setRestartRequired();
+        postWifiSettings();
+    }
+    toggleBLEDeviceTypes(wifiSettings["bleEnabled"]);
+}
+
+function toggleBLESettings() {
+    if(!hasFeature(BuildFeature.BLE)) {
+        const elements = document.getElementsByClassName("BLEOnly")
+        for(var i=0;i < elements.length; i++){
+            elements[i].classList.add("hidden");
+        };
+        return;
+    }
+}
+
+function toggleBLEDeviceTypes() {
+    const elements = document.getElementsByClassName("BLEEnabled")
+    
+    for(var i=0;i < elements.length; i++){
+        if(wifiSettings["bleEnabled"] && hasFeature(BuildFeature.BLE))
+            elements[i].classList.remove("hidden");
+        else
+            elements[i].classList.add("hidden");
+    };
+    
+}
+
+function setBLEDeviceType() {
+    wifiSettings["bleDeviceType"] = parseInt(document.getElementById('bleDeviceType').value);
+    toggleBLELoveDeviceTypes();
+    setRestartRequired();
+    postWifiSettings();
+}
+
+function toggleBLELoveDeviceTypes() {
+    const elements = document.getElementsByClassName("BLELoveOnly");
+    for(var i=0;i < elements.length; i++){
+        if(wifiSettings["bleDeviceType"] == BLEDeviceType.LOVE && hasFeature(BuildFeature.BLE))
+            elements[i].classList.remove("hidden");
+        else
+            elements[i].classList.add("hidden");
+    };
+}
+function setBLELoveDeviceType() {
+    wifiSettings["bleLoveDeviceType"] = parseInt(document.getElementById('bleLoveDeviceType').value);
+    setRestartRequired();
+    postWifiSettings();
 }
 
 function setTCodeVersion() 
@@ -2282,13 +2591,17 @@ function setRestartRequired() {
     }
 }
 
+function updateVibTimeout() {
+    userSettings["vibTimeout"] = parseInt(document.getElementById('vibTimeout').value);
+    userSettings["vibTimeoutEnabled"] = document.getElementById('vibTimeoutEnabled').checked;
+    
+    updateUserSettings();
+}
 function updateLubeEnabled() {
     userSettings["lubeEnabled"] = document.getElementById('lubeEnabled').checked;
     
-    if(validatePins()) {
-        setRestartRequired();
-        updateUserSettings();
-    }
+    setRestartRequired();
+    updateUserSettings();
 }
 
 function toggleSounds() {
@@ -2308,6 +2621,7 @@ function exportToJsonFile() {
     userSettingsCopy["motionDefaultProfileIndex"] = motionProviderSettings.motionDefaultProfileIndex;
     userSettingsCopy["motionProfiles"] = motionProviderSettings.motionProfiles;
     userSettingsCopy["buttonSettings"] = buttonSettings;
+    userSettingsCopy["pinoutSettings"] = pinoutSettings;
 
     let dataStr = JSON.stringify(userSettingsCopy);
     let dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
@@ -2342,55 +2656,116 @@ function importSettings() {
                     return;
                 var importedValue = json[key];
                 var existingValue = userSettings[key];
+                var wifiValue = wifiSettings[key];
                 // If the key doesnt exist anymore, dont import it.
                 if(existingValue != undefined && existingValue != null)// 0 can be valid
-                    userSettings[key]=importedValue;
+                    userSettings[key] = checkMigrateData(key, importedValue);
+                else if(wifiValue != undefined && wifiValue != null)
+                    wifiSettings[key] = checkMigrateData(key, importedValue);
                 else
                     handleImportRenames(key, importedValue)
             });
             // If the new build doesnt have the old TCode version in it, set it to the latest version.
-            if(availableVersions.findIndex(x => x.version == userSettings.TCodeVersion) == -1) {
+            if(tcodeVersions.findIndex(x => x.value == userSettings.TCodeVersion) == -1) {
                 userSettings.TCodeVersion = latestTCodeVersion;
                 document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
                 toggleNonTCodev3Options();
             }
+            setWifiSettings();
             setUserSettings();
-            if(validatePins()) {// Do not save if pin values are invalid.
-                setRestartRequired();
-                updateALLUserSettings();
-            }
+            setPinoutSettings();
+            setRestartRequired();
+            updateALLUserSettings();
         }, false);
 
         reader.readAsText(json);
     }
 }
 
+function checkMigrateData(key, value) {
+    if(key == "TCodeVersion" && value == 1)
+        return TCodeVersion.V3;
+    return value; 
+}
+
 function handleImportRenames(key, value) {
     switch(key) {
         case "LubeManual_PIN": 
-        userSettings.LubeButton_PIN = value;
-        break;
+        pinoutSettings.LubeButton_PIN = value;
+        return;
         case "motionProfiles": 
         motionProviderSettings.motionProfiles = value;
         motionProviderSettings.motionProfiles.forEach(x => {
             x.edited = true;
             x.channels.forEach(y => y.edited = true);
         });
-        break;
+        return;
         case "motionDefaultProfileIndex": 
         motionProviderSettings.motionDefaultProfileIndex = value;
-        break;
+        return;
         case "wifiSettings": 
-        wifiSettings.ssid = value.ssid;
-        break;
+        Object.keys(value).forEach(function(key,index) {
+            if(key !== "wifiPass")
+                wifiSettings[key] = value[key];
+        });
+        return;
         case "ssid": 
         wifiSettings.ssid = value;
-        break;
+        return;
+        case "staticIP": 
+        wifiSettings.staticIP = value;
+        return;
+        case "localIP": 
+        wifiSettings.localIP = value;
+        return;
+        case "gateway": 
+        wifiSettings.gateway = value;
+        return;
+        case "subnet": 
+        wifiSettings.subnet = value;
+        return;
+        case "dns1": 
+        wifiSettings.dns1 = value;
+        return;
+        case "dns2": 
+        wifiSettings.dns2 = value;
+        return;
+        case "udpServerPort": 
+        wifiSettings.udpServerPort = value;
+        return;
+        case "webServerPort": 
+        wifiSettings.webServerPort = value;
+        return;
+        case "hostname": 
+        wifiSettings.hostname = value;
+        return;
+        case "friendlyName": 
+        wifiSettings.friendlyName = value;
+        return;
         case "bootButtonCommand":
         buttonSettings.bootButtonCommand = value;
-        break;
+        return;
         case "buttonSettings": 
         buttonSettings = value;
-        break;
+        // buttonSettings = {...buttonSettings, ...value}; // Merge objects? test this when adding property or removing?
+        return;
+        case "pinoutSettings":
+        Object.keys(value).forEach(function(key,index) {
+            pinoutSettings[key] = value[key];
+        });
+        return;
+        case "sr6Mode":
+        if(isMotorType(MotorType.BLDC))
+            userSettings.deviceType = DeviceType.SSR1
+        else
+            userSettings.deviceType = value ? DeviceType.SR6 : DeviceType.OSR;
+        return;
+        case "BLDC_UsePWM": 
+            userSettings.BLDC_Encoder = value ? BLDCEncoderType.PWM : BLDCEncoderType.SPI;
+        case "BLDC_UseMT6701": 
+            userSettings.BLDC_Encoder = value ? BLDCEncoderType.MT6701 : BLDCEncoderType.SPI;
+        }
+    if(key.endsWith("_PIN")) {
+        pinoutSettings[key] = value;
     }
 }

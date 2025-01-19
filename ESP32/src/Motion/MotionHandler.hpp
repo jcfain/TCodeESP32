@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <mutex>
 #include "SettingsHandler.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #include "TagHandler.h"
 #include "MotionGenerator.hpp"
 
@@ -12,29 +12,36 @@ public:
     void setup(TCodeVersion version)
     {
         m_tcodeVersion = version;
-        setMotionChannels(SettingsHandler::getMotionChannels());
+        //setMotionChannels(SettingsHandler::getMotionChannels());
     }
 
-    void getMovement(char buf[255]) {
-		xSemaphoreTake(xMutex, portMAX_DELAY);
-        buf[0] = {0};
-        LogHandler::verbose(TagHandler::MotionHandler, "getMovement Enter %s" , buf);
-        if(!enabled || !m_motionGenerators.size()) {
-            xSemaphoreGive(xMutex);
+    void getMovement(char* buf, size_t len) {
+        if(!enabled || !initialized()) {
+            buf[0] = {0};
             return;
         }
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+        buf[0] = {0};
+        //LogHandler::verbose(TagHandler::MotionHandler, "getMovement Enter");
         for (int i = 0; i < m_motionGenerators.size(); i++) {
             char temp[25];
-            m_motionGenerators[i].getMovement(temp);
+            m_motionGenerators[i].getMovement(temp, 25);
             if(strlen(temp) == 0)
                 continue;
-            strcat(buf, temp);
-            strcat(buf, " ");
+            //strncat(buf, temp, len);
+		    snprintf(buf, len, "%s%s", buf, temp);
+            //strncat(buf, " ", len);
+		    snprintf(buf, len, "%s%s", buf, " ");
         }
-        buf[strlen(buf) - 1] = '\n';
-        buf[strlen(buf) - 1] = '\0';
-        LogHandler::verbose(TagHandler::MotionHandler, "Exit %s" , buf);
+        //strncat(buf, "\n", len);
+		snprintf(buf, len, "%s%s", buf, "\n");
+        //buf[strlen(buf) - 1] = '\0';
+        //LogHandler::verbose(TagHandler::MotionHandler, "Exit %s" , buf);
         xSemaphoreGive(xMutex);
+    }
+
+    bool initialized() {
+        return !m_motionGenerators.empty();
     }
     
     void setMotionChannels(const std::vector<MotionChannel> &motionChannels) {
@@ -54,6 +61,9 @@ public:
     }
 
     void setEnabled(bool enable, const char* name = 0) {
+        if(enable && !initialized()) {
+            setMotionChannels(SettingsHandler::getMotionChannels());
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         enabled = enable;
         if(name) {
@@ -70,6 +80,9 @@ public:
     }
 
     void setUpdate(int value, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -86,6 +99,9 @@ public:
 
     // In miliseconds this is the duty cycle (lower is faster default 2000)
     void setPeriod(int value, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -101,6 +117,9 @@ public:
     };
 
     void setPeriodRandom(bool value, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -115,6 +134,9 @@ public:
         xSemaphoreGive(xMutex);
     }
     void setPeriodRandomMin(int min, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -129,6 +151,9 @@ public:
         xSemaphoreGive(xMutex);
     }
     void setPeriodRandomMax(int max, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -145,6 +170,9 @@ public:
 
     // Offset from center 0
     void setOffset(int value, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -160,6 +188,9 @@ public:
     };
 
     void setOffsetRandom(bool value, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -174,6 +205,9 @@ public:
         xSemaphoreGive(xMutex);
     }
     void setOffsetRandomMin(int min, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -188,6 +222,9 @@ public:
         xSemaphoreGive(xMutex);
     }
     void setOffsetRandomMax(int max, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -204,6 +241,9 @@ public:
 
     // The amplitude of the motion
     void setAmplitude(int value, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -219,6 +259,9 @@ public:
     };
 
     void setAmplitudeRandom(bool value, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -233,6 +276,9 @@ public:
         xSemaphoreGive(xMutex);
     }
     void setAmplitudeRandomMin(int min, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -247,6 +293,9 @@ public:
         xSemaphoreGive(xMutex);
     }
     void setAmplitudeRandomMax(int max, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -262,6 +311,9 @@ public:
     }
 
     void setMotionRandomChangeMin(int min, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -277,6 +329,9 @@ public:
     }
 
     void setMotionRandomChangeMax(int max, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -293,6 +348,9 @@ public:
 
     // Initial phase in degrees. The phase should ideally be between (offset-amplitude/2) and (offset+amplitude/2)
     void setPhase(int value, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -308,6 +366,9 @@ public:
     };
 
     void setPhaseRandom(bool value, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -322,6 +383,9 @@ public:
         xSemaphoreGive(xMutex);
     }
     void setPhaseRandomMin(int min, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -336,6 +400,9 @@ public:
         xSemaphoreGive(xMutex);
     }
     void setPhaseRandomMax(int max, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -352,6 +419,9 @@ public:
 
     // reverse cycle direction 
     void setReverse(bool value, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -367,6 +437,9 @@ public:
     };
 
     void stopAtCycle(float value, const char* name = 0) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(name) {
             auto index = getMotionGeneratorIndex(name);
@@ -382,6 +455,9 @@ public:
     };
 
     void updateChannelRanges(const char* name = 0, int min = -1, int max = -1) {
+        if(!initialized()) {
+            return;
+        }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         if(min > -1 && max > -1 && name) {
             auto index = getMotionGeneratorIndex(name);
@@ -402,6 +478,9 @@ private:
 	SemaphoreHandle_t xMutex = xSemaphoreCreateMutex();
 
     int getMotionGeneratorIndex(const char* name) {
+        if(!initialized()) {
+            return -1;
+        }
         for (size_t i = 0; i < m_motionGenerators.size(); i++)
         {
             char buf[3];

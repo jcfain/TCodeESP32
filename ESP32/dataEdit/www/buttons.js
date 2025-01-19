@@ -194,6 +194,8 @@ Buttons = {
                 } else {
                     valid = false;
                 }
+            } else {
+                valid = validatePins();
             }
             if(valid)
                 postButtonSettings(0);
@@ -251,5 +253,11 @@ Buttons = {
                 postButtonSettings(0);
             }
         }.bind(this, profileIndex), 3000);
+    },
+    isButtonSetsEnabled() {
+        return buttonSettings["buttonSetsEnabled"];
+    },
+    isBootButtonEnabled() {
+        return buttonSettings["bootButtonEnabled"];
     }
 }

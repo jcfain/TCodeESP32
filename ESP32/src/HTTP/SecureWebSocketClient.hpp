@@ -2,8 +2,8 @@
 
 #include <HTTPSServer.hpp>
 #include <WebsocketHandler.hpp>
-#include "../LogHandler.h"
-#include "../TagHandler.h"
+#include "LogHandler.h"
+#include "TagHandler.h"
 
 // The HTTPS Server comes in a separate namespace. For easier use, include it here.
 using namespace httpsserver;

@@ -2,7 +2,7 @@
 #include "WebSocketBase.h"
 class HTTPBase {
     public:
-    virtual void setup(int port, WebSocketBase* webSocketHandler, bool apMode);
-    virtual void stop();
-    virtual bool isRunning();
+    virtual void setup(uint16_t port, WebSocketBase* webSocketHandler, bool apMode) = 0;
+    virtual void stop() = 0;
+    virtual bool isRunning() = 0;
 };

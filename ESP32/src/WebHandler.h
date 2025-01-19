@@ -23,9 +23,13 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
-#include <SPIFFS.h>
-#include <ESPAsyncWebServer.h>
+#include <LittleFS.h>
+#include <WebServer.h>
+#if ESP8266 == 1
+#include <ESPAsyncTCP.h>
+#else
 #include <AsyncTCP.h>
+#endif
 #include <AsyncJson.h>
 #include "HTTP/HTTPBase.h"
 #include "WifiHandler.h"
@@ -38,17 +42,17 @@ SOFTWARE. */
 class WebHandler : public HTTPBase {
     public:
         // bool MDNSInitialized = false;
-        void setup(int port, WebSocketBase* webSocketHandler, bool apMode) override {
+        void setup(uint16_t port, WebSocketBase* webSocketHandler, bool apMode) override {
             stop();
-            if (port < 1) 
+            if (port < 1 || port > 65535) 
                 port = 80;
 		    LogHandler::info(_TAG, "Starting web server on port: %i", port);
             server = new AsyncWebServer(port);
             ((WebSocketHandler*)webSocketHandler)->setup(server);
-
+            m_settingsFactory = SettingsFactory::getInstance();
             server->on("/wifiSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                char info[100];
+                char info[400];
                 SettingsHandler::getWifiInfo(info);
                 if (strlen(info) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting wifi settings");
@@ -59,80 +63,98 @@ class WebHandler : public HTTPBase {
                 request->send(response);
             });  
 
-            server->on("/settings", HTTP_GET, [](AsyncWebServerRequest *request) 
+            server->on("/settings", HTTP_GET, [this](AsyncWebServerRequest *request)
             {
-                request->send(SPIFFS, SettingsHandler::userSettingsFilePath, "application/json");
-            });   
+                request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
+                //sendChunked(request, COMMON_SETTINGS_PATH);
+            });
+
+            server->on("/pins", HTTP_GET, [this](AsyncWebServerRequest *request) 
+            {
+                request->send(LittleFS, PIN_SETTINGS_PATH, "application/json");
+                //sendChunked(request, PIN_SETTINGS_PATH);
+            }); 
 
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                char systemInfo[3500];
+                if(SettingsHandler::restartRequired > -1) {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"status\": \"restarting\"}");
+                    request->send(response);
+                    return;
+                }
+                String systemInfo;
                 SettingsHandler::getSystemInfo(systemInfo);
-                if (strlen(systemInfo) == 0) {
+                if (!systemInfo.length()) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
                     request->send(response);
                     return;
                 }
-                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", systemInfo);
+                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", systemInfo.c_str());
                 request->send(response);
             }); 
 
-            server->on("/motionProfiles", HTTP_GET, [](AsyncWebServerRequest *request) 
+            server->on("/motionProfiles", HTTP_GET, [this](AsyncWebServerRequest *request) 
             {
-                request->send(SPIFFS, SettingsHandler::motionProfilesFilePath, "application/json");
+                request->send(LittleFS, MOTION_PROFILE_SETTINGS_PATH, "application/json");
+                //sendChunked(request, MOTION_PROFILE_SETTINGS_PATH);
             });   
 
-            server->on("/buttonSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
+            server->on("/buttonSettings", HTTP_GET, [this](AsyncWebServerRequest *request) 
             {
-                request->send(SPIFFS, SettingsHandler::buttonsFilePath, "application/json");
+                request->send(LittleFS, BUTTON_SETTINGS_PATH, "application/json");
+                //sendChunked(request, BUTTON_SETTINGS_PATH);
             });  
             
-            
-            server->on("/log", HTTP_GET, [](AsyncWebServerRequest *request) 
-            {
-                Serial.println("Get log...");
-                request->send(SPIFFS, SettingsHandler::logPath);
-            });   
+            // server->on("/log", HTTP_GET, [this](AsyncWebServerRequest *request) 
+            // {
+            //     Serial.println("Get log...");
+            //     //request->send(LittleFS, LOG_PATH);
+            //     sendChunked(request, LOG_PATH);
+            // });   
 
-            server->on("/connectWifi", HTTP_POST, [](AsyncWebServerRequest *request) 
-            {
-                WifiHandler wifi;
-                const size_t capacity = JSON_OBJECT_SIZE(2);
-                DynamicJsonDocument doc(capacity);
-                if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) 
-                {
+            // server->on("/connectWifi", HTTP_POST, [this](AsyncWebServerRequest *request) 
+            // {
+            //     WifiHandler wifi;
+            //     //const size_t capacity = JSON_OBJECT_SIZE(2);
+            //     JsonDocument doc;
+            //     char ssid[SSID_LEN] = {0};
+            //     char pass[WIFI_PASS_LEN] = {0};
+            //     m_settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
+            //     m_settingsFactory->getValue(WIFI_PASS_SETTING, pass, WIFI_PASS_LEN);
+            //     if (wifi.connect(ssid, pass)) 
+            //     {
 
-                    doc["connected"] = true;
-                    doc["IPAddress"] = wifi.ip().toString();
-                }
-                else 
-                {
-                    doc["connected"] = false;
-                    doc["IPAddress"] = "0.0.0.0";
+            //         doc["connected"] = true;
+            //         doc["IPAddress"] = wifi.ip().toString();
+            //     }
+            //     else 
+            //     {
+            //         doc["connected"] = false;
+            //         doc["IPAddress"] = "0.0.0.0";
 
-                }
-                String output;
-                serializeJson(doc, output);
-                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", output);
-                request->send(response);
-            });
+            //     }
+            //     String output;
+            //     serializeJson(doc, output);
+            //     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", output);
+            //     request->send(response);
+            // });
 
-            server->on("/toggleContinousTwist", HTTP_POST, [](AsyncWebServerRequest *request) 
-            {
-				SettingsHandler::continuousTwist = !SettingsHandler::continuousTwist;
-				if (SettingsHandler::saveSettings()) 
-				{
-					char returnJson[45];
-					sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", SettingsHandler::continuousTwist ? "true" : "false");
-					AsyncWebServerResponse *response = request->beginResponse(200, "application/json", returnJson);
-					request->send(response);
-				} 
-				else 
-				{
-					AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"Error saving settings\"}");
-					request->send(response);
-				}
-            });
+            // server->on("/toggleContinousTwist", HTTP_POST, [this](AsyncWebServerRequest *request) 
+            // {
+			// 	m_settingsFactory->setValue(CONTINUOUS_TWIST, !m_settingsFactory->getContinuousTwist());
+			// 	if (m_settingsFactory->saveCommon()) 
+			// 	{
+			// 		char returnJson[45];
+			// 		sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", m_settingsFactory->getContinuousTwist() ? "true" : "false");
+			// 		AsyncWebServerResponse *response = request->beginResponse(200, "application/json", returnJson);
+			// 		request->send(response);
+			// 	} 
+			// 	else 
+			// 	{
+			// 		AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"Error saving settings\"}");
+			// 		request->send(response);
+			// 	}
+            // });
 
             server->on("^\\/sensor\\/([0-9]+)$", HTTP_GET, [] (AsyncWebServerRequest *request) 
             {
@@ -140,20 +162,42 @@ class WebHandler : public HTTPBase {
             });
 
 
-            server->on("^\\/pinoutDefault\\/([0-9]+)$", HTTP_POST, [](AsyncWebServerRequest *request)
+            server->on("^\\/changeBoard\\/([0-9]+)$", HTTP_POST, [this](AsyncWebServerRequest *request)
             {
                 auto boardTypeString = request->pathArg(0);
                 int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
+                if(boardType == (int)BoardType::CRIMZZON || boardType == (int)BoardType::ISAAC) {
+                    m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SR6);
+                }
                 Serial.println("Settings pinout default");
-                SettingsHandler::boardType = (BoardType)boardType;
-				if (SettingsHandler::defaultPinout())
+                m_settingsFactory->setValue(BOARD_TYPE_SETTING, boardType);
+                if(m_settingsFactory->saveCommon() && SettingsHandler::defaultPinout())
+				//if (m_settingsFactory->resetPins()) // Settings handler executes resetPins
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
                 } 
                 else 
                 {
-                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error defaulting pinout settings\"}");
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error changing board type\"}");
+                    request->send(response);
+                }
+            });
+            server->on("^\\/changeDevice\\/([0-9]+)$", HTTP_POST, [this](AsyncWebServerRequest *request)
+            {
+                auto deviceTypeString = request->pathArg(0);
+                int deviceType = deviceTypeString.isEmpty() ? (int)DeviceType::OSR : deviceTypeString.toInt();
+                Serial.println("Settings pinout default");
+                m_settingsFactory->setValue(DEVICE_TYPE, deviceType);
+                if(m_settingsFactory->saveCommon() && SettingsHandler::defaultPinout())
+				//if (m_settingsFactory->resetPins()) // Settings handler executes resetPins
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                    request->send(response);
+                } 
+                else 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error changing device type\"}");
                     request->send(response);
                 }
             });
@@ -166,33 +210,33 @@ class WebHandler : public HTTPBase {
             server->on("/restart", HTTP_POST, [webSocketHandler, apMode](AsyncWebServerRequest *request)
             {
                 //if(apMode) {
-                    //request->send(200, "text/plain",String("Restarting device, wait about 10-20 seconds and navigate to ") + (SettingsHandler::hostname) + ".local or the network IP address in your browser address bar.");
+                    //request->send(200, "text/plain",String("Restarting device, wait about 10-20 seconds and navigate to ") + (SettingsHandler::getHostname()) + ".local or the network IP address in your browser address bar.");
                 //}
                 String message = "{\"msg\":\"restarting\",\"apMode\":";
                 message += apMode ? "true}" : "false}";
                 AsyncWebServerResponse *response = request->beginResponse(200, "application/json", message);
                 request->send(response);
-                delay(2000);
                 webSocketHandler->closeAll();
-                SettingsHandler::restart();
+                SettingsHandler::restart(2);
             });
 
             server->on("/default", HTTP_POST, [this](AsyncWebServerRequest *request)
             {
                 Serial.println("Settings default");
-                if(SettingsHandler::defaultAll()) {
+                if(m_settingsFactory->resetAll()) {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
+			        SettingsHandler::restart(5);
                 } else {
                     sendError(request);
                 }
             });
 
-            AsyncCallbackJsonWebHandler* settingsUpdateHandler = new AsyncCallbackJsonWebHandler("/settings", [](AsyncWebServerRequest *request, JsonVariant &json)
+            AsyncCallbackJsonWebHandler* settingsUpdateHandler = new AsyncCallbackJsonWebHandler("/settings", [this](AsyncWebServerRequest *request, JsonVariant &json)
 			{
                 Serial.println("API save settings...");
                 JsonObject jsonObj = json.as<JsonObject>();
-                if (SettingsHandler::loadSettings(false, jsonObj) && SettingsHandler::saveSettings()) 
+                if (m_settingsFactory->saveCommon(jsonObj)) 
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
@@ -204,11 +248,27 @@ class WebHandler : public HTTPBase {
                 }
             }, 32768U );//Bad request? increase the size.
 
-            AsyncCallbackJsonWebHandler* wifiUpdateHandler = new AsyncCallbackJsonWebHandler("/wifiSettings", [](AsyncWebServerRequest *request, JsonVariant &json)
+            AsyncCallbackJsonWebHandler* pinsHandler = new AsyncCallbackJsonWebHandler("/pins", [this](AsyncWebServerRequest *request, JsonVariant &json)
+			{
+                Serial.println("API save pins...");
+                JsonObject jsonObj = json.as<JsonObject>();
+                if (m_settingsFactory->savePins(jsonObj)) 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                    request->send(response);
+                } 
+                else 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving pins\"}");
+                    request->send(response);
+                }
+            }, 1000U );//Bad request? increase the size.
+
+            AsyncCallbackJsonWebHandler* wifiUpdateHandler = new AsyncCallbackJsonWebHandler("/wifiSettings", [this](AsyncWebServerRequest *request, JsonVariant &json)
 			{
                 Serial.println("API save wifi settings...");
                 JsonObject jsonObj = json.as<JsonObject>();
-                if (SettingsHandler::saveWifiInfo(jsonObj)) 
+                if (m_settingsFactory->saveWifi(jsonObj)) 
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
@@ -218,7 +278,7 @@ class WebHandler : public HTTPBase {
                     AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving wifi settings\"}");
                     request->send(response);
                 }
-            }, 100U );//Bad request? increase the size.
+            }, 500U );//Bad request? increase the size.
 
             AsyncCallbackJsonWebHandler* motionProfileUpdateHandler = new AsyncCallbackJsonWebHandler("/motionProfiles", [](AsyncWebServerRequest *request, JsonVariant &json)
 			{
@@ -251,6 +311,7 @@ class WebHandler : public HTTPBase {
                     request->send(response);
                 }
             }, 10000U );//Bad request? increase the size.
+
             // //To upload through terminal you can use: curl -F "image=@firmware.bin" esp8266-webupdate.local/update
             // server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request){
             //         // the request handler is triggered after the upload has finished... 
@@ -258,7 +319,7 @@ class WebHandler : public HTTPBase {
             //         AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", (Update.hasError())?"FAIL":"OK");
             //         response->addHeader("Connection", "close");
             //         response->addHeader("Access-Control-Allow-Origin", "*");
-            //         SettingsHandler::restartRequired = true;
+            //         SettingsHandler::getRestartRequired() = true;
             //         request->send(response);
             //     },[](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
             //         //Upload handler chunks in data
@@ -291,13 +352,14 @@ class WebHandler : public HTTPBase {
             // });
 
             server->addHandler(settingsUpdateHandler);
+            server->addHandler(pinsHandler);
             server->addHandler(wifiUpdateHandler);
             server->addHandler(motionProfileUpdateHandler);
             server->addHandler(buttonsUpdateHandler);
             
             server->onNotFound([](AsyncWebServerRequest *request) 
 			{
-                Serial.printf("AsyncWebServerRequest Not found: %s", request->url());
+                Serial.printf("AsyncWebServerRequest Not found: %s", request->url().c_str());
                 if (request->method() == HTTP_OPTIONS) {
                     request->send(200);
                 } else {
@@ -305,9 +367,33 @@ class WebHandler : public HTTPBase {
                     request->send(response);
                 }
             });
+            // server->on("/", HTTP_GET, [this](AsyncWebServerRequest *request)
+            // {
+            //     // request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
+            //     Serial.println("index");
+            //     sendChunked(request, "/index-min.html", "application/html");
+            // });
+            //"^\\/pinoutDefault\\/([0-9]+)$"
+            // server->on("\\/.*\\.js", HTTP_GET, [this](AsyncWebServerRequest *request)
+            // {
+            //     // request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
+            //     const char* filename = request->pathArg(0).c_str();
+            //     Serial.printf("JS file: %s\n", filename);
+            //     sendChunked(request, filename, "application/javascript");
+            // });
+            // server->on("/settings-min.js", HTTP_GET, [this](AsyncWebServerRequest *request)
+            // {
+            //     sendChunked(request, "/www/settings-min.js", 4096, "application/javascript");
+            // });
+            // server->on("/motion-generator-min.js", HTTP_GET, [this](AsyncWebServerRequest *request)
+            // {
+            //     sendChunked(request, "/www/motion-generator-min.js", 1024, "application/javascript");
+            // });
 
             //server->rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
-            server->serveStatic("/", SPIFFS, "/www/").setDefaultFile("index-min.html");
+            server->serveStatic("/", LittleFS, "/www/")
+                .setDefaultFile("index-min.html");
+                //.setCacheControl("max-age=60000");
             server->begin();
             initialized = true;
         }
@@ -329,6 +415,7 @@ class WebHandler : public HTTPBase {
     private:
         bool initialized = false;
         const char* _TAG = TagHandler::WebHandler;
+    	SettingsFactory* m_settingsFactory;
         AsyncWebServer* server;
 
         void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
@@ -343,12 +430,52 @@ class WebHandler : public HTTPBase {
             }
         }
         void sendError(AsyncWebServerRequest *request, int code = 500) {
-            char lastError[1024];
-            LogHandler::getLastError(lastError);
-            char responseMessage[1024];
-            sprintf(responseMessage, "{\"msg\":\"Error setting default: %s\"}", strlen(lastError) > 0 ? lastError : "Unknown error");
+            const char* lastError = LogHandler::getLastError();
+            char responseMessage[1057];
+            sprintf(responseMessage, "{\"msg\":\"Error: %s\"}", strlen(lastError) > 0 ? lastError : "Unknown error");
             AsyncWebServerResponse *response = request->beginResponse(code, "application/json", responseMessage);
             request->send(response);
+        }
+
+        void sendChunked(AsyncWebServerRequest *request, const char* filePath, uint16_t chunkSize = 512, const char* mimeType = "application/json") {
+		        LogHandler::debug(_TAG,"Open file: %s\n", filePath);
+                File file{LittleFS.open(filePath, FILE_READ)};
+
+                AsyncWebServerResponse *response = request->beginChunkedResponse(
+                    mimeType,
+                    [this, file, chunkSize](
+                        uint8_t* buffer,
+                        const size_t max_len,
+                        const size_t index) mutable -> size_t
+                    {
+		                LogHandler::debug(_TAG,"Enter chunked file: %s\n", file.name());
+                        size_t length;
+
+                        // Restrict chunk size so we don't run out of RAM
+                        static const size_t max_chunk{chunkSize};
+                        if (max_chunk < max_len)
+                        {
+		                    LogHandler::debug(_TAG,"Max chunk %u Max len %u for: %s\n", chunkSize, max_len, file.name());
+                            length = file.read(buffer, max_chunk);
+                        }
+                        else
+                        {
+		                    LogHandler::debug(_TAG,"Max len %u exceded max chunk %u for: %s\n", max_len, chunkSize, file.name());
+                            length = file.read(buffer, max_len);
+                        }
+
+                        if (length == 0)
+                        {
+		                    LogHandler::debug(_TAG,"Close file: %s\n", file.name());
+                            file.close();
+                        }
+
+                        return length;
+                    });
+
+                // Force download
+                //response->addHeader("Content-Disposition", "attachment; filename=\"userSettings.json\"");
+                request->send(response);
         }
         // void startMDNS(char* hostName, char* friendlyName)
         // {
@@ -364,7 +491,7 @@ class WebHandler : public HTTPBase {
         //     }
         //     MDNS.setInstanceName(friendlyName);
         //     MDNS.addService("http", "tcp", 80);
-        //     MDNS.addService("tcode", "udp", SettingsHandler::udpServerPort);
+        //     MDNS.addService("tcode", "udp", SettingsHandler::getUdpServerPort());
         //     MDNSInitialized = true;
         // }
 };

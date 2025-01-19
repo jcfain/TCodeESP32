@@ -34,17 +34,10 @@ void defaultCallback(const char* input) // Default callback used by TCode uses s
 
 class TCodeBase {
 public:
-	virtual void setup(const char* firmware, const char* tcode) = 0;
-	// V0.3+ only
-	virtual void RegisterAxis(const String &ID, String axisName) = 0;
-	virtual void ByteInput(byte inByte) = 0;
-	virtual void StringInput(const String &input) = 0;
-	virtual void AxisInput(const String &ID, int magnitude, char extension, long extMagnitude) = 0;
-	virtual int AxisRead(const String &ID) = 0;
-	virtual unsigned long AxisLast(const String &ID) = 0;
-	virtual void getDeviceSettings(char* settings) = 0;
-	// V0.2+
-	void setMessageCallback(TCODE_FUNCTION_PTR_T f) // Sets the callback function used by TCode
+	virtual void setup(const char* firmware) = 0;
+	virtual void read(byte inByte) = 0;
+	virtual void read(const String &input) = 0;
+	virtual void setMessageCallback(TCODE_FUNCTION_PTR_T f) // Sets the callback function used by TCode
 	{
 		if (f == nullptr)
 		{

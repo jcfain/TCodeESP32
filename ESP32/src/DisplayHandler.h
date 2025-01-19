@@ -24,18 +24,20 @@ SOFTWARE. */
 
 #include <Wire.h>
 #include <Adafruit_GFX.h>
-#include "../lib/Ext/Adafruit_SSD1306_RSB.h"
+#include "Adafruit_SSD1306_RSB.h"
 #include "SettingsHandler.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
+#if WIFI_TCODE
 #include "WifiHandler.h"
+#endif
 #include <vector>
-#if TEMP_ENABLED
+#if BUILD_TEMP
 #include "TemperatureHandler.h"
 #endif
 #include "BatteryHandler.h"
 #include "TagHandler.h"
 // #if ISAAC_NEWTONGUE_BUILD
-// #include "../lib/animationFrames.h"
+// #include "animationFrames.h"
 // #endif
 
 class DisplayHandler
@@ -43,32 +45,35 @@ class DisplayHandler
 public:
 
 	DisplayHandler() : 
+		m_settingsFactory(SettingsFactory::getInstance()),
 		display(
-			SettingsHandler::Display_Screen_Width,  
-			SettingsHandler::Display_Screen_Height, 
+			m_settingsFactory->getDisplayScreenWidth(),  
+			m_settingsFactory->getDisplayScreenHeight(), 
 			//64,
 			&Wire, 
-			SettingsHandler::Display_Rst_PIN, 100000UL, 100000UL) { }
+			-1, 100000UL, 100000UL) { }
 
-	void setup() 
+	void setup(int I2CAddress, bool fanControlEnabled, int8_t rstPin = -1) 
 	{
+		m_fanControlEnabled = fanControlEnabled;
+
     	LogHandler::info(_TAG, "Setting up display");
         int tries = 0;
-		SettingsHandler::waitForI2CDevices(SettingsHandler::Display_I2C_Address); 
-        if(!SettingsHandler::Display_I2C_Address || SettingsHandler::systemI2CAddresses.size() == 0) {
+		SettingsHandler::waitForI2CDevices(I2CAddress);
+        if(SettingsHandler::systemI2CAddresses.size() == 0) {
             return;
         }
 
 		//Wire.begin();
 		//Wire.setClock(100000UL);
-		if(!SettingsHandler::Display_I2C_Address) {
+		if(!I2CAddress) {
     		LogHandler::info(_TAG, "No address to connect to");
 			return;
-		} else if(!connectDisplay(SettingsHandler::Display_I2C_Address)) {
+		} else if(!connectDisplay(I2CAddress, rstPin)) {
     		LogHandler::info(_TAG, "Could not connect address");
 			return;
 		}
-		delay(2000);
+		vTaskDelay(2000/portTICK_PERIOD_MS);
 		if(displayConnected)
 		{
 			//display.setFont(Adafruit5x7);
@@ -163,6 +168,7 @@ public:
   			vTaskDelete( NULL );
 			return;
 		}
+        TickType_t pxPreviousWakeTime = millis();
 		_isRunning = true;
 		while(_isRunning) {
 			if(!m_animationPlaying && displayConnected && millis() >= lastUpdate + nextUpdate) {
@@ -174,6 +180,7 @@ public:
 				// Serial.print("Display Core: ");
 				// Serial.println(xPortGetCoreID());
 
+#if WIFI_TCODE
 				if(WifiHandler::isConnected()) {
 					LogHandler::verbose(_TAG, "Enter wifi connected");
 					startLine(headerPadding);
@@ -201,34 +208,37 @@ public:
 						bars = 0;
 					}
 					for (int b=0; b <= bars; b++) {
-						display.fillRect((SettingsHandler::Display_Screen_Width - 17) + (b*3), barHeight - (b*2),2,b*2,WHITE); 
+						display.fillRect((m_settingsFactory->getDisplayScreenWidth() - 17) + (b*3), barHeight - (b*2),2,b*2,WHITE); 
 					}
 
 					newLine(headerPadding);
-					if(SettingsHandler::versionDisplayed) {
+					if(m_settingsFactory->getVersionDisplayed()) {
 						LogHandler::verbose(_TAG, "Enter versionDisplayed");
-						left(SettingsHandler::TCodeVersionName.c_str());
-						right(SettingsHandler::getFirmwareVersion());
+						left(m_settingsFactory->getTcodeVersionString());
+						right(FIRMWARE_VERSION_NAME);
 						newLine();
 					}
 					
-				} else if(WifiHandler::apMode) {
+				} else if(WifiHandler::apMode()) {
 					LogHandler::verbose(_TAG, "Enter apMode");
 					startLine(headerPadding);
-					left("AP: 192.168.1.1");
+					left("AP:");
+					left(DEFAULT_IP, 4);
 					drawBatteryLevel();
 					newLine(headerPadding);
 					if(!is32()) {
-						left("SSID: TCodeESP32Setup");
+						left("SSID:");
+						left(AP_MODE_SSID, 6);
 						newLine();
 					}
-					if(is32() && SettingsHandler::versionDisplayed && !SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed
-						|| SettingsHandler::versionDisplayed) {
-						left(SettingsHandler::TCodeVersionName.c_str());
-						right(SettingsHandler::getFirmwareVersion());
+					if((is32() && m_settingsFactory->getVersionDisplayed() && !m_settingsFactory->getSleeveTempDisplayed() && !m_settingsFactory->getInternalTempDisplayed())
+						|| m_settingsFactory->getVersionDisplayed()) {
+						left(m_settingsFactory->getTcodeVersionString());
+						right(FIRMWARE_VERSION_NAME);
 						newLine();
 					} else if(is32()) {
-						left("SSID: TCodeESP32Setup");
+						left("SSID:");
+						left(AP_MODE_SSID, 6);
 						newLine();
 					}
 				} else {
@@ -236,15 +246,16 @@ public:
 					display.print("Wifi error");
 					drawBatteryLevel();
 				}
-#if TEMP_ENABLED
-				if(SettingsHandler::sleeveTempDisplayed || SettingsHandler::internalTempDisplayed) {
+#endif
+#if BUILD_TEMP
+				if(m_settingsFactory->getSleeveTempDisplayed() || m_settingsFactory->getInternalTempDisplayed()) {
 					is32() ? draw32Temp() : draw64Temp();
 				}
 #endif
 
 				display.display();
 			}
-        	vTaskDelay(1000/portTICK_PERIOD_MS);
+            xTaskDelayUntil(&pxPreviousWakeTime, 5000/portTICK_PERIOD_MS);
 			// Serial.print("Display task: "); // stack size used
 			// Serial.print(uxTaskGetStackHighWaterMark( NULL )); // stack size used
 			// Serial.println();
@@ -290,7 +301,7 @@ public:
 // 			int currentFrameIndex = 0;
 // 			while(millis() < endTime) 
 // 			{
-// 				display.drawBitmap(0, 0, dontPanicAnimationFrames[currentFrameIndex], SettingsHandler::Display_Screen_Width, SettingsHandler::Display_Screen_Height, 1);
+// 				display.drawBitmap(0, 0, dontPanicAnimationFrames[currentFrameIndex], m_settingsFactory->getDisplayScreenWidth(), m_settingsFactory->getDisplayScreenHeight(), 1);
 // 				display.display();
 // 				currentFrameIndex++;
 // 				if(currentFrameIndex == dontPanicAnimationFramesCount)
@@ -306,6 +317,8 @@ public:
 
 private:
 	const char* _TAG = TagHandler::DisplayHandler;
+    SettingsFactory* m_settingsFactory;
+	bool m_fanControlEnabled;
 	IPAddress _ipAddress;
 	bool displayConnected = false;
 	int lastUpdate = 0;
@@ -344,8 +357,8 @@ private:
 		int newLine = currentLine + (lineHeight + additionalPixels);
 		if(newLineTextSize > 0)
 			setTextSize(newLineTextSize);
-		if(newLine > SettingsHandler::Display_Screen_Height - lineHeight) {
-			LogHandler::warning(_TAG, "End of the display reached when newLine! Current: %i, New: %i, Max: %i", currentLine, newLine, SettingsHandler::Display_Screen_Height - lineHeight);
+		if(newLine > m_settingsFactory->getDisplayScreenHeight() - lineHeight) {
+			LogHandler::warning(_TAG, "End of the display reached when newLine! Current: %i, New: %i, Max: %i", currentLine, newLine, m_settingsFactory->getDisplayScreenHeight() - lineHeight);
 		}
 		currentLine = newLine;
 		display.setCursor(0, currentLine);
@@ -361,13 +374,13 @@ private:
 	}
 	bool hasNextLine(int newLineTextSize = 1) {
 		
-		return currentLine + getLineHeight(newLineTextSize) <= SettingsHandler::Display_Screen_Height - getLineHeight(newLineTextSize);
+		return currentLine + getLineHeight(newLineTextSize) <= m_settingsFactory->getDisplayScreenHeight() - getLineHeight(newLineTextSize);
 	}
 	void space(int count = 1) {
 		display.setCursor(display.getCursorX() + (count * charWidth), currentLine);
 	}
 	void right(const char* text, int margin = 0) {
-		display.setCursor((SettingsHandler::Display_Screen_Width - strlen(text) * charWidth) - margin * charWidth, currentLine);
+		display.setCursor((m_settingsFactory->getDisplayScreenWidth() - strlen(text) * charWidth) - margin * charWidth, currentLine);
 		display.print(text);
 	}
 	void left(const char* text, int margin = 0) {
@@ -375,22 +388,22 @@ private:
 		display.print(text); 
 	}
 	void center(const char* text) {
-		display.setCursor((SettingsHandler::Display_Screen_Width - (strlen(text) * charWidth)) / 2, currentLine);
+		display.setCursor((m_settingsFactory->getDisplayScreenWidth() - (strlen(text) * charWidth)) / 2, currentLine);
 		display.print(text); 
 	}
 	void clearCurrentLine() {
-		display.fillRect(0, currentLine, SettingsHandler::Display_Screen_Width, 10, BLACK);
+		display.fillRect(0, currentLine, m_settingsFactory->getDisplayScreenWidth(), 10, BLACK);
 	}
 	bool is32() {
-		return SettingsHandler::Display_Screen_Height == 32;
+		return m_settingsFactory->getDisplayScreenHeight() == 32;
 	}
 
 	void draw64Temp() {
-		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed) {
+		if(m_settingsFactory->getSleeveTempDisplayed() && !m_settingsFactory->getInternalTempDisplayed()) {
 			LogHandler::verbose(_TAG, "Enter draw64Temp sleeveTempDisplayed");
-			if(SettingsHandler::versionDisplayed) {
+			if(m_settingsFactory->getVersionDisplayed()) {
 				LogHandler::verbose(_TAG, "versionDisplayed");
-				char buf[16];
+				char buf[17];
 				getTempString("Sleeve: ", m_sleeveTempString, buf, sizeof(buf));
 				left(buf);
 				newLine();
@@ -403,14 +416,14 @@ private:
 				newLine(0, 1);
 				center(m_HeatState.c_str());
 			}
-		} else if(!SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed) {
+		} else if(!m_settingsFactory->getSleeveTempDisplayed() && m_settingsFactory->getInternalTempDisplayed()) {
 			LogHandler::verbose(_TAG, "Enter draw64Temp internalTempDisplayed");
-			if(SettingsHandler::versionDisplayed) {
+			if(m_settingsFactory->getVersionDisplayed()) {
 				LogHandler::verbose(_TAG, "versionDisplayed");
-				char buf[18];
+				char buf[19];
 				getTempString("Internal: ", m_internalTempString, buf, sizeof(buf));
 				left(buf);
-				if(SettingsHandler::fanControlEnabled) {
+				if(m_fanControlEnabled) {
 					newLine();
 					left(m_fanState.c_str(), 3);
 				}
@@ -420,11 +433,11 @@ private:
 				getTempString("", m_internalTempString, buf, sizeof(buf));
 				center(buf);
 				newLine(0, 1);
-				if(SettingsHandler::fanControlEnabled) {
+				if(m_fanControlEnabled) {
 					center(m_fanState.c_str());
 				}
 			}
-		} else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed) {
+		} else if(m_settingsFactory->getSleeveTempDisplayed() && m_settingsFactory->getInternalTempDisplayed()) {
 			LogHandler::verbose(_TAG, "Enter draw64Temp sleeveTempDisplayed && internalTempDisplayed");
 			left("Sleeve");
 			right("Internal");
@@ -434,29 +447,29 @@ private:
 			char buf[9];
 			getTempString("", m_sleeveTempString, buf, sizeof(buf));
 			left(buf);
-			if(SettingsHandler::versionDisplayed) {
+			if(m_settingsFactory->getVersionDisplayed()) {
 				display.print("("+m_HeatStateShort+")");
 			}
 			char buf2[9];
 			getTempString("", m_internalTempString, buf2, sizeof(buf2));
 			right(buf2);
 
-			if(!SettingsHandler::versionDisplayed) {
+			if(!m_settingsFactory->getVersionDisplayed()) {
 				LogHandler::verbose(_TAG, "versionDisplayed");
 				newLine();
 				
 				left(m_HeatState.c_str());
-				if(SettingsHandler::fanControlEnabled) {
+				if(m_fanControlEnabled) {
 					right(m_fanState.c_str());
 				}
 			}
 		}
 	}
 	void draw32Temp() {
-		if(SettingsHandler::sleeveTempDisplayed && !SettingsHandler::internalTempDisplayed) {
+		if(m_settingsFactory->getSleeveTempDisplayed() && !m_settingsFactory->getInternalTempDisplayed()) {
 			LogHandler::verbose(_TAG, "Enter draw32Temp sleeveTempDisplayed");
-			char buf[19];
-			if(SettingsHandler::versionDisplayed || !hasNextLine()) {
+			char buf[20];
+			if(m_settingsFactory->getVersionDisplayed() || !hasNextLine()) {
 				LogHandler::verbose(_TAG, "versionDisplayed");
 				getTempString("Sleeve: ", m_sleeveTempString, buf, sizeof(buf));
 				left(buf);
@@ -474,10 +487,10 @@ private:
 				newLine();
 				left(m_HeatState.c_str(), 3);
 			} 
-		} else if(!SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed) {
+		} else if(!m_settingsFactory->getSleeveTempDisplayed() && m_settingsFactory->getInternalTempDisplayed()) {
 			LogHandler::verbose(_TAG, "Enter draw32Temp internalTempDisplayed");
 			char buf[21];
-			if(SettingsHandler::versionDisplayed || !hasNextLine()) {
+			if(m_settingsFactory->getVersionDisplayed() || !hasNextLine()) {
 				LogHandler::verbose(_TAG, "versionDisplayed");
 				getTempString("Internal: ", m_internalTempString, buf, sizeof(buf));
 				left(buf);
@@ -494,10 +507,10 @@ private:
 				newLine();
 				left(m_fanState.c_str(), 3);
 			}
-		} else if(SettingsHandler::sleeveTempDisplayed && SettingsHandler::internalTempDisplayed) {
+		} else if(m_settingsFactory->getSleeveTempDisplayed() && m_settingsFactory->getInternalTempDisplayed()) {
 			LogHandler::verbose(_TAG, "Enter draw32Temp sleeveTempDisplayed && internalTempDisplayed");
 			char buf[10];
-			if(SettingsHandler::versionDisplayed || !hasNextLine()) {
+			if(m_settingsFactory->getVersionDisplayed() || !hasNextLine()) {
 				LogHandler::verbose(_TAG, "versionDisplayed");
 				getTempString("S", m_sleeveTempString, buf, sizeof(buf));
 				left(buf);
@@ -518,15 +531,19 @@ private:
 	}
 
 	void drawBatteryLevel() {
+		bool wifiConnected = false;
+#if WIFI_TCODE
+		wifiConnected = WifiHandler::isConnected();
+#endif
 		if(BatteryHandler::connected()) {
     		LogHandler::verbose(_TAG, "Enter draw battery");
-			if(SettingsHandler::batteryLevelNumeric) {
-				//double voltageNumber = mapf(m_batteryVoltage, 0.0, 3.3, 0.0, SettingsHandler::batteryVoltageMax);
+			if(m_settingsFactory->getBatteryLevelNumeric()) {
+				//double voltageNumber = mapf(m_batteryVoltage, 0.0, 3.3, 0.0, m_settingsFactory->getBatteryVoltageMax());
 				if (false) {//Display voltage
-					display.setCursor((SettingsHandler::Display_Screen_Width - (m_batteryVoltage < 10.0 ? 3 : 4) * charWidth) - (WifiHandler::isConnected() ? 3 : 0) * charWidth, currentLine);
+					display.setCursor((m_settingsFactory->getDisplayScreenWidth() - (m_batteryVoltage < 10.0 ? 3 : 4) * charWidth) - (wifiConnected ? 3 : 0) * charWidth, currentLine);
 					display.print(m_batteryVoltage, 1);
 				} else {
-					display.setCursor((SettingsHandler::Display_Screen_Width - (m_batteryCapacityRemainingPercentage < 10.0 ? 3 : 4) * charWidth) - (WifiHandler::isConnected() ? 3 : 0) * charWidth, currentLine);
+					display.setCursor((m_settingsFactory->getDisplayScreenWidth() - (m_batteryCapacityRemainingPercentage < 10.0 ? 3 : 4) * charWidth) - (wifiConnected ? 3 : 0) * charWidth, currentLine);
 					display.print(m_batteryCapacityRemainingPercentage, 1);
 					display.print("%");
 				}
@@ -563,14 +580,14 @@ private:
 				}
 				for (int b=0; b < batteryBars; b++) {
 					display.fillRect(
-						(SettingsHandler::Display_Screen_Width - (!WifiHandler::isConnected() ? 20 : 37)) + (b*3), 
+						(m_settingsFactory->getDisplayScreenWidth() - (!wifiConnected ? 20 : 37)) + (b*3), 
 						2, 
 						2, 
 						lineHeight - 4, 
 						WHITE); 
 				}
 				display.drawRect(
-					SettingsHandler::Display_Screen_Width - (!WifiHandler::isConnected() ? 23 : 40),
+					m_settingsFactory->getDisplayScreenWidth() - (!wifiConnected ? 23 : 40),
 					1, 
 					20, 
 					lineHeight-2, 
@@ -580,19 +597,19 @@ private:
 	}
 	// bool tryConnect() //Connects to the wrong address
 	// {
-  	// 	unsigned int vecSize = SettingsHandler::systemI2CAddresses.size();
+  	// 	unsigned int vecSize = m_settingsFactory->getSystemI2CAddresses.size()();
 	// 	LogHandler::info(_TAG, "System I2c device count %ld", vecSize);
 	// 	if(vecSize) {
 	// 		for(unsigned int i = 0; i < vecSize; i++)
 	// 		{
-	// 			//const char* address = SettingsHandler::systemI2CAddresses[i].c_str();
+	// 			//const char* address = m_settingsFactory->getSystemI2CAddresses[i].c_str()();
 	// 			char buf[10];
-	// 			hexToString(SettingsHandler::systemI2CAddresses[i], buf);
+	// 			hexToString(m_settingsFactory->getSystemI2CAddresses[i](), buf);
 	// 			LogHandler::info(_TAG, "Trying to connect to %s", buf);
-	// 			if(SettingsHandler::systemI2CAddresses[i] && connectDisplay(SettingsHandler::systemI2CAddresses[i])) {
+	// 			if(m_settingsFactory->getSystemI2CAddresses[i]() && connectDisplay(m_settingsFactory->getSystemI2CAddresses[i]())) {
 	// 				LogHandler::info(_TAG, "Sucess!");
-	// 				SettingsHandler::Display_I2C_Address = SettingsHandler::systemI2CAddresses[i];
-	// 				SettingsHandler::save();
+	// 				m_settingsFactory->getDisplay_I2C_Address() = m_settingsFactory->getSystemI2CAddresses[i]();
+	// 				m_settingsFactory->getSave()();
 	// 				return true;
 	// 			} else {
 	// 				LogHandler::info(_TAG, "Failed..");
@@ -603,16 +620,16 @@ private:
 	// 	return false;
 	// }
 
-	bool connectDisplay(int address) {
+	bool connectDisplay(int address, int pin) {
 		if(LogHandler::getLogLevel() == LogLevel::DEBUG) {
 			char buf[10];
 			hexToString(address, buf);
 			LogHandler::debug(_TAG, "Connect to display at address: %s", buf);
 			LogHandler::debug(_TAG, "byte: %ld", address);
 		}
-		if (SettingsHandler::Display_Rst_PIN >= 0)
+		if (pin >= 0)
 		{
-			displayConnected = display.begin(SSD1306_SWITCHCAPVCC, address, SettingsHandler::Display_Rst_PIN);
+			displayConnected = display.begin(SSD1306_SWITCHCAPVCC, address, pin);
 			if (!displayConnected)
     			LogHandler::error(_TAG, "SSD1306 RST_PIN allocation failed");
 		}

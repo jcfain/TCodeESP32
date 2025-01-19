@@ -24,7 +24,7 @@ SOFTWARE. */
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include "../constants.h"
+#include "constants.h"
 
 struct ButtonModel {
     char name[26];

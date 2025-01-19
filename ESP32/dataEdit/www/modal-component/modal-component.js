@@ -67,6 +67,7 @@ modalTemplate.innerHTML = `
     .modal-title {  
         margin-left: 24px;
         text-align: center;
+        min-width: max-content;
     }
     .modal-body {
         display: flex;

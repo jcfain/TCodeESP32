@@ -10,6 +10,17 @@
 #include <QFileInfo>
 #include <QDir>
 
+struct ModuleConfig
+{
+    const QString friendlyName;
+    const QString name;
+    const QString flashMode;
+    const QString flashFreq;
+    const QString flashSize;
+    const QString flashStart;
+    const QString baud;
+};
+Q_DECLARE_METATYPE(ModuleConfig)
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -20,6 +31,16 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     on_refreshComports_clicked();
+
+    const QList<ModuleConfig> modules =
+    {
+        {"Esp32", "esp32", "dio", "40m", "4MB", "0x1000", "921600"}
+        ,{"Esp32 S3 zero", "esp32s3", "dio", "80m", "4MB", "0x0000", "921600"}
+        ,{"Esp32 S3 N8R8", "esp32s3", "qio", "80m", "8MB", "0x0000", "921600"}// Need to check these
+    };
+
+    ui->modulePropertiesGrpBx->setHidden(true);
+    ui->moduleAdvancedBtn->setCheckable(true);
 
 //    m_finder = new QTimer(this);
 //    m_finder->setInterval(1000);
@@ -33,11 +54,34 @@ MainWindow::MainWindow(QWidget *parent)
     //flashProcess = new QProcess(this);
     connect(flashProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::on_flashFinished);
     connect(flashProcess, &QProcess::readyRead, this,  &MainWindow::on_flashUpdate);
+    connect(flashProcess, &QProcess::errorOccurred, this,  [this](QProcess::ProcessError error) {
+        on_flashError();
+    });
+    connect(ui->moduleAdvancedBtn, &QPushButton::clicked, this, [this](bool checked){
+        ui->modulePropertiesGrpBx->setHidden(!checked);
+    });
+
+    connect(ui->moduleSelectCmb, &QComboBox::currentIndexChanged, this, [this](int index){
+        ModuleConfig moduleData = ui->moduleSelectCmb->currentData().value<ModuleConfig>();
+        ui->moduleNameTxt->setText(moduleData.name);
+        ui->moduleFreqTxt->setText(moduleData.flashFreq);
+        ui->moduleModeTxt->setText(moduleData.flashMode);
+        ui->moduleSizeTxt->setText(moduleData.flashSize);
+        ui->moduleStartTxt->setText(moduleData.flashStart);
+        ui->moduleBaudTxt->setText(moduleData.baud);
+    });
 
     //m_serialPort = new QSerialPort(this);
     connect(m_serialPort, &QSerialPort::readyRead, this, &MainWindow::on_serailReadyRead);
     ui->binFilePath->setText(QApplication::applicationDirPath() + QDir::separator() + "release.bin");
+#ifdef Q_OS_LINUX
+    ui->espToolInput->setText(QApplication::applicationDirPath() + QDir::separator() + "esptool" + QDir::separator() + "linux" + QDir::separator() + "esptool" + QDir::separator() + "esptool");
+#elif defined(Q_OS_WIN)
     ui->espToolInput->setText(QApplication::applicationDirPath() + QDir::separator() + "esptool" + QDir::separator() + "esptool.exe");
+#endif
+    foreach (auto module, modules) {
+        ui->moduleSelectCmb->addItem(module.name, QVariant::fromValue(module));
+    }
 }
 
 MainWindow::~MainWindow()
@@ -66,6 +110,8 @@ bool MainWindow::checkAndConnectSerial()
     if(!m_serialPort->isOpen() || (m_serialPort->isOpen() && m_serialPort->portName() != portName)) {
         closeSerial();
         ui->serialOutputTextBrowser->clear();
+        if(portName.isEmpty())
+            return false;
         m_serialPort->setPortName(portName);
         if(m_serialPort->open(QIODevice::ReadWrite)) {
             if(!m_serialPort->setBaudRate(QSerialPort::BaudRate::Baud115200)) {
@@ -98,6 +144,8 @@ bool MainWindow::checkAndConnectSerial()
             //     closeSerial();
             //     return false;
             // }
+            m_serialPort->setRequestToSend(false);
+            m_serialPort->setDataTerminalReady(false);
             appendToSerialOutput("Connected to: "+portName +"\n");
             ui->sterialStateInput->setText("Connected to: "+portName);
         } else {
@@ -141,31 +189,56 @@ void MainWindow::flashFirmware(QString esptoolPath, QString firmwarePath, QStrin
     }
     if(!QFileInfo::exists(esptoolPath)) {
         QMessageBox::critical(this, tr("Error"),
-                              tr("Invalie esptool path\n") + esptoolPath);
+                              tr("Invalid esptool path\n") + esptoolPath);
         return;
     }
     if(!QFileInfo::exists(firmwarePath)) {
         QMessageBox::critical(this, tr("Error"),
-                              tr("Invalie firmware path\n") + firmwarePath);
+                              tr("Invalid firmware path\n") + firmwarePath);
         return;
     }
+    if(!QFileInfo(esptoolPath).permission(QFile::Permission::ExeOwner)) {
+        QMessageBox::critical(this, tr("Error"),
+                              tr("Esptool is NOT executable\n") + firmwarePath);
+        return;
+    }
+    ModuleConfig moduleData = ui->moduleSelectCmb->currentData().value<ModuleConfig>();
+    if(ui->moduleNameTxt->text().isEmpty()) {
+        ui->moduleNameTxt->setText(moduleData.name);
+    }
+    if(ui->moduleBaudTxt->text().isEmpty()) {
+        ui->moduleBaudTxt->setText(moduleData.baud);
+    }
+    if(ui->moduleModeTxt->text().isEmpty()) {
+        ui->moduleModeTxt->setText(moduleData.flashMode);
+    }
+    if(ui->moduleFreqTxt->text().isEmpty()) {
+        ui->moduleFreqTxt->setText(moduleData.flashFreq);
+    }
+    if(ui->moduleSizeTxt->text().isEmpty()) {
+        ui->moduleSizeTxt->setText(moduleData.flashSize);
+    }
+
     const QStringList args = {
-        "--chip","esp32",
+        "--chip",ui->moduleNameTxt->text(),
         "--port", comport,
-        "--baud","921600",
+        "--baud",ui->moduleBaudTxt->text(),
         "--before","default_reset",
         "--after","hard_reset",
         "write_flash",
         "-z",
-        "--flash_mode","dio",
-        "--flash_freq","40m",
-        "--flash_size","4MB",
+        "--flash_mode", ui->moduleModeTxt->text(),
+        "--flash_freq", ui->moduleFreqTxt->text(),
+        "--flash_size", ui->moduleSizeTxt->text(), // --flash_size detect 0x0000
         "--erase-all",
         "0x0",
         firmwarePath
     };
     closeSerial();
     setFlashMode(true);
+
+    appendToFlashOutput("Execute command: ");
+    appendToFlashOutput(esptoolPath + " " +args.join(" ") + "\n");
     flashProcess->start(esptoolPath, args);
     //QFileInfo espToolInfo(esptool);
     //process.setWorkingDirectory(QApplication::applicationDirPath());
@@ -174,6 +247,9 @@ void MainWindow::flashFirmware(QString esptoolPath, QString firmwarePath, QStrin
 
     //    ui->wifiPasswordInput->setEnabled(true);
     //    ui->availableWifiNetworks->setEnabled(true);
+
+    // Zero
+    // "/home/jay/.platformio/penv/bin/python" "/home/jay/.platformio/packages/tool-esptoolpy@src-0fed74e9a0661ea9c83289dd49725739/esptool.py" --chip esp32s3 --port "/dev/ttyACM0" --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size detect 0x0000 /home/jay/git/TCodeESP32/ESP32/.pio/build/esp32-s3-zero-bldc/bootloader.bin 0x8000 /home/jay/git/TCodeESP32/ESP32/.pio/build/esp32-s3-zero-bldc/partitions.bin 0xe000 /home/jay/.platformio/packages/framework-arduinoespressif32@src-a01c93a63f3ed4184a2ede3960108545/tools/partitions/boot_app0.bin 0x10000 .pio/build/esp32-s3-zero-bldc/firmware.bin
 }
 
 void MainWindow::setFlashMode(bool flashing)
@@ -276,10 +352,20 @@ void MainWindow::on_refreshComports_clicked()
     int currentIndex = 0;
     int esp32Index = -1;
     ui->serialSelectorCombobox->clear();
+    if(QSerialPortInfo::availablePorts().empty())
+    {
+        QMessageBox::critical(this, tr("Empty"),
+                              tr("No serial ports available"));
+        return;
+    }
 
     foreach (const QSerialPortInfo &serialPortInfo, QSerialPortInfo::availablePorts())
     {
+#ifdef Q_OS_LINUX
+        QVariant comport(serialPortInfo.systemLocation());
+#elif defined(Q_OS_WIN)
         QVariant comport(serialPortInfo.portName());
+#endif
         ui->serialSelectorCombobox->addItem(serialPortInfo.portName() + " - " + serialPortInfo.description(), comport);
         if(serialPortInfo.description().contains("CP210x", Qt::CaseInsensitive) || serialPortInfo.description().contains("CH340", Qt::CaseInsensitive)) {
             esp32Index = currentIndex;
@@ -328,16 +414,18 @@ void MainWindow::on_saveWiFiCredsButton_clicked()
 //        QMessageBox::critical(this, tr("Invalid form"),
 //                              tr("SSID has invalid characters"));
 //    }
+    QStringList messages;
     if(!ssid.isEmpty()) {
-        sendSerial("#wifi-ssid:"+ssid);
+        messages << "#wifi-ssid:"+ssid;
         modified = true;
     }
     if(!password.isEmpty()) {
-        sendSerial("#wifi-pass:"+password);
+        messages  << "#wifi-pass:"+password;
         modified = true;
     }
     if(modified) {
-        sendSerial("$save #restart");
+        messages << "$save #restart";
+        sendSerial(messages.join(" "));
         ui->tabWidget->setCurrentIndex(3);
     } else {
         QMessageBox::warning(this, tr("Warning"), tr("Nothing to modify"));

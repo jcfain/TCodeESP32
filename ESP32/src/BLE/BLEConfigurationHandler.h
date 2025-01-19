@@ -31,7 +31,7 @@ For now this is only for first configs */
 #include <BLE2902.h>
 #include <sstream>
 #include "SettingsHandler.h"
-#include "LogHandler.h"
+// #include "LogHandler.h"
 #include "TagHandler.h"
 
 
@@ -41,7 +41,12 @@ For now this is only for first configs */
 class CharacteristicCallbacks: public BLECharacteristicCallbacks 
 {
     String recievedJsonConfiguration = "";
-    std::string sendJsonConfiguration = "";
+    
+    #ifdef ESP_ARDUINO3
+        String sendJsonConfiguration = "";
+    #else
+        std::string sendJsonConfiguration = "";
+    #endif
     unsigned sendChunkIndex = 0;
     bool sentLength = false;
     int sendMaxLen = 499;
@@ -51,7 +56,11 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
     {
         SettingsHandler::printMemory();
         LogHandler::verbose(_TAG, "*** BLE onWrite");
-        std::string rxValue = pCharacteristic->getValue();
+        #ifdef ESP_ARDUINO3
+            String rxValue = pCharacteristic->getValue();
+        #else
+            std::string rxValue = pCharacteristic->getValue();
+        #endif
 
         if (rxValue.length() > 0) 
         {
@@ -107,8 +116,9 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
         LogHandler::verbose(_TAG, "*** BLE onRead");
         // char* sentValue = SettingsHandler::getJsonForBLE();
         if(sendJsonConfiguration.empty()) {
-            char settings[2048];
-            SettingsHandler::serialize(settings);
+            char settings[2048] = {0};
+            #warning need to send settings somehow
+            //SettingsHandler::ser(settings); 
             LogHandler::debug(_TAG, "BLE Get wifi settings: %s", settings);
             if (strlen(settings) == 0) {
                 LogHandler::error(_TAG, "*** BLE onRead empty");
@@ -232,7 +242,7 @@ private:
     const char* _TAG = TagHandler::BLEHandler;
 };
 
-class BLEHandler 
+class BLEConfigurationHandler 
 {
     private:
         const char* _TAG = TagHandler::BLEHandler;

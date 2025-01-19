@@ -41,9 +41,9 @@ class TagHandler {
     static const char* HTTPSHandler;
     static const char* SystemCommandHandler;
     static const char* BLEHandler;
+    static const char* BLEConfigurationHandler;
     static const char* BluetoothHandler;
-    static const char* ServoHandler3;
-    static const char* ServoHandler2;
+    static const char* ServoHandler;
     static const char* TCodeHandler;
     static const char* BLDCHandler;
     static const char* ToyHandler;
@@ -51,8 +51,11 @@ class TagHandler {
     static const char* MotionHandler;
     static const char* VoiceHandler;
     static const char* ButtonHandler;
+    static const char* MdnsHandler;
+    static const char* SettingsFactory;
 
     static const std::vector<const char *> AvailableTags;
+    static bool HasTag(const char*);
 };
 
 const char* TagHandler::Main = "main";
@@ -71,9 +74,9 @@ const char* TagHandler::HTTPSHandler = "https-handler";
 const char* TagHandler::WebHandler = "web-handler";
 const char* TagHandler::SystemCommandHandler = "system-command-handler";
 const char* TagHandler::BLEHandler = "ble-handler";
+const char* TagHandler::BLEConfigurationHandler = "ble-config-handler";
 const char* TagHandler::BluetoothHandler = "bluetooth-handler";
-const char* TagHandler::ServoHandler3 = "servo-3-handler";
-const char* TagHandler::ServoHandler2 = "servo-2-handler";
+const char* TagHandler::ServoHandler = "servo-handler";
 const char* TagHandler::TCodeHandler = "tcode-handler";
 const char* TagHandler::BLDCHandler = "bldc-handler";
 const char* TagHandler::ToyHandler = "toy-handler";
@@ -81,6 +84,9 @@ const char* TagHandler::MotorHandler = "motor-handler";
 const char* TagHandler::MotionHandler = "motion-handler";
 const char* TagHandler::VoiceHandler = "voice-handler";
 const char* TagHandler::ButtonHandler = "button-handler";
+const char* TagHandler::MdnsHandler = "mdns-handler";
+const char* TagHandler::SettingsFactory = "settings-factory";
+
 
 const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::Main,
@@ -99,9 +105,9 @@ const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::WebsocketBase,
     TagHandler::HTTPSHandler,
     TagHandler::UdpHandler,
-    TagHandler::ServoHandler3,
+    TagHandler::ServoHandler,
     TagHandler::TCodeHandler,
-    TagHandler::ServoHandler2,
+    //TagHandler::ServoHandler2,
     TagHandler::ToyHandler,
     TagHandler::BLDCHandler,
     TagHandler::DisplayHandler,
@@ -109,10 +115,20 @@ const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::BatteryHandler,
     TagHandler::WebHandler,
     TagHandler::BLEHandler,
+    TagHandler::BLEConfigurationHandler,
     TagHandler::BluetoothHandler,
     TagHandler::MotorHandler,
     TagHandler::MotionHandler,
     TagHandler::VoiceHandler,
-    TagHandler::ButtonHandler
+    TagHandler::ButtonHandler,
+    TagHandler::MdnsHandler,
+    TagHandler::SettingsFactory
 
+};
+
+bool TagHandler::HasTag(const char* name) {
+    return std::find_if(AvailableTags.begin(), AvailableTags.end(), 
+        [name](const char *tagName) {
+            return !strcmp(tagName, name);
+    }) != AvailableTags.end();
 };

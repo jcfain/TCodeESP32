@@ -1,41 +1,100 @@
 #pragma once
 
-enum class TCodeVersion
+enum class TCodeVersion: int
 {
-    v0_2,
+    //v0_2,
     v0_3,
-    v0_5
+    v0_4
 };
 
-enum class BuildFeature
+// enum class LogLevel {
+//     ERROR,
+//     WARNING,
+//     INFO,
+//     DEBUG,
+//     VERBOSE
+// };
+
+enum class BuildFeature: int
 {
     NONE,
     DEBUG,
     WIFI,
     BLUETOOTH,
+    BLE,
     DA,
     DISPLAY_,
     TEMP,
-    HAS_TCODE_V2,
-    HTTPS
+    HTTPS,
+    COEXIST_FEATURE,
+    MAX_FEATURES
 };
 
-enum class BoardType
+enum class ModuleType: int
+{
+    WROOM32,
+    S3
+};
+
+enum class BoardType: int
 {
     DEVKIT,
+    ZERO,
+    N8R8,
     CRIMZZON,
     ISAAC
 };
 
-enum class MotorType
+enum class MotorType: int
 {
     Servo,
     BLDC
 };
 
-enum class DeviceType
+enum class DeviceType: int
 {
     OSR,
     SR6,
-    SSR1
+    SSR1,
+    TVIBE
+};
+
+enum class BLDCEncoderType: int {
+    MT6701,
+    SPI,
+    PWM
+};
+
+enum class BLEDeviceType: int {
+    TCODE,
+    LOVE,
+    HC
+};
+
+enum class BLELoveDeviceType: int {
+    EDGE
+    
+};
+
+enum class ESPTimerChannelNum: int8_t {
+    NONE = -1,
+#if CONFIG_IDF_TARGET_ESP32
+    HIGH0_CH0,
+    HIGH0_CH1,
+    HIGH1_CH2,
+    HIGH1_CH3,
+    HIGH2_CH4,
+    HIGH2_CH5,
+    HIGH3_CH6,
+    HIGH3_CH7,
+#endif
+    LOW0_CH0,
+    LOW0_CH1,
+    LOW1_CH2,
+    LOW1_CH3,
+    LOW2_CH4,
+    LOW2_CH5,
+    LOW3_CH6,
+    LOW3_CH7,
+    MAX
 };

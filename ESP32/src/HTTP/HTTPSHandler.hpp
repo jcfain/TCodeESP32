@@ -17,10 +17,10 @@
 
 #include "HTTPBase.h"
 #include "SecureWebSocketHandler.hpp"
-#include "../SettingsHandler.h"
-#include "../TagHandler.h"
-#include "../LogHandler.h"
-#include "../SystemCommandHandler.h"
+#include "SettingsHandler.h"
+#include "TagHandler.h"
+#include "LogHandler.h"
+#include "SystemCommandHandler.h"
 
 // The HTTPS Server comes in a separate namespace. For easier use, include it here.
 using namespace httpsserver;
