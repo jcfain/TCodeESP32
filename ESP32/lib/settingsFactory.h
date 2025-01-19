@@ -99,8 +99,8 @@ public:
     bool getInversePitch() const { return inversePitch; }
     bool getValveServo90Degrees() const { return valveServo90Degrees; }
     bool getAutoValve() const { return autoValve; }
-    bool getInverseValve() const { return inverseTwist; }
-    bool getInverseTwist() const { return inverseValve; }
+    bool getInverseValve() const { return inverseValve; }
+    bool getInverseTwist() const { return inverseTwist; }
     bool getContinuousTwist() const { return continuousTwist; }
     int getLubeAmount() const { return lubeAmount; }
     int getBatteryCapacityMax() const { return batteryCapacityMax; }
