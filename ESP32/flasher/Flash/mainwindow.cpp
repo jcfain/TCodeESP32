@@ -34,9 +34,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     const QList<ModuleConfig> modules =
     {
-        {"Esp32", "esp32", "dio", "40m", "4MB", "0x1000", "921600"}
+        {"Esp32", "esp32", "dio", "40m", "4MB", "0x0000", "921600"}
         ,{"Esp32 S3 zero", "esp32s3", "dio", "80m", "4MB", "0x0000", "921600"}
-        ,{"Esp32 S3 N8R8", "esp32s3", "qio", "80m", "8MB", "0x0000", "921600"}// Need to check these
+        //,{"Esp32 S3 N8R8", "esp32s3", "qio", "80m", "8MB", "0x0000", "921600"}// Need to check these
     };
 
     ui->modulePropertiesGrpBx->setHidden(true);
@@ -80,7 +80,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->espToolInput->setText(QApplication::applicationDirPath() + QDir::separator() + "esptool" + QDir::separator() + "esptool.exe");
 #endif
     foreach (auto module, modules) {
-        ui->moduleSelectCmb->addItem(module.name, QVariant::fromValue(module));
+        ui->moduleSelectCmb->addItem(module.friendlyName, QVariant::fromValue(module));
     }
 }
 
