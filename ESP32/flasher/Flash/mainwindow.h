@@ -14,7 +14,7 @@
 //#include <QNetworkConfigurationManager>
 //#include <QNetworkSession>
 
-#define VERSION 0.12f
+#define VERSION 0.13f
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }

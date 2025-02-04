@@ -144,7 +144,7 @@ function buildAndDeploy
 	fi
 	# ESP32
 	if [ $MODULE_TYPE -eq 0 ]; then
-		$ESPTOOLDIR/esptool --chip esp32 merge_bin -o $OUTDIR/release.bin --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 $BUILD_DIR/bootloader.bin 0x8000 $BUILD_DIR/partitions.bin 0xe000 ~/.platformio/packages/$esp32ArduinoCoredir/tools/partitions/boot_app0.bin 0x10000 $BUILD_DIR/firmware.bin 0x310000 $BUILD_DIR/littlefs.bin
+		$ESPTOOLDIR/esptool --chip esp32 merge_bin -o $OUTDIR/release.bin --flash_mode dio --flash_freq 40m --flash_size 4MB 0x0000 $BUILD_DIR/bootloader.bin 0x8000 $BUILD_DIR/partitions.bin 0xe000 ~/.platformio/packages/$esp32ArduinoCoredir/tools/partitions/boot_app0.bin 0x10000 $BUILD_DIR/firmware.bin 0x310000 $BUILD_DIR/littlefs.bin
 	
 	# S3 ZERO
 	elif [ $MODULE_TYPE -eq 1 ]; then

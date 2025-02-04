@@ -68,7 +68,7 @@ IF %M%==8 (
 rem IF %M%==9 SET BUILD_MODIFIER=-esp32doit-devkit-v1-debug
 IF %M%==9 GOTO EOF
 
-SET ESPTOOLDIR="%~dp0bin\esptool-v4.5.1-win64\"
+SET ESPTOOLDIR="%~dp0bin\esptool-v4.8.1-win64\"
 
 SET BUILD_DIR=.pio\build\%BUILD_MODIFIER%
 SET OUTDIR=%~dp0bin\Release-%BUILD_MODIFIER%
@@ -96,11 +96,11 @@ if %ERRORLEVEL% NEQ 0  (
 )
 REM ESP32
 If %MODULE_TYPE%==0 (
-	%ESPTOOLDIR%esptool.exe --chip esp32 merge_bin -o "%OUTDIR%\release.bin" --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 %BUILD_DIR%\bootloader.bin 0x8000 %BUILD_DIR%\partitions.bin 0xe000 "%userprofile%\.platformio\packages\%esp32ArduinoCoredir%\tools\partitions\boot_app0.bin" 0x10000 %BUILD_DIR%\firmware.bin 0x310000 %BUILD_DIR%\littlefs.bin
+	%ESPTOOLDIR%esptool.exe --chip esp32 merge_bin -o "%OUTDIR%\release.bin" --flash_mode dio --flash_freq 40m --flash_size 4MB 0x0000 %BUILD_DIR%\bootloader.bin 0x8000 %BUILD_DIR%\partitions.bin 0xe000 "%userprofile%\.platformio\packages\%esp32ArduinoCoredir%\tools\partitions\boot_app0.bin" 0x10000 %BUILD_DIR%\firmware.bin 0x310000 %BUILD_DIR%\littlefs.bin
 )
 REM S3 ZERO
 If %MODULE_TYPE%==1 (
-	%ESPTOOLDIR%esptool.exe --chip esp32 merge_bin -o "%OUTDIR%\release.bin" --flash_mode qio --flash_freq 80m --flash_size 4MB 0x1000 %BUILD_DIR%\bootloader.bin 0x8000 %BUILD_DIR%\partitions.bin 0xe000 "%userprofile%\.platformio\packages\%esp32ArduinoCoredir%\tools\partitions\boot_app0.bin" 0x10000 %BUILD_DIR%\firmware.bin 0x310000 %BUILD_DIR%\littlefs.bin
+	%ESPTOOLDIR%esptool.exe --chip esp32 merge_bin -o "%OUTDIR%\release.bin" --flash_mode qio --flash_freq 80m --flash_size 4MB 0x0000 %BUILD_DIR%\bootloader.bin 0x8000 %BUILD_DIR%\partitions.bin 0xe000 "%userprofile%\.platformio\packages\%esp32ArduinoCoredir%\tools\partitions\boot_app0.bin" 0x10000 %BUILD_DIR%\firmware.bin 0x310000 %BUILD_DIR%\littlefs.bin
 )
 REM S3 N8 8mb
 If %MODULE_TYPE%==2 (

@@ -61,7 +61,7 @@ MainWindow::MainWindow(QWidget *parent)
         ui->modulePropertiesGrpBx->setHidden(!checked);
     });
 
-    connect(ui->moduleSelectCmb, &QComboBox::currentIndexChanged, this, [this](int index){
+    connect(ui->moduleSelectCmb, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index){
         ModuleConfig moduleData = ui->moduleSelectCmb->currentData().value<ModuleConfig>();
         ui->moduleNameTxt->setText(moduleData.name);
         ui->moduleFreqTxt->setText(moduleData.flashFreq);
@@ -218,6 +218,9 @@ void MainWindow::flashFirmware(QString esptoolPath, QString firmwarePath, QStrin
     if(ui->moduleSizeTxt->text().isEmpty()) {
         ui->moduleSizeTxt->setText(moduleData.flashSize);
     }
+    if(ui->moduleStartTxt->text().isEmpty()) {
+        ui->moduleStartTxt->setText(moduleData.flashStart);
+    }
 
     const QStringList args = {
         "--chip",ui->moduleNameTxt->text(),
@@ -231,7 +234,7 @@ void MainWindow::flashFirmware(QString esptoolPath, QString firmwarePath, QStrin
         "--flash_freq", ui->moduleFreqTxt->text(),
         "--flash_size", ui->moduleSizeTxt->text(), // --flash_size detect 0x0000
         "--erase-all",
-        "0x0",
+        ui->moduleStartTxt->text(),
         firmwarePath
     };
     closeSerial();
@@ -263,7 +266,7 @@ void MainWindow::setFlashMode(bool flashing)
 void MainWindow::showAbout()
 {
     QMessageBox::information(this, tr("About"),
-                             tr("Version:") + QString::number(VERSION) + "\nLicense: GPLV3");
+                             tr("Version:") + QString::number(VERSION) + "\nLicense: GPLV3\n\nQt v5.15.2 GPLV3\nhttps://doc.qt.io/qt-5/gpl.html\n\nESPTool GPL\nhttps://github.com/espressif/esptool");
 
 }
 
