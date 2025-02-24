@@ -1021,7 +1021,7 @@ function removeByClass(name) {
     }
     while(nodes[0]) {
         nodes[0].parentNode.removeChild(nodes[0]);
-    }​
+    }
 }
 
 function hasFeature(buildFeature) {
