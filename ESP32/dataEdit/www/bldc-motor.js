@@ -26,6 +26,7 @@ BLDCMotor = {
         document.getElementById("BLDC_UseHallSensor").checked = userSettings["BLDC_UseHallSensor"];
         document.getElementById("BLDC_Pulley_Circumference").value = userSettings["BLDC_Pulley_Circumference"];
         document.getElementById("BLDC_MotorA_Voltage").value = Utils.round2(userSettings["BLDC_MotorA_Voltage"]);
+        document.getElementById("BLDC_MotorA_Supply").value = Utils.round2(userSettings["BLDC_MotorA_Supply"]);
         document.getElementById("BLDC_MotorA_Current").value = Utils.round2(userSettings["BLDC_MotorA_Current"]);
         document.getElementById("BLDC_ChipSelect_PIN").value = pinoutSettings["BLDC_ChipSelect_PIN"];
         document.getElementById("BLDC_Encoder_PIN").value = pinoutSettings["BLDC_Encoder_PIN"];
@@ -50,6 +51,7 @@ function updateBLDCSettings() {
     Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
     userSettings["BLDC_Pulley_Circumference"] = parseInt(document.getElementById('BLDC_Pulley_Circumference').value);
     userSettings["BLDC_MotorA_Voltage"] = Utils.round2(parseFloat(document.getElementById('BLDC_MotorA_Voltage').value));
+    userSettings["BLDC_MotorA_Supply"] = Utils.round2(parseFloat(document.getElementById('BLDC_MotorA_Supply').value));
     userSettings["BLDC_MotorA_Current"] = Utils.round2(parseFloat(document.getElementById('BLDC_MotorA_Current').value));
     userSettings["BLDC_MotorA_ZeroElecAngle"] = Utils.round2(parseFloat(document.getElementById('BLDC_MotorA_ZeroElecAngle').value));
     userSettings["BLDC_MotorA_ParametersKnown"] = document.getElementById("BLDC_MotorA_ParametersKnown").checked;

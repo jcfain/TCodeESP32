@@ -769,6 +769,7 @@ void setup()
 
 #warning validate
 	double BLDC_MotorA_Voltage;
+	double BLDC_MotorA_Supply;
 	double BLDC_MotorA_Current;
 	bool BLDC_MotorA_ParametersKnown;
 	double BLDC_MotorA_ZeroElecAngle;
@@ -778,6 +779,7 @@ void setup()
 	BLDCEncoderType BLDC_EncoderType;
 
 	settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, BLDC_MotorA_Voltage);
+	settingsFactory->getValue(BLDC_MOTORA_SUPPLY, BLDC_MotorA_Supply);
 	settingsFactory->getValue(BLDC_MOTORA_CURRENT, BLDC_MotorA_Current);
 	settingsFactory->getValue(BLDC_MOTORA_PARAMETERSKNOWN, BLDC_MotorA_ParametersKnown);
 	settingsFactory->getValue(BLDC_MOTORA_ZEROELECANGLE, BLDC_MotorA_ZeroElecAngle);

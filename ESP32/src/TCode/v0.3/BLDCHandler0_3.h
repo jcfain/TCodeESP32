@@ -158,15 +158,17 @@ public:
             sensorSPI->init(); 
             LogHandler::debug(_TAG, "init sensorSPI");
         }
-        
+
         // driver config
-        // power supply voltage [V]
+        // Max DC voltage allowed - default voltage_limit
         double motorAVoltage = BLDC_MOTORA_VOLTAGE_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, motorAVoltage);
         LogHandler::debug(_TAG, "Voltage: %f", motorAVoltage);
-        driverA->voltage_power_supply = motorAVoltage;
-        // Max DC voltage allowed - default voltage_power_supply
-        driverA->voltage_limit = 20;
+        driverA->voltage_limit = motorAVoltage;
+        // power supply voltage [V]
+        double supplyAVoltage = BLDC_MOTORA_SUPPLY_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTORA_SUPPLY, supplyAVoltage);
+        driverA->voltage_power_supply = supplyAVoltage;
         // driver init
         driverA->init();
 
@@ -174,8 +176,7 @@ public:
         double motorACurrent = BLDC_MOTORA_CURRENT_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_CURRENT, motorACurrent);
         LogHandler::debug(_TAG, "Current: %f", motorACurrent);
-        motorA->current_limit = motorACurrent;   // [Amps]
-        motorA->voltage_limit = motorAVoltage;  
+        motorA->current_limit = motorACurrent;   // [Amps] 
 
         // set control loop type to be used
         motorA->torque_controller = TorqueControlType::voltage;
