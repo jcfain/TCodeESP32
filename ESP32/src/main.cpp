@@ -698,6 +698,16 @@ void setup()
 	LogHandler::info(TagHandler::Main, "Chip ID: %u", chipId);
 	Serial.println();
 
+	// Pinhacks for SR6PCB, remove
+	pinMode(13, OUTPUT); // PSU EN
+	pinMode(12, OUTPUT); // PDCFG1
+	pinMode(14, OUTPUT); // PDCFG2
+	pinMode(27, OUTPUT); // PDCFG3
+	digitalWrite(13, HIGH); // Enable regualtor
+	digitalWrite(12, LOW); // Request 20V
+	digitalWrite(14, HIGH); // Request 20V
+	digitalWrite(27, LOW); // Request 20V
+
 	// esp_log_level_set("*", ESP_LOG_VERBOSE);
 	// LogHandler::debug("main", "this is verbose");
 	// LogHandler::debug("main", "this is debug");

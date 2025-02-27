@@ -854,6 +854,12 @@ function setPinoutSettings() {
     document.getElementById('Internal_Temp_PIN').value = pinoutSettings["Internal_Temp_PIN"];
     document.getElementById('i2cSda_PIN').value = pinoutSettings["i2cSda_PIN"];
     document.getElementById('i2cScl_PIN').value = pinoutSettings["i2cScl_PIN"];
+    document.getElementById("Servo_Power_Enable_PIN").value = pinoutSettings["Servo_Power_Enable_PIN"];
+    document.getElementById('Bus_Voltage_Feedback_PIN').value = pinoutSettings["Bus_Voltage_Feedback_PIN"];
+    document.getElementById('Servo_Voltage_Feedback_PIN').value = pinoutSettings["Servo_Voltage_Feedback_PIN"];
+    document.getElementById('PDCFG1_PIN').value = pinoutSettings["PDCFG1_PIN"];
+    document.getElementById('PDCFG2_PIN').value = pinoutSettings["PDCFG2_PIN"];
+    document.getElementById('PDCFG3_PIN').value = pinoutSettings["PDCFG3_PIN"];
 
 
     setPinChannel("Vibe0_CHANNEL", pinoutSettings["Vibe0_CHANNEL"]);
@@ -1816,6 +1822,12 @@ function updateCommonPins(pinValues) {
     pinoutSettings["Internal_Temp_PIN"] = pinValues.internalTemp;
     pinoutSettings["i2cSda_PIN"] = pinValues.i2cSda;
     pinoutSettings["i2cScl_PIN"] = pinValues.i2cScl;
+    pinoutSettings["Servo_Power_Enable_PIN"] = pinValues.servoPowerEnable;
+    pinoutSettings["Servo_Voltage_Feedback_PIN"] = pinValues.servoVoltageFeedback;
+    pinoutSettings["Bus_Voltage_Feedback_PIN"] = pinValues.busVoltageFeedback;
+    pinoutSettings["PDCFG1_PIN"] = pinValues.pdCFG1;
+    pinoutSettings["PDCFG2_PIN"] = pinValues.pdCFG2;
+    pinoutSettings["PDCFG3_PIN"] = pinValues.pdCFG3;
     //     pinoutSettings["Battery_Voltage_PIN"] = pinValues.Battery_Voltage_PIN;
     // }
 
@@ -2074,6 +2086,14 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
         validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins);
     }
     
+    validatePin(pinValues.servoPowerEnable, assignedPins, duplicatePins);
+    validatePin(pinValues.servoVoltageFeedback, assignedPins, duplicatePins);
+
+    validatePin(pinValues.busVoltageFeedback, assignedPins, duplicatePins);
+    validatePin(pinValues.pdCFG1, assignedPins, duplicatePins);
+    validatePin(pinValues.pdCFG2, assignedPins, duplicatePins);
+    validatePin(pinValues.pdCFG3, assignedPins, duplicatePins);
+
     validatePin(pinValues.lubeButton, "Lube button", assignedPins, duplicatePins, true, invalidPins);
 
     if(userSettings.tempSleeveEnabled) {
@@ -2137,6 +2157,18 @@ function getCommonPinValues(pinValues) {
 
     pinValues.i2cSda = parseInt(document.getElementById('i2cSda_PIN').value);
     pinValues.i2cScl = parseInt(document.getElementById('i2cScl_PIN').value);
+
+    var pdCFGPins = document.getElementsByName('pdCFGPins');
+    pinValues.pdCFG = [];
+    pdCFGPins.forEach((node, index) => {
+        pinValues.pdCFG[index] = parseInt(document.getElementById('pdCFGPins'+index).value);
+    });
+    pinValues.servoPowerEnable = parseInt(document.getElementById('Servo_Power_Enable_PIN').value);
+    pinValues.servoVoltageFeedback = parseInt(document.getElementById('Servo_Voltage_Feedback_PIN').value);
+    pinValues.busVoltageFeedback = parseInt(document.getElementById('Bus_Voltage_Feedback_PIN').value);
+    pinValues.pdCFG1 = parseInt(document.getElementById('PDCFG1_PIN').value);
+    pinValues.pdCFG2 = parseInt(document.getElementById('PDCFG2_PIN').value);
+    pinValues.pdCFG3 = parseInt(document.getElementById('PDCFG3_PIN').value);
 
     pinValues.lubeButton = parseInt(document.getElementById('LubeButton_PIN').value);
     pinValues.temp = parseInt(document.getElementById('Temp_PIN').value);
