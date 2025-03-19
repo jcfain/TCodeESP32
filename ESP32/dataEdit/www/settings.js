@@ -1021,7 +1021,7 @@ function removeByClass(name) {
     }
     while(nodes[0]) {
         nodes[0].parentNode.removeChild(nodes[0]);
-    }​
+    }
 }
 
 function hasFeature(buildFeature) {
@@ -2690,6 +2690,9 @@ function checkMigrateData(key, value) {
 
 function handleImportRenames(key, value) {
     switch(key) {
+        case "BLDC_MotorA_Voltage":
+        userSettings.BLDC_MotorA_VoltageLimit = value;
+        return;
         case "LubeManual_PIN": 
         pinoutSettings.LubeButton_PIN = value;
         return;

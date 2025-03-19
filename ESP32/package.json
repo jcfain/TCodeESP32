@@ -1,0 +1,9 @@
+{
+    "name": "TCodeESP32",
+    "version": "0.4.0",
+    "type": "module",
+    "devDependencies": {
+        "glob": "^11.0.1",
+        "minify": "^13.0.0"
+    }
+}
