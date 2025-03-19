@@ -2690,6 +2690,9 @@ function checkMigrateData(key, value) {
 
 function handleImportRenames(key, value) {
     switch(key) {
+        case "BLDC_MotorA_Voltage":
+        userSettings.BLDC_MotorA_VoltageLimit = value;
+        return;
         case "LubeManual_PIN": 
         pinoutSettings.LubeButton_PIN = value;
         return;
