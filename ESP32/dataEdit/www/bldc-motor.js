@@ -25,16 +25,9 @@ BLDCMotor = {
         document.getElementById("BLDC_Encoder").value = userSettings["BLDC_Encoder"];
         document.getElementById("BLDC_UseHallSensor").checked = userSettings["BLDC_UseHallSensor"];
         document.getElementById("BLDC_Pulley_Circumference").value = userSettings["BLDC_Pulley_Circumference"];
-        document.getElementById("BLDC_MotorA_Voltage").value = Utils.round2(userSettings["BLDC_MotorA_Voltage"]);
-        document.getElementById("BLDC_MotorA_Supply").value = Utils.round2(userSettings["BLDC_MotorA_Supply"]);
+        document.getElementById("BLDC_MotorA_VoltageLimit").value = Utils.round2(userSettings["BLDC_MotorA_VoltageLimit"]);
+        document.getElementById("BLDC_MotorA_SupplyVoltage").value = Utils.round2(userSettings["BLDC_MotorA_SupplyVoltage"]);
         document.getElementById("BLDC_MotorA_Current").value = Utils.round2(userSettings["BLDC_MotorA_Current"]);
-        document.getElementById("BLDC_ChipSelect_PIN").value = pinoutSettings["BLDC_ChipSelect_PIN"];
-        document.getElementById("BLDC_Encoder_PIN").value = pinoutSettings["BLDC_Encoder_PIN"];
-        document.getElementById("BLDC_Enable_PIN").value = pinoutSettings["BLDC_Enable_PIN"];
-        document.getElementById("BLDC_PWMchannel1_PIN").value = pinoutSettings["BLDC_PWMchannel1_PIN"];
-        document.getElementById("BLDC_PWMchannel2_PIN").value = pinoutSettings["BLDC_PWMchannel2_PIN"];
-        document.getElementById("BLDC_PWMchannel3_PIN").value = pinoutSettings["BLDC_PWMchannel3_PIN"];
-        document.getElementById("BLDC_HallEffect_PIN").value = pinoutSettings["BLDC_HallEffect_PIN"];
         document.getElementById("BLDC_MotorA_ZeroElecAngle").value = Utils.round2(userSettings["BLDC_MotorA_ZeroElecAngle"]);
         document.getElementById("BLDC_MotorA_ParametersKnown").checked = userSettings["BLDC_MotorA_ParametersKnown"];
         document.getElementById("BLDC_RailLength").value = userSettings["BLDC_RailLength"];
@@ -43,6 +36,15 @@ BLDCMotor = {
         toggleBLDCEncoderOptions();
         Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
         Utils.toggleControlVisibilityByID("ZeroElecAngle", userSettings["BLDC_MotorA_ParametersKnown"]);
+    },
+    setupPins() {
+        document.getElementById("BLDC_ChipSelect_PIN").value = pinoutSettings["BLDC_ChipSelect_PIN"];
+        document.getElementById("BLDC_Encoder_PIN").value = pinoutSettings["BLDC_Encoder_PIN"];
+        document.getElementById("BLDC_Enable_PIN").value = pinoutSettings["BLDC_Enable_PIN"];
+        document.getElementById("BLDC_PWMchannel1_PIN").value = pinoutSettings["BLDC_PWMchannel1_PIN"];
+        document.getElementById("BLDC_PWMchannel2_PIN").value = pinoutSettings["BLDC_PWMchannel2_PIN"];
+        document.getElementById("BLDC_PWMchannel3_PIN").value = pinoutSettings["BLDC_PWMchannel3_PIN"];
+        document.getElementById("BLDC_HallEffect_PIN").value = pinoutSettings["BLDC_HallEffect_PIN"];
     }
     // TODO: move bldc stuff in to here. Follow this pattern moving forward.
 }
@@ -50,8 +52,8 @@ function updateBLDCSettings() {
     userSettings["BLDC_UseHallSensor"] = document.getElementById('BLDC_UseHallSensor').checked;
     Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
     userSettings["BLDC_Pulley_Circumference"] = parseInt(document.getElementById('BLDC_Pulley_Circumference').value);
-    userSettings["BLDC_MotorA_Voltage"] = Utils.round2(parseFloat(document.getElementById('BLDC_MotorA_Voltage').value));
-    userSettings["BLDC_MotorA_Supply"] = Utils.round2(parseFloat(document.getElementById('BLDC_MotorA_Supply').value));
+    userSettings["BLDC_MotorA_VoltageLimit"] = Utils.round2(parseFloat(document.getElementById('BLDC_MotorA_VoltageLimit').value));
+    userSettings["BLDC_MotorA_SupplyVoltage"] = Utils.round2(parseFloat(document.getElementById('BLDC_MotorA_SupplyVoltage').value));
     userSettings["BLDC_MotorA_Current"] = Utils.round2(parseFloat(document.getElementById('BLDC_MotorA_Current').value));
     userSettings["BLDC_MotorA_ZeroElecAngle"] = Utils.round2(parseFloat(document.getElementById('BLDC_MotorA_ZeroElecAngle').value));
     userSettings["BLDC_MotorA_ParametersKnown"] = document.getElementById("BLDC_MotorA_ParametersKnown").checked;

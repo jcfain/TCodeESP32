@@ -74,7 +74,8 @@ let BoardType = {
     ZERO: 1,
     N8R8: 2,
     CRIMZZON: 3,
-    ISAAC: 4
+    ISAAC: 4,
+    SSR1PCB: 5
 };
 let DeviceType = {
     OSR: 0,
@@ -768,10 +769,10 @@ function setSystemInfo() {
         bleLoveDeviceTypeElement.appendChild(option);
         BLELoveDeviceType[element.name] = element.value;
     });
-    if(systemInfo.motorType === MotorType.BLDC) {
+    if(systemInfo.motorType === MotorType.BLDC)
         setupEncoderTypes();
-    } else
-        setupBoardTypes();
+        
+    setupBoardTypes();
     setupDeviceTypes();
     toggleBuildOptions();
     toggleMotorTypeOptions();
@@ -816,13 +817,27 @@ function setWifiSettings() {
     document.getElementById("friendlyName").value = wifiSettings["friendlyName"];
 }
 function setPinoutSettings() {
+    if(systemInfo.motorType === MotorType.BLDC) {
+        BLDCMotor.setupPins();
+    } else {
+        document.getElementById("RightServo_PIN").value = pinoutSettings["RightServo_PIN"];
+        document.getElementById("LeftServo_PIN").value = pinoutSettings["LeftServo_PIN"];
+        document.getElementById("RightUpperServo_PIN").value = pinoutSettings["RightUpperServo_PIN"];
+        document.getElementById("LeftUpperServo_PIN").value = pinoutSettings["LeftUpperServo_PIN"];
+        document.getElementById("PitchLeftServo_PIN").value = pinoutSettings["PitchLeftServo_PIN"];
+        document.getElementById("PitchRightServo_PIN").value = pinoutSettings["PitchRightServo_PIN"];
+        // if(isOSR() || isSR6()) {
+            setPinChannel("RightServo_CHANNEL", pinoutSettings["RightServo_CHANNEL"]);
+            setPinChannel("LeftServo_CHANNEL", pinoutSettings["LeftServo_CHANNEL"]);
+            setPinChannel("PitchLeftServo_CHANNEL", pinoutSettings["PitchLeftServo_CHANNEL"]);
+        // }
+        // if(isSR6()) {
+            setPinChannel("RightUpperServo_CHANNEL", pinoutSettings["RightUpperServo_CHANNEL"]);
+            setPinChannel("LeftUpperServo_CHANNEL", pinoutSettings["LeftUpperServo_CHANNEL"]);
+            setPinChannel("PitchRightServo_CHANNEL", pinoutSettings["PitchRightServo_CHANNEL"]);
+        // }
+    }
     document.getElementById("TwistFeedBack_PIN").value = pinoutSettings["TwistFeedBack_PIN"];
-    document.getElementById("RightServo_PIN").value = pinoutSettings["RightServo_PIN"];
-    document.getElementById("LeftServo_PIN").value = pinoutSettings["LeftServo_PIN"];
-    document.getElementById("RightUpperServo_PIN").value = pinoutSettings["RightUpperServo_PIN"];
-    document.getElementById("LeftUpperServo_PIN").value = pinoutSettings["LeftUpperServo_PIN"];
-    document.getElementById("PitchLeftServo_PIN").value = pinoutSettings["PitchLeftServo_PIN"];
-    document.getElementById("PitchRightServo_PIN").value = pinoutSettings["PitchRightServo_PIN"];
     document.getElementById("ValveServo_PIN").value = pinoutSettings["ValveServo_PIN"];
 	document.getElementById("TwistServo_PIN").value = pinoutSettings["TwistServo_PIN"];
     document.getElementById("Vibe0_PIN").value = pinoutSettings["Vibe0_PIN"];
@@ -840,6 +855,7 @@ function setPinoutSettings() {
     document.getElementById('i2cSda_PIN').value = pinoutSettings["i2cSda_PIN"];
     document.getElementById('i2cScl_PIN').value = pinoutSettings["i2cScl_PIN"];
 
+
     setPinChannel("Vibe0_CHANNEL", pinoutSettings["Vibe0_CHANNEL"]);
     setPinChannel("Vibe1_CHANNEL", pinoutSettings["Vibe1_CHANNEL"]);
     setPinChannel("Vibe2_CHANNEL", pinoutSettings["Vibe2_CHANNEL"]);
@@ -849,17 +865,6 @@ function setPinoutSettings() {
     setPinChannel("Squeeze_CHANNEL", pinoutSettings["Squeeze_CHANNEL"]);
     setPinChannel("Heater_CHANNEL", pinoutSettings["Heater_CHANNEL"]);
     setPinChannel("Case_Fan_CHANNEL", pinoutSettings["Case_Fan_CHANNEL"]);
-
-    // if(isOSR() || isSR6()) {
-        setPinChannel("RightServo_CHANNEL", pinoutSettings["RightServo_CHANNEL"]);
-        setPinChannel("LeftServo_CHANNEL", pinoutSettings["LeftServo_CHANNEL"]);
-        setPinChannel("PitchLeftServo_CHANNEL", pinoutSettings["PitchLeftServo_CHANNEL"]);
-    // }
-    // if(isSR6()) {
-        setPinChannel("RightUpperServo_CHANNEL", pinoutSettings["RightUpperServo_CHANNEL"]);
-        setPinChannel("LeftUpperServo_CHANNEL", pinoutSettings["LeftUpperServo_CHANNEL"]);
-        setPinChannel("PitchRightServo_CHANNEL", pinoutSettings["PitchRightServo_CHANNEL"]);
-    // }
 }
 function setUserSettings()
 {
@@ -897,9 +902,9 @@ function setUserSettings()
     //updateSpeedUI(userSettings["speed"]);
     
     document.getElementById('boardType').value = userSettings["boardType"];
-    if(isBoardType(BoardType.CRIMZZON) || isBoardType(BoardType.ISAAC)) {
-        document.getElementById("deviceType").disabled = true;
-    }
+    const isSSR1PCB = isBoardType(BoardType.SSR1PCB);
+    document.getElementById("deviceType").disabled = isBoardType(BoardType.CRIMZZON) || isBoardType(BoardType.ISAAC) || isSSR1PCB;
+    document.getElementById("BLDC_Encoder").disabled = isSSR1PCB;
 
 	document.getElementById("msPerRad").value = userSettings["msPerRad"];
 	
@@ -1648,9 +1653,12 @@ function setupEncoderTypes() {
 }
 function setBoardType() {
     var element = document.getElementById('boardType');
-    var newBoardType = element.value;
-    if(confirm("This will reset the current pinout to default and restart the device. Continue?")) {
-        postBoardType(newBoardType);
+    if(confirm("This will reset the current pinout to default and you will need to restart the device. Continue?")) {
+        userSettings["boardType"] = parseInt(element.value);
+        const isSSR1PCB = isBoardType(BoardType.SSR1PCB);
+        document.getElementById("deviceType").disabled = isBoardType(BoardType.CRIMZZON) || isBoardType(BoardType.ISAAC) || isSSR1PCB;
+        document.getElementById("BLDC_Encoder").disabled = isSSR1PCB;
+        postBoardType(userSettings["boardType"]);
     } else {
         element.value = userSettings["boardType"];
     }

@@ -543,3 +543,35 @@ public:
 protected: 
     PinMapSR6MB(DeviceType deviceType, BoardType boardType) : PinMapSR6(deviceType, boardType) {}
 };
+
+
+class PinMapSSR1PCB : public PinMapSSR1 {
+    public:
+        static PinMapSSR1PCB* getInstance()
+        {
+            static PinMapSSR1PCB instance(DeviceType::SSR1, BoardType::SSR1PCB);
+            return &instance;
+        }
+        void overideDefaults() override {
+            setEnable(4);
+            setPwmChannel1(2);
+            setPwmChannel2(16);
+            setPwmChannel3(17);
+            setHallEffect(14);
+
+            setValve(-1);
+            setTwist(-1);
+            setSqueeze(-1);
+            setVibe0(-1);
+            setVibe1(-1);
+            setVibe2(-1);
+            setVibe3(-1);
+            setSleeveTemp(-1);
+            setInternalTemp(-1);
+            setCaseFan(-1);
+            setHeater(-1);
+            setTwistFeedBack(-1);
+        }
+    protected: 
+        PinMapSSR1PCB(DeviceType deviceType, BoardType boardType) : PinMapSSR1(deviceType, boardType) {}
+};

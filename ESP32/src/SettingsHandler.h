@@ -393,14 +393,20 @@ public:
         JsonArray boardTypes = doc["boardTypes"].to<JsonArray>();
 #if CONFIG_IDF_TARGET_ESP32
         JsonObject devkit = boardTypes.add<JsonObject>();
-        devkit["name"] = "Devkit/NexusPRO";
+        devkit["name"] = "Devkit";
         devkit["value"] = (uint8_t)BoardType::DEVKIT;
+    #if MOTOR_TYPE == 0
         JsonObject SR6MB = boardTypes.add<JsonObject>();
         SR6MB["name"] = "SR6MB";
         SR6MB["value"] = (uint8_t)BoardType::CRIMZZON;
         JsonObject INControl = boardTypes.add<JsonObject>();
         INControl["name"] = "IN-Control";
         INControl["value"] = (uint8_t)BoardType::ISAAC;
+    #elif MOTOR_TYPE == 1
+        JsonObject SSR1PCB = boardTypes.add<JsonObject>();
+        SSR1PCB["name"] = "SSR1PCB";
+        SSR1PCB["value"] = (uint8_t)BoardType::SSR1PCB;
+    #endif
 #elif CONFIG_IDF_TARGET_ESP32S3
     #ifdef S3_ZERO
         JsonObject S3_Zero = boardTypes.add<JsonObject>();

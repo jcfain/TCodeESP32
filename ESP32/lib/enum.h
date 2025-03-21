@@ -42,7 +42,8 @@ enum class BoardType: int
     ZERO,
     N8R8,
     CRIMZZON,
-    ISAAC
+    ISAAC,
+    SSR1PCB
 };
 
 enum class MotorType: int

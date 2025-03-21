@@ -762,33 +762,6 @@ void setup()
 	bool analogTwist;
 	bool bootButtonEnabled;
 	bool buttonSetsEnabled;
-#if MOTOR_TYPE == 0
-
-#elif MOTOR_TYPE == 1
-	bool BLDC_UseHallSensor;
-
-#warning validate
-	double BLDC_MotorA_Voltage;
-	double BLDC_MotorA_Supply;
-	double BLDC_MotorA_Current;
-	bool BLDC_MotorA_ParametersKnown;
-	double BLDC_MotorA_ZeroElecAngle;
-	int BLDC_Pulley_Circumference;
-	int BLDC_StrokeLength;
-	int BLDC_RailLength;
-	BLDCEncoderType BLDC_EncoderType;
-
-	settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, BLDC_MotorA_Voltage);
-	settingsFactory->getValue(BLDC_MOTORA_SUPPLY, BLDC_MotorA_Supply);
-	settingsFactory->getValue(BLDC_MOTORA_CURRENT, BLDC_MotorA_Current);
-	settingsFactory->getValue(BLDC_MOTORA_PARAMETERSKNOWN, BLDC_MotorA_ParametersKnown);
-	settingsFactory->getValue(BLDC_MOTORA_ZEROELECANGLE, BLDC_MotorA_ZeroElecAngle);
-	settingsFactory->getValue(BLDC_PULLEY_CIRCUMFERENCE, BLDC_Pulley_Circumference);
-	settingsFactory->getValue(BLDC_STROKELENGTH, BLDC_StrokeLength);
-	settingsFactory->getValue(BLDC_RAILLENGTH, BLDC_RailLength);
-	settingsFactory->getValue(BLDC_ENCODER, BLDC_EncoderType);
-#endif
-
 
 	settingsFactory->getValue(MS_PER_RAD, msPerRad);
 	settingsFactory->getValue(FEEDBACK_TWIST, feedbackTwist);

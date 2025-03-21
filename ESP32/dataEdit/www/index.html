@@ -190,6 +190,22 @@
 								<select name="TCodeVersion" id="TCodeVersion" onchange="setTCodeVersion()"> </select>
 							</div>
 						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span title="Choose the board you have">Board type</span> 
+							</div>
+							<div class="tCell">
+								<select name="boardType" id="boardType" onchange="setBoardType()"> </select>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span title="Select the device this is installed on">Device type</span> 
+							</div>
+							<div class="tCell">
+								<select name="deviceType" id="deviceType" onchange="setDeviceType()"> </select>
+							</div>
+						</div>
 
 						<!---------------------------------- BLDC -------------------------------------------------->
 
@@ -222,7 +238,7 @@
 								<span>Supply Voltage</span>
 							</div>
 							<div class="tCell">
-								<input id="BLDC_MotorA_Supply" type="number" min="0.0" max="2147483647" step="0.01"
+								<input id="BLDC_MotorA_SupplyVoltage" type="number" min="0.0" max="2147483647" step="0.01"
 									oninput="updateBLDCSettings()">
 							</div>
 						</div>
@@ -231,7 +247,7 @@
 								<span>Voltage Limit</span> 
 							</div>
 							<div class="tCell">
-								<input id="BLDC_MotorA_Voltage" type="number" min="0.0" max="2147483647" step="0.01" oninput="updateBLDCSettings()">
+								<input id="BLDC_MotorA_VoltageLimit" type="number" min="0.0" max="2147483647" step="0.01" oninput="updateBLDCSettings()">
 							</div>
 						</div>
 						<div class="tRow BLDCOnly hidden">
@@ -333,32 +349,6 @@
 
 						<!--------------------------------------- END BLDC ----------------------------------------------------->
 
-
-						<div class="tRow servoOnly hidden">
-							<div class="tCell">
-								<span title="Choose the board you have">Board type</span> 
-							</div>
-							<div class="tCell">
-								<select name="boardType" id="boardType" onchange="setBoardType()"> </select>
-							</div>
-						</div>
-
-						<!-- <div class="tRow servoOnly hidden">
-							<div class="tCell">
-								<span title="Uncheck this if you are building an OSR">SR6 mode</span> 
-							</div>
-							<div class="tCell">
-								<input id="sr6Mode" type="checkbox" onclick="setSR6Mode()"></input>
-							</div>
-						</div> -->
-						<div class="tRow">
-							<div class="tCell">
-								<span title="Select the device this is installed on">Device type</span> 
-							</div>
-							<div class="tCell">
-								<select name="deviceType" id="deviceType" onchange="setDeviceType()"> </select>
-							</div>
-						</div>
 						<div class="tRow sr6Only servoOnly hidden">
 							<div class="tCell">
 								<span>Set (&#181;) for 270 degree servos</span> 

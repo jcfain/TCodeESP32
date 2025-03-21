@@ -168,6 +168,9 @@ class WebHandler : public HTTPBase {
                 int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
                 if(boardType == (int)BoardType::CRIMZZON || boardType == (int)BoardType::ISAAC) {
                     m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SR6);
+                } else if(boardType == (int)BoardType::SSR1PCB) {
+                    m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SSR1);
+                    m_settingsFactory->setValue(BLDC_ENCODER, BLDCEncoderType::MT6701);
                 }
                 Serial.println("Settings pinout default");
                 m_settingsFactory->setValue(BOARD_TYPE_SETTING, boardType);

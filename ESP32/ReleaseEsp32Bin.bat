@@ -96,7 +96,7 @@ if %ERRORLEVEL% NEQ 0  (
 )
 REM ESP32
 If %MODULE_TYPE%==0 (
-	%ESPTOOLDIR%esptool.exe --chip esp32 merge_bin -o "%OUTDIR%\release.bin" --flash_mode dio --flash_freq 40m --flash_size 4MB 0x0000 %BUILD_DIR%\bootloader.bin 0x8000 %BUILD_DIR%\partitions.bin 0xe000 "%userprofile%\.platformio\packages\%esp32ArduinoCoredir%\tools\partitions\boot_app0.bin" 0x10000 %BUILD_DIR%\firmware.bin 0x310000 %BUILD_DIR%\littlefs.bin
+	%ESPTOOLDIR%esptool.exe --chip esp32 merge_bin -o "%OUTDIR%\release.bin" --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 %BUILD_DIR%\bootloader.bin 0x8000 %BUILD_DIR%\partitions.bin 0xe000 "%userprofile%\.platformio\packages\%esp32ArduinoCoredir%\tools\partitions\boot_app0.bin" 0x10000 %BUILD_DIR%\firmware.bin 0x310000 %BUILD_DIR%\littlefs.bin
 )
 REM S3 ZERO
 If %MODULE_TYPE%==1 (

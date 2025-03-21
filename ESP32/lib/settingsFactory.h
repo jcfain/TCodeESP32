@@ -1133,6 +1133,15 @@ private:
                 return saveToDisk(m_pinsFileInfo);
             }
             break;
+            case BoardType::SSR1PCB: {
+                PinMapSSR1PCB* pinMap = PinMapSSR1PCB::getInstance();
+                pinMap->overideDefaults();
+                m_pinsFileInfo.initialized = true;
+                syncSSR1AndCommonPinsToDisk(pinMap);
+                loadDefaultChannelsForDeviceType();
+                return saveToDisk(m_pinsFileInfo);
+            }
+            break;
             default: {
                 bool ret = loadDefault(m_pinsFileInfo);
                 m_pinsFileInfo.initialized = true;
