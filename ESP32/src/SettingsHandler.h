@@ -407,6 +407,9 @@ public:
         SSR1PCB["name"] = "SSR1PCB";
         SSR1PCB["value"] = (uint8_t)BoardType::SSR1PCB;
     #endif
+        JsonObject SR6PCB = boardTypes.add<JsonObject>();
+        SR6PCB["name"] = "SR6PCB";
+        SR6PCB["value"] = (uint8_t)BoardType::SR6PCB;
 #elif CONFIG_IDF_TARGET_ESP32S3
     #ifdef S3_ZERO
         JsonObject S3_Zero = boardTypes.add<JsonObject>();
@@ -1986,6 +1989,11 @@ private:
 #if COEXIST
         LogHandler::debug("setBuildFeatures", "COEXIST");
         buildFeatures[index] = BuildFeature::COEXIST_FEATURE;
+        index++;
+#endif
+#if BUILD_POWER
+        LogHandler::debug("setBuildFeatures", "BUILD_POWER");
+        buildFeatures[index] = BuildFeature::POWER;
         index++;
 #endif
         buildFeatures[(int)BuildFeature::MAX_FEATURES - 1] = {};

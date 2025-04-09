@@ -62,6 +62,7 @@ enum class SettingProfile
     ChannelRanges,
     Vib,
     Disabled,
+    Power,
     MAX
 };
 

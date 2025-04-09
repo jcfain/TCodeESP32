@@ -166,7 +166,7 @@ class WebHandler : public HTTPBase {
             {
                 auto boardTypeString = request->pathArg(0);
                 int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
-                if(boardType == (int)BoardType::CRIMZZON || boardType == (int)BoardType::ISAAC) {
+                if(boardType == (int)BoardType::CRIMZZON || boardType == (int)BoardType::ISAAC || boardType == (int)BoardType::SR6PCB) {
                     m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SR6);
                 } else if(boardType == (int)BoardType::SSR1PCB) {
                     m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SSR1);

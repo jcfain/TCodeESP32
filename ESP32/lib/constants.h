@@ -20,6 +20,9 @@
 #elif CONFIG_IDF_TARGET_ESP32
 #define MODULE_CURRENT ModuleType::WROOM32
 #endif
+#define MAX_PD_CFG_PINS 3
+// 4096 = 0-20v / 6.66f
+#define VOLTAGE_INPUT_GAIN(v) (((float)v * 6.66f) / 4096f)
 
 
 // Other functions

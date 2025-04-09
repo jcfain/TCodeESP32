@@ -132,6 +132,9 @@ public:
     double getInternalTempForFanOn() const { return internalTempForFanOn; }
     bool getVibTimeoutEnabled() const { return vibTimeoutEnabled; }
     int getVibTimeout() const { return vibTimeout; }
+    float getServoVoltage() const { return servoVoltage; }
+    bool getServoVoltageEn() const { return servoVoltageEn; }
+    int getPDLevel() const { return pdLevel; }
 
     void setMessageCallback(SETTING_STATE_FUNCTION_PTR_T f)
     {
@@ -654,6 +657,18 @@ public:
             getValue(BATTERY_CAPACITY_MAX, batteryCapacityMax);
             if(targeted) {initCommonMessages(name); return;}
         }
+        if(!name || !strcmp(name, SERVO_VOLTAGE_EN)) {
+            getValue(SERVO_VOLTAGE_EN, servoVoltageEn);
+            if(targeted) {initCommonMessages(name); return;}
+        }
+        if(!name || !strcmp(name, SERVO_VOLTAGE)) {
+            getValue(SERVO_VOLTAGE, servoVoltage);
+            if (targeted) {initCommonMessages(name); return;}
+        }
+        if (!name || !strcmp(name, PD_VOLTAGE)) {
+            getValue(PD_VOLTAGE, pdLevel);
+            if (targeted) {initCommonMessages(name); return; }
+        }
         if(!name || !strcmp(name, RIGHT_SERVO_ZERO)) {
             getValue(RIGHT_SERVO_ZERO, RightServo_ZERO);
             if(targeted) {initCommonMessages(name); return;}
@@ -884,7 +899,10 @@ private:
             {BOOT_BUTTON_ENABLED, "Boot button enabled", "Enables the boot button function", SettingType::Boolean, BOOT_BUTTON_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Button}},
             {BOOT_BUTTON_COMMAND, "Boot button command", "Command to execute when the boot button is pressed", SettingType::String, BOOT_BUTTON_COMMAND_DEFAULT, RestartRequired::NO, {SettingProfile::Button}},
             {BUTTON_SETS_ENABLED, "Button sets enabled", "Enables the button sets function", SettingType::Boolean, BUTTON_SETS_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Button}},
-            {BUTTON_ANALOG_DEBOUNCE, "Button debounce", "How long to debounce the button press in ms", SettingType::Number, BUTTON_ANALOG_DEBOUNCE_DEFAULT, RestartRequired::NO, {SettingProfile::Button}}
+            {BUTTON_ANALOG_DEBOUNCE, "Button debounce", "How long to debounce the button press in ms", SettingType::Number, BUTTON_ANALOG_DEBOUNCE_DEFAULT, RestartRequired::NO, {SettingProfile::Button}},
+            {PD_VOLTAGE, "PD Voltage config", "Voltage requested from USB PD", SettingType::Number, PD_VOLTAGE_DEFAULT, RestartRequired::NO, {SettingProfile::Power}},
+            {SERVO_VOLTAGE, "Servo Regulator Voltage", "Servo Voltage regulated from Input Voltage", SettingType::Float, SERVO_VOLTAGE_DEFAULT, RestartRequired::NO, {SettingProfile::Power}},
+            {SERVO_VOLTAGE_EN, "Servo Regulator Enable", "Servo Voltage regulator enable", SettingType::Boolean, SERVO_VOLTAGE_EN_DEFAULT, RestartRequired::NO, {SettingProfile::Power}},
         }
     };
 
@@ -932,6 +950,13 @@ private:
             {I2C_SDA_PIN, "I2C SDA PIN", "Pin of the I2C SDA", SettingType::Number, I2C_SDA_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::System, SettingProfile::Pin}},
             {I2C_SCL_PIN, "I2C SCL PIN", "Pin of the I2C SCL", SettingType::Number, I2C_SCL_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::System, SettingProfile::Pin}},
             {BUTTON_SET_PINS, "Button set pins", "Pins for each button set. (Max 4)", SettingType::ArrayInt, BUTTON_SET_PINS_DEFAULT, RestartRequired::YES, {SettingProfile::Pin, SettingProfile::Analog}},
+            {PD_CFG1_PIN, "PD Config pins", "Pins for USB PD config. (1)", SettingType::Number, PD_CFG1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Pin, SettingProfile::Power}},
+            {PD_CFG2_PIN, "PD Config pins", "Pins for USB PD config. (2)", SettingType::Number, PD_CFG2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Pin, SettingProfile::Power}},
+            {PD_CFG3_PIN, "PD Config pins", "Pins for USB PD config. (3)", SettingType::Number, PD_CFG3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Pin, SettingProfile::Power}},
+            {SERVO_VOLTAGE_EN_PIN, "Servo Voltage En PIN", "Pin to control servo voltage regulator", SettingType::Number, SERVO_VOLTAGE_EN_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Power, SettingProfile::Pin}},
+            {SERVO_VOLTAGE_PIN, "Servo Voltage PIN", "Pin to read servo voltage regulator output", SettingType::Number, SERVO_VOLTAGE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Power, SettingProfile::Pin}},
+            {INPUT_VOLTAGE_PIN, "Input Voltage PIN", "Pin to read input voltage", SettingType::Number, INPUT_VOLTAGE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Power, SettingProfile::Pin}},
+
             // BLDC
             {BLDC_ENCODER_PIN, "Encoder PIN", "Pin the BLDC encoder is on", SettingType::Number, BLDC_ENCODER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_CHIPSELECT_PIN, "Chipselect PIN", "Pin the BLDC chip select is on", SettingType::Number, BLDC_CHIPSELECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
@@ -1010,6 +1035,9 @@ private:
     int8_t voiceWakeTime;
     int vibTimeout;
     bool vibTimeoutEnabled;
+    float servoVoltage;
+    bool servoVoltageEn;
+    int pdLevel;
 
     bool load(SettingFileInfo &fileInfo)
     {
@@ -1138,6 +1166,15 @@ private:
                 pinMap->overideDefaults();
                 m_pinsFileInfo.initialized = true;
                 syncSSR1AndCommonPinsToDisk(pinMap);
+                loadDefaultChannelsForDeviceType();
+                return saveToDisk(m_pinsFileInfo);
+            }
+            break;
+            case BoardType::SR6PCB: {
+                PinMapSR6PCB* pinMap = PinMapSR6PCB::getInstance();
+                pinMap->overideDefaults();
+                m_pinsFileInfo.initialized = true;
+                syncSR6AndCommonPinsToDisk(pinMap);
                 loadDefaultChannelsForDeviceType();
                 return saveToDisk(m_pinsFileInfo);
             }
@@ -1381,7 +1418,7 @@ private:
             fileInfo.doc.clear();
             fileInfo.doc.set(fromJson);
         }
-
+        serializeJsonPretty(fromJson, Serial);
         LogHandler::debug(m_TAG, "Doc overflowed: %u", fileInfo.doc.overflowed());
         //LogHandler::debug(m_TAG, "Doc memory: %u", fileInfo.doc.memoryUsage());
         //LogHandler::debug(m_TAG, "Doc capacity: %u", fileInfo.doc.capacity());
@@ -1529,6 +1566,18 @@ private:
         pinMap->setI2cSda(pin);
         getValue(I2C_SCL_PIN, pin);
         pinMap->setI2cScl(pin);
+        getValue(SERVO_VOLTAGE_EN_PIN, pin);
+        pinMap->setServoVoltageEnPin(pin);
+        getValue(SERVO_VOLTAGE_PIN, pin);
+        pinMap->setServoVoltagePin(pin);
+        getValue(INPUT_VOLTAGE_PIN, pin);
+        pinMap->setInputVoltagePin(pin);
+        getValue(PD_CFG1_PIN, pin);
+        pinMap->setPDCFGPin(pin, 0);
+        getValue(PD_CFG2_PIN, pin);
+        pinMap->setPDCFGPin(pin, 1);
+        getValue(PD_CFG3_PIN, pin);
+        pinMap->setPDCFGPin(pin, 2);
         std::vector<int> vec;
         getValueVector(BUTTON_SET_PINS, vec);
         for (size_t i = 0; i < vec.size(); i++)
@@ -1685,6 +1734,13 @@ private:
         setValue(TEMP_PIN, pinMap->sleeveTemp());
         setValue(I2C_SDA_PIN, pinMap->i2cSda());
         setValue(I2C_SCL_PIN, pinMap->i2cScl());
+        setValue(SERVO_VOLTAGE_EN_PIN, pinMap->servoVoltageEnPin());
+        setValue(SERVO_VOLTAGE_PIN, pinMap->servoVoltagePin());
+        setValue(INPUT_VOLTAGE_PIN, pinMap->inputVoltagePin());
+        setValue(PD_CFG1_PIN, pinMap->PDCFGPin(0));
+        setValue(PD_CFG2_PIN, pinMap->PDCFGPin(1));
+        setValue(PD_CFG3_PIN, pinMap->PDCFGPin(2));
+
 #if CONFIG_IDF_TARGET_ESP32
         setValue(ESP_H_TIMER0_FREQUENCY, pinMap->getTimerFrequency(0));
         setValue(ESP_H_TIMER1_FREQUENCY, pinMap->getTimerFrequency(1));
@@ -1881,6 +1937,7 @@ private:
         }
     }
     void defaultToJson(const Setting *setting, JsonDocument &doc) {
+        LogHandler::debug(m_TAG, "Default for '%s'", setting->name);
         switch(setting->type)
         {
             case SettingType::Boolean: {

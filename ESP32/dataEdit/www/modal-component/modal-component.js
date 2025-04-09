@@ -64,7 +64,7 @@ modalTemplate.innerHTML = `
         height: 30px;
         text-align: center;
     }
-    .modal-title {  
+    .modal-title {
         margin-left: 24px;
         text-align: center;
         min-width: max-content;
@@ -82,7 +82,7 @@ modalTemplate.innerHTML = `
         box-shadow: -1px 1px 5px 0 cornflowerblue,1px -1px 5px 0 lightblue,1px 1px 5px 0 lightblue,-1px -1px 5px 0 cornflowerblue;
         min-width: 40vw;
     }
-    
+
 @media only screen and (-webkit-min-device-pixel-ratio: 2.75) {
     .modal-container {
         min-width: 95vw;
@@ -124,11 +124,11 @@ class ModalComponent extends HTMLElement {
         super();
         const shadowRoot = this.attachShadow({mode: 'open'});
         shadowRoot.append(modalTemplate.content.cloneNode(true));
-        
+
         //this.classList.add('hidden');
     }
     isVisible = false
-    
+
     static get observedAttributes () {
         return ["visible"];
     }
@@ -141,7 +141,7 @@ class ModalComponent extends HTMLElement {
                 this.hide();
             }
         }
-    } 
+    }
     connectedCallback() {
         // browser calls this method when the element is added to the document
         // (can be called many times if an element is repeatedly added/removed)

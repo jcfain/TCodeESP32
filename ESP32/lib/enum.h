@@ -27,6 +27,7 @@ enum class BuildFeature: int
     TEMP,
     HTTPS,
     COEXIST_FEATURE,
+    POWER,
     MAX_FEATURES
 };
 
@@ -43,7 +44,8 @@ enum class BoardType: int
     N8R8,
     CRIMZZON,
     ISAAC,
-    SSR1PCB
+    SSR1PCB,
+    SR6PCB,
 };
 
 enum class MotorType: int

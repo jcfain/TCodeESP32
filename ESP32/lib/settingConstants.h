@@ -132,6 +132,10 @@
 #define BUTTON_SETS_ENABLED_DEFAULT false
 #define BUTTON_ANALOG_DEBOUNCE_DEFAULT 200
 
+#define PD_VOLTAGE_DEFAULT 0
+#define SERVO_VOLTAGE_DEFAULT 6.0f
+#define SERVO_VOLTAGE_EN_DEFAULT false
+
 #define MOTION_PROFILE_SELECTED_INDEX_DEFAULT 0
 
 #define DEVICE_TYPE "deviceType"
@@ -220,6 +224,10 @@
 #define VOICE_VOLUME "voiceVolume"
 #define LOG_INCLUDETAGS "log-include-tags"
 #define LOG_EXCLUDETAGS "log-exclude-tags"
+
+#define PD_VOLTAGE "PDVoltage"
+#define SERVO_VOLTAGE "servoVoltage"
+#define SERVO_VOLTAGE_EN "servoVoltageEn"
 
 #define BOOT_BUTTON_ENABLED "bootButtonEnabled"
 #define BOOT_BUTTON_COMMAND "bootButtonCommand"

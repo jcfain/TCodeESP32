@@ -65,11 +65,11 @@ function updateBLDCSettings() {
 }
 
 function updateBLDCPins() {
-    if(upDateTimeout !== null) 
+    if(upDateTimeout !== null)
     {
         clearTimeout(upDateTimeout);
     }
-    upDateTimeout = setTimeout(() => 
+    upDateTimeout = setTimeout(() =>
     {
         var pinValues = validateBLDCPins();
         if(pinValues) {
@@ -101,7 +101,7 @@ function getBLDCPinValues() {
 }
 
 function validateBLDCPins() {
-    clearErrors("pinValidation"); 
+    clearErrors("pinValidation");
     var assignedPins = [];
     var duplicatePins = [];
     var pwmErrors = [];
@@ -125,7 +125,7 @@ function validateBLDCPins() {
             }
         }
     }
-    else 
+    else
     {
         //assignedPins.push({name:"SPI1", pin:5});
         assignedPins.push({name:"SPI CLK", pin:18});
@@ -143,7 +143,7 @@ function validateBLDCPins() {
     // }
     validatePin(pinValues.BLDC_Encoder_PIN, "Encoder", assignedPins, duplicatePins);
 
-    
+
     // if(pinValues.BLDC_ChipSelect_PIN > -1) {
     //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_ChipSelect_PIN);
     //     if(pinDupeIndex > -1)
@@ -199,7 +199,7 @@ function validateBLDCPins() {
         // }
         validatePin(pinValues.BLDC_HallEffect_PIN, "HallEffect", assignedPins, duplicatePins);
     }
-    
+
     validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors);
 
     var invalidPins = [];
@@ -217,10 +217,10 @@ function validateBLDCPins() {
         if (pwmErrors.length) {
             if(duplicatePins.length || invalidPins.length) {
                 errorString += "<br>";
-            } 
+            }
             errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pwmErrors.join("<br>")+"</div></div>";
         }
-        
+
         errorString += "</div>";
         showError(errorString);
         return undefined;

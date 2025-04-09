@@ -50,10 +50,10 @@ body {
   visibility: visible;
 } */
 .hidden-transition {
-  /* -webkit-transition: max-height 0.25s; 
-  -moz-transition: max-height 0.25s; 
-  -ms-transition: max-height 0.25s; 
-  -o-transition: max-height 0.25s; 
+  /* -webkit-transition: max-height 0.25s;
+  -moz-transition: max-height 0.25s;
+  -ms-transition: max-height 0.25s;
+  -o-transition: max-height 0.25s;
   transition: max-height 0.25s;   */
   overflow: hidden;
   max-height: 0;
@@ -62,10 +62,10 @@ body {
   padding: 0 !important;
 }
 .hidden-transition * {
-  /* -webkit-transition: max-height 0.15s; 
-  -moz-transition: max-height 0.15s; 
-  -ms-transition: max-height 0.15s; 
-  -o-transition: max-height 0.15s; 
+  /* -webkit-transition: max-height 0.15s;
+  -moz-transition: max-height 0.15s;
+  -ms-transition: max-height 0.15s;
+  -o-transition: max-height 0.15s;
   transition: max-height 0.15s;   */
   overflow: hidden;
   max-height: 0;
@@ -173,7 +173,7 @@ button {
   width: 100%;
   border-radius: 5px;
 }
-button:hover:not(:disabled) {  
+button:hover:not(:disabled) {
   border-color: black;
   background-color: cadetblue;
   color: white;
@@ -263,8 +263,8 @@ button:disabled {
   display: flex;
   flex-direction: column;
   background-color: rgb(0, 0, 0);
-  border-collapse: separate; 
-  border-spacing: 0 5px; 
+  border-collapse: separate;
+  border-spacing: 0 5px;
   border: 1px solid black;
   box-shadow: -1px 1px 5px 0px cornflowerblue, 1px -1px 5px 0px lightblue, 1px 1px 5px 0px lightblue, -1px -1px 5px 0px cornflowerblue;
   border-radius: 10px;
@@ -283,7 +283,7 @@ button:disabled {
   padding: 0;
 }
 .tHeader {
-  display: flex; 
+  display: flex;
   justify-content: center;
 }
 .formTable .tRow {
@@ -360,11 +360,11 @@ button:disabled {
   border-right: 1px solid rgb(255, 255, 255);
 }
 .servoHeader > .tCell:first-child:not(.other) {
-  border-top-left-radius: 10px; 
+  border-top-left-radius: 10px;
   border-bottom-left-radius: 10px;
 }
 .servoHeader > .tCell:last-child:not(.other) {
-  border-top-right-radius: 10px; 
+  border-top-right-radius: 10px;
   border-bottom-right-radius: 10px;
 }
 .displaySettingsHeader {

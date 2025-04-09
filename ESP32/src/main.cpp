@@ -29,6 +29,7 @@ SOFTWARE. */
 #include "esp_log.h"
 #endif
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <EEPROM.h>
 
 #if PICO_BUILD
@@ -51,6 +52,10 @@ SOFTWARE. */
 #include "SystemCommandHandler.h"
 #if WIFI_TCODE
 #include "WifiHandler.h"
+#endif
+
+#if BUILD_POWER
+#include "PowerHandler.h"
 #endif
 
 #if BUILD_TEMP
@@ -102,7 +107,9 @@ SOFTWARE. */
 
 #include "BatteryHandler.h"
 #include "MotionHandler.hpp"
+#if BUILD_VOICE
 #include "VoiceHandler.hpp"
+#endif
 #include "ButtonHandler.hpp"
 
 TickType_t pxPreviousWakeTime = millis();
@@ -116,9 +123,11 @@ TaskHandle_t batteryTask;
 TaskHandle_t httpsTask;
 
 MotionHandler motionHandler;
+#if BUILD_VOICE
 VoiceHandler *voiceHandler;
-ButtonHandler *buttonHandler = 0;
 TaskHandle_t voiceTask;
+#endif
+ButtonHandler *buttonHandler = 0;
 #if BLUETOOTH_TCODE
 BluetoothHandler *btHandler = 0;
 #endif
@@ -146,9 +155,16 @@ TaskHandle_t displayTask;
 // 	TaskHandle_t animationTask;
 // #endif
 #endif
+
 #if BUILD_TEMP
 TaskHandle_t temperatureTask;
 #endif
+
+#if BUILD_POWER
+PowerHandler *powerHandler;
+TaskHandle_t powerTask;
+#endif
+
 // This has issues running with the webserver.
 // OTAHandler otaHandler;
 bool setupSucceeded = false;
@@ -327,6 +343,29 @@ void tempStateChangeCallBack(TemperatureType type, const char *state)
 }
 #endif
 #if WIFI_TCODE
+
+void registerWebSocketCommands(WebSocketBase* ws)
+{
+	ws->setHandler("setBatteryFull", [](JsonObject& _){BatteryHandler::setBatteryToFull();});
+#if BUILD_POWER
+	ws->setHandler("setPDLevel", [powerHandler](JsonObject& msg) {
+		int level = msg["message"].as<int>();
+		if (level < PowerHandler::PDLevels::MAX)
+		{
+			powerHandler->setPDLevel((PowerHandler::PDLevels)level);
+		}
+	});
+	ws->setHandler("setServoVoltage", [powerHandler](JsonObject& msg) {
+		float voltage = msg["message"].as<float>();
+		powerHandler->setServoVoltage(voltage);
+	});
+	ws->setHandler("enableServoVoltage", [powerHandler](JsonObject& msg) {
+		bool enable = msg["message"].as<bool>();
+		powerHandler->enableServoVoltage(enable);
+	});
+#endif
+}
+
 void startNetworking(const bool &apMode, const int &port, const int &udpPort, const char *hostname, const char *friendlyName)
 {
 	if((MODULE_CURRENT != ModuleType::WROOM32 || (!bluetoothEnabled && !bleEnabled)) && !webHandler) 
@@ -342,7 +381,7 @@ void startNetworking(const bool &apMode, const int &port, const int &udpPort, co
 		auto httpsStatus = xTaskCreateUniversal(
 			HTTPSHandler::startLoop, /* Function to implement the task */
 			"HTTPSTask",			 /* Name of the task */
-			8192 * 3,				 /* Stack size in words */
+			8192 * 4,				 /* Stack size in words */
 			webHandler,				 /* Task input parameter */
 			3,						 /* Priority of the task */
 			&httpsTask,				 /* Task handle. */
@@ -353,6 +392,7 @@ void startNetworking(const bool &apMode, const int &port, const int &udpPort, co
 		}
 	#endif
 		webHandler->setup(port, webSocketHandler, apMode);
+		registerWebSocketCommands(webSocketHandler);
     	LogHandler::debug(TagHandler::Main, "Web DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 	} else {
 		displayPrint("WebServer disabled");
@@ -510,6 +550,24 @@ void batteryVoltageCallback(float capacityRemainingPercentage, float capacityRem
 #endif
 }
 
+void powerCallback(float servo_voltage, float input_voltage)
+{
+#if BUILD_DISPLAY
+#endif
+#if WIFI_TCODE
+	if(webSocketHandler)
+	{
+		JsonDocument j;
+		j["servoVoltage"] = servo_voltage;
+		j["inputVoltage"] = input_voltage;
+
+		String buffer;
+		serializeJson(j, buffer);
+		webSocketHandler->sendCommand("powerStatus", buffer.c_str());
+	}
+#endif
+}
+
 void settingChangeCallback(const SettingProfile &profile, const char *settingThatChanged)
 {
 	LogHandler::verbose(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
@@ -573,6 +631,7 @@ void settingChangeCallback(const SettingProfile &profile, const char *settingTha
 		// else if(strcmp(settingThatChanged, "motionRandomChangeMax") == 0)
 		// 	motionHandler.setMotionRandomChangeMax(SettingsHandler::getGetMotionRandomChangeMax()());
 	}
+	#if BUILD_VOICE
 	else if (voiceHandler && profile == SettingProfile::Voice)
 	{
 		if (strcmp(settingThatChanged, "voiceMuted") == 0)
@@ -588,6 +647,7 @@ void settingChangeCallback(const SettingProfile &profile, const char *settingTha
 			voiceHandler->setWakeTime(settingsFactory->getVoiceWakeTime());
 		}
 	}
+	#endif
 	else if (buttonHandler && profile == SettingProfile::Button)
 	{
 		if (strcmp(settingThatChanged, "bootButtonCommand") == 0)
@@ -647,6 +707,7 @@ void loadI2CModules(bool displayEnabled, bool batteryEnabled, bool voiceEnabled)
 			batteryHandler->setMessageCallback(batteryVoltageCallback);
 		}
 	}
+#if BUILD_VOICE
 	if (voiceEnabled)
 	{
 		voiceHandler = new VoiceHandler();
@@ -668,6 +729,7 @@ void loadI2CModules(bool displayEnabled, bool batteryEnabled, bool voiceEnabled)
 			}
 		}
 	}
+#endif
 }
 void setup()
 {
@@ -681,7 +743,6 @@ void setup()
 	Serial.begin(115200);
     Serial.printf("Startup DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
-	LogHandler::setLogLevel(LogLevel::INFO);
 	LogHandler::setMessageCallback(logCallBack);
 
 	Serial.println();
@@ -697,16 +758,6 @@ void setup()
 	LogHandler::info(TagHandler::Main, "This chip has %d cores", ESP.getChipCores());
 	LogHandler::info(TagHandler::Main, "Chip ID: %u", chipId);
 	Serial.println();
-
-	// Pinhacks for SR6PCB, remove
-	pinMode(13, OUTPUT); // PSU EN
-	pinMode(12, OUTPUT); // PDCFG1
-	pinMode(14, OUTPUT); // PDCFG2
-	pinMode(27, OUTPUT); // PDCFG3
-	digitalWrite(13, HIGH); // Enable regualtor
-	digitalWrite(12, LOW); // Request 20V
-	digitalWrite(14, HIGH); // Request 20V
-	digitalWrite(27, LOW); // Request 20V
 
 	// esp_log_level_set("*", ESP_LOG_VERBOSE);
 	// LogHandler::debug("main", "this is verbose");
@@ -739,6 +790,26 @@ void setup()
 	SettingsHandler::init();
 	SettingsHandler::setMessageCallback(settingChangeCallback);
     LogHandler::debug(TagHandler::Main, "Settings handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+
+#if BUILD_POWER
+	powerHandler = new PowerHandler();
+	powerHandler->setup();
+	LogHandler::debug(TagHandler::Main, "Start Power task");
+	auto powerStatus = xTaskCreatePinnedToCore(
+		PowerHandler::startLoop,	  /* Function to implement the task */
+		"PowerTask",				  /* Name of the task */
+		configMINIMAL_STACK_SIZE * 3, /* Stack size in words used to be 5000 */
+		powerHandler,				  /* Task input parameter */
+		1,							  /* Priority of the task */
+		&powerTask,				  /* Task handle. */
+		APP_CPU_NUM);				  /* Core where the task should run */
+	if (powerStatus != pdPASS)
+	{
+		LogHandler::error(TagHandler::Main, "Could not start power task.");
+	}
+	powerHandler->setMessageCallback(powerCallback);
+	LogHandler::debug(TagHandler::Main, "Power DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+#endif
 
 #if BLE_TCODE
 	settingsFactory->getValue(BLE_ENABLED, bleEnabled);
@@ -867,7 +938,7 @@ void setup()
 		auto tempStartStatus = xTaskCreatePinnedToCore(
 			TemperatureHandler::startLoop, /* Function to implement the task */
 			"TempTask",					   /* Name of the task */
-			static_cast<uint16_t>(configMINIMAL_STACK_SIZE * 2.5),  /* Stack size in words used to be 5000 */
+			static_cast<uint16_t>(configMINIMAL_STACK_SIZE * 3),  /* Stack size in words used to be 5000 */
 			temperatureHandler,			   /* Task input parameter */
 			1,							   /* Priority of the task */
 			&temperatureTask,			   /* Task handle. */

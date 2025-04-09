@@ -42,6 +42,12 @@
 #define TEMP_PIN "Temp_PIN"
 #define TWIST_FEEDBACK_PIN "TwistFeedBack_PIN"
 #define BUTTON_SET_PINS "Button_Set_PIN"
+#define PD_CFG1_PIN "PD_CFG1_PIN"
+#define PD_CFG2_PIN "PD_CFG2_PIN"
+#define PD_CFG3_PIN "PD_CFG3_PIN"
+#define SERVO_VOLTAGE_EN_PIN "ServoVoltageEn_PIN"
+#define SERVO_VOLTAGE_PIN "ServoVoltage_PIN"
+#define INPUT_VOLTAGE_PIN "InputVoltage_PIN"
 
 // OSR
 #define RIGHT_SERVO_PIN "RightServo_PIN"
@@ -176,6 +182,31 @@ public:
             return;
         }
         m_buttonSetPins[index] = pin; 
+    }
+
+    int8_t PDCFGPin(int8_t index) const { return m_pdConfigPins[index]; }
+    void setPDCFGPin(const int8_t pin, int8_t index) {
+        if (index >= MAX_PD_CFG_PINS)
+        {
+            LogHandler::error("Pin_map", "Invaild index for PD Config %d", index);
+            return;
+        }
+        m_pdConfigPins[index] = pin;
+    }
+
+    int8_t servoVoltageEnPin() const { return m_servoVoltageEn; }
+    void setServoVoltageEnPin(const int8_t &servoVoltageEn) {
+        m_servoVoltageEn = servoVoltageEn;
+    }
+
+    int8_t servoVoltagePin() const { return m_servoVoltage; }
+    void setServoVoltagePin(const int8_t &servoVoltage) {
+        m_servoVoltage = servoVoltage;
+    }
+
+    int8_t inputVoltagePin() const { return m_inputVoltage; }
+    void setInputVoltagePin(const int8_t &inputVoltage) {
+        m_inputVoltage = inputVoltage;
     }
 
     int8_t i2cSda() const { return m_i2cSda; }
@@ -324,6 +355,10 @@ private:
     int8_t m_i2cSda = I2C_SDA_PIN_DEFAULT;
     int8_t m_i2cScl = I2C_SCL_PIN_DEFAULT;
     int8_t m_buttonSetPins[MAX_BUTTON_SETS] = BUTTON_SET_PINS_DEFAULT;
+    int8_t m_pdConfigPins[MAX_PD_CFG_PINS] = { PD_CFG1_PIN_DEFAULT, PD_CFG2_PIN_DEFAULT, PD_CFG3_PIN_DEFAULT };
+    int8_t m_servoVoltageEn = SERVO_VOLTAGE_EN_PIN_DEFAULT;
+    int8_t m_servoVoltage = SERVO_VOLTAGE_PIN_DEFAULT;
+    int8_t m_inputVoltage = INPUT_VOLTAGE_PIN_DEFAULT;
 
     virtual void overideDefaults() =0;
 
@@ -544,6 +579,42 @@ protected:
     PinMapSR6MB(DeviceType deviceType, BoardType boardType) : PinMapSR6(deviceType, boardType) {}
 };
 
+class PinMapSR6PCB : public PinMapSR6 {
+protected:
+    PinMapSR6PCB(DeviceType deviceType, BoardType boardType) : PinMapSR6(deviceType, boardType) {}
+public:
+    static PinMapSR6PCB* getInstance()
+    {
+        static PinMapSR6PCB instance(DeviceType::SR6, BoardType::SR6PCB);
+        return &instance;
+    }
+
+    void overideDefaults() override {
+
+        setPDCFGPin(27,0);
+        setPDCFGPin(14,1);
+        setPDCFGPin(12,2);
+        setServoVoltageEnPin(13);
+        setServoVoltagePin(36);
+        setInputVoltagePin(39);
+        setVibe1(25); // Brushless drive 1
+        setVibe0(33); // Brushless drive 2
+        setRightServo(23);
+        setLeftServo(19);
+        setRightUpperServo(18);
+        setLeftUpperServo(5);
+        setPitchLeft(17);
+        setPitchRight(16);
+        setValve(2);
+        setTwist(15);
+        // Common motor
+        setSqueeze(26);
+        setLubeButton(32);
+        setInternalTemp(34);
+        setSleeveTemp(35);
+        setCaseFan(-1);
+    }
+};
 
 class PinMapSSR1PCB : public PinMapSSR1 {
     public:

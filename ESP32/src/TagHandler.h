@@ -53,6 +53,7 @@ class TagHandler {
     static const char* ButtonHandler;
     static const char* MdnsHandler;
     static const char* SettingsFactory;
+    static const char* PowerHandler;
 
     static const std::vector<const char *> AvailableTags;
     static bool HasTag(const char*);
@@ -86,6 +87,7 @@ const char* TagHandler::VoiceHandler = "voice-handler";
 const char* TagHandler::ButtonHandler = "button-handler";
 const char* TagHandler::MdnsHandler = "mdns-handler";
 const char* TagHandler::SettingsFactory = "settings-factory";
+const char* TagHandler::PowerHandler = "power-handler";
 
 
 const std::vector<const char *> TagHandler::AvailableTags = {
@@ -122,7 +124,8 @@ const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::VoiceHandler,
     TagHandler::ButtonHandler,
     TagHandler::MdnsHandler,
-    TagHandler::SettingsFactory
+    TagHandler::SettingsFactory,
+    TagHandler::PowerHandler,
 
 };
 

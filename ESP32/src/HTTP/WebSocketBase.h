@@ -2,8 +2,19 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <functional>
+#include <cstring>
 // #include "LogHandler.h"
 #include "BatteryHandler.h"
+
+typedef std::function<void(JsonObject& json)> WebSocketCommandHandler;
+
+struct CompareString
+{
+    bool operator()(char const* a, char const *b) const {
+        return std::strcmp(a, b) < 0;
+    }
+};
 
 class WebSocketBase {
     public:
@@ -33,8 +44,14 @@ class WebSocketBase {
         }
     }
 
+    void setHandler(const char* command, WebSocketCommandHandler handler)
+    {
+        command_handlers.insert_or_assign(command, handler);
+    }
+
 protected:
     bool isInitialized = false;
+    std::map<const char*, WebSocketCommandHandler, CompareString> command_handlers;
     QueueHandle_t tCodeInQueue;
     std::mutex command_mtx;
 
@@ -52,6 +69,9 @@ protected:
         else
             sprintf(buf, "{ \"command\": \"%s\" , \"message\": \"%s\" }", command, message);
     }
+
+
+
     void processWebSocketTextMessage(const char* msg) 
     {
         if(strpbrk(msg, "{") == nullptr)  
@@ -89,10 +109,12 @@ protected:
 
             if(!jsonObj["command"].isNull()) 
             {
+
                 String command = jsonObj["command"].as<String>();
-                String message = jsonObj["message"].as<String>();
-                if(command == "setBatteryFull") {
-                    BatteryHandler::setBatteryToFull();
+                auto handler = command_handlers.find(command.c_str());
+                if (handler != command_handlers.end())
+                {
+                    (handler->second)(jsonObj);
                 }
                 // String* message = jsonObj["message"];
                 // Serial.print("Recieved websocket tcode message: ");
