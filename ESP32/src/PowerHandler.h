@@ -81,6 +81,7 @@ public:
     // PD CFG pins
     void setPDLevel(PDLevels level)
     {
+        LogHandler::debug(_TAG, "Setting PDLevel to %d", level);
         switch(level) {
             case PD5V:
                 writePDMatrix(1,0,0);
@@ -126,7 +127,7 @@ public:
 
     void enableServoVoltage(bool en)
     {
-        LogHandler::debug("Setting servo enabled %s", en ? "true" : "false");
+        LogHandler::debug(_TAG, "Setting servo enabled %s", en ? "true" : "false");
         if (m_pinmap)
         {
             int8_t pin = m_pinmap->servoVoltageEnPin();
@@ -150,9 +151,7 @@ public:
             if (pin > 0)
             {
                 float raw_value = (float)analogRead(pin);
-                LogHandler::verbose(_TAG, "ADC Servo Voltage %f", raw_value);
-                voltage = PowerHandler::DIVIDER_COEFF * (raw_value * 3.3f) / (4096.0f);
-                LogHandler::verbose(_TAG, "Calculated Servo Voltage %f", voltage);
+                voltage = translateADCVoltage(raw_value);
             }
         }
         return voltage;
@@ -167,9 +166,7 @@ public:
             if (pin > 0)
             {
                 float raw_value = (float)analogRead(pin);
-                LogHandler::verbose(_TAG, "ADC Input Voltage %f", raw_value);
-                voltage = PowerHandler::DIVIDER_COEFF * (raw_value * 3.3f) / (4096.0f);
-                LogHandler::verbose(_TAG, "Calculated Input Voltage %f", voltage);
+                voltage = translateADCVoltage(raw_value);
             }
         }
         return voltage;
@@ -226,11 +223,11 @@ public:
         SettingsFactory* settingsFactory = SettingsFactory::getInstance();
         m_pinmap = settingsFactory->getPins();
         initPowerPins();
+        _isSetup = true;
         setPDLevel((PowerHandler::PDLevels)settingsFactory->getPDLevel());
         enableServoVoltage(settingsFactory->getServoVoltageEn());
         setServoVoltage(settingsFactory->getServoVoltage());
         LogHandler::debug(_TAG, "Complete");
-        _isSetup = true;
         return true;
     }
 
@@ -262,7 +259,7 @@ public:
     }
 
 private:
-    const float DIVIDER_COEFF = 7.69f;
+    const float DIVIDER_COEFF = 7.7f;
     static const char* _TAG;
 	POWER_STATE_FUNCTION_PTR_T message_callback = 0;
     MCP45HVX1 m_digipot;
@@ -291,6 +288,7 @@ private:
             {
                 digitalWrite(pin3, cfg3);
             }
+            LogHandler::debug(_TAG, "Wrote matrix: %d %d %d", cfg1, cfg2, cfg3);
         }
     }
 
@@ -310,6 +308,20 @@ private:
             res = m_digipot.readWiper();
         }
         return res;
+    }
+    
+    float translateADCVoltage(float input, bool curve_fitting=true)
+    {
+        const float ADC_MAXIMUM = 4095.0f; // ESP32
+        const float DIVIDER_COEFF = 1150.0f / 150.0f; // Hardware dependent
+        const float VOLTAGE_REFERENCE = 3.3f;
+        float voltage = (input * DIVIDER_COEFF * VOLTAGE_REFERENCE) / ADC_MAXIMUM;
+        if (curve_fitting)
+        {
+            // Values determined from emperical curve fitting, may vary with hardware/temperature/current
+            voltage = (0.95 * voltage) + 1.22;
+        }
+        return voltage;
     }
 };
 

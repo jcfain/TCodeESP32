@@ -30,9 +30,13 @@ const PDLEVELS = {
 };
 
 function powerSetup() {
-    document.getElementById('PDVoltage').value = userSettings["PDVoltage"];
+    if (isBoardType(BoardType.SR6PCB)) {
+        togglePowerSettings(true);
+    } else {
+        togglePowerSettings(false);
+    }
+    
     document.getElementById('servoVoltage').value = userSettings["servoVoltage"];
-
     document.getElementById('servoVoltagePeek').innerHTML = parseFloat(userSettings["servoVoltage"]).toFixed(2);
     document.getElementById('servoVoltageEn').checked = userSettings["servoVoltageEn"];
 
@@ -46,6 +50,7 @@ function powerSetup() {
             return opt;
         })());
     }
+    document.getElementById('PDVoltage').value = userSettings["PDVoltage"];
 }
 
 function wsPowerStatus(data) {

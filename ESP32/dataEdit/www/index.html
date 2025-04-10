@@ -1174,12 +1174,7 @@
 							</div>
 						</div>
 						<div class="tRow">
-							<div class="tCell">
-								<span>Enabled</span>
-							</div>
-							<div class="tCell">
-								<input id="advancedPowerEnabled" type="checkbox" onclick="togglePowerSettings(this.checked)"></input>
-							</div>
+							<div class="tCell"><span>SR6PCB Only</span></div>
 						</div>
 						<div class="tRow powerOnly hidden">
 							<div class="tCell"><span>Servo Voltage Enable pin</span></div>
@@ -1255,7 +1250,7 @@
 					</div>
 
 					<br />
-					<span class="instruction-text">Instructions:<br />
+					<span class ="tRow powerOnly hidden instruction-text">Instructions:<br />
 						A USB PD power negotiation chip, the CH224K negotiates voltage level.<br />
 						Requires 3 pins for voltage level configuration.<br />
 						Servo voltage regulated from input bus.<br />
