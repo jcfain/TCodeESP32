@@ -84,7 +84,7 @@ DeviceRangeSlider = {
       minInput.max = getTCodeMax();
       minInput.value = min;
       formControlContainer.appendChild(minInput);
-      
+
       // Numeric inputs
       var formControlContainer2 = document.createElement("div");
       formControlContainer2.classList.add("form_control_container");
@@ -115,7 +115,7 @@ DeviceRangeSlider = {
 
       this.fillSlider(minSlider, maxSlider, '#C6C6C6', '#25daa5', maxSlider);
       this.setToggleAccessible(maxSlider, maxSlider);
-      
+
       // minSlider.oninput = () => controlMinSlider(minSlider, maxSlider, minInput, name);
       // maxSlider.oninput = () => controlMaxSlider(minSlider, maxSlider, maxInput, name);
       // minInput.oninput = () => controlMinInput(minSlider, minInput, maxInput, maxSlider, name);
@@ -175,7 +175,7 @@ DeviceRangeSlider = {
           sendTCode(channelName + minSlider.value + "S1000");
       }
   },
-    
+
   controlMaxInput(minSlider, maxSlider, minInput, maxInput, controlSlider, channelName) {
       const [min, max] = this.getParsed(minInput, maxInput);
       this.fillSlider(minInput, maxInput, '#C6C6C6', '#25daa5', controlSlider);
@@ -226,7 +226,7 @@ DeviceRangeSlider = {
   setChannelRange(channelName, min, max) {
       userSettings["channelRanges"][channelName].min = min;
       userSettings["channelRanges"][channelName].max = max;
-      
+
       updateUserSettings();
   },
 
@@ -245,8 +245,8 @@ DeviceRangeSlider = {
         ${sliderColor} 0%,
         ${sliderColor} ${(minPosition)/(rangeDistance)*100}%,
         ${rangeColor} ${((minPosition)/(rangeDistance))*100}%,
-        ${rangeColor} ${(maxPosition)/(rangeDistance)*100}%, 
-        ${sliderColor} ${(maxPosition)/(rangeDistance)*100}%, 
+        ${rangeColor} ${(maxPosition)/(rangeDistance)*100}%,
+        ${sliderColor} ${(maxPosition)/(rangeDistance)*100}%,
         ${sliderColor} 100%)`;
   },
 

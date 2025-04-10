@@ -20,7 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
-.range_container_header_subtext {  
+.range_container_header_subtext {
     text-align: center;
     font-size: x-small;
 }
@@ -44,13 +44,13 @@ SOFTWARE. */
     position: relative;
     min-height: 20px;
 }
-  
+
 .range_container .form_control {
     position: relative;
     display: flex;
     justify-content: space-between;
 }
-.range_container .form_control_container {  
+.range_container .form_control_container {
     text-align: center;
 }
 .range_container .range_container input[type=range]::-webkit-slider-thumb {
@@ -72,7 +72,7 @@ SOFTWARE. */
     background-color: #fff;
     border-radius: 50%;
     box-shadow: 0 0 0 1px #C6C6C6;
-    cursor: pointer;  
+    cursor: pointer;
 }
 
 .range_container input[type=range]::-webkit-slider-thumb:hover {
@@ -90,8 +90,8 @@ SOFTWARE. */
     color: white;
 }
 
-.range_container input[type=number]::-webkit-inner-spin-button, 
-.range_container input[type=number]::-webkit-outer-spin-button  {  
+.range_container input[type=number]::-webkit-inner-spin-button,
+.range_container input[type=number]::-webkit-outer-spin-button  {
     /* -webkit-appearance: none; */
     /* background-color: black;
     color: white; */
@@ -100,7 +100,7 @@ SOFTWARE. */
 }
 
 .range_container input[type="range"] {
-    -webkit-appearance: none; 
+    -webkit-appearance: none;
     appearance: none;
     height: 2px;
     width: 100%;

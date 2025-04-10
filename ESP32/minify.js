@@ -53,6 +53,10 @@ const extract_fileinfo = (filepath) => {
 await Promise.all(minfiles.map(async (filepath) => {
     const [name, ext] = extract_fileinfo(filepath);
     console.log(`Minifying ${filepath} to ${output_dir}/${name}-min.${ext}... `)
+    if (fs.lstatSync(filepath).isDirectory())
+    {
+        return Promise.resolve();
+    }
     const [error, data] = await tryToCatch(minify, filepath, options);
     if (!error) {
        

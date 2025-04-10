@@ -49,7 +49,7 @@ ESPTimer = {
                     }
                 }, defaultDebounce);
             }.bind(this, timerObj, timerFrequencyRow);
-            
+
             table.body.appendChild(timerFrequencyRow.row);
         }
     }

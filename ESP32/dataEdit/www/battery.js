@@ -35,7 +35,7 @@ function wsBatteryStatus(data) {
     var batteryCapacityRemainingPercentage = status["batteryCapacityRemainingPercentage"];
     var batteryCapacityRemaining = status["batteryCapacityRemaining"];
     var batteryTemperature = status["batteryTemperature"];
-    
+
     document.getElementById("batteryVoltage").value = batteryVoltage;
     document.getElementById("batteryCapacityRemaining").value = batteryCapacityRemaining;
     document.getElementById("batteryCapacityRemainingPercentage").value = batteryCapacityRemainingPercentage;
@@ -55,7 +55,7 @@ function setBatterySettings() {
     userSettings["batteryCapacityMax"] = parseFloat(document.getElementById('batteryCapacityMax').value);
     setRestartRequired();
     updateUserSettings();
-}	
+}
 function setBatteryFull() {
     sendWebsocketCommand("setBatteryFull");
 }

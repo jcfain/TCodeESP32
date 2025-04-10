@@ -31,12 +31,12 @@ Buttons = {
         document.getElementById("buttonAnalogDebounce").value = buttonSettings["buttonAnalogDebounce"];
         removeByClass("buttonSetRow");
         buttonSettings["buttonSets"].forEach((buttonSet, setIndex) => {
-            
+
             const buttons = buttonSet["buttons"];
 
             //Main UI template
             const buttonSetsDiv = document.getElementById("buttonControls");
-            
+
             let buttonSetNameRow = Utils.createTextFormRow(0, "Name", 'buttonSetName'+setIndex, buttonSet.name, 25, function(setIndex) {this.update(setIndex)}.bind(this, setIndex));
             buttonSetNameRow.input.setAttribute("readonly", true);
             let buttonSetPinRow = Utils.createNumericFormRow(0, "Pin", 'buttonSetPin'+setIndex, buttonSet.pin, -1, 255, function(setIndex) {this.update(setIndex)}.bind(this, setIndex));
@@ -72,7 +72,7 @@ Buttons = {
             buttonSetsDiv.appendChild(buttonSetPinRow.row);
             buttonSetsDiv.appendChild(buttonSetEditButton);
 
-            
+
             //Modal Template
             var modalRootdiv = document.createElement("div");
             modalRootdiv.classList.add("formTable");
@@ -100,7 +100,7 @@ Buttons = {
             }.bind(this, setIndex));
             buttonSetPinRowEdit.input.required = true;
             buttonSetPinRowEdit.title = `The pin this button set is on`
-            
+
             buttonTableDiv.appendChild(buttonSetNameRowEdit.row);
             buttonTableDiv.appendChild(buttonSetPinRowEdit.row);
 
@@ -141,7 +141,7 @@ Buttons = {
             For example: '#motion-disable #resume #device-home #ok'
             NOTE: There is currently no way to delay between the command execution.
             `
-            
+
             modalParent.appendChild(buttonTable);
             buttonTable.appendChild(buttonTableDiv);
             modalParent.appendChild(span);
@@ -166,7 +166,7 @@ Buttons = {
                 buttonSettings["buttonSetsEnabled"] = setsEnabled;
                 showRestartRequired();
             }
-            
+
             buttonSettings["bootButtonCommand"] = document.getElementById('bootButtonCommand').value.replace("\n", " ");
             if(validateIntControl("buttonAnalogDebounce", buttonSettings, "buttonAnalogDebounce")) {
                 buttonSettings["buttonAnalogDebounce"] = parseInt(document.getElementById("buttonAnalogDebounce").value);
@@ -211,7 +211,7 @@ Buttons = {
         modal.appendChild(this.templates[index]);
         this.setbuttonSet(index);
         const header = document.createElement("span");
-        header.innerText = "Edit button set"  
+        header.innerText = "Edit button set"
         header.setAttribute("slot", "title");
         modal.appendChild(header);
         modal.show();
@@ -222,13 +222,13 @@ Buttons = {
             const buttonIndex = i;
             const button = buttons[i];
             document.getElementById('buttonName'+setIndex+buttonIndex).value = button.name;
-            document.getElementById('buttonCommand'+setIndex+buttonIndex).value = button.command;  
+            document.getElementById('buttonCommand'+setIndex+buttonIndex).value = button.command;
             // document.getElementById('buttonIndex'+setIndex+buttonIndex).value = button[i].index;
         };
     },
     updatebuttonSet(setIndex) {
         buttonSettings["buttonSets"][setIndex]["name"] = document.getElementById('buttonSetNameEdit'+setIndex).value;
-        buttonSettings["buttonSets"][setIndex]["pin"] = parseInt(document.getElementById('buttonSetPinEdit'+setIndex).value);  
+        buttonSettings["buttonSets"][setIndex]["pin"] = parseInt(document.getElementById('buttonSetPinEdit'+setIndex).value);
         const buttons = buttonSettings["buttonSets"][setIndex]["buttons"];
         for(var i = 0; i < buttons.length; i++) {
             const buttonIndex = i;
@@ -236,17 +236,17 @@ Buttons = {
             const nameNode = document.getElementById('buttonName'+setIndex+buttonIndex);
             if(nameNode) {
                 buttonSettings["buttonSets"][setIndex]["buttons"][i]["name"] = document.getElementById('buttonName'+setIndex+buttonIndex).value;
-                buttonSettings["buttonSets"][setIndex]["buttons"][i]["command"] = document.getElementById('buttonCommand'+setIndex+buttonIndex).value.replace("\n", " ");  
+                buttonSettings["buttonSets"][setIndex]["buttons"][i]["command"] = document.getElementById('buttonCommand'+setIndex+buttonIndex).value.replace("\n", " ");
             }
             // document.getElementById('buttonIndex'+setIndex+buttonIndex).value = button[i].index;
         };
     },
-    
+
     setButtonSetName(profileIndex) {
         if(this.setNameDebounce) {
             clearTimeout(this.setNameDebounce);
         }
-        
+
         this.setNameDebounce = setTimeout(function(profileIndex) {
             if(validateStringControl("buttonSetName"+profileIndex, buttonSettings['buttonSets'][profileIndex], "name")) {
                 //updateMotionProfileName(profileIndex);

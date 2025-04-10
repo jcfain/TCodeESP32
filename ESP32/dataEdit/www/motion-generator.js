@@ -56,7 +56,7 @@ MotionGenerator = {
                 var friendlyName = channel.channelName;
                 var motionChannelIndex = motionProviderSettings['motionProfiles'][profileIndex]["channels"].findIndex(y => y.name == name);
                 const motionChannel = motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex];
-                
+
                 var row = document.createElement("div");
                 row.classList.add("tRow")
                 row.classList.add("motion-profile-edit-channel-header");
@@ -125,7 +125,7 @@ MotionGenerator = {
                 channelTable.style = "box-shadow: none; width: auto; margin: 0; padding: 0;"
                 const channelTableDiv = document.createElement("div");
 
-                let channelRow = Utils.createNumericFormRow(0, "Update rate (ms)", 'motionUpdate'+profileIndex+channelIndex, motionChannel ? motionChannel.update : 100, 0, 2147483647, 
+                let channelRow = Utils.createNumericFormRow(0, "Update rate (ms)", 'motionUpdate'+profileIndex+channelIndex, motionChannel ? motionChannel.update : 100, 0, 2147483647,
                     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelRow.title = `This is the time in between updates that gives the system time to process other tasks. (DO NOT SET TOO LOW ON ESP32!)
                 It may be best to just leave at default.`
@@ -151,14 +151,14 @@ MotionGenerator = {
 
                 let randomMin = channelRow.input;
                 let randomRowMin = channelRow;
-                
+
                 channelRow = Utils.createNumericFormRow("motionPeriodRandomMaxRow"+profileIndex+channelIndex, "Max (ms)", 'motionPeriodRandomMax'+profileIndex+channelIndex, motionChannel ? motionChannel.periodMax : 2000, 0, 2147483647,
                     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
 
                 setElementsIntMinAndMax(randomMin, channelRow.input);
                 toggleMotionRandomSettingsElement(randomRowMin.row, channelRow.row, periodRan);
-                
+
                 //Amplitude///////
                 channelRow = Utils.createNumericFormRow(0, "Amplitude (%)", 'motionAmplitude'+profileIndex+channelIndex, motionChannel ? motionChannel.amp : 60, 0, 100,
                     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
@@ -168,14 +168,14 @@ MotionGenerator = {
                 channelRow = Utils.createCheckboxFormRow(0, "Amplitude random", 'motionAmplitudeRandom'+profileIndex+channelIndex, ampRan,
                     function(profileIndex, channelIndex, name) {setMotionAmplitudeRandomClicked(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
-                
+
                 channelRow = Utils.createNumericFormRow("motionAmplitudeRandomMinRow"+profileIndex+channelIndex, "Min (%)", 'motionAmplitudeRandomMin'+profileIndex+channelIndex, motionChannel ? motionChannel.ampMin : 20, 0, 100,
                     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
 
                 randomMin = channelRow.input;
                 randomRowMin = channelRow;
-                
+
                 channelRow = Utils.createNumericFormRow("motionAmplitudeRandomMaxRow"+profileIndex+channelIndex, "Max (%)", 'motionAmplitudeRandomMax'+profileIndex+channelIndex, motionChannel ? motionChannel.ampMax : 60, 0, 100,
                     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
@@ -192,14 +192,14 @@ MotionGenerator = {
                 channelRow = Utils.createCheckboxFormRow(0, "Offset random", 'motionOffsetRandom'+profileIndex+channelIndex, offsetRan,
                     function(profileIndex, channelIndex, name) {setMotionOffsetRandomClicked(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
-                
+
                 channelRow = Utils.createNumericFormRow("motionOffsetRandomMinRow"+profileIndex+channelIndex, "Min (tcode)", 'motionOffsetRandomMin'+profileIndex+channelIndex, motionChannel ? motionChannel.offsetMin : 3000, 0, 9999,
                     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
 
                 randomMin = channelRow.input;
                 randomRowMin = channelRow;
-                
+
                 channelRow = Utils.createNumericFormRow("motionOffsetRandomMaxRow"+profileIndex+channelIndex, "Max (tcode)", 'motionOffsetRandomMax'+profileIndex+channelIndex, motionChannel ? motionChannel.offsetMax : 7000, 0, 9999,
                     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
@@ -216,11 +216,11 @@ MotionGenerator = {
                 channelRow = Utils.createCheckboxFormRow(0, "Phase random", 'motionPhaseRandom'+profileIndex+channelIndex, phaseRan,
                     function(profileIndex, channelIndex, name) {setMotionPhaseRandomClicked(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
-                
+
                 channelRow = Utils.createNumericFormRow("motionPhaseRandomMinRow"+profileIndex+channelIndex, "Min (degree)", 'motionPhaseRandomMin'+profileIndex+channelIndex, motionChannel ? motionChannel.phaseMin : 0.0, 0.0, 180.0,
                     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
-                
+
                 randomMin = channelRow.input;
                 randomRowMin = channelRow;
 
@@ -238,7 +238,7 @@ MotionGenerator = {
 
                 randomMin = channelRow.input;
                 randomRowMin = channelRow;
-                
+
                 channelRow = Utils.createNumericFormRow("motionRandomChangeMaxRow"+profileIndex+channelIndex, "Random change max (ms)", 'motionRandomChangeMax'+profileIndex+channelIndex, motionChannel ? motionChannel.ranMax : 30000, 0, 2147483647,
                     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
@@ -250,7 +250,7 @@ MotionGenerator = {
                 buttonDefault.onclick = function(profileIndex, channelIndex, channelName) {
                     setMotionGeneratorSettingsDefault(profileIndex, channelIndex, channelName);
                 }.bind(this, profileIndex, channelIndex, name);
-                
+
 
                 channelParent.appendChild(channelTable);
                 channelTable.appendChild(channelTableDiv);
@@ -266,7 +266,7 @@ MotionGenerator = {
         // rangeSliderButton.innerText = "Edit device range limits";
         // rangeSliderButton.onclick = DeviceRangeSlider.show;
         // motionProfilesElement.appendChild(rangeSliderButton);
-        
+
         selectMotionProfile(systemInfo["motionSelectedProfileIndex"]);
         this.setEnabledStatus();
     },
@@ -419,7 +419,7 @@ function editMotionProfile(profileIndex) {
     modal.appendChild(channelTemplates[profileIndex]);
     setMotionGeneratorSettingsProfile(profileIndex);
     const header = document.createElement("span");
-    header.innerText = "Edit profile"  
+    header.innerText = "Edit profile"
     header.setAttribute("slot", "title");
     modal.appendChild(header);
     //modal.setAttribute("visible", true);
@@ -461,7 +461,7 @@ function setMotionGeneratorSettings(profileIndex, channelIndex, channelName) {
         validateIntControl('motionRandomChangeMin'+profileIndex+channelIndex, motionChannel, "ranMin");
         validateIntControl('motionRandomChangeMax'+profileIndex+channelIndex, motionChannel, "ranMax");
 
-        
+
         //userSettings["motionReversed"] = document.getElementById('motionReversed').checked;
         MotionGenerator.updateSettings(profileIndex, motionChannelIndex, 0);
     }.bind(this, profileIndex, channelIndex, channelName), 3000);
@@ -471,7 +471,7 @@ function setMotionGeneratorName(profileIndex) {
     if(setMotionGeneratorNameDebounce) {
         clearTimeout(setMotionGeneratorNameDebounce);
     }
-    
+
     setMotionGeneratorNameDebounce = setTimeout(function(profileIndex) {
         if(validateStringControl("motionProfileName"+profileIndex, motionProviderSettings['motionProfiles'][profileIndex], "name")) {
             updateMotionProfileName(profileIndex);
@@ -557,7 +557,7 @@ function getDefaultMotionChannel(name) {
 function setProfileMotionGeneratorSettingsDefault(profileIndex, channelIndex, channelName) {
     motionProviderSettings['motionProfiles'][profileIndex]["name"] = "Profile "+ (profileIndex + 1);
     motionProviderSettings['motionProfiles'][profileIndex]["channels"][channelIndex] = getDefaultMotionChannel(channelName);
-    
+
     setMotionGeneratorSettingsProfile(profileIndex);
 }
 function setMotionGeneratorSettingsProfile(profileIndex) {
@@ -567,7 +567,7 @@ function setMotionGeneratorSettingsProfile(profileIndex) {
     for(var i = 0; i < channels.length; i++) {
         const channelIndex = i;
         const channel = channels[i];
-        if (!isSR6() && channel.sr6Only) 
+        if (!isSR6() && channel.sr6Only)
             continue;
         const motionChannelIndex = getMotionChannelIndex(profileIndex, channel.channel);
         const profileHasChannel = motionChannelIndex > -1;
@@ -575,23 +575,23 @@ function setMotionGeneratorSettingsProfile(profileIndex) {
         document.getElementById('motionUpdate'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["update"] : defaultChannel["update"];
         document.getElementById('motionPeriod'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["period"] : defaultChannel["period"];
         document.getElementById('motionAmplitude'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["amp"] : defaultChannel["amp"];
-        document.getElementById('motionOffset'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offset"] : defaultChannel["offset"];  
+        document.getElementById('motionOffset'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offset"] : defaultChannel["offset"];
         document.getElementById('motionPhase'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phase"] : defaultChannel["phase"];
         document.getElementById('motionPhaseRandom'+profileIndex+channelIndex).checked = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phaseRan"] : defaultChannel["phaseRan"];
-        document.getElementById('motionPhaseRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phaseMin"] : defaultChannel["phaseMin"];  
-        document.getElementById('motionPhaseRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phaseMax"] : defaultChannel["phaseMax"];  
+        document.getElementById('motionPhaseRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phaseMin"] : defaultChannel["phaseMin"];
+        document.getElementById('motionPhaseRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["phaseMax"] : defaultChannel["phaseMax"];
         //document.getElementById('motionReversed'+profileIndex+channelIndex).checked = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["reverse"] : defaultChannel["reverse"];
         document.getElementById('motionPeriodRandom'+profileIndex+channelIndex).checked = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodRan"] : defaultChannel["periodRan"];
-        document.getElementById('motionPeriodRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodMin"] : defaultChannel["periodMin"];  
-        document.getElementById('motionPeriodRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodMax"] : defaultChannel["periodMax"];  
+        document.getElementById('motionPeriodRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodMin"] : defaultChannel["periodMin"];
+        document.getElementById('motionPeriodRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["periodMax"] : defaultChannel["periodMax"];
         document.getElementById('motionAmplitudeRandom'+profileIndex+channelIndex).checked = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ampRan"] : defaultChannel["ampRan"];
-        document.getElementById('motionAmplitudeRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ampMin"] : defaultChannel["ampMin"];  
-        document.getElementById('motionAmplitudeRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ampMax"] : defaultChannel["ampMax"];  
+        document.getElementById('motionAmplitudeRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ampMin"] : defaultChannel["ampMin"];
+        document.getElementById('motionAmplitudeRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ampMax"] : defaultChannel["ampMax"];
         document.getElementById('motionOffsetRandom'+profileIndex+channelIndex).checked = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offsetRan"] : defaultChannel["offsetRan"];
-        document.getElementById('motionOffsetRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offsetMin"] : defaultChannel["offsetMin"];  
-        document.getElementById('motionOffsetRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offsetMax"] : defaultChannel["offsetMax"];  
-        document.getElementById('motionRandomChangeMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ranMin"] : defaultChannel["ranMin"];  
-        document.getElementById('motionRandomChangeMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ranMax"] : defaultChannel["ranMax"];  
+        document.getElementById('motionOffsetRandomMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offsetMin"] : defaultChannel["offsetMin"];
+        document.getElementById('motionOffsetRandomMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["offsetMax"] : defaultChannel["offsetMax"];
+        document.getElementById('motionRandomChangeMin'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ranMin"] : defaultChannel["ranMin"];
+        document.getElementById('motionRandomChangeMax'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["ranMax"] : defaultChannel["ranMax"];
         toggleMotionRandomSettings(profileIndex, channelIndex);
     };
 }
