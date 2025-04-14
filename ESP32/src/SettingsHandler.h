@@ -60,7 +60,6 @@ public:
     static std::vector<int> systemI2CAddresses;
 
     static ChannelMap channelMap;
-    static std::vector<Channel> currentChannels;
     static BuildFeature buildFeatures[(int)BuildFeature::MAX_FEATURES];
     
     // static TCodeVersion TCodeVersionEnum;
@@ -229,6 +228,7 @@ public:
 
         // loadWifiInfo(false);
         // loadSettings(false);
+        loadChannels(false);
         loadMotionProfiles(false);
         loadButtons(false);
 
@@ -360,6 +360,7 @@ public:
         JsonDocument doc; // 3500
 
         doc["esp32Version"] = FIRMWARE_VERSION_NAME;
+        doc["esp32VersionNum"] = FIRMWARE_VERSION;
         doc["TCodeVersion"] = m_settingsFactory->getTcodeVersion();
         doc["lastRebootReason"] = machine_reset_cause();
 
@@ -780,6 +781,73 @@ public:
         return true;
     }
 
+    static bool loadChannels(bool loadDefault, JsonObject json = JsonObject()) {
+        LogHandler::info(_TAG, "Loading channel profile");
+        return loadSettingsJson(CHANNELS_SETTINGS_PATH, loadDefault, m_channelsMutex, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
+                
+            JsonArray channelProfileObj = json[CHANNEL_PROFILE].as<JsonArray>();
+            
+            if(channelProfileObj.isNull()) {
+                LogHandler::info(_TAG, "No channel profile stored, loading default");
+                mutableLoadDefault = true;
+            } else {
+                for (JsonObject profileObj : channelProfileObj) {
+                    const char* name = profileObj[CHANNEL_NAME];
+                    Channel* channel = channelMap.get(name);
+                    if(!channel)
+                    {
+                        LogHandler::error(_TAG, "Channel missing from stored profile: %s", name);
+                        continue;
+                    }
+                    channel->userMin = profileObj[CHANNEL_USER_MIN] | TCODE_MIN;
+                    channel->userMid = profileObj[CHANNEL_USER_MID] | TCODE_MID;
+                    channel->userMax = profileObj[CHANNEL_USER_MAX] | TCODE_MAX;
+                    LogHandler::debug(_TAG, "Loading channel profile '%s' from settings", name);
+                }
+            }
+        return true;
+        }, saveChannels, json);
+    }
+
+    static bool saveChannels(JsonObject json = JsonObject()) {
+        LogHandler::info(_TAG, "Save channel profile file");
+        saving = true;
+		xSemaphoreTake(m_channelsMutex, portMAX_DELAY);
+        if (!LittleFS.exists(CHANNELS_SETTINGS_PATH)) {
+            LogHandler::error(_TAG, "Channel profile file did not exist whan saving.");
+            saving = false;
+            xSemaphoreGive(m_channelsMutex);
+            return false;
+        }
+        if(!json.isNull()) { // If passed in, load the json into memory before flushing it to disk.
+            // WARNING: watchout for the mutex taken in this method. Changing these parameters below may result in hard locks.
+            loadChannels(false, json); // DO NOT PASS loadDefault as true else infinit loop
+        }
+        JsonDocument doc; //serializeSize
+        for (int i=0; i < channelMap.count(); i++) {
+            Channel* channel = channelMap.get(i);
+            doc[CHANNEL_PROFILE][i][CHANNEL_NAME] = channel->Name;
+            doc[CHANNEL_PROFILE][i][CHANNEL_USER_MIN] = channel->userMin;
+            doc[CHANNEL_PROFILE][i][CHANNEL_USER_MID] = channel->userMid;
+            doc[CHANNEL_PROFILE][i][CHANNEL_USER_MAX] = channel->userMax;
+            if(initialized) {
+                sendMessage(SettingProfile::ChannelRanges, CHANNEL_PROFILE);
+            }
+        }
+        File file = LittleFS.open(CHANNELS_SETTINGS_PATH, FILE_WRITE);
+        if (serializeJson(doc, file) == 0) {
+            LogHandler::error(_TAG, "Failed to write to channel profile file");
+            file.close();
+            xSemaphoreGive(m_channelsMutex);
+            saving = false;
+            return false;
+        }
+        
+        xSemaphoreGive(m_channelsMutex);
+        saving = false;
+        return true;
+    }
+
     static std::vector<MotionChannel>& getMotionChannels()
     {
         return motionProfiles[motionSelectedProfileIndex].channels;
@@ -1185,43 +1253,70 @@ public:
 		return true;
 	}
     
-    static u_int16_t getChannelMin(const char *channel) 
+    static uint16_t getChannelMin(const char *channel) 
     {
-        for (size_t i = 0; i < currentChannels.size(); i++)
+        Channel* channelProfile = channelMap.get(channel);
+        if(!channelProfile)
         {
-            if(strcmp(currentChannels[i].Name, channel) == 0)
-                return currentChannels[i].min;
+            LogHandler::error(_TAG, "[getChannelMin] Invalid channel for current map: %s", channel);
+            return TCODE_MIN;
         }
-        return 1;
+        return channelProfile->min;
     }
 
-    static u_int16_t getChannelMax(const char *channel) 
+    static uint16_t getChannelMax(const char *channel) 
     {
-        for (size_t i = 0; i < currentChannels.size(); i++) {
-            if(strcmp(currentChannels[i].Name, channel) == 0)
-                return currentChannels[i].max;
+        Channel* channelProfile = channelMap.get(channel);
+        if(!channelProfile)
+        {
+            LogHandler::error(_TAG, "[getChannelMax] Invalid channel for current map: %s", channel);
+            return TCODE_MAX;
         }
-        return 9999;
+        return channelProfile->max;
     }
 
-    static void setChannelMin(const char *channel, u_int16_t value) 
+    static uint16_t getChannelUserMin(const char *channel) 
     {
-        for (size_t i = 0; i < currentChannels.size(); i++) {
-            if(strcmp(currentChannels[i].Name, channel) == 0) {
-                currentChannels[i].min = value;
-                return;
-            }
+        Channel* channelProfile = channelMap.get(channel);
+        if(!channelProfile)
+        {
+            LogHandler::error(_TAG, "[getChannelUserMin] Invalid channel for current map: %s", channel);
+            return TCODE_MIN;
         }
+        return channelProfile->userMin;
     }
 
-    static void setChannelMax(const char *channel, u_int16_t value) 
+    static uint16_t getChannelUserMax(const char *channel) 
     {
-        for (size_t i = 0; i < currentChannels.size(); i++) {
-            if(strcmp(currentChannels[i].Name, channel) == 0) {
-                currentChannels[i].max = value;
-                return;
-            }
+        Channel* channelProfile = channelMap.get(channel);
+        if(!channelProfile)
+        {
+            LogHandler::error(_TAG, "[getChannelUserMax] Invalid channel for current map: %s", channel);
+            return TCODE_MAX;
         }
+        return channelProfile->userMax;
+    }
+
+    static void setChannelMin(const char *channel, uint16_t value) 
+    {
+        Channel* channelProfile = channelMap.get(channel);
+        if(!channelProfile)
+        {
+            LogHandler::error(_TAG, "[setChannelMin] Invalid channel for current map: %s", channel);
+            return;
+        }
+        channelProfile->userMin = value;
+    }
+
+    static void setChannelMax(const char *channel, uint16_t value) 
+    {
+        Channel* channelProfile = channelMap.get(channel);
+        if(!channelProfile)
+        {
+            LogHandler::error(_TAG, "[setChannelMax] Invalid channel for current map: %s", channel);
+            return;
+        }
+        channelProfile->userMax = value;
     }
 
 private:
@@ -1229,6 +1324,7 @@ private:
     
     static SettingsFactory* m_settingsFactory;
 	static SemaphoreHandle_t m_motionMutex;
+    static SemaphoreHandle_t m_channelsMutex;
 	static SemaphoreHandle_t m_wifiMutex;
     static SemaphoreHandle_t m_buttonsMutex;
 	static SemaphoreHandle_t m_settingsMutex;
@@ -2320,32 +2416,7 @@ private:
     //     LogHandler::debug(_TAG, "update valveFrequency: %i", valveFrequency);
     //     LogHandler::debug(_TAG, "update twistFrequency: %i", twistFrequency);
     //     LogHandler::debug(_TAG, "update continuousTwist: %i", continuousTwist);
-    //     LogHandler::debug(_TAG, "update feedbackTwist: %i", feedbackTwist);
-    //     LogHandler::debug(_TAG, "update analogTwist: %i", analogTwist);
-    //     LogHandler::debug(_TAG, "update TwistFeedBack_PIN: %i", TwistFeedBack_PIN);
-    //     LogHandler::debug(_TAG, "update RightServo_PIN: %i", RightServo_PIN);
-    //     LogHandler::debug(_TAG, "update LeftServo_PIN: %i", LeftServo_PIN);
-    //     LogHandler::debug(_TAG, "update RightUpperServo_PIN: %i", RightUpperServo_PIN);
-    //     LogHandler::debug(_TAG, "update LeftUpperServo_PIN: %i", LeftUpperServo_PIN);
-    //     LogHandler::debug(_TAG, "update PitchLeftServo_PIN: %i", PitchLeftServo_PIN);
-    //     LogHandler::debug(_TAG, "update PitchRightServo_PIN: %i", PitchRightServo_PIN);
-    //     LogHandler::debug(_TAG, "update ValveServo_PIN: %i", ValveServo_PIN);
-    //     LogHandler::debug(_TAG, "update TwistServo_PIN: %i", TwistServo_PIN);
-    //     LogHandler::debug(_TAG, "update Vibe0_PIN: %i", Vibe0_PIN);
-    //     LogHandler::debug(_TAG, "update Vibe1_PIN: %i", Vibe1_PIN);
-    //     LogHandler::debug(_TAG, "update LubeButton_PIN: %i", LubeButton_PIN);
-    //     LogHandler::debug(_TAG, "update staticIP: %i", staticIP);
-    //     LogHandler::debug(_TAG, "update localIP: %s", localIP);
-    //     LogHandler::debug(_TAG, "update gateway: %s", gateway);
-    //     LogHandler::debug(_TAG, "update subnet: %s", subnet);
-    //     LogHandler::debug(_TAG, "update dns1: %s", dns1);
-    //     LogHandler::debug(_TAG, "update dns2: %s", dns2);
-    //     LogHandler::debug(_TAG, "update sr6Mode: %i", sr6Mode);
-    //     LogHandler::debug(_TAG, "update RightServo_ZERO: %i", RightServo_ZERO);
-    //     LogHandler::debug(_TAG, "update LeftServo_ZERO: %i", LeftServo_ZERO);
-    //     LogHandler::debug(_TAG, "update RightUpperServo_ZERO: %i", RightUpperServo_ZERO);
-    //     LogHandler::debug(_TAG, "update LeftUpperServo_ZERO: %i", LeftUpperServo_ZERO);
-    //     LogHandler::debug(_TAG, "update PitchLeftServo_ZERO: %i", PitchLeftServo_ZERO);
+    //     LogHandler::debug(_TAG, "update feedbackTwist: %i", feedbackTwist);max
     //     LogHandler::debug(_TAG, "update PitchRightServo_ZERO: %i", PitchRightServo_ZERO);
     //     LogHandler::debug(_TAG, "update TwistServo_ZERO: %i", TwistServo_ZERO);
     //     LogHandler::debug(_TAG, "update ValveServo_ZERO: %i", ValveServo_ZERO);
@@ -2380,6 +2451,7 @@ private:
 
 SettingsFactory* SettingsHandler::m_settingsFactory = SettingsFactory::getInstance();
 SemaphoreHandle_t SettingsHandler::m_motionMutex = xSemaphoreCreateMutex();
+SemaphoreHandle_t SettingsHandler::m_channelsMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_wifiMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_buttonsMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_settingsMutex = xSemaphoreCreateMutex();
@@ -2396,7 +2468,6 @@ const char *SettingsHandler::_TAG = TagHandler::SettingsHandler;
 std::vector<int> SettingsHandler::systemI2CAddresses;
 SETTING_STATE_FUNCTION_PTR_T SettingsHandler::message_callback = 0;
 ChannelMap SettingsHandler::channelMap;
-std::vector<Channel> SettingsHandler::currentChannels;
 
 char SettingsHandler::currentIP[IP_ADDRESS_LEN] = LOCALIP_DEFAULT;
 char SettingsHandler::currentGateway[IP_ADDRESS_LEN] = GATEWAY_DEFAULT;

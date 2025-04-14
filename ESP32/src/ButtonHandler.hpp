@@ -31,6 +31,8 @@ SOFTWARE. */
 #include "struct/buttonSet.h"
 #include "settingsFactory.h"
 
+#define TASK_WAIT 10/portTICK_PERIOD_MS
+
 
 class ButtonHandler {
 
@@ -95,14 +97,14 @@ public:
     void initBootbutton(const char command[MAX_COMMAND]) {
         pinMode(0, INPUT_PULLDOWN);
         attachInterrupt(digitalPinToInterrupt(0), bootButtonInterrupt, CHANGE);
-        sprintf(bootButtonModel.name, "Boot button");
+        snprintf(bootButtonModel.name, sizeof(bootButtonModel.name), "Boot button");
         updateBootButtonCommand(command);
     }
 
     void updateBootButtonCommand(const char bootButtonCommand[MAX_COMMAND]) {
         xSemaphoreTake(xMutex, portMAX_DELAY);
         if(strlen(bootButtonCommand) > 0) {
-            strcpy(bootButtonModel.command, bootButtonCommand);
+            strncpy(bootButtonModel.command, bootButtonCommand, sizeof(bootButtonModel.command));
         } else {
             bootButtonModel.command[0] = {0};
         }
@@ -132,11 +134,16 @@ public:
     }
 
     static void bootButtonInterrupt() {
-        xSemaphoreTakeFromISR(xMutex, NULL);
+        BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreTakeFromISR(xMutex, &pxHigherPriorityTaskWoken);
         digitalRead(digitalPinToInterrupt(0)) == HIGH ? bootButtonModel.press() : bootButtonModel.release();
         struct ButtonModel *pxMessage = &(bootButtonModel);// Why did I have to do all this!?
-        xQueueSend(m_buttonQueue, ( void * ) &pxMessage, portMAX_DELAY);
-        xSemaphoreGiveFromISR(xMutex, NULL);
+        xQueueSendFromISR(m_buttonQueue, ( void * ) &pxMessage, &pxHigherPriorityTaskWoken);
+        xSemaphoreGiveFromISR(xMutex, &pxHigherPriorityTaskWoken);
+        if( pxHigherPriorityTaskWoken )
+        {
+            portYIELD_FROM_ISR();
+        }
     }
 
 private: 
@@ -161,7 +168,7 @@ private:
                 m_lastDebounce = millis();
                 readButtons();
             }
-            vTaskDelay(10/portTICK_PERIOD_MS);
+            vTaskDelay(TASK_WAIT);
         }
     }
     static bool readButtons() {

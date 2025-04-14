@@ -11,6 +11,7 @@
 #define NETWORK_SETTINGS_PATH "/networkSettings.json"
 #define BUTTON_SETTINGS_PATH "/buttons.json"
 #define MOTION_PROFILE_SETTINGS_PATH "/motionProfiles.json"
+#define CHANNELS_SETTINGS_PATH "/channels.json"
 
 // Setting defaults
 
@@ -53,7 +54,7 @@
 #define BLE_DEVICE_TYPE_DEFAULT (uint8_t)BLEDeviceType::TCODE
 #define BLE_LOVE_DEVICE_TYPE_DEFAULT (uint8_t)BLELoveDeviceType::EDGE
 // #define PITCH_FREQUENCY_IS_DIFFERENT_DEFAULT false
-#define MS_PER_RAD_DEFAULT 637
+#define MAX_SERVO_RANGE_DEFAULT 180
 #define CONTINUOUS_TWIST_DEFAULT false
 #define FEEDBACK_TWIST_DEFAULT false
 #define ANALOG_TWIST_DEFAULT false
@@ -150,7 +151,8 @@
 #define BLE_ENABLED "bleEnabled"
 #define BLE_DEVICE_TYPE "bleDeviceType"
 #define BLE_LOVE_DEVICE_TYPE "bleLoveDeviceType"
-#define MS_PER_RAD "msPerRad"
+// #define MS_PER_RAD "msPerRad"
+#define MAX_SERVO_RANGE "maxServoRange"
 #define CONTINUOUS_TWIST "continuousTwist"
 #define FEEDBACK_TWIST "feedbackTwist"
 #define ANALOG_TWIST "analogTwist"
@@ -231,6 +233,18 @@
 #define MOTION_PROFILES "motionProfiles"
 #define MOTION_ENABLED "motionEnabled"
 #define MOTION_PAUSED "motionPaused"
+
+#define CHANNEL_PROFILE "channelProfile"
+#define CHANNEL_NAME "name"
+#define CHANNEL_FRIENDLY_NAME "friendlyName"
+#define CHANNEL_MIN "min"
+#define CHANNEL_MID "mid"
+#define CHANNEL_MAX "max"
+#define CHANNEL_USER_MIN "userMin"
+#define CHANNEL_USER_MID "userMid"
+#define CHANNEL_USER_MAX "userMax"
+#define CHANNEL_IS_SWITCH "isSwitch"
+#define CHANNEL_SR6_ONLY "sr6Only"
 
 #define ESP_H_TIMER0_FREQUENCY "ESP_H_TIMER0_FREQUENCY"
 #define ESP_H_TIMER1_FREQUENCY "ESP_H_TIMER1_FREQUENCY"

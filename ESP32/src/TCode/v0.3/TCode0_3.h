@@ -526,9 +526,9 @@ private:
 				break;
 			}
 			memIndex += 8 * channel;
-			minVal = constrain(minVal, 0, 9999);
+			minVal = constrain(minVal, TCODE_MIN, TCODE_MAX);
 			EEPROM.put(memIndex, minVal - 1);
-			minVal = constrain(maxVal, 0, 9999);
+			minVal = constrain(maxVal, TCODE_MIN, TCODE_MAX);
 			EEPROM.put(memIndex + 4, maxVal - 10000);
 			EEPROM.commit();
 			// Output that axis changed successfully

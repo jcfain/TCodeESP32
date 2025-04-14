@@ -350,19 +350,11 @@
 						<!--------------------------------------- END BLDC ----------------------------------------------------->
 
 						<div class="tRow sr6Only servoOnly hidden">
-							<div class="tCell">
-								<span>Set (&#181;) for 270 degree servos</span> 
+							<div class="tCell" title="The max servo range of your main/pitch servos">
+								<span>Max servo range</span> 
 							</div>
 							<div class="tCell">
-								<input id="msPerRadIs270" type="checkbox" onclick="toggleMsPerRadIs270()"></input>
-							</div>
-						</div>
-						<div class="tRow sr6Only servoOnly hidden">
-							<div class="tCell">
-								<span>Micro seconds per radian (&#181;)</span> 
-							</div>
-							<div class="tCell">
-								<input id="msPerRad" type="number" min="1" max="2147483647" oninput="updateMSPerRad()">
+								<input id="maxServoRange" type="number" min="140" max="360" oninput="updateMaxServoRange()">
 							</div>
 						</div>
 						<div class="tRow">
@@ -606,7 +598,7 @@
 						</div>
 						<div class="tRow">
 							<div class="tCell">
-								<span>Inverse Stroke</span> 
+								<span>Inverse main servos</span> 
 							</div>
 							<div class="tCell">
 								<input id="inverseStroke" type="checkbox" onclick="setInverseStroke()"></input>
@@ -1266,6 +1258,14 @@
 				</div>
 				<div id="channelTestsTable" class="formTable">
 				</div>
+				<div id="channelRangesTable" class="formTable">		
+					<div>
+						<div class="tHeader">
+							<h3>Device ranges</h3>
+						</div>
+					</div>
+					<div id="deviceRangesTable" class="formTable formTableModal"></div>
+				</div>
 				<div id="systemInfoTable" class="formTable">
 					<div id="systemInfoTableBody">
 						<div>
@@ -1399,11 +1399,11 @@
 	
 	<modal-component id="motionChannelsModal"></modal-component>
 	<modal-component id="deviceRangesModal">
-		<span slot="title">
+		<!-- <span slot="title">
 			Device ranges
 			<span class="range_container_header_subtext">(only affects motion generator)</span>
 		</span>
-		<div id="deviceRangesTable" class="formTable formTableModal"></div>
+		<div id="deviceRangesTable" class="formTable formTableModal"></div> -->
 	</modal-component>
 	<modal-component id="buttonSetsModal"></modal-component>
 	<modal-component id="espTimerSetupModal"></modal-component>

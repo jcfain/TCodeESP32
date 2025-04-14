@@ -39,9 +39,7 @@ public:
         LogHandler::debug(_TAG, "Setting up servo handler v4");
         m_settingsFactory = SettingsFactory::getInstance();
         m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
-        m_settingsFactory->getValue(MS_PER_RAD, ms_per_rad);// SettingsHandler::getMsPerRad();
         LogHandler::debug(_TAG, "DEVICE_TYPE: %d", m_deviceType);
-        LogHandler::debug(_TAG, "MS_PER_RAD: %d", ms_per_rad);
 
         // Set SR6 arms to startup positions
         if (m_deviceType == DeviceType::SR6) 

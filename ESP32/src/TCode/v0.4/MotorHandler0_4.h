@@ -42,6 +42,7 @@ protected:
     // (LW-20: 700 μs/rad)
     // 270 2/3 of 637 = 424.666666667
     int ms_per_rad;  // (μs/rad)
+    uint8_t maxServoRange;
 
     void setupCommon() {
         if(!m_tcode)
@@ -51,6 +52,9 @@ protected:
         PinMap* pinMap = m_settingsFactory->getPins();
 
         m_servoPWMMaxDuty = static_cast<uint32_t>(pow(2, SERVO_PWM_RES) - 1);
+        m_settingsFactory->getValue(MAX_SERVO_RANGE, maxServoRange);
+        ms_per_rad = 114592/maxServoRange;
+        LogHandler::debug(_TAG, "MS_PER_RAD: %d", ms_per_rad);
         
         m_tcode->setup(FIRMWARE_VERSION_NAME);
         

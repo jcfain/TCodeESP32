@@ -52,8 +52,8 @@ MotionGenerator = {
                 if(!isSR6() && channel.sr6Only) {
                     continue;
                 }
-                var name = channel.channel;
-                var friendlyName = channel.channelName;
+                var name = channel.name;
+                var friendlyName = channel.friendlyName;
                 var motionChannelIndex = motionProviderSettings['motionProfiles'][profileIndex]["channels"].findIndex(y => y.name == name);
                 const motionChannel = motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex];
                 
@@ -569,7 +569,7 @@ function setMotionGeneratorSettingsProfile(profileIndex) {
         const channel = channels[i];
         if (!isSR6() && channel.sr6Only) 
             continue;
-        const motionChannelIndex = getMotionChannelIndex(profileIndex, channel.channel);
+        const motionChannelIndex = getMotionChannelIndex(profileIndex, channel.name);
         const profileHasChannel = motionChannelIndex > -1;
         const defaultChannel = getDefaultMotionChannel();
         document.getElementById('motionUpdate'+profileIndex+channelIndex).value = profileHasChannel ? motionProviderSettings['motionProfiles'][profileIndex]["channels"][motionChannelIndex]["update"] : defaultChannel["update"];

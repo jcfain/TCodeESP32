@@ -26,36 +26,38 @@ SOFTWARE. */
 #include "enum.h"
 #include "struct/channel.h"
 #include "constants.h"
+#define BLDC_V3_CHANNEL_COUNT 10
+#define SERVO_V3_CHANNEL_COUNT 14
 class ChannelMap {
 public:
-    const Channel Stroke = {"L0", "Stroke", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Surge = {"L1", "Surge", false, true, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Sway = {"L2", "Sway", false, true, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Twist = {"R0", "Twist", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Roll = {"R1", "Roll", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Pitch = {"R2", "Pitch", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Vibe1 = {"V0", "Vibe 1", true, false, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Vibe2 = {"V1", "Vibe 2", true, false, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Vibe3 = {"V2", "Vibe 3", true, false, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Vibe4 = {"V3", "Vibe 4", true, false, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel SuckManual = {"A0", "Suck manual", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel SuckLevel = {"A1", "Suck level", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Lube = {"A2", "Lube", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX};
-    const Channel Squeeze = {"A3", "Squeeze", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Stroke = {"L0", "Stroke", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Surge = {"L1", "Surge", false, true, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Sway = {"L2", "Sway", false, true, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Twist = {"R0", "Twist", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Roll = {"R1", "Roll", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Pitch = {"R2", "Pitch", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Vibe1 = {"V0", "Vibe 1", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
+    const Channel Vibe2 = {"V1", "Vibe 2", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
+    const Channel Vibe3 = {"V2", "Vibe 3", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
+    const Channel Vibe4 = {"V3", "Vibe 4", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
+    const Channel SuckManual = {"A0", "Suck manual", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel SuckLevel = {"A1", "Suck level", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Lube = {"A2", "Lube", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
+    const Channel Squeeze = {"A3", "Squeeze", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
 
-    Channel ChannelListV2[9] = {
-        Stroke,
-        Surge,
-        Sway,
-        {"L3", "Suck", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX},
-        Twist,
-        Roll,
-        Pitch,
-        {"V0", "Vibe 0", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX},
-        {"V1", "Vibe 1/Lube", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX}
-    };
+    // Channel ChannelListV2[9] = {
+    //     Stroke,
+    //     Surge,
+    //     Sway,
+    //     {"L3", "Suck", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX},
+    //     Twist,
+    //     Roll,
+    //     Pitch,
+    //     {"V0", "Vibe 0", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX},
+    //     {"V1", "Vibe 1/Lube", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX}
+    // };
 
-    Channel ChannelListV3[14] = {
+    Channel ChannelListV3[SERVO_V3_CHANNEL_COUNT] = {
         Stroke,
         Surge,
         Sway,
@@ -72,7 +74,7 @@ public:
         Squeeze
     };
 
-    Channel ChannelListBLDCV3[10] = {
+    Channel ChannelListBLDCV3[BLDC_V3_CHANNEL_COUNT] = {
         Stroke,
         Twist,
         Vibe1,
@@ -98,6 +100,44 @@ public:
             return;
         }
         serializeServo(arr);
+    }
+
+    uint8_t count() {
+        switch(m_motorType)
+        {
+            case MotorType::BLDC:
+            return BLDC_V3_CHANNEL_COUNT;
+            default:
+            return SERVO_V3_CHANNEL_COUNT;
+        }
+    }
+
+    Channel* get() {
+        switch(m_motorType)
+        {
+            case MotorType::BLDC:
+            return ChannelListBLDCV3;
+            default:
+            return ChannelListV3;
+        }
+    }
+    
+    Channel* get(uint8_t index) {
+        if(index > count())
+        {
+            return nullptr;
+        }
+        Channel* currentChannels = get();
+        return &currentChannels[index];
+    }
+
+    Channel* get(const char* name) {
+        Channel* currentChannels = get();
+        for (size_t i = 0; i < count(); i++) {
+            if(strcmp(currentChannels[i].Name, name) == 0)
+                return &currentChannels[i];
+        }
+        return nullptr;
     }
 
     void tCodeHome(char buf[MAX_COMMAND], uint16_t speed = 1000) {
@@ -156,6 +196,7 @@ private:
     //         channel.toJson(obj);
     //     }
     // }
+    
     void formatTCodeChannel(const Channel& channel, char* buf, int value, int speed = -1) {
         if(value < 0) {
             value = channel.isSwitch ? channel.min : channel.mid;
@@ -168,12 +209,13 @@ private:
         }
         sprintf(buf, "%s%sS%d", channel.Name, valueString, speed);
     }
+
     void setChannelLimits() {
-        for (Channel &channel : ChannelListV2) {
-            channel.min = 0;
-            channel.mid = 500;
-            channel.max = 999;
-        }
+        // for (Channel &channel : ChannelListV2) {
+        //     channel.min = 0;
+        //     channel.mid = 500;
+        //     channel.max = 999;
+        // }
         for (Channel &channel : ChannelListV3) {
             channel.min = 0;
             channel.mid = 5000;

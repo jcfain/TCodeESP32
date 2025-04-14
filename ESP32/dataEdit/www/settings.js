@@ -26,6 +26,8 @@ var pinoutSettings = {};
 var systemInfo = {};
 var motionProviderSettings = {};
 var buttonSettings = {};
+var channelsProfileSettings = {};
+var debounceTimeouts = {};
 var upDateTimeout;
 var upDatePinsTimeout;
 var restartRequired = false;
@@ -40,7 +42,8 @@ const EndPointType = {
     Pins: {uri: "/pins"},
     Wifi: {uri: "/wifiSettings"},
     MotionProfile: {uri: "/motionProfiles"},
-    Buttons: {uri: "/buttonSettings"}
+    Buttons: {uri: "/buttonSettings"},
+    ChannelProfiles: {uri: "/channelsProfile"},
 }
 const TCodeVersion = {
     V3: 0,
@@ -95,8 +98,6 @@ let BLDCEncoderType = {
     SPI: 1,
     PWM: 2
 };
-const servoDegreeValue180 = 637; 
-const servoDegreeValue270 = 425; 
 dubugMessages = [];
 var tcodeVersions = [];
 var testDeviceUseIModifier = false;
@@ -121,35 +122,6 @@ let validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33];
 let inputOnlypins = [34,35,36,39];
 let adc1Pins = [36,37,38,39,32,33,34,35];
 let adc2Pins = [4,0,2,15,13,12,14,27,25,26];
-
-const AvailibleChannelsV3 = [
-    {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
-    {channel: "L1", channelName: "Surge", switch: false, sr6Only: true},
-    {channel: "L2", channelName: "Sway", switch: false, sr6Only: true},
-    {channel: "R0", channelName: "Twist", switch: false, sr6Only: false},
-    {channel: "R1", channelName: "Roll", switch: false, sr6Only: false},
-    {channel: "R2", channelName: "Pitch", switch: false, sr6Only: false},
-    {channel: "V0", channelName: "Vibe 1", switch: true, sr6Only: false},
-    {channel: "V1", channelName: "Vibe 2", switch: true, sr6Only: false},
-    {channel: "V2", channelName: "Vibe 3", switch: true, sr6Only: false},
-    {channel: "V3", channelName: "Vibe 4", switch: true, sr6Only: false},
-    {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
-    {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
-    {channel: "A2", channelName: "Lube", switch: true, sr6Only: false},
-    {channel: "A3", channelName: "Aux", switch: false, sr6Only: false}
-]
-const AvailibleChannelsBLDC = [
-    {channel: "L0", channelName: "Stroke", switch: false, sr6Only: false},
-    {channel: "R0", channelName: "Twist", switch: false, sr6Only: false},
-    {channel: "V0", channelName: "Vibe 1", switch: true, sr6Only: false},
-    {channel: "V1", channelName: "Vibe 2", switch: true, sr6Only: false},
-    {channel: "V2", channelName: "Vibe 3", switch: true, sr6Only: false},
-    {channel: "V3", channelName: "Vibe 4", switch: true, sr6Only: false},
-    {channel: "A0", channelName: "Suck manual", switch: false, sr6Only: false},
-    {channel: "A1", channelName: "Suck level", switch: false, sr6Only: false},
-    {channel: "A2", channelName: "Lube", switch: true, sr6Only: false},
-    {channel: "A3", channelName: "Aux", switch: false, sr6Only: false}
-]
 
 document.addEventListener("DOMContentLoaded", function() {
     onDocumentLoad();
@@ -281,6 +253,20 @@ function getButtonSettings(chain) {
             showError("Error getting button settings!");
         }
         if(chain)
+            getChannelsProfileSettings(chain);
+        else
+            hideLoading();
+    });
+}
+
+function getChannelsProfileSettings(chain) {
+    showLoading("Loading channel settings...");
+    get("channel settings", EndPointType.ChannelProfiles.uri, function(xhr) {
+        channelsProfileSettings = xhr.response;
+        if(!channelsProfileSettings) {
+            showError("Error getting channels profile settings!");
+        }
+        if(chain)
             getUserSettings();
         else
             hideLoading();
@@ -314,9 +300,13 @@ function postWifiSettings(debounce, callback) {
 function postButtonSettings(debounce, callback) {
     updateUserSettings(debounce, EndPointType.Buttons.uri, buttonSettings, callback);
 }
-function postMotionProfileSettings(debounce) {
-    MotionGenerator.updateSettings(null, null, debounce);
+function postMotionProfileSettings(debounce, callback) {
+    updateUserSettings(debounce, EndPointType.MotionProfile.uri, motionProviderSettings, callback);
 }
+function postChannelsProfileSettings(debounce, callback) {
+    updateUserSettings(debounce, EndPointType.ChannelProfiles.uri, channelsProfileSettings, callback);
+}
+
 
 function updateALLUserSettings() {
     postCommonSettings(0, updatePinoutChain);
@@ -328,10 +318,13 @@ var updateWifiSettingsChain = function() {
     postWifiSettings(0, updateButtonSettingsChain);
 }
 var updateButtonSettingsChain = function() {
-    postButtonSettings(0, updateMotionProfileSettings);
+    postButtonSettings(0, updateMotionProfileSettingsChain);
 }
-var updateMotionProfileSettings = function() {
-    postMotionProfileSettings(0);
+var updateMotionProfileSettingsChain = function() {
+    postMotionProfileSettings(0, updateChannelsProfileSettingsChain);
+}
+var updateChannelsProfileSettingsChain = function() {
+    postChannelsProfileSettings(0);
 }
 
 // ALWAYS CALL setUserSettings/getUserSettings LAST! 
@@ -454,6 +447,19 @@ function debug(message) {
         debugTextElement.value = dubugMessages.join("\n");
         debugTextElement.scrollTop = debugTextElement.scrollHeight;
     }
+}
+
+function debounceInput(name, callBack, debounceInMs)
+{
+    if(debounceTimeouts[name] !== null) 
+    {
+        clearTimeout(debounceTimeouts[name]);
+    }
+    debounceTimeouts[name] = setTimeout(() => {
+        debounceTimeouts[name] = null;
+        callBack();
+    }, debounceInMs == null || debounceInMs == undefined ? defaultDebounce : debounceInMs);
+
 }
 
 function setLogLevelUI() {
@@ -906,7 +912,7 @@ function setUserSettings()
     document.getElementById("deviceType").disabled = isBoardType(BoardType.CRIMZZON) || isBoardType(BoardType.ISAAC) || isSSR1PCB;
     document.getElementById("BLDC_Encoder").disabled = isSSR1PCB;
 
-	document.getElementById("msPerRad").value = userSettings["msPerRad"];
+	document.getElementById("maxServoRange").value = userSettings["maxServoRange"];
 	
 	document.getElementById("feedbackTwist").checked = userSettings["feedbackTwist"];
 	document.getElementById("continuousTwist").checked = userSettings["continuousTwist"];
@@ -1299,11 +1305,11 @@ function sendTCode(tcode) {
 }
 
 function sendDeviceHome() {
-    channelSliderList.forEach(x => x.value = x.channelModel.switch ? 0 : 50);
+    channelSliderList.forEach(x => x.value = x.channelModel.isSwitch ? 0 : 50);
     var availibleChannels = getChannelMap();
     var tcode = "";
     availibleChannels.forEach((element, index, array) => {
-        tcode += getSliderTCode(element.channel, element.switch ? 0 : 50, false, 1000, false);
+        tcode += getSliderTCode(element.name, element.isSwitch ? 0 : 50, false, 1000, false);
         if (index !== array.length - 1){ 
             tcode += " ";
         }
@@ -1355,8 +1361,8 @@ function setupChannelSliders()
         if(!isSR6() && availibleChannels[i].sr6Only) {
             continue;
         }
-        var channel = availibleChannels[i].channel;
-        var channelName = availibleChannels[i].channelName;
+        var channel = availibleChannels[i].name;
+        var channelName = availibleChannels[i].friendlyName;
 
         var rowNode = document.createElement("div");
         rowNode.classList.add("tRow");
@@ -1374,7 +1380,7 @@ function setupChannelSliders()
         sliderNode.min = 0;
         sliderNode.max = 99;
         sliderNode.channelModel = availibleChannels[i];
-        sliderNode.value = availibleChannels[i].switch ? 0 : 50;
+        sliderNode.value = availibleChannels[i].isSwitch ? 0 : 50;
         sliderNode.addEventListener("input", function (sliderNode, channel, channelName, feedbackCellNode) {
             var tcode = getSliderTCode(channel, sliderNode.value, testDeviceUseIModifier, testDeviceModifierValue, testDeviceDisableModifier);
             sendTCode(tcode);
@@ -1475,8 +1481,11 @@ function hasTCodeV2()  {
 function getTCodeMax() {
     return 9999;
 }
+function getTCodeMin() {
+    return 0;
+}
 function getChannelMap() {
-    return systemInfo["motorType"] == MotorType.Servo ? AvailibleChannelsV3 : AvailibleChannelsBLDC;
+    return systemInfo["availableChannels"]
 };
 function onChannelSliderInput(channel, value) {
     sendTCode(channel+value.toString().padStart(4, "0") + "S1000");
@@ -1510,34 +1519,16 @@ function updateWebPort() {
     postWifiSettings();
 }
 
-function updateMSPerRad(userChecked) {
-    var control = document.getElementById('msPerRad');
-    if(!control.checkValidity()) {
-        showError(control.validationMessage);
-        return false;
-    }
-    userSettings["msPerRad"] = parseInt(control.value);
-    if(!userChecked) {
-        document.getElementById('msPerRadIs270').checked = userSettings["msPerRad"] == servoDegreeValue270;
-    }
-    setRestartRequired();
-    updateUserSettings();
+function updateMaxServoRange() {
+    debounceInput("maxServoRange", () => {
+        var control = document.getElementById('maxServoRange');
+        if(!validateIntControl(control, userSettings, "maxServoRange")) {
+            return false;
+        }
+        setRestartRequired();
+        updateUserSettings(0);
+    });
     return true;
-}
-
-function toggleMsPerRadIs270() {
-    var control = document.getElementById('msPerRad');
-    var msPerRadIs270Checkbox = document.getElementById('msPerRadIs270');
-    const backupvalue = control.value;
-    if(msPerRadIs270Checkbox.checked) {
-        control.value = servoDegreeValue270;//270 degree servo.
-    } else {
-        control.value = servoDegreeValue180;
-    }
-    if(!updateMSPerRad(true)) {
-        msPerRadIs270Checkbox.checked = !msPerRadIs270Checkbox.checked;
-        control.value = backupvalue;
-    }
 }
 
 function updateContinuousTwist() {
@@ -1615,6 +1606,7 @@ function updateHostName()
             errorString += "</div>";
             showError(errorString);
         }
+        hostnameTimeout = null;
     }, defaultDebounce);
 }
 
@@ -2459,12 +2451,6 @@ function toggleDeviceOptions(deviceType)
         sr6Only[i].style.display = deviceType == DeviceType.SR6 && deviceType != DeviceType.SSR1 ? "flex" : "none";
     for(var i=0;i < osrOnly.length; i++)
         osrOnly[i].style.display = deviceType == DeviceType.OSR && deviceType != DeviceType.SSR1 ? "flex" : "none";
-        
-    if(deviceType == DeviceType.SR6 && 
-        deviceType != DeviceType.SSR1 && 
-        userSettings["msPerRad"] == servoDegreeValue270) {
-        document.getElementById('msPerRadIs270').checked = true;
-    }
 }
 
 function toggleNonTCodev3Options()
@@ -2623,6 +2609,7 @@ function toggleSounds() {
 function exportToJsonFile() {
     alert("Wifi password will NOT be exported!");
     const userSettingsCopy = JSON.parse(JSON.stringify(userSettings));
+    userSettingsCopy["esp32VersionNum"] = systemInfo.esp32VersionNum;
     //userSettingsCopy["wifiPass"] = "YOUR PASSWORD HERE";
     userSettingsCopy["wifiSettings"] = wifiSettings;
     //userSettingsCopy["wifiSettings"].wifiPass = "YOUR PASSWORD HERE";
@@ -2630,7 +2617,8 @@ function exportToJsonFile() {
     userSettingsCopy["motionProfiles"] = motionProviderSettings.motionProfiles;
     userSettingsCopy["buttonSettings"] = buttonSettings;
     userSettingsCopy["pinoutSettings"] = pinoutSettings;
-
+    userSettingsCopy["channelsProfileSettings"] = channelsProfileSettings;
+    
     let dataStr = JSON.stringify(userSettingsCopy);
     let dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
 
@@ -2665,13 +2653,14 @@ function importSettings() {
                 var importedValue = json[key];
                 var existingValue = userSettings[key];
                 var wifiValue = wifiSettings[key];
+
                 // If the key doesnt exist anymore, dont import it.
                 if(existingValue != undefined && existingValue != null)// 0 can be valid
-                    userSettings[key] = checkMigrateData(key, importedValue);
-                else if(wifiValue != undefined && wifiValue != null)
-                    wifiSettings[key] = checkMigrateData(key, importedValue);
+                    userSettings[key] = checkMigrateData(key, importedValue, json["esp32VersionNum"]);
+                else if(wifiValue != undefined && wifiValue != null)// Not used
+                    wifiSettings[key] = checkMigrateData(key, importedValue, json["esp32VersionNum"]);
                 else
-                    handleImportRenames(key, importedValue)
+                    handleImportRenames(key, importedValue, json["esp32VersionNum"])
             });
             // If the new build doesnt have the old TCode version in it, set it to the latest version.
             if(tcodeVersions.findIndex(x => x.value == userSettings.TCodeVersion) == -1) {
@@ -2690,13 +2679,22 @@ function importSettings() {
     }
 }
 
-function checkMigrateData(key, value) {
-    if(key == "TCodeVersion" && value == 1)
+function checkMigrateData(key, value, firmwareVersion) {
+    if(!firmwareVersion && key == "TCodeVersion" && value == 1) {
         return TCodeVersion.V3;
+    } else if(key == "boardType") { 
+        if(!firmwareVersion || firmwareVersion < 0.39) {
+            if(value == 1) {
+                return BoardType.CRIMZZON; 
+            } else if(value == 2) {
+                return BoardType.ISAAC; 
+            }
+        }
+    }
     return value; 
 }
 
-function handleImportRenames(key, value) {
+function handleImportRenames(key, value, firmwareVersion) {
     switch(key) {
         case "BLDC_MotorA_Voltage":
         userSettings.BLDC_MotorA_VoltageLimit = value;
@@ -2765,6 +2763,9 @@ function handleImportRenames(key, value) {
             pinoutSettings[key] = value[key];
         });
         return;
+        case "channelsProfileSettings":
+            channelsProfileSettings = value;
+        return;
         case "sr6Mode":
         if(isMotorType(MotorType.BLDC))
             userSettings.deviceType = DeviceType.SSR1
@@ -2773,9 +2774,15 @@ function handleImportRenames(key, value) {
         return;
         case "BLDC_UsePWM": 
             userSettings.BLDC_Encoder = value ? BLDCEncoderType.PWM : BLDCEncoderType.SPI;
+            return;
         case "BLDC_UseMT6701": 
             userSettings.BLDC_Encoder = value ? BLDCEncoderType.MT6701 : BLDCEncoderType.SPI;
-        }
+            return;
+        case "msPerRad":
+            if(value == 425)// 425 is msPerRad for 270 servo.
+                userSettings.maxServoRange = 270
+            return;
+    }
     if(key.endsWith("_PIN")) {
         pinoutSettings[key] = value;
     }

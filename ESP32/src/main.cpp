@@ -756,16 +756,14 @@ void setup()
 	settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);
 	settingsFactory->getValue(BOARD_TYPE_SETTING, boardType);
 
-	int msPerRad;
-	bool lubeEnabled;
-	bool feedbackTwist;
-	bool analogTwist;
+	// bool lubeEnabled;
+	// bool feedbackTwist;
+	// bool analogTwist;
 	bool bootButtonEnabled;
 	bool buttonSetsEnabled;
 
-	settingsFactory->getValue(MS_PER_RAD, msPerRad);
-	settingsFactory->getValue(FEEDBACK_TWIST, feedbackTwist);
-	settingsFactory->getValue(ANALOG_TWIST, analogTwist);
+	// settingsFactory->getValue(FEEDBACK_TWIST, feedbackTwist);
+	// settingsFactory->getValue(ANALOG_TWIST, analogTwist);
 	settingsFactory->getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
 	settingsFactory->getValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
 

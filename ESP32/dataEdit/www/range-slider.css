@@ -28,21 +28,19 @@ SOFTWARE. */
     display: flex;
     flex-direction: column;
     width: 80%;
-    margin-top: 8px;
     margin-left: auto;
     margin-right: auto;
     border-bottom: 1px solid cadetblue;
-    padding-bottom: 8px;
+    padding-bottom: 4px;
 }
 .range_container .range_container_header {
     font-size: 1.1em;
     text-align: center;
-    margin-bottom: 18px;
     font-weight: bold;
 }
 .range_container .sliders_control {
     position: relative;
-    min-height: 20px;
+    min-height: 5px;
 }
   
 .range_container .form_control {
@@ -55,26 +53,15 @@ SOFTWARE. */
 }
 .range_container .range_container input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
+    appearance: none;
     pointer-events: all;
-    width: 24px;
-    height: 24px;
+    width: 16px;
+    height: 16px;
     background-color: #fff;
     border-radius: 50%;
     box-shadow: 0 0 0 1px #C6C6C6;
     cursor: pointer;
 }
-
-.range_container input[type=range]::-moz-range-thumb {
-    -webkit-appearance: none;
-    pointer-events: all;
-    width: 24px;
-    height: 24px;
-    background-color: #fff;
-    border-radius: 50%;
-    box-shadow: 0 0 0 1px #C6C6C6;
-    cursor: pointer;  
-}
-
 .range_container input[type=range]::-webkit-slider-thumb:hover {
     background: #f7f7f7;
 }
@@ -83,6 +70,27 @@ SOFTWARE. */
     box-shadow: inset 0 0 3px #387bbe, 0 0 9px #387bbe;
     -webkit-box-shadow: inset 0 0 3px #387bbe, 0 0 9px #387bbe;
 }
+
+.range_container input[type=range]::-moz-range-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    pointer-events: all;
+    width: 16px;
+    height: 16px;
+    background-color: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px #C6C6C6;
+    cursor: pointer;  
+}
+.range_container input[type=range]::-moz-range-thumb :hover {
+    background: #f7f7f7;
+}
+
+.range_container input[type=range]::-moz-range-thumb :active {
+    box-shadow: inset 0 0 3px #387bbe, 0 0 9px #387bbe;
+    -webkit-box-shadow: inset 0 0 3px #387bbe, 0 0 9px #387bbe;
+}
+
 
 .range_container input[type="number"] {
     width: 50px;

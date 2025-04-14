@@ -23,26 +23,25 @@ SOFTWARE. */
 // https://medium.com/@predragdavidovic10/native-dual-range-slider-html-css-javascript-91e778134816
 
 DeviceRangeSlider = {
+  minRange: 250,
   setup() {
     var channels = getChannelMap();
     var deviceRangesTable = document.getElementById("deviceRangesTable");
     deleteAllChildren(deviceRangesTable);
     for(var i = 0; i < channels.length; i++) {
       var channel = channels[i];
-      if(!isSR6() && channel.sr6Only || channel.switch) {
+      if(!isSR6() && channel.sr6Only) {
           continue;
       }
-      var name = channel.channel;
-      var friendlyName = channel.channelName;
-      if(!userSettings["channelRanges"])
+      var name = channel.name;
+      var friendlyName = channel.friendlyName;
+      if(!channel)
         return;
 
-      var min = 1;
+      var min = 0;
       var max = getTCodeMax();
-      if(userSettings["channelRanges"][name]) {
-        max = userSettings["channelRanges"][name].max;
-        min = userSettings["channelRanges"][name].min;
-      }
+      max = channel.userMax;
+      min = channel.userMin;
 
       var sliderHeader = document.createElement("div");
       sliderHeader.innerText = friendlyName;
@@ -54,8 +53,8 @@ DeviceRangeSlider = {
       var minSlider = document.createElement("input");
       minSlider.id = "minSlider" + name;
       minSlider.type = "range";
-      minSlider.min = 1;
-      minSlider.max = getTCodeMax();
+      minSlider.min = 0;
+      minSlider.max = getTCodeMax() - 1;
       minSlider.value = min;
       sliderControl.appendChild(minSlider);
       var maxSlider = document.createElement("input");
@@ -80,8 +79,8 @@ DeviceRangeSlider = {
       var minInput = document.createElement("input");
       minInput.id = "minInput" + name;
       minInput.type = "number";
-      minInput.min = 1;
-      minInput.max = getTCodeMax();
+      minInput.min = 0;
+      minInput.max = getTCodeMax() - 1;
       minInput.value = min;
       formControlContainer.appendChild(minInput);
       
@@ -138,6 +137,9 @@ DeviceRangeSlider = {
       }.bind(this, minSlider, maxSlider, minInput, maxInput, name);
     }
   },
+  updateSettings(debounce) {
+      updateUserSettings(debounce, EndPointType.ChannelProfiles.uri, channelsProfileSettings);
+  },
   show() {
     document.getElementById("deviceRangesModal").show();
   },
@@ -161,17 +163,27 @@ DeviceRangeSlider = {
   controlMinInput(minSlider, maxSlider, minInput, maxInput, controlSlider, channelName) {
       const [min, max] = this.getParsed(minInput, maxInput);
       this.fillSlider(minInput, maxInput, '#C6C6C6', '#25daa5', controlSlider);
-      maxInput.min = min;
-      minInput.max = max;
-      // if (min > max) {
-      //     minSlider.value = max;
-      //     minInput.value = max;
-      // } else {
-      //     minSlider.value = min;
+      var newValue = min + this.minRange;
+      if(newValue > getTCodeMax())
+      {
+        newValue = getTCodeMax() - this.minRange;
+      }
+      maxInput.min = newValue;
+      // maxInput.max = getTCodeMax();
+      // minSlider.value = min;
+      // if (min >= max) {
+      //   var newMax = min + this.minRange;
+      //   if(newMax > getTCodeMax()) {
+      //     newMax = getTCodeMax();
+      //     minInput.value = newMax - this.minRange;
+      //     minSlider.value = newMax - this.minRange;
+      //   } 
+      //   maxSlider.value = newMax;
+      //   maxInput.value = newMax;
       // }
-      if(minInput.checkValidity()) {
+      if(minInput.checkValidity() && maxInput.checkValidity()) {
           minSlider.value = minInput.value;
-          this.setChannelRange(channelName, minSlider.value, max);
+          this.setChannelRange(channelName, parseInt(minInput.value), max);
           sendTCode(channelName + minSlider.value + "S1000");
       }
   },
@@ -180,17 +192,26 @@ DeviceRangeSlider = {
       const [min, max] = this.getParsed(minInput, maxInput);
       this.fillSlider(minInput, maxInput, '#C6C6C6', '#25daa5', controlSlider);
       this.setToggleAccessible(maxInput, maxSlider);
-      maxInput.min = min;
-      minInput.max = max;
-      // if (min <= max) {
-      //     maxSlider.value = max;
-      //     maxInput.value = max;
-      // } else {
-      //     maxInput.value = min;
+      var newValue = max - this.minRange;
+      if(newValue < getTCodeMin())
+      {
+        newValue = getTCodeMin() + this.minRange;
+      }
+      minInput.max = newValue;
+      // minInput.min = getTCodeMin();
+      // if (max <= min) {
+      //   var newMin = max - this.minRange;
+      //   if(newMin < getTCodeMin()) {
+      //     newMin = getTCodeMin();
+      //     maxInput.value = newMin + this.minRange;
+      //     maxSlider.value = newMin + this.minRange;
+      //   } 
+      //   minSlider.value = newMin;
+      //   minInput.value = newMin;
       // }
-      if(maxInput.checkValidity()) {
+      if(maxInput.checkValidity() && minInput.checkValidity()) {
           maxSlider.value = maxInput.value;
-          this.setChannelRange(channelName, min, maxInput.value);
+          this.setChannelRange(channelName, min, parseInt(maxInput.value));
           sendTCode(channelName + maxInput.value + "S1000");
       }
   },
@@ -198,13 +219,18 @@ DeviceRangeSlider = {
   controlMinSlider(minSlider, maxSlider, minInput, maxInput, controlSlider, channelName) {
     const [min, max] = this.getParsed(minSlider, maxSlider);
     this.fillSlider(minSlider, maxSlider, '#C6C6C6', '#25daa5', controlSlider);
-    if (min > max) {
-      minSlider.value = max;
-      minInput.value = max;
-    } else {
-      minInput.value = min;
-    }
-    this.setChannelRange(channelName, minInput.value, max);
+    minInput.value = min;
+    if (min >= max) {
+      var newMax = min + this.minRange;
+      if(newMax > getTCodeMax()) {
+        newMax = getTCodeMax();
+        minInput.value = newMax - this.minRange;
+        minSlider.value = newMax - this.minRange;
+      } 
+      maxSlider.value = newMax;
+      maxInput.value = newMax;
+    } 
+    this.setChannelRange(channelName, parseInt(minInput.value), max);
     sendTCode(channelName + minInput.value + "S1000");
   },
 
@@ -212,22 +238,34 @@ DeviceRangeSlider = {
     const [min, max] = this.getParsed(minSlider, maxSlider);
     this.fillSlider(minSlider, maxSlider, '#C6C6C6', '#25daa5', controlSlider);
     this.setToggleAccessible(maxSlider, maxSlider);
-    if (min <= max) {
-      maxSlider.value = max;
-      maxInput.value = max;
-    } else {
-      maxInput.value = min;
-      maxSlider.value = min;
+    maxInput.value = max;
+    if (max <= min) {
+      var newMin = max - this.minRange;
+      if(newMin < getTCodeMin()) {
+        newMin = getTCodeMin();
+        maxInput.value = newMin + this.minRange;
+        maxSlider.value = newMin + this.minRange;
+      } 
+      minSlider.value = newMin;
+      minInput.value = newMin;
     }
-    this.setChannelRange(channelName, min, maxSlider.value);
-    sendTCode(channelName + maxSlider.value  + "S1000");
+    this.setChannelRange(channelName, min, parseInt(maxInput.value));
+    sendTCode(channelName + maxInput.value + "S1000");
   },
 
   setChannelRange(channelName, min, max) {
-      userSettings["channelRanges"][channelName].min = min;
-      userSettings["channelRanges"][channelName].max = max;
-      
-      updateUserSettings();
+    for(var i=0; i<channelsProfileSettings["channelProfile"].length; i++)
+    {
+      var profile = channelsProfileSettings["channelProfile"][i];
+      if(profile["name"] == channelName)
+      {
+        profile.userMin = min;
+        profile.userMax = max;
+        
+        this.updateSettings();
+        break;
+      }
+    }
   },
 
   getParsed(currentFrom, currentTo) {

@@ -149,7 +149,6 @@ public:
     void setup() override 
     {
 		m_settingsFactory = SettingsFactory::getInstance();
-        m_settingsFactory->getValue(MS_PER_RAD, ms_per_rad);
         m_settingsFactory->getValue(SERVO_FREQUENCY, MainServo_Freq);
         m_settingsFactory->getValue(PITCH_FREQUENCY, PitchServo_Freq);
         toy.setup();

@@ -62,7 +62,7 @@ public:
     }
 
     void updateRange() {
-        setRange(SettingsHandler::getChannelMin(m_channel), SettingsHandler::getChannelMax(m_channel));
+        setRange(SettingsHandler::getChannelUserMin(m_channel), SettingsHandler::getChannelUserMax(m_channel));
     }
     void getMovement(char* buf, size_t len) {
         calculateNext(buf, len);
@@ -389,14 +389,15 @@ private:
             getPeriod(); // Just call this to check for random updates.
 
         if (!stopped) {
-            int pos = constrain((int)round(getAmplitude() * sin(currentPhase + getPhase()) + getOffset()), -90, 90);
+            int pos = (int)round(getAmplitude() * sin(currentPhase + getPhase()) + getOffset());
+            // pos = constrain(value, -90, 90);
             if (getReverse())
                 pos = -pos;
                 
             // if(tcodeVersion == TCodeVersion::v0_2) {
             //     sprintf(buf, "%s%03dI%u", m_channel, constrain((uint16_t)map(pos, -90, 90, 0, 999), m_min, m_max), interval);
             // } else {
-                snprintf(buf, len, "%s%04dI%u", m_channel, constrain((uint16_t)map(pos, -90, 90, 0, 9999), m_min, m_max), interval);
+                snprintf(buf, len, "%s%04dI%u", m_channel, (uint16_t)map(pos, -90, 90, m_min, m_max), interval);
             // }
 
             LogHandler::verbose(TagHandler::MotionHandler, "%s pos: %d" , m_channel, pos);

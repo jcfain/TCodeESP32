@@ -41,18 +41,29 @@ protected:
     // (Standard: 637 μs/rad)
     // (LW-20: 700 μs/rad)
     // 270 2/3 of 637 = 424.666666667
+// const servoDegreeValue180 = 637; 
+// const servoDegreeValue270 = 425; 
     int ms_per_rad;  // (μs/rad)
+    int maxServoRange;
 
     void setupCommon() {
         if(!m_tcode)
             return;
             
         m_settingsFactory = SettingsFactory::getInstance();
+
         PinMap* pinMap = m_settingsFactory->getPins();
 
         m_tcode->setup(FIRMWARE_VERSION_NAME);
 
         m_servoPWMMaxDuty = static_cast<uint32_t>(pow(2, SERVO_PWM_RES) - 1);
+        m_settingsFactory->getValue(MAX_SERVO_RANGE, maxServoRange);
+        if(!maxServoRange)
+        {
+            LogHandler::error(_TAG, "Invalid, max Servo range. Setting to 180...");
+            maxServoRange = 180;
+        }
+        ms_per_rad = 114592/maxServoRange;
         
         m_valveServoPin = pinMap->valve();
         m_valveServoChannel = pinMap->valveChannel();
@@ -198,6 +209,14 @@ protected:
         executeVibe(3);
     }
     
+protected:
+    uint16_t axisRead(const char* channel) {
+        uint16_t value = m_tcode->AxisRead(channel);
+        uint16_t userMin = SettingsHandler::getChannelUserMin(channel);
+        uint16_t userMax = SettingsHandler::getChannelUserMax(channel);
+        return map(value, TCODE_MIN, TCODE_MAX, userMin, userMax);
+    }
+
 private:
     const char* _TAG = TagHandler::MotorHandler;
     bool m_initFailed = false;
@@ -252,7 +271,7 @@ private:
         if(m_twistServoPin < 0) {
             return;
         }
-        xRot = m_tcode->AxisRead("R0");
+        xRot = axisRead("R0");
         if(xRot > -1) {
             if (m_isTwistFeedBack && !m_settingsFactory->getContinuousTwist()) 
             {
@@ -291,7 +310,7 @@ private:
             int twist;
             if (m_isTwistFeedBack && !m_settingsFactory->getContinuousTwist()) 
             {
-                twist  = (xRot - map(twistPos,-1500,1500,9999,0))/5;
+                twist  = (xRot - map(twistPos,-1500,1500, TCODE_MAX, TCODE_MIN))/5;
                 if(!m_isAnalogTwist) 
                 { 
                     twist  = constrain(twist, -750, 750);
@@ -309,8 +328,8 @@ private:
                     //     testVar2 = twist;
                     //     Serial.print("twist: ");
                     //     Serial.println(1500 + twist);
-                    //     Serial.print("map(twistPos,-1500,1500,9999,0) "); 
-                    //     Serial.println(map(twistPos,-1500,1500,9999,0));
+                    //     Serial.print("map(twistPos,-1500,1500,TCODE_MAX,TCODE_MIN) "); 
+                    //     Serial.println(map(twistPos,-1500,1500,TCODE_MAX,TCODE_MIN));
                         // Serial.print("map "); 
                         // Serial.println(map(SettingsHandler::getTwistServo_ZERO() + twist,0,TwistServo_Int,0,m_servoPWMMaxDuty));
                     //}
@@ -319,9 +338,9 @@ private:
             else
             {
                 if(m_settingsFactory->getInverseTwist())
-                    twist = map(xRot,0,9999,-1000,1000);
+                    twist = map(xRot, TCODE_MIN, TCODE_MAX,-1000,1000);
                 else
-                    twist = map(xRot,0,9999,1000,-1000);
+                    twist = map(xRot, TCODE_MIN, TCODE_MAX,1000,-1000);
             }
             #ifdef ESP_ARDUINO3
             ledcWrite(m_twistServoPin, map(m_settingsFactory->getTwistServo_ZERO() + twist,0,m_twistServo_Int,0,m_servoPWMMaxDuty));
@@ -335,8 +354,8 @@ private:
         if(m_valveServoPin < 0) {
             return;
         }
-        valveCmd = m_tcode->AxisRead("A0");
-        suckCmd = m_tcode->AxisRead("A1");
+        valveCmd = axisRead("A0");
+        suckCmd = axisRead("A1");
         if(valveCmd > -1 || suckCmd > -1) {
             // Valve
             // Calculate valve position
@@ -366,7 +385,7 @@ private:
                     valveCmd = map(100*upVel, 0, -500, suckCmd, 0);
                 }
             }
-            valvePos = (9*valvePos + map(valveCmd, 0, 9999, 0, 1000))/10;
+            valvePos = (9*valvePos + map(valveCmd, TCODE_MIN, TCODE_MAX, 0, 1000))/10;
 
             int valve;
             valve  = valvePos - 500;
@@ -392,7 +411,7 @@ private:
 
     void executeVibe(int index) {
         // These should drive PWM pins connected to vibration motors via MOSFETs or H-bridges.
-        String channel = "V0";
+        const char* channel = "V0";
         #ifdef ESP_ARDUINO3
         int pwmChannel = m_vib0Pin;
         #else
@@ -439,10 +458,10 @@ private:
         if(pwmChannel < 0) {
             return;
         }
-        int cmd = m_tcode->AxisRead(channel);
+        int cmd = axisRead(channel);
         if(cmd > -1) {
-            if (cmd > 0 && cmd <= 9999) {
-                ledcWrite(pwmChannel, map(cmd,1,9999,31,255));
+            if (cmd > 0 && cmd <= TCODE_MAX) {
+                ledcWrite(pwmChannel, map(cmd,1,TCODE_MAX,31,255));
             } else {
                 ledcWrite(pwmChannel, 0);
             }
@@ -457,13 +476,13 @@ private:
             if(m_vib1Pin < 0) {
                 return;
             }
-            int cmd = m_tcode->AxisRead("A2"); 
+            int cmd = axisRead("A2"); 
             if (cmd > -1) {
-                if (cmd > 0 && cmd <= 9999) {
+                if (cmd > 0 && cmd <= TCODE_MAX) {
                     #ifdef ESP_ARDUINO3
-                    ledcWrite(m_vib1Pin, map(cmd,1,9999,127,255));
+                    ledcWrite(m_vib1Pin, map(cmd,1,TCODE_MAX,127,255));
                     #else
-                    ledcWrite(m_vib1Channel, map(cmd,1,9999,127,255));
+                    ledcWrite(m_vib1Channel, map(cmd,1,TCODE_MAX,127,255));
                     #endif
                 } else if (digitalRead(m_lubeButtonPin) == HIGH) {
                 #ifdef ESP_ARDUINO3
@@ -485,9 +504,9 @@ private:
         if(m_squeezeServoPin < 0) {
             return;
         }
-        squeezeCmd = m_tcode->AxisRead("A3");
+        squeezeCmd = axisRead("A3");
         if(squeezeCmd > -1) {
-            int squeeze = map(squeezeCmd,0,9999,1000,-1000);
+            int squeeze = map(squeezeCmd,TCODE_MIN,TCODE_MAX,1000,-1000);
             #ifdef ESP_ARDUINO3
             ledcWrite(m_squeezeServoPin, map(m_settingsFactory->getSqueezeServo_ZERO() + squeeze,0,m_squeezeServo_Int,0,m_servoPWMMaxDuty));
             #else

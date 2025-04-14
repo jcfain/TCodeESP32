@@ -40,7 +40,6 @@ public:
         m_settingsFactory = SettingsFactory::getInstance();
         
         m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
-        m_settingsFactory->getValue(MS_PER_RAD, ms_per_rad);
         LogHandler::debug(_TAG, "DEVICE_TYPE: %d", m_deviceType);
         if(m_deviceType == DeviceType::TVIBE) {
             LogHandler::info(_TAG, "Setting up motor for device type TVibe");
@@ -187,9 +186,9 @@ public:
             // Collect inputs
             // These functions query the t-code object for the position/level at a specified time
             // Number recieved will be an integer, 0-9999
-            xLin = m_tcode->AxisRead("L0");
-            yRot = m_tcode->AxisRead("R1");
-            zRot = m_tcode->AxisRead("R2");
+            xLin = axisRead("L0");
+            yRot = axisRead("R1");
+            zRot = axisRead("R2");
             // If you want to mix your servos differently, enter your code below:
 
             if(m_deviceType == DeviceType::OSR)
@@ -248,35 +247,28 @@ private:
         // Calculate arm angles
         // Linear scale inputs to servo appropriate numbers
         int stroke,roll,pitch;
-        stroke = map(strokeTcode,0,9999,-350,350);
-        roll   = map(rollTcode,0,9999,-180,180);
-        pitch  = map(pitchTcode,0,9999,-350,350);
-        int leftDuty;
-        int rightDuty;
-        int pitchDuty;
         if(m_settingsFactory->getInverseStroke()) 
         {
-            leftDuty = map(m_settingsFactory->getLeftServo_ZERO() - stroke + roll,0,m_leftServo_Int,0,m_servoPWMMaxDuty);
-            rightDuty = map(m_settingsFactory->getRightServo_ZERO() + stroke + roll,0,m_rightServo_Int,0,m_servoPWMMaxDuty);
-        }
-        else
+            stroke = map(strokeTcode,TCODE_MIN,TCODE_MAX,350,-350);
+            roll   = map(rollTcode,TCODE_MIN,TCODE_MAX,180,-180);
+        } 
+        else 
         {
-            leftDuty = map(m_settingsFactory->getLeftServo_ZERO() + stroke + roll,0,m_leftServo_Int,0,m_servoPWMMaxDuty);
-            rightDuty = map(m_settingsFactory->getRightServo_ZERO() - stroke + roll,0,m_rightServo_Int,0,m_servoPWMMaxDuty);
+            stroke = map(strokeTcode,TCODE_MIN,TCODE_MAX,-350,350);
+            roll   = map(rollTcode,TCODE_MIN,TCODE_MAX,-180,180);
         }
         if(m_settingsFactory->getInversePitch()) 
         {
-            pitchDuty = map(m_settingsFactory->getPitchLeftServo_ZERO() + pitch,0,m_pitchLeftServo_Int,0,m_servoPWMMaxDuty);
+            pitch  = map(pitchTcode,TCODE_MIN,TCODE_MAX,350,-350);
         }
         else
         {
-            pitchDuty = map(m_settingsFactory->getPitchLeftServo_ZERO() - pitch,0,m_pitchLeftServo_Int,0,m_servoPWMMaxDuty);
-            // Serial.println(pitch);
-            // Serial.println(m_settingsFactory->getPitchLeftServo_ZERO());
-            // Serial.println(PitchServo_Int);
-            // Serial.println(pitchDuty);
-            // Serial.println(m_servoPWMMaxDuty);
+            pitch  = map(pitchTcode,TCODE_MIN,TCODE_MAX,-350,350);
         }
+
+        int leftDuty = map(m_settingsFactory->getLeftServo_ZERO() + stroke + roll,0,m_leftServo_Int,0,m_servoPWMMaxDuty);
+        int rightDuty = map(m_settingsFactory->getRightServo_ZERO() - stroke + roll,0,m_rightServo_Int,0,m_servoPWMMaxDuty);
+        int pitchDuty = map(m_settingsFactory->getPitchLeftServo_ZERO() - pitch,0,m_pitchLeftServo_Int,0,m_servoPWMMaxDuty);
 
 #ifndef ESP_PROG
         #ifdef ESP_ARDUINO3
@@ -293,37 +285,36 @@ private:
 
     void executeSR6(int strokeTcode, int rollTcode, int pitchTcode) 
     {
-        yLin = m_tcode->AxisRead("L1");
-        zLin = m_tcode->AxisRead("L2");
+        yLin = axisRead("L1");
+        zLin = axisRead("L2");
         // SR6 Kinematics
         // Calculate arm angles
         int roll,pitch,fwd,thrust,side;
-        roll = map(rollTcode,0,9999,-3000,3000);
-        pitch = map(pitchTcode,0,9999,-2500,2500);
-        fwd = map(yLin,0,9999,-3000,3000);
-        thrust = map(strokeTcode,0,9999,-6000,6000);
-        side = map(zLin,0,9999,-3000,3000);
-
-        // Main arms
-        int lowerLeftValue,upperLeftValue,pitchLeftValue,pitchRightValue,upperRightValue,lowerRightValue;
         if(m_settingsFactory->getInverseStroke()) 
         {
-            lowerLeftValue = SetMainServo(16248 - fwd, 1500 - thrust - roll); // Lower left servo
-            lowerRightValue = SetMainServo(16248 - fwd, 1500 - thrust + roll); // Lower right servo
-            upperLeftValue = SetMainServo(16248 - fwd, 1500 + thrust + roll); // Upper left servo
-            upperRightValue = SetMainServo(16248 - fwd, 1500 + thrust - roll); // Upper right servo
-            pitchLeftValue = SetPitchServo(16248 - fwd, 4500 + thrust, -side + 1.5*roll, -pitch);
-            pitchRightValue = SetPitchServo(16248 - fwd, 4500 + thrust, side - 1.5*roll, -pitch);
+            roll = map(rollTcode,TCODE_MIN,TCODE_MAX,3000,-3000);
+            pitch = map(pitchTcode,TCODE_MIN,TCODE_MAX,2500,-2500);
+            fwd = map(yLin,TCODE_MIN,TCODE_MAX,3000,-3000);
+            thrust = map(strokeTcode,TCODE_MIN,TCODE_MAX,6000,-6000);
+            side = map(zLin,TCODE_MIN,TCODE_MAX,3000,-3000);   
         } 
         else 
         {
-            lowerLeftValue = SetMainServo(16248 - fwd, 1500 + thrust + roll); // Lower left servo
-            lowerRightValue = SetMainServo(16248 - fwd, 1500 + thrust - roll); // Lower right servo
-            upperLeftValue = SetMainServo(16248 - fwd, 1500 - thrust - roll); // Upper left servo
-            upperRightValue = SetMainServo(16248 - fwd, 1500 - thrust + roll); // Upper right servo
-            pitchLeftValue = SetPitchServo(16248 - fwd, 4500 - thrust, side - 1.5*roll, -pitch);
-            pitchRightValue = SetPitchServo(16248 - fwd, 4500 - thrust, -side + 1.5*roll, -pitch);
+            roll = map(rollTcode,TCODE_MIN,TCODE_MAX,-3000,3000);
+            pitch = map(pitchTcode,TCODE_MIN,TCODE_MAX,-2500,2500);
+            fwd = map(yLin,TCODE_MIN,TCODE_MAX,-3000,3000);
+            thrust = map(strokeTcode,TCODE_MIN,TCODE_MAX,-6000,6000);
+            side = map(zLin,TCODE_MIN,TCODE_MAX,-3000,3000); 
         }
+
+        // Main arms
+        int lowerLeftValue = SetMainServo(16248 - fwd, 1500 + thrust + roll); // Lower left servo
+        int lowerRightValue = SetMainServo(16248 - fwd, 1500 + thrust - roll); // Lower right servo
+        int upperLeftValue = SetMainServo(16248 - fwd, 1500 - thrust - roll); // Upper left servo
+        int upperRightValue = SetMainServo(16248 - fwd, 1500 - thrust + roll); // Upper right servo
+        int pitchLeftValue = SetPitchServo(16248 - fwd, 4500 - thrust, side - 1.5*roll, -pitch);
+        int pitchRightValue = SetPitchServo(16248 - fwd, 4500 - thrust, -side + 1.5*roll, -pitch);
+
         int lowerLeftDuty = map(m_settingsFactory->getLeftServo_ZERO() - lowerLeftValue,0,m_leftServo_Int,0,m_servoPWMMaxDuty);
         int lowerRightDuty = map(m_settingsFactory->getRightServo_ZERO() + lowerRightValue,0,m_rightServo_Int,0,m_servoPWMMaxDuty);
         int upperLeftDuty = map(m_settingsFactory->getLeftUpperServo_ZERO() + upperLeftValue,0,m_leftUpperServo_Int,0,m_servoPWMMaxDuty);
@@ -359,7 +350,7 @@ private:
         float gamma = atan2(x,y);    // Angle of line from servo pivot to receiver pivot
         float csq = sq(x) + sq(y);   // Square of distance between servo pivot and receiver pivot
         float c = sqrt(csq);         // Distance between servo pivot and receiver pivot
-        float beta = acos((csq - 28125)/(100*c));  // Angle between c-line and servo arm
+        float beta = acos(constrain((csq - 28125)/(100*c), -1, 1));  // Angle between c-line and servo arm
         int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
         return out;
     }
@@ -377,7 +368,7 @@ private:
         float gamma = atan2(x,y);       // Angle of line from servo pivot to receiver pivot
         float csq = sq(x) + sq(y);      // Square of distance between servo pivot and receiver pivot
         float c = sqrt(csq);            // Distance between servo pivot and receiver pivot
-        float beta = acos((csq + 5625 - bsq)/(150*c)); // Angle between c-line and servo arm
+        float beta = acos(constrain((csq + 5625 - bsq)/(150*c), -1, 1)); // Angle between c-line and servo arm
         int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
         return out;
     }

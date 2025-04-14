@@ -99,6 +99,12 @@ class WebHandler : public HTTPBase {
                 //sendChunked(request, MOTION_PROFILE_SETTINGS_PATH);
             });   
 
+            server->on("/channelsProfile", HTTP_GET, [this](AsyncWebServerRequest *request) 
+            {
+                request->send(LittleFS, CHANNELS_SETTINGS_PATH, "application/json");
+                //sendChunked(request, CHANNELS_SETTINGS_PATH);
+            });   
+
             server->on("/buttonSettings", HTTP_GET, [this](AsyncWebServerRequest *request) 
             {
                 request->send(LittleFS, BUTTON_SETTINGS_PATH, "application/json");
@@ -298,6 +304,23 @@ class WebHandler : public HTTPBase {
                     request->send(response);
                 }
             }, 30000U );//Bad request? increase the size.
+
+            AsyncCallbackJsonWebHandler* channelsProfileUpdateHandler = new AsyncCallbackJsonWebHandler("/channelsProfile", [](AsyncWebServerRequest *request, JsonVariant &json)
+			{
+                Serial.println("API save channels profile...");
+                JsonObject jsonObj = json.as<JsonObject>();
+                if (SettingsHandler::saveChannels(jsonObj)) 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                    request->send(response);
+                } 
+                else 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving channels profile\"}");
+                    request->send(response);
+                }
+            }, 5000U );//Bad request? increase the size.
+
             
             AsyncCallbackJsonWebHandler* buttonsUpdateHandler = new AsyncCallbackJsonWebHandler("/buttonSettings", [](AsyncWebServerRequest *request, JsonVariant &json)
 			{
@@ -358,6 +381,7 @@ class WebHandler : public HTTPBase {
             server->addHandler(pinsHandler);
             server->addHandler(wifiUpdateHandler);
             server->addHandler(motionProfileUpdateHandler);
+            server->addHandler(channelsProfileUpdateHandler);
             server->addHandler(buttonsUpdateHandler);
             
             server->onNotFound([](AsyncWebServerRequest *request) 
