@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <ArduinoJson.h>
 #include "settingConstants.h"
 
 struct Channel {
@@ -14,6 +15,7 @@ struct Channel {
     uint16_t userMin;
     uint16_t userMid;
     uint16_t userMax;
+    bool rangeLimitEnabled = false;
 
     void toJson(JsonObject& obj) {
         obj[CHANNEL_NAME] = Name;
@@ -24,6 +26,7 @@ struct Channel {
         obj[CHANNEL_USER_MIN] = userMin;
         obj[CHANNEL_USER_MID] = userMid;
         obj[CHANNEL_USER_MAX] = userMax;
+        obj[CHANNEL_RANGE_LIMIT_ENABLED] = rangeLimitEnabled;
         obj[CHANNEL_IS_SWITCH] = isSwitch;
         obj[CHANNEL_SR6_ONLY] = sr6Only;
     }
@@ -37,6 +40,7 @@ struct Channel {
         userMin = obj[CHANNEL_USER_MIN] | 0;
         userMid = obj[CHANNEL_USER_MID] | 5000;
         userMax = obj[CHANNEL_USER_MAX] | 9999;
+        rangeLimitEnabled = obj[CHANNEL_RANGE_LIMIT_ENABLED];
         isSwitch = obj[CHANNEL_IS_SWITCH];
         sr6Only = obj[CHANNEL_SR6_ONLY];
     }

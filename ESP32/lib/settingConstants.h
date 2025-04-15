@@ -243,6 +243,7 @@
 #define CHANNEL_USER_MIN "userMin"
 #define CHANNEL_USER_MID "userMid"
 #define CHANNEL_USER_MAX "userMax"
+#define CHANNEL_RANGE_LIMIT_ENABLED "rangeLimitEnabled"
 #define CHANNEL_IS_SWITCH "isSwitch"
 #define CHANNEL_SR6_ONLY "sr6Only"
 

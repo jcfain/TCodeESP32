@@ -186,9 +186,9 @@ public:
             // Collect inputs
             // These functions query the t-code object for the position/level at a specified time
             // Number recieved will be an integer, 0-9999
-            xLin = axisRead("L0");
-            yRot = axisRead("R1");
-            zRot = axisRead("R2");
+            xLin = channelRead("L0");
+            yRot = channelRead("R1");
+            zRot = channelRead("R2");
             // If you want to mix your servos differently, enter your code below:
 
             if(m_deviceType == DeviceType::OSR)
@@ -285,8 +285,8 @@ private:
 
     void executeSR6(int strokeTcode, int rollTcode, int pitchTcode) 
     {
-        yLin = axisRead("L1");
-        zLin = axisRead("L2");
+        yLin = channelRead("L1");
+        zLin = channelRead("L2");
         // SR6 Kinematics
         // Calculate arm angles
         int roll,pitch,fwd,thrust,side;

@@ -210,11 +210,14 @@ protected:
     }
     
 protected:
-    uint16_t axisRead(const char* channel) {
-        uint16_t value = m_tcode->AxisRead(channel);
-        uint16_t userMin = SettingsHandler::getChannelUserMin(channel);
-        uint16_t userMax = SettingsHandler::getChannelUserMax(channel);
-        return map(value, TCODE_MIN, TCODE_MAX, userMin, userMax);
+    uint16_t channelRead(const char* name) {
+        uint16_t value = m_tcode->AxisRead(name);
+        Channel* channel = SettingsHandler::getChannel(name);
+        if(channel && channel->rangeLimitEnabled)
+        {
+            return map(value, TCODE_MIN, TCODE_MAX, channel->userMin, channel->userMax);
+        }
+        return value;
     }
 
 private:
@@ -271,7 +274,7 @@ private:
         if(m_twistServoPin < 0) {
             return;
         }
-        xRot = axisRead("R0");
+        xRot = channelRead("R0");
         if(xRot > -1) {
             if (m_isTwistFeedBack && !m_settingsFactory->getContinuousTwist()) 
             {
@@ -354,8 +357,8 @@ private:
         if(m_valveServoPin < 0) {
             return;
         }
-        valveCmd = axisRead("A0");
-        suckCmd = axisRead("A1");
+        valveCmd = channelRead("A0");
+        suckCmd = channelRead("A1");
         if(valveCmd > -1 || suckCmd > -1) {
             // Valve
             // Calculate valve position
@@ -458,7 +461,7 @@ private:
         if(pwmChannel < 0) {
             return;
         }
-        int cmd = axisRead(channel);
+        int cmd = channelRead(channel);
         if(cmd > -1) {
             if (cmd > 0 && cmd <= TCODE_MAX) {
                 ledcWrite(pwmChannel, map(cmd,1,TCODE_MAX,31,255));
@@ -476,7 +479,7 @@ private:
             if(m_vib1Pin < 0) {
                 return;
             }
-            int cmd = axisRead("A2"); 
+            int cmd = channelRead("A2"); 
             if (cmd > -1) {
                 if (cmd > 0 && cmd <= TCODE_MAX) {
                     #ifdef ESP_ARDUINO3
@@ -504,7 +507,7 @@ private:
         if(m_squeezeServoPin < 0) {
             return;
         }
-        squeezeCmd = axisRead("A3");
+        squeezeCmd = channelRead("A3");
         if(squeezeCmd > -1) {
             int squeeze = map(squeezeCmd,TCODE_MIN,TCODE_MAX,1000,-1000);
             #ifdef ESP_ARDUINO3

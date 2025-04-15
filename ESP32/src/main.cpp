@@ -753,8 +753,11 @@ void setup()
 	// Cached (Requires reboot)
 	MotorType motorType;
 	BoardType boardType;
+	DeviceType deviceType;
 	settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);
 	settingsFactory->getValue(BOARD_TYPE_SETTING, boardType);
+	settingsFactory->getValue(DEVICE_TYPE, deviceType);
+	SettingsHandler::channelMap.init(settingsFactory->getTcodeVersion(), motorType, deviceType);
 
 	// bool lubeEnabled;
 	// bool feedbackTwist;

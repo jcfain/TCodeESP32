@@ -31,25 +31,35 @@ SOFTWARE. */
     margin-left: auto;
     margin-right: auto;
     border-bottom: 1px solid cadetblue;
-    padding-bottom: 4px;
+    margin-bottom: 8px;
 }
 .range_container .range_container_header {
     font-size: 1.1em;
-    text-align: center;
-    font-weight: bold;
+    text-align: left;
+    font-weight: bold;  
 }
 .range_container .sliders_control {
     position: relative;
     min-height: 5px;
+    margin-bottom: 10px;
 }
   
 .range_container .form_control {
     position: relative;
     display: flex;
-    justify-content: space-between;
+    justify-content: space-between;  
+    margin-bottom: 12px;
 }
 .range_container .form_control_container {  
-    text-align: center;
+    text-align: right;
+    flex-basis: 25%;
+}
+.range_container .form_control_container_label {  
+    margin-right: 2px;
+}
+.range_container .form_control_container_header {  
+    text-align: left;
+    flex-basis: 50%;
 }
 .range_container .range_container input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -110,14 +120,15 @@ SOFTWARE. */
 .range_container input[type="range"] {
     -webkit-appearance: none; 
     appearance: none;
-    height: 2px;
+    height: 6px;
     width: 100%;
     position: absolute;
-    background-color: #C6C6C6;
-    pointer-events: none;
+    pointer-events: none;  
+    border-radius: 25px;
 }
 
-#fromSlider {
+.fromSlider {
     height: 0;
-    z-index: 1;
+    z-index: 2;
+    background-color: transparent !important;
 }

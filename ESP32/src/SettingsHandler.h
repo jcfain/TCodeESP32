@@ -223,6 +223,7 @@ public:
 
     static void init()
     {
+        m_settingsFactory = SettingsFactory::getInstance();
         setBuildFeatures();
         setMotorType();
 
@@ -231,6 +232,12 @@ public:
         loadChannels(false);
         loadMotionProfiles(false);
         loadButtons(false);
+
+        MotorType motorType;
+        DeviceType deviceType;
+        m_settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);
+        m_settingsFactory->getValue(DEVICE_TYPE, deviceType);
+        channelMap.init(m_settingsFactory->getTcodeVersion(), motorType, deviceType);
 
         LogHandler::debug(_TAG, "Last reset reason: %s", machine_reset_cause());
         initialized = true;
@@ -802,6 +809,7 @@ public:
                     channel->userMin = profileObj[CHANNEL_USER_MIN] | TCODE_MIN;
                     channel->userMid = profileObj[CHANNEL_USER_MID] | TCODE_MID;
                     channel->userMax = profileObj[CHANNEL_USER_MAX] | TCODE_MAX;
+                    channel->rangeLimitEnabled = profileObj[CHANNEL_RANGE_LIMIT_ENABLED];
                     LogHandler::debug(_TAG, "Loading channel profile '%s' from settings", name);
                 }
             }
@@ -830,6 +838,7 @@ public:
             doc[CHANNEL_PROFILE][i][CHANNEL_USER_MIN] = channel->userMin;
             doc[CHANNEL_PROFILE][i][CHANNEL_USER_MID] = channel->userMid;
             doc[CHANNEL_PROFILE][i][CHANNEL_USER_MAX] = channel->userMax;
+            doc[CHANNEL_PROFILE][i][CHANNEL_RANGE_LIMIT_ENABLED] = channel->rangeLimitEnabled;
             if(initialized) {
                 sendMessage(SettingProfile::ChannelRanges, CHANNEL_PROFILE);
             }
@@ -1132,9 +1141,9 @@ public:
     //             // Serial.print(" value: ");
     //             // Serial.println(value);
     //             char integer_string[4];
-    //             sprintf(integer_string, SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2 ? "%03d" : "%04d", SettingsHandler::calculateRange(channel, value));
+    //             sprintf(integer_string, SettingsHandler::TCodeVersionEnum == TCodeVersion::v0_2 ? "%03d" : "%04d", SettingsHandler::calculateRange(name, value));
     //             // pad(integer_string);
-    //             // sprintf(integer_string, "%d", SettingsHandler::calculateRange(channel, value));
+    //             // sprintf(integer_string, "%d", SettingsHandler::calculateRange(name, value));
     //             // Serial.print("integer_string");
     //             // Serial.println(integer_string);
     //             strcat(buffer, integer_string);
@@ -1253,67 +1262,72 @@ public:
 		return true;
 	}
     
-    static uint16_t getChannelMin(const char *channel) 
+    static Channel* getChannel(const char *name) 
     {
-        Channel* channelProfile = channelMap.get(channel);
+        return channelMap.get(name);
+    }
+
+    static uint16_t getChannelMin(const char *name) 
+    {
+        Channel* channelProfile = channelMap.get(name);
         if(!channelProfile)
         {
-            LogHandler::error(_TAG, "[getChannelMin] Invalid channel for current map: %s", channel);
+            LogHandler::error(_TAG, "[getChannelMin] Invalid name for current map: %s", name);
             return TCODE_MIN;
         }
         return channelProfile->min;
     }
 
-    static uint16_t getChannelMax(const char *channel) 
+    static uint16_t getChannelMax(const char *name) 
     {
-        Channel* channelProfile = channelMap.get(channel);
+        Channel* channelProfile = channelMap.get(name);
         if(!channelProfile)
         {
-            LogHandler::error(_TAG, "[getChannelMax] Invalid channel for current map: %s", channel);
+            LogHandler::error(_TAG, "[getChannelMax] Invalid name for current map: %s", name);
             return TCODE_MAX;
         }
         return channelProfile->max;
     }
 
-    static uint16_t getChannelUserMin(const char *channel) 
+    static uint16_t getChannelUserMin(const char *name) 
     {
-        Channel* channelProfile = channelMap.get(channel);
+        Channel* channelProfile = channelMap.get(name);
         if(!channelProfile)
         {
-            LogHandler::error(_TAG, "[getChannelUserMin] Invalid channel for current map: %s", channel);
+            LogHandler::error(_TAG, "[getChannelUserMin] Invalid name for current map: %s", name);
             return TCODE_MIN;
         }
         return channelProfile->userMin;
     }
 
-    static uint16_t getChannelUserMax(const char *channel) 
+    static uint16_t getChannelUserMax(const char *name) 
     {
-        Channel* channelProfile = channelMap.get(channel);
+        Channel* channelProfile = channelMap.get(name);
         if(!channelProfile)
         {
-            LogHandler::error(_TAG, "[getChannelUserMax] Invalid channel for current map: %s", channel);
+            LogHandler::error(_TAG, "[getChannelUserMax] Invalid name for current map: %s", name);
             return TCODE_MAX;
         }
         return channelProfile->userMax;
     }
 
-    static void setChannelMin(const char *channel, uint16_t value) 
+    static void setChannelMin(const char *name, uint16_t value) 
     {
-        Channel* channelProfile = channelMap.get(channel);
+        Channel* channelProfile = channelMap.get(name);
         if(!channelProfile)
         {
-            LogHandler::error(_TAG, "[setChannelMin] Invalid channel for current map: %s", channel);
+            LogHandler::error(_TAG, "[setChannelMin] Invalid name for current map: %s", name);
             return;
         }
         channelProfile->userMin = value;
     }
 
-    static void setChannelMax(const char *channel, uint16_t value) 
+    static void setChannelMax(const char *name, uint16_t value) 
     {
-        Channel* channelProfile = channelMap.get(channel);
+        Channel* channelProfile = channelMap.get(name);
         if(!channelProfile)
         {
-            LogHandler::error(_TAG, "[setChannelMax] Invalid channel for current map: %s", channel);
+            LogHandler::error(_TAG, "[setChannelMax] Invalid name for current map: %s", name);
             return;
         }
         channelProfile->userMax = value;
@@ -2449,7 +2463,7 @@ private:
     // }
 };
 
-SettingsFactory* SettingsHandler::m_settingsFactory = SettingsFactory::getInstance();
+SettingsFactory* SettingsHandler::m_settingsFactory;
 SemaphoreHandle_t SettingsHandler::m_motionMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_channelsMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_wifiMutex = xSemaphoreCreateMutex();

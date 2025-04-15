@@ -87,9 +87,10 @@ public:
         Squeeze
     };
 
-    void init(const TCodeVersion version, const MotorType motorType) {
+    void init(const TCodeVersion version, const MotorType motorType, const DeviceType deviceType) {
         m_version = version;
         m_motorType = motorType;
+        m_deviceType = deviceType;
         setChannelLimits();
     }
 
@@ -177,6 +178,7 @@ public:
 private:
     TCodeVersion m_version;
     MotorType m_motorType;
+    DeviceType m_deviceType;
 
     // void v2ToJson(JsonArray& arr) {
     //     for (Channel channel : ChannelListV2) {
@@ -260,6 +262,8 @@ private:
     void toJson(const Channel channels[], JsonArray& arr, uint16_t len) {
         for (int i=0; i < len; i++) {
             auto channel = channels[i];
+            if(m_deviceType != DeviceType::SR6 && channel.sr6Only)
+                continue;
             auto obj = arr.add<JsonObject>();
             channel.toJson(obj);
         }

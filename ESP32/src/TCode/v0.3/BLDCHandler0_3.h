@@ -283,7 +283,7 @@ public:
         // Collect inputs
         // These functions query the t-code object for the position/level at a specified time
         // Number recieved will be an integer, 0-9999
-        int xLin = m_tcode->AxisRead("L0");
+        int xLin = channelRead("L0");
         //LogHandler::verbose(_TAG, "xLin: %ld", xLin);
 
 
