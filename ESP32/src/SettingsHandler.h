@@ -56,6 +56,7 @@ public:
     static bool saving;
     static bool motionPaused;
     static bool fullBuild;
+    static inline bool channelRangesEnabled = true;
     static LogLevel logLevel;
     static std::vector<int> systemI2CAddresses;
 
@@ -370,6 +371,7 @@ public:
         doc["esp32VersionNum"] = FIRMWARE_VERSION;
         doc["TCodeVersion"] = m_settingsFactory->getTcodeVersion();
         doc["lastRebootReason"] = machine_reset_cause();
+        doc["channelRangesEnabled"] = getChannelRangesEnabled();
 
         JsonArray logLevels = doc["logLevels"].to<JsonArray>();
         JsonObject logLevelNone = logLevels.add<JsonObject>();
@@ -1331,6 +1333,14 @@ public:
             return;
         }
         channelProfile->userMax = value;
+    }
+
+    static void setChannelRangesEnabled(bool enabled) {
+        channelRangesEnabled = enabled;
+        sendMessage(SettingProfile::ChannelRanges, "channelRangesEnabled");
+    }
+    static bool getChannelRangesEnabled() {
+        return channelRangesEnabled;
     }
 
 private:

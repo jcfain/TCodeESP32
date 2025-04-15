@@ -259,6 +259,28 @@ private:
 			return m_settingsFactory->setValue(LOG_EXCLUDETAGS, LogHandler::getExcludes()) != SettingFile::NONE;
 		}, SaveRequired::NO);
 	}};
+    const Command CHANNEL_RANGES_ENABLE{{"Channel ranges enable", "#channel-ranges-enable", "Enables the channel range limits temporarily", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
+		return validateBool("Channel ranges", true, SettingsHandler::getChannelRangesEnabled(), [this](bool value) -> bool {
+			SettingsHandler::setChannelRangesEnabled(true);
+			LogHandler::debug(_TAG, "Channel ranges enabled");
+			return true;
+		});
+	}};
+    const Command CHANNEL_RANGES_DISABLE{{"Channel ranges disable", "#channel-ranges-disable", "Disables the channel range limits temporarily", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
+		return validateBool("Channel ranges", false, SettingsHandler::getChannelRangesEnabled(), [this](bool value) -> bool {
+			SettingsHandler::setChannelRangesEnabled(false);
+			LogHandler::debug(_TAG, "Channel ranges disabled");
+			return true;
+		});
+	}};
+    const Command CHANNEL_RANGES_TOGGLE{{"Channel ranges toggle", "#channel-ranges-toggle", "Toggles the channel range limits temporarily", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
+		return execute([this]() -> bool {
+			bool enabled = SettingsHandler::getChannelRangesEnabled();
+			SettingsHandler::setChannelRangesEnabled(!enabled);
+			LogHandler::debug(_TAG, !enabled ? "Channel ranges enabled" : "Channel ranges disabled");
+			return true;
+		});
+	}};
     const Command MOTION_ENABLE{{"Motion enable", "#motion-enable", "Enables the motion generator", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return validateBool("Motion", true, SettingsHandler::getMotionEnabled(), [this](bool value) -> bool {
 			SettingsHandler::setMotionEnabled(value);
@@ -524,13 +546,16 @@ private:
         DEFAULT_ALL,
 	};
 
-    Command commands[14] = {
+    Command commands[17] = {
         HELP,
 		AVAILABLE_SETTINGS,
 		PRINT_MEMORY,
         RESTART,
         CLEAR_LOGS_INCLUDE,
         CLEAR_LOGS_EXCLUDE,
+		CHANNEL_RANGES_ENABLE,
+		CHANNEL_RANGES_DISABLE,
+		CHANNEL_RANGES_TOGGLE,
         MOTION_ENABLE,
         MOTION_DISABLE,
         MOTION_TOGGLE,

@@ -42,7 +42,7 @@ DeviceRangeSlider = {
     allEnabledContainer.classList.add("form_control_container_header");
     var allEnabledLabel = document.createElement("label");
     allEnabledLabel.setAttribute("for", "allEnabledCheckbox");
-    allEnabledLabel.innerText = "All toggle";
+    allEnabledLabel.innerText = "Toggle all";
     allEnabledLabel.classList.add("range_container_header");
     var allEnabledCheckbox = document.createElement("input");
     allEnabledCheckbox.type = "checkbox";
@@ -58,9 +58,27 @@ DeviceRangeSlider = {
       this.updateSettings(0);
     }.bind(this, allEnabledCheckbox);
 
+
+    var tempEnabledContainer = document.createElement("div");
+    tempEnabledContainer.setAttribute("title", "This will temporarily toggle ALL ranges. This is always true on boot.")
+    tempEnabledContainer.classList.add("form_control_container");
+    var tempEnabledLabel = document.createElement("label");
+    tempEnabledLabel.setAttribute("for", "channelRangesEnabled");
+    tempEnabledLabel.innerText = "Enabled"
+    var tempEnabledCheck = document.createElement("input");
+    tempEnabledCheck.id = "channelRangesEnabled";
+    tempEnabledCheck.type = "checkbox"
+    tempEnabledCheck.onclick = function (checkBox) {
+      sendTCode(checkBox.checked ? "#channel-ranges-enable" : "#channel-ranges-disable")
+    }.bind(this, tempEnabledCheck);
+    tempEnabledCheck.checked = systemInfo["channelRangesEnabled"];
+
     allEnabledContainer.appendChild(allEnabledCheckbox);
     allEnabledContainer.appendChild(allEnabledLabel);
-    formControlFirst.appendChild(allEnabledContainer)
+    formControlFirst.appendChild(allEnabledContainer);
+    tempEnabledContainer.appendChild(tempEnabledLabel);
+    tempEnabledContainer.appendChild(tempEnabledCheck);
+    formControlFirst.appendChild(tempEnabledContainer);
     rangeContainer.appendChild(formControlFirst);
     deviceRangesTable.appendChild(rangeContainer);
 
@@ -228,6 +246,9 @@ DeviceRangeSlider = {
       allEnabledCheckbox.checked = true;
       allEnabledCheckbox.indeterminate = false;
     }
+  },
+  updateChannelRangesTemp(value) {
+    document.getElementById("channelRangesEnabled").checked = value;
   },
   show() {
     document.getElementById("deviceRangesModal").show();

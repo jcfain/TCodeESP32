@@ -432,6 +432,11 @@ function wsCallBackFunction(evt) {
 				var message = data["message"];
                 debug(message);
                 break;
+            case "channelRangesEnabled":
+				var enabled = data["message"];
+                DeviceRangeSlider.updateChannelRangesTemp(enabled == "true");
+                break;
+
 		}
 	}
 	catch(e) {

@@ -602,8 +602,14 @@ void settingChangeCallback(const SettingProfile &profile, const char *settingTha
 		}
 	}
 	else if (profile == SettingProfile::ChannelRanges)
-	{ // TODO add channe; specific updates when moving to its own save...maybe...
-		motionHandler.updateChannelRanges();
+	{ 
+		if (strcmp(settingThatChanged, CHANNEL_PROFILE) == 0) {
+			// TODO add channe; specific updates when moving to its own save...maybe...
+			motionHandler.updateChannelRanges();
+		} else if (strcmp(settingThatChanged, "channelRangesEnabled") == 0) {
+			webSocketHandler->sendCommand("channelRangesEnabled", SettingsHandler::getChannelRangesEnabled() ? "true" : "false");
+		}
+		
 	}
 }
 void loadI2CModules(bool displayEnabled, bool batteryEnabled, bool voiceEnabled)

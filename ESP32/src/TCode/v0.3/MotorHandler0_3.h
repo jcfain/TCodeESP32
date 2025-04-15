@@ -212,10 +212,12 @@ protected:
 protected:
     uint16_t channelRead(const char* name) {
         uint16_t value = m_tcode->AxisRead(name);
-        Channel* channel = SettingsHandler::getChannel(name);
-        if(channel && channel->rangeLimitEnabled)
-        {
-            return map(value, TCODE_MIN, TCODE_MAX, channel->userMin, channel->userMax);
+        if(SettingsHandler::getChannelRangesEnabled()) {
+            Channel* channel = SettingsHandler::getChannel(name);
+            if(channel && channel->rangeLimitEnabled)
+            {
+                return map(value, TCODE_MIN, TCODE_MAX, channel->userMin, channel->userMax);
+            }
         }
         return value;
     }

@@ -394,11 +394,8 @@ private:
             if (getReverse())
                 pos = -pos;
                 
-            // if(tcodeVersion == TCodeVersion::v0_2) {
-            //     sprintf(buf, "%s%03dI%u", m_channel, constrain((uint16_t)map(pos, -90, 90, 0, 999), m_min, m_max), interval);
-            // } else {
-                snprintf(buf, len, "%s%04dI%u", m_channel, (uint16_t)map(pos, -90, 90, m_min, m_max), interval);
-            // }
+            // snprintf(buf, len, "%s%04dI%u", m_channel, (uint16_t)map(pos, -90, 90, m_min, m_max), interval);
+            snprintf(buf, len, "%s%04dI%u", m_channel, (uint16_t)map(pos, -90, 90, TCODE_MIN, TCODE_MAX), interval);
 
             LogHandler::verbose(TagHandler::MotionHandler, "%s pos: %d" , m_channel, pos);
             LogHandler::verbose(TagHandler::MotionHandler, "%s buf: %s" , m_channel, buf);
