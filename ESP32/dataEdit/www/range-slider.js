@@ -69,7 +69,7 @@ DeviceRangeSlider = {
     tempEnabledCheck.id = "channelRangesEnabled";
     tempEnabledCheck.type = "checkbox"
     tempEnabledCheck.onclick = function (checkBox) {
-      sendTCode(checkBox.checked ? "#channel-ranges-enable" : "#channel-ranges-disable")
+      sendTCode(checkBox.checked ? "#channel-ranges-enable" : "#channel-ranges-disable");
     }.bind(this, tempEnabledCheck);
     tempEnabledCheck.checked = systemInfo["channelRangesEnabled"];
 
@@ -294,7 +294,7 @@ DeviceRangeSlider = {
           minSlider.value = minInput.value;
           this.setChannelRange(channelName, parseInt(minInput.value), max);
           this.fillSlider(minInput, maxInput, this.rangeColor, this.sliderColor, controlSlider);
-          sendTCode(channelName + minSlider.value + "S1000");
+          sendTCodeValue(channelName, minSlider.value, TCodeModifierType.SPEED, 1000);
       }
   },
     
@@ -322,7 +322,7 @@ DeviceRangeSlider = {
           maxSlider.value = maxInput.value;
           this.setChannelRange(channelName, min, parseInt(maxInput.value));
           this.fillSlider(minInput, maxInput, this.rangeColor, this.sliderColor, controlSlider);
-          sendTCode(channelName + maxInput.value + "S1000");
+          sendTCodeValue(channelName, maxInput.value, TCodeModifierType.SPEED, 1000);
       }
   },
 
@@ -341,7 +341,7 @@ DeviceRangeSlider = {
       maxInput.value = newMax;
     } 
     this.setChannelRange(channelName, parseInt(minInput.value), max);
-    sendTCode(channelName + minInput.value + "S1000");
+    sendTCodeValue(channelName, minInput.value, TCodeModifierType.SPEED, 1000);
   },
 
   controlMaxSlider(minSlider, maxSlider, minInput, maxInput, controlSlider, channelName) {
@@ -360,7 +360,7 @@ DeviceRangeSlider = {
       minInput.value = newMin;
     }
     this.setChannelRange(channelName, min, parseInt(maxInput.value));
-    sendTCode(channelName + maxInput.value + "S1000");
+    sendTCodeValue(channelName, maxInput.value, TCodeModifierType.SPEED, 1000);
   },
   toggleChannelEnabled(channelName, enabled) {
     for(var i=0; i<channelsProfileSettings["channelProfile"].length; i++)

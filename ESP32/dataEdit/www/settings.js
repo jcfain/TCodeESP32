@@ -98,6 +98,10 @@ let BLDCEncoderType = {
     SPI: 1,
     PWM: 2
 };
+const TCodeModifierType = {
+    INTERVAL: "I",
+    SPEED: "S"
+}
 dubugMessages = [];
 var tcodeVersions = [];
 var testDeviceUseIModifier = false;
@@ -1309,6 +1313,20 @@ function sendTCode(tcode) {
     websocket.send(tcode+String.fromCharCode(10))
 }
 
+function sendTCodeValue(channelName, value, tcodeModifierType, modifierValue) {
+    var tcode = getTCodeValue(channelName, value, tcodeModifierType, modifierValue)
+    sendTCode(tcode);
+}
+
+function getTCodeValue(channelName, value, tcodeModifierType, modifierValue) {
+    var tcode = channelName + value.toString().padStart(4, "0");
+    if(tcodeModifierType) {
+        tcode += tcodeModifierType
+        tcode += modifierValue;
+    }
+    return tcode;
+}
+
 function sendDeviceHome() {
     channelSliderList.forEach(x => x.value = x.channelModel.isSwitch ? 0 : 50);
     var availibleChannels = getChannelMap();
@@ -1324,13 +1342,12 @@ function sendDeviceHome() {
 
 function getSliderTCode(channel, sliderValue, useIModifier, modifierValue, disableModifier) {
     var value = percentageToTcode(sliderValue);
-    var tcode = channel + value.toString().padStart(isTCodeV3() ? 4 : 3, "0");
-    if(!disableModifier) {
-        tcode += useIModifier ? "I" : "S"
-        tcode += modifierValue;
+    if(disableModifier) {
+        return getTCodeValue(channel, value);
     }
-    return tcode;
+    return getTCodeValue(channel, value, useIModifier ? TCodeModifierType.INTERVAL : TCodeModifierType.SPEED, modifierValue);
 }
+
 function setupChannelSliders() 
 {
     var channelTestsNode = document.getElementById("channelTestsTable");
@@ -1492,9 +1509,6 @@ function getTCodeMin() {
 function getChannelMap() {
     return systemInfo["availableChannels"]
 };
-function onChannelSliderInput(channel, value) {
-    sendTCode(channel+value.toString().padStart(4, "0") + "S1000");
-}
 function tcodeToPercentage(tcodeValue) {
     return convertRange(0, getTCodeMax(), 0, 99, tcodeValue);
 }
