@@ -61,7 +61,7 @@ SOFTWARE. */
     text-align: left;
     flex-basis: 50%;
 }
-.range_container .range_container input[type=range]::-webkit-slider-thumb {
+.range_container input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     pointer-events: all;
