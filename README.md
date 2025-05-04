@@ -2,6 +2,7 @@
 This is a fork of Tempests TCode sketch. 
 It adds the following features: 
 - Network TCode capabilities
+- On device range limits
 - Motion generator
 - Modcase temperature control
 - Internal temperature control
