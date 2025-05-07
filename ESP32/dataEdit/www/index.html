@@ -351,7 +351,7 @@
 
 						<div class="tRow sr6Only servoOnly hidden">
 							<div class="tCell" title="The max servo range of your main/pitch servos">
-								<span>Max servo range</span> 
+								<span>Main servos max range (&#8451;)</span> 
 							</div>
 							<div class="tCell">
 								<input id="maxServoRange" type="number" min="140" max="360" oninput="updateMaxServoRange()">
@@ -408,6 +408,35 @@
 									<select id="LeftServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
 								</div>
 							</div>
+							<div class="tRow sr6Only servoOnly hidden">
+								<div class="tCell">
+									<span>Right upper</span> 
+								</div>
+								<div class="tCell">
+									<input id="RightUpperServo_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
+								</div>
+								<div class="tCell">
+									<input id="RightUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+								</div>
+								<div class="tCell">
+									<select id="RightUpperServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
+								</div>
+							</div>
+							
+							<div class="tRow sr6Only servoOnly hidden">
+								<div class="tCell">
+									<span>Left upper</span> 
+								</div>
+								<div class="tCell">
+									<input id="LeftUpperServo_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
+								</div>
+								<div class="tCell">
+									<input id="LeftUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+								</div>
+								<div class="tCell">
+									<select id="LeftUpperServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
+								</div>
+							</div>
 							<div class="tRow servoOnly hidden">
 								<div class="tCell">
 									<span>Pitch</span> 
@@ -420,6 +449,20 @@
 								</div>
 								<div class="tCell">
 									<select id="PitchLeftServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
+								</div>
+							</div>
+							<div class="tRow sr6Only servoOnly hidden">
+								<div class="tCell">
+									<span>Pitch right</span> 
+								</div>
+								<div class="tCell">
+									<input id="PitchRightServo_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
+								</div>
+								<div class="tCell">
+									<input id="PitchRightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
+								</div>
+								<div class="tCell">
+									<select id="PitchRightServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
 								</div>
 							</div>
 							<div class="tRow">
@@ -479,81 +522,6 @@
 							</div>
 							<div class="tCell">
 								<input id="disablePinValidation" type="checkbox" onchange="disablePinValidation()">
-							</div>
-						</div>
-						<div class="tRow pwmAvaliblePinRow">
-							<div class="tCell" colspan="3">
-								<span class="instruction-text">
-									PWM availible on: 2,4,5,12-19,21-23,25-27,32,33
-								</span> 
-							</div>
-						</div>
-					</div>
-				</div>
-				<div id="deviceSR6SettingsTable" class="formTable sr6Only servoOnly hidden">
-					<div id="deviceSR6SettingsTableBody">
-						<div>
-							<div class="tHeader" colspan="3">
-								<h3>SR6</h3>
-							</div>
-						</div>
-						<div class="servoTable">
-							<div class="tRow servoHeader">
-								<div class="tCell">
-									<span>Servo</span> 
-								</div>
-								<div class="tCell">
-									<span>PIN</span> 
-								</div>
-								<div class="tCell">
-									<span>ZERO (&#181;)</span> 
-								</div>
-								<div class="tCell">
-									<span>PWM Channel</span> 
-								</div>
-							</div>
-							<div class="tRow">
-								<div class="tCell">
-									<span>Right upper</span> 
-								</div>
-								<div class="tCell">
-									<input id="RightUpperServo_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
-								</div>
-								<div class="tCell">
-									<input id="RightUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-								</div>
-								<div class="tCell">
-									<select id="RightUpperServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
-								</div>
-							</div>
-							
-							<div class="tRow">
-								<div class="tCell">
-									<span>Left upper</span> 
-								</div>
-								<div class="tCell">
-									<input id="LeftUpperServo_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
-								</div>
-								<div class="tCell">
-									<input id="LeftUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-								</div>
-								<div class="tCell">
-									<select id="LeftUpperServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
-								</div>
-							</div>
-							<div class="tRow">
-								<div class="tCell">
-									<span>Pitch right</span> 
-								</div>
-								<div class="tCell">
-									<input id="PitchRightServo_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
-								</div>
-								<div class="tCell">
-									<input id="PitchRightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
-								</div>
-								<div class="tCell">
-									<select id="PitchRightServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
-								</div>
 							</div>
 						</div>
 						<div class="tRow pwmAvaliblePinRow">

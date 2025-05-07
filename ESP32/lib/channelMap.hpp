@@ -43,7 +43,7 @@ public:
     const Channel SuckManual = {"A0", "Suck manual", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
     const Channel SuckLevel = {"A1", "Suck level", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
     const Channel Lube = {"A2", "Lube", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
-    const Channel Squeeze = {"A3", "Squeeze", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Squeeze = {"A3", "Aux3", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
 
     // Channel ChannelListV2[9] = {
     //     Stroke,

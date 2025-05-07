@@ -77,7 +77,7 @@ class WebHandler : public HTTPBase {
 
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                if(SettingsHandler::restartRequired > -1) {
+                if(SettingsHandler::restartRequired > -1 || !SettingsHandler::initialized) {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"status\": \"restarting\"}");
                     request->send(response);
                     return;
