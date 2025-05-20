@@ -140,39 +140,40 @@ public:
 	}
 
 	void setupInternalTemp() {
-		if(m_internalTempEnabled && m_internalTempPin > -1) {
-			LogHandler::info(_TAG, "Starting internal temp on pin: %d", m_internalTempPin);
-			oneWireInternal.begin(m_internalTempPin);
-			sensorsInternal.setOneWire(&oneWireInternal);
-			sensorsInternal.getAddress(internalDeviceAddress, 0);
-			sensorsInternal.begin();
-			sensorsInternal.setResolution(internalDeviceAddress, resolution);
-			sensorsInternal.setWaitForConversion(false);
-			//internalPID.setGains(0.12f, 0.0003f, 0);
-			//internalPID.setOutputRange();
-			requestInternalTemp();
-			internalTempInitialized = sensorsInternal.isConnected(internalDeviceAddress);
+		if(!m_internalTempEnabled || m_internalTempPin < 0 ) {
+			return;
 		}
+		LogHandler::info(_TAG, "Starting internal temp on pin: %d", m_internalTempPin);
+		oneWireInternal.begin(m_internalTempPin);
+		sensorsInternal.setOneWire(&oneWireInternal);
+		sensorsInternal.getAddress(internalDeviceAddress, 0);
+		sensorsInternal.begin();
+		sensorsInternal.setResolution(internalDeviceAddress, resolution);
+		sensorsInternal.setWaitForConversion(false);
+		//internalPID.setGains(0.12f, 0.0003f, 0);
+		//internalPID.setOutputRange();
+		requestInternalTemp();
+		internalTempInitialized = sensorsInternal.isConnected(internalDeviceAddress);
 	}
 
 	void setupInternalFan() {
-		if(m_fanControlEnabled && m_caseFanPin > -1 && m_caseFanChannel > -1) {
-			LogHandler::debug(_TAG, "Setting up fan, PIN: %i, hz: %i, resolution: %i, MAX PWM: %i", m_caseFanPin, m_fanFrequency, m_fanResolution, m_fanMaxDuty);
-			
-			#ifdef ESP_ARDUINO3
-			ledcAttachChannel(m_caseFanPin, m_fanFrequency, m_fanResolution, m_caseFanChannel);
-			#else
-			ledcSetup(m_caseFanChannel, m_fanFrequency, m_fanResolution);
-			ledcAttachPin(m_caseFanPin, m_caseFanChannel);
-			#endif
-			//LogHandler::debug(_TAG, "Setting up PID: Output max: %i", m_fanMaxDuty);
-			//internalPID = new AutoPID(&_currentInternalTemp, &SettingsHandler::getInternalTempForFan(), &m_currentInternalTempDuty, m_fanMaxDuty, 0, 0.12, 0.0003, 0.0); 
-			// //if temperature is more than 4 degrees below or above setpoint, OUTPUT will be set to min or max respectively
-			//internalPID->setBangBang(2, 0);
-			// //set PID update interval to 4000ms
-			// internalPID->setTimeStep(4000);
-			fanControlInitialized = true;
+		if(!m_fanControlEnabled || m_caseFanPin < 0 || m_caseFanChannel < 0) {
+			return;
 		}
+		LogHandler::debug(_TAG, "Setting up fan, PIN: %i, hz: %i, resolution: %i, MAX PWM: %i", m_caseFanPin, m_fanFrequency, m_fanResolution, m_fanMaxDuty);
+		#ifdef ESP_ARDUINO3
+		ledcAttachChannel(m_caseFanPin, m_fanFrequency, m_fanResolution, m_caseFanChannel);
+		#else
+		ledcSetup(m_caseFanChannel, m_fanFrequency, m_fanResolution);
+		ledcAttachPin(m_caseFanPin, m_caseFanChannel);
+		#endif
+		//LogHandler::debug(_TAG, "Setting up PID: Output max: %i", m_fanMaxDuty);
+		//internalPID = new AutoPID(&_currentInternalTemp, &SettingsHandler::getInternalTempForFan(), &m_currentInternalTempDuty, m_fanMaxDuty, 0, 0.12, 0.0003, 0.0); 
+		// //if temperature is more than 4 degrees below or above setpoint, OUTPUT will be set to min or max respectively
+		//internalPID->setBangBang(2, 0);
+		// //set PID update interval to 4000ms
+		// internalPID->setTimeStep(4000);
+		fanControlInitialized = true;
 	}
 
 	static void startLoop(void * parameter) {
