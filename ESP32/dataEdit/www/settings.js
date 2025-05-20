@@ -458,14 +458,14 @@ function debug(message) {
     }
 }
 
-function debounceInput(name, callBack, debounceInMs)
+function debounceInput(debounceRefName, callBack, debounceInMs)
 {
-    if(debounceTimeouts[name] !== null) 
+    if(debounceTimeouts[debounceRefName] !== null) 
     {
-        clearTimeout(debounceTimeouts[name]);
+        clearTimeout(debounceTimeouts[debounceRefName]);
     }
-    debounceTimeouts[name] = setTimeout(() => {
-        debounceTimeouts[name] = null;
+    debounceTimeouts[debounceRefName] = setTimeout(() => {
+        debounceTimeouts[debounceRefName] = null;
         callBack();
     }, debounceInMs == null || debounceInMs == undefined ? defaultDebounce : debounceInMs);
 
@@ -982,6 +982,7 @@ function setUserSettings()
     document.getElementById('internalTempForFan').value = userSettings["internalTempForFan"];
     document.getElementById('internalMaxTemp').value = userSettings["internalMaxTemp"];
     document.getElementById('caseFanResolution').value = userSettings["caseFanResolution"];
+    document.getElementById('caseFanMaxPWM').value = userSettings["caseFanMaxPWM"];
 
     document.getElementById('vibTimeout').value = userSettings["vibTimeout"];
     document.getElementById('vibTimeoutEnabled').checked = userSettings["vibTimeoutEnabled"];
@@ -1243,9 +1244,14 @@ function closeError()
     document.getElementById("errorMessage").hidden = true;
 }
 
-function showError(message) 
+function showError(message, name) 
 {
     var div = document.createElement("div");
+    if(name !== undefined) {
+        var errorString = `<div name='${name}'>${message}</div>`;
+        
+        message = errorString;
+    }
     div.setAttribute("name", "errorItem");
     div.innerHTML = message;
     document.getElementById("errorText").appendChild(div);
@@ -1622,7 +1628,7 @@ function updateHostName()
         } else {
             var errorString = "<div name='hostnameValidation'>Invalid hostname</div>";
             
-            errorString += "</div>";
+            // errorString += "</div>";
             showError(errorString);
         }
         hostnameTimeout = null;
@@ -2049,7 +2055,7 @@ function validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors
         validatePWMPin(pinValues.heat, "Heater", assignedPins, duplicatePins, pwmErrors);
     }
     
-    if(userSettings.tempInternalEnabled) {
+    if(userSettings.fanControlEnabled) {
         validatePWMPin(pinValues.caseFanPin, "Case fan ", assignedPins, duplicatePins, pwmErrors);
     }
 }
@@ -2306,9 +2312,6 @@ function setTempSettings() {
 }
 function setInternalTempSettings() {
     userSettings["tempInternalEnabled"] = document.getElementById('tempInternalEnabled').checked;
-    userSettings["caseFanResolution"] = parseInt(document.getElementById('caseFanResolution').value);
-
-    Utils.toggleControlVisibilityByID('internalTempDisplayedRow', hasFeature(BuildFeature.TEMP) && userSettings["tempInternalEnabled"]);
     setRestartRequired();
     updateUserSettings();
 }
@@ -2328,13 +2331,40 @@ function setVoiceSettings() {
     }
 }
 function setFanControl() {
-    userSettings["fanControlEnabled"] = document.getElementById('fanControlEnabled').checked;
-    toggleFanControlSettings(userSettings["fanControlEnabled"]);
-    
-    setRestartRequired();
-    if(userSettings["fanControlEnabled"]) 
-        validatePins();
-    updateUserSettings();
+    debounceInput("caseFanSettings", function() {
+        userSettings["fanControlEnabled"] = document.getElementById('fanControlEnabled').checked;
+        // toggleFanControlSettings(userSettings["fanControlEnabled"]);
+        const resolutionElement = document.getElementById('caseFanResolution');
+        const resolution = parseInt(resolutionElement.value);
+        const fanMaxElement = document.getElementById('caseFanMaxPWM');
+        let valid = true;
+        clearErrors("caseFanPWM");
+        clearErrors("caseFanResolution");
+        if(userSettings["caseFanResolution"] != resolution)
+        {
+            if(!resolutionElement.checkValidity()) {
+                showError("Invallid resolution: "+ resolution, "caseFanResolution");
+                valid = false;
+            } else {
+                userSettings["caseFanResolution"] = resolution;
+                const maxPWM = Math.pow(2, resolution) - 1;
+                // userSettings["caseFanMaxPWM"] = maxPWM;
+                fanMaxElement.max = maxPWM;
+            }
+        }
+        if(!fanMaxElement.checkValidity()) {
+            valid = false;
+            showError("Invallid PWM for the current resolution: "+ userSettings["caseFanResolution"], "caseFanPWM");
+        } else {
+            userSettings["caseFanMaxPWM"] = parseInt(fanMaxElement.value);
+        }
+
+        // Utils.toggleControlVisibilityByID('internalTempDisplayedRow', hasFeature(BuildFeature.TEMP) && userSettings["tempInternalEnabled"]);
+        if(validatePins() && valid) {
+            setRestartRequired();
+            updateUserSettings(0);
+        }
+    }, defaultDebounce);
 }
 
 function setFanOnTemp() {

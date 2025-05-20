@@ -960,9 +960,16 @@
 						<div class="tRow fan-control">
 							<div class="tCell"><span>Fan resolution (bit)</span></div>
 							<div class="tCell">
-								<input id="caseFanResolution" type="number" min="0" oninput="setInternalTempSettings()">
+								<input id="caseFanResolution" type="number" min="0" oninput="setFanControl()">
 							</div>
 						</div>
+						<div class="tRow fan-control">
+							<div class="tCell"><span>Fan max PWM</span></div>
+							<div class="tCell">
+								<input id="caseFanMaxPWM" type="number" min="0" max="1023" oninput="setFanControl()">
+							</div>
+						</div>
+						
 					</div>
 				</div>
 				<div id="displaySettingsDisplayTable" class="formTable build_display">

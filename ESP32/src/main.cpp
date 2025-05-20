@@ -837,11 +837,13 @@ void setup()
 	int8_t caseFanChannel = pinMap->caseFanChannel();
 	int caseFanFrequency = caseFanChannel > -1 ? pinMap->getChannelFrequency(pinMap->caseFanChannel()) : ESP_TIMER_FREQUENCY_DEFAULT;
 	int caseFanResolution;
+	int caseFanMaxPWM;
 	settingsFactory->getValue(TEMP_SLEEVE_ENABLED, sleeveTempEnabled);
 	settingsFactory->getValue(TEMP_INTERNAL_ENABLED, internalTempEnabled);
 	settingsFactory->getValue(HEATER_RESOLUTION, heaterResolution);
 	settingsFactory->getValue(HEATER_THRESHOLD, heaterThreshold);
 	settingsFactory->getValue(CASE_FAN_RESOLUTION, caseFanResolution);
+	settingsFactory->getValue(CASE_FAN_MAX_PWM, caseFanMaxPWM);
 	if (sleeveTempEnabled || internalTempEnabled || fanControlEnabled)
 	{
 		temperatureHandler = new TemperatureHandler();
@@ -857,7 +859,8 @@ void setup()
 								  heaterResolution,
 								  fanControlEnabled,
 								  caseFanFrequency,
-								  caseFanResolution);
+								  caseFanResolution,
+								  caseFanMaxPWM);
 		temperatureHandler->setMessageCallback(tempChangeCallBack);
 		temperatureHandler->setStateChangeCallback(tempStateChangeCallBack);
 		LogHandler::debug(TagHandler::Main, "Start temperature task");

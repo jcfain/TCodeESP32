@@ -112,6 +112,7 @@
 #define FAN_CONTROL_ENABLED_DEFAULT false
 // #define CASE_FAN_FREQUENCY_DEFAULT 25
 #define CASE_FAN_RESOLUTION_DEFAULT 10
+#define CASE_FAN_MAX_PWM_DEFAULT 1023// Set for default CASE_FAN_RESOLUTION_DEFAULT 10 bit
 #define INTERNAL_TEMP_FOR_FAN_DEFAULT 30.0
 #define INTERNAL_MAX_TEMP_DEFAULT 50.0
 #define TEMP_INTERNAL_ENABLED_DEFAULT false
@@ -202,6 +203,7 @@
 #define TARGET_TEMP "TargetTemp"
 #define HEAT_PWM "HeatPWM"
 #define HOLD_PWM "HoldPWM"
+#define CASE_FAN_MAX_PWM "caseFanMaxPWM"
 #define DISPLAY_I2C_ADDRESS "Display_I2C_Address"
 #define HEATER_THRESHOLD "heaterThreshold"
 #define HEATER_RESOLUTION "heaterResolution"
