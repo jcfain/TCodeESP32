@@ -842,7 +842,7 @@ void setup()
 	settingsFactory->getValue(HEATER_RESOLUTION, heaterResolution);
 	settingsFactory->getValue(HEATER_THRESHOLD, heaterThreshold);
 	settingsFactory->getValue(CASE_FAN_RESOLUTION, caseFanResolution);
-	if (sleeveTempEnabled || internalTempEnabled)
+	if (sleeveTempEnabled || internalTempEnabled || fanControlEnabled)
 	{
 		temperatureHandler = new TemperatureHandler();
 		temperatureHandler->setup(internalTempEnabled,

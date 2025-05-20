@@ -107,10 +107,13 @@ public:
 		if(m_sleeveTempEnabled) {
 			setupSleeveTemp();
 		}
+		if(m_fanControlEnabled) {
+			setupInternalFan();
+		}
 	}
 
 	void setupSleeveTemp() {
-		if(m_sleeveTempPin < 0 ) {
+		if(!m_sleeveTempEnabled || m_sleeveTempPin < 0 ) {
 			return;
 		}
 		LogHandler::info(_TAG, "Starting sleeve temp on pin: %d", m_sleeveTempPin);
@@ -133,24 +136,26 @@ public:
 			ledcAttachPin(m_heaterPin, m_heatChannel);
 			#endif
 		}
-		sleeveTempInitialized = true;
+		sleeveTempInitialized = sensorsSleeve.isConnected(sleeveDeviceAddress);
 	}
 
 	void setupInternalTemp() {
-		if(m_internalTempPin < 0) {
-			return;
+		if(m_internalTempEnabled && m_internalTempPin > -1) {
+			LogHandler::info(_TAG, "Starting internal temp on pin: %d", m_internalTempPin);
+			oneWireInternal.begin(m_internalTempPin);
+			sensorsInternal.setOneWire(&oneWireInternal);
+			sensorsInternal.getAddress(internalDeviceAddress, 0);
+			sensorsInternal.begin();
+			sensorsInternal.setResolution(internalDeviceAddress, resolution);
+			sensorsInternal.setWaitForConversion(false);
+			//internalPID.setGains(0.12f, 0.0003f, 0);
+			//internalPID.setOutputRange();
+			requestInternalTemp();
+			internalTempInitialized = sensorsInternal.isConnected(internalDeviceAddress);
 		}
-		LogHandler::info(_TAG, "Starting internal temp on pin: %d", m_internalTempPin);
-		oneWireInternal.begin(m_internalTempPin);
-		sensorsInternal.setOneWire(&oneWireInternal);
-		sensorsInternal.getAddress(internalDeviceAddress, 0);
-		sensorsInternal.begin();
-		sensorsInternal.setResolution(internalDeviceAddress, resolution);
-		sensorsInternal.setWaitForConversion(false);
-		//internalPID.setGains(0.12f, 0.0003f, 0);
-		//internalPID.setOutputRange();
-		requestInternalTemp();
+	}
 
+	void setupInternalFan() {
 		if(m_fanControlEnabled && m_caseFanPin > -1 && m_caseFanChannel > -1) {
 			LogHandler::debug(_TAG, "Setting up fan, PIN: %i, hz: %i, resolution: %i, MAX PWM: %i", m_caseFanPin, m_fanFrequency, m_fanResolution, m_fanMaxDuty);
 			
@@ -168,7 +173,6 @@ public:
 			// internalPID->setTimeStep(4000);
 			fanControlInitialized = true;
 		}
-		internalTempInitialized = true;
 	}
 
 	static void startLoop(void * parameter) {
@@ -277,7 +281,10 @@ public:
 		}
 		String currentState;
 		if(fanControlInitialized) {
-			if(failsafeTriggerInternal) {
+			if(!internalTempInitialized) {
+				currentState = TemperatureState::COOLING;
+				m_lastInternalTempDuty = m_fanMaxDuty;
+			} else if(failsafeTriggerInternal) {
 				currentState = TemperatureState::FAIL_SAFE;
 			} else if (maxTempTriggerInternal) {
 				currentState = TemperatureState::MAX_TEMP_ERROR;
