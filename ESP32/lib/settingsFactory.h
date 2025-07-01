@@ -89,6 +89,8 @@ public:
     int getWebServerPort() const { return webServerPort; }
     const char* getHostname() const { return hostname; }
     const char* getFriendlyName() const { return friendlyName; }
+    const char* getAPModeSSID() const { return apModeSSID; }
+    const char* getAPModeIP() const { return apModeIP; }
     // BoardType getBoardType() const { return m_boardType; }
 
     // Cached (Live update)
@@ -243,7 +245,7 @@ public:
                 LogHandler::error(m_TAG, "getValue char* len called before network file initialized");
                 return SettingFile::NONE;
             }
-            LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DONOTCHANGE_DEFAULT) ? value : "<Redacted>");
+            LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, strcmp(name, AP_MODE_PASS) || strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DONOTCHANGE_DEFAULT) ? value : "<Redacted>");
             return SettingFile::Network;
         } 
         else if (m_commonFileInfo.doc[name].is<const char*>()) 
@@ -268,7 +270,7 @@ public:
             }
             xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
             const char* constvalue = m_networkFileInfo.doc[name];
-            LogHandler::debug(m_TAG, "getValue char* wifi: %s: constvalue: %s", name, strcmp(name, WIFI_PASS_SETTING) || !strcmp(constvalue, WIFI_PASS_DONOTCHANGE_DEFAULT) ? constvalue : "<Redacted>");
+            LogHandler::debug(m_TAG, "getValue char* wifi: %s: constvalue: %s", name, strcmp(name, AP_MODE_PASS) || strcmp(name, WIFI_PASS_SETTING) || !strcmp(constvalue, WIFI_PASS_DONOTCHANGE_DEFAULT) ? constvalue : "<Redacted>");
             xSemaphoreGive(m_networkSemaphore);
             return constvalue;
         } 
@@ -412,7 +414,7 @@ public:
         }
         const char* currentValue = fileInfo->doc[name].as<const char*>();
         if(fileInfo->doc[name].isNull() || strcmp(currentValue, value)) {
-            LogHandler::debug(m_TAG, "Change value: %s old value: %s new value: %s", name, currentValue, strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DONOTCHANGE_DEFAULT) ? value : "<Redacted>");
+            LogHandler::debug(m_TAG, "Change value: %s old value: %s new value: %s", name, currentValue, strcmp(name, AP_MODE_PASS) || strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DONOTCHANGE_DEFAULT) ? value : "<Redacted>");
             fileInfo->doc[name] = value;
             if(fileInfo->file == SettingFile::Common) {
                 loadCommonLiveCache(name);
@@ -567,6 +569,13 @@ public:
                 char passTemp[WIFI_PASS_LEN];
                 getValue(WIFI_PASS_SETTING, passTemp, sizeof(passTemp));
                 fromJson[WIFI_PASS_SETTING] = passTemp;
+            }
+            const char* appass = fromJson[AP_MODE_PASS] | DECOY_PASS;
+            if(!strcmp(appass, DECOY_PASS)) 
+            {
+                char passTemp[WIFI_PASS_LEN];
+                getValue(AP_MODE_PASS, passTemp, sizeof(passTemp));
+                fromJson[AP_MODE_PASS] = passTemp;
             }
         }
         bool ret = saveToDisk(m_networkFileInfo, fromJson);
@@ -795,7 +804,15 @@ private:
             {UDP_SERVER_PORT, "Udp port", "The UDP port for TCode input", SettingType::Number, UDP_SERVER_PORT_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {WEBSERVER_PORT, "Web port", "The Web port for the web server", SettingType::Number, WEBSERVER_PORT_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {HOST_NAME, "Hostname", "The hostname for network com", SettingType::String, HOST_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
-            {FRIENDLY_NAME, "Friendly name", "The friendly name displayed when connecting", SettingType::String, FRIENDLY_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}}
+            {FRIENDLY_NAME, "Friendly name", "The friendly name displayed when connecting", SettingType::String, FRIENDLY_NAME_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {AP_MODE_SSID, "AP Mode SSID", "The SSID for the Ap Mode/AD-HOC connection", SettingType::String, AP_MODE_SSID_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {AP_MODE_PASS, "AP Mode password", "The password for the Ap Mode/AD-HOC connection. Leave empty for disabled", SettingType::String, AP_MODE_PASS_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {AP_MODE_HIDDEN, "AP Mode hidden", "Does the AP mode broadcase its SSID or not.", SettingType::Boolean, AP_MODE_HIDDEN_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {AP_MODE_CHANNEL, "AP Mode channel", "The channel AP mode will work on.", SettingType::Number, AP_MODE_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {AP_MODE_IP, "AP Mode IP", "The IP of AP mode.", SettingType::String, AP_MODE_IP_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {AP_MODE_SUBNET, "AP Mode subnet", "The subnet of AP mode.", SettingType::String, AP_MODE_SUBNET_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
+            {AP_MODE_GATEWAY, "AP Mode gateway", "The Gateway of AP mode.", SettingType::String, AP_MODE_GATEWAY_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}}
+            
 #if BLUETOOTH_TCODE
             ,{BLUETOOTH_ENABLED, "Bluetooth classic enabled", "Bluetooth classic TCode. Note: this disabled wifi and the website. Use the setting command to switch back", SettingType::Boolean, BLUETOOTH_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Bluetooth, SettingProfile::Wireless}}
 #endif             
@@ -967,6 +984,8 @@ private:
     int webServerPort;
     char hostname[HOST_NAME_LEN];
     char friendlyName[FRIENDLY_NAME_LEN];
+    char apModeSSID[SSID_LEN];
+    char apModeIP[IP_ADDRESS_LEN];
     BoardType m_boardType;
     DeviceType m_deviceType;
 
@@ -1445,6 +1464,9 @@ private:
 	    getValue(WEBSERVER_PORT, webServerPort);
 	    getValue(HOST_NAME, hostname, HOST_NAME_LEN);
 	    getValue(FRIENDLY_NAME, friendlyName, FRIENDLY_NAME_LEN);
+        getValue(AP_MODE_SSID, apModeSSID, SSID_LEN);
+        getValue(AP_MODE_IP, apModeIP, IP_ADDRESS_LEN);
+        
         getValue(DEVICE_TYPE, m_deviceType);
         getValue(BOARD_TYPE_SETTING, m_boardType);
         loadCommonLiveCache();

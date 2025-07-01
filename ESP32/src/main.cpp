@@ -417,17 +417,27 @@ void startConfigMode(const int &webPort, const int &udpPort, const char *hostnam
 {
 #if WIFI_TCODE
 	SettingsHandler::apMode = true;
-	LogHandler::info(TagHandler::Main, "Starting in APMode");
 	displayPrint("Starting in APMode");
-	if (wifi.startAp())
+
+	char pass[WIFI_PASS_LEN];
+	bool hidden = AP_MODE_HIDDEN_DEFAULT;
+	uint8_t channel = AP_MODE_CHANNEL_DEFAULT;
+
+	char subnet[IP_ADDRESS_LEN];
+	char gateway[IP_ADDRESS_LEN];
+
+	settingsFactory->getValue(AP_MODE_PASS, pass, WIFI_PASS_LEN);
+	settingsFactory->getValue(AP_MODE_SUBNET, subnet, IP_ADDRESS_LEN);
+	settingsFactory->getValue(AP_MODE_GATEWAY, gateway, IP_ADDRESS_LEN);
+	settingsFactory->getValue(AP_MODE_HIDDEN, hidden);
+	settingsFactory->getValue(AP_MODE_CHANNEL, channel);
+	if (wifi.startAp(settingsFactory->getAPModeSSID(), pass, channel, hidden, settingsFactory->getAPModeIP(), subnet, gateway))
 	{
-		LogHandler::info(TagHandler::Main, "APMode started");
 		displayPrint("APMode started");
 		startNetworking(SettingsHandler::apMode, webPort, udpPort, hostname, friendlyName);
 	}
 	else
 	{
-		LogHandler::error(TagHandler::Main, "APMode start failed");
 		displayPrint("APMode start failed");
 	}
 #endif

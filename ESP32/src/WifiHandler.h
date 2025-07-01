@@ -75,7 +75,7 @@ public:
 	{
 		return _apMode;
 	}
-	bool connect(char ssid[SSID_LEN], char pass[WIFI_PASS_LEN])
+	bool connect(const char* ssid, const char* pass)
 	{
 		LogHandler::info(_TAG, "Setting up wifi");
 		m_settingsFactory = SettingsFactory::getInstance();
@@ -275,31 +275,34 @@ public:
 		}
 	}
 
-	bool startAp()
+	bool startAp(const char* ssid, const char* pass, const uint8_t& channel, const bool& hidden, const char* ip, const char* subnet, const char* gateway)
 	{
 		// WiFi.disconnect(true, true);
+		LogHandler::info(TagHandler::WifiHandler, "Starting in APMode: SSID: %s, Hidden: %u, Channel: %u, IP: %s, Subnet: %s, Gateway: %s", ssid, hidden, channel, ip, subnet, gateway);
+		// LogHandler::info(TagHandler::WifiHandler, "Password: %s", pass);
 		WiFi.mode(WIFI_AP);
 		// WiFi.setHostname("TCodeESP32");
-		WiFi.softAP(ssid);
+
+		WiFi.softAP(ssid, pass, channel, hidden, 1);
 		printMac();
 		delay(100);
 		if (onApEventID != 0)
 			WiFi.removeEvent(onApEventID);
 		onApEventID = WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info)
 								   { this->WiFiEvent(event, info); });
-		IPAddress local_IP;
-		local_IP.fromString(DEFAULT_IP);
-		IPAddress subnet;
-		subnet.fromString(DEFAULT_SUBNET);
-		IPAddress gateway;
-		gateway.fromString(DEFAULT_GATEWAY);
-		if (!WiFi.softAPConfig(local_IP, gateway, subnet))
+		IPAddress ip_;
+		ip_.fromString(ip);
+		IPAddress subnet_;
+		subnet_.fromString(subnet);
+		IPAddress gateway_;
+		gateway_.fromString(ip);
+		if (!WiFi.softAPConfig(ip_, gateway_, subnet_))
 		{
-			LogHandler::error(_TAG, "AP Failed to configure");
+			LogHandler::error(_TAG, "AP Mode Failed to configure");
 			return false;
 		}
 		_apMode = true;
-		LogHandler::info(_TAG, "Wifi APMode IP: %s", WiFi.softAPIP().toString().c_str());
+		LogHandler::info(TagHandler::WifiHandler, "APMode started");
 		SettingsHandler::printWebAddress(WiFi.softAPIP().toString().c_str());
 		return true;
 	}
@@ -323,8 +326,6 @@ private:
 	WIFI_STATUS_FUNCTION_PTR_T wifiStatus_callback;
 	const char *_TAG = TagHandler::WifiHandler;
 	SettingsFactory *m_settingsFactory;
-	const char *ssid = AP_MODE_SSID;
-	const char *password = AP_MODE_PASS;
 	int connectTimeOut = 10000;
 	int onApEventID = 0;
 	static int8_t _rssi;

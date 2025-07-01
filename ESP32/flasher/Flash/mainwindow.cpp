@@ -12,13 +12,13 @@
 
 struct ModuleConfig
 {
-    const QString friendlyName;
-    const QString name;
-    const QString flashMode;
-    const QString flashFreq;
-    const QString flashSize;
-    const QString flashStart;
-    const QString baud;
+    QString friendlyName;
+    QString name;
+    QString flashMode;
+    QString flashFreq;
+    QString flashSize;
+    QString flashStart;
+    QString baud;
 };
 Q_DECLARE_METATYPE(ModuleConfig)
 
@@ -37,6 +37,7 @@ MainWindow::MainWindow(QWidget *parent)
         {"Esp32", "esp32", "dio", "40m", "4MB", "0x0000", "921600"}
         ,{"Esp32 S3 zero", "esp32s3", "dio", "80m", "4MB", "0x0000", "921600"}
         //,{"Esp32 S3 N8R8", "esp32s3", "qio", "80m", "8MB", "0x0000", "921600"}// Need to check these
+        // ,{"Esp8266", "esp8266", "dio", "80m", "1MB", "0x0000", "921600"}
     };
 
     ui->modulePropertiesGrpBx->setHidden(true);

@@ -26,11 +26,13 @@
 #define SSID_LEN 32
 #define WIFI_PASS_DEFAULT "YOUR PASSWORD HERE"
 #define WIFI_PASS_LEN 63
-#define AP_MODE_SSID "TCodeESP32Setup"
-#define AP_MODE_PASS "12345678" // Not used?
-#define DEFAULT_IP "192.168.69.1"
-#define DEFAULT_GATEWAY "192.168.69.254"
-#define DEFAULT_SUBNET "255.255.255.0"
+#define AP_MODE_SSID_DEFAULT "TCodeESP32Setup"
+#define AP_MODE_PASS_DEFAULT ""
+#define AP_MODE_HIDDEN_DEFAULT false
+#define AP_MODE_CHANNEL_DEFAULT 1
+#define AP_MODE_IP_DEFAULT "192.168.69.1"
+#define AP_MODE_GATEWAY_DEFAULT "192.168.69.254"
+#define AP_MODE_SUBNET_DEFAULT "255.255.255.0"
 #if CONFIG_IDF_TARGET_ESP32
     #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::DEVKIT
 #elif CONFIG_IDF_TARGET_ESP32S3
@@ -140,6 +142,14 @@
 #define MOTOR_TYPE_SETTING "motorType"
 #define SSID_SETTING "ssid"
 #define WIFI_PASS_SETTING "wifiPass"
+#define AP_MODE_SSID "apModeSSID"
+#define AP_MODE_PASS "apModePass"
+#define AP_MODE_HIDDEN "apModeHidden"
+#define AP_MODE_CHANNEL "apModeChannel"
+#define AP_MODE_IP "apModeIP"
+#define AP_MODE_SUBNET "apModeSubnet"
+#define AP_MODE_GATEWAY "apModeGateway"
+
 #define BOARD_TYPE_SETTING "boardType"
 #define LOG_LEVEL_SETTING "logLevel"
 //#define FULL_BUILD "fullBuild"

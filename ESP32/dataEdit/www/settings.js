@@ -160,6 +160,10 @@ function get(name, uri, callback, callbackFail) {
 	xhr.send();
 }
 function onDocumentLoad() {
+    const showApPassChk = document.getElementById("showAPModePass");
+    showApPassChk.checked = false;
+    const showWifiPassChk = document.getElementById("showWifiPass");
+    showWifiPassChk.checked = false;
     getSystemInfo(true);
     createImportSettingsInputElement();
     
@@ -830,6 +834,14 @@ function setWifiSettings() {
     document.getElementById("webServerPort").value = wifiSettings["webServerPort"];
     document.getElementById("hostname").value = wifiSettings["hostname"];
     document.getElementById("friendlyName").value = wifiSettings["friendlyName"];
+
+    document.getElementById("apModeSSID").value = wifiSettings["apModeSSID"];
+    document.getElementById("apModePass").value = wifiSettings["apModePass"];
+    document.getElementById("apModeHidden").checked = wifiSettings["apModeHidden"];
+    document.getElementById("apModeChannel").value = wifiSettings["apModeChannel"];
+    document.getElementById("apModeIP").value = wifiSettings["apModeIP"];
+    document.getElementById("apModeSubnet").value = wifiSettings["apModeSubnet"];
+    document.getElementById("apModeGateway").value = wifiSettings["apModeGateway"];
 }
 function setPinoutSettings() {
     if(systemInfo.motorType === MotorType.BLDC) {
@@ -1185,7 +1197,7 @@ function isValidIP(ip) {
 function isValidHostName(hostname) {
     return hostname && hostname.match(/^(?![0-9]+$)(?!.*-$)(?!-)[a-zA-Z0-9-_]{1,63}$/g)
 }
-
+updateAPModeSettings
 function showRestartRequired() {
     //document.getElementById('requiresRestart').hidden = false;
     document.getElementById('resetBtn').classList.add("restart-required");
@@ -2411,8 +2423,8 @@ function connectWifi() {
     xhr.send(); */
 }
 
-function showWifiPassword() {
-    var x = document.getElementById('wifiPass');
+function togglePassword(id) {
+    var x = document.getElementById(id);
     if (x.type === "password") {
       x.type = "text";
     } else {
@@ -2425,6 +2437,16 @@ function updateWifiLoginSettings() {
     wifiSettings["wifiPass"] = document.getElementById('wifiPass').value;
     setRestartRequired();
     postWifiSettings();
+}
+function updateAPModeSettings() {
+    wifiSettings["apModeSSID"] = document.getElementById('apModeSSID').value;
+    wifiSettings["apModePass"] = document.getElementById('apModePass').value;
+    wifiSettings["apModeHidden"] = document.getElementById('apModeHidden').checked;
+    if(validateIntControl("apModeChannel", wifiSettings, "apModeChannel"))
+    {
+        setRestartRequired();
+        postWifiSettings();
+    }
 }
 
 function updateWifiSettings() {
@@ -2442,6 +2464,9 @@ function updateWifiSettings() {
         ips.subnet = document.getElementById('subnetInput').value;
         ips.dns1 = document.getElementById('dns1Input').value;
         ips.dns2 = document.getElementById('dns2Input').value;
+        ips.apModeIP = document.getElementById('apModeIP').value;
+        ips.apModeSubnet = document.getElementById('apModeSubnet').value;
+        ips.apModeGateway = document.getElementById('apModeGateway').value;
         if(validateStaticIPAddresses(ips)) {
             wifiSettings["staticIP"] = staticIP;
             wifiSettings["localIP"] = ips.localIP;
@@ -2449,6 +2474,9 @@ function updateWifiSettings() {
             wifiSettings["subnet"] = ips.subnet;
             wifiSettings["dns1"] = ips.dns1;
             wifiSettings["dns2"] = ips.dns2;
+            wifiSettings["apModeIP"] = ips.apModeIP;
+            wifiSettings["apModeGateway"] = ips.apModeGateway;
+            wifiSettings["apModeSubnet"] = ips.apModeSubnet;
             setRestartRequired();
             postWifiSettings(0);
         }
@@ -2472,6 +2500,15 @@ function validateStaticIPAddresses(ips) {
     }
     if(ips.dns1 && ips.dns2.length > 0 && !isValidIP(ips.dns1)) {
         invalidIPS.push("Invalid static dns2 address");
+    }
+    if(!isValidIP(ips.apModeIP)) {
+        invalidIPS.push("Invalid static AP mode IP address");
+    }
+    if(!isValidIP(ips.apModeGateway)) {
+        invalidIPS.push("Invalid static AP mode gateway address");
+    }
+    if(!isValidIP(ips.apModeSubnet)) {
+        invalidIPS.push("Invalid static AP mode subnet address");
     }
     if(invalidIPS.length) {
         var errorString = "<div name='staticIPValidation'>Static Ip settings not saved due to invalid IP addresses<br>";

@@ -89,7 +89,7 @@
 							<div class="tCell">
 							</div>
 							<div class="tCell">
-								<input type="checkbox" onclick="showWifiPassword()">Show Password</input>
+								<input id="showWifiPass" type="checkbox" onclick="togglePassword('wifiPass')">Show Password</input>
 							</div>
 						</div>
 						<div class="tRow">
@@ -138,6 +138,69 @@
 							</div>
 							<div class="tCell">
 								<input id="dns2Input" type="text" maxlength="15" oninput="updateWifiSettings()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>AP mode SSID</span> 
+							</div>
+							<div class="tCell">
+								<input id="apModeSSID" type="text" maxlength="32" oninput="updateAPModeSettings()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>Ap mode password</span> 
+							</div>
+							<div class="tCell">
+								<input id="apModePass" type="password" maxlength="63" oninput="updateAPModeSettings()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+							</div>
+							<div class="tCell">
+								<input id="showAPModePass" type="checkbox" onclick="togglePassword('apModePass')">Show Password</input>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>AP Mode IP</span> 
+							</div>
+							<div class="tCell">
+								<input id="apModeIP" type="text" maxlength="15" oninput="updateWifiSettings()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>AP Mode subnet</span> 
+							</div>
+							<div class="tCell">
+								<input id="apModeSubnet" type="text" maxlength="15" oninput="updateWifiSettings()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>AP Mode gateway</span> 
+							</div>
+							<div class="tCell">
+								<input id="apModeGateway" type="text" maxlength="15" oninput="updateWifiSettings()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>AP Mode hidden</span> 
+							</div>
+							<div class="tCell">
+								<input id="apModeHidden" type="checkbox" onclick="updateAPModeSettings()"></input>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>AP Mode channel</span> 
+							</div>
+							<div class="tCell">
+								<input id="apModeChannel" type="number" min="1" max="14" oninput="updateAPModeSettings()"></input>
 							</div>
 						</div>
 						<div class="tRow bluetoothOnly hidden">

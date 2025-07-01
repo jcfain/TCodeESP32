@@ -312,15 +312,21 @@ button:disabled {
 .formTable > div > .tRow:not(.servoHeader) > .tCell:first-child span {
 }
 
-.formTable input[type=text],
+.formTable input,
+.formTable textarea,
+.formTable input[type=number],
+.formTable input[type=password],
+.formTable select {
+  border-radius: 5px;
+}
+.formTable input:not([type=checkbox]),
 .formTable textarea,
 .formTable input[type=number],
 .formTable input[type=password],
 .formTable select {
   flex-grow: 1;
-  border-radius: 5px;
 }
-.formTable input[type=text]:invalid,
+.formTable input:not([type=checkbox]):invalid,
 .formTable textarea:invalid,
 .formTable input[type=number]:invalid,
 .formTable input[type=password]:invalid {

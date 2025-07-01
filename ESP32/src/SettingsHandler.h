@@ -353,6 +353,12 @@ public:
         } else {
             doc[WIFI_PASS_SETTING] = WIFI_PASS_DONOTCHANGE_DEFAULT;
         }
+        const char* apPass = doc[AP_MODE_PASS];
+        if(strcmp(apPass, AP_MODE_PASS_DEFAULT)) {
+            doc[AP_MODE_PASS] = DECOY_PASS; // Never set to actual password
+        } else {
+            doc[AP_MODE_PASS] = AP_MODE_PASS_DEFAULT;
+        }
 
         String output;
         serializeJson(doc, output);
@@ -548,7 +554,7 @@ public:
 
         doc["decoyPass"] = DECOY_PASS;
         doc["apMode"] = apMode;
-        doc["defaultIP"] = DEFAULT_IP;
+        doc["defaultIP"] = m_settingsFactory->getAPModeIP();
         //String output;
         serializeJson(doc, buf);
         doc.clear();
