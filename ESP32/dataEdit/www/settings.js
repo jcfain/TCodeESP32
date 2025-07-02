@@ -160,6 +160,7 @@ function get(name, uri, callback, callbackFail) {
 	xhr.send();
 }
 function onDocumentLoad() {
+    // Seems some browsers keep the checked state during refresh for some reason...
     const showApPassChk = document.getElementById("showAPModePass");
     showApPassChk.checked = false;
     const showWifiPassChk = document.getElementById("showWifiPass");
