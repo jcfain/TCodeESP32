@@ -251,6 +251,8 @@ private:
     int m_squeezeServo_Int = -1;
     int m_valveServo_Int = -1;
 
+    bool m_manualLubeOverride = false;
+
     // Not used/////////
     // int m_vib0_Int = -1;
     // int m_vib1_Int = -1;
@@ -477,32 +479,35 @@ private:
     }
 
     void executeLube() {
-        if(lubeRegistered) {
-            if(m_vib1Pin < 0) {
+            if(!lubeRegistered || m_vib1Pin < 0) {
                 return;
             }
-            int cmd = channelRead("A2"); 
-            if (cmd > -1) {
-                if (cmd > 0 && cmd <= TCODE_MAX) {
-                    #ifdef ESP_ARDUINO3
-                    ledcWrite(m_vib1Pin, map(cmd,1,TCODE_MAX,127,255));
-                    #else
-                    ledcWrite(m_vib1Channel, map(cmd,1,TCODE_MAX,127,255));
-                    #endif
-                } else if (digitalRead(m_lubeButtonPin) == HIGH) {
-                #ifdef ESP_ARDUINO3
-                    ledcWrite(m_vib1Pin,m_settingsFactory->getLubeAmount());
-                } else { 
-                    ledcWrite(m_vib1Pin,0);
-                #else
-                    ledcWrite(m_vib1Channel,m_settingsFactory->getLubeAmount());
-                } else { 
-                    ledcWrite(m_vib1Channel,0);
-                #endif
-                }
-                if (millis() - m_tcode->AxisLast("A2") > 500) { m_tcode->AxisInput("A2",0,' ',0); } // Auto cutoff
+            m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
+            if (m_manualLubeOverride) {
+#ifdef ESP_ARDUINO3
+                ledcWrite(m_vib1Pin,m_settingsFactory->getLubeAmount());
+            } else { 
+                ledcWrite(m_vib1Pin,0);
+#else
+                ledcWrite(m_vib1Channel,m_settingsFactory->getLubeAmount());
+            } else { 
+                ledcWrite(m_vib1Channel,0);
+#endif
             }
-        }
+            if(!m_manualLubeOverride)
+            {
+                int cmd = channelRead("A2"); 
+                if (cmd > 0) {
+                    if (cmd > 0 && cmd <= TCODE_MAX) {
+#ifdef ESP_ARDUINO3
+                        ledcWrite(m_vib1Pin, map(cmd,1,TCODE_MAX,127,255));
+#else
+                        ledcWrite(m_vib1Channel, map(cmd,1,TCODE_MAX,127,255));
+#endif
+                    } 
+                    if (millis() - m_tcode->AxisLast("A2") > 500) { m_tcode->AxisInput("A2",0,' ',0); } // Auto cutoff
+                }
+            }
     }
 
     void executeSqueeze() {
@@ -512,11 +517,11 @@ private:
         squeezeCmd = channelRead("A3");
         if(squeezeCmd > -1) {
             int squeeze = map(squeezeCmd,TCODE_MIN,TCODE_MAX,1000,-1000);
-            #ifdef ESP_ARDUINO3
+#ifdef ESP_ARDUINO3
             ledcWrite(m_squeezeServoPin, map(m_settingsFactory->getSqueezeServo_ZERO() + squeeze,0,m_squeezeServo_Int,0,m_servoPWMMaxDuty));
-            #else
+#else
             ledcWrite(m_squeezeServoChannel, map(m_settingsFactory->getSqueezeServo_ZERO() + squeeze,0,m_squeezeServo_Int,0,m_servoPWMMaxDuty));
-            #endif
+#endif
         }
     }
 };
