@@ -479,35 +479,35 @@ private:
     }
 
     void executeLube() {
-            if(!lubeRegistered || m_vib1Pin < 0) {
-                return;
-            }
-            m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
-            if (m_manualLubeOverride) {
+        if(!lubeRegistered || m_vib1Pin < 0) {
+            return;
+        }
+        m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
+        if (m_manualLubeOverride) {
 #ifdef ESP_ARDUINO3
-                ledcWrite(m_vib1Pin,m_settingsFactory->getLubeAmount());
-            } else { 
-                ledcWrite(m_vib1Pin,0);
+            ledcWrite(m_vib1Pin,m_settingsFactory->getLubeAmount());
+        } else { 
+            ledcWrite(m_vib1Pin,0);
 #else
-                ledcWrite(m_vib1Channel,m_settingsFactory->getLubeAmount());
-            } else { 
-                ledcWrite(m_vib1Channel,0);
+            ledcWrite(m_vib1Channel,m_settingsFactory->getLubeAmount());
+        } else { 
+            ledcWrite(m_vib1Channel,0);
 #endif
-            }
-            if(!m_manualLubeOverride)
-            {
-                int cmd = channelRead("A2"); 
-                if (cmd > -1) {
-                    if (cmd > 0 && cmd <= TCODE_MAX) {
+        }
+        if(!m_manualLubeOverride)
+        {
+            int cmd = channelRead("A2"); 
+            if (cmd > -1) {
+                if (cmd > 0 && cmd <= TCODE_MAX) {
 #ifdef ESP_ARDUINO3
-                        ledcWrite(m_vib1Pin, map(cmd,1,TCODE_MAX,127,255));
+                    ledcWrite(m_vib1Pin, map(cmd,1,TCODE_MAX,127,255));
 #else
-                        ledcWrite(m_vib1Channel, map(cmd,1,TCODE_MAX,127,255));
+                    ledcWrite(m_vib1Channel, map(cmd,1,TCODE_MAX,127,255));
 #endif
-                    } 
-                    if (millis() - m_tcode->AxisLast("A2") > 500) { m_tcode->AxisInput("A2",0,' ',0); } // Auto cutoff
-                }
+                } 
+                if (millis() - m_tcode->AxisLast("A2") > 500) { m_tcode->AxisInput("A2",0,' ',0); } // Auto cutoff
             }
+        }
     }
 
     void executeSqueeze() {
