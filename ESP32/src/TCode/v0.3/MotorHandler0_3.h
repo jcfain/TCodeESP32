@@ -497,7 +497,7 @@ private:
             if(!m_manualLubeOverride)
             {
                 int cmd = channelRead("A2"); 
-                if (cmd > 0) {
+                if (cmd > -1) {
                     if (cmd > 0 && cmd <= TCODE_MAX) {
 #ifdef ESP_ARDUINO3
                         ledcWrite(m_vib1Pin, map(cmd,1,TCODE_MAX,127,255));
