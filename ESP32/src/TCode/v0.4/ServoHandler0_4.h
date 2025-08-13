@@ -358,7 +358,7 @@ private:
         float gamma = atan2(x,y);    // Angle of line from servo pivot to receiver pivot
         float csq = sq(x) + sq(y);   // Square of distance between servo pivot and receiver pivot
         float c = sqrt(csq);         // Distance between servo pivot and receiver pivot
-        float beta = acos((csq - 28125)/(100*c));  // Angle between c-line and servo arm
+        float beta = acos(constrain((csq - 28125)/(100*c), -1, 1));  // Angle between c-line and servo arm
         int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
         return out;
     }
@@ -376,7 +376,7 @@ private:
         float gamma = atan2(x,y);       // Angle of line from servo pivot to receiver pivot
         float csq = sq(x) + sq(y);      // Square of distance between servo pivot and receiver pivot
         float c = sqrt(csq);            // Distance between servo pivot and receiver pivot
-        float beta = acos((csq + 5625 - bsq)/(150*c)); // Angle between c-line and servo arm
+        float beta = acos(constrain((csq + 5625 - bsq)/(150*c), -1, 1)); // Angle between c-line and servo arm
         int out = ms_per_rad*(gamma + beta - 3.14159); // Servo signal output, from neutral
         return out;
     }
