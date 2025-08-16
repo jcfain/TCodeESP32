@@ -234,11 +234,6 @@ public:
         loadMotionProfiles(false);
         loadButtons(false);
 
-        MotorType motorType;
-        DeviceType deviceType;
-        m_settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);
-        m_settingsFactory->getValue(DEVICE_TYPE, deviceType);
-        channelMap.init(m_settingsFactory->getTcodeVersion(), motorType, deviceType);
 
         LogHandler::debug(_TAG, "Last reset reason: %s", machine_reset_cause());
         initialized = true;
@@ -797,6 +792,14 @@ public:
     }
 
     static bool loadChannels(bool loadDefault, JsonObject json = JsonObject()) {
+
+        MotorType motorType;
+        DeviceType deviceType;
+        m_settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);
+        m_settingsFactory->getValue(DEVICE_TYPE, deviceType);
+        // Init motor type BEFORE loading the channels else it will load the defaults
+        channelMap.init(m_settingsFactory->getTcodeVersion(), motorType, deviceType);
+
         LogHandler::info(_TAG, "Loading channel profile");
         return loadSettingsJson(CHANNELS_SETTINGS_PATH, loadDefault, m_channelsMutex, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
                 
