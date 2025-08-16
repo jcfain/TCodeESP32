@@ -64,6 +64,7 @@ protected:
             maxServoRange = 180;
         }
         ms_per_rad = 114592/maxServoRange;
+        LogHandler::debug(_TAG, "MS_PER_RAD: %d", ms_per_rad);
         
         m_valveServoPin = pinMap->valve();
         m_valveServoChannel = pinMap->valveChannel();
@@ -140,7 +141,6 @@ protected:
             } else {
                 m_vib1Pin = -1;
             }
-
         }
         m_vib2Pin = pinMap->vibe2();
         m_vib2Channel = pinMap->vibe2Channel();
@@ -497,7 +497,8 @@ private:
         if(!m_manualLubeOverride)
         {
             int cmd = channelRead("A2"); 
-            if (cmd > -1) {
+            if (cmd > -1) 
+            {
                 if (cmd > 0 && cmd <= TCODE_MAX) {
 #ifdef ESP_ARDUINO3
                     ledcWrite(m_vib1Pin, map(cmd,1,TCODE_MAX,127,255));

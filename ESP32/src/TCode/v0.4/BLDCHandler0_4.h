@@ -68,8 +68,7 @@ public:
     void setup() override {
         bootmode = true;
         m_settingsFactory = SettingsFactory::getInstance();
-        // PinMapInfo pinMapInfo = m_settingsFactory->getPins();
-        // PinMapSSR1* pinMap = pinMapInfo.pinMap<PinMapSSR1*>();
+        //PinMapInfo pinMapInfo = m_settingsFactory->getPins();
         PinMapSSR1* pinMap = PinMapSSR1::getInstance();
         int pullyCircumference = -1;
         m_settingsFactory->getValue(BLDC_PULLEY_CIRCUMFERENCE, pullyCircumference);
@@ -123,6 +122,7 @@ public:
         // BLDC motor & driver instance
         motorA = new BLDCMotor(11,11.1);
         // BLDCDriver3PWM driver = BLDCDriver3PWM(pwmA, pwmB, pwmC, Enable(optional));
+        LogHandler::info(_TAG, "Setup BLDC PWM pins 1: %d, 2: %d, 3: %d, enable: %d", pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
         driverA = new BLDCDriver3PWM(pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
 
         // Start serial connection and report status
@@ -143,22 +143,25 @@ public:
         } else if(m_useHallSensor) {
             LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d...ignoring", pinMap->hallEffect());
             m_useHallSensor = false;
+            // m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
         }
         
         // initialise encoder hardware
         if(sensorMT6701) {
+            //SPI.begin(pinMap->i2cScl(), pinMap->i2cSda(), 11, pinMap->chipSelect()); // Do we need MOSI custom?
             sensorMT6701->init();
             LogHandler::debug(_TAG, "init sensorMT6701");
         } else if (sensorPWM) { 
             sensorPWM->init(); 
             LogHandler::debug(_TAG, "init sensorPWM");
         } else { 
+            //SPI.begin(pinMap->i2cScl(), pinMap->i2cSda(), 11, pinMap->chipSelect()); // Do we need this custom?
             sensorSPI->init(); 
             LogHandler::debug(_TAG, "init sensorSPI");
         }
         
         // driver config
-        // driver voltage limit
+        // Max DC voltage allowed - default voltage_limit
         double motorAVoltage = BLDC_MOTORA_VOLTAGE_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, motorAVoltage);
         LogHandler::debug(_TAG, "Voltage: %f", motorAVoltage);
@@ -166,8 +169,7 @@ public:
         // power supply voltage [V]
         double supplyAVoltage = BLDC_MOTORA_SUPPLY_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_SUPPLY, supplyAVoltage);
-        driverA->voltage_power_supply = motorAVoltage;
-        // Max DC voltage allowed - default voltage_power_supply
+        driverA->voltage_power_supply = supplyAVoltage;
         // driver init
         driverA->init();
 
@@ -176,7 +178,7 @@ public:
         m_settingsFactory->getValue(BLDC_MOTORA_CURRENT, motorACurrent);
         LogHandler::debug(_TAG, "Current: %f", motorACurrent);
         motorA->current_limit = motorACurrent;   // [Amps]
-        motorA->voltage_limit = motorAVoltage;  
+        // motorA->voltage_limit = motorAVoltage;  // TODO
 
         // set control loop type to be used
         motorA->torque_controller = TorqueControlType::voltage;

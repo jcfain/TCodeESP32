@@ -49,14 +49,20 @@ protected:
             return;
             
         m_settingsFactory = SettingsFactory::getInstance();
+
         PinMap* pinMap = m_settingsFactory->getPins();
+
+        m_tcode->setup(FIRMWARE_VERSION_NAME);
 
         m_servoPWMMaxDuty = static_cast<uint32_t>(pow(2, SERVO_PWM_RES) - 1);
         m_settingsFactory->getValue(MAX_SERVO_RANGE, maxServoRange);
+        if(!maxServoRange)
+        {
+            LogHandler::error(_TAG, "Invalid, max Servo range. Setting to 180...");
+            maxServoRange = 180;
+        }
         ms_per_rad = 114592/maxServoRange;
         LogHandler::debug(_TAG, "MS_PER_RAD: %d", ms_per_rad);
-        
-        m_tcode->setup(FIRMWARE_VERSION_NAME);
         
         m_valveServoPin = pinMap->valve();
         m_valveServoChannel = pinMap->valveChannel();
@@ -69,6 +75,8 @@ protected:
             int freq = pinMap->getChannelFrequency(m_valveServoChannel);
             attachPin("valve servo", m_valveServoPin, freq, m_valveServoChannel);
             m_valveServo_Int = frequencyToMicroseconds(freq);
+        } else {
+            m_valveServoPin = -1;
         }
 
         m_twistServoPin = pinMap->twist();
@@ -79,6 +87,8 @@ protected:
             int freq = pinMap->getChannelFrequency(m_twistServoChannel);
             attachPin("twist servo", m_twistServoPin, freq, m_twistServoChannel);
             m_twistServo_Int = frequencyToMicroseconds(freq);
+        } else {
+            m_twistServoPin = -1;
         }
 
         m_squeezeServoPin = pinMap->squeeze();
@@ -89,6 +99,8 @@ protected:
             int freq = pinMap->getChannelFrequency(m_squeezeServoChannel);
             attachPin("aux servo", m_squeezeServoPin, freq, m_squeezeServoChannel);
             m_squeezeServo_Int = frequencyToMicroseconds(freq);
+        } else {
+            m_squeezeServoPin = -1;
         }
 
         bool lubeEnabled = false; 
@@ -105,6 +117,8 @@ protected:
                 pinMode(m_lubeButtonPin, INPUT);
                 int freq = pinMap->getChannelFrequency(m_vib1Channel);
                 attachPin("lube", m_vib1Pin, freq, m_vib1Channel, 8);
+                // m_vib1_Int = frequencyToMicroseconds(freq);
+                lubeRegistered = true;
             }
         }
 
@@ -116,8 +130,12 @@ protected:
             m_tcode->RegisterAxis(vibe0_channel);
             int freq = pinMap->getChannelFrequency(m_vib0Channel);
             attachPin("vib 1", m_vib0Pin, freq, m_vib0Channel, 8);
+            // m_vib0_Int = frequencyToMicroseconds(freq);
+        } else {
+            m_vib0Pin = -1;
         }
-        if(!lube_channel) {
+
+        if(!lubeRegistered) {
             m_vib1Pin = pinMap->vibe1();
             m_vib1Channel = pinMap->vibe1Channel();
             if(m_vib1Pin > -1 && m_vib1Channel > -1) {
@@ -125,6 +143,9 @@ protected:
                 m_tcode->RegisterAxis(vibe1_channel);
                 int freq = pinMap->getChannelFrequency(m_vib1Channel);
                 attachPin("vib 2", m_vib1Pin, freq, m_vib1Channel, 8);
+                // m_vib1_Int = frequencyToMicroseconds(freq);
+            } else {
+                m_vib1Pin = -1;
             }
         }
         m_vib2Pin = pinMap->vibe2();
@@ -134,6 +155,9 @@ protected:
             m_tcode->RegisterAxis(vibe2_channel);
             int freq = pinMap->getChannelFrequency(m_vib2Channel);
             attachPin("vib 3", m_vib2Pin, freq, m_vib2Channel, 8);
+            // m_vib2_Int = frequencyToMicroseconds(freq);
+        } else {
+            m_vib2Pin = -1;
         }
         m_vib3Pin = pinMap->vibe3();
         m_vib3Channel = pinMap->vibe3Channel();
@@ -142,12 +166,15 @@ protected:
             m_tcode->RegisterAxis(vibe3_channel);
             int freq = pinMap->getChannelFrequency(m_vib3Channel);
             attachPin("vib 4", m_vib3Pin, freq, m_vib3Channel, 8);
+            // m_vib3_Int = frequencyToMicroseconds(freq);
+        } else {
+            m_vib3Pin = -1;
         }
 
         m_settingsFactory->getValue(FEEDBACK_TWIST, m_isTwistFeedBack);
-        m_twistFeedBackPin = pinMap->twistFeedBack();
         if(m_isTwistFeedBack)
         {
+            m_twistFeedBackPin = pinMap->twistFeedBack();
             if(m_twistFeedBackPin > -1) {
                 // Initiate position tracking for twist
                 pinMode(m_twistFeedBackPin, INPUT);
@@ -181,7 +208,7 @@ protected:
         executeSqueeze();
         executeValve(xLin);
         executeVibe(0);
-        if(!lube_channel)
+        if(!lubeRegistered)
             executeVibe(1);
         else
             executeLube();
@@ -232,6 +259,8 @@ private:
     int m_squeezeServo_Int = -1;
     int m_valveServo_Int = -1;
     
+    bool m_manualLubeOverride = false;
+    
 	TCodeAxis* twist_channel = 0;
 	TCodeAxis* squeeze_channel = 0;
 	TCodeAxis* vibe0_channel = 0;
@@ -249,6 +278,7 @@ private:
     float twistPos;
 
     int lube;
+    bool lubeRegistered = false;
     int valveCmd,suckCmd;
     int vibe0,vibe1,vibe2,vibe3;
     float upVel,valvePos;
@@ -297,7 +327,7 @@ private:
             int twist;
             if (m_isTwistFeedBack && !m_settingsFactory->getContinuousTwist()) 
             {
-                twist  = (xRot - map(twistPos,-1500,1500,10000,0))/5;
+                twist  = (xRot - map(twistPos,-1500,1500, TCODE_MAX, TCODE_MIN))/5;
                 if(!m_isAnalogTwist) 
                 { 
                     twist  = constrain(twist, -750, 750);
@@ -315,19 +345,19 @@ private:
                     //     testVar2 = twist;
                     //     Serial.print("twist: ");
                     //     Serial.println(1500 + twist);
-                    //     Serial.print("map(twistPos,-1500,1500,10000,0) "); 
-                    //     Serial.println(map(twistPos,-1500,1500,10000,0));
+                    //     Serial.print("map(twistPos,-1500,1500,TCODE_MAX,TCODE_MIN) "); 
+                    //     Serial.println(map(twistPos,-1500,1500,TCODE_MAX,TCODE_MIN));
                         // Serial.print("map "); 
-                        // Serial.println(map(SettingsHandler::getTwistServo_ZERO() + twist,0,TwistServo_Int,0,65535));
+                        // Serial.println(map(SettingsHandler::getTwistServo_ZERO() + twist,0,TwistServo_Int,0,m_servoPWMMaxDuty));
                     //}
                 }
             } 
             else 
             {
                 if(m_settingsFactory->getInverseTwist())
-                    twist = map(xRot,0,10000,-1000,1000);
+                    twist = map(xRot, TCODE_MIN, TCODE_MAX,-1000,1000);
                 else
-                    twist = map(xRot,0,10000,1000,-1000);
+                    twist = map(xRot, TCODE_MIN, TCODE_MAX,1000,-1000);
             }
             #ifdef ESP_ARDUINO3
             ledcWrite(m_twistServoPin, map(m_settingsFactory->getTwistServo_ZERO() + twist,0,m_twistServo_Int,0,m_servoPWMMaxDuty));
@@ -373,7 +403,7 @@ private:
                     valveCmd = map(100*upVel, 0, -500, suckCmd, 0);
                 }
             }
-            valvePos = (9*valvePos + map(valveCmd, 0, 10000, 0, 1000))/10;
+            valvePos = (9*valvePos + map(valveCmd, TCODE_MIN, TCODE_MAX, 0, 1000))/10;
 
             int valve;
             valve  = valvePos - 500;
@@ -447,8 +477,8 @@ private:
             return;
         int cmd = channelRead(vibChannel);
         if(cmd > -1) {
-            if (cmd > 0 && cmd <= 10000) {
-                ledcWrite(pwmChannel, map(cmd,1,10000,31,255));
+            if (cmd > 0 && cmd <= TCODE_MAX) {
+                ledcWrite(pwmChannel, map(cmd,1,TCODE_MAX,31,255));
             } else {
                 ledcWrite(pwmChannel, 0);
             }
@@ -459,28 +489,35 @@ private:
     }
 
     void executeLube() {
-        if(!lube_channel)
+        if(!lubeRegistered || m_vib1Pin < 0) {
             return;
-        int cmd = channelRead(lube_channel); 
-        if (cmd > -1) {
-            if (cmd > 0 && cmd <= 10000) {
-                #ifdef ESP_ARDUINO3
-                ledcWrite(m_vib1Pin, map(cmd,1,10000,127,255));
-                #else
-                ledcWrite(m_vib1Channel, map(cmd,1,10000,127,255));
-                #endif
-            } else if (digitalRead(m_lubeButtonPin) == HIGH) {
-            #ifdef ESP_ARDUINO3
+        }
+        m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
+        if (m_manualLubeOverride) {
+#ifdef ESP_ARDUINO3
                 ledcWrite(m_vib1Pin,m_settingsFactory->getLubeAmount());
-            } else { 
+        } else { 
                 ledcWrite(m_vib1Pin,0);
-            #else
+#else
                 ledcWrite(m_vib1Channel,m_settingsFactory->getLubeAmount());
-            } else { 
+        } else { 
                 ledcWrite(m_vib1Channel,0);
-            #endif
+#endif
+        }
+        if(!m_manualLubeOverride)
+        {
+            int cmd = channelRead(lube_channel); 
+            if (cmd > -1) 
+            {
+                if (cmd > 0 && cmd <= TCODE_MAX) {
+#ifdef ESP_ARDUINO3
+                    ledcWrite(m_vib1Pin, map(cmd,1,TCODE_MAX,127,255));
+#else
+                    ledcWrite(m_vib1Channel, map(cmd,1,TCODE_MAX,127,255));
+#endif
+                } 
+                if (millis() - m_tcode->getAxisLastCommandTime(lube_channel) > 500) { m_tcode->setAxisData(lube_channel, 0.0, AxisExtentionType::Time, 0); } // Auto cutoff
             }
-            if (millis() - m_tcode->getAxisLastCommandTime(lube_channel) > 500) { m_tcode->setAxisData(lube_channel, 0.0, AxisExtentionType::Time, 0); } // Auto cutoff
         }
     }
 
@@ -489,7 +526,7 @@ private:
             return;
         squeezeCmd = channelRead(squeeze_channel);
         if(squeezeCmd > -1) {
-            int squeeze = map(squeezeCmd,0,10000,1000,-1000);
+            int squeeze = map(squeezeCmd,TCODE_MIN,TCODE_MAX,1000,-1000);
             #ifdef ESP_ARDUINO3
             ledcWrite(m_squeezeServoPin, map(m_settingsFactory->getSqueezeServo_ZERO() + squeeze,0,m_squeezeServo_Int,0,m_servoPWMMaxDuty));
             #else

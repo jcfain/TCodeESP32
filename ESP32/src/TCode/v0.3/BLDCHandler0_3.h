@@ -143,7 +143,6 @@ public:
             m_useHallSensor = false;
             // m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
         }
-
         
         // initialise encoder hardware
         if(sensorMT6701) {
