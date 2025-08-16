@@ -61,11 +61,11 @@ protected:
         m_valveServoPin = pinMap->valve();
         m_valveServoChannel = pinMap->valveChannel();
         if(m_valveServoPin > -1 && m_valveServoChannel > -1) {
-            valve_axis = new TCodeAxis("Valve", {AxisType::Auxiliary, 0}, 0.0f);
-            m_tcode->RegisterAxis(valve_axis);
-            m_tcode->setAxisData(valve_axis, 0.5, AxisExtentionType::Time, 3000);
-            suck_axis = new TCodeAxis("Valve", {AxisType::Auxiliary, 1}, 0.0f);
-            m_tcode->RegisterAxis(suck_axis);
+            valve_channel = new TCodeAxis("Valve", {AxisType::Auxiliary, 0}, 0.0f);
+            m_tcode->RegisterAxis(valve_channel);
+            m_tcode->setAxisData(valve_channel, 0.5, AxisExtentionType::Time, 3000);
+            suck_channel = new TCodeAxis("Valve", {AxisType::Auxiliary, 1}, 0.0f);
+            m_tcode->RegisterAxis(suck_channel);
             int freq = pinMap->getChannelFrequency(m_valveServoChannel);
             attachPin("valve servo", m_valveServoPin, freq, m_valveServoChannel);
             m_valveServo_Int = frequencyToMicroseconds(freq);
@@ -74,8 +74,8 @@ protected:
         m_twistServoPin = pinMap->twist();
         m_twistServoChannel = pinMap->twistChannel();
         if(m_twistServoPin > -1 && m_twistServoChannel > -1) {
-            twist_axis = new TCodeAxis("Twist", {AxisType::Rotation, 0}, 0.5f);
-            m_tcode->RegisterAxis(twist_axis);
+            twist_channel = new TCodeAxis("Twist", {AxisType::Rotation, 0}, 0.5f);
+            m_tcode->RegisterAxis(twist_channel);
             int freq = pinMap->getChannelFrequency(m_twistServoChannel);
             attachPin("twist servo", m_twistServoPin, freq, m_twistServoChannel);
             m_twistServo_Int = frequencyToMicroseconds(freq);
@@ -84,8 +84,8 @@ protected:
         m_squeezeServoPin = pinMap->squeeze();
         m_squeezeServoChannel = pinMap->squeezeChannel();
         if(m_squeezeServoPin > -1 && m_squeezeServoChannel > -1) {
-            squeeze_axis = new TCodeAxis("Squeeze", {AxisType::Auxiliary, 3}, 0.5f);
-            m_tcode->RegisterAxis(squeeze_axis);
+            squeeze_channel = new TCodeAxis("Squeeze", {AxisType::Auxiliary, 3}, 0.5f);
+            m_tcode->RegisterAxis(squeeze_channel);
             int freq = pinMap->getChannelFrequency(m_squeezeServoChannel);
             attachPin("aux servo", m_squeezeServoPin, freq, m_squeezeServoChannel);
             m_squeezeServo_Int = frequencyToMicroseconds(freq);
@@ -98,10 +98,10 @@ protected:
             m_vib1Pin = pinMap->vibe1();
             m_vib1Channel = pinMap->vibe1Channel();
             if(m_lubeButtonPin > -1 && m_vib1Pin > -1 && m_vib1Channel > -1) {
-                lube_axis = new TCodeAxis("Lube", {AxisType::Auxiliary, 2}, 0.0f);
-                m_tcode->RegisterAxis(lube_axis);
+                lube_channel = new TCodeAxis("Lube", {AxisType::Auxiliary, 2}, 0.0f);
+                m_tcode->RegisterAxis(lube_channel);
                 //m_tcode->AxisInput("A2",0,' ',0);
-                m_tcode->setAxisData(lube_axis, 0, AxisExtentionType::Time, 0);
+                m_tcode->setAxisData(lube_channel, 0, AxisExtentionType::Time, 0);
                 pinMode(m_lubeButtonPin, INPUT);
                 int freq = pinMap->getChannelFrequency(m_vib1Channel);
                 attachPin("lube", m_vib1Pin, freq, m_vib1Channel, 8);
@@ -112,17 +112,17 @@ protected:
         m_vib0Pin = pinMap->vibe0();
         m_vib0Channel = pinMap->vibe0Channel();
         if(m_vib0Pin > -1 && m_vib0Channel > -1) {
-            vibe0_axis = new TCodeAxis("Vibe 1", {AxisType::Vibration, 0}, 0.0f);
-            m_tcode->RegisterAxis(vibe0_axis);
+            vibe0_channel = new TCodeAxis("Vibe 1", {AxisType::Vibration, 0}, 0.0f);
+            m_tcode->RegisterAxis(vibe0_channel);
             int freq = pinMap->getChannelFrequency(m_vib0Channel);
             attachPin("vib 1", m_vib0Pin, freq, m_vib0Channel, 8);
         }
-        if(!lube_axis) {
+        if(!lube_channel) {
             m_vib1Pin = pinMap->vibe1();
             m_vib1Channel = pinMap->vibe1Channel();
             if(m_vib1Pin > -1 && m_vib1Channel > -1) {
-                vibe1_axis = new TCodeAxis("Vibe 2", {AxisType::Vibration, 1}, 0.0f);
-                m_tcode->RegisterAxis(vibe1_axis);
+                vibe1_channel = new TCodeAxis("Vibe 2", {AxisType::Vibration, 1}, 0.0f);
+                m_tcode->RegisterAxis(vibe1_channel);
                 int freq = pinMap->getChannelFrequency(m_vib1Channel);
                 attachPin("vib 2", m_vib1Pin, freq, m_vib1Channel, 8);
             }
@@ -130,16 +130,16 @@ protected:
         m_vib2Pin = pinMap->vibe2();
         m_vib2Channel = pinMap->vibe2Channel();
         if(m_vib2Pin > -1 && m_vib2Channel > -1) {
-            vibe2_axis = new TCodeAxis("Vibe 3", {AxisType::Vibration, 2}, 0.0f);
-            m_tcode->RegisterAxis(vibe2_axis);
+            vibe2_channel = new TCodeAxis("Vibe 3", {AxisType::Vibration, 2}, 0.0f);
+            m_tcode->RegisterAxis(vibe2_channel);
             int freq = pinMap->getChannelFrequency(m_vib2Channel);
             attachPin("vib 3", m_vib2Pin, freq, m_vib2Channel, 8);
         }
         m_vib3Pin = pinMap->vibe3();
         m_vib3Channel = pinMap->vibe3Channel();
         if(m_vib3Pin > -1 && m_vib3Channel > -1) {
-            vibe3_axis = new TCodeAxis("Vibe 4", {AxisType::Vibration, 3}, 0.0f);
-            m_tcode->RegisterAxis(vibe3_axis);
+            vibe3_channel = new TCodeAxis("Vibe 4", {AxisType::Vibration, 3}, 0.0f);
+            m_tcode->RegisterAxis(vibe3_channel);
             int freq = pinMap->getChannelFrequency(m_vib3Channel);
             attachPin("vib 4", m_vib3Pin, freq, m_vib3Channel, 8);
         }
@@ -181,7 +181,7 @@ protected:
         executeSqueeze();
         executeValve(xLin);
         executeVibe(0);
-        if(!lube_axis)
+        if(!lube_channel)
             executeVibe(1);
         else
             executeLube();
@@ -190,6 +190,19 @@ protected:
 
     }
     
+protected:
+    uint16_t channelRead(TCode::Axis::TCodeAxis* channel) {
+        uint16_t value = m_tcode->getChannelPosition(channel);
+        if(SettingsHandler::getChannelRangesEnabled()) {
+            Channel* channel = SettingsHandler::getChannel(channel->Name);
+            if(channel && channel->rangeLimitEnabled)
+            {
+                return map(value, TCODE_MIN, TCODE_MAX, channel->userMin, channel->userMax);
+            }
+        }
+        return value;
+    }
+
 private:
     const char* _TAG = TagHandler::MotorHandler;
     bool m_initFailed = false;
@@ -219,15 +232,15 @@ private:
     int m_squeezeServo_Int = -1;
     int m_valveServo_Int = -1;
     
-	TCodeAxis* twist_axis = 0;
-	TCodeAxis* squeeze_axis = 0;
-	TCodeAxis* vibe0_axis = 0;
-	TCodeAxis* vibe1_axis = 0;
-	TCodeAxis* vibe2_axis = 0;
-	TCodeAxis* vibe3_axis = 0;
-	TCodeAxis* valve_axis = 0;
-	TCodeAxis* suck_axis = 0;
-	TCodeAxis* lube_axis = 0;
+	TCodeAxis* twist_channel = 0;
+	TCodeAxis* squeeze_channel = 0;
+	TCodeAxis* vibe0_channel = 0;
+	TCodeAxis* vibe1_channel = 0;
+	TCodeAxis* vibe2_channel = 0;
+	TCodeAxis* vibe3_channel = 0;
+	TCodeAxis* valve_channel = 0;
+	TCodeAxis* suck_channel = 0;
+	TCodeAxis* lube_channel = 0;
 
     int xRot,squeezeCmd;
     // Velocity tracker variables, for valve
@@ -243,9 +256,9 @@ private:
     int xLast;
 
     void executeTwist() {
-        if(!twist_axis)
+        if(!twist_channel)
             return;
-        xRot = m_tcode->getAxisPosition(twist_axis);
+        xRot = channelRead(twist_channel);
         if(xRot > -1) {
             if (m_isTwistFeedBack && !m_settingsFactory->getContinuousTwist()) 
             {
@@ -325,12 +338,12 @@ private:
     }
 
     void executeValve(int xLin) {
-        if(!valve_axis && !suck_axis)
+        if(!valve_channel && !suck_channel)
             return;
-        if(valve_axis)
-            valveCmd = m_tcode->getAxisPosition(valve_axis);
-        if(suck_axis)
-            suckCmd = m_tcode->getAxisPosition(suck_axis);
+        if(valve_channel)
+            valveCmd = channelRead(valve_channel);
+        if(suck_channel)
+            suckCmd = channelRead(suck_channel);
         if(valveCmd > -1 || suckCmd > -1) {
             // Valve
             // Calculate valve position
@@ -346,7 +359,7 @@ private:
             xLast = xLin;
             // Use suck command if most recent
             bool suck;
-            if (m_tcode->getAxisLastCommandTime(suck_axis) >= m_tcode->getAxisLastCommandTime(valve_axis)) {
+            if (m_tcode->getAxisLastCommandTime(suck_channel) >= m_tcode->getAxisLastCommandTime(valve_channel)) {
                 suck = true;
                 valveCmd = suckCmd;
             } else {
@@ -399,7 +412,7 @@ private:
                 #else
                 pwmChannel = m_vib0Channel;
                 #endif
-                vibChannel = vibe0_axis;
+                vibChannel = vibe0_channel;
                 break;
             }
             case 1: {
@@ -408,7 +421,7 @@ private:
                 #else
                 pwmChannel = m_vib1Channel;
                 #endif
-                vibChannel = vibe1_axis;
+                vibChannel = vibe1_channel;
                 break;
             }
             case 2: {
@@ -417,7 +430,7 @@ private:
                 #else
                 pwmChannel = m_vib2Channel;
                 #endif
-                vibChannel = vibe2_axis;
+                vibChannel = vibe2_channel;
                 break;
             }
             case 3: {
@@ -426,13 +439,13 @@ private:
                 #else
                 pwmChannel = m_vib3Channel;
                 #endif
-                vibChannel = vibe3_axis;
+                vibChannel = vibe3_channel;
                 break;
             }
         }
         if(!vibChannel)
             return;
-        int cmd = m_tcode->getAxisPosition(vibChannel);
+        int cmd = channelRead(vibChannel);
         if(cmd > -1) {
             if (cmd > 0 && cmd <= 10000) {
                 ledcWrite(pwmChannel, map(cmd,1,10000,31,255));
@@ -446,9 +459,9 @@ private:
     }
 
     void executeLube() {
-        if(!lube_axis)
+        if(!lube_channel)
             return;
-        int cmd = m_tcode->getAxisPosition(lube_axis); 
+        int cmd = channelRead(lube_channel); 
         if (cmd > -1) {
             if (cmd > 0 && cmd <= 10000) {
                 #ifdef ESP_ARDUINO3
@@ -467,14 +480,14 @@ private:
                 ledcWrite(m_vib1Channel,0);
             #endif
             }
-            if (millis() - m_tcode->getAxisLastCommandTime(lube_axis) > 500) { m_tcode->setAxisData(lube_axis, 0.0, AxisExtentionType::Time, 0); } // Auto cutoff
+            if (millis() - m_tcode->getAxisLastCommandTime(lube_channel) > 500) { m_tcode->setAxisData(lube_channel, 0.0, AxisExtentionType::Time, 0); } // Auto cutoff
         }
     }
 
     void executeSqueeze() {
-        if(!squeeze_axis)
+        if(!squeeze_channel)
             return;
-        squeezeCmd = m_tcode->getAxisPosition(squeeze_axis);
+        squeezeCmd = channelRead(squeeze_channel);
         if(squeezeCmd > -1) {
             int squeeze = map(squeezeCmd,0,10000,1000,-1000);
             #ifdef ESP_ARDUINO3

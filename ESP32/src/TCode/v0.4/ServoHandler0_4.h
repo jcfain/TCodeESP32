@@ -182,13 +182,13 @@ int lastXLin = 0;
         // Collect inputs
         // These functions query the t-code object for the position/level at a specified time
         // Number recieved will be an integer, 0-10000
-        xLin = m_tcode->getAxisPosition(stroke_axis);
+        xLin = channelRead(stroke_axis);
         if(lastXLin != xLin) {
             Serial.println(xLin);
             lastXLin = xLin;
         }
-        yRot = m_tcode->getAxisPosition(roll_axis);
-        zRot = m_tcode->getAxisPosition(pitch_axis);
+        yRot = channelRead(roll_axis);
+        zRot = channelRead(pitch_axis);
 
         if(m_deviceType == DeviceType::OSR)
         {
@@ -292,8 +292,8 @@ private:
 
     void executeSR6(int strokeTcode, int rollTcode, int pitchTcode) 
     {
-        yLin = m_tcode->getAxisPosition(surge_axis);
-        zLin = m_tcode->getAxisPosition(sway_axis);
+        yLin = channelRead(surge_axis);
+        zLin = channelRead(sway_axis);
         // SR6 Kinematics
         // Calculate arm angles
         int roll,pitch,fwd,thrust,side;

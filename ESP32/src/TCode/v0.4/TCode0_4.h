@@ -88,7 +88,7 @@ public:
 
 // float lastXLin = 0;
 	// Function to read the current position of an axis
-	uint16_t  getAxisPosition(TCodeAxis* channel) override
+	uint16_t getChannelPosition(TCodeAxis* channel) override
 	{
 		float value = channel->getPosition();
         // if(channel->getId().channel == 0 && channel->getId().type == AxisType::Linear && lastXLin != value) {
