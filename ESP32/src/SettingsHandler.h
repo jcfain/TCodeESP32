@@ -62,6 +62,9 @@ public:
 
     static ChannelMap channelMap;
     static BuildFeature buildFeatures[(int)BuildFeature::MAX_FEATURES];
+
+    static inline MotionProfile* motionProfiles;
+    static inline ButtonSet* buttonSets;
     
     // static TCodeVersion TCodeVersionEnum;
     // static MotorType motorType;
@@ -187,7 +190,7 @@ public:
     // static bool bootButtonEnabled;
     // static bool buttonSetsEnabled;
     // static char bootButtonCommand[MAX_COMMAND];
-    static ButtonSet buttonSets[MAX_BUTTON_SETS];
+    // static ButtonSet buttonSets[MAX_BUTTON_SETS];
     // static uint8_t defaultButtonSetPin;
     // static uint16_t buttonAnalogDebounce;
 
@@ -225,6 +228,8 @@ public:
     static void init()
     {
         m_settingsFactory = SettingsFactory::getInstance();
+        motionProfiles = m_settingsFactory->getMotionProfiles();
+        buttonSets = m_settingsFactory->getButtonSets();
         setBuildFeatures();
         setMotorType();
 
@@ -322,17 +327,6 @@ public:
             return false;
         }
         return true;
-    }
-
-    static bool defaultPinout() {
-		//setBoardPinout();
-        if(!m_settingsFactory->resetPins())
-            return false;
-        const PinMap* pinMap = m_settingsFactory->getPins();
-        for(int i = 0; i < MAX_BUTTON_SETS; i++) {
-            buttonSets[i].pin = pinMap->buttonSetPin(i);
-        }
-        return m_settingsFactory->savePins();
     }
 
     static void getWifiInfo(char* buf)
@@ -588,7 +582,6 @@ public:
             if(buttonSetsObj.isNull()) {
                 LogHandler::info(_TAG, "No button sets stored, loading default");
                 mutableLoadDefault = true;
-                
                 const PinMap* pinMap = m_settingsFactory->getPins();
                 for(int i = 0; i < MAX_BUTTON_SETS; i++) {
                     buttonSets[i] = ButtonSet();
@@ -695,13 +688,13 @@ public:
                 motionSelectedProfileIndex = motionDefaultProfileIndex;
                 
             JsonArray motionProfilesObj = json[MOTION_PROFILES].as<JsonArray>();
-            
             if(motionProfilesObj.isNull()) {
                 LogHandler::info(_TAG, "No motion profiles stored, loading default");
                 mutableLoadDefault = true;
-                for(int i = 0; i < maxMotionProfileCount; i++) {
+                for(int i = 0; i < MAX_MOTION_PROFILE_COUNT; i++) {
                     motionProfiles[i] = MotionProfile(i + 1);
                     motionProfiles[i].addDefaultChannel("L0");
+                    LogHandler::debug(_TAG, "Added new Motion profile for: %s", motionProfiles[i].channels.back().name);
                 }
             } else {
                 int i = 0;
@@ -737,9 +730,8 @@ public:
         JsonDocument doc; //serializeSize
         doc[MOTION_PROFILE_DEFAULT_INDEX] = motionDefaultProfileIndex;
         LogHandler::debug(_TAG, "motion profiles index: %ld", motionDefaultProfileIndex);
-        int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
-        LogHandler::debug(_TAG, "motion profiles length: %ld", len);
-        for (int i=0; i < len; i++) {
+
+        for (int i=0; i < MAX_MOTION_PROFILE_COUNT; i++) {
             //if(motionProfiles[i].edited) { // TODO: this does not work because doc is empty and needs to be loaded from disk first bedore modifying sections of it.
 
                 LogHandler::debug(_TAG, "Edited motion profile name: %s", motionProfiles[i].motionProfileName);
@@ -894,7 +886,7 @@ public:
     {
         return motionDefaultProfileIndex;
     }
-    static void setMotionProfileName(const char newValue[maxMotionProfileNameLength])
+    static void setMotionProfileName(const char newValue[MAX_MOTION_PROFILE_NAME_LENGTH])
     {
         strcpy(motionProfiles[motionSelectedProfileIndex].motionProfileName, newValue);
     }
@@ -1037,8 +1029,7 @@ public:
     // }
 
     static int motionProfileExists(const char* profile) {
-        int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
-        for (size_t i = 0; i < len; i++)
+        for (size_t i = 0; i < MAX_MOTION_PROFILE_COUNT; i++)
         {
             if (strcmp(motionProfiles[i].motionProfileName, profile) == 0)
                 return (int)i;
@@ -1052,7 +1043,7 @@ public:
         setMotionProfile(motionProfile, motionSelectedProfileIndex);
     }
 
-    static void setMotionProfile(const char profile[maxMotionProfileNameLength]) {
+    static void setMotionProfile(const char profile[MAX_MOTION_PROFILE_NAME_LENGTH]) {
         auto index = motionProfileExists(profile);
         if(index < 0) {
             LogHandler::error(_TAG, "Motion profile %s does not exist", profile);
@@ -1062,8 +1053,7 @@ public:
     }
 
     static void setMotionProfile(const int& index) {
-        int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
-        if(index < 0 || index > len - 1) {
+        if(index < 0 || index > MAX_MOTION_PROFILE_COUNT - 1) {
             LogHandler::error(_TAG, "Invalid motion profile index: %ld", index);
             return;
         }
@@ -1072,8 +1062,7 @@ public:
     }
 
     static void setMotionProfile(const MotionProfile& profile, int profileIndex) {
-        int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
-        if(profileIndex < 0 || profileIndex > len - 1) {
+        if(profileIndex < 0 || profileIndex > MAX_MOTION_PROFILE_COUNT - 1) {
             LogHandler::error(_TAG, "Invalid motion profile index: %ld", profileIndex);
             return;
         }
@@ -1086,18 +1075,13 @@ public:
             setMotionEnabled(true);
             return;
         }
-        int len = sizeof(motionProfiles)/sizeof(motionProfiles[0]);
         uint8_t newProfileIndex = motionSelectedProfileIndex + 1;
-        if(newProfileIndex > len - 1) {
+        if(newProfileIndex > MAX_MOTION_PROFILE_COUNT - 1) {
             newProfileIndex = 0;
             setMotionEnabled(false);
         }
         auto newProfile = motionProfiles[newProfileIndex];
         setMotionProfile(newProfile, newProfileIndex);
-    }
-
-    static ButtonSet* getButtonSets() {
-        return buttonSets;
     }
 
     static const bool readFile(char* &buf, const char* path) {
@@ -1372,7 +1356,7 @@ private:
     static bool motionEnabled;
     static int motionSelectedProfileIndex;
     static int motionDefaultProfileIndex;
-    static MotionProfile motionProfiles[maxMotionProfileCount];
+    // static MotionProfile motionProfiles[maxMotionProfileCount];
     
     // static bool voiceEnabled;
     // static bool voiceMuted;
@@ -2650,11 +2634,9 @@ char SettingsHandler::currentDns2[IP_ADDRESS_LEN] = DNS2_DEFAULT;
 // char SettingsHandler::bootButtonCommand[MAX_COMMAND];
 
 bool SettingsHandler::motionEnabled = false;
-//char SettingsHandler::motionSelectedProfileName[maxMotionProfileNameLength];
+//char SettingsHandler::motionSelectedProfileName[MAX_MOTION_PROFILE_NAME_LENGTH];
 int SettingsHandler::motionSelectedProfileIndex = 0;
 int SettingsHandler::motionDefaultProfileIndex = 0;
-MotionProfile SettingsHandler::motionProfiles[maxMotionProfileCount];
-ButtonSet SettingsHandler::buttonSets[MAX_BUTTON_SETS];
 // uint8_t SettingsHandler::defaultButtonSetPin;
 // uint16_t SettingsHandler::buttonAnalogDebounce;
 //std::map<const char*, MotionProfile*, StrCompare> SettingsHandler::motionProfiles;

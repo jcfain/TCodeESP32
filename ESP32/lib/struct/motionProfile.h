@@ -25,16 +25,16 @@ SOFTWARE. */
 #include <ArduinoJson.h>
 #include "motionChannel.h"
 
-#define maxMotionProfileCount 5
-#define maxMotionProfileNameLength 31
-#define motionDefaultProfileName "Profile"
+#define MAX_MOTION_PROFILE_COUNT 5
+#define MAX_MOTION_PROFILE_NAME_LENGTH 31
+#define MOTION_PROFILE_DEFAULT_NAME "Profile"
 
 struct MotionProfile {
     MotionProfile() { }
     MotionProfile(int profileNumber) {
         snprintf(motionProfileName, sizeof(motionProfileName), "Profile %d", profileNumber);
     }
-    char motionProfileName[maxMotionProfileNameLength] = motionDefaultProfileName;
+    char motionProfileName[MAX_MOTION_PROFILE_NAME_LENGTH] = MOTION_PROFILE_DEFAULT_NAME;
     bool edited = false;
     std::vector<MotionChannel> channels;
 

@@ -43,7 +43,6 @@ public:
     SettingsFactory(SettingsFactory const&) = delete;
     void operator=(SettingsFactory const&) = delete;
 
-
     static SettingsFactory* getInstance() {
         static SettingsFactory factory;
         return &factory;
@@ -134,6 +133,13 @@ public:
     double getInternalTempForFanOn() const { return internalTempForFanOn; }
     bool getVibTimeoutEnabled() const { return vibTimeoutEnabled; }
     int getVibTimeout() const { return vibTimeout; }
+
+    ButtonSet* getButtonSets() {
+        return buttonSets;
+    }
+    MotionProfile* getMotionProfiles() {
+        return motionProfiles;
+    }
 
     void setMessageCallback(SETTING_STATE_FUNCTION_PTR_T f)
     {
@@ -775,6 +781,80 @@ public:
         initCommonMessages();
     }
 
+    bool changeBoardType(int8_t value)
+    {
+        if(value >= (int8_t)BoardType::MAX || value < 0)
+        {
+			LogHandler::error(m_TAG, "[changeBoardType] Invalid value: %ld. Valid board types are %s", value, BOARD_TYPES_HELP);
+            return false;
+        }
+        BoardType boardType = (BoardType)value;
+        MotorType motorType;
+        getValue(MOTOR_TYPE_SETTING, motorType);
+        if(motorType == MotorType::BLDC)
+        {
+            if (boardType == BoardType::CRIMZZON || boardType == BoardType::ISAAC)
+            {
+                LogHandler::error(m_TAG, "[changeBoardType] Invalid board type for current motor");
+                return false;
+            }
+        }
+        if(boardType == BoardType::CRIMZZON || boardType == BoardType::ISAAC) 
+        {
+            setValue(DEVICE_TYPE, DeviceType::SR6);
+        } 
+        else if(boardType == BoardType::SSR1PCB) 
+        {
+            setValue(DEVICE_TYPE, DeviceType::SSR1);
+            setValue(BLDC_ENCODER, BLDCEncoderType::MT6701);
+        }
+        LogHandler::info(m_TAG, "[changeBoardType] Settings pinout default");
+        setValue(BOARD_TYPE_SETTING, boardType);
+        return saveCommon() && defaultPinout();
+    }
+
+    bool changeDeviceType(int8_t value)
+    {
+        if(value >= (int8_t)DeviceType::MAX || value < 0)
+        {
+			LogHandler::error(m_TAG, "[changeDeviceType] Invalid value: %ld. Valid device types are %s", value, DEVICE_TYPES_HELP);
+            return false;
+        }
+        DeviceType newType = (DeviceType)value;
+        MotorType motorType;
+        getValue(MOTOR_TYPE_SETTING, motorType);
+        if(motorType == MotorType::Servo)
+        {
+            if (newType == DeviceType::SSR1)
+            {
+                LogHandler::error(m_TAG, "[changeDeviceType] Invalid device type (%ld) for current motor. Valid device types are %s", value, DEVICE_TYPES_HELP);
+                return false;
+            }
+        }
+        else if(motorType == MotorType::BLDC)
+        {
+            if (newType != DeviceType::SSR1)
+            {
+                LogHandler::error(m_TAG, "[changeDeviceType] Invalid device type (%ld) for current motor. Valid device types are %s", value, DEVICE_TYPES_HELP);
+                return false;
+            }
+        }
+        Serial.println("Settings pinout default");
+        setValue(DEVICE_TYPE, newType);
+        return saveCommon() && defaultPinout();
+    }
+
+    bool defaultPinout() {
+		//setBoardPinout();
+        if(!resetPins())
+            return false;
+        const PinMap* pinMap = getPins();
+        for(int i = 0; i < MAX_BUTTON_SETS; i++) {
+            buttonSets[i].pin = pinMap->buttonSetPin(i);
+        }
+        return savePins();
+    }
+
     
 private:
     const char* m_TAG = TagHandler::SettingsFactory;
@@ -782,8 +862,10 @@ private:
     // const int m_commonDeserializeSize = 32768;
     // const int m_commonSerializeSize = 24576;
 
-    SETTING_STATE_FUNCTION_PTR_T message_callback = 0;
+    MotionProfile motionProfiles[MAX_MOTION_PROFILE_COUNT];
+    ButtonSet buttonSets[MAX_BUTTON_SETS];
 
+    SETTING_STATE_FUNCTION_PTR_T message_callback = 0;
 
     SemaphoreHandle_t m_networkSemaphore;
     SemaphoreHandle_t m_commonSemaphore;

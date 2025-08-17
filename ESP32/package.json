@@ -4,6 +4,6 @@
     "type": "module",
     "devDependencies": {
         "glob": "^11.0.1",
-        "minify": "^13.0.0"
+        "minify": "^14.0.0"
     }
 }

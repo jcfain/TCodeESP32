@@ -604,7 +604,7 @@ void settingChangeCallback(const SettingProfile &profile, const char *settingTha
 			buttonHandler->updateBootButtonCommand(settingsFactory->getBootButtonCommand());
 		else if (strcmp(settingThatChanged, "analogButtonCommands") == 0)
 		{
-			buttonHandler->updateAnalogButtonCommands(SettingsHandler::getButtonSets());
+			buttonHandler->updateAnalogButtonCommands(settingsFactory->getButtonSets());
 		}
 		else if (strcmp(settingThatChanged, "buttonAnalogDebounce") == 0)
 		{
@@ -1016,7 +1016,7 @@ void setup()
 		buttonHandler = new ButtonHandler();
 		buttonHandler->init(settingsFactory->getButtonAnalogDebounce(),
 							settingsFactory->getBootButtonCommand(),
-							SettingsHandler::buttonSets);
+							settingsFactory->getButtonSets());
 	}
 
 	setupSucceeded = true;

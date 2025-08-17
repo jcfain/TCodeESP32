@@ -365,10 +365,20 @@ private:
 			return true;
 		}, SaveRequired::YES, RestartRequired::YES); 
 	}};
-    const CommandValue<const int>LOG_LEVEL{{"Log level", "#log-level", "Sets system log level", SaveRequired::YES, RestartRequired::NO, SettingType::Number}, [this](const int value) -> bool {
+    const CommandValue<const int>BOARD_TYPE{{"Board type", "#board-type", BOARD_TYPES_HELP, SaveRequired::YES, RestartRequired::YES, SettingType::Number}, [this](const int value) -> bool {
 		return executeValue<const int>(value, [this](const int value) -> bool {
-			if(value > (int)LogLevel::VERBOSE) {
-				LogHandler::error(_TAG, "Invalid value: %ld. Valid log levels are 0-4", value);
+			return m_settingsFactory->changeBoardType(value);
+		}, SaveRequired::YES);
+	}};
+    const CommandValue<const int>DEVICE_TYPE_COMMAND{{"Device type", "#device-type", DEVICE_TYPES_HELP, SaveRequired::YES, RestartRequired::YES, SettingType::Number}, [this](const int value) -> bool {
+		return executeValue<const int>(value, [this](const int value) -> bool {
+			return m_settingsFactory->changeDeviceType(value);
+		}, SaveRequired::YES);
+	}};
+    const CommandValue<const int>LOG_LEVEL{{"Log level", "#log-level", LOG_LEVEL_HELP, SaveRequired::YES, RestartRequired::NO, SettingType::Number}, [this](const int value) -> bool {
+		return executeValue<const int>(value, [this](const int value) -> bool {
+			if(value > (int)LogLevel::VERBOSE || value < 0) {
+				LogHandler::error(_TAG, "Invalid value: %ld. Valid log levels are %s", value, LOG_LEVEL_HELP);
 				return false;
 			}
 			return m_settingsFactory->setValue(LOG_LEVEL_SETTING, value) != SettingFile::NONE;
@@ -428,7 +438,7 @@ private:
 		}, SaveRequired::YES);
 	}};
     const CommandValue<const char*>MOTION_PROFILE_NAME{{"Motion profile set by name", "#motion-profile-name", "Sets the current running profile by name", SaveRequired::NO, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
-		return validateMaxLength("Motion profile name", value, maxMotionProfileNameLength, false, [](const char* value) -> bool {
+		return validateMaxLength("Motion profile name", value, MAX_MOTION_PROFILE_NAME_LENGTH, false, [](const char* value) -> bool {
 			SettingsHandler::setMotionProfileName(value);
 			return true;
 		});
@@ -436,7 +446,7 @@ private:
     const CommandValue<const int>MOTION_PROFILE_SET{{"Motion profile set by number", "#motion-profile-set", "Sets the current running profile by number", SaveRequired::NO, RestartRequired::NO, SettingType::Number}, [this](const int value) -> bool {
 		return validateGreaterThanZero("Motion profile", value, [this](int value) -> bool {
 			int profileAsIndex = value - 1;
-			if(profileAsIndex > maxMotionProfileCount) {
+			if(profileAsIndex > MAX_MOTION_PROFILE_COUNT) {
 				LogHandler::error(_TAG, "Motion profile %ld does not exist", profileAsIndex);
 				return false;
 			}
@@ -566,8 +576,10 @@ private:
 		MOTION_HOME
     };
 
-    CommandValue<const int> commandNumberValues[3] = {
+    CommandValue<const int> commandNumberValues[5] = {
         LOG_LEVEL,
+		BOARD_TYPE,
+		DEVICE_TYPE_COMMAND,
         MOTION_PROFILE_SET,
 		MOTION_HOME_SPEED
     };

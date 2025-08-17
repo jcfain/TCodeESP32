@@ -65,8 +65,8 @@ class WebHandler : public HTTPBase {
 
             server->on("/settings", HTTP_GET, [this](AsyncWebServerRequest *request)
             {
-                request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
-                //sendChunked(request, COMMON_SETTINGS_PATH);
+                // request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
+                sendChunked(request, COMMON_SETTINGS_PATH);
             });
 
             server->on("/pins", HTTP_GET, [this](AsyncWebServerRequest *request) 
@@ -95,20 +95,20 @@ class WebHandler : public HTTPBase {
 
             server->on("/motionProfiles", HTTP_GET, [this](AsyncWebServerRequest *request) 
             {
-                request->send(LittleFS, MOTION_PROFILE_SETTINGS_PATH, "application/json");
-                //sendChunked(request, MOTION_PROFILE_SETTINGS_PATH);
+                // request->send(LittleFS, MOTION_PROFILE_SETTINGS_PATH, "application/json");
+                sendChunked(request, MOTION_PROFILE_SETTINGS_PATH);
             });   
 
             server->on("/channelsProfile", HTTP_GET, [this](AsyncWebServerRequest *request) 
             {
-                request->send(LittleFS, CHANNELS_SETTINGS_PATH, "application/json");
-                //sendChunked(request, CHANNELS_SETTINGS_PATH);
+                // request->send(LittleFS, CHANNELS_SETTINGS_PATH, "application/json");
+                sendChunked(request, CHANNELS_SETTINGS_PATH);
             });   
 
             server->on("/buttonSettings", HTTP_GET, [this](AsyncWebServerRequest *request) 
             {
-                request->send(LittleFS, BUTTON_SETTINGS_PATH, "application/json");
-                //sendChunked(request, BUTTON_SETTINGS_PATH);
+                // request->send(LittleFS, BUTTON_SETTINGS_PATH, "application/json");
+                sendChunked(request, BUTTON_SETTINGS_PATH);
             });  
             
             // server->on("/log", HTTP_GET, [this](AsyncWebServerRequest *request) 
@@ -172,16 +172,15 @@ class WebHandler : public HTTPBase {
             {
                 auto boardTypeString = request->pathArg(0);
                 int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
-                if(boardType == (int)BoardType::CRIMZZON || boardType == (int)BoardType::ISAAC) {
-                    m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SR6);
-                } else if(boardType == (int)BoardType::SSR1PCB) {
-                    m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SSR1);
-                    m_settingsFactory->setValue(BLDC_ENCODER, BLDCEncoderType::MT6701);
-                }
-                Serial.println("Settings pinout default");
-                m_settingsFactory->setValue(BOARD_TYPE_SETTING, boardType);
-                if(m_settingsFactory->saveCommon() && SettingsHandler::defaultPinout())
-				//if (m_settingsFactory->resetPins()) // Settings handler executes resetPins
+                // if(boardType == (int)BoardType::CRIMZZON || boardType == (int)BoardType::ISAAC) {
+                //     m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SR6);
+                // } else if(boardType == (int)BoardType::SSR1PCB) {
+                //     m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SSR1);
+                //     m_settingsFactory->setValue(BLDC_ENCODER, BLDCEncoderType::MT6701);
+                // }
+                // Serial.println("Settings pinout default");
+                // m_settingsFactory->setValue(BOARD_TYPE_SETTING, boardType);
+                if(m_settingsFactory->changeBoardType(boardType))
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
@@ -196,10 +195,10 @@ class WebHandler : public HTTPBase {
             {
                 auto deviceTypeString = request->pathArg(0);
                 int deviceType = deviceTypeString.isEmpty() ? (int)DeviceType::OSR : deviceTypeString.toInt();
-                Serial.println("Settings pinout default");
-                m_settingsFactory->setValue(DEVICE_TYPE, deviceType);
-                if(m_settingsFactory->saveCommon() && SettingsHandler::defaultPinout())
-				//if (m_settingsFactory->resetPins()) // Settings handler executes resetPins
+                // Serial.println("Settings pinout default");
+                // m_settingsFactory->setValue(DEVICE_TYPE, deviceType);
+                // if(m_settingsFactory->saveCommon() && m_settingsFactory->defaultPinout())
+				if (m_settingsFactory->changeDeviceType(deviceType))
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
@@ -384,8 +383,9 @@ class WebHandler : public HTTPBase {
             server->addHandler(channelsProfileUpdateHandler);
             server->addHandler(buttonsUpdateHandler);
             
-            server->onNotFound([](AsyncWebServerRequest *request) 
+            server->onNotFound([this](AsyncWebServerRequest *request) 
 			{
+                if (handleStaticFile(request)) return;
                 Serial.printf("AsyncWebServerRequest Not found: %s", request->url().c_str());
                 if (request->method() == HTTP_OPTIONS) {
                     request->send(200);
@@ -398,7 +398,7 @@ class WebHandler : public HTTPBase {
             // {
             //     // request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
             //     Serial.println("index");
-            //     sendChunked(request, "/index-min.html", "application/html");
+            //     sendChunked(request, "/www/index-min.html", "text/html");
             // });
             //"^\\/pinoutDefault\\/([0-9]+)$"
             // server->on("\\/.*\\.js", HTTP_GET, [this](AsyncWebServerRequest *request)
@@ -410,17 +410,17 @@ class WebHandler : public HTTPBase {
             // });
             // server->on("/settings-min.js", HTTP_GET, [this](AsyncWebServerRequest *request)
             // {
-            //     sendChunked(request, "/www/settings-min.js", 4096, "application/javascript");
+            //     sendChunked(request, "/www/settings-min.js", 4096, "text/javascript");
             // });
             // server->on("/motion-generator-min.js", HTTP_GET, [this](AsyncWebServerRequest *request)
             // {
-            //     sendChunked(request, "/www/motion-generator-min.js", 1024, "application/javascript");
+            //     sendChunked(request, "/www/motion-generator-min.js", 1024, "text/javascript");
             // });
 
             //server->rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
-            server->serveStatic("/", LittleFS, "/www/")
-                .setDefaultFile("index-min.html");
-                //.setCacheControl("max-age=60000");
+            server->serveStatic("/", LittleFS, "/www/");
+                // .setDefaultFile("index-min.html");
+            //     //.setCacheControl("max-age=60000");
             server->begin();
             initialized = true;
         }
@@ -464,36 +464,36 @@ class WebHandler : public HTTPBase {
             request->send(response);
         }
 
-        void sendChunked(AsyncWebServerRequest *request, const char* filePath, uint16_t chunkSize = 512, const char* mimeType = "application/json") {
-		        LogHandler::debug(_TAG,"Open file: %s\n", filePath);
+        void sendChunked(AsyncWebServerRequest *request, const char* filePath, const char* mimeType = "application/json", const bool& isGZip = false) {
+		        LogHandler::debug(_TAG,"[sendChunked] Open file: %s\n", filePath);
                 File file{LittleFS.open(filePath, FILE_READ)};
 
                 AsyncWebServerResponse *response = request->beginChunkedResponse(
                     mimeType,
-                    [this, file, chunkSize](
+                    [this, file](
                         uint8_t* buffer,
                         const size_t max_len,
                         const size_t index) mutable -> size_t
                     {
-		                LogHandler::debug(_TAG,"Enter chunked file: %s\n", file.name());
+		                LogHandler::debug(_TAG,"[beginChunkedResponse] Enter chunked file: %s\n", file.name());
                         size_t length;
 
                         // Restrict chunk size so we don't run out of RAM
-                        static const size_t max_chunk{chunkSize};
-                        if (max_chunk < max_len)
-                        {
-		                    LogHandler::debug(_TAG,"Max chunk %u Max len %u for: %s\n", chunkSize, max_len, file.name());
-                            length = file.read(buffer, max_chunk);
-                        }
-                        else
-                        {
-		                    LogHandler::debug(_TAG,"Max len %u exceded max chunk %u for: %s\n", max_len, chunkSize, file.name());
+                        // static const size_t max_chunk{chunkSize};
+                        // if (max_chunk < max_len)
+                        // {
+		                //     LogHandler::debug(_TAG,"Max chunk %u Max len %u for: %s\n", chunkSize, max_len, file.name());
+                        //     length = file.read(buffer, max_chunk);
+                        // }
+                        // else
+                        // {
+		                    // LogHandler::debug(_TAG,"Max len %u exceded max chunk %u for: %s\n", max_len, chunkSize, file.name());
                             length = file.read(buffer, max_len);
-                        }
+                        // }
 
                         if (length == 0)
                         {
-		                    LogHandler::debug(_TAG,"Close file: %s\n", file.name());
+		                    LogHandler::debug(_TAG,"[beginChunkedResponse] Close file: %s\n", file.name());
                             file.close();
                         }
 
@@ -502,7 +502,52 @@ class WebHandler : public HTTPBase {
 
                 // Force download
                 //response->addHeader("Content-Disposition", "attachment; filename=\"userSettings.json\"");
+                if(isGZip)
+                    response->addHeader("Content-Encoding", "gzip");
                 request->send(response);
+        }
+
+        bool handleStaticFile(AsyncWebServerRequest *request) {
+            String requestUrl = request->url();
+            LogHandler::debug(_TAG, "[handleStaticFile] requet url: %s", requestUrl);
+            String path = "/www" + requestUrl;
+            LogHandler::debug(_TAG, "[handleStaticFile] static path: %s", path);
+
+            if (path.endsWith("/")) path += F("index-min.html");
+            String mimeType;
+            String pathWithGz = path + ".gz";
+
+            if (LittleFS.exists(pathWithGz) || LittleFS.exists(path)) {
+                bool gzipped = false;
+                if (LittleFS.exists(pathWithGz)) {
+                    gzipped = true;
+                    path += ".gz";
+                }
+                // else
+                // {
+                    if(path.endsWith(".html"))
+                    {
+                        mimeType = "text/html";
+                    }
+                    else if(path.endsWith(".js"))
+                    {
+                        mimeType = "text/javascript";
+                    }
+                    else if(path.endsWith(".json"))
+                    {
+                        mimeType = "application/json";
+                    }
+                    else if(path.endsWith(".css"))
+                    {
+                        mimeType = "text/css";
+                    }
+                // }
+                sendChunked(request, path.c_str(), mimeType.c_str(), gzipped);
+
+                return true;
+            }
+
+            return false;
         }
         // void startMDNS(char* hostName, char* friendlyName)
         // {

@@ -31,6 +31,7 @@ enum class LogLevel { NONE,
                       INFO,
                       DEBUG,
                       VERBOSE };
+#define LOG_LEVEL_HELP "Sets system log level.\nValid values are: NONE=0, ERROR=1, WARNING=2, INFO=3, DEBUG=4, VERBOSE=5"
 
 using LOG_FUNCTION_PTR_T = void (*)(const char *input, size_t length,
                                     LogLevel level);
