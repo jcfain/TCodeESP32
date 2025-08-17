@@ -11,7 +11,7 @@ BUILD_MODIFIER="esp32doit-devkit-v1"
 MODULE_TYPE=0
 ESPTOOLDIR="./bin/esptool-linux-amd64/"
 ESPTOOLDIRWIN="./bin/esptool-win64/"
-esp32ArduinoCoredir="framework-arduinoespressif32@src-a01c93a63f3ed4184a2ede3960108545"
+esp32ArduinoCoredir="framework-arduinoespressif32"
 
 echo "Enter a version (example: 0.255b):"
 read version
@@ -144,15 +144,15 @@ function buildAndDeploy
 	fi
 	# ESP32
 	if [ $MODULE_TYPE -eq 0 ]; then
-		$ESPTOOLDIR/esptool --chip esp32 merge_bin -o $OUTDIR/release.bin --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 $BUILD_DIR/bootloader.bin 0x8000 $BUILD_DIR/partitions.bin 0xe000 ~/.platformio/packages/$esp32ArduinoCoredir/tools/partitions/boot_app0.bin 0x10000 $BUILD_DIR/firmware.bin 0x310000 $BUILD_DIR/littlefs.bin
+		$ESPTOOLDIR/esptool --chip esp32 merge_bin -o $OUTDIR/release.bin --flash-mode dio --flash-freq 40m --flash-size 4MB 0x1000 $BUILD_DIR/bootloader.bin 0x8000 $BUILD_DIR/partitions.bin 0xe000 ~/.platformio/packages/$esp32ArduinoCoredir/tools/partitions/boot_app0.bin 0x10000 $BUILD_DIR/firmware.bin 0x310000 $BUILD_DIR/littlefs.bin
 	
 	# S3 ZERO
 	elif [ $MODULE_TYPE -eq 1 ]; then
-		$ESPTOOLDIR/esptool --chip esp32s3 merge_bin -o $OUTDIR/release.bin --flash_mode dio --flash_freq 80m --flash_size 4MB 0x0000 $BUILD_DIR/bootloader.bin 0x8000 $BUILD_DIR/partitions.bin 0xe000 ~/.platformio/packages/$esp32ArduinoCoredir/tools/partitions/boot_app0.bin 0x10000 $BUILD_DIR/firmware.bin 0x310000 $BUILD_DIR/littlefs.bin
+		$ESPTOOLDIR/esptool --chip esp32s3 merge_bin -o $OUTDIR/release.bin --flash-mode dio --flash-freq 80m --flash-size 4MB 0x0000 $BUILD_DIR/bootloader.bin 0x8000 $BUILD_DIR/partitions.bin 0xe000 ~/.platformio/packages/$esp32ArduinoCoredir/tools/partitions/boot_app0.bin 0x10000 $BUILD_DIR/firmware.bin 0x310000 $BUILD_DIR/littlefs.bin
 	
 	# S3 N8 8mb
 	elif [ $MODULE_TYPE -eq 2 ]; then
-		$ESPTOOLDIR/esptool --chip esp32s3 merge_bin -o $OUTDIR/release.bin --flash_mode qio --flash_freq 80m --flash_size 8MB 0x0000 $BUILD_DIR/bootloader.bin 0x8000 $BUILD_DIR/partitions.bin 0xe000 ~/.platformio/packages/$esp32ArduinoCoredir/tools/partitions/boot_app0.bin 0x10000 $BUILD_DIR/firmware.bin 0x00670000 $BUILD_DIR/littlefs.bin
+		$ESPTOOLDIR/esptool --chip esp32s3 merge_bin -o $OUTDIR/release.bin --flash-mode qio --flash-freq 80m --flash-size 8MB 0x0000 $BUILD_DIR/bootloader.bin 0x8000 $BUILD_DIR/partitions.bin 0xe000 ~/.platformio/packages/$esp32ArduinoCoredir/tools/partitions/boot_app0.bin 0x10000 $BUILD_DIR/firmware.bin 0x00670000 $BUILD_DIR/littlefs.bin
 	fi
 	if [ $? -ne 0 ]; then 
 		echo "Error merging bin"
@@ -172,7 +172,7 @@ done
 
 # "~/.platformio/penv/Scripts/python" 
 # "~/.platformio/packages/tool-esptoolpy/esptool.py" 
-# --chip esp32s3 --port "COM14" --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 8MB 
+# --chip esp32s3 --port "COM14" --baud 921600 --before default_reset --after hard_reset write_flash -z --flash-mode dio --flash-freq 80m --flash-size 8MB 
 # 0x0000 ~/git/TCodeESP32/ESP32/.pio/build/esp32-s3-devkitc-1-N8R8/bootloader.bin 
 # 0x8000 ~/git/TCodeESP32/ESP32/.pio/build/esp32-s3-devkitc-1-N8R8/partitions.bin 
 # 0xe000 ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin 

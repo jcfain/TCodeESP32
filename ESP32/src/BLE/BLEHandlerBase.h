@@ -57,11 +57,10 @@ public:
 
         BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
         pAdvertising->addServiceUUID(SERVICE_UUID);
-        pAdvertising->setScanResponse(true);
+        pAdvertising->enableScanResponse(true);
         // Functions that help with iPhone connections issue
         // https://github.com/nkolban/esp32-snippets/issues/768
-        pAdvertising->setMinPreferred(0x06);  
-        pAdvertising->setMaxPreferred(0x12);
+        pAdvertising->setPreferredParams(0x06, 0x12);
 
         LogHandler::debug(TagHandler::BLEHandler, "Setting up BLE service");
         BLEService *pService = pServer->createService(SERVICE_UUID);

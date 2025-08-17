@@ -47,7 +47,7 @@ public:
     void onWrite(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc)  override {
     #endif
 
-        size_t len = pCharacteristic->getDataLength();
+        size_t len = pCharacteristic->getLength();
         if(len) {
             NimBLEAttValue rxValue = pCharacteristic->getValue();
             LogHandler::verbose(TagHandler::BLEHandler, "Recieve tcode: %s", rxValue.c_str());

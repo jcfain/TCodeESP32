@@ -57,8 +57,9 @@ private:
         auto callbacks = getCaracteristicCallbacks(tcodeQueue);
         static_cast<BLELoveControlCallback*>(callbacks)->setTX(m_pTxCharacteristic);
         m_pRxCharacteristic->setCallbacks(callbacks);
-        pAdvertising->setScanResponse(false);
-        pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
+        pAdvertising->enableScanResponse(false);
+        pAdvertising->setPreferredParams(0x0, 0x0);  // set value to 0x00 to not advertise this parameter
+        //pAdvertising->setScanResponseData(NimBLEAdvertisementData::)
         //pService->addCharacteristic(m_pRxCharacteristic);
     }
 

@@ -227,13 +227,13 @@ void MainWindow::flashFirmware(QString esptoolPath, QString firmwarePath, QStrin
         "--chip",ui->moduleNameTxt->text(),
         "--port", comport,
         "--baud",ui->moduleBaudTxt->text(),
-        "--before","default_reset",
-        "--after","hard_reset",
-        "write_flash",
+        "--before","default-reset",
+        "--after","hard-reset",
+        "write-flash",
         "-z",
-        "--flash_mode", ui->moduleModeTxt->text(),
-        "--flash_freq", ui->moduleFreqTxt->text(),
-        "--flash_size", ui->moduleSizeTxt->text(), // --flash_size detect 0x0000
+        "--flash-mode", ui->moduleModeTxt->text(),
+        "--flash-freq", ui->moduleFreqTxt->text(),
+        "--flash-size", ui->moduleSizeTxt->text(), // --flash_size detect 0x0000
         "--erase-all",
         ui->moduleStartTxt->text(),
         firmwarePath

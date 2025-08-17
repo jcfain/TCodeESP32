@@ -255,7 +255,7 @@ class WebHandler : public HTTPBase {
                     AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving settings\"}");
                     request->send(response);
                 }
-            }, 32768U );//Bad request? increase the size.
+            });//, 32768U );//Bad request? increase the size.
 
             AsyncCallbackJsonWebHandler* pinsHandler = new AsyncCallbackJsonWebHandler("/pins", [this](AsyncWebServerRequest *request, JsonVariant &json)
 			{
@@ -271,7 +271,7 @@ class WebHandler : public HTTPBase {
                     AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving pins\"}");
                     request->send(response);
                 }
-            }, 1000U );//Bad request? increase the size.
+            });//, 1000U );//Bad request? increase the size.
 
             AsyncCallbackJsonWebHandler* wifiUpdateHandler = new AsyncCallbackJsonWebHandler("/wifiSettings", [this](AsyncWebServerRequest *request, JsonVariant &json)
 			{
@@ -287,7 +287,7 @@ class WebHandler : public HTTPBase {
                     AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving wifi settings\"}");
                     request->send(response);
                 }
-            }, 500U );//Bad request? increase the size.
+            });//, 500U );//Bad request? increase the size.
 
             AsyncCallbackJsonWebHandler* motionProfileUpdateHandler = new AsyncCallbackJsonWebHandler("/motionProfiles", [](AsyncWebServerRequest *request, JsonVariant &json)
 			{
@@ -303,7 +303,7 @@ class WebHandler : public HTTPBase {
                     AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving motion profiles\"}");
                     request->send(response);
                 }
-            }, 30000U );//Bad request? increase the size.
+            });//, 30000U );//Bad request? increase the size.
 
             AsyncCallbackJsonWebHandler* channelsProfileUpdateHandler = new AsyncCallbackJsonWebHandler("/channelsProfile", [](AsyncWebServerRequest *request, JsonVariant &json)
 			{
@@ -319,7 +319,7 @@ class WebHandler : public HTTPBase {
                     AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving channels profile\"}");
                     request->send(response);
                 }
-            }, 5000U );//Bad request? increase the size.
+            });//, 5000U );//Bad request? increase the size.
 
             
             AsyncCallbackJsonWebHandler* buttonsUpdateHandler = new AsyncCallbackJsonWebHandler("/buttonSettings", [](AsyncWebServerRequest *request, JsonVariant &json)
@@ -336,7 +336,7 @@ class WebHandler : public HTTPBase {
                     AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving button settings\"}");
                     request->send(response);
                 }
-            }, 10000U );//Bad request? increase the size.
+            });//, 10000U );//Bad request? increase the size.
 
             // //To upload through terminal you can use: curl -F "image=@firmware.bin" esp8266-webupdate.local/update
             // server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request){

@@ -54,6 +54,6 @@ private:
     }
     void CommandCallback(const char* in) override {
         //m_characteristic->setValue(in);
-        m_characteristic->notify(in);
+        m_characteristic->notify((const uint8_t*)in, strlen(in));
     };
 };

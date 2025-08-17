@@ -49,7 +49,7 @@ public:
     void onWrite(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc)  override {
     #endif
         //assert(pCharacteristic == pRxCharacteristic);
-        int len = pCharacteristic->getDataLength();
+        int len = pCharacteristic->getLength();
         if (len) {
             std::string rxValue = pCharacteristic->getValue();
             //LogHandler::verbose(TagHandler::BLEHandler, "*********");

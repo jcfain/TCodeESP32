@@ -22,7 +22,8 @@ SOFTWARE. */
 
 #pragma once
 
-#include <AsyncJson.h>
+// #include <AsyncJson.h>
+#include <AsyncWebSocket.h>
 #include <mutex>
 #include <list>
 #include "HTTP/WebSocketBase.h"
