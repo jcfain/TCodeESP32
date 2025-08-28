@@ -559,6 +559,9 @@ class PinMapSSR1PCB : public PinMapSSR1 {
             setPwmChannel3(17);
             setHallEffect(14);
 
+            setI2cSda(22);
+            setI2cScl(21);
+
             setValve(-1);
             setTwist(-1);
             setSqueeze(-1);
