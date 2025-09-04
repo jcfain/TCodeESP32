@@ -199,7 +199,8 @@ void benchFinish(const char *systemUnderBench, int benchNumber)
 void displayPrint(String text)
 {
 #if BUILD_DISPLAY
-	displayHandler->println(text);
+	if(displayHandler)
+		displayHandler->println(text);
 #endif
 }
 
@@ -495,9 +496,12 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason)
 	else if(status == WiFiStatus::IP) 
 	{
 #if BUILD_DISPLAY
-		String ipaddress = wifi.ip().toString();
-		displayPrint("Connected IP: " + ipaddress);
-		displayHandler->setLocalIPAddress(wifi.ip());
+		if(displayHandler) 
+		{
+			String ipaddress = wifi.ip().toString();
+			displayPrint("Connected IP: " + ipaddress);
+			displayHandler->setLocalIPAddress(wifi.ip());
+		}
 #endif
 	}
 }
@@ -778,20 +782,20 @@ void setup()
 	// bool lubeEnabled;
 	// bool feedbackTwist;
 	// bool analogTwist;
-	bool bootButtonEnabled;
-	bool buttonSetsEnabled;
+	bool bootButtonEnabled = BOOT_BUTTON_ENABLED_DEFAULT;
+	bool buttonSetsEnabled = BUTTON_SETS_ENABLED_DEFAULT;
 
 	// settingsFactory->getValue(FEEDBACK_TWIST, feedbackTwist);
 	// settingsFactory->getValue(ANALOG_TWIST, analogTwist);
 	settingsFactory->getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
 	settingsFactory->getValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
 
-	bool batteryLevelEnabled;
-	bool voiceEnabled;
+	bool batteryLevelEnabled = BATTERY_LEVEL_ENABLED_DEFAULT;
+	bool voiceEnabled = VOICE_ENABLED_DEFAULT;
 	settingsFactory->getValue(BATTERY_LEVEL_ENABLED, batteryLevelEnabled);
 	settingsFactory->getValue(VOICE_ENABLED, voiceEnabled);
 
-	bool displayEnabled;
+	bool displayEnabled = DISPLAY_ENABLED_DEFAULT;
 	settingsFactory->getValue(DISPLAY_ENABLED, displayEnabled);
 	char Display_I2C_AddressString[DISPLAY_I2C_ADDRESS_LEN] = {0};
 	settingsFactory->getValue(DISPLAY_I2C_ADDRESS, Display_I2C_AddressString, DISPLAY_I2C_ADDRESS_LEN);
@@ -891,9 +895,9 @@ void setup()
 
 #endif
 #if BUILD_DISPLAY
-	displayHandler = new DisplayHandler();
 	if (displayEnabled)
 	{
+		displayHandler = new DisplayHandler();
 		displayHandler->setup(Display_I2C_Address, fanControlEnabled, pinMap->displayReset());
 		// #if ISAAC_NEWTONGUE_BUILD
 		// 	xTaskCreatePinnedToCore(
