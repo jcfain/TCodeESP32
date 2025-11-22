@@ -2,8 +2,8 @@
 
 #include "struct/channel.h"
 
-#define FIRMWARE_VERSION 0.47f
-#define FIRMWARE_VERSION_NAME "0.47b\n"
+#define FIRMWARE_VERSION 0.48f
+#define FIRMWARE_VERSION_NAME "0.48a\n"
 #define MAX_BUTTON_SETS 4
 #define MAX_BUTTONS 4
 #define MAX_COMMAND 256

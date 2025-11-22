@@ -121,8 +121,13 @@ public:
 		LogHandler::info(_TAG, "Starting sleeve temp on pin: %d", m_sleeveTempPin);
 		oneWireSleeve.begin(m_sleeveTempPin);
 		sensorsSleeve.setOneWire(&oneWireSleeve);
-		sensorsSleeve.getAddress(sleeveDeviceAddress, 0);
 		sensorsSleeve.begin();
+		if(!sensorsSleeve.getAddress(sleeveDeviceAddress, 0)) {
+			LogHandler::error(_TAG, "No temp sensor found on sleeve bus (index 0).");
+			sleeveTempInitialized = false;
+			return;
+		}
+		
 		sensorsSleeve.setResolution(sleeveDeviceAddress, resolution);
 		sensorsSleeve.setWaitForConversion(false);
 		requestSleeveTemp();
@@ -139,6 +144,8 @@ public:
 			#endif
 		}
 		sleeveTempInitialized = sensorsSleeve.isConnected(sleeveDeviceAddress);
+		if(!sleeveTempInitialized)
+			LogHandler::error(_TAG, "Failed to initialize sleeve temp sensor.");
 	}
 
 	void setupInternalTemp() {
@@ -148,14 +155,20 @@ public:
 		LogHandler::info(_TAG, "Starting internal temp on pin: %d", m_internalTempPin);
 		oneWireInternal.begin(m_internalTempPin);
 		sensorsInternal.setOneWire(&oneWireInternal);
-		sensorsInternal.getAddress(internalDeviceAddress, 0);
 		sensorsInternal.begin();
+		if(!sensorsSleeve.getAddress(internalDeviceAddress, 0)) {
+			LogHandler::error(_TAG, "No temp sensor found on internal bus (index 0).");
+			sleeveTempInitialized = false;
+			return;
+		}
 		sensorsInternal.setResolution(internalDeviceAddress, resolution);
 		sensorsInternal.setWaitForConversion(false);
 		//internalPID.setGains(0.12f, 0.0003f, 0);
 		//internalPID.setOutputRange();
 		requestInternalTemp();
 		internalTempInitialized = sensorsInternal.isConnected(internalDeviceAddress);
+		if(!internalTempInitialized)
+			LogHandler::error(_TAG, "Failed to initialize internal temp sensor.");
 	}
 
 	void setupInternalFan() {
@@ -240,7 +253,7 @@ public:
 				//LogHandler::debug(_TAG, "Current internal temp: %f", _currentInternalTemp);
 			}
 			_currentInternalTemp = currentInternalTemp;
-			//LogHandler::debug(_TAG, "Current internal temp: %f", _currentInternalTemp);
+			LogHandler::verbose(_TAG, "Current internal temp: %f", _currentInternalTemp);
 
 			LogHandler::verbose(_TAG, "internal getTempC duration: %d", micros() - start);
 
@@ -263,8 +276,10 @@ public:
 			if(!essentiallyEqual(_currentSleeveTemp, m_lastSleeveTemp)) {
 				tempChanged = true;
 				m_lastSleeveTemp = _currentSleeveTemp;
+				LogHandler::debug(_TAG, "Last sleeve temp: %f", m_lastSleeveTemp);
 			}
 			_currentSleeveTemp = currentSleeveTemp;
+			LogHandler::verbose(_TAG, "Current sleeve temp: %f", _currentSleeveTemp);
 
 			long duration = micros() - start;
 
