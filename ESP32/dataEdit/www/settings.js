@@ -1666,8 +1666,9 @@ function setupBoardTypes() {
     }
 }
 function setEncoderType() {
-    userSettings["BLDC_Encoder"] = document.getElementById('BLDC_Encoder').value;
+    userSettings["BLDC_Encoder"] = parseInt(document.getElementById('BLDC_Encoder').value);
     toggleBLDCEncoderOptions();
+    setRestartRequired();
     updateUserSettings(0);
 }
 function setupEncoderTypes() {
@@ -1706,12 +1707,8 @@ function setupDeviceTypes() {
 }
 function setDeviceType() {
     var element = document.getElementById('deviceType');
-    let newValue = element.value;
+    let newValue = element.value;// Parsed to int in the backend
     if(confirm("This will reset the current pinout to default. Continue?")) {
-        //toggleDeviceOptions(userSettings["deviceType"]);
-        //setupChannelSliders();
-        //setRestartRequired();
-        //updateUserSettings(1);
         postDeviceType(newValue);
     } else {
         element.value = userSettings["deviceType"];

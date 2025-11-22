@@ -881,7 +881,7 @@ void setup()
 		auto tempStartStatus = xTaskCreatePinnedToCore(
 			TemperatureHandler::startLoop, /* Function to implement the task */
 			"TempTask",					   /* Name of the task */
-			static_cast<uint16_t>(configMINIMAL_STACK_SIZE * 2.5),  /* Stack size in words used to be 5000 */
+			static_cast<uint16_t>(configMINIMAL_STACK_SIZE * 3),  /* Stack size in words used to be 5000 */
 			temperatureHandler,			   /* Task input parameter */
 			1,							   /* Priority of the task */
 			&temperatureTask,			   /* Task handle. */
