@@ -71,11 +71,12 @@ enum class DeviceType: int
     SR6,
     SSR1,
     TVIBE,
+    SSR2,
     MAX
 };
 
 #if MOTOR_TYPE == 1
-#define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: SSR1=2"
+#define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: SSR1=2, SSR2=4"
 #else
 #define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: OSR=0, SR6=1, TVIBE=3"
 #endif

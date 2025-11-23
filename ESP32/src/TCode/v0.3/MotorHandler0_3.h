@@ -46,7 +46,7 @@ protected:
     int ms_per_rad;  // (μs/rad)
     int maxServoRange;
 
-    void setupCommon() {
+    void setupCommon(const char* ignoredChannels = "") {
         if(!m_tcode)
             return;
             
@@ -79,15 +79,19 @@ protected:
             m_valveServoPin = -1;
         }
 
-        m_twistServoPin = pinMap->twist();
-        m_twistServoChannel = pinMap->twistChannel();
-        if(m_twistServoPin > -1 && m_twistServoChannel > -1) {
-            m_tcode->RegisterAxis("R0", "Twist");
-            int freq = pinMap->getChannelFrequency(m_twistServoChannel);
-            attachPin("twist servo", m_twistServoPin, freq, m_twistServoChannel);
-            m_twistServo_Int = frequencyToMicroseconds(freq);
-        } else {
-            m_twistServoPin = -1;
+        bool ignoreTwist = contains(ignoredChannels, TCODE_CHANNEL_TWIST);
+        if(!ignoreTwist)
+        {
+            m_twistServoPin = pinMap->twist();
+            m_twistServoChannel = pinMap->twistChannel();
+            if(m_twistServoPin > -1 && m_twistServoChannel > -1) {
+                m_tcode->RegisterAxis(TCODE_CHANNEL_TWIST, "Twist");
+                int freq = pinMap->getChannelFrequency(m_twistServoChannel);
+                attachPin("twist servo", m_twistServoPin, freq, m_twistServoChannel);
+                m_twistServo_Int = frequencyToMicroseconds(freq);
+            } else {
+                m_twistServoPin = -1;
+            }
         }
 
         m_squeezeServoPin = pinMap->squeeze();
@@ -278,7 +282,7 @@ private:
         if(m_twistServoPin < 0) {
             return;
         }
-        xRot = channelRead("R0");
+        xRot = channelRead(TCODE_CHANNEL_TWIST);
         if(xRot > -1) {
             if (m_isTwistFeedBack && !m_settingsFactory->getContinuousTwist()) 
             {

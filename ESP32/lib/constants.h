@@ -81,6 +81,21 @@
 //     {"V1","Vibe 1/Lube",0,500,999,true,false,0,500,999}
 // };
 
+#define TCODE_CHANNEL_STROKE "L0"
+#define TCODE_CHANNEL_SURGE "L1"
+#define TCODE_CHANNEL_SWAY "L2"
+#define TCODE_CHANNEL_TWIST "R0"
+#define TCODE_CHANNEL_ROLL "R1"
+#define TCODE_CHANNEL_PITCH "R2"
+#define TCODE_CHANNEL_VIBE1 "V0"
+#define TCODE_CHANNEL_VIBE2 "V1"
+#define TCODE_CHANNEL_VIBE3 "V2"
+#define TCODE_CHANNEL_VIBE4 "V3"
+#define TCODE_CHANNEL_SUCK "A0"
+#define TCODE_CHANNEL_SUCK_LEVEL "A1"
+#define TCODE_CHANNEL_LUBE "A2"
+#define TCODE_CHANNEL_AUX "A3"
+
 const Channel ChannelMapV3[14] = {
     {"L0","Stroke",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
     {"L1","Surge",false,true,TCODE_MIN,TCODE_MID,TCODE_MAX},

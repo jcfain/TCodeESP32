@@ -59,7 +59,7 @@
 #define LEFT_UPPER_SERVO_PIN "LeftUpperServo_PIN"
 #define LEFT_UPPER_SERVO_CHANNEL "LeftUpperServo_CHANNEL"
 
-// BLDC (SSR1)
+// Stroke BLDC (SSR1)
 #define BLDC_ENCODER_PIN "BLDC_Encoder_PIN"
 #define BLDC_CHIPSELECT_PIN "BLDC_ChipSelect_PIN"
 #define BLDC_ENABLE_PIN "BLDC_Enable_PIN"
@@ -67,6 +67,15 @@
 #define BLDC_PWMCHANNEL1_PIN "BLDC_PWMchannel1_PIN"
 #define BLDC_PWMCHANNEL2_PIN "BLDC_PWMchannel2_PIN"
 #define BLDC_PWMCHANNEL3_PIN "BLDC_PWMchannel3_PIN"
+
+// Twist BLDC (SSR2)
+#define BLDC_TWIST_ENCODER_PIN "BLDC_TWIST_Encoder_PIN"
+#define BLDC_TWIST_CHIPSELECT_PIN "BLDC_TWIST_ChipSelect_PIN"
+#define BLDC_TWIST_ENABLE_PIN "BLDC_TWIST_Enable_PIN"
+#define BLDC_TWIST_HALLEFFECT_PIN "BLDC_TWIST_HallEffect_PIN"
+#define BLDC_TWIST_PWMCHANNEL1_PIN "BLDC_TWIST_PWMchannel1_PIN"
+#define BLDC_TWIST_PWMCHANNEL2_PIN "BLDC_TWIST_PWMchannel2_PIN"
+#define BLDC_TWIST_PWMCHANNEL3_PIN "BLDC_TWIST_PWMchannel3_PIN"
 
 // class PinMap;
 
@@ -574,4 +583,65 @@ class PinMapSSR1PCB : public PinMapSSR1 {
         }
     protected: 
         PinMapSSR1PCB(DeviceType deviceType, BoardType boardType) : PinMapSSR1(deviceType, boardType) {}
+};
+
+
+class PinMapSSR2 : public PinMapSSR1 {
+    public:
+        static PinMapSSR2* getInstance()
+        {
+            static PinMapSSR2 instance(DeviceType::SSR2, BoardType::DEVKIT);
+            return &instance;
+        }
+        void overideDefaults() override {
+            setEncoder(35);
+            setChipSelect(4);
+            setEnable(13);
+            setPwmChannel1(12);
+            setPwmChannel2(14);
+            setPwmChannel3(27);
+
+            setValve(-1);
+            setTwist(-1);
+            setSqueeze(-1);
+            setVibe0(-1);
+            setVibe1(-1);
+            setVibe2(-1);
+            setVibe3(-1);
+            setSleeveTemp(-1);
+            setInternalTemp(-1);
+            setCaseFan(-1);
+            setHeater(-1);
+            setTwistFeedBack(-1);
+        }
+        int8_t twistEncoder() const { return m_twistEncoder; }
+        void setTwistEncoder(const int8_t &encoder) { m_twistEncoder = encoder; }
+
+        int8_t twistChipSelect() const { return m_twistChipSelect; }
+        void setTwistChipSelect(const int8_t &chipSelect) { m_twistChipSelect = chipSelect; }
+
+        int8_t twistEnable() const { return m_twistEnable; }
+        void setTwistEnable(const int8_t &enable) { m_twistEnable = enable; }
+
+        int8_t twistHallEffect() const { return m_twistHallEffect; }
+        void setTwistHallEffect(const int8_t &hallEffect) { m_twistHallEffect = hallEffect; }
+
+        int8_t twistPwmChannel1() const { return m_twistPwmChannel1; }
+        void setTwistPwmChannel1(const int8_t &pwmChannel1) { m_twistPwmChannel1 = pwmChannel1; }
+
+        int8_t twistPwmChannel2() const { return m_twistPwmChannel2; }
+        void setTwistPwmChannel2(const int8_t &pwmChannel2) { m_twistPwmChannel2 = pwmChannel2; }
+
+        int8_t twistPwmChannel3() const { return m_twistPwmChannel3; }
+        void setTwistPwmChannel3(const int8_t &pwmChannel3) { m_twistPwmChannel3 = pwmChannel3; }
+    protected: 
+        PinMapSSR2(DeviceType deviceType, BoardType boardType) : PinMapSSR1(deviceType, boardType) {}
+    private:
+        int8_t m_twistEncoder = BLDC_TWIST_ENCODER_PIN_DEFAULT;
+        int8_t m_twistChipSelect = BLDC_TWIST_CHIPSELECT_PIN_DEFAULT;
+        int8_t m_twistEnable = BLDC_TWIST_ENABLE_PIN_DEFAULT;
+        int8_t m_twistHallEffect = BLDC_TWIST_HALLEFFECT_PIN_DEFAULT;
+        int8_t m_twistPwmChannel1 = BLDC_TWIST_PWMCHANNEL1_PIN_DEFAULT;
+        int8_t m_twistPwmChannel2 = BLDC_TWIST_PWMCHANNEL2_PIN_DEFAULT;
+        int8_t m_twistPwmChannel3 = BLDC_TWIST_PWMCHANNEL3_PIN_DEFAULT;
 };

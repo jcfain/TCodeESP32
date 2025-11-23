@@ -328,6 +328,9 @@ public:
     #elif MOTOR_TYPE == 1
         defaultDevice["name"] = "SSR1";
         defaultDevice["value"] = DeviceType::SSR1;
+        JsonObject SSR2 = deviceTypes.add<JsonObject>();
+        SSR2["name"] = "SSR2";
+        SSR2["value"] = DeviceType::SSR2;
         JsonArray encoderTypes = doc["encoderTypes"].to<JsonArray>();
         JsonObject defaultEncoder = encoderTypes.add<JsonObject>();
         defaultEncoder["name"] = "MT6701 SSI";

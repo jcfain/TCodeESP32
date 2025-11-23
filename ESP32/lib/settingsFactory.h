@@ -825,7 +825,7 @@ public:
         getValue(MOTOR_TYPE_SETTING, motorType);
         if(motorType == MotorType::Servo)
         {
-            if (newType == DeviceType::SSR1)
+            if (newType == DeviceType::SSR1 || newType == DeviceType::SSR2)
             {
                 LogHandler::error(m_TAG, "[changeDeviceType] Invalid device type (%ld) for current motor. Valid device types are %s", value, DEVICE_TYPES_HELP);
                 return false;
@@ -833,10 +833,20 @@ public:
         }
         else if(motorType == MotorType::BLDC)
         {
-            if (newType != DeviceType::SSR1)
+            if (newType != DeviceType::SSR1 && newType != DeviceType::SSR2)
             {
                 LogHandler::error(m_TAG, "[changeDeviceType] Invalid device type (%ld) for current motor. Valid device types are %s", value, DEVICE_TYPES_HELP);
                 return false;
+            }
+            if (newType == DeviceType::SSR2)
+            {
+                // setValue(BLDC_ENCODER, BLDCEncoderType::SPI);
+                PinMapSSR2* pinMap = PinMapSSR2::getInstance();
+                pinMap->overideDefaults();
+                m_pinsFileInfo.initialized = true;
+                syncSSR1AndCommonPinsToDisk(pinMap);
+                loadDefaultChannelsForDeviceType();
+                saveToDisk(m_pinsFileInfo);
             }
         }
         Serial.println("Settings pinout default");
@@ -1032,14 +1042,22 @@ private:
             {I2C_SDA_PIN, "I2C SDA PIN", "Pin of the I2C SDA", SettingType::Number, I2C_SDA_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::System, SettingProfile::Pin}},
             {I2C_SCL_PIN, "I2C SCL PIN", "Pin of the I2C SCL", SettingType::Number, I2C_SCL_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::System, SettingProfile::Pin}},
             {BUTTON_SET_PINS, "Button set pins", "Pins for each button set. (Max 4)", SettingType::ArrayInt, BUTTON_SET_PINS_DEFAULT, RestartRequired::YES, {SettingProfile::Pin, SettingProfile::Analog}},
-            // BLDC
+            // Stroke BLDC
             {BLDC_ENCODER_PIN, "Encoder PIN", "Pin the BLDC encoder is on", SettingType::Number, BLDC_ENCODER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_CHIPSELECT_PIN, "Chipselect PIN", "Pin the BLDC chip select is on", SettingType::Number, BLDC_CHIPSELECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_ENABLE_PIN, "Enable PIN", "Pin the BLDC enable is on", SettingType::Number, BLDC_ENABLE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_HALLEFFECT_PIN, "Halleffect PIN", "Pin the hall effect is on", SettingType::Number, BLDC_HALLEFFECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_PWMCHANNEL1_PIN, "PWM channel1 PIN", "Pin for the BLDC PWM 1", SettingType::Number, BLDC_PWMCHANNEL1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
             {BLDC_PWMCHANNEL2_PIN, "PWM channel2 PIN", "Pin for the BLDC PWM 2", SettingType::Number, BLDC_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
-            {BLDC_PWMCHANNEL3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}}
+            {BLDC_PWMCHANNEL3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+            // Twist BLDC
+            {BLDC_TWIST_ENCODER_PIN, "Twist Encoder PIN", "Pin the BLDC Twist encoder is on", SettingType::Number, BLDC_ENCODER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_TWIST_CHIPSELECT_PIN, "Twist Chipselect PIN", "Pin the BLDC Twist chip select is on", SettingType::Number, BLDC_CHIPSELECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_TWIST_ENABLE_PIN, "Twist Enable PIN", "Pin the BLDC Twist enable is on", SettingType::Number, BLDC_ENABLE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_TWIST_HALLEFFECT_PIN, "Twist Halleffect PIN", "Pin the hall effect for Twist is on", SettingType::Number, BLDC_HALLEFFECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_TWIST_PWMCHANNEL1_PIN, "Twist PWM channel1 PIN", "Pin for the Twist BLDC PWM 1", SettingType::Number, BLDC_PWMCHANNEL1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+            {BLDC_TWIST_PWMCHANNEL2_PIN, "Twist PWM channel2 PIN", "Pin for the Twist BLDC PWM 2", SettingType::Number, BLDC_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+            {BLDC_TWIST_PWMCHANNEL3_PIN, "Twist PWM channel3 PIN", "Pin for the Twist BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}}
             #if CONFIG_IDF_TARGET_ESP32
             ,{ESP_H_TIMER0_FREQUENCY, "High timer 0 frequency", "Frequency for the high timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
             ,{ESP_H_TIMER1_FREQUENCY, "High timer 1 frequency", "Frequency for the high timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
@@ -1251,6 +1269,20 @@ private:
                 return saveToDisk(m_pinsFileInfo);
             }
         }
+
+        DeviceType deviceType;
+        getValue(DEVICE_TYPE, deviceType);// Use setting from json
+        switch(deviceType)
+        {
+            case DeviceType::SSR2: {
+                PinMapSSR2* pinMap = PinMapSSR2::getInstance();
+                pinMap->overideDefaults();
+                m_pinsFileInfo.initialized = true;
+                syncSSR1AndCommonPinsToDisk(pinMap);
+                loadDefaultChannelsForDeviceType();
+                return saveToDisk(m_pinsFileInfo);
+            }
+        }
     }
 
     void loadDefaultChannelsForDeviceType() {
@@ -1356,7 +1388,8 @@ private:
 #endif
                 break;
             }
-            case DeviceType::SSR1: {
+            case DeviceType::SSR1:
+            case DeviceType::SSR2: {
                 LogHandler::debug(m_TAG, "Loading default channels and pins for SSR1");
 #if CONFIG_IDF_TARGET_ESP32
                 setValue(RIGHT_SERVO_PIN, -1);
@@ -1566,6 +1599,9 @@ private:
             case DeviceType::SSR1:
                 m_currentPinMap = loadSSR1Pins();
             break;
+            case DeviceType::SSR2:
+                m_currentPinMap = loadSSR2Pins();
+            break;
             case DeviceType::SR6:
                 m_currentPinMap = loadSR6Pins();
             break;
@@ -1696,6 +1732,47 @@ private:
         return pinMap;
 
     }
+    PinMapSSR1* loadSSR2Pins() 
+    {
+        if(!m_pinsFileInfo.initialized) {
+            LogHandler::error(m_TAG, "loadSSR1Pins called before initialized");
+            return 0;
+        }
+        PinMapSSR2* pinMap = PinMapSSR2::getInstance();
+        loadCommonPins(pinMap);
+        int8_t pin = -1;
+        getValue(BLDC_ENCODER_PIN, pin);
+        pinMap->setEncoder(pin);
+        getValue(BLDC_CHIPSELECT_PIN, pin);
+        pinMap->setChipSelect(pin);
+        getValue(BLDC_ENABLE_PIN, pin);
+        pinMap->setEnable(pin);
+        getValue(BLDC_HALLEFFECT_PIN, pin);
+        pinMap->setHallEffect(pin);
+        getValue(BLDC_PWMCHANNEL1_PIN, pin);
+        pinMap->setPwmChannel1(pin);
+        getValue(BLDC_PWMCHANNEL2_PIN, pin);
+        pinMap->setPwmChannel2(pin);
+        getValue(BLDC_PWMCHANNEL3_PIN, pin);
+        pinMap->setPwmChannel3(pin);
+
+        getValue(BLDC_TWIST_ENCODER_PIN, pin);
+        pinMap->setTwistEncoder(pin);
+        getValue(BLDC_TWIST_CHIPSELECT_PIN, pin);
+        pinMap->setTwistChipSelect(pin);
+        getValue(BLDC_TWIST_ENABLE_PIN, pin);
+        pinMap->setTwistEnable(pin);
+        getValue(BLDC_TWIST_HALLEFFECT_PIN, pin);
+        pinMap->setTwistHallEffect(pin);
+        getValue(BLDC_TWIST_PWMCHANNEL1_PIN, pin);
+        pinMap->setTwistPwmChannel1(pin);
+        getValue(BLDC_TWIST_PWMCHANNEL2_PIN, pin);
+        pinMap->setTwistPwmChannel2(pin);
+        getValue(BLDC_TWIST_PWMCHANNEL3_PIN, pin);
+        pinMap->setTwistPwmChannel3(pin);
+        return pinMap;
+
+    }
     PinMapOSR* loadOSRPins() 
     {
         if(!m_pinsFileInfo.initialized) {
@@ -1821,6 +1898,23 @@ private:
         setValue(BLDC_PWMCHANNEL1_PIN, pinMap->pwmChannel1());
         setValue(BLDC_PWMCHANNEL2_PIN, pinMap->pwmChannel2());
         setValue(BLDC_PWMCHANNEL3_PIN, pinMap->pwmChannel3());
+        savePins();
+    }
+
+    void syncSSR2AndCommonPinsToDisk(const PinMapSSR2* pinMap) 
+    {
+        if(!m_pinsFileInfo.initialized) {
+            LogHandler::error(m_TAG, "syncSSR2AndCommonPinsToDisk called before initialized");
+            return;
+        }
+        syncSSR1AndCommonPinsToDisk(pinMap);
+        setValue(BLDC_TWIST_ENCODER_PIN, pinMap->twistEncoder());
+        setValue(BLDC_TWIST_CHIPSELECT_PIN, pinMap->twistChipSelect());
+        setValue(BLDC_TWIST_ENABLE_PIN, pinMap->twistEnable());
+        setValue(BLDC_TWIST_HALLEFFECT_PIN, pinMap->twistHallEffect());
+        setValue(BLDC_TWIST_PWMCHANNEL1_PIN, pinMap->twistPwmChannel1());
+        setValue(BLDC_TWIST_PWMCHANNEL2_PIN, pinMap->twistPwmChannel2());
+        setValue(BLDC_TWIST_PWMCHANNEL3_PIN, pinMap->twistPwmChannel3());
         savePins();
     }
 
