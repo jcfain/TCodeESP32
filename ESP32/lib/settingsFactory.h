@@ -840,11 +840,13 @@ public:
             }
             if (newType == DeviceType::SSR2)
             {
-                // setValue(BLDC_ENCODER, BLDCEncoderType::SPI);
-                PinMapSSR2* pinMap = PinMapSSR2::getInstance();
-                pinMap->overideDefaults();
+                setValue(BLDC_ENCODER, BLDCEncoderType::SPI);
+                setValue(BLDC_TWIST_ENCODER, BLDCEncoderType::SPI);
+                saveCommon();
+                PinMapSSR* pinMap = PinMapSSR::getInstance();
+                pinMap->setDeviceType(newType);
                 m_pinsFileInfo.initialized = true;
-                syncSSR1AndCommonPinsToDisk(pinMap);
+                syncSSRAndCommonPinsToDisk(pinMap);
                 loadDefaultChannelsForDeviceType();
                 saveToDisk(m_pinsFileInfo);
             }
@@ -1257,7 +1259,7 @@ private:
                 PinMapSSR1PCB* pinMap = PinMapSSR1PCB::getInstance();
                 pinMap->overideDefaults();
                 m_pinsFileInfo.initialized = true;
-                syncSSR1AndCommonPinsToDisk(pinMap);
+                syncSSRAndCommonPinsToDisk(pinMap);
                 loadDefaultChannelsForDeviceType();
                 return saveToDisk(m_pinsFileInfo);
             }
@@ -1265,20 +1267,6 @@ private:
             default: {
                 bool ret = loadDefault(m_pinsFileInfo);
                 m_pinsFileInfo.initialized = true;
-                loadDefaultChannelsForDeviceType();
-                return saveToDisk(m_pinsFileInfo);
-            }
-        }
-
-        DeviceType deviceType;
-        getValue(DEVICE_TYPE, deviceType);// Use setting from json
-        switch(deviceType)
-        {
-            case DeviceType::SSR2: {
-                PinMapSSR2* pinMap = PinMapSSR2::getInstance();
-                pinMap->overideDefaults();
-                m_pinsFileInfo.initialized = true;
-                syncSSR1AndCommonPinsToDisk(pinMap);
                 loadDefaultChannelsForDeviceType();
                 return saveToDisk(m_pinsFileInfo);
             }
@@ -1597,10 +1585,8 @@ private:
         switch(deviceType) 
         {
             case DeviceType::SSR1:
-                m_currentPinMap = loadSSR1Pins();
-            break;
             case DeviceType::SSR2:
-                m_currentPinMap = loadSSR2Pins();
+                m_currentPinMap = loadSSRPins();
             break;
             case DeviceType::SR6:
                 m_currentPinMap = loadSR6Pins();
@@ -1706,39 +1692,14 @@ private:
         pinMap->setTimerFrequency(3, timerFreq);
 #endif
     }
-    PinMapSSR1* loadSSR1Pins() 
-    {
-        if(!m_pinsFileInfo.initialized) {
-            LogHandler::error(m_TAG, "loadSSR1Pins called before initialized");
-            return 0;
-        }
-        PinMapSSR1* pinMap = PinMapSSR1::getInstance();
-        loadCommonPins(pinMap);
-        int8_t pin = -1;
-        getValue(BLDC_ENCODER_PIN, pin);
-        pinMap->setEncoder(pin);
-        getValue(BLDC_CHIPSELECT_PIN, pin);
-        pinMap->setChipSelect(pin);
-        getValue(BLDC_ENABLE_PIN, pin);
-        pinMap->setEnable(pin);
-        getValue(BLDC_HALLEFFECT_PIN, pin);
-        pinMap->setHallEffect(pin);
-        getValue(BLDC_PWMCHANNEL1_PIN, pin);
-        pinMap->setPwmChannel1(pin);
-        getValue(BLDC_PWMCHANNEL2_PIN, pin);
-        pinMap->setPwmChannel2(pin);
-        getValue(BLDC_PWMCHANNEL3_PIN, pin);
-        pinMap->setPwmChannel3(pin);
-        return pinMap;
 
-    }
-    PinMapSSR1* loadSSR2Pins() 
+    PinMapSSR* loadSSRPins() 
     {
         if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadSSR1Pins called before initialized");
             return 0;
         }
-        PinMapSSR2* pinMap = PinMapSSR2::getInstance();
+        PinMapSSR* pinMap = PinMapSSR::getInstance();
         loadCommonPins(pinMap);
         int8_t pin = -1;
         getValue(BLDC_ENCODER_PIN, pin);
@@ -1773,6 +1734,7 @@ private:
         return pinMap;
 
     }
+
     PinMapOSR* loadOSRPins() 
     {
         if(!m_pinsFileInfo.initialized) {
@@ -1884,10 +1846,10 @@ private:
 #endif
     }
 
-    void syncSSR1AndCommonPinsToDisk(const PinMapSSR1* pinMap) 
+    void syncSSRAndCommonPinsToDisk(const PinMapSSR* pinMap) 
     {
         if(!m_pinsFileInfo.initialized) {
-            LogHandler::error(m_TAG, "syncSSR1AndCommonPinsToDisk called before initialized");
+            LogHandler::error(m_TAG, "syncSSRAndCommonPinsToDisk called before initialized");
             return;
         }
         syncCommonPinsToDoc(pinMap);
@@ -1898,16 +1860,6 @@ private:
         setValue(BLDC_PWMCHANNEL1_PIN, pinMap->pwmChannel1());
         setValue(BLDC_PWMCHANNEL2_PIN, pinMap->pwmChannel2());
         setValue(BLDC_PWMCHANNEL3_PIN, pinMap->pwmChannel3());
-        savePins();
-    }
-
-    void syncSSR2AndCommonPinsToDisk(const PinMapSSR2* pinMap) 
-    {
-        if(!m_pinsFileInfo.initialized) {
-            LogHandler::error(m_TAG, "syncSSR2AndCommonPinsToDisk called before initialized");
-            return;
-        }
-        syncSSR1AndCommonPinsToDisk(pinMap);
         setValue(BLDC_TWIST_ENCODER_PIN, pinMap->twistEncoder());
         setValue(BLDC_TWIST_CHIPSELECT_PIN, pinMap->twistChipSelect());
         setValue(BLDC_TWIST_ENABLE_PIN, pinMap->twistEnable());

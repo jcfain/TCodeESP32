@@ -190,6 +190,7 @@
 #define BLDC_STROKELENGTH "BLDC_StrokeLength"
 
 #define BLDC_TWIST_ENCODER "BLDC_TwistEncoder"
+#define BLDC_TWIST_USEHALLSENSOR "BLDC_TwistUseHallSensor"
 #define BLDC_TWIST_PULLEY_CIRCUMFERENCE "BLDC_TwistPulley_Circumference"
 #define BLDC_TWIST_MOTOR_VOLTAGE "BLDC_TwistMotor_VoltageLimit"
 #define BLDC_TWIST_MOTOR_SUPPLY  "BLDC_TwistMotor_SupplyVoltage"

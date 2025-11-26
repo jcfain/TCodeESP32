@@ -346,11 +346,11 @@ private:
     }
 };
 
-class PinMapSSR1 : public PinMap {
+class PinMapSSR : public PinMap {
 public:
-    static PinMapSSR1* getInstance()
+    static PinMapSSR* getInstance()
     {
-        static PinMapSSR1 instance(DeviceType::SSR1, BoardType::DEVKIT);
+        static PinMapSSR instance(DeviceType::SSR1, BoardType::DEVKIT);
         return &instance;
     }
     int8_t encoder() const { return m_encoder; }
@@ -373,8 +373,71 @@ public:
 
     int8_t pwmChannel3() const { return m_pwmChannel3; }
     void setPwmChannel3(const int8_t &pwmChannel3) { m_pwmChannel3 = pwmChannel3; }
+
+    int8_t twistEncoder() const { return m_twistEncoder; }
+    void setTwistEncoder(const int8_t &encoder) { m_twistEncoder = encoder; }
+
+    int8_t twistChipSelect() const { return m_twistChipSelect; }
+    void setTwistChipSelect(const int8_t &chipSelect) { m_twistChipSelect = chipSelect; }
+
+    int8_t twistEnable() const { return m_twistEnable; }
+    void setTwistEnable(const int8_t &enable) { m_twistEnable = enable; }
+
+    int8_t twistHallEffect() const { return m_twistHallEffect; }
+    void setTwistHallEffect(const int8_t &hallEffect) { m_twistHallEffect = hallEffect; }
+
+    int8_t twistPwmChannel1() const { return m_twistPwmChannel1; }
+    void setTwistPwmChannel1(const int8_t &pwmChannel1) { m_twistPwmChannel1 = pwmChannel1; }
+
+    int8_t twistPwmChannel2() const { return m_twistPwmChannel2; }
+    void setTwistPwmChannel2(const int8_t &pwmChannel2) { m_twistPwmChannel2 = pwmChannel2; }
+
+    int8_t twistPwmChannel3() const { return m_twistPwmChannel3; }
+    void setTwistPwmChannel3(const int8_t &pwmChannel3) { m_twistPwmChannel3 = pwmChannel3; }
+
+    void setDevice(DeviceType type) 
+    {
+        
+        if(type == DeviceType::SSR1)
+        {
+            m_deviceType = type;
+            setEncoder(BLDC_ENCODER_PIN_DEFAULT);
+            setChipSelect(BLDC_CHIPSELECT_PIN_DEFAULT);
+            setEnable(BLDC_ENABLE_PIN_DEFAULT);
+            setPwmChannel1(BLDC_PWMCHANNEL1_PIN_DEFAULT);
+            setPwmChannel2(BLDC_PWMCHANNEL2_PIN_DEFAULT);
+            setPwmChannel3(BLDC_PWMCHANNEL3_PIN_DEFAULT);
+        } 
+        else if(type == DeviceType::SSR2)
+        {
+            m_deviceType = type;
+            setEncoder(35);
+            setChipSelect(4);
+            setEnable(13);
+            setPwmChannel1(12);
+            setPwmChannel2(14);
+            setPwmChannel3(27);
+
+            setValve(-1);
+            setTwist(-1);
+            setSqueeze(-1);
+            setVibe0(-1);
+            setVibe1(-1);
+            setVibe2(-1);
+            setVibe3(-1);
+            setSleeveTemp(-1);
+            setInternalTemp(-1);
+            setCaseFan(-1);
+            setHeater(-1);
+            setTwistFeedBack(-1);
+        } 
+        else 
+        {
+            LogHandler::error("PinMapSSR", "Invalid device typt %d", m_deviceType);
+        }
+    }
 protected: 
-    PinMapSSR1(DeviceType deviceType, BoardType boardType) : PinMap(deviceType, boardType) {}
+    PinMapSSR(DeviceType deviceType, BoardType boardType) : PinMap(deviceType, boardType) {}
 private:
     int8_t m_encoder = BLDC_ENCODER_PIN_DEFAULT;
     int8_t m_chipSelect = BLDC_CHIPSELECT_PIN_DEFAULT;
@@ -383,6 +446,14 @@ private:
     int8_t m_pwmChannel1 = BLDC_PWMCHANNEL1_PIN_DEFAULT;
     int8_t m_pwmChannel2 = BLDC_PWMCHANNEL2_PIN_DEFAULT;
     int8_t m_pwmChannel3 = BLDC_PWMCHANNEL3_PIN_DEFAULT;
+    
+    int8_t m_twistEncoder = BLDC_TWIST_ENCODER_PIN_DEFAULT;
+    int8_t m_twistChipSelect = BLDC_TWIST_CHIPSELECT_PIN_DEFAULT;
+    int8_t m_twistEnable = BLDC_TWIST_ENABLE_PIN_DEFAULT;
+    int8_t m_twistHallEffect = BLDC_TWIST_HALLEFFECT_PIN_DEFAULT;
+    int8_t m_twistPwmChannel1 = BLDC_TWIST_PWMCHANNEL1_PIN_DEFAULT;
+    int8_t m_twistPwmChannel2 = BLDC_TWIST_PWMCHANNEL2_PIN_DEFAULT;
+    int8_t m_twistPwmChannel3 = BLDC_TWIST_PWMCHANNEL3_PIN_DEFAULT;
     void overideDefaults() override {}
 
 };
@@ -508,7 +579,7 @@ public:
         // Common motor
         setSqueeze(19);
         setLubeButton(34);
-        setInternalTemp(34);
+        setInternalTemp(35);
         setSleeveTemp(33);
         setCaseFan(16);
         // // Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
@@ -554,7 +625,7 @@ protected:
 };
 
 
-class PinMapSSR1PCB : public PinMapSSR1 {
+class PinMapSSR1PCB : public PinMapSSR {
     public:
         static PinMapSSR1PCB* getInstance()
         {
@@ -582,66 +653,5 @@ class PinMapSSR1PCB : public PinMapSSR1 {
             setTwistFeedBack(-1);
         }
     protected: 
-        PinMapSSR1PCB(DeviceType deviceType, BoardType boardType) : PinMapSSR1(deviceType, boardType) {}
-};
-
-
-class PinMapSSR2 : public PinMapSSR1 {
-    public:
-        static PinMapSSR2* getInstance()
-        {
-            static PinMapSSR2 instance(DeviceType::SSR2, BoardType::DEVKIT);
-            return &instance;
-        }
-        void overideDefaults() override {
-            setEncoder(35);
-            setChipSelect(4);
-            setEnable(13);
-            setPwmChannel1(12);
-            setPwmChannel2(14);
-            setPwmChannel3(27);
-
-            setValve(-1);
-            setTwist(-1);
-            setSqueeze(-1);
-            setVibe0(-1);
-            setVibe1(-1);
-            setVibe2(-1);
-            setVibe3(-1);
-            setSleeveTemp(-1);
-            setInternalTemp(-1);
-            setCaseFan(-1);
-            setHeater(-1);
-            setTwistFeedBack(-1);
-        }
-        int8_t twistEncoder() const { return m_twistEncoder; }
-        void setTwistEncoder(const int8_t &encoder) { m_twistEncoder = encoder; }
-
-        int8_t twistChipSelect() const { return m_twistChipSelect; }
-        void setTwistChipSelect(const int8_t &chipSelect) { m_twistChipSelect = chipSelect; }
-
-        int8_t twistEnable() const { return m_twistEnable; }
-        void setTwistEnable(const int8_t &enable) { m_twistEnable = enable; }
-
-        int8_t twistHallEffect() const { return m_twistHallEffect; }
-        void setTwistHallEffect(const int8_t &hallEffect) { m_twistHallEffect = hallEffect; }
-
-        int8_t twistPwmChannel1() const { return m_twistPwmChannel1; }
-        void setTwistPwmChannel1(const int8_t &pwmChannel1) { m_twistPwmChannel1 = pwmChannel1; }
-
-        int8_t twistPwmChannel2() const { return m_twistPwmChannel2; }
-        void setTwistPwmChannel2(const int8_t &pwmChannel2) { m_twistPwmChannel2 = pwmChannel2; }
-
-        int8_t twistPwmChannel3() const { return m_twistPwmChannel3; }
-        void setTwistPwmChannel3(const int8_t &pwmChannel3) { m_twistPwmChannel3 = pwmChannel3; }
-    protected: 
-        PinMapSSR2(DeviceType deviceType, BoardType boardType) : PinMapSSR1(deviceType, boardType) {}
-    private:
-        int8_t m_twistEncoder = BLDC_TWIST_ENCODER_PIN_DEFAULT;
-        int8_t m_twistChipSelect = BLDC_TWIST_CHIPSELECT_PIN_DEFAULT;
-        int8_t m_twistEnable = BLDC_TWIST_ENABLE_PIN_DEFAULT;
-        int8_t m_twistHallEffect = BLDC_TWIST_HALLEFFECT_PIN_DEFAULT;
-        int8_t m_twistPwmChannel1 = BLDC_TWIST_PWMCHANNEL1_PIN_DEFAULT;
-        int8_t m_twistPwmChannel2 = BLDC_TWIST_PWMCHANNEL2_PIN_DEFAULT;
-        int8_t m_twistPwmChannel3 = BLDC_TWIST_PWMCHANNEL3_PIN_DEFAULT;
+        PinMapSSR1PCB(DeviceType deviceType, BoardType boardType) : PinMapSSR(deviceType, boardType) {}
 };

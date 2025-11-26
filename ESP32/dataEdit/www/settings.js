@@ -83,7 +83,9 @@ let BoardType = {
 let DeviceType = {
     OSR: 0,
     SR6: 1,
-    SSR1: 2
+    SSR1: 2,
+    TVIBE: 3,
+    SSR2: 4
 };
 let BLEDeviceType = {
     TCODE: 0,

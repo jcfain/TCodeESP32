@@ -69,7 +69,7 @@ public:
         bootmode = true;
         m_settingsFactory = SettingsFactory::getInstance();
         //PinMapInfo pinMapInfo = m_settingsFactory->getPins();
-        PinMapSSR1* pinMap = PinMapSSR1::getInstance();
+        PinMapSSR* pinMap = PinMapSSR::getInstance();
         int pullyCircumference = -1;
         m_settingsFactory->getValue(BLDC_PULLEY_CIRCUMFERENCE, pullyCircumference);
         int strokeLength = -1;

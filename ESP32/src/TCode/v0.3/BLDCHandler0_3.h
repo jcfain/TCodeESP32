@@ -68,7 +68,6 @@ public:
     void setup() override {
         m_settingsFactory = SettingsFactory::getInstance();
         //PinMapInfo pinMapInfo = m_settingsFactory->getPins();
-        PinMapSSR1* pinMap = PinMapSSR1::getInstance();
         int pullyCircumference = -1;
         m_settingsFactory->getValue(BLDC_PULLEY_CIRCUMFERENCE, pullyCircumference);
         int strokeLength = -1;
@@ -85,20 +84,18 @@ public:
         DeviceType deviceType = DeviceType::SSR1;
         m_settingsFactory->getValue(DEVICE_TYPE, deviceType);
 
-        // Begin tracking encoder
+        PinMapSSR* pinMap = PinMapSSR::getInstance();
+
         BLDCEncoderType encoderType = BLDCEncoderType::MT6701;
         m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
-        LogHandler::debug(_TAG, "Stroke Encoder type: %d", encoderType);
         double strokeMotorAVoltage = BLDC_MOTORA_VOLTAGE_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, strokeMotorAVoltage);
-        LogHandler::debug(_TAG, "Stroke Voltage: %f", strokeMotorAVoltage);
         // power supply voltage [V]
         double strokeSupplyAVoltage = BLDC_MOTORA_SUPPLY_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_SUPPLY, strokeSupplyAVoltage);
         // limiting motor movements
         double strokeMotorACurrent = BLDC_MOTORA_CURRENT_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_CURRENT, strokeMotorACurrent);
-        LogHandler::debug(_TAG, "Stroke Current: %f", strokeMotorACurrent);
 
         // init current sense
         double zeroElecAngle = BLDC_MOTORA_ZEROELECANGLE_DEFAULT;
@@ -106,46 +103,53 @@ public:
         m_settingsFactory->getValue(BLDC_MOTORA_PARAMETERSKNOWN, paramsKnown);
         if(paramsKnown) {
             m_settingsFactory->getValue(BLDC_MOTORA_ZEROELECANGLE, zeroElecAngle);
-            // Set sensor angle and pre-set zero angle to current angle
-            LogHandler::info(_TAG, "Setting Twist Motor parameters: %f", zeroElecAngle);
         }
 
         strokeMotor = new BLDCTCodeMotor(
             "Stroke",
             encoderType, 
+            pinMap->chipSelect(),
+            pinMap->encoder(),
+            pinMap->pwmChannel1(),
+            pinMap->pwmChannel2(),
+            pinMap->pwmChannel3(),
+            pinMap->enable(),
             strokeMotorAVoltage,
             strokeSupplyAVoltage,
             strokeMotorACurrent,
             strokeAngToPos, 
             strokeTopStartOffset, 
             strokeEndstopOffset,
-            zeroElecAngle,
-            Motor_SensorDirection);
-
-        float twistAngToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
-        LogHandler::debug(_TAG, "strokeAngToPos: %f", strokeAngToPos);
-        float twistTopStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
-        LogHandler::debug(_TAG, "strokeTopStartOffset: %f", strokeTopStartOffset);
-        float twistEndstopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
-        LogHandler::debug(_TAG, "strokeEndstopOffset: %f", strokeEndstopOffset);
+            paramsKnown,
+            zeroElecAngle);
+                
+        if(!strokeMotor->initialized()) {
+            m_initFailed = true;
+            delete strokeMotor;
+            strokeMotor = 0;
+        }
 
 
         if(deviceType == DeviceType::SSR2)
         {
+            float twistAngToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
+            LogHandler::debug(_TAG, "twistAngToPos: %f", strokeAngToPos);
+            float twistTopStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
+            LogHandler::debug(_TAG, "twistTopStartOffset: %f", strokeTopStartOffset);
+            float twistEndstopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
+            LogHandler::debug(_TAG, "twistEndstopOffset: %f", strokeEndstopOffset);
+
             // Begin tracking encoder
             BLDCEncoderType encoderType = BLDCEncoderType::MT6701;
             m_settingsFactory->getValue(BLDC_TWIST_ENCODER, encoderType);
-            LogHandler::debug(_TAG, "Twist Encoder type: %d", encoderType);
             double twistMotorAVoltage = BLDC_TWIST_MOTOR_VOLTAGE_DEFAULT;
             m_settingsFactory->getValue(BLDC_TWIST_MOTOR_VOLTAGE, twistMotorAVoltage);
-            LogHandler::debug(_TAG, "Twist Voltage: %f", twistMotorAVoltage);
             // power supply voltage [V]
             double twistSupplyAVoltage = BLDC_TWIST_MOTOR_SUPPLY_DEFAULT;
             m_settingsFactory->getValue(BLDC_TWIST_MOTOR_SUPPLY, twistSupplyAVoltage);
             // limiting motor movements
             double twistMotorACurrent = BLDC_TWIST_MOTOR_CURRENT_DEFAULT;
             m_settingsFactory->getValue(BLDC_TWIST_MOTOR_CURRENT, twistMotorACurrent);
-            LogHandler::debug(_TAG, "Twist Current: %f", twistMotorACurrent);
 
             // init current sense
             paramsKnown = BLDC_TWIST_MOTOR_PARAMETERSKNOWN_DEFAULT;
@@ -153,48 +157,69 @@ public:
             m_settingsFactory->getValue(BLDC_TWIST_MOTOR_PARAMETERSKNOWN, paramsKnown);
             if(paramsKnown) {
                 m_settingsFactory->getValue(BLDC_TWIST_MOTOR_ZEROELECANGLE, zeroElecAngle);
-                // Set sensor angle and pre-set zero angle to current angle
-                LogHandler::info(_TAG, "Setting Twist Motor parameters: %f", zeroElecAngle);
             }
             twistMotor = new BLDCTCodeMotor(
                 "Twist",
                 encoderType,
+                pinMap->twistChipSelect(),
+                pinMap->twistEncoder(),
+                pinMap->twistPwmChannel1(),
+                pinMap->twistPwmChannel2(),
+                pinMap->twistPwmChannel3(),
+                pinMap->twistEnable(),
                 twistMotorAVoltage,
                 twistSupplyAVoltage,
                 twistMotorACurrent,
                 twistAngToPos, 
                 twistTopStartOffset, 
                 twistEndstopOffset,
-                zeroElecAngle,
-                Motor_SensorDirection);
+                paramsKnown,
+                zeroElecAngle);
+
+            if(!twistMotor->initialized()) {
+                m_initFailed = true;
+                delete twistMotor;
+                twistMotor = 0;
+            }
         }
 
         // Start serial connection and report status
         m_tcode->setup(FIRMWARE_VERSION_NAME);
 
-        // #ESP32# Enable EEPROM
-        //EEPROM.begin(320); Done in TCode class
-
         // Register device axes
-        if(twistMotor) {
-            m_tcode->RegisterAxis(TCODE_CHANNEL_TWIST, "Twist");
+        if(strokeMotor)
+        {
+            m_tcode->RegisterAxis(TCODE_CHANNEL_STROKE, "Up");
+            bool useHallSensor = BLDC_USEHALLSENSOR_DEFAULT;
+            m_settingsFactory->getValue(BLDC_USEHALLSENSOR, useHallSensor);
+            int hallSensorPin = pinMap->hallEffect();
+            if(useHallSensor && hallSensorPin > -1) {
+                strokeMotor->useHallSensor(hallSensorPin);
+            } else if(useHallSensor) {
+                LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d...ignoring", pinMap->hallEffect());
+                // m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
+            }
         }
-        bool useHallSensor = BLDC_USEHALLSENSOR_DEFAULT;
-        m_settingsFactory->getValue(BLDC_USEHALLSENSOR, useHallSensor);
-        int hallSensorPin = pinMap->hallEffect();
-        strokeMotor->useHallSensor(hallSensorPin);
-        if(useHallSensor && hallSensorPin > -1) {
-            strokeMotor->useHallSensor(hallSensorPin);
-        } else if(useHallSensor) {
-            LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d...ignoring", pinMap->hallEffect());
-            // m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
+
+        if(twistMotor) 
+        {
+            m_tcode->RegisterAxis(TCODE_CHANNEL_TWIST, "Twist");
+            bool useHallSensor = BLDC_USEHALLSENSOR_DEFAULT;
+            m_settingsFactory->getValue(BLDC_TWIST_USEHALLSENSOR, useHallSensor);
+            int hallSensorPin = pinMap->twistHallEffect();
+            if(useHallSensor && hallSensorPin > -1) {
+                twistMotor->useHallSensor(hallSensorPin);
+            } else if(useHallSensor) {
+                LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d...ignoring", pinMap->hallEffect());
+                // m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
+            }
         }
         
         setupCommon(twistMotor ? TCODE_CHANNEL_TWIST : "");// TODO make this better, im brainfog right now.
 
         // Signal ready to start
         if(m_initFailed)
-            LogHandler::info(_TAG, "Error in setup");
+            LogHandler::error(_TAG, "Error in setup");
         else
             LogHandler::info(_TAG, "Ready!");
     }
@@ -253,12 +278,6 @@ private:
     const char* _TAG = TagHandler::BLDCHandler;
     bool m_initFailed = false;
     SettingsFactory* m_settingsFactory;
-
-    // The control code needs to know the angle of the motor relative to the encoder - "Zero elec. angle".
-    // If a value is not entered it will perform a quick operation on startup to estimate this.
-    // This will be displayed in the serial monitor each time the device starts up.
-    // If the device is noticably faster in one direction the angle is out of alignment, try increasing or decreasing it by small increments (eg +/- 0.1).
-    Direction Motor_SensorDirection = Direction::CW; // Do not change. If the motor is showing CCW rotate the motor connector 180 degrees to reverse the motor.
 
     BLDCTCodeMotor* strokeMotor = 0;
     BLDCTCodeMotor* twistMotor = 0;
