@@ -283,6 +283,10 @@ public:
         // These functions query the t-code object for the position/level at a specified time
         // Number recieved will be an integer, 0-9999
         int xLin = channelRead("L0");
+        if (m_settingsFactory->getInverseStroke())
+        {
+            xLin = 9999 - xLin;
+        }
         //LogHandler::verbose(_TAG, "xLin: %ld", xLin);
 
 
