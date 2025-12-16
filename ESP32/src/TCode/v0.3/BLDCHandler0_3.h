@@ -249,6 +249,11 @@ public:
         // These functions query the t-code object for the position/level at a specified time
         // Number recieved will be an integer, 0-9999
         int stroke = channelRead(TCODE_CHANNEL_STROKE);
+        if (m_settingsFactory->getInverseStroke())
+        {
+            stroke = 9999 - stroke;
+        }
+        //LogHandler::verbose(_TAG, "stroke: %ld", stroke);
 
         if(strokeMotor && strokeMotor->initialized())
         {
