@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "LogHandler.h"
 
 #include "espTimerMap.h"
 #if CONFIG_IDF_TARGET_ESP32
@@ -113,7 +114,7 @@ public:
     void operator=(PinMap const&) = delete;
     
     DeviceType deviceType() { return m_deviceType; }
-    void setDeviceType(DeviceType deviceType) {  m_deviceType = deviceType; }
+    virtual void setDeviceType(DeviceType deviceType) {  m_deviceType = deviceType; }
     BoardType boardType() { return m_boardType; }
     void setBoardType(BoardType boardType) { m_boardType = boardType; }
 
@@ -247,6 +248,7 @@ protected:
         m_deviceType = deviceType;
         m_boardType = boardType;
     }
+    const char* m_TAG = TagHandler::PinMap;
     DeviceType m_deviceType;
     BoardType m_boardType;
     ESPTimer m_timers[MAX_TIMERS] = {
@@ -395,12 +397,12 @@ public:
     int8_t twistPwmChannel3() const { return m_twistPwmChannel3; }
     void setTwistPwmChannel3(const int8_t &pwmChannel3) { m_twistPwmChannel3 = pwmChannel3; }
 
-    void setDevice(DeviceType type) 
+    void setDeviceType(DeviceType type) override 
     {
-        
         if(type == DeviceType::SSR1)
         {
             m_deviceType = type;
+            LogHandler::debug(m_TAG, "[PinMapSSR.setDevice] SSR1, Device type %i", (int)m_deviceType);
             setEncoder(BLDC_ENCODER_PIN_DEFAULT);
             setChipSelect(BLDC_CHIPSELECT_PIN_DEFAULT);
             setEnable(BLDC_ENABLE_PIN_DEFAULT);
@@ -411,6 +413,7 @@ public:
         else if(type == DeviceType::SSR2)
         {
             m_deviceType = type;
+            LogHandler::debug(m_TAG, "[PinMapSSR.setDevice] SSR2, Device type %i", (int)m_deviceType);
             setEncoder(35);
             setChipSelect(4);
             setEnable(13);
@@ -433,7 +436,7 @@ public:
         } 
         else 
         {
-            LogHandler::error("PinMapSSR", "Invalid device typt %d", m_deviceType);
+            LogHandler::error(m_TAG, "[PinMapSSR.setDevice Invalid device type %i", (int)type);
         }
     }
 protected: 

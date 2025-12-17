@@ -86,7 +86,7 @@ public:
 
         PinMapSSR* pinMap = PinMapSSR::getInstance();
 
-        BLDCEncoderType encoderType = BLDCEncoderType::MT6701;
+        BLDCEncoderType encoderType = (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
         m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
         double strokeMotorAVoltage = BLDC_MOTORA_VOLTAGE_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, strokeMotorAVoltage);
@@ -140,7 +140,6 @@ public:
             LogHandler::debug(_TAG, "twistEndstopOffset: %f", strokeEndstopOffset);
 
             // Begin tracking encoder
-            BLDCEncoderType encoderType = BLDCEncoderType::MT6701;
             m_settingsFactory->getValue(BLDC_TWIST_ENCODER, encoderType);
             double twistMotorAVoltage = BLDC_TWIST_MOTOR_VOLTAGE_DEFAULT;
             m_settingsFactory->getValue(BLDC_TWIST_MOTOR_VOLTAGE, twistMotorAVoltage);

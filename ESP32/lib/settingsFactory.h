@@ -226,9 +226,9 @@ public:
                 LogHandler::error(m_TAG, "getValue T called before pins file initialized");
                 return SettingFile::NONE;
             }
-            xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
+            xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
             value = m_pinsFileInfo.doc[name].as<T>();
-            xSemaphoreGive(m_commonSemaphore);
+            xSemaphoreGive(m_pinSemaphore);
             return SettingFile::Pins;
         }    
         else
@@ -669,6 +669,7 @@ public:
             getValue(BATTERY_CAPACITY_MAX, batteryCapacityMax);
             if(targeted) {initCommonMessages(name); return;}
         }
+    #if MOTOR_TYPE == 0
         if(!name || !strcmp(name, RIGHT_SERVO_ZERO)) {
             getValue(RIGHT_SERVO_ZERO, RightServo_ZERO);
             if(targeted) {initCommonMessages(name); return;}
@@ -693,6 +694,7 @@ public:
             getValue(PITCH_RIGHT_SERVO_ZERO, PitchRightServo_ZERO);
             if(targeted) {initCommonMessages(name); return;}
         }
+    #endif
         if(!name || !strcmp(name, TWIST_SERVO_ZERO)) {
             getValue(TWIST_SERVO_ZERO, TwistServo_ZERO);
             if(targeted) {initCommonMessages(name); return;}
@@ -838,22 +840,28 @@ public:
                 LogHandler::error(m_TAG, "[changeDeviceType] Invalid device type (%ld) for current motor. Valid device types are %s", value, DEVICE_TYPES_HELP);
                 return false;
             }
+        }
+        LogHandler::info(m_TAG, "[changeDeviceType] Settings pinout default");
+        setValue(DEVICE_TYPE, newType);
+        bool retValue = saveCommon() && defaultPinout();
+        // Override for new device type AFTER default!
+        if(motorType == MotorType::BLDC)
+        {
             if (newType == DeviceType::SSR2)
             {
+                LogHandler::info(m_TAG, "[changeDeviceType] Overriding default settings for SSR2");
                 setValue(BLDC_ENCODER, BLDCEncoderType::SPI);
                 setValue(BLDC_TWIST_ENCODER, BLDCEncoderType::SPI);
-                saveCommon();
-                PinMapSSR* pinMap = PinMapSSR::getInstance();
-                pinMap->setDeviceType(newType);
-                m_pinsFileInfo.initialized = true;
-                syncSSRAndCommonPinsToDisk(pinMap);
-                loadDefaultChannelsForDeviceType();
-                saveToDisk(m_pinsFileInfo);
+                retValue = saveCommon();
             }
+            PinMapSSR* pinMap = PinMapSSR::getInstance();
+            pinMap->setDeviceType(newType);
+            m_pinsFileInfo.initialized = true;
+            syncSSRAndCommonPinsToDisk(pinMap);
+            loadDefaultChannelsForDeviceType();
+            retValue = saveToDisk(m_pinsFileInfo);
         }
-        Serial.println("Settings pinout default");
-        setValue(DEVICE_TYPE, newType);
-        return saveCommon() && defaultPinout();
+        return retValue;
     }
 
     bool defaultPinout() {
@@ -942,7 +950,18 @@ private:
             {BLDC_MOTORA_PARAMETERSKNOWN, "Motor A parameters known", "BLDC Motor A params known", SettingType::Boolean, BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_MOTORA_ZEROELECANGLE, "Motor A ZeroElecAngle", "BLDC Motor A ZeroElecAngle", SettingType::Float, BLDC_MOTORA_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_RAILLENGTH, "Rail length", "SSR1 rail length", SettingType::Number, BLDC_RAILLENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}}
+            {BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            
+            {BLDC_TWIST_ENCODER, "BLDC twist encoder type", "Select the type of Twist bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_TWIST_USEHALLSENSOR, "Use twist hall sensor", "Use Hall sensor for Twist BLDC sensor", SettingType::Boolean, BLDC_USEHALLSENSOR_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_TWIST_PULLEY_CIRCUMFERENCE, "Pull twist circumference", "The pulley circumference for Twist BLDC motor", SettingType::Number, BLDC_TWIST_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_TWIST_MOTOR_VOLTAGE, "Twist Motor voltage limit", "BLDC Twist Motor voltage limit", SettingType::Float, BLDC_TWIST_MOTOR_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_TWIST_MOTOR_SUPPLY, "Twist Motor Supply voltage", "BLDC Twist Motor supply voltage", SettingType::Float, BLDC_TWIST_MOTOR_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_TWIST_MOTOR_CURRENT, "Twist Motor current", "BLDC Twist Motor current", SettingType::Float, BLDC_TWIST_MOTOR_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_TWIST_MOTOR_PARAMETERSKNOWN, "Twist Motor parameters known", "Twist BLDC Motor params known", SettingType::Boolean, BLDC_TWIST_MOTOR_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_TWIST_MOTOR_ZEROELECANGLE, "Twist Motor ZeroElecAngle", "Twist BLDC Motor ZeroElecAngle", SettingType::Float, BLDC_TWIST_MOTOR_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_TWIST_RAILLENGTH, "Twist Rail length", "Twist rail length", SettingType::Number, BLDC_TWIST_RAILLENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_TWIST_LENGTH, "Twist length", "Twist length", SettingType::Number, BLDC_TWIST_LENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}}
 #elif MOTOR_TYPE == 0
             ,{RIGHT_SERVO_ZERO, "Right servo zero", "The zero calibration for the right servo", SettingType::Number, RIGHT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {LEFT_SERVO_ZERO, "Left servo zero", "The zero calibration for the left servo", SettingType::Number, LEFT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
@@ -1053,13 +1072,13 @@ private:
             {BLDC_PWMCHANNEL2_PIN, "PWM channel2 PIN", "Pin for the BLDC PWM 2", SettingType::Number, BLDC_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
             {BLDC_PWMCHANNEL3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
             // Twist BLDC
-            {BLDC_TWIST_ENCODER_PIN, "Twist Encoder PIN", "Pin the BLDC Twist encoder is on", SettingType::Number, BLDC_ENCODER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
-            {BLDC_TWIST_CHIPSELECT_PIN, "Twist Chipselect PIN", "Pin the BLDC Twist chip select is on", SettingType::Number, BLDC_CHIPSELECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
-            {BLDC_TWIST_ENABLE_PIN, "Twist Enable PIN", "Pin the BLDC Twist enable is on", SettingType::Number, BLDC_ENABLE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
-            {BLDC_TWIST_HALLEFFECT_PIN, "Twist Halleffect PIN", "Pin the hall effect for Twist is on", SettingType::Number, BLDC_HALLEFFECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
-            {BLDC_TWIST_PWMCHANNEL1_PIN, "Twist PWM channel1 PIN", "Pin for the Twist BLDC PWM 1", SettingType::Number, BLDC_PWMCHANNEL1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
-            {BLDC_TWIST_PWMCHANNEL2_PIN, "Twist PWM channel2 PIN", "Pin for the Twist BLDC PWM 2", SettingType::Number, BLDC_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
-            {BLDC_TWIST_PWMCHANNEL3_PIN, "Twist PWM channel3 PIN", "Pin for the Twist BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}}
+            {BLDC_TWIST_ENCODER_PIN, "Twist Encoder PIN", "Pin the BLDC Twist encoder is on", SettingType::Number, BLDC_TWIST_ENCODER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_TWIST_CHIPSELECT_PIN, "Twist Chipselect PIN", "Pin the BLDC Twist chip select is on", SettingType::Number, BLDC_TWIST_CHIPSELECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_TWIST_ENABLE_PIN, "Twist Enable PIN", "Pin the BLDC Twist enable is on", SettingType::Number, BLDC_TWIST_ENABLE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_TWIST_HALLEFFECT_PIN, "Twist Halleffect PIN", "Pin the hall effect for Twist is on", SettingType::Number, BLDC_TWIST_HALLEFFECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_TWIST_PWMCHANNEL1_PIN, "Twist PWM channel1 PIN", "Pin for the Twist BLDC PWM 1", SettingType::Number, BLDC_TWIST_PWMCHANNEL1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+            {BLDC_TWIST_PWMCHANNEL2_PIN, "Twist PWM channel2 PIN", "Pin for the Twist BLDC PWM 2", SettingType::Number, BLDC_TWIST_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+            {BLDC_TWIST_PWMCHANNEL3_PIN, "Twist PWM channel3 PIN", "Pin for the Twist BLDC PWM 3", SettingType::Number, BLDC_TWIST_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}}
             #if CONFIG_IDF_TARGET_ESP32
             ,{ESP_H_TIMER0_FREQUENCY, "High timer 0 frequency", "Frequency for the high timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
             ,{ESP_H_TIMER1_FREQUENCY, "High timer 1 frequency", "Frequency for the high timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
