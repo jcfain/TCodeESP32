@@ -121,6 +121,8 @@ var startUpHostName;
 var startUpWebPort;
 var startUpStaticIP;
 var startUpLocalIP;
+var strokeMotor;
+var twistMotor;
 const defaultDebounce = 3000;
 
 //PWM availible on: 2,4,5,12-19,21-23,25-27,32-33
@@ -848,7 +850,15 @@ function setWifiSettings() {
 }
 function setPinoutSettings() {
     if(systemInfo.motorType === MotorType.BLDC) {
-        BLDCMotor.setupPins();
+        if(!strokeMotor)
+            strokeMotor = new BLDCMotor();
+        strokeMotor.setupPins();
+        if(userSettings.deviceType == DeviceType.SSR2)
+        {
+            if(!twistMotor)
+                twistMotor = new BLDCMotor("Twist");
+            twistMotor.setupPins();
+        }
     } else {
         document.getElementById("RightServo_PIN").value = pinoutSettings["RightServo_PIN"];
         document.getElementById("LeftServo_PIN").value = pinoutSettings["LeftServo_PIN"];
@@ -944,8 +954,43 @@ function setUserSettings()
     
     ESPTimer.setup();
     if(systemInfo.motorType === MotorType.BLDC) 
-        BLDCMotor.setup();
-
+    {
+        document.getElementById("BLDC_Encoder").value = userSettings["BLDC_Encoder"];
+        document.getElementById("BLDC_UseHallSensor").checked = userSettings["BLDC_UseHallSensor"];
+        document.getElementById("BLDC_HallEffect_PIN").value = pinoutSettings["BLDC_HallEffect_PIN"];
+        Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
+        if(!strokeMotor)
+            strokeMotor = new BLDCMotor();
+        strokeMotor.setup();
+        strokeMotor.setupPins();
+        const tableNode = document.getElementById("deviceSettingsTableBody");
+        const strokeSettingsButton = document.getElementById("strokeButtonRow");
+        if(!strokeSettingsButton)
+        {
+            const strokeLabel = userSettings.deviceType == DeviceType.SSR2 ? "Stroke Motor settings" : "Motor settings";
+            const strokeBLDCNode = Utils.createFormButtonRow("strokeButtonRow", "bldcStrokeSettingsButton", strokeLabel, function() { 
+                strokeMotor.ModalNode.show() 
+            });
+            strokeBLDCNode.row.classList.add("BLDCOnly");
+            tableNode.appendChild(strokeBLDCNode.row);
+        }
+        if(userSettings.deviceType == DeviceType.SSR2)
+        {
+            if(!twistMotor)
+                twistMotor = new BLDCMotor("Twist");
+            twistMotor.setup();
+            twistMotor.setupPins();
+            const twistSettingsButton = document.getElementById("twistButtonRow");
+            if(!twistSettingsButton)
+            {
+                const twistBLDCNode = Utils.createFormButtonRow("twistButtonRow", "bldcTwistSettingsButton", "Twist Motor Settings", function() { 
+                    twistMotor.ModalNode.show() 
+                });
+                twistBLDCNode.row.classList.add("BLDCOnly");
+                tableNode.appendChild(twistBLDCNode.row);
+            }
+        }
+    }
 	Buttons.setup();
     
     document.getElementById("RightServo_ZERO").value = userSettings["RightServo_ZERO"];
@@ -1087,11 +1132,6 @@ function toggleMotorTypeOptions() {
     } else {
         Utils.toggleControlVisibilityByClassName('BLDCOnly', true);
     }
-}
-
-function toggleBLDCEncoderOptions() {
-    Utils.toggleControlVisibilityByClassName("BLDCPWM", userSettings["BLDC_Encoder"] == BLDCEncoderType.PWM);
-    Utils.toggleControlVisibilityByClassName("BLDCSPI", isBLDCSPI());
 }
 
 function updateUserSettings(debounceInMs, uri, objectToSave, callback) 
@@ -1656,6 +1696,38 @@ function updateFriendlyName()
     setRestartRequired();
     postWifiSettings();
 }
+
+// These encoder functions could be removed in the future if multiple encoders are added
+function setEncoderType() {
+    userSettings["BLDC_Encoder"] = parseInt(document.getElementById("BLDC_Encoder").value);
+    userSettings["BLDC_TwistEncoder"] = parseInt(document.getElementById("BLDC_Encoder").value);
+    toggleBLDCEncoderOptions();
+    setRestartRequired();
+    updateUserSettings(0);
+}
+function updateBLDCSettings() {
+    userSettings["BLDC_UseHallSensor"] = document.getElementById("BLDC_UseHallSensor").checked;
+    Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
+    updatePins();
+    // setRestartRequired();
+    // updateUserSettings();
+}
+function toggleBLDCEncoderOptions() {
+    Utils.toggleControlVisibilityByClassName("BLDCPWM", userSettings["BLDC_Encoder"] == BLDCEncoderType.PWM);
+    Utils.toggleControlVisibilityByClassName("BLDCSPI", isBLDCSPI());
+}
+function setupEncoderTypes() {
+    const element = document.getElementById("BLDC_Encoder");
+    removeAllChildren(element);
+    for(let i=0;i<systemInfo.encoderTypes.length;i++) {
+        const option = document.createElement("option");
+        option.innerText = systemInfo.encoderTypes[i].name;
+        option.value = systemInfo.encoderTypes[i].value;
+        element.appendChild(option);
+        BLDCEncoderType[systemInfo.encoderTypes[i].name] = systemInfo.encoderTypes[i].value;
+    }
+}
+////////////////////////////////////////////////////////////////////////////////////////
 function setupBoardTypes() {
     const boardTypeElement = document.getElementById('boardType');
     removeAllChildren(boardTypeElement);
@@ -1665,23 +1737,6 @@ function setupBoardTypes() {
         boardTypeOption.value = systemInfo.boardTypes[i].value;
         boardTypeElement.appendChild(boardTypeOption);
         BoardType[systemInfo.boardTypes[i].name] = systemInfo.boardTypes[i].value;
-    }
-}
-function setEncoderType() {
-    userSettings["BLDC_Encoder"] = parseInt(document.getElementById('BLDC_Encoder').value);
-    toggleBLDCEncoderOptions();
-    setRestartRequired();
-    updateUserSettings(0);
-}
-function setupEncoderTypes() {
-    const element = document.getElementById('BLDC_Encoder');
-    removeAllChildren(element);
-    for(let i=0;i<systemInfo.encoderTypes.length;i++) {
-        const option = document.createElement("option");
-        option.innerText = systemInfo.encoderTypes[i].name;
-        option.value = systemInfo.encoderTypes[i].value;
-        element.appendChild(option);
-        BLDCEncoderType[systemInfo.encoderTypes[i].name] = systemInfo.encoderTypes[i].value;
     }
 }
 function setBoardType() {
@@ -1805,7 +1860,9 @@ function toggleEnableTimerChannels(element) {
 function updatePins() 
 {
     if(systemInfo.motorType == MotorType.BLDC) {
-        updateBLDCPins();
+        strokeMotor.updateBLDCPins();
+        if(twistMotor)
+            twistMotor.updateBLDCPins();
         return;
     }
     if(upDateTimeout !== null) 
@@ -2867,6 +2924,21 @@ function handleImportRenames(key, value, firmwareVersion) {
         case "msPerRad":
             if(value == 425)// 425 is msPerRad for 270 servo.
                 userSettings.maxServoRange = 270
+            return;
+        case "BLDC_MotorA_VoltageLimit":
+            userSettings.BLDC_Motor_VoltageLimit = value
+            return;
+        case "BLDC_MotorA_SupplyVoltage":
+            userSettings.BLDC_Motor_SupplyVoltage = value
+            return;
+        case "BLDC_MotorA_Current":
+            userSettings.BLDC_Motor_Current = value
+            return;
+        case "BLDC_MotorA_ParametersKnown":
+            userSettings.BLDC_Motor_ParametersKnown = value
+            return;
+        case "BLDC_MotorA_ZeroElecAngle":
+            userSettings.BLDC_Motor_ZeroElecAngle = value
             return;
     }
     if(key.endsWith("_PIN")) {

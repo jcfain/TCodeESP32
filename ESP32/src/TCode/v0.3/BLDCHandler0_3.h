@@ -81,32 +81,33 @@ public:
         float strokeEndstopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
         LogHandler::debug(_TAG, "strokeEndstopOffset: %f", strokeEndstopOffset);
 
-        DeviceType deviceType = DeviceType::SSR1;
-        m_settingsFactory->getValue(DEVICE_TYPE, deviceType);
-
+        m_deviceType = DeviceType::SSR1;
+        m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
+        
         PinMapSSR* pinMap = PinMapSSR::getInstance();
 
         BLDCEncoderType encoderType = (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
         m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
-        double strokeMotorAVoltage = BLDC_MOTORA_VOLTAGE_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, strokeMotorAVoltage);
+        double strokeMotorAVoltage = BLDC_MOTOR_VOLTAGE_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTOR_VOLTAGE, strokeMotorAVoltage);
         // power supply voltage [V]
-        double strokeSupplyAVoltage = BLDC_MOTORA_SUPPLY_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTORA_SUPPLY, strokeSupplyAVoltage);
+        double strokeSupplyAVoltage = BLDC_MOTOR_SUPPLY_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTOR_SUPPLY, strokeSupplyAVoltage);
         // limiting motor movements
-        double strokeMotorACurrent = BLDC_MOTORA_CURRENT_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTORA_CURRENT, strokeMotorACurrent);
+        double strokeMotorACurrent = BLDC_MOTOR_CURRENT_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTOR_CURRENT, strokeMotorACurrent);
 
         // init current sense
-        double zeroElecAngle = BLDC_MOTORA_ZEROELECANGLE_DEFAULT;
-        bool paramsKnown = BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTORA_PARAMETERSKNOWN, paramsKnown);
+        double zeroElecAngle = BLDC_MOTOR_ZEROELECANGLE_DEFAULT;
+        bool paramsKnown = BLDC_MOTOR_PARAMETERSKNOWN_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTOR_PARAMETERSKNOWN, paramsKnown);
         if(paramsKnown) {
-            m_settingsFactory->getValue(BLDC_MOTORA_ZEROELECANGLE, zeroElecAngle);
+            m_settingsFactory->getValue(BLDC_MOTOR_ZEROELECANGLE, zeroElecAngle);
         }
 
         strokeMotor = new BLDCTCodeMotor(
-            "Stroke",
+            m_deviceType,
+            BLDCMotorChannel::Stroke,
             encoderType, 
             pinMap->chipSelect(),
             pinMap->encoder(),
@@ -130,8 +131,9 @@ public:
         }
 
 
-        if(deviceType == DeviceType::SSR2)
+        if(m_deviceType == DeviceType::SSR2)
         {
+            m_settingsFactory->getValue(BLDC_TWIST_MULTIPLIER, m_twistMultiplier);
             float twistAngToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
             LogHandler::debug(_TAG, "twistAngToPos: %f", strokeAngToPos);
             float twistTopStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
@@ -158,7 +160,8 @@ public:
                 m_settingsFactory->getValue(BLDC_TWIST_MOTOR_ZEROELECANGLE, zeroElecAngle);
             }
             twistMotor = new BLDCTCodeMotor(
-                "Twist",
+                m_deviceType,
+                BLDCMotorChannel::Twist,
                 encoderType,
                 pinMap->twistChipSelect(),
                 pinMap->twistEncoder(),
@@ -246,32 +249,51 @@ public:
     void execute() override {
         // Collect inputs
         // These functions query the t-code object for the position/level at a specified time
-        // Number recieved will be an integer, 0-9999
+        // Number recieved will be an integer, {{TCODE_MIN}}-{{TCODE_MAX}}
         int stroke = channelRead(TCODE_CHANNEL_STROKE);
         if (m_settingsFactory->getInverseStroke())
         {
-            stroke = 9999 - stroke;
+            stroke = TCODE_MAX - stroke;
         }
         //LogHandler::verbose(_TAG, "stroke: %ld", stroke);
 
-        if(strokeMotor && strokeMotor->initialized())
+
+        if(m_deviceType == DeviceType::SSR1)
         {
-            // Run motor FOC loop
-            strokeMotor->update();
-
-            //LogHandler::verbose(_TAG, "stroke: %ld", stroke);
-            strokeMotor->move(stroke);
-        }
-
-        if(twistMotor && twistMotor->initialized())
+            if(strokeMotor && strokeMotor->initialized())
+            {
+                strokeMotor->bootCalibrate();
+                strokeMotor->update();
+                strokeMotor->process(stroke);
+                strokeMotor->move();
+            }
+        } 
+        
+        else if(m_deviceType == DeviceType::SSR2)
         {
             int twist = channelRead(TCODE_CHANNEL_TWIST);
-            // Run motor FOC loop
-            twistMotor->update();
-            //LogHandler::verbose(_TAG, "twist: %ld", twist);
-            twistMotor->move(twist);
-        }
+            if (m_settingsFactory->getInverseTwist())
+            {
+                twist = TCODE_MAX - twist;
+            }
+            if(twistMotor && twistMotor->initialized())
+            {
+                twistMotor->bootCalibrate();
+                twistMotor->update();
+                twistMotor->process(stroke, twist, m_twistMultiplier);
+            }
+            if(strokeMotor && strokeMotor->initialized())
+            {
+                strokeMotor->bootCalibrate();
+                strokeMotor->update();
+                strokeMotor->process(stroke, twist, m_twistMultiplier);
+            }
 
+            if(strokeMotor && strokeMotor->initialized())
+                strokeMotor->move();
+            if(twistMotor && twistMotor->initialized())
+                twistMotor->move();
+        }
 
         executeCommon(stroke);
        
@@ -285,4 +307,8 @@ private:
 
     BLDCTCodeMotor* strokeMotor = 0;
     BLDCTCodeMotor* twistMotor = 0;
+
+    DeviceType m_deviceType;
+
+    int m_twistMultiplier = BLDC_TWIST_MULTIPLIER_DEFAULT;
 };

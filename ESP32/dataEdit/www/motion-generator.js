@@ -422,7 +422,6 @@ function editMotionProfile(profileIndex) {
     header.innerText = "Edit profile"  
     header.setAttribute("slot", "title");
     modal.appendChild(header);
-    //modal.setAttribute("visible", true);
     modal.show();
 }
 

@@ -288,6 +288,15 @@
 								<input id="BLDC_UseHallSensor" type="checkbox" name="encoder_type" onclick="updateBLDCSettings()"></input>
 							</div>
 						</div>
+						<div id="HallEffect" class="tRow BLDCOnly hidden">
+							<div class="tCell">
+								<span>Hall effect PIN</span> 
+							</div>
+							<div class="tCell">
+								<input id="BLDC_HallEffect_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
+							</div>
+						</div>
+						<!-- 
 						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
 								<span>Pulley circumference (mm)</span> 
@@ -369,14 +378,6 @@
 								<input id="BLDC_PWMchannel3_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
-						<div id="HallEffect" class="tRow BLDCOnly hidden">
-							<div class="tCell">
-								<span>Hall effect PIN</span> 
-							</div>
-							<div class="tCell">
-								<input id="BLDC_HallEffect_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
-							</div>
-						</div>
 						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
 								<span title="Once you know the zero elec angle for the motor enter it below and check this">Parameters known</span> 
@@ -408,7 +409,8 @@
 							<div class="tCell">
 								<input id="BLDC_StrokeLength" type="number" min="0" max="2147483647" oninput="updateBLDCSettings()">
 							</div>
-						</div>
+						</div> 
+						-->
 
 						<!--------------------------------------- END BLDC ----------------------------------------------------->
 

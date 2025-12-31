@@ -944,11 +944,11 @@ private:
             ,{BLDC_ENCODER, "BLDC encoder type", "Select the type of bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_USEHALLSENSOR, "Use hall sensor", "Use Hall sensor for BLDC sensor", SettingType::Boolean, BLDC_USEHALLSENSOR_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_PULLEY_CIRCUMFERENCE, "Pull circumference", "The pulley circumference for BLDC motor", SettingType::Number, BLDC_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTORA_VOLTAGE, "Motor A voltage limit", "BLDC Motor A voltage limit", SettingType::Float, BLDC_MOTORA_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTORA_SUPPLY, "Motor A Supply voltage", "BLDC Motor A supply voltage", SettingType::Float, BLDC_MOTORA_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTORA_CURRENT, "Motor A current", "BLDC Motor A current", SettingType::Float, BLDC_MOTORA_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTORA_PARAMETERSKNOWN, "Motor A parameters known", "BLDC Motor A params known", SettingType::Boolean, BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTORA_ZEROELECANGLE, "Motor A ZeroElecAngle", "BLDC Motor A ZeroElecAngle", SettingType::Float, BLDC_MOTORA_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTOR_VOLTAGE, "Motor voltage limit", "BLDC Motor voltage limit", SettingType::Float, BLDC_MOTOR_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTOR_SUPPLY, "Motor Supply voltage", "BLDC Motor supply voltage", SettingType::Float, BLDC_MOTOR_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTOR_CURRENT, "Motor current", "BLDC Motor current", SettingType::Float, BLDC_MOTOR_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTOR_PARAMETERSKNOWN, "Motor parameters known", "BLDC Motor A params known", SettingType::Boolean, BLDC_MOTOR_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTOR_ZEROELECANGLE, "Motor ZeroElecAngle", "BLDC Motor A ZeroElecAngle", SettingType::Float, BLDC_MOTOR_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_RAILLENGTH, "Rail length", "SSR1 rail length", SettingType::Number, BLDC_RAILLENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             
@@ -961,7 +961,9 @@ private:
             {BLDC_TWIST_MOTOR_PARAMETERSKNOWN, "Twist Motor parameters known", "Twist BLDC Motor params known", SettingType::Boolean, BLDC_TWIST_MOTOR_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_TWIST_MOTOR_ZEROELECANGLE, "Twist Motor ZeroElecAngle", "Twist BLDC Motor ZeroElecAngle", SettingType::Float, BLDC_TWIST_MOTOR_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_TWIST_RAILLENGTH, "Twist Rail length", "Twist rail length", SettingType::Number, BLDC_TWIST_RAILLENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_TWIST_LENGTH, "Twist length", "Twist length", SettingType::Number, BLDC_TWIST_LENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}}
+            {BLDC_TWIST_LENGTH, "Twist length", "Twist length", SettingType::Number, BLDC_TWIST_LENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_TWIST_MULTIPLIER, "Twist multiplier", "Twist multiplier", SettingType::Number, BLDC_TWIST_MULTIPLIER_DEFAULT, RestartRequired::NO, {SettingProfile::Bldc}}
+            
 #elif MOTOR_TYPE == 0
             ,{RIGHT_SERVO_ZERO, "Right servo zero", "The zero calibration for the right servo", SettingType::Number, RIGHT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {LEFT_SERVO_ZERO, "Left servo zero", "The zero calibration for the left servo", SettingType::Number, LEFT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},

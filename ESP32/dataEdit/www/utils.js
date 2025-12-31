@@ -25,24 +25,20 @@ Utils = {
     round2(value) {
         return Math.round(value * 100) / 100;
     },
-    _debounces: [{name: "Debounce1", timeout: 0, delay: 0, paramsArray: undefined}],
+    _debounces: {},
     debounce(name, methodToDebounce, delayInMS, ...methodToDebounceParamsArray) {
         if(this._debounces[name]) {
-            Object.keys(this._debounces).forEach(x => {
-                clearTimeout(this._debounces[x].timeout);
-            });
+            clearTimeout(this._debounces[name].timeout);
         } else {
-            this._debounces[name] = {name: name, timeout: 0, delay: delayInMS, paramsArray: methodToDebounceParamsArray};
+            this._debounces[name] = {name: name, timeout: 0, delay: delayInMS, paramsArray: methodToDebounceParamsArray, method: methodToDebounce};
         }
-        Object.keys(this._debounces).forEach(x => {
-            this._debounces[x].timeout = setTimeout(() => {
-                if(this._debounces[x].paramsArray)
-                    methodToDebounce(...this._debounces[x].paramsArray);
-                else
-                    methodToDebounce();
-                delete this._debounces[x];
-            }, this._debounces[x].delay);
-        });
+        this._debounces[name].timeout = setTimeout(() => {
+            if(this._debounces[name].paramsArray)
+                this._debounces[name].method(...this._debounces[name].paramsArray);
+            else
+                this._debounces[name].method();
+            delete this._debounces[name];
+        }, this._debounces[name].delay);
     },
     /** If isVisible is undefined the element will be toggled */
     toggleElementShown(element, isVisible, animate) {
@@ -109,13 +105,16 @@ Utils = {
         }
         return cell;
     },
-    createFormButtonRow(rowID, buttonID, buttonLabel) {
+    createFormButtonRow(rowID, buttonID, buttonLabel, callback) {
         const row = this.createFormRow(rowID);
         const emptyCell = this.createFormCell();
         const buttonCell = this.createFormCell();
         const button = document.createElement("button");
         button.innerText = buttonLabel;
         button.id = buttonID;
+        if(callback) {
+            button.onclick = callback;
+        }
         buttonCell.appendChild(button);
         row.appendChild(emptyCell);
         row.appendChild(buttonCell);
@@ -175,13 +174,13 @@ Utils = {
         if(id) {
             input.id = id;
         }
-        if(value) {
+        if(value !== undefined && value !== null) {
             input.value = value;
         }
-        if(min) {
+        if(min !== undefined && min !== null) {
             input.min = min;
         }
-        if(max) {
+        if(max !== undefined && max !== null) {
             input.max = max;
         }
         if(callback) {

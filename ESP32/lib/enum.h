@@ -9,6 +9,14 @@ enum class TCodeVersion: int
     MAX
 };
 
+#if MOTOR_TYPE == 1
+enum BLDCMotorChannel 
+{
+    Stroke,
+    Twist
+};
+#endif
+
 // enum class LogLevel {
 //     ERROR,
 //     WARNING,
