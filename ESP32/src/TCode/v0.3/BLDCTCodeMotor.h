@@ -232,7 +232,7 @@ public:
                     m_bootmode = false;
                     if(m_motorChannel == BLDCMotorChannel::Stroke)
                         zeroAngle = sensorAngle - topStartOffset;
-                    else
+                    else if(m_motorChannel == BLDCMotorChannel::Twist)
                         //zeroAngle = sensorAngle + topStartOffset;
                 } 
                 else if (millis() > (startTime + 2000)) 
@@ -245,7 +245,7 @@ public:
                     {
                         zeroAngle = sensorAngle - (topStartOffset - endStopOffset);
                     }
-                    else
+                    else if(m_motorChannel == BLDCMotorChannel::Twist)
                     {
                         // Im not sure about this twist hall effect...
                         //zeroAngle = sensorAngle + (topStartOffset - endStopOffset);
@@ -266,7 +266,7 @@ public:
                     {
                         zeroAngle = sensorAngle + endStopOffset;
                     }
-                    else
+                    else if(m_motorChannel == BLDCMotorChannel::Twist)
                     {
                         zeroAngle = sensorAngle - endStopOffset;
                     }
