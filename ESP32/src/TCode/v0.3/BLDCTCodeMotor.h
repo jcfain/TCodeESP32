@@ -232,8 +232,9 @@ public:
                     m_bootmode = false;
                     if(m_motorChannel == BLDCMotorChannel::Stroke)
                         zeroAngle = sensorAngle - topStartOffset;
-                    else if(m_motorChannel == BLDCMotorChannel::Twist)
+                    else if(m_motorChannel == BLDCMotorChannel::Twist) {
                         //zeroAngle = sensorAngle + topStartOffset;
+                    }
                 } 
                 else if (millis() > (startTime + 2000)) 
                 {
