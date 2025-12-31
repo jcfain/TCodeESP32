@@ -221,7 +221,8 @@ public:
         if (m_bootmode) 
         {
             // If using a hall sensor, roll upwards until the magnet triggers the hall effect sensor
-            if (m_useHallSensor) 
+            // Only hall effect on stroke is supported currently.
+            if (m_useHallSensor && m_motorChannel == BLDCMotorChannel::Stroke) 
             {
                 //LogHandler::verbose(_TAG, "Hall senso millis()-startTime: %ld", millis()-startTime);
                 m_targetMotorPosition = map(millis()-startTime,0,2000,0,12000);
@@ -229,14 +230,26 @@ public:
                 {
                     LogHandler::debug(m_TAG, "Set %s bootmode false read hall", m_name);
                     m_bootmode = false;
-                    zeroAngle = sensorAngle - topStartOffset;
+                    if(m_motorChannel == BLDCMotorChannel::Stroke)
+                        zeroAngle = sensorAngle - topStartOffset;
+                    else
+                        //zeroAngle = sensorAngle + topStartOffset;
                 } 
                 else if (millis() > (startTime + 2000)) 
                 {
                     // Timeout after two seconds if sensor not triggered
                     m_bootmode = false;
                     LogHandler::debug(m_TAG, "Set %s bootmode false hall timeout", m_name);
-                    zeroAngle = sensorAngle - topStartOffset - endStopOffset;
+                    // zeroAngle = sensorAngle - topStartOffset - endStopOffset;
+                    if(m_motorChannel == BLDCMotorChannel::Stroke)
+                    {
+                        zeroAngle = sensorAngle - (topStartOffset - endStopOffset);
+                    }
+                    else
+                    {
+                        // Im not sure about this twist hall effect...
+                        //zeroAngle = sensorAngle + (topStartOffset - endStopOffset);
+                    }
                 }
             } 
             else 
@@ -248,7 +261,15 @@ public:
                 {
                     m_bootmode = false;
                     LogHandler::debug(m_TAG, "Set %s bootmode false", m_name);
-                    zeroAngle = sensorAngle + endStopOffset;
+                    // zeroAngle = sensorAngle + endStopOffset;
+                    if(m_motorChannel == BLDCMotorChannel::Stroke)
+                    {
+                        zeroAngle = sensorAngle + endStopOffset;
+                    }
+                    else
+                    {
+                        zeroAngle = sensorAngle - endStopOffset;
+                    }
                 }
             }   
         } 
