@@ -967,7 +967,7 @@ function setUserSettings()
         const strokeSettingsButton = document.getElementById("strokeButtonRow");
         if(!strokeSettingsButton)
         {
-            const strokeLabel = userSettings.deviceType == DeviceType.SSR2 ? "Stroke Motor settings" : "Motor settings";
+            const strokeLabel = userSettings.deviceType == DeviceType.SSR2 ? "Stroke motor settings" : "Motor settings";
             const strokeBLDCNode = Utils.createFormButtonRow("strokeButtonRow", "bldcStrokeSettingsButton", strokeLabel, function() { 
                 strokeMotor.ModalNode.show() 
             });
@@ -983,7 +983,7 @@ function setUserSettings()
             const twistSettingsButton = document.getElementById("twistButtonRow");
             if(!twistSettingsButton)
             {
-                const twistBLDCNode = Utils.createFormButtonRow("twistButtonRow", "bldcTwistSettingsButton", "Twist Motor Settings", function() { 
+                const twistBLDCNode = Utils.createFormButtonRow("twistButtonRow", "bldcTwistSettingsButton", "Twist motor settings", function() { 
                     twistMotor.ModalNode.show() 
                 });
                 twistBLDCNode.row.classList.add("BLDCOnly");
