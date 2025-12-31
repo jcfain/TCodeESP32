@@ -168,7 +168,7 @@ Utils = {
         }
         return input;
     },
-    createNumericInput(id, value, min, max, callback) {
+    createNumericInput(id, value, min, max, step, callback) {
         const input = document.createElement("input");
         input.type = "number";
         if(id) {
@@ -182,6 +182,9 @@ Utils = {
         }
         if(max !== undefined && max !== null) {
             input.max = max;
+        }
+        if(step !== undefined && step !== null) {
+            input.step = step;
         }
         if(callback) {
             input.oninput = callback;
@@ -208,11 +211,11 @@ Utils = {
         row.appendChild(valueCell);
         return {row: row, input: input, nameCell: nameCell, valueCell: valueCell};
     },
-    createNumericFormRow(rowID, name, inputID, value, min, max, callback) {
+    createNumericFormRow(rowID, name, inputID, value, min, max, step, callback) {
         const row = this.createFormRow(rowID);
         const nameCell = this.createFormCell(0, name);
         const valueCell = this.createFormCell();
-        const input = this.createNumericInput(inputID, value, min, max, callback);
+        const input = this.createNumericInput(inputID, value, min, max, step, callback);
         valueCell.appendChild(input);
         row.appendChild(nameCell);
         row.appendChild(valueCell);

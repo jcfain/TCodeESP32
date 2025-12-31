@@ -39,7 +39,7 @@ Buttons = {
             
             let buttonSetNameRow = Utils.createTextFormRow(0, "Name", 'buttonSetName'+setIndex, buttonSet.name, 25, function(setIndex) {this.update(setIndex)}.bind(this, setIndex));
             buttonSetNameRow.input.setAttribute("readonly", true);
-            let buttonSetPinRow = Utils.createNumericFormRow(0, "Pin", 'buttonSetPin'+setIndex, buttonSet.pin, -1, 255, function(setIndex) {this.update(setIndex)}.bind(this, setIndex));
+            let buttonSetPinRow = Utils.createNumericFormRow(0, "Pin", 'buttonSetPin'+setIndex, buttonSet.pin, -1, 255, 1, function(setIndex) {this.update(setIndex)}.bind(this, setIndex));
             buttonSetPinRow.input.name = "buttonSetPins"
             buttonSetPinRow.input.setAttribute("readonly", true);
             buttonSetPinRow.title = `The pin this button set is on`
@@ -95,7 +95,7 @@ Buttons = {
                 this.update(setIndex);
             }.bind(this, setIndex));
             buttonSetNameRowEdit.input.required = true;
-            let buttonSetPinRowEdit  = Utils.createNumericFormRow(0, "Pin", 'buttonSetPinEdit'+setIndex, buttonSet.pin, -1, 255, function(setIndex) {
+            let buttonSetPinRowEdit  = Utils.createNumericFormRow(0, "Pin", 'buttonSetPinEdit'+setIndex, buttonSet.pin, -1, 255, 1, function(setIndex) {
                 this.update(setIndex);
             }.bind(this, setIndex));
             buttonSetPinRowEdit.input.required = true;
@@ -128,7 +128,7 @@ Buttons = {
                 buttonRow.title = `This is the TCode command executed when the button is pressed`
                 buttonTableDiv.appendChild(buttonRow.row);
 
-                // buttonRow = Utils.createNumericFormRow(0, "Index", 'buttonIndex'+setIndex+buttonIndex, buttons[i].index, 0, buttons.length - 1, this.update);
+                // buttonRow = Utils.createNumericFormRow(0, "Index", 'buttonIndex'+setIndex+buttonIndex, buttons[i].index, 0, buttons.length - 1, 1, this.update);
                 // buttonRow.title = `This is the index the button is physically on in the resistor ladder.`
                 // buttonTableDiv.appendChild(buttonRow.row);
 

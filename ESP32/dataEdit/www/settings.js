@@ -44,6 +44,7 @@ const EndPointType = {
     MotionProfile: {uri: "/motionProfiles"},
     Buttons: {uri: "/buttonSettings"},
     ChannelProfiles: {uri: "/channelsProfile"},
+    Ping: {uri: "/ping"},
 }
 const TCodeVersion = {
     V3: 0,
@@ -175,13 +176,28 @@ function onDocumentLoad() {
     // debugTextElement = document.getElementById("debugText");
     // debugTextElement.scrollTop = debugTextElement.scrollHeight;
 }
-
-function getSystemInfo(chain) {
+function pingDevice() {
     let polling = false;
     if(serverPollingTimeOut) {
         polling = true;
         clearTimeout(serverPollingTimeOut);
         serverPollingTimeOut = null;
+    }
+    get("ping", EndPointType.Ping.uri, function(xhr) {
+        result = xhr.response;
+        if(!result || result.status === "restarting") {
+            startServerPoll();
+        } else {
+            location.reload();
+        }
+    }, function(xhr) {
+        startServerPoll();
+    });
+}
+
+function getSystemInfo(chain) {
+    if(serverPollingTimeOut) {
+        return;
     }
     showLoading("Loading system info...");
     get("system info", EndPointType.System.uri, function(xhr) {
@@ -572,8 +588,10 @@ function postBoardType(newBoardType) {
                 showError("Error setting pinout default!");
             } else {
                 showInfoSuccess("Board changed!");
-                getPinSettings();
-                showRestartRequired();
+                // getPinSettings();
+                // showRestartRequired();
+                showLoading("Restarting...");
+                startServerPoll();
             }
         }
     }
@@ -591,8 +609,10 @@ function postDeviceType(deviceType) {
                 showError("Error setting pinout default!");
             } else {
                 showInfoSuccess("Device changed!");
-                getPinSettings();
-                showRestartRequired();
+                // getPinSettings();
+                // showRestartRequired();
+                showLoading("Restarting...");
+                startServerPoll();
             }
         }
     }
@@ -692,14 +712,18 @@ function isBLDCSPI() {
 }
 
 function startServerPoll() {
-    if(serverPollRetryCount > 10) {
-        showLoading("Waiting for restart timed out<br>Please manually refresh the page when the device is back online.");
+    const message = serverPollRetryCount == 0 ? "Looking for device..." : "Retrying connection: " + (serverPollRetryCount + 1) + "/10";
+    if(serverPollRetryCount == 10) {
+        showLoading(message + " timed out<br>Please manually refresh the page when the device is back online.");
         return;
     }
+    showLoading(message);
     if(serverPollingTimeOut)
         clearTimeout(serverPollingTimeOut);
     serverPollRetryCount++;
-    serverPollingTimeOut = setTimeout(function() {getSystemInfo(true);}, 2000);
+    serverPollingTimeOut = setTimeout(function() {
+        pingDevice();
+    }, 2000);
 }
 function checkForServer() {
     // if(serverPollingTimeOut) {
@@ -850,15 +874,7 @@ function setWifiSettings() {
 }
 function setPinoutSettings() {
     if(systemInfo.motorType === MotorType.BLDC) {
-        if(!strokeMotor)
-            strokeMotor = new BLDCMotor();
-        strokeMotor.setupPins();
-        if(userSettings.deviceType == DeviceType.SSR2)
-        {
-            if(!twistMotor)
-                twistMotor = new BLDCMotor("Twist");
-            twistMotor.setupPins();
-        }
+        // BLDC Pins are set in UserSettings
     } else {
         document.getElementById("RightServo_PIN").value = pinoutSettings["RightServo_PIN"];
         document.getElementById("LeftServo_PIN").value = pinoutSettings["LeftServo_PIN"];
@@ -972,7 +988,8 @@ function setUserSettings()
                 strokeMotor.ModalNode.show() 
             });
             strokeBLDCNode.row.classList.add("BLDCOnly");
-            tableNode.appendChild(strokeBLDCNode.row);
+            const siblingNode = document.getElementById("HallEffect");
+            siblingNode.insertAdjacentElement('afterend', strokeBLDCNode.row);
         }
         if(userSettings.deviceType == DeviceType.SSR2)
         {
@@ -987,9 +1004,12 @@ function setUserSettings()
                     twistMotor.ModalNode.show() 
                 });
                 twistBLDCNode.row.classList.add("BLDCOnly");
-                tableNode.appendChild(twistBLDCNode.row);
+                // tableNode.appendChild(twistBLDCNode.row);
+                const siblingNode = document.getElementById("strokeButtonRow");
+                siblingNode.insertAdjacentElement('afterend', twistBLDCNode.row);
             }
         }
+        toggleBLDCEncoderOptions();
     }
 	Buttons.setup();
     

@@ -76,25 +76,25 @@ class BLDCMotor {
         if(this.initialized)
             return;
 
-                // let channelRow = Utils.createNumericFormRow(0, "Update rate (ms)", 'motionUpdate'+profileIndex+channelIndex, motionChannel ? motionChannel.update : 100, 0, 2147483647, 
+                // let channelRow = Utils.createNumericFormRow(0, "Update rate (ms)", 'motionUpdate'+profileIndex+channelIndex, motionChannel ? motionChannel.update : 100, 0, 2147483647, 1,
                 //     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 // channelRow.title = `This is the time in between updates that gives the system time to process other tasks. (DO NOT SET TOO LOW ON ESP32!)
                 // It may be best to just leave at default.`
                 // channelTableDiv.appendChild(channelRow.row);
 
         //ToDo create combo box maybe
-        // const encoderNode = Utils.createNumericFormRow(null, "Encoder", this.Names.BLDC_Encoder, userSettings[this.Names.BLDC_Encoder], null, null, this.setEncoderType);
+        // const encoderNode = Utils.createNumericFormRow(null, "Encoder", this.Names.BLDC_Encoder, userSettings[this.Names.BLDC_Encoder], null, null, null, this.setEncoderType);
         // motorSettingsTable.appendChild(encoderNode.row);
         // // document.getElementById(this.Names.BLDC_Encoder).value = userSettings[this.Names.BLDC_Encoder];
         // this.createBLDCCheckboxFormNode(this.Names.BLDC_UseHallSensor, "Use hall sensor", userSettings[this.Names.BLDC_UseHallSensor], () => this.updateBLDCSettings(0));
-        this.createBLDCNumericFormNode(this.Names.BLDC_Pulley_Circumference, "Pulley Circumference (mm)", userSettings[this.Names.BLDC_Pulley_Circumference], () => this.updateBLDCSettings(), 0, 2147483647);
-        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_VoltageLimit, "Voltage limit (v)", userSettings[this.Names.BLDC_Motor_VoltageLimit], () => this.updateBLDCSettings(), 0.0, 2147483647.0);
-        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_SupplyVoltage, "Supply voltage (v)", userSettings[this.Names.BLDC_Motor_SupplyVoltage], () => this.updateBLDCSettings(), 0.0, 2147483647.0);
-        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_Current, "Motor current (a)", userSettings[this.Names.BLDC_Motor_Current], () => this.updateBLDCSettings(), 0.0, 2147483647.0);
+        this.createBLDCNumericFormNode(this.Names.BLDC_Pulley_Circumference, "Pulley Circumference (mm)", userSettings[this.Names.BLDC_Pulley_Circumference], () => this.updateBLDCSettings(), 0, 2147483647, 1);
+        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_VoltageLimit, "Voltage limit (v)", userSettings[this.Names.BLDC_Motor_VoltageLimit], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.05);
+        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_SupplyVoltage, "Supply voltage (v)", userSettings[this.Names.BLDC_Motor_SupplyVoltage], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.05);
+        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_Current, "Motor current (a)", userSettings[this.Names.BLDC_Motor_Current], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.05);
         this.createBLDCCheckboxFormNode(this.Names.BLDC_Motor_ParametersKnown, "Parameters known", userSettings[this.Names.BLDC_Motor_ParametersKnown], () => this.updateBLDCSettings(0));
-        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_ZeroElecAngle, "Zero elec angle (rad)", userSettings[this.Names.BLDC_Motor_ZeroElecAngle], () => this.updateBLDCSettings(), 0.0, 2147483647.0, this.Names.ZeroElecAngle_Row);
+        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_ZeroElecAngle, "Zero elec angle (rad)", userSettings[this.Names.BLDC_Motor_ZeroElecAngle], () => this.updateBLDCSettings(), -2147483647.0, 2147483647.0, 0.05, this.Names.ZeroElecAngle_Row);
         this.createBLDCNumericFormNode(this.Names.BLDC_RailLength, "Rail length (mm)", userSettings[this.Names.BLDC_RailLength], () => this.updateBLDCSettings(), 0, 2147483647);
-        this.createBLDCNumericFormNode(this.Names.BLDC_Range, (this.name.length == 0 ? "Stroke" : this.name) + " length (mm)", userSettings[this.Names.BLDC_Range], () => this.updateBLDCSettings(), 0, 2147483647);
+        this.createBLDCNumericFormNode(this.Names.BLDC_Range, (this.name.length == 0 ? "Stroke" : this.name) + " length (mm)", userSettings[this.Names.BLDC_Range], () => this.updateBLDCSettings(), 0, 2147483647, 1);
 
         // this.toggleBLDCEncoderOptions();
         // Utils.toggleControlVisibilityByID(this.Names.HallEffect_Row, userSettings[this.Names.BLDC_UseHallSensor]);
@@ -102,8 +102,11 @@ class BLDCMotor {
         this.initialized = true;
     }
 
-    createBLDCNumericFormNode(key, label, value, callback, min = undefined, max = undefined, rowName = undefined) {
-        const node = Utils.createNumericFormRow(rowName, label, key, value, min, max, callback);
+    createBLDCNumericFormNode(key, label, value, callback, min = undefined, max = undefined, step = undefined, rowName = undefined, classList = []) {
+        const node = Utils.createNumericFormRow(rowName, label, key, value, min, max, step, callback);
+        if(classList.length > 0) {
+            node.row.classList.add(...classList);
+        }
         this.ParentNode.appendChild(node.row);
     }
     createBLDCCheckboxFormNode(key, label, value, callback, rowName = undefined) {
@@ -114,8 +117,8 @@ class BLDCMotor {
     setupPins() {
         if(this.initializedPins)
             return;
-        this.createBLDCNumericFormNode(this.Names.BLDC_ChipSelect_PIN, "Chip select PIN", pinoutSettings[this.Names.BLDC_ChipSelect_PIN], () => this.updateBLDCPins(), -1, 2147483647);
-        this.createBLDCNumericFormNode(this.Names.BLDC_Encoder_PIN, "Encoder PIN", pinoutSettings[this.Names.BLDC_Encoder_PIN], () => this.updateBLDCPins(), -1, 2147483647);
+        this.createBLDCNumericFormNode(this.Names.BLDC_ChipSelect_PIN, "Chip select PIN", pinoutSettings[this.Names.BLDC_ChipSelect_PIN], () => this.updateBLDCPins(), -1, 2147483647, 1, null, ["BLDCSPI"]);
+        this.createBLDCNumericFormNode(this.Names.BLDC_Encoder_PIN, "Encoder PIN", pinoutSettings[this.Names.BLDC_Encoder_PIN], () => this.updateBLDCPins(), -1, 2147483647, 1, null, ["BLDCPWM"]);
         this.createBLDCNumericFormNode(this.Names.BLDC_Enable_PIN, "Enable PIN", pinoutSettings[this.Names.BLDC_Enable_PIN], () => this.updateBLDCPins(), -1, 2147483647);
         this.createBLDCNumericFormNode(this.Names.BLDC_PWMchannel1_PIN, "PWM channel 1 PIN", pinoutSettings[this.Names.BLDC_PWMchannel1_PIN], () => this.updateBLDCPins(), -1, 2147483647);
         this.createBLDCNumericFormNode(this.Names.BLDC_PWMchannel2_PIN, "PWM channel 2 PIN", pinoutSettings[this.Names.BLDC_PWMchannel2_PIN], () => this.updateBLDCPins(), -1, 2147483647);
@@ -130,11 +133,11 @@ class BLDCMotor {
             userSettings[this.Names.BLDC_UseHallSensor] = document.getElementById(this.Names.BLDC_UseHallSensor).checked;
             // Utils.toggleControlVisibilityByID(this.Names.HallEffect_Row, userSettings[this.Names.BLDC_UseHallSensor]);
             userSettings[this.Names.BLDC_Pulley_Circumference] = parseInt(document.getElementById(this.Names.BLDC_Pulley_Circumference).value);
-            userSettings[this.Names.BLDC_MotorA_VoltageLimit] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_VoltageLimit).value));
-            userSettings[this.Names.BLDC_MotorA_SupplyVoltage] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_SupplyVoltage).value));
-            userSettings[this.Names.BLDC_MotorA_Current] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_Current).value));
-            userSettings[this.Names.BLDC_MotorA_ZeroElecAngle] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_ZeroElecAngle).value));
-            userSettings[this.Names.BLDC_MotorA_ParametersKnown] = document.getElementById(this.Names.BLDC_Motor_ParametersKnown).checked;
+            userSettings[this.Names.BLDC_Motor_VoltageLimit] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_VoltageLimit).value));
+            userSettings[this.Names.BLDC_Motor_SupplyVoltage] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_SupplyVoltage).value));
+            userSettings[this.Names.BLDC_Motor_Current] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_Current).value));
+            userSettings[this.Names.BLDC_Motor_ZeroElecAngle] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_ZeroElecAngle).value));
+            userSettings[this.Names.BLDC_Motor_ParametersKnown] = document.getElementById(this.Names.BLDC_Motor_ParametersKnown).checked;
             userSettings[this.Names.BLDC_RailLength] = parseInt(document.getElementById(this.Names.BLDC_RailLength).value);
             userSettings[this.Names.BLDC_Range] = parseInt(document.getElementById(this.Names.BLDC_Range).value);
             Utils.toggleControlVisibilityByID(this.Names.ZeroElecAngle_Row, userSettings[this.Names.BLDC_Motor_ParametersKnown]);

@@ -61,7 +61,7 @@ public:
         } 
         else if(encoderType == BLDCEncoderType::PWM) 
         {
-            LogHandler::info(m_TAG, "Selected encoder for %s: PWM", m_name);
+            LogHandler::info(m_TAG, "Selected encoder for %s: PWM on PIN: %i", m_name, encoderPin);
             if(encoderPin > -1) 
             {
                 LogHandler::info(m_TAG, "Setup %s BLDC motor on PWM encoder pin: %d", m_name, encoderPin);
@@ -112,7 +112,7 @@ public:
         } 
         else 
         { 
-            //SPI.begin(pinMap->i2cScl(), pinMap->i2cSda(), 11, chipSelectPin); // Do we need this custom?
+            // SPI.begin(pinMap->i2cScl(), pinMap->i2cSda(), 11, chipSelectPin); // Do we need this custom?
             static_cast<MagneticSensorSPI*>(m_sensor)->init(); 
             LogHandler::debug(m_TAG, "init %s SPI sensor", m_name);
         }

@@ -176,6 +176,7 @@ class WebHandler : public HTTPBase {
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
+			        SettingsHandler::restart(5);
                 } 
                 else 
                 {
@@ -186,11 +187,18 @@ class WebHandler : public HTTPBase {
             server->on("^\\/changeDevice\\/([0-9]+)$", HTTP_POST, [this](AsyncWebServerRequest *request)
             {
                 auto deviceTypeString = request->pathArg(0);
-                int deviceType = deviceTypeString.isEmpty() ? (int)DeviceType::OSR : deviceTypeString.toInt();
+                int deviceType = deviceTypeString.isEmpty() ? 
+                #if MOTOR_TYPE == 0
+                (int)DeviceType::OSR 
+                #else
+                (int)DeviceType::SSR1 
+                #endif
+                : deviceTypeString.toInt();
 				if (m_settingsFactory->changeDeviceType(deviceType))
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
+			        SettingsHandler::restart(5);
                 } 
                 else 
                 {
@@ -221,12 +229,26 @@ class WebHandler : public HTTPBase {
             {
                 Serial.println("Settings default");
                 if(m_settingsFactory->resetAll()) {
+                    String message = "{\"msg\":\"restarting\",\"apMode\":";
+                    message += SettingsHandler::restart ? "true}" : "false}";
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
 			        SettingsHandler::restart(5);
                 } else {
                     sendError(request);
                 }
+            });
+
+            server->on("/ping", HTTP_POST, [this](AsyncWebServerRequest *request)
+            {
+                Serial.println("Ping");
+                if(SettingsHandler::restartRequired > -1 || !SettingsHandler::initialized) {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"status\": \"restarting\"}");
+                    request->send(response);
+                    return;
+                }
+                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                request->send(response);
             });
 
             AsyncCallbackJsonWebHandler* settingsUpdateHandler = new AsyncCallbackJsonWebHandler("/settings", [this](AsyncWebServerRequest *request, JsonVariant &json)

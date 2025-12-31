@@ -37,7 +37,7 @@ ESPTimer = {
         let availableTimers = systemInfo["availableTimers"];
         for (let index = 0; index < availableTimers.length; index++) {
             const timerObj = availableTimers[index];
-            let timerFrequencyRow = Utils.createNumericFormRow(0, timerObj.name + " (hz)", 'timerFrequency'+index, pinoutSettings[timerObj.id], 50, 80000000);
+            let timerFrequencyRow = Utils.createNumericFormRow(0, timerObj.name + " (hz)", 'timerFrequency'+index, pinoutSettings[timerObj.id], 50, 80000000, 50);
             timerFrequencyRow.title = `Set the frequency of this timer`;
             timerFrequencyRow.input.oninput = function(timerObj, timerFrequencyRow) {
                 if(this.debounces[timerObj.id])
