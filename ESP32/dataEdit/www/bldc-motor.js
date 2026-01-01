@@ -27,7 +27,7 @@ class BLDCMotor {
     ParentNode;
     initialized = false;
     initializedPins = false;
-    constructor(name = "") {
+    constructor(deviceType, name = "") {
         this.name = name;
         this.ModalNode = document.getElementById(this.name + "MotorSettings");
         if(!this.ModalNode)
@@ -35,7 +35,13 @@ class BLDCMotor {
             this.ModalNode = document.createElement("modal-component");
             this.ModalNode.id = this.name + "MotorSettings";
             const header = document.createElement("span");
-            header.innerText = this.name.length == 0 ? "Stroke Motor Settings" : this.name + " Motor Settings"  
+            header.innerText = this.name.length == 0 ? "Right Motor Settings" : this.name + " Motor Settings"  
+            var headerText = "Motor Settings";
+            if(deviceType == DeviceType.SSR1) {
+                header.innerText = headerText;
+            } else {
+                header.innerText = this.name.length == 0 ? "Right " + headerText : this.name + " " + headerText
+            }
             header.setAttribute("slot", "title");
             this.ModalNode.appendChild(header);
             document.body.appendChild(this.ModalNode);
@@ -59,8 +65,8 @@ class BLDCMotor {
         this.Names.BLDC_Motor_Current = "BLDC_" + name + "Motor_Current";
         this.Names.BLDC_Motor_ZeroElecAngle = "BLDC_" + name + "Motor_ZeroElecAngle";
         this.Names.BLDC_Motor_ParametersKnown = "BLDC_" + name + "Motor_ParametersKnown";
-        this.Names.BLDC_RailLength = "BLDC_" + name + "RailLength";
-        this.Names.BLDC_Range = "BLDC_" + (name.length == 0 ? "Stroke" : name) + "Length";
+        // this.Names.BLDC_RailLength = "BLDC_" + name + "RailLength";
+        // this.Names.BLDC_Range = "BLDC_" + (name.length == 0 ? "Stroke" : name) + "Length";
         this.Names.BLDC_ChipSelect_PIN = "BLDC_" + name + "ChipSelect_PIN";
         this.Names.BLDC_Encoder_PIN = "BLDC_" + name + "Encoder_PIN";
         this.Names.BLDC_Enable_PIN = "BLDC_" + name + "Enable_PIN";
@@ -93,8 +99,8 @@ class BLDCMotor {
         this.createBLDCNumericFormNode(this.Names.BLDC_Motor_Current, "Motor current (a)", userSettings[this.Names.BLDC_Motor_Current], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.05);
         this.createBLDCCheckboxFormNode(this.Names.BLDC_Motor_ParametersKnown, "Parameters known", userSettings[this.Names.BLDC_Motor_ParametersKnown], () => this.updateBLDCSettings(0));
         this.createBLDCNumericFormNode(this.Names.BLDC_Motor_ZeroElecAngle, "Zero elec angle (rad)", userSettings[this.Names.BLDC_Motor_ZeroElecAngle], () => this.updateBLDCSettings(), -2147483647.0, 2147483647.0, 0.05, this.Names.ZeroElecAngle_Row);
-        this.createBLDCNumericFormNode(this.Names.BLDC_RailLength, "Rail length (mm)", userSettings[this.Names.BLDC_RailLength], () => this.updateBLDCSettings(), 0, 2147483647);
-        this.createBLDCNumericFormNode(this.Names.BLDC_Range, (this.name.length == 0 ? "Stroke" : this.name) + " length (mm)", userSettings[this.Names.BLDC_Range], () => this.updateBLDCSettings(), 0, 2147483647, 1);
+        // this.createBLDCNumericFormNode(this.Names.BLDC_RailLength, "Rail length (mm)", userSettings[this.Names.BLDC_RailLength], () => this.updateBLDCSettings(), 0, 2147483647);
+        // this.createBLDCNumericFormNode(this.Names.BLDC_Range, (this.name.length == 0 ? "Stroke" : this.name) + " length (mm)", userSettings[this.Names.BLDC_Range], () => this.updateBLDCSettings(), 0, 2147483647, 1);
 
         // this.toggleBLDCEncoderOptions();
         // Utils.toggleControlVisibilityByID(this.Names.HallEffect_Row, userSettings[this.Names.BLDC_UseHallSensor]);
@@ -138,8 +144,8 @@ class BLDCMotor {
             userSettings[this.Names.BLDC_Motor_Current] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_Current).value));
             userSettings[this.Names.BLDC_Motor_ZeroElecAngle] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_ZeroElecAngle).value));
             userSettings[this.Names.BLDC_Motor_ParametersKnown] = document.getElementById(this.Names.BLDC_Motor_ParametersKnown).checked;
-            userSettings[this.Names.BLDC_RailLength] = parseInt(document.getElementById(this.Names.BLDC_RailLength).value);
-            userSettings[this.Names.BLDC_Range] = parseInt(document.getElementById(this.Names.BLDC_Range).value);
+            // userSettings[this.Names.BLDC_RailLength] = parseInt(document.getElementById(this.Names.BLDC_RailLength).value);
+            // userSettings[this.Names.BLDC_Range] = parseInt(document.getElementById(this.Names.BLDC_Range).value);
             Utils.toggleControlVisibilityByID(this.Names.ZeroElecAngle_Row, userSettings[this.Names.BLDC_Motor_ParametersKnown]);
             setRestartRequired();
             updateUserSettings();
@@ -173,7 +179,6 @@ class BLDCMotor {
         pinValues.BLDC_PWMchannel1_PIN = parseInt(document.getElementById(this.Names.BLDC_PWMchannel1_PIN).value);
         pinValues.BLDC_PWMchannel2_PIN = parseInt(document.getElementById(this.Names.BLDC_PWMchannel2_PIN).value);
         pinValues.BLDC_PWMchannel3_PIN = parseInt(document.getElementById(this.Names.BLDC_PWMchannel3_PIN).value);
-        // pinValues.BLDC_HallEffect_PIN = parseInt(document.getElementById(this.Names.BLDC_HallEffect_PIN).value);
         pinValues.BLDC_HallEffect_PIN = parseInt(document.getElementById("BLDC_HallEffect_PIN").value);
         getCommonPinValues(pinValues);
         return pinValues;
@@ -187,38 +192,40 @@ class BLDCMotor {
         var pinValues = this.getBLDCPinValues();
         if(userSettings["disablePinValidation"])
             return pinValues;
-
+        const name = this.name.length == 0 ? "Right" : this.name;
         if(isModuleType(ModuleType.S3))
         {
             if(isBoardType(BoardType.ZERO)) {
                 if(isBLDCSPI()) {
-                    assignedPins.push({name:"SPI MOSI", pin:11});
+                    assignedPins.push({name: name+" SPI MOSI", pin:11});
                 }
             } else {
                 // TODO validate this for N8R8
                 //assignedPins.push({name:"SPI1", pin:5});
-                assignedPins.push({name:"SPI CLK", pin:18});
-                assignedPins.push({name:"SPI MISO", pin:19});
+                assignedPins.push({name:name+" SPI CLK", pin:18});
+                assignedPins.push({name:name+" SPI MISO", pin:19});
                 if(isBLDCSPI()) {
-                    assignedPins.push({name:"SPI MOSI", pin:23});
+                    assignedPins.push({name:name+" SPI MOSI", pin:23});
                 }
             }
         }
         else 
         {
             //assignedPins.push({name:"SPI1", pin:5});
-            assignedPins.push({name:"SPI CLK", pin:18});
-            assignedPins.push({name:"SPI MISO", pin:19});
+            assignedPins.push({name:name+" SPI CLK", pin:18});
+            assignedPins.push({name:name+" SPI MISO", pin:19});
             if(isBLDCSPI()) {
-                assignedPins.push({name:"SPI MOSI", pin:23});
+                assignedPins.push({name:name+" SPI MOSI", pin:23});
             }
         }
-        validatePin(pinValues.BLDC_Encoder_PIN, "Encoder", assignedPins, duplicatePins);
-        validatePin(pinValues.BLDC_ChipSelect_PIN, "Chip select", assignedPins, duplicatePins);
-        validatePin(pinValues.BLDC_Enable_PIN, "Enable", assignedPins, duplicatePins);
-        validatePWMPin(pinValues.BLDC_PWMchannel1_PIN, "PWMchannel1", assignedPins, duplicatePins, pwmErrors);
-        validatePWMPin(pinValues.BLDC_PWMchannel2_PIN, "PWMchannel2", assignedPins, duplicatePins, pwmErrors);
-        validatePWMPin(pinValues.BLDC_PWMchannel3_PIN, "PWMchannel3", assignedPins, duplicatePins, pwmErrors);
+        if(!isBLDCSPI())
+            validatePin(pinValues.BLDC_Encoder_PIN, name+" Encoder PIN", assignedPins, duplicatePins);
+        else
+            validatePin(pinValues.BLDC_ChipSelect_PIN, name+" Chip select", assignedPins, duplicatePins);
+        validatePin(pinValues.BLDC_Enable_PIN, name+" Enable", assignedPins, duplicatePins);
+        validatePWMPin(pinValues.BLDC_PWMchannel1_PIN, name+" PWMchannel1", assignedPins, duplicatePins, pwmErrors);
+        validatePWMPin(pinValues.BLDC_PWMchannel2_PIN, name+" PWMchannel2", assignedPins, duplicatePins, pwmErrors);
+        validatePWMPin(pinValues.BLDC_PWMchannel3_PIN, name+" PWMchannel3", assignedPins, duplicatePins, pwmErrors);
 
         if(userSettings["BLDC_UseHallSensor"]) {
             validatePin(pinValues.BLDC_HallEffect_PIN, "Hall effect", assignedPins, duplicatePins);

@@ -70,13 +70,13 @@
 #define BLDC_PWMCHANNEL3_PIN "BLDC_PWMchannel3_PIN"
 
 // Twist BLDC (SSR2)
-#define BLDC_TWIST_ENCODER_PIN "BLDC_TwistEncoder_PIN"
-#define BLDC_TWIST_CHIPSELECT_PIN "BLDC_TwistChipSelect_PIN"
-#define BLDC_TWIST_ENABLE_PIN "BLDC_TwistEnable_PIN"
-#define BLDC_TWIST_HALLEFFECT_PIN "BLDC_TwistHallEffect_PIN"
-#define BLDC_TWIST_PWMCHANNEL1_PIN "BLDC_TwistPWMchannel1_PIN"
-#define BLDC_TWIST_PWMCHANNEL2_PIN "BLDC_TwistPWMchannel2_PIN"
-#define BLDC_TWIST_PWMCHANNEL3_PIN "BLDC_TwistPWMchannel3_PIN"
+#define BLDC_LEFT_ENCODER_PIN "BLDC_LeftEncoder_PIN"
+#define BLDC_LEFT_CHIPSELECT_PIN "BLDC_LeftChipSelect_PIN"
+#define BLDC_LEFT_ENABLE_PIN "BLDC_LeftEnable_PIN"
+#define BLDC_LEFT_HALLEFFECT_PIN "BLDC_LeftHallEffect_PIN"
+#define BLDC_LEFT_PWMCHANNEL1_PIN "BLDC_LeftPWMchannel1_PIN"
+#define BLDC_LEFT_PWMCHANNEL2_PIN "BLDC_LeftPWMchannel2_PIN"
+#define BLDC_LEFT_PWMCHANNEL3_PIN "BLDC_LeftPWMchannel3_PIN"
 
 // class PinMap;
 
@@ -376,26 +376,26 @@ public:
     int8_t pwmChannel3() const { return m_pwmChannel3; }
     void setPwmChannel3(const int8_t &pwmChannel3) { m_pwmChannel3 = pwmChannel3; }
 
-    int8_t twistEncoder() const { return m_twistEncoder; }
-    void setTwistEncoder(const int8_t &encoder) { m_twistEncoder = encoder; }
+    int8_t leftEncoder() const { return m_twistEncoder; }
+    void setLeftEncoder(const int8_t &encoder) { m_twistEncoder = encoder; }
 
-    int8_t twistChipSelect() const { return m_twistChipSelect; }
-    void setTwistChipSelect(const int8_t &chipSelect) { m_twistChipSelect = chipSelect; }
+    int8_t leftChipSelect() const { return m_twistChipSelect; }
+    void setLeftChipSelect(const int8_t &chipSelect) { m_twistChipSelect = chipSelect; }
 
-    int8_t twistEnable() const { return m_twistEnable; }
-    void setTwistEnable(const int8_t &enable) { m_twistEnable = enable; }
+    int8_t leftEnable() const { return m_twistEnable; }
+    void setLeftEnable(const int8_t &enable) { m_twistEnable = enable; }
 
-    int8_t twistHallEffect() const { return m_twistHallEffect; }
-    void setTwistHallEffect(const int8_t &hallEffect) { m_twistHallEffect = hallEffect; }
+    int8_t leftHallEffect() const { return m_twistHallEffect; }
+    void setLeftHallEffect(const int8_t &hallEffect) { m_twistHallEffect = hallEffect; }
 
-    int8_t twistPwmChannel1() const { return m_twistPwmChannel1; }
-    void setTwistPwmChannel1(const int8_t &pwmChannel1) { m_twistPwmChannel1 = pwmChannel1; }
+    int8_t leftPwmChannel1() const { return m_twistPwmChannel1; }
+    void setLeftPwmChannel1(const int8_t &pwmChannel1) { m_twistPwmChannel1 = pwmChannel1; }
 
-    int8_t twistPwmChannel2() const { return m_twistPwmChannel2; }
-    void setTwistPwmChannel2(const int8_t &pwmChannel2) { m_twistPwmChannel2 = pwmChannel2; }
+    int8_t leftPwmChannel2() const { return m_twistPwmChannel2; }
+    void setLeftPwmChannel2(const int8_t &pwmChannel2) { m_twistPwmChannel2 = pwmChannel2; }
 
-    int8_t twistPwmChannel3() const { return m_twistPwmChannel3; }
-    void setTwistPwmChannel3(const int8_t &pwmChannel3) { m_twistPwmChannel3 = pwmChannel3; }
+    int8_t leftPwmChannel3() const { return m_twistPwmChannel3; }
+    void setLeftPwmChannel3(const int8_t &pwmChannel3) { m_twistPwmChannel3 = pwmChannel3; }
 
     void setDeviceType(DeviceType type) override 
     {
@@ -450,13 +450,13 @@ private:
     int8_t m_pwmChannel2 = BLDC_PWMCHANNEL2_PIN_DEFAULT;
     int8_t m_pwmChannel3 = BLDC_PWMCHANNEL3_PIN_DEFAULT;
     
-    int8_t m_twistEncoder = BLDC_TWIST_ENCODER_PIN_DEFAULT;
-    int8_t m_twistChipSelect = BLDC_TWIST_CHIPSELECT_PIN_DEFAULT;
-    int8_t m_twistEnable = BLDC_TWIST_ENABLE_PIN_DEFAULT;
-    int8_t m_twistHallEffect = BLDC_TWIST_HALLEFFECT_PIN_DEFAULT;
-    int8_t m_twistPwmChannel1 = BLDC_TWIST_PWMCHANNEL1_PIN_DEFAULT;
-    int8_t m_twistPwmChannel2 = BLDC_TWIST_PWMCHANNEL2_PIN_DEFAULT;
-    int8_t m_twistPwmChannel3 = BLDC_TWIST_PWMCHANNEL3_PIN_DEFAULT;
+    int8_t m_twistEncoder = BLDC_LEFT_ENCODER_PIN_DEFAULT;
+    int8_t m_twistChipSelect = BLDC_LEFT_CHIPSELECT_PIN_DEFAULT;
+    int8_t m_twistEnable = BLDC_LEFT_ENABLE_PIN_DEFAULT;
+    int8_t m_twistHallEffect = BLDC_LEFT_HALLEFFECT_PIN_DEFAULT;
+    int8_t m_twistPwmChannel1 = BLDC_LEFT_PWMCHANNEL1_PIN_DEFAULT;
+    int8_t m_twistPwmChannel2 = BLDC_LEFT_PWMCHANNEL2_PIN_DEFAULT;
+    int8_t m_twistPwmChannel3 = BLDC_LEFT_PWMCHANNEL3_PIN_DEFAULT;
     void overideDefaults() override {}
 
 };

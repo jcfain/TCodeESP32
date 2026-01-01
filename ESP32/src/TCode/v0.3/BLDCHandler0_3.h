@@ -105,9 +105,9 @@ public:
             m_settingsFactory->getValue(BLDC_MOTOR_ZEROELECANGLE, zeroElecAngle);
         }
 
-        strokeMotor = new BLDCTCodeMotor(
+        rightMotor = new BLDCTCodeMotor(
             m_deviceType,
-            BLDCMotorChannel::Stroke,
+            BLDCMotorPosition::Right,
             encoderType, 
             pinMap->chipSelect(),
             pinMap->encoder(),
@@ -124,64 +124,63 @@ public:
             paramsKnown,
             zeroElecAngle);
                 
-        if(!strokeMotor->initialized()) {
+        if(!rightMotor->initialized()) {
             m_initFailed = true;
-            delete strokeMotor;
-            strokeMotor = 0;
+            delete rightMotor;
+            rightMotor = 0;
         }
 
 
         if(m_deviceType == DeviceType::SSR2)
         {
-            m_settingsFactory->getValue(BLDC_TWIST_MULTIPLIER, m_twistMultiplier);
-            float twistAngToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
-            LogHandler::debug(_TAG, "twistAngToPos: %f", strokeAngToPos);
-            float twistTopStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
-            LogHandler::debug(_TAG, "twistTopStartOffset: %f", strokeTopStartOffset);
-            float twistEndstopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
-            LogHandler::debug(_TAG, "twistEndstopOffset: %f", strokeEndstopOffset);
+            float leftAngToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
+            LogHandler::debug(_TAG, "leftAngToPos: %f", strokeAngToPos);
+            float leftTopStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
+            LogHandler::debug(_TAG, "leftTopStartOffset: %f", strokeTopStartOffset);
+            float leftEndstopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
+            LogHandler::debug(_TAG, "leftEndstopOffset: %f", strokeEndstopOffset);
 
             // Begin tracking encoder
-            m_settingsFactory->getValue(BLDC_TWIST_ENCODER, encoderType);
-            double twistMotorAVoltage = BLDC_TWIST_MOTOR_VOLTAGE_DEFAULT;
-            m_settingsFactory->getValue(BLDC_TWIST_MOTOR_VOLTAGE, twistMotorAVoltage);
+            m_settingsFactory->getValue(BLDC_LEFT_ENCODER, encoderType);
+            double leftMotorAVoltage = BLDC_LEFT_MOTOR_VOLTAGE_DEFAULT;
+            m_settingsFactory->getValue(BLDC_LEFT_MOTOR_VOLTAGE, leftMotorAVoltage);
             // power supply voltage [V]
-            double twistSupplyAVoltage = BLDC_TWIST_MOTOR_SUPPLY_DEFAULT;
-            m_settingsFactory->getValue(BLDC_TWIST_MOTOR_SUPPLY, twistSupplyAVoltage);
+            double leftSupplyAVoltage = BLDC_LEFT_MOTOR_SUPPLY_DEFAULT;
+            m_settingsFactory->getValue(BLDC_LEFT_MOTOR_SUPPLY, leftSupplyAVoltage);
             // limiting motor movements
-            double twistMotorACurrent = BLDC_TWIST_MOTOR_CURRENT_DEFAULT;
-            m_settingsFactory->getValue(BLDC_TWIST_MOTOR_CURRENT, twistMotorACurrent);
+            double leftMotorACurrent = BLDC_LEFT_MOTOR_CURRENT_DEFAULT;
+            m_settingsFactory->getValue(BLDC_LEFT_MOTOR_CURRENT, leftMotorACurrent);
 
             // init current sense
-            paramsKnown = BLDC_TWIST_MOTOR_PARAMETERSKNOWN_DEFAULT;
-            zeroElecAngle = BLDC_TWIST_MOTOR_ZEROELECANGLE_DEFAULT;
-            m_settingsFactory->getValue(BLDC_TWIST_MOTOR_PARAMETERSKNOWN, paramsKnown);
+            paramsKnown = BLDC_LEFT_MOTOR_PARAMETERSKNOWN_DEFAULT;
+            zeroElecAngle = BLDC_LEFT_MOTOR_ZEROELECANGLE_DEFAULT;
+            m_settingsFactory->getValue(BLDC_LEFT_MOTOR_PARAMETERSKNOWN, paramsKnown);
             if(paramsKnown) {
-                m_settingsFactory->getValue(BLDC_TWIST_MOTOR_ZEROELECANGLE, zeroElecAngle);
+                m_settingsFactory->getValue(BLDC_LEFT_MOTOR_ZEROELECANGLE, zeroElecAngle);
             }
-            twistMotor = new BLDCTCodeMotor(
+            leftMotor = new BLDCTCodeMotor(
                 m_deviceType,
-                BLDCMotorChannel::Twist,
+                BLDCMotorPosition::Left,
                 encoderType,
-                pinMap->twistChipSelect(),
-                pinMap->twistEncoder(),
-                pinMap->twistPwmChannel1(),
-                pinMap->twistPwmChannel2(),
-                pinMap->twistPwmChannel3(),
-                pinMap->twistEnable(),
-                twistMotorAVoltage,
-                twistSupplyAVoltage,
-                twistMotorACurrent,
-                twistAngToPos, 
-                twistTopStartOffset, 
-                twistEndstopOffset,
+                pinMap->leftChipSelect(),
+                pinMap->leftEncoder(),
+                pinMap->leftPwmChannel1(),
+                pinMap->leftPwmChannel2(),
+                pinMap->leftPwmChannel3(),
+                pinMap->leftEnable(),
+                leftMotorAVoltage,
+                leftSupplyAVoltage,
+                leftMotorACurrent,
+                leftAngToPos, 
+                leftTopStartOffset, 
+                leftEndstopOffset,
                 paramsKnown,
                 zeroElecAngle);
 
-            if(!twistMotor->initialized()) {
+            if(!leftMotor->initialized()) {
                 m_initFailed = true;
-                delete twistMotor;
-                twistMotor = 0;
+                delete leftMotor;
+                leftMotor = 0;
             }
         }
 
@@ -189,35 +188,35 @@ public:
         m_tcode->setup(FIRMWARE_VERSION_NAME);
 
         // Register device axes
-        if(strokeMotor)
+        if(rightMotor)
         {
             m_tcode->RegisterAxis(TCODE_CHANNEL_STROKE, "Up");
             bool useHallSensor = BLDC_USEHALLSENSOR_DEFAULT;
             m_settingsFactory->getValue(BLDC_USEHALLSENSOR, useHallSensor);
             int hallSensorPin = pinMap->hallEffect();
             if(useHallSensor && hallSensorPin > -1) {
-                strokeMotor->useHallSensor(hallSensorPin);
+                rightMotor->useHallSensor(hallSensorPin);
             } else if(useHallSensor) {
                 LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d...ignoring", pinMap->hallEffect());
                 // m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
             }
         }
 
-        if(twistMotor) 
+        if(leftMotor) 
         {
             m_tcode->RegisterAxis(TCODE_CHANNEL_TWIST, "Twist");
             bool useHallSensor = BLDC_USEHALLSENSOR_DEFAULT;
-            m_settingsFactory->getValue(BLDC_TWIST_USEHALLSENSOR, useHallSensor);
-            int hallSensorPin = pinMap->twistHallEffect();
+            m_settingsFactory->getValue(BLDC_LEFT_USEHALLSENSOR, useHallSensor);
+            int hallSensorPin = pinMap->leftHallEffect();
             if(useHallSensor && hallSensorPin > -1) {
-                twistMotor->useHallSensor(hallSensorPin);
+                leftMotor->useHallSensor(hallSensorPin);
             } else if(useHallSensor) {
                 LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d...ignoring", pinMap->hallEffect());
                 // m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
             }
         }
         
-        setupCommon(twistMotor ? TCODE_CHANNEL_TWIST : "");// TODO make this better, im brainfog right now.
+        setupCommon(leftMotor ? TCODE_CHANNEL_TWIST : "");// TODO make this better, im brainfog right now.
 
         // Signal ready to start
         if(m_initFailed)
@@ -260,15 +259,14 @@ public:
 
         if(m_deviceType == DeviceType::SSR1)
         {
-            if(strokeMotor && strokeMotor->initialized())
+            if(rightMotor && rightMotor->initialized())
             {
-                strokeMotor->bootCalibrate();
-                strokeMotor->update();
-                strokeMotor->process(stroke);
-                strokeMotor->move();
+                rightMotor->bootCalibrate();
+                rightMotor->update();
+                rightMotor->process(stroke);
+                rightMotor->move();
             }
         } 
-        
         else if(m_deviceType == DeviceType::SSR2)
         {
             int twist = channelRead(TCODE_CHANNEL_TWIST);
@@ -276,23 +274,23 @@ public:
             {
                 twist = TCODE_MAX - twist;
             }
-            if(twistMotor && twistMotor->initialized())
+            if(leftMotor && leftMotor->initialized())
             {
-                twistMotor->bootCalibrate();
-                twistMotor->update();
-                twistMotor->process(stroke, twist, m_twistMultiplier);
+                leftMotor->bootCalibrate();
+                leftMotor->update();
+                leftMotor->process(stroke, twist, m_settingsFactory->getBLDCTwistMultiplier());
             }
-            if(strokeMotor && strokeMotor->initialized())
+            if(rightMotor && rightMotor->initialized())
             {
-                strokeMotor->bootCalibrate();
-                strokeMotor->update();
-                strokeMotor->process(stroke, twist, m_twistMultiplier);
+                rightMotor->bootCalibrate();
+                rightMotor->update();
+                rightMotor->process(stroke, twist, m_settingsFactory->getBLDCTwistMultiplier());
             }
 
-            if(strokeMotor && strokeMotor->initialized())
-                strokeMotor->move();
-            if(twistMotor && twistMotor->initialized())
-                twistMotor->move();
+            if(rightMotor && rightMotor->initialized())
+                rightMotor->move();
+            if(leftMotor && leftMotor->initialized())
+                leftMotor->move();
         }
 
         executeCommon(stroke);
@@ -305,10 +303,8 @@ private:
     bool m_initFailed = false;
     SettingsFactory* m_settingsFactory;
 
-    BLDCTCodeMotor* strokeMotor = 0;
-    BLDCTCodeMotor* twistMotor = 0;
+    BLDCTCodeMotor* rightMotor = 0;
+    BLDCTCodeMotor* leftMotor = 0;
 
     DeviceType m_deviceType;
-
-    int m_twistMultiplier = BLDC_TWIST_MULTIPLIER_DEFAULT;
 };

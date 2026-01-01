@@ -19,7 +19,7 @@ class BLDCTCodeMotor
 public:
     BLDCTCodeMotor(
         DeviceType deviceType,
-        BLDCMotorChannel motorChannel,
+        BLDCMotorPosition motorChannel,
         BLDCEncoderType encoderType, 
         int8_t chipSelectPin,
         int8_t encoderPin,
@@ -37,7 +37,7 @@ public:
         float zeroAngle = NOT_SET,
         Direction sensor_direction = Direction::CW) : 
             m_deviceType(deviceType),
-            m_motorChannel(motorChannel),
+            m_motorPosition(motorChannel),
             m_name(getName(motorChannel)),
             angToPos(angToPos), 
             topStartOffset(topStartOffset), 
@@ -202,7 +202,14 @@ public:
         m_sensor->update();
         sensorAngle = m_sensor->getAngle();
         // Determine the linear position of the receiver in (0-10000)
-        motorPosition = (sensorAngle - zeroAngle)*angToPos; 
+        if(m_motorPosition == BLDCMotorPosition::Right)
+        {
+            motorPosition = (sensorAngle - zeroAngle)*angToPos; 
+        }
+        else if(m_motorPosition == BLDCMotorPosition::Left)
+        {
+            motorPosition = -(sensorAngle - zeroAngle)*angToPos; 
+        }
         //LogHandler::verbose(_TAG, "zeroAngle: %f", zeroAngle);
         return true;
     }
@@ -215,14 +222,12 @@ public:
             return true;
 
         // Control by motor voltage
-        float motorVoltageNew;
         // Mode 0 is startup mode. 
         // Distance of travel is 12,000 (>10,000) just to make sure that the receiver reaches the top/bottom.
         if (m_bootmode) 
         {
             // If using a hall sensor, roll upwards until the magnet triggers the hall effect sensor
-            // Only hall effect on stroke is supported currently.
-            if (m_useHallSensor && m_motorChannel == BLDCMotorChannel::Stroke) 
+            if (m_useHallSensor && m_motorPosition == BLDCMotorPosition::Right) 
             {
                 //LogHandler::verbose(_TAG, "Hall senso millis()-startTime: %ld", millis()-startTime);
                 m_targetMotorPosition = map(millis()-startTime,0,2000,0,12000);
@@ -230,9 +235,9 @@ public:
                 {
                     LogHandler::debug(m_TAG, "Set %s bootmode false read hall", m_name);
                     m_bootmode = false;
-                    if(m_motorChannel == BLDCMotorChannel::Stroke)
+                    if(m_motorPosition == BLDCMotorPosition::Right)
                         zeroAngle = sensorAngle - topStartOffset;
-                    else if(m_motorChannel == BLDCMotorChannel::Twist) {
+                    else if(m_motorPosition == BLDCMotorPosition::Left) {
                         //zeroAngle = sensorAngle + topStartOffset;
                     }
                 } 
@@ -242,13 +247,13 @@ public:
                     m_bootmode = false;
                     LogHandler::debug(m_TAG, "Set %s bootmode false hall timeout", m_name);
                     // zeroAngle = sensorAngle - topStartOffset - endStopOffset;
-                    if(m_motorChannel == BLDCMotorChannel::Stroke)
+                    if(m_motorPosition == BLDCMotorPosition::Right)
                     {
                         zeroAngle = sensorAngle - (topStartOffset - endStopOffset);
                     }
-                    else if(m_motorChannel == BLDCMotorChannel::Twist)
+                    else if(m_motorPosition == BLDCMotorPosition::Left)
                     {
-                        // Im not sure about this twist hall effect...
+                        // Im not sure about this hall effect...
                         //zeroAngle = sensorAngle + (topStartOffset - endStopOffset);
                     }
                 }
@@ -262,12 +267,11 @@ public:
                 {
                     m_bootmode = false;
                     LogHandler::debug(m_TAG, "Set %s bootmode false", m_name);
-                    // zeroAngle = sensorAngle + endStopOffset;
-                    if(m_motorChannel == BLDCMotorChannel::Stroke)
+                    if(m_motorPosition == BLDCMotorPosition::Right)
                     {
                         zeroAngle = sensorAngle + endStopOffset;
                     }
-                    else if(m_motorChannel == BLDCMotorChannel::Twist)
+                    else if(m_motorPosition == BLDCMotorPosition::Left)
                     {
                         zeroAngle = sensorAngle - endStopOffset;
                     }
@@ -283,19 +287,16 @@ public:
             return;
         if(m_deviceType == DeviceType::SSR1 && twistTCode == -1)
         {
-            m_tcode = strokeTCode;
             m_targetMotorPosition = strokeTCode;
         }
         else if(m_deviceType == DeviceType::SSR2 && twistTCode > -1)
         {
-            if(m_motorChannel == BLDCMotorChannel::Stroke)
+            if(m_motorPosition == BLDCMotorPosition::Right)
             {
-                m_tcode = strokeTCode;
                 m_targetMotorPosition = strokeTCode + multiplier*(twistTCode-5000);
             }
-            else
+            else if(m_motorPosition == BLDCMotorPosition::Left)
             {
-                m_tcode = twistTCode;
                 m_targetMotorPosition = strokeTCode - multiplier*(twistTCode-5000);
             }
         }
@@ -303,10 +304,21 @@ public:
 
     void move()
     {
-        float motorVoltageNew = P_CONST*(m_targetMotorPosition - motorPosition);
-        if (m_bootmode) { if (motorVoltageNew < -0.5) { motorVoltageNew = -0.5; } }
+        float motorVoltageNew;
+        if(m_motorPosition == BLDCMotorPosition::Right) 
+        {
+            motorVoltageNew = P_CONST*(m_targetMotorPosition - motorPosition);
+            if (m_bootmode && motorVoltageNew < -0.5) 
+                 motorVoltageNew = -0.5; 
+        }
+        else if(m_motorPosition == BLDCMotorPosition::Left)
+        {
+            motorVoltageNew = -P_CONST*(m_targetMotorPosition - motorPosition);// Note the negative here
+            if (m_bootmode && motorVoltageNew > 0.5) 
+                    motorVoltageNew = 0.5; 
+        }
         // Low pass filter to reduce motor noise
-        motorVoltage = LOW_PASS*motorVoltage + (1-LOW_PASS)*motorVoltageNew;  
+        motorVoltage = LOW_PASS*motorVoltage + (1-LOW_PASS)*motorVoltageNew; 
         // Motion control function
         motor->move(motorVoltage);
         log();
@@ -329,7 +341,7 @@ public:
 private:
     DeviceType m_deviceType;
     const char* m_name;
-    BLDCMotorChannel m_motorChannel;
+    BLDCMotorPosition m_motorPosition;
     const char* m_TAG = TagHandler::BLDCMotor;
     Sensor* m_sensor;
     BLDCMotor* motor;
@@ -340,7 +352,6 @@ private:
     float sensorAngle = 0.00;
     float motorPosition = 0.00;
     float m_targetMotorPosition = 0.00;
-    int m_tcode = TCODE_MID;
     unsigned long startTime = 0;
     float motorVoltage = 0.00;
     float angToPos; // Number to convert a motor angle to a 0-10000 axis position
@@ -354,16 +365,16 @@ private:
     const long interval = 10; // interval at which to send reports (in ms)
     int counter = 0;
 
-    const char* getName(BLDCMotorChannel motorChannel)
+    const char* getName(BLDCMotorPosition motorChannel)
     {
         switch (motorChannel)
         {
-            case BLDCMotorChannel::Twist:
-                return "Twist";
+            case BLDCMotorPosition::Right:
+                return "Right";
                 break;
             
             default:
-                return "Stroke";
+                return "Left";
                 break;
         }
     }
@@ -376,7 +387,7 @@ private:
             if (currentMillis - previousMillis >= interval) 
             {
                 previousMillis = currentMillis;
-                LogHandler::verbose(m_TAG, "%s motor position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngle: %f \t angle: %f\n", m_name, motorPosition, motorVoltage, m_bootmode, m_tcode, zeroAngle, sensorAngle);
+                LogHandler::verbose(m_TAG, "%s motor position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngle: %f \t angle: %f\n", m_name, motorPosition, motorVoltage, m_bootmode, zeroAngle, sensorAngle);
                 counter = 0;
             }
             counter++;

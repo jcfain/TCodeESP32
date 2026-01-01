@@ -10,10 +10,10 @@ enum class TCodeVersion: int
 };
 
 #if MOTOR_TYPE == 1
-enum BLDCMotorChannel 
+enum BLDCMotorPosition 
 {
-    Stroke,
-    Twist
+    Right,
+    Left
 };
 #endif
 

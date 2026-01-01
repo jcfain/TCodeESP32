@@ -122,8 +122,8 @@ var startUpHostName;
 var startUpWebPort;
 var startUpStaticIP;
 var startUpLocalIP;
-var strokeMotor;
-var twistMotor;
+var rightMotor;
+var leftMotor;
 const defaultDebounce = 3000;
 
 //PWM availible on: 2,4,5,12-19,21-23,25-27,32-33
@@ -698,6 +698,9 @@ function isOSR() {
 function isSSR1() {
     return userSettings["deviceType"] == DeviceType.SSR1;
 }
+function isSSR2() {
+    return userSettings["deviceType"] == DeviceType.SSR2;
+}
 function isBoardType(boardType) {
     return userSettings["boardType"] === boardType;
 }
@@ -712,11 +715,11 @@ function isBLDCSPI() {
 }
 
 function startServerPoll() {
-    const message = serverPollRetryCount == 0 ? "Looking for device..." : "Retrying connection: " + (serverPollRetryCount + 1) + "/10";
     if(serverPollRetryCount == 10) {
-        showLoading(message + " timed out<br>Please manually refresh the page when the device is back online.");
+        showLoading("Connection timed out<br>Please manually refresh the page when the device is back online.");
         return;
     }
+    const message = "Looking for device" + (serverPollRetryCount == 0 ? "..." : ": " + (serverPollRetryCount + 1) + "/10");
     showLoading(message);
     if(serverPollingTimeOut)
         clearTimeout(serverPollingTimeOut);
@@ -973,40 +976,44 @@ function setUserSettings()
     {
         document.getElementById("BLDC_Encoder").value = userSettings["BLDC_Encoder"];
         document.getElementById("BLDC_UseHallSensor").checked = userSettings["BLDC_UseHallSensor"];
-        document.getElementById("BLDC_HallEffect_PIN").value = pinoutSettings["BLDC_HallEffect_PIN"];
+        document.getElementById("BLDC_RailLength").value = userSettings["BLDC_RailLength"];
+        document.getElementById("BLDC_StrokeLength").value = userSettings["BLDC_StrokeLength"];
+        document.getElementById("BLDC_TwistMultiplier").value = userSettings["BLDC_TwistMultiplier"];
         Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
-        if(!strokeMotor)
-            strokeMotor = new BLDCMotor();
-        strokeMotor.setup();
-        strokeMotor.setupPins();
+        if(!rightMotor)
+            rightMotor = new BLDCMotor(userSettings.deviceType);
+        rightMotor.setup();
+        document.getElementById("BLDC_HallEffect_PIN").value = pinoutSettings["BLDC_HallEffect_PIN"];
+        rightMotor.setupPins();
         const tableNode = document.getElementById("deviceSettingsTableBody");
-        const strokeSettingsButton = document.getElementById("strokeButtonRow");
-        if(!strokeSettingsButton)
+        const rightSettingsButton = document.getElementById("rightButtonRow");
+        if(!rightSettingsButton)
         {
-            const strokeLabel = userSettings.deviceType == DeviceType.SSR2 ? "Stroke motor settings" : "Motor settings";
-            const strokeBLDCNode = Utils.createFormButtonRow("strokeButtonRow", "bldcStrokeSettingsButton", strokeLabel, function() { 
-                strokeMotor.ModalNode.show() 
+            const rightLabel = userSettings.deviceType == DeviceType.SSR2 ? "Right motor settings" : "Motor settings";
+            const rightBLDCNode = Utils.createFormButtonRow("rightButtonRow", "bldcRightSettingsButton", rightLabel, function() { 
+                rightMotor.ModalNode.show() 
             });
-            strokeBLDCNode.row.classList.add("BLDCOnly");
+            rightBLDCNode.row.classList.add("BLDCOnly");
             const siblingNode = document.getElementById("HallEffect");
-            siblingNode.insertAdjacentElement('afterend', strokeBLDCNode.row);
+            siblingNode.insertAdjacentElement('afterend', rightBLDCNode.row);
         }
         if(userSettings.deviceType == DeviceType.SSR2)
         {
-            if(!twistMotor)
-                twistMotor = new BLDCMotor("Twist");
-            twistMotor.setup();
-            twistMotor.setupPins();
-            const twistSettingsButton = document.getElementById("twistButtonRow");
-            if(!twistSettingsButton)
+            if(!leftMotor)
+                leftMotor = new BLDCMotor(userSettings.deviceType, "Left");
+            leftMotor.setup();
+            leftMotor.setupPins();
+            const leftSettingsButton = document.getElementById("leftButtonRow");
+            if(!leftSettingsButton)
             {
-                const twistBLDCNode = Utils.createFormButtonRow("twistButtonRow", "bldcTwistSettingsButton", "Twist motor settings", function() { 
-                    twistMotor.ModalNode.show() 
+                const leftBLDCNode = Utils.createFormButtonRow("leftButtonRow", "bldcLeftSettingsButton", "Left motor settings", function() { 
+                    leftMotor.ModalNode.show() 
                 });
-                twistBLDCNode.row.classList.add("BLDCOnly");
-                // tableNode.appendChild(twistBLDCNode.row);
-                const siblingNode = document.getElementById("strokeButtonRow");
-                siblingNode.insertAdjacentElement('afterend', twistBLDCNode.row);
+                leftBLDCNode.row.classList.add("BLDCOnly");
+                leftBLDCNode.row.classList.add("SSR2Only");
+                // tableNode.appendChild(leftBLDCNode.row);
+                const siblingNode = document.getElementById("rightButtonRow");
+                siblingNode.insertAdjacentElement('afterend', leftBLDCNode.row);
             }
         }
         toggleBLDCEncoderOptions();
@@ -1720,17 +1727,35 @@ function updateFriendlyName()
 // These encoder functions could be removed in the future if multiple encoders are added
 function setEncoderType() {
     userSettings["BLDC_Encoder"] = parseInt(document.getElementById("BLDC_Encoder").value);
-    userSettings["BLDC_TwistEncoder"] = parseInt(document.getElementById("BLDC_Encoder").value);
+    userSettings["BLDC_LeftEncoder"] = parseInt(document.getElementById("BLDC_Encoder").value);
     toggleBLDCEncoderOptions();
     setRestartRequired();
     updateUserSettings(0);
 }
-function updateBLDCSettings() {
+function updateBLDCUseHallSensor() {
     userSettings["BLDC_UseHallSensor"] = document.getElementById("BLDC_UseHallSensor").checked;
     Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
-    updatePins();
-    // setRestartRequired();
-    // updateUserSettings();
+    if(validatePins())
+    {
+        setRestartRequired();
+        updateUserSettings();
+    }
+}
+function updateBLDCTwistMultiplier() {
+    Utils.debounce("updateBLDCTwistMultiplier", () => {
+        if(validateFloatControl("BLDC_TwistMultiplier", userSettings, "BLDC_TwistMultiplier")) {
+            updateUserSettings();
+        }
+    }, defaultDebounce);
+}
+function updateBLDCSettings() {
+    Utils.debounce("updateBLDCSettingsGlobal", () => {
+        if(validateIntControl("BLDC_RailLength", userSettings, "BLDC_RailLength") && 
+            validateIntControl("BLDC_StrokeLength", userSettings, "BLDC_StrokeLength")) {
+            setRestartRequired();
+            updateUserSettings();
+        }
+    }, defaultDebounce);
 }
 function toggleBLDCEncoderOptions() {
     Utils.toggleControlVisibilityByClassName("BLDCPWM", userSettings["BLDC_Encoder"] == BLDCEncoderType.PWM);
@@ -1880,9 +1905,9 @@ function toggleEnableTimerChannels(element) {
 function updatePins() 
 {
     if(systemInfo.motorType == MotorType.BLDC) {
-        strokeMotor.updateBLDCPins();
-        if(twistMotor)
-            twistMotor.updateBLDCPins();
+        rightMotor.updateBLDCPins();
+        if(leftMotor)
+            leftMotor.updateBLDCPins();
         return;
     }
     if(upDateTimeout !== null) 
@@ -2078,10 +2103,22 @@ function validatePWMPin(pin, pinName, assignedPins, duplicatePins, pwmErrors) {
 /** 
  * Validates the pin number values in the forms inputs. 
  * Shows an error and returns the pin values or undefined if error
+ * 
+ * BLDC does not return ALL pins..
 */
 function validatePins() {
     if(systemInfo.motorType == MotorType.BLDC) {
-        return validateBLDCPins();
+        if(isSSR1())
+            return rightMotor.validateBLDCPins();
+        else {
+            var rightPinValues = rightMotor.validateBLDCPins();
+            if(!rightPinValues)
+                return rightPinValues;
+            var leftPinValues = leftMotor.validateBLDCPins()
+            if(!leftPinValues)
+                return leftPinValues;
+            return rightPinValues;// Return which? bad programming practice....
+        }    
     }
     clearErrors("pinValidation"); 
     var assignedPins = [];
@@ -2608,12 +2645,18 @@ function toggleStaticIPSettings(isStatic)
 }
 function toggleDeviceOptions(deviceType)
 {
-    var osrOnly = document.getElementsByClassName('osrOnly');
-    var sr6Only = document.getElementsByClassName('sr6Only');
-    for(var i=0;i < sr6Only.length; i++)
-        sr6Only[i].style.display = deviceType == DeviceType.SR6 && deviceType != DeviceType.SSR1 ? "flex" : "none";
-    for(var i=0;i < osrOnly.length; i++)
-        osrOnly[i].style.display = deviceType == DeviceType.OSR && deviceType != DeviceType.SSR1 ? "flex" : "none";
+    if(systemInfo.motorType === MotorType.Servo) {
+        // var osrOnly = document.getElementsByClassName('osrOnly');
+        // var sr6Only = document.getElementsByClassName('sr6Only');
+        // for(var i=0;i < sr6Only.length; i++)
+        //     sr6Only[i].style.display = deviceType == DeviceType.SR6 && deviceType != DeviceType.SSR1 ? "flex" : "none";
+        // for(var i=0;i < osrOnly.length; i++)
+        //     osrOnly[i].style.display = deviceType == DeviceType.OSR && deviceType != DeviceType.SSR1 ? "flex" : "none";
+        Utils.toggleControlVisibilityByClassName('osrOnly', deviceType == DeviceType.OSR);
+        Utils.toggleControlVisibilityByClassName('sr6Only', deviceType == DeviceType.SR6);
+    } else {
+        Utils.toggleControlVisibilityByClassName('SSR2Only', deviceType == DeviceType.SSR2);
+    }
 }
 
 function toggleNonTCodev3Options()

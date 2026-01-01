@@ -133,6 +133,7 @@ public:
     double getInternalTempForFanOn() const { return internalTempForFanOn; }
     bool getVibTimeoutEnabled() const { return vibTimeoutEnabled; }
     int getVibTimeout() const { return vibTimeout; }
+    float getBLDCTwistMultiplier() const { return m_twistMultiplier; }
 
     ButtonSet* getButtonSets() {
         return buttonSets;
@@ -694,6 +695,11 @@ public:
             getValue(PITCH_RIGHT_SERVO_ZERO, PitchRightServo_ZERO);
             if(targeted) {initCommonMessages(name); return;}
         }
+    #elif MOTOR_TYPE == 1
+        if(!name || !strcmp(name, BLDC_TWIST_MULTIPLIER)) {
+            getValue(BLDC_TWIST_MULTIPLIER, m_twistMultiplier);
+            if(targeted) {initCommonMessages(name); return;}
+        }
     #endif
         if(!name || !strcmp(name, TWIST_SERVO_ZERO)) {
             getValue(TWIST_SERVO_ZERO, TwistServo_ZERO);
@@ -851,7 +857,7 @@ public:
             {
                 LogHandler::info(m_TAG, "[changeDeviceType] Overriding default settings for SSR2");
                 setValue(BLDC_ENCODER, BLDCEncoderType::SPI);
-                setValue(BLDC_TWIST_ENCODER, BLDCEncoderType::SPI);
+                setValue(BLDC_LEFT_ENCODER, BLDCEncoderType::SPI);
                 retValue = saveCommon();
             }
             PinMapSSR* pinMap = PinMapSSR::getInstance();
@@ -941,7 +947,11 @@ private:
             {FEEDBACK_TWIST, "Feedback twist", "For feed back servos", SettingType::Boolean, FEEDBACK_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {ANALOG_TWIST, "Analog twist", "Analog feedback servo", SettingType::Boolean, ANALOG_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}}
 #if MOTOR_TYPE == 1
-            ,{BLDC_ENCODER, "BLDC encoder type", "Select the type of bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            ,{BLDC_TWIST_MULTIPLIER, "BLDC Twist multiplier", "BLDC Twist multiplier", SettingType::Number, BLDC_TWIST_MULTIPLIER_DEFAULT, RestartRequired::NO, {SettingProfile::Bldc}},
+            {BLDC_RAILLENGTH, "Rail length", "SSR1 rail length", SettingType::Number, BLDC_RAILLENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+
+            {BLDC_ENCODER, "BLDC encoder type", "Select the type of bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_USEHALLSENSOR, "Use hall sensor", "Use Hall sensor for BLDC sensor", SettingType::Boolean, BLDC_USEHALLSENSOR_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_PULLEY_CIRCUMFERENCE, "Pull circumference", "The pulley circumference for BLDC motor", SettingType::Number, BLDC_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_MOTOR_VOLTAGE, "Motor voltage limit", "BLDC Motor voltage limit", SettingType::Float, BLDC_MOTOR_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
@@ -949,20 +959,15 @@ private:
             {BLDC_MOTOR_CURRENT, "Motor current", "BLDC Motor current", SettingType::Float, BLDC_MOTOR_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_MOTOR_PARAMETERSKNOWN, "Motor parameters known", "BLDC Motor A params known", SettingType::Boolean, BLDC_MOTOR_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_MOTOR_ZEROELECANGLE, "Motor ZeroElecAngle", "BLDC Motor A ZeroElecAngle", SettingType::Float, BLDC_MOTOR_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_RAILLENGTH, "Rail length", "SSR1 rail length", SettingType::Number, BLDC_RAILLENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             
-            {BLDC_TWIST_ENCODER, "BLDC twist encoder type", "Select the type of Twist bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_TWIST_USEHALLSENSOR, "Use twist hall sensor", "Use Hall sensor for Twist BLDC sensor", SettingType::Boolean, BLDC_USEHALLSENSOR_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_TWIST_PULLEY_CIRCUMFERENCE, "Pull twist circumference", "The pulley circumference for Twist BLDC motor", SettingType::Number, BLDC_TWIST_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_TWIST_MOTOR_VOLTAGE, "Twist Motor voltage limit", "BLDC Twist Motor voltage limit", SettingType::Float, BLDC_TWIST_MOTOR_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_TWIST_MOTOR_SUPPLY, "Twist Motor Supply voltage", "BLDC Twist Motor supply voltage", SettingType::Float, BLDC_TWIST_MOTOR_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_TWIST_MOTOR_CURRENT, "Twist Motor current", "BLDC Twist Motor current", SettingType::Float, BLDC_TWIST_MOTOR_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_TWIST_MOTOR_PARAMETERSKNOWN, "Twist Motor parameters known", "Twist BLDC Motor params known", SettingType::Boolean, BLDC_TWIST_MOTOR_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_TWIST_MOTOR_ZEROELECANGLE, "Twist Motor ZeroElecAngle", "Twist BLDC Motor ZeroElecAngle", SettingType::Float, BLDC_TWIST_MOTOR_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_TWIST_RAILLENGTH, "Twist Rail length", "Twist rail length", SettingType::Number, BLDC_TWIST_RAILLENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_TWIST_LENGTH, "Twist length", "Twist length", SettingType::Number, BLDC_TWIST_LENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_TWIST_MULTIPLIER, "Twist multiplier", "Twist multiplier", SettingType::Number, BLDC_TWIST_MULTIPLIER_DEFAULT, RestartRequired::NO, {SettingProfile::Bldc}}
+            {BLDC_LEFT_ENCODER, "BLDC left encoder type", "Select the type of Left bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_LEFT_USEHALLSENSOR, "Use left hall sensor", "Use Hall sensor for Left BLDC sensor", SettingType::Boolean, BLDC_USEHALLSENSOR_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_LEFT_PULLEY_CIRCUMFERENCE, "Pull left circumference", "The pulley circumference for Left BLDC motor", SettingType::Number, BLDC_LEFT_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_LEFT_MOTOR_VOLTAGE, "Left Motor voltage limit", "BLDC Left Motor voltage limit", SettingType::Float, BLDC_LEFT_MOTOR_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_LEFT_MOTOR_SUPPLY, "Left Motor Supply voltage", "BLDC Left Motor supply voltage", SettingType::Float, BLDC_LEFT_MOTOR_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_LEFT_MOTOR_CURRENT, "Left Motor current", "BLDC Left Motor current", SettingType::Float, BLDC_LEFT_MOTOR_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_LEFT_MOTOR_PARAMETERSKNOWN, "Left Motor parameters known", "Left BLDC Motor params known", SettingType::Boolean, BLDC_LEFT_MOTOR_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_LEFT_MOTOR_ZEROELECANGLE, "Left Motor ZeroElecAngle", "Left BLDC Motor ZeroElecAngle", SettingType::Float, BLDC_LEFT_MOTOR_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}}
             
 #elif MOTOR_TYPE == 0
             ,{RIGHT_SERVO_ZERO, "Right servo zero", "The zero calibration for the right servo", SettingType::Number, RIGHT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
@@ -1074,13 +1079,13 @@ private:
             {BLDC_PWMCHANNEL2_PIN, "PWM channel2 PIN", "Pin for the BLDC PWM 2", SettingType::Number, BLDC_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
             {BLDC_PWMCHANNEL3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
             // Twist BLDC
-            {BLDC_TWIST_ENCODER_PIN, "Twist Encoder PIN", "Pin the BLDC Twist encoder is on", SettingType::Number, BLDC_TWIST_ENCODER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
-            {BLDC_TWIST_CHIPSELECT_PIN, "Twist Chipselect PIN", "Pin the BLDC Twist chip select is on", SettingType::Number, BLDC_TWIST_CHIPSELECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
-            {BLDC_TWIST_ENABLE_PIN, "Twist Enable PIN", "Pin the BLDC Twist enable is on", SettingType::Number, BLDC_TWIST_ENABLE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
-            {BLDC_TWIST_HALLEFFECT_PIN, "Twist Halleffect PIN", "Pin the hall effect for Twist is on", SettingType::Number, BLDC_TWIST_HALLEFFECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
-            {BLDC_TWIST_PWMCHANNEL1_PIN, "Twist PWM channel1 PIN", "Pin for the Twist BLDC PWM 1", SettingType::Number, BLDC_TWIST_PWMCHANNEL1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
-            {BLDC_TWIST_PWMCHANNEL2_PIN, "Twist PWM channel2 PIN", "Pin for the Twist BLDC PWM 2", SettingType::Number, BLDC_TWIST_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
-            {BLDC_TWIST_PWMCHANNEL3_PIN, "Twist PWM channel3 PIN", "Pin for the Twist BLDC PWM 3", SettingType::Number, BLDC_TWIST_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}}
+            {BLDC_LEFT_ENCODER_PIN, "Twist Encoder PIN", "Pin the BLDC Twist encoder is on", SettingType::Number, BLDC_LEFT_ENCODER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_LEFT_CHIPSELECT_PIN, "Twist Chipselect PIN", "Pin the BLDC Twist chip select is on", SettingType::Number, BLDC_LEFT_CHIPSELECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_LEFT_ENABLE_PIN, "Twist Enable PIN", "Pin the BLDC Twist enable is on", SettingType::Number, BLDC_LEFT_ENABLE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_LEFT_HALLEFFECT_PIN, "Twist Halleffect PIN", "Pin the hall effect for Twist is on", SettingType::Number, BLDC_LEFT_HALLEFFECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_LEFT_PWMCHANNEL1_PIN, "Twist PWM channel1 PIN", "Pin for the Twist BLDC PWM 1", SettingType::Number, BLDC_LEFT_PWMCHANNEL1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+            {BLDC_LEFT_PWMCHANNEL2_PIN, "Twist PWM channel2 PIN", "Pin for the Twist BLDC PWM 2", SettingType::Number, BLDC_LEFT_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+            {BLDC_LEFT_PWMCHANNEL3_PIN, "Twist PWM channel3 PIN", "Pin for the Twist BLDC PWM 3", SettingType::Number, BLDC_LEFT_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}}
             #if CONFIG_IDF_TARGET_ESP32
             ,{ESP_H_TIMER0_FREQUENCY, "High timer 0 frequency", "Frequency for the high timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
             ,{ESP_H_TIMER1_FREQUENCY, "High timer 1 frequency", "Frequency for the high timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
@@ -1153,6 +1158,7 @@ private:
     int8_t voiceWakeTime;
     int vibTimeout;
     bool vibTimeoutEnabled;
+    float m_twistMultiplier;
 
     bool load(SettingFileInfo &fileInfo)
     {
@@ -1738,20 +1744,20 @@ private:
         getValue(BLDC_PWMCHANNEL3_PIN, pin);
         pinMap->setPwmChannel3(pin);
 
-        getValue(BLDC_TWIST_ENCODER_PIN, pin);
-        pinMap->setTwistEncoder(pin);
-        getValue(BLDC_TWIST_CHIPSELECT_PIN, pin);
-        pinMap->setTwistChipSelect(pin);
-        getValue(BLDC_TWIST_ENABLE_PIN, pin);
-        pinMap->setTwistEnable(pin);
-        getValue(BLDC_TWIST_HALLEFFECT_PIN, pin);
-        pinMap->setTwistHallEffect(pin);
-        getValue(BLDC_TWIST_PWMCHANNEL1_PIN, pin);
-        pinMap->setTwistPwmChannel1(pin);
-        getValue(BLDC_TWIST_PWMCHANNEL2_PIN, pin);
-        pinMap->setTwistPwmChannel2(pin);
-        getValue(BLDC_TWIST_PWMCHANNEL3_PIN, pin);
-        pinMap->setTwistPwmChannel3(pin);
+        getValue(BLDC_LEFT_ENCODER_PIN, pin);
+        pinMap->setLeftEncoder(pin);
+        getValue(BLDC_LEFT_CHIPSELECT_PIN, pin);
+        pinMap->setLeftChipSelect(pin);
+        getValue(BLDC_LEFT_ENABLE_PIN, pin);
+        pinMap->setLeftEnable(pin);
+        getValue(BLDC_LEFT_HALLEFFECT_PIN, pin);
+        pinMap->setLeftHallEffect(pin);
+        getValue(BLDC_LEFT_PWMCHANNEL1_PIN, pin);
+        pinMap->setLeftPwmChannel1(pin);
+        getValue(BLDC_LEFT_PWMCHANNEL2_PIN, pin);
+        pinMap->setLeftPwmChannel2(pin);
+        getValue(BLDC_LEFT_PWMCHANNEL3_PIN, pin);
+        pinMap->setLeftPwmChannel3(pin);
         return pinMap;
 
     }
@@ -1881,13 +1887,13 @@ private:
         setValue(BLDC_PWMCHANNEL1_PIN, pinMap->pwmChannel1());
         setValue(BLDC_PWMCHANNEL2_PIN, pinMap->pwmChannel2());
         setValue(BLDC_PWMCHANNEL3_PIN, pinMap->pwmChannel3());
-        setValue(BLDC_TWIST_ENCODER_PIN, pinMap->twistEncoder());
-        setValue(BLDC_TWIST_CHIPSELECT_PIN, pinMap->twistChipSelect());
-        setValue(BLDC_TWIST_ENABLE_PIN, pinMap->twistEnable());
-        setValue(BLDC_TWIST_HALLEFFECT_PIN, pinMap->twistHallEffect());
-        setValue(BLDC_TWIST_PWMCHANNEL1_PIN, pinMap->twistPwmChannel1());
-        setValue(BLDC_TWIST_PWMCHANNEL2_PIN, pinMap->twistPwmChannel2());
-        setValue(BLDC_TWIST_PWMCHANNEL3_PIN, pinMap->twistPwmChannel3());
+        setValue(BLDC_LEFT_ENCODER_PIN, pinMap->leftEncoder());
+        setValue(BLDC_LEFT_CHIPSELECT_PIN, pinMap->leftChipSelect());
+        setValue(BLDC_LEFT_ENABLE_PIN, pinMap->leftEnable());
+        setValue(BLDC_LEFT_HALLEFFECT_PIN, pinMap->leftHallEffect());
+        setValue(BLDC_LEFT_PWMCHANNEL1_PIN, pinMap->leftPwmChannel1());
+        setValue(BLDC_LEFT_PWMCHANNEL2_PIN, pinMap->leftPwmChannel2());
+        setValue(BLDC_LEFT_PWMCHANNEL3_PIN, pinMap->leftPwmChannel3());
         savePins();
     }
 
