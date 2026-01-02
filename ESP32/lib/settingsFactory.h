@@ -858,6 +858,10 @@ public:
                 LogHandler::info(m_TAG, "[changeDeviceType] Overriding default settings for SSR2");
                 setValue(BLDC_ENCODER, BLDCEncoderType::SPI);
                 setValue(BLDC_LEFT_ENCODER, BLDCEncoderType::SPI);
+                setValue(BLDC_MOTOR_VOLTAGE, 12.0f);
+                setValue(BLDC_MOTOR_SUPPLY, 12.0f);
+                setValue(BLDC_LEFT_MOTOR_VOLTAGE, 12.0f);
+                setValue(BLDC_LEFT_MOTOR_SUPPLY, 12.0f);
                 retValue = saveCommon();
             }
             PinMapSSR* pinMap = PinMapSSR::getInstance();

@@ -238,9 +238,9 @@ public:
         JsonObject v03 = tcodeVersions.add<JsonObject>();
         v03["name"] = "v0.3";
         v03["value"] = TCodeVersion::v0_3;
-        JsonObject v04 = tcodeVersions.add<JsonObject>();
-        v04["name"] = "v0.4 (Experimental)";
-        v04["value"] = TCodeVersion::v0_4;
+        // JsonObject v04 = tcodeVersions.add<JsonObject>();
+        // v04["name"] = "v0.4 (Experimental)";
+        // v04["value"] = TCodeVersion::v0_4;
         JsonArray boardTypes = doc["boardTypes"].to<JsonArray>();
 #if CONFIG_IDF_TARGET_ESP32
         JsonObject devkit = boardTypes.add<JsonObject>();

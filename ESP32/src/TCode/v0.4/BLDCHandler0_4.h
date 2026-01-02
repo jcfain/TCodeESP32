@@ -162,14 +162,15 @@ public:
         
         // driver config
         // Max DC voltage allowed - default voltage_limit
-        double motorAVoltage = BLDC_MOTOR_VOLTAGE_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTOR_VOLTAGE, motorAVoltage);
-        LogHandler::debug(_TAG, "Voltage: %f", motorAVoltage);
-        driverA->voltage_limit = motorAVoltage;
+        double motorVoltage = BLDC_MOTOR_VOLTAGE_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTOR_VOLTAGE, motorVoltage);
+        LogHandler::debug(_TAG, "Voltage limit: %f", motorVoltage);
+        driverA->voltage_limit = motorVoltage;
         // power supply voltage [V]
-        double supplyAVoltage = BLDC_MOTOR_SUPPLY_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTOR_SUPPLY, supplyAVoltage);
-        driverA->voltage_power_supply = supplyAVoltage;
+        double supplyVoltage = BLDC_MOTOR_SUPPLY_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTOR_SUPPLY, supplyVoltage);
+        LogHandler::debug(_TAG, "Voltage supply: %f", supplyVoltage);
+        driverA->voltage_power_supply = supplyVoltage;
         // driver init
         driverA->init();
 

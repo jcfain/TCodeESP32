@@ -74,12 +74,12 @@ public:
         m_settingsFactory->getValue(BLDC_STROKELENGTH, strokeLength);
         int railLength = -1;
         m_settingsFactory->getValue(BLDC_RAILLENGTH, railLength);
-        float strokeAngToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
-        LogHandler::debug(_TAG, "strokeAngToPos: %f", strokeAngToPos);
-        float strokeTopStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
-        LogHandler::debug(_TAG, "strokeTopStartOffset: %f", strokeTopStartOffset);
-        float strokeEndstopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
-        LogHandler::debug(_TAG, "strokeEndstopOffset: %f", strokeEndstopOffset);
+        float rightAngToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
+        LogHandler::debug(_TAG, "rightAngToPos: %f", rightAngToPos);
+        float rightTopStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
+        LogHandler::debug(_TAG, "rightTopStartOffset: %f", rightTopStartOffset);
+        float rightEndstopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
+        LogHandler::debug(_TAG, "rightEndstopOffset: %f", rightEndstopOffset);
 
         m_deviceType = DeviceType::SSR1;
         m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
@@ -88,20 +88,21 @@ public:
 
         BLDCEncoderType encoderType = (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
         m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
-        double strokeMotorAVoltage = BLDC_MOTOR_VOLTAGE_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTOR_VOLTAGE, strokeMotorAVoltage);
+        double rightMotorVoltage = BLDC_MOTOR_VOLTAGE_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTOR_VOLTAGE, rightMotorVoltage);
         // power supply voltage [V]
-        double strokeSupplyAVoltage = BLDC_MOTOR_SUPPLY_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTOR_SUPPLY, strokeSupplyAVoltage);
+        double rightSupplyVoltage = BLDC_MOTOR_SUPPLY_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTOR_SUPPLY, rightSupplyVoltage);
         // limiting motor movements
-        double strokeMotorACurrent = BLDC_MOTOR_CURRENT_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTOR_CURRENT, strokeMotorACurrent);
+        double rightMotorCurrent = BLDC_MOTOR_CURRENT_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTOR_CURRENT, rightMotorCurrent);
 
         // init current sense
         double zeroElecAngle = BLDC_MOTOR_ZEROELECANGLE_DEFAULT;
         bool paramsKnown = BLDC_MOTOR_PARAMETERSKNOWN_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTOR_PARAMETERSKNOWN, paramsKnown);
-        if(paramsKnown) {
+        if(paramsKnown) 
+        {
             m_settingsFactory->getValue(BLDC_MOTOR_ZEROELECANGLE, zeroElecAngle);
         }
 
@@ -115,16 +116,17 @@ public:
             pinMap->pwmChannel2(),
             pinMap->pwmChannel3(),
             pinMap->enable(),
-            strokeMotorAVoltage,
-            strokeSupplyAVoltage,
-            strokeMotorACurrent,
-            strokeAngToPos, 
-            strokeTopStartOffset, 
-            strokeEndstopOffset,
+            rightMotorVoltage,
+            rightSupplyVoltage,
+            rightMotorCurrent,
+            rightAngToPos, 
+            rightTopStartOffset, 
+            rightEndstopOffset,
             paramsKnown,
             zeroElecAngle);
                 
-        if(!rightMotor->initialized()) {
+        if(!rightMotor->initialized()) 
+        {
             m_initFailed = true;
             delete rightMotor;
             rightMotor = 0;
@@ -134,28 +136,29 @@ public:
         if(m_deviceType == DeviceType::SSR2)
         {
             float leftAngToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
-            LogHandler::debug(_TAG, "leftAngToPos: %f", strokeAngToPos);
+            LogHandler::debug(_TAG, "leftAngToPos: %f", rightAngToPos);
             float leftTopStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
-            LogHandler::debug(_TAG, "leftTopStartOffset: %f", strokeTopStartOffset);
+            LogHandler::debug(_TAG, "leftTopStartOffset: %f", rightTopStartOffset);
             float leftEndstopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
-            LogHandler::debug(_TAG, "leftEndstopOffset: %f", strokeEndstopOffset);
+            LogHandler::debug(_TAG, "leftEndstopOffset: %f", rightEndstopOffset);
 
             // Begin tracking encoder
             m_settingsFactory->getValue(BLDC_LEFT_ENCODER, encoderType);
-            double leftMotorAVoltage = BLDC_LEFT_MOTOR_VOLTAGE_DEFAULT;
-            m_settingsFactory->getValue(BLDC_LEFT_MOTOR_VOLTAGE, leftMotorAVoltage);
+            double leftMotorVoltage = BLDC_LEFT_MOTOR_VOLTAGE_DEFAULT;
+            m_settingsFactory->getValue(BLDC_LEFT_MOTOR_VOLTAGE, leftMotorVoltage);
             // power supply voltage [V]
-            double leftSupplyAVoltage = BLDC_LEFT_MOTOR_SUPPLY_DEFAULT;
-            m_settingsFactory->getValue(BLDC_LEFT_MOTOR_SUPPLY, leftSupplyAVoltage);
+            double leftSupplyVoltage = BLDC_LEFT_MOTOR_SUPPLY_DEFAULT;
+            m_settingsFactory->getValue(BLDC_LEFT_MOTOR_SUPPLY, leftSupplyVoltage);
             // limiting motor movements
-            double leftMotorACurrent = BLDC_LEFT_MOTOR_CURRENT_DEFAULT;
-            m_settingsFactory->getValue(BLDC_LEFT_MOTOR_CURRENT, leftMotorACurrent);
+            double leftMotorCurrent = BLDC_LEFT_MOTOR_CURRENT_DEFAULT;
+            m_settingsFactory->getValue(BLDC_LEFT_MOTOR_CURRENT, leftMotorCurrent);
 
             // init current sense
             paramsKnown = BLDC_LEFT_MOTOR_PARAMETERSKNOWN_DEFAULT;
             zeroElecAngle = BLDC_LEFT_MOTOR_ZEROELECANGLE_DEFAULT;
             m_settingsFactory->getValue(BLDC_LEFT_MOTOR_PARAMETERSKNOWN, paramsKnown);
-            if(paramsKnown) {
+            if(paramsKnown) 
+            {
                 m_settingsFactory->getValue(BLDC_LEFT_MOTOR_ZEROELECANGLE, zeroElecAngle);
             }
             leftMotor = new BLDCTCodeMotor(
@@ -168,9 +171,9 @@ public:
                 pinMap->leftPwmChannel2(),
                 pinMap->leftPwmChannel3(),
                 pinMap->leftEnable(),
-                leftMotorAVoltage,
-                leftSupplyAVoltage,
-                leftMotorACurrent,
+                leftMotorVoltage,
+                leftSupplyVoltage,
+                leftMotorCurrent,
                 leftAngToPos, 
                 leftTopStartOffset, 
                 leftEndstopOffset,

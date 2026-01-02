@@ -148,7 +148,7 @@ class BLDCMotor {
             // userSettings[this.Names.BLDC_Range] = parseInt(document.getElementById(this.Names.BLDC_Range).value);
             Utils.toggleControlVisibilityByID(this.Names.ZeroElecAngle_Row, userSettings[this.Names.BLDC_Motor_ParametersKnown]);
             setRestartRequired();
-            updateUserSettings();
+            updateUserSettings(0);
         }, delay);
     }
 
@@ -166,7 +166,7 @@ class BLDCMotor {
                 pinoutSettings["BLDC_HallEffect_PIN"] = pinValues.BLDC_HallEffect_PIN;
                 updateCommonPins(pinValues);
                 setRestartRequired();
-                postPinoutSettings();
+                postPinoutSettings(0);
             }
         }, delay);
     }
@@ -189,10 +189,11 @@ class BLDCMotor {
         var assignedPins = [];
         var duplicatePins = [];
         var pwmErrors = [];
+        var invalidPins = [];
         var pinValues = this.getBLDCPinValues();
         if(userSettings["disablePinValidation"])
             return pinValues;
-        const name = this.name.length == 0 ? "Right" : this.name;
+        const name = isSSR2() && this.name.length == 0 ? "Right" : this.name;
         if(isModuleType(ModuleType.S3))
         {
             if(isBoardType(BoardType.ZERO)) {
@@ -219,21 +220,20 @@ class BLDCMotor {
             }
         }
         if(!isBLDCSPI())
-            validatePin(pinValues.BLDC_Encoder_PIN, name+" Encoder PIN", assignedPins, duplicatePins);
+            validatePin(pinValues.BLDC_Encoder_PIN, name+" Encoder PIN", assignedPins, duplicatePins, false, invalidPins);
         else
-            validatePin(pinValues.BLDC_ChipSelect_PIN, name+" Chip select", assignedPins, duplicatePins);
-        validatePin(pinValues.BLDC_Enable_PIN, name+" Enable", assignedPins, duplicatePins);
-        validatePWMPin(pinValues.BLDC_PWMchannel1_PIN, name+" PWMchannel1", assignedPins, duplicatePins, pwmErrors);
-        validatePWMPin(pinValues.BLDC_PWMchannel2_PIN, name+" PWMchannel2", assignedPins, duplicatePins, pwmErrors);
-        validatePWMPin(pinValues.BLDC_PWMchannel3_PIN, name+" PWMchannel3", assignedPins, duplicatePins, pwmErrors);
+            validatePin(pinValues.BLDC_ChipSelect_PIN, name+" Chip select", assignedPins, duplicatePins, false, invalidPins);
+        validatePin(pinValues.BLDC_Enable_PIN, name+" Enable", assignedPins, duplicatePins, false, invalidPins);
+        validatePWMPin(pinValues.BLDC_PWMchannel1_PIN, name+" PWMchannel1", assignedPins, duplicatePins, pwmErrors, invalidPins);
+        validatePWMPin(pinValues.BLDC_PWMchannel2_PIN, name+" PWMchannel2", assignedPins, duplicatePins, pwmErrors, invalidPins);
+        validatePWMPin(pinValues.BLDC_PWMchannel3_PIN, name+" PWMchannel3", assignedPins, duplicatePins, pwmErrors, invalidPins);
 
         if(userSettings["BLDC_UseHallSensor"]) {
-            validatePin(pinValues.BLDC_HallEffect_PIN, "Hall effect", assignedPins, duplicatePins);
+            validatePin(pinValues.BLDC_HallEffect_PIN, "Hall effect", assignedPins, duplicatePins, false, invalidPins);
         }
         
-        validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors);
+        validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors, invalidPins);
 
-        var invalidPins = [];
         validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues);
 
         if (duplicatePins.length || pwmErrors.length || invalidPins.length) {

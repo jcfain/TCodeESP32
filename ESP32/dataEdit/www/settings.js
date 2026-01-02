@@ -28,8 +28,6 @@ var motionProviderSettings = {};
 var buttonSettings = {};
 var channelsProfileSettings = {};
 var debounceTimeouts = {};
-var upDateTimeout;
-var upDatePinsTimeout;
 var restartRequired = false;
 var documentLoaded = false;
 var debugEnabled = true;
@@ -131,6 +129,7 @@ let validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33];
 let inputOnlypins = [34,35,36,39];
 let adc1Pins = [36,37,38,39,32,33,34,35];
 let adc2Pins = [4,0,2,15,13,12,14,27,25,26];
+let invalidPinsGlobal = [6, 7, 8, 9, 10, 11]; // ESP32 SPI flash https://randomnerdtutorials.com/esp32-pinout-reference-gpios/
 
 document.addEventListener("DOMContentLoaded", function() {
     onDocumentLoad();
@@ -308,11 +307,7 @@ function postCommonSettings(debounce, callback) {
 function postAndValidatePinoutSettings(debounce, callback) {
     if(!debounce || debounce < 0)
         debounce = 0;
-    if(upDatePinsTimeout) 
-    {
-        clearTimeout(upDatePinsTimeout);
-    }
-    upDatePinsTimeout = setTimeout(() => 
+    Utils.debounce("postAndValidatePinoutSettings", () => 
     {
         if(validatePins()) {
             updateUserSettings(0, EndPointType.Pins.uri, pinoutSettings, callback);
@@ -674,6 +669,8 @@ function onRestartClick(optionalMessage)
                         window.location.href = url;
                     }, 10000);
                     //startServerPoll(url);
+                } else {
+                    startServerPoll();
                 }
                 hideRestartRequired();
             } else {
@@ -727,28 +724,6 @@ function startServerPoll() {
     serverPollingTimeOut = setTimeout(function() {
         pingDevice();
     }, 2000);
-}
-function checkForServer() {
-    // if(serverPollingTimeOut) {
-    //     clearTimeout(serverPollingTimeOut);
-    //     serverPollingTimeOut = null;
-    // }
-    // if(serverPollRetryCount > 10) {
-    //     showLoading("Websocket timed out. Please refresh the page for full functionality.");
-    //     return;
-    // }
-    // if(isWebSocketConnected() && websocket.readyState !== WebSocket.CONNECTING) {
-    //     logdebug("Websocket closed retrying..");
-    //     initWebSocket();
-    //     serverPollRetryCount++;
-    //     serverPollingTimeOut = setTimeout(checkForServer, 2000);
-    // } else if(isWebSocketConnected()) {
-    //     logdebug("Websocket open..");
-    //     if(serverPollingTimeOut) {
-    //         clearTimeout(serverPollingTimeOut);
-    //         serverPollingTimeOut = null;
-    //     }
-    // }
 }
 
 function setSystemInfo() {
@@ -833,6 +808,7 @@ function setSystemInfo() {
     
     if(systemInfo["moduleType"] == ModuleType.S3) {
         validPWMpins = [];
+        invalidPins = []; // I dont know what pins can be used or not
         for(let i=1;i<44;i++) {
             validPWMpins.push(i);
         }
@@ -994,7 +970,7 @@ function setUserSettings()
                 rightMotor.ModalNode.show() 
             });
             rightBLDCNode.row.classList.add("BLDCOnly");
-            const siblingNode = document.getElementById("HallEffect");
+            const siblingNode = document.getElementById("EncoderType");
             siblingNode.insertAdjacentElement('afterend', rightBLDCNode.row);
         }
         if(userSettings.deviceType == DeviceType.SSR2)
@@ -1173,11 +1149,7 @@ function updateUserSettings(debounceInMs, uri, objectToSave, callback)
         if(!objectToSave) {
             objectToSave = userSettings;
         }
-        if(upDateTimeout !== null) 
-        {
-            clearTimeout(upDateTimeout);
-        }
-        upDateTimeout = setTimeout(() => 
+        Utils.debounce(uri, () => 
         {
             checkRestartRedirect();
             
@@ -1224,7 +1196,6 @@ function updateUserSettings(debounceInMs, uri, objectToSave, callback)
             xhr.setRequestHeader('Content-Type', 'application/json');
             var body = JSON.stringify(objectToSave);
             xhr.send(body);
-            upDateTimeout = null;
         }, debounceInMs);
     }
 }
@@ -1267,7 +1238,6 @@ function isValidIP(ip) {
 function isValidHostName(hostname) {
     return hostname && hostname.match(/^(?![0-9]+$)(?!.*-$)(?!-)[a-zA-Z0-9-_]{1,63}$/g)
 }
-updateAPModeSettings
 function showRestartRequired() {
     //document.getElementById('requiresRestart').hidden = false;
     document.getElementById('resetBtn').classList.add("restart-required");
@@ -1744,16 +1714,16 @@ function updateBLDCUseHallSensor() {
 function updateBLDCTwistMultiplier() {
     Utils.debounce("updateBLDCTwistMultiplier", () => {
         if(validateFloatControl("BLDC_TwistMultiplier", userSettings, "BLDC_TwistMultiplier")) {
-            updateUserSettings();
+            updateUserSettings(0);
         }
     }, defaultDebounce);
 }
 function updateBLDCSettings() {
-    Utils.debounce("updateBLDCSettingsGlobal", () => {
+    Utils.debounce("updateBLDCSettings", () => {
         if(validateIntControl("BLDC_RailLength", userSettings, "BLDC_RailLength") && 
             validateIntControl("BLDC_StrokeLength", userSettings, "BLDC_StrokeLength")) {
             setRestartRequired();
-            updateUserSettings();
+            updateUserSettings(0);
         }
     }, defaultDebounce);
 }
@@ -1910,11 +1880,7 @@ function updatePins()
             leftMotor.updateBLDCPins();
         return;
     }
-    if(upDateTimeout !== null) 
-    {
-        clearTimeout(upDateTimeout);
-    }
-    upDateTimeout = setTimeout(() => 
+    Utils.debounce("updatePins", () => 
     {
         var pinValues = validatePins();
         if(pinValues) {
@@ -2026,63 +1992,66 @@ function setElementsIntMinAndMax(minElement, maxElement) {
     minElement.setAttribute('max', parseInt(maxElement.value) - 1);
     maxElement.setAttribute('min', parseInt(minElement.value) + 1);
 }
-/** additionalValidations takes a parameter with the value */
-function validateIntControl(controlIDOrElement, settingsObject, settingVariableName, additionalValidations) {
-    var control = controlIDOrElement;
+
+/** Returns {valid: bool, control: HTLMNode | string, message: string} */
+function validateInput(controlIDOrElement) {
+    let control = controlIDOrElement;
     if(typeof controlIDOrElement === "string") {
         control = document.getElementById(controlIDOrElement);
     }
+    if(control.checkValidity()) {
+        return {valid: true, control: control, message: message};
+    }
+    var message = control.validationMessage;
+    if(!message) {
+        message = control.errorText;
+    }
+    return {valid: false, control: control, message: message};
+}
+
+/** additionalValidations takes a parameter with the value */
+function validateIntControl(controlIDOrElement, settingsObject, settingVariableName, additionalValidations) {
+    const validObj = validateInput(controlIDOrElement);
+    const control = validObj.control;
     clearErrors(control.id);
-    if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
+    if(additionalValidations && additionalValidations(control.value) || validObj.valid) {
         settingsObject[settingVariableName] = parseInt(control.value);
         return true;
     }
-    var message = control.validationMessage;
-    if(!message) {
-        message = control.errorText;
-    }
-    showError(`<div name="${control.id}"> ${control.id} is invalid: ${message ??  ""}</div>`);
+    showError(`<div name="${control.id}"> ${control.id} is invalid: ${validObj.message ??  ""}</div>`);
     return false;
 }
+
 /** additionalValidations takes a parameter with the value */
 function validateFloatControl(controlIDOrElement, settingsObject, settingVariableName, additionalValidations) {
-    var control = controlIDOrElement;
-    if(typeof controlIDOrElement === "string") {
-        control = document.getElementById(controlIDOrElement);
-    }
+    const validObj = validateInput(controlIDOrElement);
+    const control = validObj.control;
     clearErrors(control.id);
-    if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
+    if(additionalValidations && additionalValidations(control.value) || validObj.valid) {
         settingsObject[settingVariableName] = parseFloat(control.value);
         return true;
     }
-    var message = control.validationMessage;
-    if(!message) {
-        message = control.errorText;
-    }
-    showError(`<div name="${control.id}"> ${control.id} is invalid: ${message ??  ""}</div>`);
+    showError(`<div name="${control.id}"> ${control.id} is invalid: ${validObj.message ??  ""}</div>`);
     return false;
 }
 /** additionalValidations takes a parameter with the value */
 function validateStringControl(controlIDOrElement, settingsObject, settingVariableName, additionalValidations) {
-    var control = controlIDOrElement;
-    if(typeof controlIDOrElement === "string") {
-        control = document.getElementById(controlIDOrElement);
-    }
+    const validObj = validateInput(controlIDOrElement);
+    const control = validObj.control;
     clearErrors(control.id);
-    if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
+    if(additionalValidations && additionalValidations(control.value) || validObj.valid) {
         settingsObject[settingVariableName && settingVariableName.trim().length ? settingVariableName : controlID] = control.value;
         return true;
     }
-    var message = control.validationMessage;
-    if(!message) {
-        message = control.errorText;
-    }
-    showError(`<div name="${control.id}"> ${control.id} is invalid: ${message ??  ""}</div>`);
+    showError(`<div name="${control.id}"> ${control.id} is invalid: ${validObj.message ??  ""}</div>`);
     return false;
 }
 
 function validatePin(pin, pinName, assignedPins, duplicatePins, isInput, invalidPins) {
-    if(pin > -1) {
+    if(!Number.isInteger(pin) || pin < -1 || invalidPinsGlobal.indexOf(pin) > -1) {
+        invalidPins.push(pinName+" pin: "+pin);
+        return;
+    } else if(pin > -1) {
         let pinDupeIndex = assignedPins.findIndex(x => x.pin === pin);
         if(pinDupeIndex > -1) {
             duplicatePins.push(pinName+" pin and "+assignedPins[pinDupeIndex].name);
@@ -2093,9 +2062,12 @@ function validatePin(pin, pinName, assignedPins, duplicatePins, isInput, invalid
         assignedPins.push({name:pinName, pin:pin});
     }
 }
-function validatePWMPin(pin, pinName, assignedPins, duplicatePins, pwmErrors) {
-    if(pin > -1) {
-        validatePin(pin, pinName, assignedPins, duplicatePins)
+function validatePWMPin(pin, pinName, assignedPins, duplicatePins, pwmErrors, invalidPins) {
+    if(!Number.isInteger(pin) || pin < -1 || invalidPinsGlobal.indexOf(pin) > -1) {
+        invalidPins.push(pinName+" pin: "+pin);
+        return;
+    } else if(pin > -1) {
+        validatePin(pin, pinName, assignedPins, duplicatePins, false, invalidPins)
         if(validPWMpins.indexOf(pin) == -1)
             pwmErrors.push(pinName+" pin: "+pin);
     }
@@ -2124,24 +2096,24 @@ function validatePins() {
     var assignedPins = [];
     var duplicatePins = [];
     var pwmErrors = [];
+    var invalidPins = [];
     var pinValues = getServoPinValues();
     if(userSettings["disablePinValidation"])
         return pinValues;
 
-    validatePWMPin(pinValues.rightPin, "Right servo", assignedPins, duplicatePins, pwmErrors);
+    validatePWMPin(pinValues.rightPin, "Right servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
 
     // OSR / SR6
-    validatePWMPin(pinValues.leftPin, "Left servo", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.pitchLeft, "Pitch left servo", assignedPins, duplicatePins, pwmErrors);
+    validatePWMPin(pinValues.leftPin, "Left servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.pitchLeft, "Pitch left servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
 
     // SR6
-    validatePWMPin(pinValues.rightUpper, "Right upper servo", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.leftUpper, "Left upper servo", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.pitchRight, "Pitch right servo", assignedPins, duplicatePins, pwmErrors);
+    validatePWMPin(pinValues.rightUpper, "Right upper servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.leftUpper, "Left upper servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.pitchRight, "Pitch right servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
 
-    validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors);
+    validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors, invalidPins);
 
-    var invalidPins = [];
     validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues);
 
     if (duplicatePins.length || pwmErrors.length || invalidPins.length) {
@@ -2168,21 +2140,21 @@ function validatePins() {
 }
 
 
-function validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors) {
-    validatePWMPin(pinValues.twistServo, "Twist servo", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.squeezeServo, "Squeeze servo", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.valveServo, "Valve servo", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.vibe0, "Vibe 1", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.vibe1, "Vibe 2", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.vibe2, "Vibe 3", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.vibe3, "Vibe 4", assignedPins, duplicatePins, pwmErrors);
+function validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors, invalidPins) {
+    validatePWMPin(pinValues.twistServo, "Twist servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.squeezeServo, "Squeeze servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.valveServo, "Valve servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.vibe0, "Vibe 1", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.vibe1, "Vibe 2", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.vibe2, "Vibe 3", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.vibe3, "Vibe 4", assignedPins, duplicatePins, pwmErrors, invalidPins);
 
     if(userSettings.tempSleeveEnabled) {
-        validatePWMPin(pinValues.heat, "Heater", assignedPins, duplicatePins, pwmErrors);
+        validatePWMPin(pinValues.heat, "Heater", assignedPins, duplicatePins, pwmErrors, invalidPins);
     }
     
     if(userSettings.fanControlEnabled) {
-        validatePWMPin(pinValues.caseFanPin, "Case fan ", assignedPins, duplicatePins, pwmErrors);
+        validatePWMPin(pinValues.caseFanPin, "Case fan ", assignedPins, duplicatePins, pwmErrors, invalidPins);
     }
 }
 /** Does not show an error. Just returns true/false */
@@ -2204,8 +2176,8 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
         if(pinValues.i2cSda < 0) {
             invalidPins.push("I2C SDA pin: "+pinValues.i2cSda + " and I2C modules enabled: " + enabledValues.join(","));
         }
-        validatePin(pinValues.i2cSda, "I2C SDA", assignedPins, duplicatePins);
-        validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins);
+        validatePin(pinValues.i2cSda, "I2C SDA", assignedPins, duplicatePins, false, invalidPins);
+        validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins, false, invalidPins);
     } else if(isMotorType(MotorType.BLDC) && isBLDCSPI()) {
         if(pinValues.i2cScl < 0) {
             invalidPins.push("I2C SCL pin: "+pinValues.i2cScl);
@@ -2213,14 +2185,14 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
         if(pinValues.i2cSda < 0) {
             invalidPins.push("I2C SDA pin: "+pinValues.i2cSda);
         }
-        validatePin(pinValues.i2cSda, "I2C SDA", assignedPins, duplicatePins);
-        validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins);
+        validatePin(pinValues.i2cSda, "I2C SDA", assignedPins, duplicatePins, false, invalidPins);
+        validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins, false, invalidPins);
     }
     
     validatePin(pinValues.lubeButton, "Lube button", assignedPins, duplicatePins, true, invalidPins);
 
     if(userSettings.tempSleeveEnabled) {
-        validatePin(pinValues.temp, "Temp", assignedPins, duplicatePins, true, invalidPins);
+        validatePin(pinValues.temp, "Sleeve Temp", assignedPins, duplicatePins, true, invalidPins);
     }
     if(userSettings.tempInternalEnabled) {
         validatePin(pinValues.internalTemp, "Internal temp", assignedPins, duplicatePins, true, invalidPins);
@@ -2295,11 +2267,7 @@ function getCommonPinValues(pinValues) {
 
 function updateZeros() 
 {
-    if(upDateTimeout !== null) 
-    {
-        clearTimeout(upDateTimeout);
-    }
-    upDateTimeout = setTimeout(() => 
+    Utils.debounce("updateZeros", () => 
     {
         const maxZero = 2500;
         const minZero = 500;
@@ -2371,13 +2339,13 @@ function updateZeros()
             userSettings["PitchRightServo_ZERO"] = PitchRightServo_ZERO;
             userSettings["ValveServo_ZERO"] = ValveServo_ZERO;
             userSettings["TwistServo_ZERO"] = TwistServo_ZERO;
-            updateUserSettings();
+            updateUserSettings(0);
         }
         else
         {
             showError("<div name='zeroValidation'>Zeros NOT saved due to invalid input.<br><div style='margin-left: 25px;'>The values should be between "+minZero+" and "+maxZero+" for the following:<br><div style='color: white; margin-left: 25px;'>"+invalidValues.join("<br>")+"</div></div></div>");
         }
-    }, 2000);
+    }, defaultDebounce);
 }
 function updateLubeAmount()
 {
@@ -2424,7 +2392,10 @@ function setDisplayAddress() {
 function setTempSettings() {
     const enabled = document.getElementById('tempSleeveEnabled').checked;
     if(!userSettings["tempSleeveEnabled"] && enabled) 
-        validatePins();
+    {
+        if(!validatePins())
+            return;
+    }
     userSettings["tempSleeveEnabled"] = enabled;
     userSettings["TargetTemp"] = parseFloat(document.getElementById('TargetTemp').value);
     userSettings["HeatPWM"] = parseInt(document.getElementById('HeatPWM').value);
@@ -2437,7 +2408,13 @@ function setTempSettings() {
     updateUserSettings();
 }
 function setInternalTempSettings() {
-    userSettings["tempInternalEnabled"] = document.getElementById('tempInternalEnabled').checked;
+    const enabled = document.getElementById('tempInternalEnabled').checked;
+    if(!userSettings["tempInternalEnabled"] && enabled) 
+    {
+        if(!validatePins())
+            return;
+    }
+    userSettings["tempInternalEnabled"] = enabled;
     setRestartRequired();
     updateUserSettings();
 }
