@@ -204,11 +204,11 @@ public:
         // Determine the linear position of the receiver in (0-10000)
         if(m_motorPosition == BLDCMotorPosition::Right)
         {
-            motorPosition = (sensorAngle - zeroAngle)*angToPos; 
+            m_motorAnglePosition = (sensorAngle - zeroAngle)*angToPos; 
         }
         else if(m_motorPosition == BLDCMotorPosition::Left)
         {
-            motorPosition = -(sensorAngle - zeroAngle)*angToPos; 
+            m_motorAnglePosition = -(sensorAngle - zeroAngle)*angToPos; 
         }
         //LogHandler::verbose(_TAG, "zeroAngle: %f", zeroAngle);
         return true;
@@ -227,41 +227,45 @@ public:
         if (m_bootmode) 
         {
             // If using a hall sensor, roll upwards until the magnet triggers the hall effect sensor
-            if (m_useHallSensor && m_motorPosition == BLDCMotorPosition::Right) 
+            if (m_deviceType == DeviceType::SSR1) 
             {
-                //LogHandler::verbose(_TAG, "Hall senso millis()-startTime: %ld", millis()-startTime);
-                m_targetMotorPosition = map(millis()-startTime,0,2000,0,12000);
-                if (!digitalRead(m_hallSensorPin)) 
+                if (m_useHallSensor) 
                 {
-                    LogHandler::debug(m_TAG, "Set %s bootmode false read hall", m_name);
-                    m_bootmode = false;
-                    if(m_motorPosition == BLDCMotorPosition::Right)
-                        zeroAngle = sensorAngle - topStartOffset;
-                    else if(m_motorPosition == BLDCMotorPosition::Left) {
-                        //zeroAngle = sensorAngle + topStartOffset;
-                    }
-                } 
-                else if (millis() > (startTime + 2000)) 
-                {
-                    // Timeout after two seconds if sensor not triggered
-                    m_bootmode = false;
-                    LogHandler::debug(m_TAG, "Set %s bootmode false hall timeout", m_name);
-                    // zeroAngle = sensorAngle - topStartOffset - endStopOffset;
-                    if(m_motorPosition == BLDCMotorPosition::Right)
+                    //LogHandler::verbose(_TAG, "Hall senso millis()-startTime: %ld", millis()-startTime);
+                    m_targetMotorPosition = map(millis()-startTime,0,2000,0,12000);
+                    if (!digitalRead(m_hallSensorPin)) 
                     {
-                        zeroAngle = sensorAngle - (topStartOffset - endStopOffset);
-                    }
-                    else if(m_motorPosition == BLDCMotorPosition::Left)
+                        LogHandler::debug(m_TAG, "Set %s bootmode false read hall", m_name);
+                        m_bootmode = false;
+                        if(m_motorPosition == BLDCMotorPosition::Right)
+                            zeroAngle = sensorAngle - topStartOffset;
+                    } 
+                    else if (millis() > (startTime + 2000)) 
                     {
-                        // Im not sure about this hall effect...
-                        //zeroAngle = sensorAngle + (topStartOffset - endStopOffset);
+                        // Timeout after two seconds if sensor not triggered
+                        m_bootmode = false;
+                        LogHandler::debug(m_TAG, "Set %s bootmode false hall timeout", m_name);
+                        // zeroAngle = sensorAngle - topStartOffset - endStopOffset;
+                        if(m_motorPosition == BLDCMotorPosition::Right)
+                            zeroAngle = sensorAngle - (topStartOffset - endStopOffset);
                     }
                 }
+                else
+                {
+                    // Otherwise roll downwards for two seconds and press against bottom stop.
+                    // LogHandler::verbose(_TAG, "millis()-startTime: %ld", millis()-startTime);
+                    m_targetMotorPosition = map(millis()-startTime,0,2000,0,-12000);
+                    if (millis() > (startTime + 2000)) 
+                    {
+                        m_bootmode = false;
+                        LogHandler::debug(m_TAG, "Set %s bootmode false", m_name);
+                        if(m_motorPosition == BLDCMotorPosition::Right)
+                            zeroAngle = sensorAngle + endStopOffset;
+                    }
+                } 
             } 
-            else 
+            else if(m_deviceType == DeviceType::SSR2)
             {
-                // Otherwise roll downwards for two seconds and press against bottom stop.
-                // LogHandler::verbose(_TAG, "millis()-startTime: %ld", millis()-startTime);
                 m_targetMotorPosition = map(millis()-startTime,0,2000,0,-12000);
                 if (millis() > (startTime + 2000)) 
                 {
@@ -269,11 +273,11 @@ public:
                     LogHandler::debug(m_TAG, "Set %s bootmode false", m_name);
                     if(m_motorPosition == BLDCMotorPosition::Right)
                     {
-                        zeroAngle = sensorAngle + endStopOffset;
+                        zeroAngle = sensorAngle + topStartOffset;
                     }
                     else if(m_motorPosition == BLDCMotorPosition::Left)
                     {
-                        zeroAngle = sensorAngle - endStopOffset;
+                        zeroAngle = sensorAngle - topStartOffset;
                     }
                 }
             }   
@@ -307,13 +311,13 @@ public:
         float motorVoltageNew;
         if(m_motorPosition == BLDCMotorPosition::Right) 
         {
-            motorVoltageNew = P_CONST*(m_targetMotorPosition - motorPosition);
+            motorVoltageNew = P_CONST*(m_targetMotorPosition - m_motorAnglePosition);
             if (m_bootmode && motorVoltageNew < -0.5) 
                  motorVoltageNew = -0.5; 
         }
         else if(m_motorPosition == BLDCMotorPosition::Left)
         {
-            motorVoltageNew = -P_CONST*(m_targetMotorPosition - motorPosition);// Note the negative here
+            motorVoltageNew = -P_CONST*(m_targetMotorPosition - m_motorAnglePosition);// Note the negative here
             if (m_bootmode && motorVoltageNew > 0.5) 
                     motorVoltageNew = 0.5; 
         }
@@ -350,7 +354,7 @@ private:
     bool m_bootmode = true;
     float zeroAngle = 0.00;
     float sensorAngle = 0.00;
-    float motorPosition = 0.00;
+    float m_motorAnglePosition = 0.00;
     float m_targetMotorPosition = 0.00;
     unsigned long startTime = 0;
     float motorVoltage = 0.00;
@@ -387,7 +391,7 @@ private:
             if (currentMillis - previousMillis >= interval) 
             {
                 previousMillis = currentMillis;
-                LogHandler::verbose(m_TAG, "%s motor position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngle: %f \t angle: %f\n", m_name, motorPosition, motorVoltage, m_bootmode, zeroAngle, sensorAngle);
+                LogHandler::verbose(m_TAG, "%s motor position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngle: %f \t angle: %f\n", m_name, m_motorAnglePosition, motorVoltage, m_bootmode, zeroAngle, sensorAngle);
                 counter = 0;
             }
             counter++;

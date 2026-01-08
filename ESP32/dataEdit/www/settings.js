@@ -2632,6 +2632,7 @@ function toggleDeviceOptions(deviceType)
         Utils.toggleControlVisibilityByClassName('osrOnly', deviceType == DeviceType.OSR);
         Utils.toggleControlVisibilityByClassName('sr6Only', deviceType == DeviceType.SR6);
     } else {
+        Utils.toggleControlVisibilityByClassName('SSR1Only', deviceType == DeviceType.SSR1);
         Utils.toggleControlVisibilityByClassName('SSR2Only', deviceType == DeviceType.SSR2);
     }
 }

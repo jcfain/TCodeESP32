@@ -280,7 +280,7 @@
 								<select name="BLDC_Encoder" id="BLDC_Encoder" onchange="setEncoderType()"> </select>
 							</div>
 						</div>
-						<div class="tRow BLDCOnly hidden">
+						<div class="tRow BLDCOnly SSR1Only hidden ">
 							<div class="tCell">
 								<span title="Check this if you use a hall effect sensor">Use hall effect</span> 
 							</div>
@@ -288,7 +288,7 @@
 								<input id="BLDC_UseHallSensor" type="checkbox" name="encoder_type" onclick="updateBLDCUseHallSensor()"></input>
 							</div>
 						</div>
-						<div id="HallEffect" class="tRow BLDCOnly hidden">
+						<div id="HallEffect" class="tRow BLDCOnly SSR1Only hidden">
 							<div class="tCell">
 								<span>Hall effect PIN</span> 
 							</div>
@@ -395,7 +395,7 @@
 							</div>
 						</div>
 						-->
-						<div class="tRow BLDCOnly hidden">
+						<div class="tRow BLDCOnly SSR1Only hidden">
 							<div class="tCell">
 								<span>Rail length (mm)</span> 
 							</div>
@@ -403,7 +403,7 @@
 								<input id="BLDC_RailLength" type="number" min="0" max="2147483647" oninput="updateBLDCSettings()">
 							</div>
 						</div>
-						<div class="tRow BLDCOnly hidden">
+						<div class="tRow BLDCOnly SSR1Only hidden">
 							<div class="tCell">
 								<span>Stroke length (mm)</span> 
 							</div>

@@ -68,21 +68,34 @@ public:
     void setup() override {
         m_settingsFactory = SettingsFactory::getInstance();
         //PinMapInfo pinMapInfo = m_settingsFactory->getPins();
-        int pullyCircumference = -1;
-        m_settingsFactory->getValue(BLDC_PULLEY_CIRCUMFERENCE, pullyCircumference);
-        int strokeLength = -1;
-        m_settingsFactory->getValue(BLDC_STROKELENGTH, strokeLength);
-        int railLength = -1;
-        m_settingsFactory->getValue(BLDC_RAILLENGTH, railLength);
-        float rightAngToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
-        LogHandler::debug(_TAG, "rightAngToPos: %f", rightAngToPos);
-        float rightTopStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
-        LogHandler::debug(_TAG, "rightTopStartOffset: %f", rightTopStartOffset);
-        float rightEndstopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
-        LogHandler::debug(_TAG, "rightEndstopOffset: %f", rightEndstopOffset);
-
         m_deviceType = DeviceType::SSR1;
         m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
+        
+        float angToPos,topStartOffset,endstopOffset;
+        if(m_deviceType == DeviceType::SSR1)
+        {
+            int pullyCircumference = -1;
+            m_settingsFactory->getValue(BLDC_PULLEY_CIRCUMFERENCE, pullyCircumference);
+            int strokeLength = -1;
+            m_settingsFactory->getValue(BLDC_STROKELENGTH, strokeLength);
+            int railLength = -1;
+            m_settingsFactory->getValue(BLDC_RAILLENGTH, railLength);
+            angToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
+            LogHandler::debug(_TAG, "angToPos: %f", angToPos);
+            topStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
+            LogHandler::debug(_TAG, "topStartOffset: %f", topStartOffset);
+            endstopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
+            LogHandler::debug(_TAG, "endstopOffset: %f", endstopOffset);
+        }
+        else
+        {
+            angToPos = 530.516; // Number to convert a motor angle to a 0-10000 axis position
+            LogHandler::debug(_TAG, "angToPos: %f", angToPos);
+            topStartOffset = 2*3.14159*0.05; // Angle turned by pulley for a full stroke
+            LogHandler::debug(_TAG, "topStartOffset: %f", topStartOffset);
+            endstopOffset = 1;// Not used on SSR2 currently
+        }
+
         
         PinMapSSR* pinMap = PinMapSSR::getInstance();
 
@@ -119,9 +132,9 @@ public:
             rightMotorVoltage,
             rightSupplyVoltage,
             rightMotorCurrent,
-            rightAngToPos, 
-            rightTopStartOffset, 
-            rightEndstopOffset,
+            angToPos, 
+            topStartOffset, 
+            endstopOffset,
             paramsKnown,
             zeroElecAngle);
                 
@@ -135,12 +148,12 @@ public:
 
         if(m_deviceType == DeviceType::SSR2)
         {
-            float leftAngToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
-            LogHandler::debug(_TAG, "leftAngToPos: %f", rightAngToPos);
-            float leftTopStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
-            LogHandler::debug(_TAG, "leftTopStartOffset: %f", rightTopStartOffset);
-            float leftEndstopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
-            LogHandler::debug(_TAG, "leftEndstopOffset: %f", rightEndstopOffset);
+            // float leftAngToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
+            // LogHandler::debug(_TAG, "leftAngToPos: %f", leftAngToPos);
+            // float leftTopStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
+            // LogHandler::debug(_TAG, "leftTopStartOffset: %f", leftTopStartOffset);
+            // float leftEndstopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
+            // LogHandler::debug(_TAG, "leftEndstopOffset: %f", leftEndstopOffset);
 
             // Begin tracking encoder
             m_settingsFactory->getValue(BLDC_LEFT_ENCODER, encoderType);
@@ -174,9 +187,9 @@ public:
                 leftMotorVoltage,
                 leftSupplyVoltage,
                 leftMotorCurrent,
-                leftAngToPos, 
-                leftTopStartOffset, 
-                leftEndstopOffset,
+                angToPos, 
+                topStartOffset, 
+                endstopOffset,
                 paramsKnown,
                 zeroElecAngle);
 

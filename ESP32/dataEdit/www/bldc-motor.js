@@ -23,12 +23,14 @@ SOFTWARE. */
 class BLDCMotor {
     name = "";
     Names = {};
+    deviceType;
     ModalNode;
     ParentNode;
     initialized = false;
     initializedPins = false;
     constructor(deviceType, name = "") {
         this.name = name;
+        this.deviceType = deviceType;
         this.ModalNode = document.getElementById(this.name + "MotorSettings");
         if(!this.ModalNode)
         {
@@ -93,7 +95,10 @@ class BLDCMotor {
         // motorSettingsTable.appendChild(encoderNode.row);
         // // document.getElementById(this.Names.BLDC_Encoder).value = userSettings[this.Names.BLDC_Encoder];
         // this.createBLDCCheckboxFormNode(this.Names.BLDC_UseHallSensor, "Use hall sensor", userSettings[this.Names.BLDC_UseHallSensor], () => this.updateBLDCSettings(0));
-        this.createBLDCNumericFormNode(this.Names.BLDC_Pulley_Circumference, "Pulley Circumference (mm)", userSettings[this.Names.BLDC_Pulley_Circumference], () => this.updateBLDCSettings(), 0, 2147483647, 1);
+        if(this.deviceType == DeviceType.SSR1)
+        {
+            this.createBLDCNumericFormNode(this.Names.BLDC_Pulley_Circumference, "Pulley Circumference (mm)", userSettings[this.Names.BLDC_Pulley_Circumference], () => this.updateBLDCSettings(), 0, 2147483647, 1);
+        }
         this.createBLDCNumericFormNode(this.Names.BLDC_Motor_VoltageLimit, "Voltage limit (v)", userSettings[this.Names.BLDC_Motor_VoltageLimit], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.05);
         this.createBLDCNumericFormNode(this.Names.BLDC_Motor_SupplyVoltage, "Supply voltage (v)", userSettings[this.Names.BLDC_Motor_SupplyVoltage], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.05);
         this.createBLDCNumericFormNode(this.Names.BLDC_Motor_Current, "Motor current (a)", userSettings[this.Names.BLDC_Motor_Current], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.05);
@@ -228,7 +233,7 @@ class BLDCMotor {
         validatePWMPin(pinValues.BLDC_PWMchannel2_PIN, name+" PWMchannel2", assignedPins, duplicatePins, pwmErrors, invalidPins);
         validatePWMPin(pinValues.BLDC_PWMchannel3_PIN, name+" PWMchannel3", assignedPins, duplicatePins, pwmErrors, invalidPins);
 
-        if(userSettings["BLDC_UseHallSensor"]) {
+        if(userSettings["BLDC_UseHallSensor"] && this.deviceType == DeviceType.SSR1) {
             validatePin(pinValues.BLDC_HallEffect_PIN, "Hall effect", assignedPins, duplicatePins, false, invalidPins);
         }
         
