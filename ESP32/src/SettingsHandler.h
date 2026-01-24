@@ -65,7 +65,7 @@ public:
 
     static inline MotionProfile* motionProfiles;
     static inline ButtonSet* buttonSets;
-    
+
     // static bool staticIP;
     static char currentIP[IP_ADDRESS_LEN];
     static char currentGateway[IP_ADDRESS_LEN];
@@ -75,20 +75,20 @@ public:
 
     static bool apMode;
 
-    
+
     // template<typename T,
     //          typename = std::enable_if<!std::is_const<T>::value || std::is_integral<T>::value || std::is_enum<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
     // static void getValue(const char* name, T &value)
     // {
     //     m_settingsFactory->getValue(name, value);
     // }
-    
+
     // static void getValue(const char* name, char* value, size_t len)
     // {
     //     m_settingsFactory->getValue(name, value, len);
     // }
 
-    // static void defaultValue(const char* name) 
+    // static void defaultValue(const char* name)
     // {
     //     m_settingsFactory->defaultValue(name);
     // }
@@ -159,7 +159,7 @@ public:
 		restartRequired = delayInSec;
 	}
 
-    static void printWebAddress(const char* hostAddress) 
+    static void printWebAddress(const char* hostAddress)
     {
         char webServerportString[6];
         int webServerPort = 0;
@@ -167,20 +167,20 @@ public:
         sprintf(webServerportString, ":%d", webServerPort);
         LogHandler::info(_TAG, "Web address: http://%s%s", hostAddress, webServerPort == 80 ? "" : webServerportString);
     }
-    
-    static bool saveAll(JsonObject obj = JsonObject()) 
+
+    static bool saveAll(JsonObject obj = JsonObject())
     {
         if(!m_settingsFactory->saveAllToDisk(obj) || !saveMotionProfiles(obj) || !saveButtons(obj))
             return false;
         return true;
     }
-    
+
     static bool saveAll(const String& data)
     {
         LogHandler::debug(_TAG, "Save frome string");
         printFree();
         JsonDocument doc;
-    
+
         DeserializationError error = deserializeJson(doc, data);
         if (error)
         {
@@ -255,7 +255,7 @@ public:
         JsonObject logLevelVerbose = logLevels.add<JsonObject>();
         logLevelVerbose["name"] = "Verbose";
         logLevelVerbose["value"] = LogLevel::VERBOSE;
-        
+
         JsonArray tcodeVersions = doc["tcodeVersions"].to<JsonArray>();
         JsonObject v03 = tcodeVersions.add<JsonObject>();
         v03["name"] = "v0.3";
@@ -356,14 +356,14 @@ public:
         JsonObject defaultLoveDevice = bleLoveDevices.add<JsonObject>();
         defaultLoveDevice["name"] = "Edge";
         defaultLoveDevice["value"] = BLELoveDeviceType::EDGE;
-        
+
 
         JsonArray availableChannels = doc["availableChannels"].to<JsonArray>();
         channelMap.serialize(availableChannels);
         doc[MOTION_ENABLED] = getMotionEnabled();
         // int motionProfileSelectedIndex = MOTION_PROFILE_SELECTED_INDEX_DEFAULT;
         // m_settingsFactory->getValue(MOTION_PROFILE_SELECTED_INDEX, motionProfileSelectedIndex);
-        doc[MOTION_PROFILE_SELECTED_INDEX] = motionSelectedProfileIndex; 
+        doc[MOTION_PROFILE_SELECTED_INDEX] = motionSelectedProfileIndex;
 
         JsonArray availableTimers = doc["availableTimers"].to<JsonArray>();
         JsonArray timerChannels = doc["timerChannels"].to<JsonArray>();
@@ -424,7 +424,7 @@ public:
     static bool loadButtons(bool loadDefault, JsonObject json = JsonObject()) {
         LogHandler::info(_TAG, "Loading buttons");
         return loadSettingsJson(BUTTON_SETTINGS_PATH, loadDefault, m_buttonsMutex, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
-            
+
             // const bool bootButtonEnabled = SettingsHandler::getValue<const bool>(BOOT_BUTTON_ENABLED);
             // const bool buttonSetsEnabled = SettingsHandler::getValue<const bool>(BUTTON_SETS_ENABLED);;
             // const char* bootButtonCommand =  SettingsHandler::getValue<const char*>(BOOT_BUTTON_COMMAND);;
@@ -454,7 +454,7 @@ public:
                 for(int i = 0; i < MAX_BUTTON_SETS; i++) {
                     buttonSets[i] = ButtonSet();
                     buttonSets[i].pin = pinMap->buttonSetPin(i);
-                        
+
                     sprintf(buttonSets[i].name, "Button set %u", i+1);
                     LogHandler::debug(_TAG, "Default buttonset name: %s, index: %u, pin: %ld", buttonSets[i].name, i, buttonSets[i].pin);
                     for(int j = 0; j < MAX_BUTTONS; j++) {
@@ -465,7 +465,7 @@ public:
                     }
                 }
             } else {
-                std::vector<int> pins; 
+                std::vector<int> pins;
                 for(int i = 0; i < MAX_BUTTON_SETS; i++) {
                     auto set = ButtonSet();
                     set.fromJson(buttonSetsObj[i].as<JsonObject>());
@@ -479,10 +479,10 @@ public:
                 m_settingsFactory->setValue(BUTTON_SET_PINS, pins);
                 m_settingsFactory->savePins();
             }
-            
+
             if(initialized)
                 sendMessage(SettingProfile::Button, "analogButtonCommands");
-            
+
             return true;
         }, saveButtons, json);
     }
@@ -500,14 +500,14 @@ public:
 
             bool bootButtonEnabled = BOOT_BUTTON_ENABLED_DEFAULT;
             m_settingsFactory->getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
-            doc[BOOT_BUTTON_ENABLED] = bootButtonEnabled; 
+            doc[BOOT_BUTTON_ENABLED] = bootButtonEnabled;
             bool buttonSetsEnabled = BUTTON_SETS_ENABLED_DEFAULT;
             m_settingsFactory->getValue(BUTTON_SETS_ENABLED, buttonSetsEnabled);
             doc[BUTTON_SETS_ENABLED] = buttonSetsEnabled;
             // char bootButtonCommand[BOOT_BUTTON_COMMAND_LEN] = {0};
             // m_settingsFactory->getValue(BOOT_BUTTON_COMMAND, bootButtonCommand, BOOT_BUTTON_COMMAND_LEN);
             const char* bootButtonCommand = m_settingsFactory->getBootButtonCommand();
-            doc[BOOT_BUTTON_COMMAND] = bootButtonCommand; 
+            doc[BOOT_BUTTON_COMMAND] = bootButtonCommand;
             int buttonAnalogDebounce = BUTTON_ANALOG_DEBOUNCE_DEFAULT;
             m_settingsFactory->getValue(BUTTON_ANALOG_DEBOUNCE, buttonAnalogDebounce);
             doc[BUTTON_ANALOG_DEBOUNCE] = buttonAnalogDebounce;
@@ -518,7 +518,7 @@ public:
             {
                 //JsonObject obj;
                 doc["buttonSets"][i]["name"] = buttonSets[i].name;
-                
+
                 doc["buttonSets"][i]["pin"] = buttonSets[i].pin;
                 pins.push_back(buttonSets[i].pin);
                 doc["buttonSets"][i]["pullMode"] = (uint8_t)buttonSets[i].pullMode;
@@ -554,7 +554,7 @@ public:
             motionDefaultProfileIndex = json[MOTION_PROFILE_DEFAULT_INDEX] | MOTION_PROFILE_SELECTED_INDEX_DEFAULT;
             if(!initialized)
                 motionSelectedProfileIndex = motionDefaultProfileIndex;
-                
+
             JsonArray motionProfilesObj = json[MOTION_PROFILES].as<JsonArray>();
             if(motionProfilesObj.isNull()) {
                 LogHandler::info(_TAG, "No motion profiles stored, loading default");
@@ -645,7 +645,7 @@ public:
             saving = false;
             return false;
         }
-        
+
         xSemaphoreGive(m_motionMutex);
         saving = false;
         return true;
@@ -662,9 +662,9 @@ public:
 
         LogHandler::info(_TAG, "Loading channel profile");
         return loadSettingsJson(CHANNELS_SETTINGS_PATH, loadDefault, m_channelsMutex, [](const JsonObject json, bool& mutableLoadDefault) -> bool {
-                
+
             JsonArray channelProfileObj = json[CHANNEL_PROFILE].as<JsonArray>();
-            
+
             if(channelProfileObj.isNull()) {
                 LogHandler::info(_TAG, "No channel profile stored, loading default");
                 mutableLoadDefault = true;
@@ -722,7 +722,7 @@ public:
             saving = false;
             return false;
         }
-        
+
         xSemaphoreGive(m_channelsMutex);
         saving = false;
         return true;
@@ -732,7 +732,7 @@ public:
     {
         return motionProfiles[motionSelectedProfileIndex].channels;
     }
-    
+
     static bool getMotionEnabled()
     {
         return motionEnabled;
@@ -750,7 +750,7 @@ public:
         setValue(newValue, motionPaused, SettingProfile::MotionProfile, MOTION_PAUSED);
     }
 
-    static int getMotionDefaultProfileIndex() 
+    static int getMotionDefaultProfileIndex()
     {
         return motionDefaultProfileIndex;
     }
@@ -937,7 +937,7 @@ public:
         //m_settingsFactory->setValue(MOTION_PROFILE_SELECTED_INDEX, profileIndex);
         setValue(profileIndex, motionSelectedProfileIndex, SettingProfile::MotionProfile, MOTION_PROFILE_SELECTED_INDEX);
     }
-    
+
     static void cycleMotionProfile() {
         if(!getMotionEnabled()) {
             setMotionEnabled(true);
@@ -1064,7 +1064,7 @@ public:
         return true;
     }
 
-	static bool I2CScan() 
+	static bool I2CScan()
 	{
         systemI2CAddresses.clear();
 		byte error, address;
@@ -1080,14 +1080,14 @@ public:
             return false;
         }
 		Wire.begin(sdaPin, sclPin);
-		for(address = 1; address < 127; address++ ) 
+		for(address = 1; address < 127; address++ )
 		{
 			Wire.beginTransmission(address);
 			error = Wire.endTransmission();
-			if (error == 0) 
+			if (error == 0)
 			{
 				//Serial.print("I2C device found at address 0x");
-				// if (address<16) 
+				// if (address<16)
 				// {
 				// 	Serial.print("0");
 				// }
@@ -1096,7 +1096,7 @@ public:
                 // std::stringstream I2C_Address_String;
                 // I2C_Address_String << "0x" << std::hex << address;
                 // std::string foundAddress = I2C_Address_String.str();
-                
+
 				char buf[10];
 				hexToString(address, buf);
 				LogHandler::info(_TAG, "I2C device found at address %s, byte %ld", buf, address);
@@ -1104,10 +1104,10 @@ public:
 				systemI2CAddresses.push_back((int)address);
 				nDevices++;
 			}
-			else if (error==4) 
+			else if (error==4)
 			{
 				Serial.print("Unknow error at address 0x");
-				if (address<16) 
+				if (address<16)
 				{
 					Serial.print("0");
 				}
@@ -1116,7 +1116,7 @@ public:
                 // I2C_Address_String << "0x" << std::hex << address;
                 // std::string foundAddress = I2C_Address_String.str();
 				// LogHandler::error(_TAG, "Unknow error at address %s", foundAddress);
-			}    
+			}
 		}
 		if (nDevices == 0) {
 			LogHandler::info(_TAG, "No I2C devices found");
@@ -1124,13 +1124,13 @@ public:
 		}
 		return true;
 	}
-    
-    static Channel* getChannel(const char *name) 
+
+    static Channel* getChannel(const char *name)
     {
         return channelMap.get(name);
     }
 
-    static uint16_t getChannelMin(const char *name) 
+    static uint16_t getChannelMin(const char *name)
     {
         Channel* channelProfile = channelMap.get(name);
         if(!channelProfile)
@@ -1141,7 +1141,7 @@ public:
         return channelProfile->min;
     }
 
-    static uint16_t getChannelMax(const char *name) 
+    static uint16_t getChannelMax(const char *name)
     {
         Channel* channelProfile = channelMap.get(name);
         if(!channelProfile)
@@ -1152,7 +1152,7 @@ public:
         return channelProfile->max;
     }
 
-    static uint16_t getChannelUserMin(const char *name) 
+    static uint16_t getChannelUserMin(const char *name)
     {
         Channel* channelProfile = channelMap.get(name);
         if(!channelProfile)
@@ -1163,7 +1163,7 @@ public:
         return channelProfile->userMin;
     }
 
-    static uint16_t getChannelUserMax(const char *name) 
+    static uint16_t getChannelUserMax(const char *name)
     {
         Channel* channelProfile = channelMap.get(name);
         if(!channelProfile)
@@ -1174,7 +1174,7 @@ public:
         return channelProfile->userMax;
     }
 
-    static void setChannelMin(const char *name, uint16_t value) 
+    static void setChannelMin(const char *name, uint16_t value)
     {
         Channel* channelProfile = channelMap.get(name);
         if(!channelProfile)
@@ -1185,7 +1185,7 @@ public:
         channelProfile->userMin = value;
     }
 
-    static void setChannelMax(const char *name, uint16_t value) 
+    static void setChannelMax(const char *name, uint16_t value)
     {
         Channel* channelProfile = channelMap.get(name);
         if(!channelProfile)
@@ -1206,7 +1206,7 @@ public:
 
 private:
     static const char *_TAG;
-    
+
     static SettingsFactory* m_settingsFactory;
 	static SemaphoreHandle_t m_motionMutex;
     static SemaphoreHandle_t m_channelsMutex;
@@ -1225,7 +1225,7 @@ private:
     static int motionSelectedProfileIndex;
     static int motionDefaultProfileIndex;
     // static MotionProfile motionProfiles[maxMotionProfileCount];
-    
+
     // static bool voiceEnabled;
     // static bool voiceMuted;
     // static int voiceWakeTime ;
@@ -1275,7 +1275,7 @@ private:
 //             for (auto x : ChannelMapV3) {
 //                 currentChannels.push_back(x);
 //             }
-//         }  
+//         }
 // #endif
 
 
@@ -1287,7 +1287,7 @@ private:
 //             currentChannels[i].min = !min ? 1 : min;
 //             currentChannels[i].max = !max ? tcodeMax : max;
 //         }
-        
+
 //         sendMessage("channelRanges", "channelRanges");// TODO: channelranges should be in its own json
 
 //         udpServerPort = json["udpServerPort"] | 8000;
@@ -1327,7 +1327,7 @@ private:
 //         BLDC_StrokeLength = json["BLDC_StrokeLength"] | 120;
 
 //         setBoardPinout(json);
-        
+
 //         if(isBoardType(BoardType::CRIMZZON)) {
 //             heaterResolution = json["heaterResolution"] | 8;
 //             caseFanResolution = json["caseFanResolution"] | 10;
@@ -1407,7 +1407,7 @@ private:
 //             caseFanResolution = json["caseFanResolution"] | 10;
 //         }
 //         caseFanMaxDuty = pow(2, caseFanResolution) - 1;
-        
+
 //         lubeEnabled = json["lubeEnabled"];
 
 //         setValue(json, voiceEnabled, "voiceHandler", "voiceEnabled", false);
@@ -1455,7 +1455,7 @@ private:
 //         //  tags.push_back(TagHandler::BLDCHandler);
 //         //  tags.push_back(TagHandler::ServoHandler3);
 //         // LogHandler::setTags(tags);
-        
+
 //         for (size_t i = 0; i < currentChannels.size(); i++)
 //         {
 //             doc["channelRanges"][currentChannels[i].Name]["min"] = currentChannels[i].min;
@@ -1475,7 +1475,7 @@ private:
 //         }
 //         doc["fullBuild"] = fullBuild;
 //         doc["TCodeVersion"] = (int)TCodeVersionEnum;
-        
+
 //         doc["udpServerPort"] = udpServerPort;
 //         doc["webServerPort"] = webServerPort;
 //         doc["hostname"] = hostname;
@@ -1526,7 +1526,7 @@ private:
 //         doc["BLDC_MotorA_ZeroElecAngle"] = round2(BLDC_MotorA_ZeroElecAngle);
 //         doc["BLDC_RailLength"] = BLDC_RailLength;
 //         doc["BLDC_StrokeLength"] = BLDC_StrokeLength;
-        
+
 //         LogHandler::debug(_TAG, "save %s max: %f", "BLDC_MotorA_Voltage", doc["BLDC_MotorA_Current"].as<float>());
 
 //         doc["staticIP"] = staticIP;
@@ -1634,13 +1634,13 @@ private:
 //     }
 
     /// @brief Locks the mutex checks for an existing file and creates  it if it doesnt exist. Calls the callback function and gives the mutex.
-    /// @param filepath 
-    /// @param mutableLoadDefault 
-    /// @param mutex 
-    /// @param jsonSize 
-    /// @param loadFunction 
-    /// @param json 
-    /// @return 
+    /// @param filepath
+    /// @param mutableLoadDefault
+    /// @param mutex
+    /// @param jsonSize
+    /// @param loadFunction
+    /// @param json
+    /// @return
     static bool loadSettingsJson(const char* filepath, bool loadDefault, SemaphoreHandle_t& mutex, std::function<bool(const JsonObject, bool& mutableLoadDefault)> loadFunction, std::function<bool(JsonObject)> saveFunction, JsonObject json = JsonObject()) {
         JsonDocument doc; //jsonSize
         bool mutableLoadDefault = loadDefault;
@@ -1663,12 +1663,12 @@ private:
     }
 
     /// @brief Locks the mutex and validates the file exists. calls the calback and serializes the data in a file to disk. Releases the mutex.
-    /// @param filepath 
-    /// @param mutex 
-    /// @param jsonSize 
-    /// @param saveFunction 
-    /// @param json 
-    /// @return 
+    /// @param filepath
+    /// @param mutex
+    /// @param jsonSize
+    /// @param saveFunction
+    /// @param json
+    /// @return
     static bool saveSettingsJson(const char* filepath, SemaphoreHandle_t& mutex, int jsonSize, std::function<bool(JsonDocument&)> saveFunction, std::function<bool(bool, JsonObject)> loadFunction, JsonObject json = JsonObject()) {
         saving = true;
 		xSemaphoreTake(mutex, portMAX_DELAY);
@@ -1800,7 +1800,7 @@ private:
     }
 //     /** If the parameter json is ommited or the pin value doesnt exist on the object then the pins are set to default. */
 //     static void setBoardPinout(JsonObject json = JsonObject()) {
-    
+
 // #if MOTOR_TYPE == 0
 //     if(isBoardType(BoardType::ISAAC)) {
 //         // RightServo_PIN = 2;
@@ -1885,7 +1885,7 @@ private:
 //             Vibe3_PIN = json["Vibe3_PIN"] | 32;
 //         }
 //     }
-// #elif MOTOR_TYPE == 1 
+// #elif MOTOR_TYPE == 1
 //         // BLDC motor
 //         BLDC_Encoder_PIN = json["BLDC_Encoder_PIN"] | 33;
 //         BLDC_ChipSelect_PIN = json["BLDC_ChipSelect_PIN"] | 5;
@@ -2000,7 +2000,7 @@ private:
         setValue(newValue, variable, profile, propertyName);
     }
 
-    template<size_t n> 
+    template<size_t n>
     static void setValue(JsonObject json, char (&variable)[n], const SettingProfile &profile, const char *propertyName, const char *defaultValue)
     {
         const char *newValue = json[propertyName] | defaultValue;
@@ -2067,8 +2067,8 @@ private:
         if (valueChanged)
             sendMessage(profile, propertyName);
     }
-    
-    template<size_t n> 
+
+    template<size_t n>
     static void setValue(const char *newValue, char (&variable)[n], const SettingProfile &profile, const char *propertyName)
     {
         bool valueChanged = initialized && strcmp(variable, newValue) != -1;
@@ -2439,7 +2439,7 @@ char SettingsHandler::currentDns2[IP_ADDRESS_LEN] = DNS2_DEFAULT;
 // bool SettingsHandler::BLDC_UseHallSensor = false;
 // int SettingsHandler::BLDC_Pulley_Circumference = 60;
 // int SettingsHandler::BLDC_Encoder_PIN = 33;// PWM feedback pin (if used) - P pad on AS5048a
-// int SettingsHandler::BLDC_Enable_PIN = 14;// Motor enable - EN on SFOCMini   
+// int SettingsHandler::BLDC_Enable_PIN = 14;// Motor enable - EN on SFOCMini
 // int SettingsHandler::BLDC_HallEffect_PIN = 12;
 // int SettingsHandler::BLDC_PWMchannel1_PIN = 27;
 // int SettingsHandler::BLDC_PWMchannel2_PIN = 26;

@@ -4,7 +4,6 @@
 #include <vector>
 #include "TCodeBaseV4.h"
 #include "TagHandler.h"
-#include "OutputStream.h"
 #include "EventHandler.h"
 
 
@@ -17,7 +16,6 @@ public:
 		firmwareID = firmware;
 
 		// #ESP32# Enable EEPROM
-		m_tcode.setOutputStream(&m_outputStream);
 		m_tcode.registerEventObserver(&m_eventHandler);
 
 		// m_tcode.registerInterface(&button);
@@ -52,11 +50,11 @@ public:
 	void setAxisData(TCodeAxis* channel, const AxisData &data) override {
 		m_tcode.setAxisData(channel->getId(), data);
 	}
-	void setAxisData(TCodeAxis* channel, 
-						const float value, 
-						const AxisExtentionType extentionType, 
-						const unsigned long commandExtension, 
-						AxisRampData rampIn, 
+	void setAxisData(TCodeAxis* channel,
+						const float value,
+						const AxisExtentionType extentionType,
+						const unsigned long commandExtension,
+						AxisRampData rampIn,
 						AxisRampData rampOut) override
 	{
 		AxisData data = {
@@ -74,7 +72,7 @@ public:
 		m_eventHandler.registerOnNotify(f);
 		TCodeBaseV4::setMessageCallback(f);
 	}
-	
+
     virtual void setAxisData(TCodeAxis* channel, const float value, const AxisExtentionType extentionType, const unsigned long commandExtension) {
 		AxisData data = {
 			value,
@@ -117,7 +115,6 @@ protected:
 	EventHandler m_eventHandler;
 private:
 	const char *_TAG = TagHandler::TCodeHandler;
-	OutputStream m_outputStream;
 	const char *firmwareID;
 	const static int m_axisCount = 11;
 	TCodeManager m_tcode;
@@ -158,10 +155,10 @@ private:
 	// AxisExtentionType toExtensionType(const char &extension) {
 	// 	if(extension == 'S') {
 	// 		return AxisExtentionType::Speed;
-	// 	} 
+	// 	}
 	// 	if(extension == 'I') {
 	// 		return AxisExtentionType::Time;
-	// 	} 
+	// 	}
 	// 	return AxisExtentionType::None;
 	// }
 };
