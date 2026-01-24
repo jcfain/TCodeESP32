@@ -30,7 +30,7 @@ SOFTWARE. */
 
 using VOICE_COMMAND_FUNCTION_PTR_T = void (*)(const char* tcodeCommand);
 
-class VoiceHandler {
+class VoiceHandler : public Task {
     
 public:
     bool setup() {
@@ -46,7 +46,7 @@ public:
                 return false;
             }
             tries++;
-            delay(1000);
+            this->wait(1000);
         }
         _isConnected = true;
         LogHandler::info(_TAG, "Begin ok!");
@@ -124,13 +124,8 @@ private:
         @brief Get the ID corresponding to the command word 
         @return Return the obtained command word ID, returning 0 means no valid ID is obtained
     */
-		_isRunning = true;
-		LogHandler::debug(_TAG, "Voice task cpu core: %u", xPortGetCoreID());
-        TickType_t pxPreviousWakeTime = millis();
-		while(_isRunning) {
             toTCode(asr.getCMDID());
-            xTaskDelayUntil(&pxPreviousWakeTime, 1000/portTICK_PERIOD_MS);
-        }
+            this->sleep(1000);
     }
 
     void toTCode(uint8_t voiceCommand) {

@@ -30,6 +30,8 @@ SOFTWARE. */
 #include "SettingsHandler.h"
 // #include "LogHandler.h"
 #include "TagHandler.h"
+#include "TaskHandler.h"
+#include "MessageHandler.h"
 
 enum class TemperatureType {
 	INTERNAL,
@@ -68,10 +70,7 @@ const char* TemperatureState::HEAT = "Heating";
 const char* TemperatureState::COOLING = "Cooling";
 const char* TemperatureState::OFF = "Off";
 
-using TEMP_CHANGE_FUNCTION_PTR_T = void (*)(TemperatureType type, const char* message, float temp);
-using STATE_CHANGE_FUNCTION_PTR_T = void (*)(TemperatureType type, const char* state);
-
-class TemperatureHandler {
+class TemperatureHandler : public Task {
 	
 public: 
 	void setup(bool internalTempEnabled,
@@ -191,48 +190,13 @@ public:
 		fanControlInitialized = true;
 	}
 
-	static void startLoop(void * parameter) {
-		((TemperatureHandler*)parameter)->loop();
-	}
-
 	void loop() {
-		_isRunning = true;
-		LogHandler::debug(_TAG, "Temp task cpu core: %u", xPortGetCoreID());
-		lastSleeveTempRequest = millis(); 
-        TickType_t pxPreviousWakeTime = millis();
-		while(_isRunning)
-		{
-			getInternalTemp();
-			getSleeveTemp();
-			chackFailSafe();
-
-            xTaskDelayUntil(&pxPreviousWakeTime, 5000/portTICK_PERIOD_MS);
-			// Serial.print("uxTaskGetStackHighWaterMark: ");
-			// Serial.println(uxTaskGetStackHighWaterMark(NULL) *4);
-			// Serial.print("xPortGetFreeHeapSize: ");
-			// Serial.println(xPortGetFreeHeapSize());
-		}
-		
-		LogHandler::debug(_TAG, "Temp task exit");
-  		vTaskDelete( NULL );
+		getInternalTemp();
+		getSleeveTemp();
+		chackFailSafe();
+		this->sleep(5000);
 	}
 	
-	void setMessageCallback(TEMP_CHANGE_FUNCTION_PTR_T f) // Sets the callback function used by TCode
-	{
-		if (f == nullptr) {
-			message_callback = 0;
-		} else {
-			message_callback = f;
-		}
-	}
-	void setStateChangeCallback(STATE_CHANGE_FUNCTION_PTR_T f) // Sets the callback function used by TCode
-	{
-		if (f == nullptr) {
-			state_change_callback = 0;
-		} else {
-			state_change_callback = f;
-		}
-	}
 	bool isMaxTempTriggered() {
 		return maxTempTriggerInternal;
 	}
@@ -286,8 +250,12 @@ public:
 			LogHandler::verbose(_TAG, "sleeve getTempC duration: %d", micros() - start);
 
 			String statusJson("{\"temp\":\"" + String(_currentSleeveTemp) + "\", \"status\":\""+m_lastSleeveStatus+"\"}");
-			if(tempChanged && message_callback) {
-				message_callback(TemperatureType::SLEEVE, statusJson.c_str(), _currentSleeveTemp);
+			if(tempChanged) {
+				Messages::message_t m = {
+					.message = statusJson.c_str();
+					.data_f = _currentSleeveTemp
+				};
+				Messages::MessageHandler::getInstance()->send(m)
 			}
 			requestSleeveTemp();
 		}
@@ -433,6 +401,8 @@ public:
 						if(!targetSleeveTempReached) {
 							targetSleeveTempReached = true;
 							String* command = new String("tempReached");
+							auto msgs = Messages::MessageHandler::getInstance();
+							msgs->send()
 							if(message_callback)
 								message_callback(TemperatureType::SLEEVE, "tempReached", _currentSleeveTemp);
 						}

@@ -72,9 +72,9 @@
 
 // class PinMapInfo {
 // public:
-//     PinMapInfo(DeviceType deviceType, BoardType boardType, PinMap* pinMap): 
-//         m_deviceType(deviceType), 
-//         m_boardType(boardType), 
+//     PinMapInfo(DeviceType deviceType, BoardType boardType, PinMap* pinMap):
+//         m_deviceType(deviceType),
+//         m_boardType(boardType),
 //         m_pinMap(pinMap) { }
 
 //     DeviceType deviceType() {
@@ -88,7 +88,7 @@
 //     template<typename T, typename = std::enable_if<std::is_base_of<PinMap, T>::value>>
 //     const T pinMap() {
 //         return static_cast<const T>(m_pinMap);
-//     }  
+//     }
 //     const PinMap* pinMap() {
 //         return m_pinMap;
 //     }
@@ -102,7 +102,7 @@ class PinMap {
 public:
     PinMap(PinMap const&) = delete;
     void operator=(PinMap const&) = delete;
-    
+
     DeviceType deviceType() { return m_deviceType; }
     void setDeviceType(DeviceType deviceType) {  m_deviceType = deviceType; }
     BoardType boardType() { return m_boardType; }
@@ -169,13 +169,13 @@ public:
     void setSleeveTemp(const int8_t &sleeveTemp) { m_sleeveTemp = sleeveTemp; }
 
     int8_t buttonSetPin(int8_t index) const { return m_buttonSetPins[index]; }
-    void setButtonSetPin(const int8_t pin, int8_t index) { 
+    void setButtonSetPin(const int8_t pin, int8_t index) {
         if(index >= MAX_BUTTON_SETS)
         {
             LogHandler::error("Pin_map", "Invalid index for button set %d", index);
             return;
         }
-        m_buttonSetPins[index] = pin; 
+        m_buttonSetPins[index] = pin;
     }
 
     int8_t i2cSda() const { return m_i2cSda; }
@@ -243,43 +243,43 @@ protected:
     ESPTimer m_timers[MAX_TIMERS] = {
 #if CONFIG_IDF_TARGET_ESP32
         { ESP_H_TIMER0_FREQUENCY, "High 0", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High 0 CH0", ESPTimerChannelNum::HIGH0_CH0}, 
+                {"High 0 CH0", ESPTimerChannelNum::HIGH0_CH0},
                 {"High 0 CH1", ESPTimerChannelNum::HIGH0_CH1}
             }
         },
         { ESP_H_TIMER1_FREQUENCY, "High 1", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High 1 CH2", ESPTimerChannelNum::HIGH1_CH2}, 
+                {"High 1 CH2", ESPTimerChannelNum::HIGH1_CH2},
                 {"High 1 CH3", ESPTimerChannelNum::HIGH1_CH3}
             }
         },
         { ESP_H_TIMER2_FREQUENCY, "High 2", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High 2 CH4", ESPTimerChannelNum::HIGH2_CH4}, 
+                {"High 2 CH4", ESPTimerChannelNum::HIGH2_CH4},
                 {"High 2 CH5", ESPTimerChannelNum::HIGH2_CH5}
             }
         },
         { ESP_H_TIMER3_FREQUENCY, "High 3", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High 3 CH6", ESPTimerChannelNum::HIGH3_CH6}, 
+                {"High 3 CH6", ESPTimerChannelNum::HIGH3_CH6},
                 {"High 3 CH7", ESPTimerChannelNum::HIGH3_CH7}
             }
         },
 #endif
         { ESP_L_TIMER0_FREQUENCY, "Low 0", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 0 CH0", ESPTimerChannelNum::LOW0_CH0}, 
+                {"Low 0 CH0", ESPTimerChannelNum::LOW0_CH0},
                 {"Low 0 CH1", ESPTimerChannelNum::LOW0_CH1}
             }
         },
         { ESP_L_TIMER1_FREQUENCY, "Low 1", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 1 CH2", ESPTimerChannelNum::LOW1_CH2}, 
+                {"Low 1 CH2", ESPTimerChannelNum::LOW1_CH2},
                 {"Low 1 CH3", ESPTimerChannelNum::LOW1_CH3}
             }
         },
         { ESP_L_TIMER2_FREQUENCY, "Low 2", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 2 CH4", ESPTimerChannelNum::LOW2_CH4}, 
+                {"Low 2 CH4", ESPTimerChannelNum::LOW2_CH4},
                 {"Low 2 CH5", ESPTimerChannelNum::LOW2_CH5}
             }
         },
         { ESP_L_TIMER3_FREQUENCY, "Low 3", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 3 CH6", ESPTimerChannelNum::LOW3_CH6}, 
+                {"Low 3 CH6", ESPTimerChannelNum::LOW3_CH6},
                 {"Low 3 CH7", ESPTimerChannelNum::LOW3_CH7}
             }
         }
@@ -287,13 +287,13 @@ protected:
 
     // void setCommonTimers() {
     //     m_timers.timerH3 = {
-    //         ESP_TIMER_FREQUENCY_DEFAULT, 
+    //         ESP_TIMER_FREQUENCY_DEFAULT,
     //         {
-    //             {SQUEEZE_PIN, SqueezeServo_PWM, squeeze()}, 
+    //             {SQUEEZE_PIN, SqueezeServo_PWM, squeeze()},
     //             {TWIST_SERVO_PIN, TwistServo_PWM, twist()}
     //         }
     //     };
- 
+
     // }
 private:
     // PWM
@@ -364,7 +364,7 @@ public:
 
     int8_t pwmChannel3() const { return m_pwmChannel3; }
     void setPwmChannel3(const int8_t &pwmChannel3) { m_pwmChannel3 = pwmChannel3; }
-protected: 
+protected:
     PinMapSSR1(DeviceType deviceType, BoardType boardType) : PinMap(deviceType, boardType) {}
 private:
     int8_t m_encoder = BLDC_ENCODER_PIN_DEFAULT;
@@ -400,7 +400,7 @@ public:
     int8_t pitchLeftChannel() const { return m_pitchLeftChannel; }
     void setPitchLeftChannel(const int8_t &pitchLeftChannel) { m_pitchLeftChannel = pitchLeftChannel; }
 
-protected: 
+protected:
     PinMapOSR(DeviceType deviceType, BoardType boardType) : PinMap(deviceType, boardType) {}
 private:
     int8_t m_pitchLeft = PITCH_LEFT_SERVO_PIN_DEFAULT;
@@ -467,7 +467,7 @@ public:
     int8_t leftUpperServoChannel() const { return m_leftUpperServoChannel; }
     void setLeftUpperServoChannel(const int8_t &channel) { m_leftUpperServoChannel = channel; }
 
-protected: 
+protected:
     PinMapSR6(DeviceType deviceType, BoardType boardType) : PinMapOSR(deviceType, boardType) {}
 private:
     int8_t m_pitchRight = PITCH_RIGHTSERVO_PIN_DEFAULT;
@@ -511,7 +511,7 @@ public:
         // // Vibe3_PIN = json["Vibe3_PIN"] | 32;
         setHeater(5);
     }
-protected: 
+protected:
     PinMapINControl(DeviceType deviceType, BoardType boardType) : PinMapSR6(deviceType, boardType) {}
 };
 
@@ -540,7 +540,7 @@ public:
         // caseFanFrequency = json["caseFanFrequency"] | 25;
         // Display_Screen_Height = json["Display_Screen_Height"] | 32;
     }
-protected: 
+protected:
     PinMapSR6MB(DeviceType deviceType, BoardType boardType) : PinMapSR6(deviceType, boardType) {}
 };
 
@@ -575,6 +575,34 @@ class PinMapSSR1PCB : public PinMapSSR1 {
             setHeater(-1);
             setTwistFeedBack(-1);
         }
-    protected: 
+    protected:
         PinMapSSR1PCB(DeviceType deviceType, BoardType boardType) : PinMapSSR1(deviceType, boardType) {}
+};
+
+class PinMapSR6PCB : PinMapSR6 {
+    public:
+        static PinMapSR6PCB* getInstance()
+        {
+            static PinMapSR6PCB instance(DeviceType::SR6, BoardType::N8R8);
+            return &instance;
+        }
+        void overideDefaults() override {
+            setI2cSda(22);
+            setI2cScl(21);
+
+            setValve(-1);
+            setTwist(-1);
+            setSqueeze(-1);
+            setVibe0(-1);
+            setVibe1(-1);
+            setVibe2(-1);
+            setVibe3(-1);
+            setSleeveTemp(-1);
+            setInternalTemp(-1);
+            setCaseFan(-1);
+            setHeater(-1);
+            setTwistFeedBack(-1);
+        }
+    protected:
+        PinMapSR6PCB(DeviceType deviceType, BoardType boardType) : PinMapSR6(deviceType, boardType) {}
 };

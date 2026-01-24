@@ -22,43 +22,51 @@ SOFTWARE. */
 
 #pragma once
 #include <vector>
+#include <map>
 
-class TagHandler {
-    public:
-    static const char* Main;
-    static const char* MainLoop;
-    static const char* DisplayHandler;
-    static const char* TemperatureHandler;
-    static const char* BatteryHandler;
-    static const char* SettingsHandler;
-    static const char* WifiHandler;
-    static const char* UdpHandler;
-    static const char* WebsocketsHandler;
-    static const char* WebHandler;
-    static const char* WebsocketBase;
-    static const char* SecureWebsocketsHandler;
-    static const char* SecureWebsocketClient;
-    static const char* HTTPSHandler;
-    static const char* SystemCommandHandler;
-    static const char* BLEHandler;
-    static const char* BLEConfigurationHandler;
-    static const char* BluetoothHandler;
-    static const char* ServoHandler;
-    static const char* TCodeHandler;
-    static const char* BLDCHandler;
-    static const char* ToyHandler;
-    static const char* MotorHandler;
-    static const char* MotionHandler;
-    static const char* VoiceHandler;
-    static const char* ButtonHandler;
-    static const char* MdnsHandler;
-    static const char* SettingsFactory;
+using tag_t = uint32_t;
+#define MASK(i) (1 << i)
 
-    static const std::vector<const char *> AvailableTags;
-    static bool HasTag(const char*);
+enum Tag : uint32_t {
+    MAIN = 0x01,
+    DISPLAY = 0x02,
+    TEMPERATURE = 0x04,
+    BATTERY = 0x08,
+    SETTINGS = 0x10,
+    WIFI = 0x20,
+    UDP = 0x40,
+    WEBSOCKETS_SERVER = 0x80,
+    WEBSOCKET_BASE = 0x100,
+    SECURE_WEBSOCKET_SERVER = 0x200,
+    SECURE_WEBSOCKET_CLIENT = 0x400,
+    HTTPS = 0x800,
+    WEB = 0x1000,
+    SYSTEM_COMMAND = 0x2000,
+    BLE = 0x4000,
+    BLE_CONFIGURATION = 0x8000,
+    BLUETOOTH = 0x10000,
+    SERVO = 0x20000,
+    TCODE = 0x40000,
+    MOTOR = 0x80000,
+    MOTION = 0x100000,
+    VOICE = 0x200000,
+    BUTTON = 0x400000,
+    MDNS = 0x800000,
+    SETTINGS_FACTORY = 0x1000000,
 };
 
-const char* TagHandler::Main = "main";
+std::map
+
+const uint32_t ALL_TAGS = 0xFFFFFFFF;
+
+class TagHandler {
+    protected:
+        static const std::map<tag_t, const char*> _tag_names;
+    public:
+    TagHandler() :
+    _tags = {
+        {MASK(1), "main"},
+        {MASK()}
 const char* TagHandler::MainLoop = "main-loop";
 const char* TagHandler::DisplayHandler = "display-handler";
 const char* TagHandler::TemperatureHandler = "temperature-handler";
@@ -85,7 +93,12 @@ const char* TagHandler::MotionHandler = "motion-handler";
 const char* TagHandler::VoiceHandler = "voice-handler";
 const char* TagHandler::ButtonHandler = "button-handler";
 const char* TagHandler::MdnsHandler = "mdns-handler";
-const char* TagHandler::SettingsFactory = "settings-factory";
+const char* TagHandler::SettingsFactory = "settings-factory";}
+    }
+    static const std::map<tag_t, const char *> tags;
+    static bool HasTag(const char*);
+};
+
 
 
 const std::vector<const char *> TagHandler::AvailableTags = {

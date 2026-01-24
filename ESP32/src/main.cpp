@@ -100,25 +100,19 @@ SOFTWARE. */
 #endif
 #endif
 
+#include "TaskHandler.h"
+
 #include "BatteryHandler.h"
 #include "MotionHandler.hpp"
 #include "VoiceHandler.hpp"
 #include "ButtonHandler.hpp"
 
+TaskManager taskManager;
 TickType_t pxPreviousWakeTime = millis();
 SystemCommandHandler *systemCommandHandler;
-SettingsFactory *settingsFactory;
 // BLEConfigurationHandler* bleConfigurationHandler;
 // TcpHandler tcpHandler;
-MotorHandler *motorHandler;
-BatteryHandler *batteryHandler;
-TaskHandle_t batteryTask;
-TaskHandle_t httpsTask;
-
-MotionHandler motionHandler;
-VoiceHandler *voiceHandler;
 ButtonHandler *buttonHandler = 0;
-TaskHandle_t voiceTask;
 #if BLUETOOTH_TCODE
 BluetoothHandler *btHandler = 0;
 #endif
@@ -258,17 +252,7 @@ void TCodePassthroughCommandCallback(const char *in)
 			Serial.println(temp);
 	}
 }
-void profileChangeCallback(uint8_t profile)
-{
-}
-void logCallBack(const char *input, size_t length, LogLevel level)
-{
-#if WIFI_TCODE
-	// if(webSocketHandler) {
-	// 	webSocketHandler->sendDebug(in, level);
-	// }
-#endif
-}
+
 #if BUILD_TEMP
 void tempChangeCallBack(TemperatureType type, const char *message, float temp)
 {
@@ -497,11 +481,11 @@ void wifiStatusCallBack(WiFiStatus status, WiFiReason reason)
 			// 	bleConfigurationHandler->setup();
 			// #endif
 		}
-	} 
-	else if(status == WiFiStatus::IP) 
+	}
+	else if(status == WiFiStatus::IP)
 	{
 #if BUILD_DISPLAY
-		if(displayHandler) 
+		if(displayHandler)
 		{
 			String ipaddress = wifi.ip().toString();
 			displayPrint("Connected IP: " + ipaddress);
@@ -621,14 +605,14 @@ void settingChangeCallback(const SettingProfile &profile, const char *settingTha
 		}
 	}
 	else if (profile == SettingProfile::ChannelRanges)
-	{ 
+	{
 		if (strcmp(settingThatChanged, CHANNEL_PROFILE) == 0) {
 			// TODO add channe; specific updates when moving to its own save...maybe...
 			motionHandler.updateChannelRanges();
 		} else if (strcmp(settingThatChanged, "channelRangesEnabled") == 0) {
 			webSocketHandler->sendCommand("channelRangesEnabled", SettingsHandler::getChannelRangesEnabled() ? "true" : "false");
 		}
-		
+
 	}
 }
 void loadI2CModules(bool displayEnabled, bool batteryEnabled, bool voiceEnabled)
@@ -754,15 +738,16 @@ void setup()
 	SettingsHandler::init();
 	SettingsHandler::setMessageCallback(settingChangeCallback);
     LogHandler::debug(TagHandler::Main, "Settings handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-
+	taskManager.init();
+	LogHandler::debug(TagHandler::Main, "Task manager DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 #if BLE_TCODE
 	settingsFactory->getValue(BLE_ENABLED, bleEnabled);
-	
+
 	//bleEnabled = true;
 #endif
 #if BLUETOOTH_TCODE
 	settingsFactory->getValue(BLUETOOTH_ENABLED, bluetoothEnabled);
-	
+
 	//bluetoothEnabled = true;
 #endif
 
@@ -865,8 +850,7 @@ void setup()
 	settingsFactory->getValue(CASE_FAN_MAX_PWM, caseFanMaxPWM);
 	if (sleeveTempEnabled || internalTempEnabled || fanControlEnabled)
 	{
-		temperatureHandler = new TemperatureHandler();
-		temperatureHandler->setup(internalTempEnabled,
+		taskManager.priority(new TemperatureHandler(internalTempEnabled,
 								  sleeveTempEnabled,
 								  pinMap->sleeveTemp(),
 								  pinMap->internalTemp(),
@@ -879,9 +863,7 @@ void setup()
 								  fanControlEnabled,
 								  caseFanFrequency,
 								  caseFanResolution,
-								  caseFanMaxPWM);
-		temperatureHandler->setMessageCallback(tempChangeCallBack);
-		temperatureHandler->setStateChangeCallback(tempStateChangeCallBack);
+								  caseFanMaxPWM));
 		LogHandler::debug(TagHandler::Main, "Start temperature task");
 		auto tempStartStatus = xTaskCreatePinnedToCore(
 			TemperatureHandler::startLoop, /* Function to implement the task */
@@ -900,22 +882,8 @@ void setup()
 
 #endif
 #if BUILD_DISPLAY
-	if (displayEnabled)
-	{
-		displayHandler = new DisplayHandler();
-		displayHandler->setup(Display_I2C_Address, fanControlEnabled, pinMap->displayReset());
-		// #if ISAAC_NEWTONGUE_BUILD
-		// 	xTaskCreatePinnedToCore(
-		// 		DisplayHandler::startAnimationDontPanic,/* Function to implement the task */
-		// 		"DisplayTask", /* Name of the task */
-		// 		10000,  /* Stack size in words */
-		// 		displayHandler,  /* Task input parameter */
-		// 		25,  /* Priority of the task */
-		// 		&animationTask,  /* Task handle. */
-		// 		APP_CPU_NUM); /* Core where the task should run */
-		// #endif
-	}
-    LogHandler::debug(TagHandler::Main, "Display DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+	taskManager.lazy(new DisplayHandler(Display_I2C_Address, fanControlEnabled, pinMap->displayReset()));
+	LogHandler::debug(TagHandler::Main, "Display DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 #endif
 
 #if BLE_TCODE

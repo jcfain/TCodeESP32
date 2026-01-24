@@ -17,7 +17,7 @@
 
 #if MOTOR_TYPE == 0
     #define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::OSR
-#else 
+#else
     #define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::SSR1
 #endif
 #define MOTOR_TYPE_DEFAULT MOTOR_TYPE
@@ -33,6 +33,7 @@
 #define AP_MODE_IP_DEFAULT "192.168.69.1"
 #define AP_MODE_GATEWAY_DEFAULT "192.168.69.254"
 #define AP_MODE_SUBNET_DEFAULT "255.255.255.0"
+#ifndef BOARD_TYPE_DEFAULT
 #if CONFIG_IDF_TARGET_ESP32
     #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::DEVKIT
 #elif CONFIG_IDF_TARGET_ESP32S3
@@ -41,6 +42,9 @@
     #else
         #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::N8R8
     #endif
+#endif
+#else
+    #define BOARD_TYPE_DEFAULT BOARD_TYPE
 #endif
 #define LOG_LEVEL_DEFAULT (uint8_t)LogLevel::INFO
 //#define FULL_BUILD_DEFAULT false

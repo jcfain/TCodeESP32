@@ -31,6 +31,7 @@ SOFTWARE. */
 // // #include "LogHandler.h"
 #include "SettingsHandler.h"
 #include "TagHandler.h"
+#include "TaskHandler.h"
 
 enum class WiFiStatus
 {
@@ -46,7 +47,7 @@ enum class WiFiReason
 	AP_MODE
 };
 using WIFI_STATUS_FUNCTION_PTR_T = void (*)(WiFiStatus status, WiFiReason reason);
-class WifiHandler
+class WifiHandler : public Task
 {
 public:
 	~WifiHandler()
@@ -321,6 +322,14 @@ public:
 			LogHandler::error(TagHandler::WifiHandler, "Disable fail: %s", esp_err_to_name(disable));
 		}
 	};
+
+	void setup() override
+	{
+	}
+
+	void loop() override
+	{
+	}
 
 private:
 	WIFI_STATUS_FUNCTION_PTR_T wifiStatus_callback;

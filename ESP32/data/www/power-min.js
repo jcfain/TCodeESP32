@@ -1,0 +1,1 @@
+function powerSetup(){isBoardType(BoardType.SR6PCB)?togglePowerSettings(!0):togglePowerSettings(!1)}function wsPowerStatus(e){var t=e.message,o=t.servoVoltage,n=t.inputVoltage;document.getElementById("currentServoVoltage").value=o,document.getElementById("currentInputVoltage").value=n}function togglePowerSettings(e){Utils.toggleControlVisibilityByClassName("powerOnly",e)}

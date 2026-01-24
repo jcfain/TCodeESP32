@@ -37,7 +37,7 @@ using BATTERY_STATE_FUNCTION_PTR_T = void (*)(float capacityRemainingPercentage,
 /** This class is setup for a specific board with an LTC2944 gas guage 
  * The module used is CJMCU-294.
 */
-class BatteryHandler {
+class BatteryHandler : public Task {
 public:
     static bool connected() {
         return m_battery_connected;
@@ -76,7 +76,7 @@ public:
         LogHandler::info(_TAG, "Connecting to monitor");
         while (!gauge.begin()) {
             Serial.print(".");
-        	vTaskDelay(1000/portTICK_PERIOD_MS);
+        	this->wait(1000);
             if(millis() > timeout) {
                 LogHandler::error(_TAG, "Detecting battery gauge (LTC2944) timed out. Exit.");
                 return false;
@@ -101,31 +101,24 @@ public:
 	}
 
     void loop() {
-		_isRunning = true;
-		LogHandler::debug(_TAG, "Battery task cpu core: %u", xPortGetCoreID());
-        TickType_t pxPreviousWakeTime = millis();
-		while(_isRunning) {
-            if(m_battery_connected && millis() >= lastTick) {
-                LogHandler::verbose(_TAG, "Enter getBatteryLevel");
-                lastTick = millis() + tick;
-                m_batteryCapacity = gauge.getRemainingCapacity();
-                m_batteryVoltage = gauge.getVoltage();
-                m_batteryTemp = gauge.getTemperature();
+        if(m_battery_connected && millis() >= lastTick) {
+            LogHandler::verbose(_TAG, "Enter getBatteryLevel");
+            lastTick = millis() + tick;
+            m_batteryCapacity = gauge.getRemainingCapacity();
+            m_batteryVoltage = gauge.getVoltage();
+            m_batteryTemp = gauge.getTemperature();
 
-		        LogHandler::verbose(_TAG, "Battery remaining capacity: %f", m_batteryCapacity);
-		        LogHandler::verbose(_TAG, "Battery voltage: %f", m_batteryVoltage);
-		        LogHandler::verbose(_TAG, "Battery temp: %f", m_batteryTemp);
-                float capacityRemainingPercentage = 0;
-                if(m_batteryCapacity > 0)
-                    capacityRemainingPercentage = m_batteryCapacity / m_maxCapacity * 100;
+            LogHandler::verbose(_TAG, "Battery remaining capacity: %f", m_batteryCapacity);
+            LogHandler::verbose(_TAG, "Battery voltage: %f", m_batteryVoltage);
+            LogHandler::verbose(_TAG, "Battery temp: %f", m_batteryTemp);
+            float capacityRemainingPercentage = 0;
+            if(m_batteryCapacity > 0)
+                capacityRemainingPercentage = m_batteryCapacity / m_maxCapacity * 100;
 
-                if(message_callback)
-                    message_callback(capacityRemainingPercentage, m_batteryCapacity, m_batteryVoltage, m_batteryTemp);
-            }
-            xTaskDelayUntil(&pxPreviousWakeTime, 5000/portTICK_PERIOD_MS);
+            if(message_callback)
+                message_callback(capacityRemainingPercentage, m_batteryCapacity, m_batteryVoltage, m_batteryTemp);
         }
-        
-  		vTaskDelete( NULL );
+        this->sleep(5000); // 5000ms
     }
 
     //void setup() {

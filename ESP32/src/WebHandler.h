@@ -42,7 +42,7 @@ SOFTWARE. */
 class WebHandler : public HTTPBase {
     public:
         // bool MDNSInitialized = false;
-        void setup(uint16_t port, WebSocketBase* webSocketHandler, bool apMode) override {
+        void setup_http(uint16_t port, WebSocketBase* webSocketHandler, bool apMode) override {
             stop();
             if (port < 1 || port > 65535) 
                 port = 80;
@@ -439,6 +439,12 @@ class WebHandler : public HTTPBase {
         }
         bool isRunning() override {
             return initialized;
+        }
+
+        void setup() override {
+        }
+
+        void loop() override {
         }
     private:
         bool initialized = false;

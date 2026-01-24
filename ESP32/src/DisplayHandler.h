@@ -36,11 +36,12 @@ SOFTWARE. */
 #endif
 #include "BatteryHandler.h"
 #include "TagHandler.h"
+#include "TaskHandler.h"
 // #if ISAAC_NEWTONGUE_BUILD
 // #include "animationFrames.h"
 // #endif
 
-class DisplayHandler
+class DisplayHandler : public Task
 {
 public:
 
@@ -73,7 +74,7 @@ public:
     		LogHandler::info(_TAG, "Could not connect address");
 			return;
 		}
-		vTaskDelay(2000/portTICK_PERIOD_MS);
+		this->wait(2000);
 		if(displayConnected)
 		{
 			//display.setFont(Adafruit5x7);
@@ -139,13 +140,6 @@ public:
 		}
 	}
 
-	static void startLoop(void* displayHandlerRef)
-	{
-		//LogHandler::debug(TagHandler::DisplayHandler, "Starting loop");
-		//if(((DisplayHandler*)displayHandlerRef)->isConnected())
-			((DisplayHandler*)displayHandlerRef)->loop();
-	}
-
 	bool isConnected() {
 		return displayConnected;
 	}
@@ -162,107 +156,92 @@ public:
 
 	void loop()
 	{
-		LogHandler::debug(_TAG, "Display task cpu core: %u", xPortGetCoreID());
-		if(!isConnected()) {
-			LogHandler::warning(_TAG, "Display not connected when starting loop");
-  			vTaskDelete( NULL );
-			return;
-		}
-        TickType_t pxPreviousWakeTime = millis();
-		_isRunning = true;
-		while(_isRunning) {
-			if(!m_animationPlaying && displayConnected && millis() >= lastUpdate + nextUpdate) {
-				LogHandler::verbose(_TAG, "Enter display loop");
-				lastUpdate = millis();
-				clearDisplay();
-				setTextSize(1);
-				int headerPadding = is32() ? 0 : 3;
-				// Serial.print("Display Core: ");
-				// Serial.println(xPortGetCoreID());
+	
+		if(!m_animationPlaying && displayConnected && millis() >= lastUpdate + nextUpdate) {
+			LogHandler::verbose(_TAG, "Enter display loop");
+			lastUpdate = millis();
+			clearDisplay();
+			setTextSize(1);
+			int headerPadding = is32() ? 0 : 3;
+			// Serial.print("Display Core: ");
+			// Serial.println(xPortGetCoreID());
 
 #if WIFI_TCODE
-				if(WifiHandler::isConnected()) {
-					LogHandler::verbose(_TAG, "Enter wifi connected");
-					startLine(headerPadding);
-					display.print(_ipAddress);
+			if(WifiHandler::isConnected()) {
+				LogHandler::verbose(_TAG, "Enter wifi connected");
+				startLine(headerPadding);
+				display.print(_ipAddress);
 
-					drawBatteryLevel();
-					
-					// Draw Wifi signal bars
-					int barHeight = is32() ? 8 : 10;
-					int bars;
-					//  int bars = map(RSSI,-80,-44,1,6); // this method doesn't refelct the Bars well
-					// simple if then to set the number of bars
-					int8_t RSSI = WifiHandler::getRSSI();
-					if (RSSI > -55) { 
-						bars = 5;
-					} else if (RSSI < -55 && RSSI > -65) {
-						bars = 4;
-					} else if (RSSI < -65 && RSSI > -70) {
-						bars = 3;
-					} else if (RSSI < -70 && RSSI > -78) {
-						bars = 2;
-					} else if (RSSI < -78 && RSSI > -82) {
-						bars = 1;
-					} else {
-						bars = 0;
-					}
-					for (int b=0; b <= bars; b++) {
-						display.fillRect((m_settingsFactory->getDisplayScreenWidth() - 17) + (b*3), barHeight - (b*2),2,b*2,WHITE); 
-					}
-
-					newLine(headerPadding);
-					if(m_settingsFactory->getVersionDisplayed()) {
-						LogHandler::verbose(_TAG, "Enter versionDisplayed");
-						left(m_settingsFactory->getTcodeVersionString());
-						right(FIRMWARE_VERSION_NAME);
-						newLine();
-					}
-					
-				} else if(WifiHandler::apMode()) {
-					LogHandler::verbose(_TAG, "Enter apMode");
-					startLine(headerPadding);
-					left("AP:");
-					left(m_settingsFactory->getAPModeIP(), 4);
-					drawBatteryLevel();
-					newLine(headerPadding);
-					if(!is32()) {
-						left("SSID:");
-						left(m_settingsFactory->getAPModeSSID(), 6);
-						newLine();
-					}
-					if((is32() && m_settingsFactory->getVersionDisplayed() && !m_settingsFactory->getSleeveTempDisplayed() && !m_settingsFactory->getInternalTempDisplayed())
-						|| m_settingsFactory->getVersionDisplayed()) {
-						left(m_settingsFactory->getTcodeVersionString());
-						right(FIRMWARE_VERSION_NAME);
-						newLine();
-					} else if(is32()) {
-						left("SSID:");
-						left(m_settingsFactory->getAPModeSSID(), 6);
-						newLine();
-					}
+				drawBatteryLevel();
+				
+				// Draw Wifi signal bars
+				int barHeight = is32() ? 8 : 10;
+				int bars;
+				//  int bars = map(RSSI,-80,-44,1,6); // this method doesn't refelct the Bars well
+				// simple if then to set the number of bars
+				int8_t RSSI = WifiHandler::getRSSI();
+				if (RSSI > -55) { 
+					bars = 5;
+				} else if (RSSI < -55 && RSSI > -65) {
+					bars = 4;
+				} else if (RSSI < -65 && RSSI > -70) {
+					bars = 3;
+				} else if (RSSI < -70 && RSSI > -78) {
+					bars = 2;
+				} else if (RSSI < -78 && RSSI > -82) {
+					bars = 1;
 				} else {
-					LogHandler::verbose(_TAG, "Enter Wifi error");
-					display.print("Wifi error");
-					drawBatteryLevel();
+					bars = 0;
 				}
+				for (int b=0; b <= bars; b++) {
+					display.fillRect((m_settingsFactory->getDisplayScreenWidth() - 17) + (b*3), barHeight - (b*2),2,b*2,WHITE); 
+				}
+
+				newLine(headerPadding);
+				if(m_settingsFactory->getVersionDisplayed()) {
+					LogHandler::verbose(_TAG, "Enter versionDisplayed");
+					left(m_settingsFactory->getTcodeVersionString());
+					right(FIRMWARE_VERSION_NAME);
+					newLine();
+				}
+				
+			} else if(WifiHandler::apMode()) {
+				LogHandler::verbose(_TAG, "Enter apMode");
+				startLine(headerPadding);
+				left("AP:");
+				left(m_settingsFactory->getAPModeIP(), 4);
+				drawBatteryLevel();
+				newLine(headerPadding);
+				if(!is32()) {
+					left("SSID:");
+					left(m_settingsFactory->getAPModeSSID(), 6);
+					newLine();
+				}
+				if((is32() && m_settingsFactory->getVersionDisplayed() && !m_settingsFactory->getSleeveTempDisplayed() && !m_settingsFactory->getInternalTempDisplayed())
+					|| m_settingsFactory->getVersionDisplayed()) {
+					left(m_settingsFactory->getTcodeVersionString());
+					right(FIRMWARE_VERSION_NAME);
+					newLine();
+				} else if(is32()) {
+					left("SSID:");
+					left(m_settingsFactory->getAPModeSSID(), 6);
+					newLine();
+				}
+			} else {
+				LogHandler::verbose(_TAG, "Enter Wifi error");
+				display.print("Wifi error");
+				drawBatteryLevel();
+			}
 #endif
 #if BUILD_TEMP
-				if(m_settingsFactory->getSleeveTempDisplayed() || m_settingsFactory->getInternalTempDisplayed()) {
-					is32() ? draw32Temp() : draw64Temp();
-				}
+			if(m_settingsFactory->getSleeveTempDisplayed() || m_settingsFactory->getInternalTempDisplayed()) {
+				is32() ? draw32Temp() : draw64Temp();
+			}
 #endif
 
-				display.display();
-			}
-            xTaskDelayUntil(&pxPreviousWakeTime, 5000/portTICK_PERIOD_MS);
-			// Serial.print("Display task: "); // stack size used
-			// Serial.print(uxTaskGetStackHighWaterMark( NULL )); // stack size used
-			// Serial.println();
-			// Serial.flush();
+			display.display();
 		}
-		
-  		vTaskDelete( NULL );
+		this->sleep(200);
 	}
 
 	void println(String value)

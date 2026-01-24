@@ -48,6 +48,7 @@ enum class BoardType: int
     CRIMZZON,
     ISAAC,
     SSR1PCB,
+    SR6PCB,
     MAX
 };
 #if MOTOR_TYPE == 1

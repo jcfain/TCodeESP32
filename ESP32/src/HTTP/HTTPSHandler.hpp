@@ -26,7 +26,7 @@
 using namespace httpsserver;
 class HTTPSHandler : public HTTPBase {
 public:
-    void setup(int port, WebSocketBase* webSocketHandler, bool apMode) override {
+    void setup_http(int port, WebSocketBase* webSocketHandler, bool apMode) override {
 
         setupHandlers(webSocketHandler, apMode);
         // The websocket handler can be linked to the server by using a WebsocketNode:
