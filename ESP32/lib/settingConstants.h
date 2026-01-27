@@ -77,6 +77,7 @@
 #define SUBNET_DEFAULT "255.255.255.0"
 #define DNS1_DEFAULT "8.8.8.8"
 #define DNS2_DEFAULT "8.8.4.4"
+#define MDNS_ENABLED_DEFAULT true
 #define RIGHT_SERVO_ZERO_DEFAULT 1500
 #define LEFT_SERVO_ZERO_DEFAULT 1500
 #define RIGHT_UPPER_SERVO_ZERO_DEFAULT 1500
@@ -183,6 +184,7 @@
 #define SUBNET "subnet"
 #define DNS1 "dns1"
 #define DNS2 "dns2"
+#define MDNS_ENABLED "mdnsEnabled"
 //#define SR6MODE "sr6Mode"
 #define RIGHT_SERVO_ZERO "RightServo_ZERO"
 #define LEFT_SERVO_ZERO "LeftServo_ZERO"

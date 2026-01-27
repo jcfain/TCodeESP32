@@ -360,8 +360,13 @@ void startNetworking(const bool &apMode, const int &port, const int &udpPort, co
 		LogHandler::info(TagHandler::Main, "WebServer disabled due to bluetooth and chip model");
 	}
 	if (!apMode) {// mdns breaks apmode?
-		mdnsHandler.setup(hostname, friendlyName, port, udpPort);
-    	LogHandler::debug(TagHandler::Main, "MDNS DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+		bool mdnsEnabled = MDNS_ENABLED_DEFAULT;
+		settingsFactory->getValue(MDNS_ENABLED, mdnsEnabled);
+		if(mdnsEnabled)
+		{
+			mdnsHandler.setup(hostname, friendlyName, port, udpPort);
+			LogHandler::debug(TagHandler::Main, "MDNS DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+		}
 	}
 }
 #endif
@@ -432,7 +437,7 @@ void startConfigMode(const int &webPort, const int &udpPort, const char *hostnam
 	settingsFactory->getValue(AP_MODE_GATEWAY, gateway, IP_ADDRESS_LEN);
 	settingsFactory->getValue(AP_MODE_HIDDEN, hidden);
 	settingsFactory->getValue(AP_MODE_CHANNEL, channel);
-	if (wifi.startAp(settingsFactory->getAPModeSSID(), pass, channel, hidden, settingsFactory->getAPModeIP(), subnet, gateway))
+	if (wifi.startAp(hostname, settingsFactory->getAPModeSSID(), pass, channel, hidden, settingsFactory->getAPModeIP(), subnet, gateway))
 	{
 		displayPrint("APMode started");
 		startNetworking(SettingsHandler::apMode, webPort, udpPort, hostname, friendlyName);
@@ -975,7 +980,7 @@ void setup()
 			displayPrint("Connecting to: ");
 			LogHandler::info(TagHandler::Main, "Connecting to: %s", ssid);
 			displayPrint(ssid);
-			if (wifi.connect(ssid, wifiPass))
+			if (wifi.connect(settingsFactory->getHostname(), ssid, wifiPass))
 			{
 // 				String ipaddress = wifi.ip().toString();
 // 				displayPrint("Connected IP: " + ipaddress);

@@ -631,7 +631,7 @@ function onRestartClick(optionalMessage)
                     var localIP = wifiSettings["localIP"];
                     var webServerPort = wifiSettings["webServerPort"];
                     var hostname = wifiSettings["hostname"];
-                    var url = "http://"+hostname+".local";
+                    var url =  wifiSettings["mdnsEnabled"] ? "http://"+hostname+".local" : "http://"+systemInfo.localIP;
                     url += webServerPort === 80 ? "" : ":"+webServerPort;
                     if(resettingAllToDefault) {
                         url = "http://"+systemInfo.defaultIP+"/";
@@ -639,7 +639,7 @@ function onRestartClick(optionalMessage)
                     }
                     var staticIPUrl = "http://"+localIP;
                     staticIPUrl += webServerPort === 80 ? "" : ":"+webServerPort;
-                    message += "Device restarting, the page will redirect to<br><a href='"+url+"'>"+url+"</a> in 10 seconds<br>";
+                    message +=  "Device restarting, the page will redirect to<br><a href='"+url+"'>"+url+"</a> in 10 seconds<br>";
                     if(!resettingAllToDefault) {
                         message += isIPStatic ? "If this doesnt work, you can try using this url<br><a href='"+staticIPUrl+"'>"+staticIPUrl+"</a> when the device reboots." 
                             : "If this doesnt work, you will need<br>to find the dymanic ip address of the esp32."
@@ -834,6 +834,8 @@ function setWifiSettings() {
     document.getElementById("udpServerPort").value = wifiSettings["udpServerPort"];
     document.getElementById("webServerPort").value = wifiSettings["webServerPort"];
     document.getElementById("hostname").value = wifiSettings["hostname"];
+    document.getElementById("mdnsEnabled").checked = wifiSettings["mdnsEnabled"];
+    
     document.getElementById("friendlyName").value = wifiSettings["friendlyName"];
 
     document.getElementById("apModeSSID").value = wifiSettings["apModeSSID"];
@@ -1183,7 +1185,7 @@ function checkRestartRedirect() {
             const connectedAndPortChanged = !systemInfo.apMode && portChanged; 
             //Not using IP address and hostname change
             const isCurrentIPAddress = isValidIP(window.location.hostname);
-            const connectedAndHostnameChanged = !isCurrentIPAddress && !systemInfo.apMode && window.location.hostname != wifiSettings["hostname"];
+            const connectedAndHostnameChanged = !isCurrentIPAddress && !systemInfo.apMode && wifiSettings["mdnsEnabled"] && window.location.hostname != wifiSettings["hostname"];
 
             if(connectedAndPortChanged || connectedAndHostnameChanged) {
                 restartingAndChangingAddress = true;
@@ -1623,8 +1625,20 @@ function toggleFeedbackTwistSettings(feedbackChecked) {
         document.getElementById("analogTwistRow").style.display = 'none';
     }
 }
-function updateHostName() 
-{
+function updateMDNS() {
+    const checked = document.getElementById('mdnsEnabled').checked
+	if (checked && !wifiSettings["mdnsEnabled"] || confirm("WARNING! Disabling MDNS means you will NOT be able to use http://\<hostname\>.local.\nAre you sure?")) 
+	{
+        wifiSettings["mdnsEnabled"] = checked;
+        setRestartRequired();
+        postWifiSettings(0);
+    }
+    else if(!checked && wifiSettings["mdnsEnabled"])
+    {
+        document.getElementById('mdnsEnabled').checked = true;
+    }
+}
+function updateHostName() {
     if(hostnameTimeout !== null) 
     {
         clearTimeout(hostnameTimeout);

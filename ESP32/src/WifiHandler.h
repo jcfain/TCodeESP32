@@ -75,7 +75,7 @@ public:
 	{
 		return _apMode;
 	}
-	bool connect(const char* ssid, const char* pass)
+	bool connect(const char* hostname, const char* ssid, const char* pass)
 	{
 		LogHandler::info(_TAG, "Setting up wifi");
 		m_settingsFactory = SettingsFactory::getInstance();
@@ -87,7 +87,7 @@ public:
 								   { this->WiFiEvent(event, info); });
 		WiFi.mode(WIFI_STA);
 		WiFi.setSleep(false);
-		WiFi.setHostname("TCodeESP32");
+		WiFi.setHostname(hostname);
 		bool isStatic = false;
 		m_settingsFactory->getValue(STATICIP, isStatic);
 		if (isStatic)
@@ -275,13 +275,13 @@ public:
 		}
 	}
 
-	bool startAp(const char* ssid, const char* pass, const uint8_t& channel, const bool& hidden, const char* ip, const char* subnet, const char* gateway)
+	bool startAp(const char* hostname, const char* ssid, const char* pass, const uint8_t& channel, const bool& hidden, const char* ip, const char* subnet, const char* gateway)
 	{
 		// WiFi.disconnect(true, true);
 		LogHandler::info(TagHandler::WifiHandler, "Starting in APMode: SSID: %s, Hidden: %u, Channel: %u, IP: %s, Subnet: %s, Gateway: %s", ssid, hidden, channel, ip, subnet, gateway);
 		// LogHandler::info(TagHandler::WifiHandler, "Password: %s", pass);
 		WiFi.mode(WIFI_AP);
-		// WiFi.setHostname("TCodeESP32");
+		WiFi.setHostname(hostname);
 
 		WiFi.softAP(ssid, pass, channel, hidden, 1);
 		printMac();

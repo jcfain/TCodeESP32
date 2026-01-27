@@ -198,6 +198,7 @@ class WebSocketHandler : public WebSocketBase {
             else if(type == WS_EVT_DISCONNECT)
             {
                 LogHandler::debug(_TAG, "ws[%s][%u] disconnect\n", server->url(), client->id());
+                client->close();
                 m_clients.remove(client);
             } 
             else if(type == WS_EVT_ERROR)

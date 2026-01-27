@@ -66,7 +66,7 @@
 					<div id="wirelessSettingsTableBody">
 						<div>
 							<div class="tHeader">
-								<h3>Wireless</h3>
+								<h3>Networking</h3>
 							</div>
 						</div>
 						<div class="tRow">
@@ -138,6 +138,52 @@
 							</div>
 							<div class="tCell">
 								<input id="dns2Input" type="text" maxlength="15" oninput="updateWifiSettings()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span title="The UDP port on which TCode is sent over the network on. Change this if you have a conflict on your local network.
+								Otherwise, just leave it be.">Udp port</span> 
+							</div>
+							<div class="tCell">
+								<input id="udpServerPort" type="number" max="65,535" min="1" oninput="updateUdpPort()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span title="Web server port used to access this page and websocket input. Change this if you have a conflict on your local network.
+								Otherwise, just leave it be.">Web port</span> 
+							</div>
+							<div class="tCell">
+								<input id="webServerPort" type="text" max="65,535" oninput="updateWebPort()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span title="This is the name of the device you will use to access this page after WiFi connection. default(tcode.local)
+								Some routers DO NOT support mDNS so you may need to use the IP address anyways.
+								
+								You may also use this address in some apps (XTP) to send TCode over the network.">Host name</span> 
+							</div>
+							<div class="tCell">
+								<input id="hostname" type="text" maxlength="63" oninput="updateHostName()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>MDNS enabled</span> 
+							</div>
+							<div class="tCell">
+								<input id="mdnsEnabled" type="checkbox" onclick="updateMDNS()"></input>
+							</div>
+						</div>
+						
+						<div class="tRow">
+							<div class="tCell">
+								<span>Friendly name</span> 
+							</div>
+							<div class="tCell">
+								<input id="friendlyName" type="text" maxlength="100" oninput="updateFriendlyName()">
 							</div>
 						</div>
 						<div class="tRow">
@@ -777,43 +823,6 @@
 							</div>
 							<div class="tCell">
 								<input id="lubeAmount" type="number" max="255" min="1" oninput="updateLubeAmount()">
-							</div>
-						</div>
-						<div class="tRow">
-							<div class="tCell">
-								<span title="The UDP port on which TCode is sent over the network on. Change this if you have a conflict on your local network.
-								Otherwise, just leave it be.">Udp port</span> 
-							</div>
-							<div class="tCell">
-								<input id="udpServerPort" type="number" max="65,535" min="1" oninput="updateUdpPort()">
-							</div>
-						</div>
-						<div class="tRow">
-							<div class="tCell">
-								<span title="Web server port used to access this page and websocket input. Change this if you have a conflict on your local network.
-								Otherwise, just leave it be.">Web port</span> 
-							</div>
-							<div class="tCell">
-								<input id="webServerPort" type="text" max="65,535" oninput="updateWebPort()">
-							</div>
-						</div>
-						<div class="tRow">
-							<div class="tCell">
-								<span title="This is the name of the device you will use to access this page after WiFi connection. default(tcode.local)
-								Some routers DO NOT support mDNS so you may need to use the IP address anyways.
-								
-								You may also use this address in some apps (XTP) to send TCode over the network.">Host name</span> 
-							</div>
-							<div class="tCell">
-								<input id="hostname" type="text" maxlength="63" oninput="updateHostName()">
-							</div>
-						</div>
-						<div class="tRow">
-							<div class="tCell">
-								<span>Friendly name</span> 
-							</div>
-							<div class="tCell">
-								<input id="friendlyName" type="text" maxlength="100" oninput="updateFriendlyName()">
 							</div>
 						</div>
 						<div class="tRow">
