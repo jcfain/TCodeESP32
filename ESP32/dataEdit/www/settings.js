@@ -1871,7 +1871,7 @@ function setPinChannel(id, value) {
     toggleEnableTimerChannels(element);
 }
 function onSelectPinChannel(element) {
-    pinoutSettings[element.id] = element.value;
+    pinoutSettings[element.id] = parseInt(element.value);
     // let option = selectElement.options[selectElement.selectedIndex];
     // option.disabled = true
     toggleEnableTimerChannels(element);
