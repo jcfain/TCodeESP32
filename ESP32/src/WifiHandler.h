@@ -176,8 +176,8 @@ public:
 			break;
 		case ARDUINO_EVENT_WIFI_STA_GOT_IP:
 			strncpy(SettingsHandler::currentIP, WiFi.localIP().toString().c_str(), IP4ADDR_STRLEN_MAX);
-			strncpy(SettingsHandler::currentGateway, WiFi.subnetMask().toString().c_str(), IP4ADDR_STRLEN_MAX);
-			strncpy(SettingsHandler::currentSubnet, WiFi.gatewayIP().toString().c_str(), IP4ADDR_STRLEN_MAX);
+			strncpy(SettingsHandler::currentGateway, WiFi.gatewayIP().toString().c_str(), IP4ADDR_STRLEN_MAX);
+			strncpy(SettingsHandler::currentSubnet, WiFi.subnetMask().toString().c_str(), IP4ADDR_STRLEN_MAX);
 			strncpy(SettingsHandler::currentDns1, WiFi.dnsIP().toString().c_str(), IP4ADDR_STRLEN_MAX);
 			LogHandler::info(_TAG, "Connected to: %s", WiFi.SSID().c_str());
 			LogHandler::info(_TAG, "IP Address: %s", SettingsHandler::currentIP);
