@@ -808,7 +808,7 @@ function setSystemInfo() {
     
     if(systemInfo["moduleType"] == ModuleType.S3) {
         validPWMpins = [];
-        invalidPins = []; // I dont know what pins can be used or not
+        invalidPinsGlobal = []; // I dont know what pins can be used or not
         for(let i=1;i<44;i++) {
             validPWMpins.push(i);
         }
