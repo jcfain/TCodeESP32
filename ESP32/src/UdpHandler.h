@@ -42,7 +42,7 @@ class Udphandler
         	LogHandler::error(_TAG, "UDP Error Listening");
 			return false;
 		}
-        LogHandler::info(_TAG, "UDP2 Listening");
+        LogHandler::info(_TAG, "UDP Listening");
     	SettingsFactory* m_settingsFactory = SettingsFactory::getInstance();
 		m_tcodeVersion = m_settingsFactory->getTcodeVersion();
 		m_server.onPacket(udpCallback, static_cast<void*>(this));

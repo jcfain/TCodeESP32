@@ -36,11 +36,11 @@ SOFTWARE. */
 //   public:
 //     bool setup(int localPort) 
 //     {
-// 		LogHandler::info(_TAG, "Starting UDP");
+// 		LogHandler::info(_TAG, "Starting UDP2");
 // 		if(!m_server.begin(localPort)) {
 // 			return false;
 // 		}
-//         LogHandler::info(_TAG, "UDP Listening");
+//         LogHandler::info(_TAG, "UDP2 Listening");
 //     	SettingsFactory* m_settingsFactory = SettingsFactory::getInstance();
 // 		m_tcodeVersion = m_settingsFactory->getTcodeVersion();
 //         // m_TCodeQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));

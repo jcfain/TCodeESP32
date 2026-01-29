@@ -2884,4 +2884,7 @@ function handleImportRenames(key, value, firmwareVersion) {
     if(key.endsWith("_PIN")) {
         pinoutSettings[key] = value;
     }
+    if(key.endsWith("_CHANNEL") && typeof value === "string") {
+        pinoutSettings[key] = parseInt(value);
+    }
 }
