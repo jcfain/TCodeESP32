@@ -24,7 +24,10 @@ SOFTWARE. */
 
 
 // #include <string>
+// #include <WiFiClient.h>
+// #include <WiFiServer.h>
 // #include <ArduinoJson.h>
+// #include "SettingsHandler.h"
 // #include "TagHandler.h"
 
 
@@ -33,119 +36,89 @@ SOFTWARE. */
 //   public:
 //     void setup(int localPort) 
 //     {
-// 	    wifiTcp.begin(localPort);
+// 	    m_server.begin(localPort);
 //         Serial.println("UDP Listening");
-//         udpInitialized = true;
+//         initialized = true;
 //     }
 
-//     void read(char* udpData) 
+// 	void CommandCallback(const char* in) { //This overwrites the callback for message return
+// 		if(initialized && _lastConnectedPort > 0) {
+// 			LogHandler::debug(_TAG, "Sending udp to client: %s", in);
+// 			m_server.beginPacket(_lastConnectedIP, _lastConnectedPort);
+// 			int i = 0;
+// 			while (in[i] != 0)
+// 				m_server.write((uint8_t)in[i++]);
+// 			m_server.endPacket();
+// 		}
+// 	}
+
+//     void read(char* buf) 
 //     {
-//   		WiFiClient client = wifiTcp.available();
-// 		if (!udpInitialized || !client) 
+//   		WiFiClient client = m_server.available();
+// 		if (!initialized || !client || !client.connected()) 
 // 		{
-// 			udpData[0] = {0};
+// 			buf[0] = {0};
 // 			return;
 // 		}
-
-// 		// if there's data available, read a packet
-// 		int packetSize = wifiTcp.parsePacket();
-// 		if (packetSize) 
+// 		if (!initialized) 
 // 		{
-// 	//          Serial.print("Received packet of size ");
-// 	//          Serial.println(packetSize);
-// 	//          Serial.print("From ");
-// 	//          IPAddress remoteIp = Udp.remoteIP();
-// 	//          Serial.print(remoteIp);
-// 	//          Serial.print(", port ");
-// 	//          Serial.println(Udp.remotePort());
-		
+// 			buf[0] = {0};
+// 			return;
+// 		}
+//         // if(xQueueReceive(m_TCodeQueue, buf, 0)) {
+//         //     //LogHandler::verbose(_TAG, "Recieve tcode: %s", buf);
+//         // } else {
+//         //     //LogHandler::error(_TAG, "Failed to read from queue");
+//         //     buf[0] = {0};
+// 		// 	return;
+//         // }
+// // 		// if there's data available, read a packet
+// 		int packetSize = m_server.parsePacket();
+// 		if (!packetSize) 
+// 		{
+// 			buf[0] = {0};
+// 			return;
+// 		}
+// 		_lastConnectedPort = m_server.remotePort();
+// 		_lastConnectedIP = m_server.remoteIP();
+// // //          Serial.print("Received packet of size ");
+// // //          Serial.println(packetSize);
+// // //          Serial.print("From ");
+// // //          Serial.print(_lastConnectedIP);
+// // //          Serial.print(", port ");
+// // //          Serial.println(_lastConnectedPort);
+	
 // 		// read the packet into packetBufffer
-// 		packetBuffer = wifiTcp.read();
-// 		if (packetBuffer.length > 0) 
+// 		int len = m_server.read(packetBuffer, MAX_COMMAND);
+// 		if (len > 0) 
 // 		{
 // 			packetBuffer[len] = 0;
+// 			//LogHandler::verbose(_TAG, "Udp in: %s", packetBuffer);
 // 		}
-// 		//Serial.println("packetBuffer");
-// 		//Serial.println(packetBuffer);
-// 		//send a reply, to the IP address and port that sent us the packet we received
-// 		if (strcmp(packetBuffer, SettingsHandler::HandShakeChannel) == 0) 
+// 		if (m_tcodeVersion >= TCodeVersion::v0_3 && (strpbrk(packetBuffer, "$") != nullptr || strpbrk(packetBuffer, "#") != nullptr)) 
 // 		{
-// 			Serial.println("Handshake received");
-// 			wifiUdp.beginPacket(wifiTcp.remoteIP(), wifiTcp.remotePort());
-// 			int i = 0;
-// 			while (SettingsHandler::TCodeVersionName[i] != 0)
-// 				wifiTcp.write((uint8_t)SettingsHandler::TCodeVersionName[i++]);
-// 			wifiTcp.endPacket();
-// 			udpData = nullptr;
-// 			return;
+// 			// strcpy(buf, packetBuffer);
+// 			LogHandler::debug(_TAG, "System command received: %s", buf);
+// 			CommandCallback("OK");
+// 		// } else if (strpbrk(packetBuffer, jsonIdentifier) != nullptr) {
+// 		// 	SettingsHandler::getProcessTCodeJson()(udpData, packetBuffer);
+// 		// 	//LogHandler::verbose(_TAG, "json processed: %s", udpData);
 // 		} 
-// 		else if (strpbrk(packetBuffer, jsonIdentifier) != nullptr) 
+// 		else 
 // 		{
-// 			//Serial.println("json");
-
-// 			const size_t readCapacity = JSON_ARRAY_SIZE(5) + 5*JSON_OBJECT_SIZE(2) + 100;
-
-// 			StaticJsonDocument<readCapacity> doc;
-// 			//DynamicJsonDocument doc(readCapacity);
-// 			DeserializationError error = deserializeJson(doc, packetBuffer);
-// 			if (error) {
-// 				Serial.println("Failed to read udp jsonobject, using default configuration");
-// 				udpData = nullptr;
-// 				return;
-// 			}
-// 			JsonArray arr = doc.as<JsonArray>();
-// 			char buffer[100] = "";
-// 			for(JsonObject repo: arr) 
-// 			{ 
-// 				const char* channel = repo["Channel"];
-// 				int value = repo["Value"];
-// 				if(channel != nullptr && value != 0) 
-// 				{
-// 				if(buffer[0] == '\0') 
-// 				{
-// 					//Serial.println("tcode empty");
-// 					strcpy(buffer, channel);
-// 				} 
-// 				else 
-// 				{
-// 					strcat(buffer, channel);
-// 				}
-// 				char integer_string[4];
-// 				sprintf(integer_string, "%03d", SettingsHandler::calculateRange(channel, value));
-// 				//pad(integer_string);
-// 				//sprintf(integer_string, "%d", SettingsHandler::calculateRange(channel, value));
-// 				//Serial.print("integer_string");
-// 				//Serial.println(integer_string);
-// 				strcat (buffer, integer_string);
-// 				if (SettingsHandler::speed > 0) {
-// 					char speed_string[5];
-// 					sprintf(speed_string, "%04d", SettingsHandler::speed);
-// 					strcat (buffer, "S");
-// 					strcat (buffer, speed_string);
-// 				}
-// 				strcat(buffer, " ");
-// 				// Serial.print("buffer");
-// 				// Serial.println(buffer);
-// 				}
-// 			}
-// 			strcat(buffer, "\n");
-// 			strcpy(udpData, buffer);
-// 			// Serial.print("tcode: ");
-// 			// Serial.println(udpData);
-// 			return;
-// 			} 
 // 			//udpData[strlen(packetBuffer) + 1];
-// 			strcpy(udpData, packetBuffer);
-// 			// Serial.print("tcode: ");
-// 			// Serial.println(udpData);
-// 			return;
+// 			strncpy(buf, packetBuffer, len);
+// 			//LogHandler::verbose(_TAG, "Udp tcode in: %s", udpData);
 // 		}
-// 		udpData[0] = {0};
 //     }
     
 //   private: 
-// 	WiFiServer wifiTcp;
-//     bool udpInitialized = false;
-//     char packetBuffer[255];; //buffer to hold incoming packet
+//     const char* _TAG = TagHandler::TcpHandler;
+// 	WiFiServer m_server;
+// 	TCodeVersion m_tcodeVersion;
+// 	IPAddress _lastConnectedIP;
+// 	int _lastConnectedPort = 0;
+//     bool initialized = false;
+//     char packetBuffer[MAX_COMMAND]; //buffer to hold incoming packet
 //     char jsonIdentifier[2] = "{";
 // };

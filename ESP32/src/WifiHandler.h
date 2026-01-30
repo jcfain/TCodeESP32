@@ -88,7 +88,7 @@ public:
 		WiFi.mode(WIFI_STA);
 		WiFi.setSleep(false);
 		WiFi.setHostname(hostname);
-		bool isStatic = false;
+		bool isStatic = STATICIP_DEFAULT;
 		m_settingsFactory->getValue(STATICIP, isStatic);
 		if (isStatic)
 		{

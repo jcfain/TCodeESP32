@@ -82,7 +82,7 @@ public:
             m_leftServo_Int = frequencyToMicroseconds(freq);
             attachPin("left servo", m_leftServoPin, freq, m_lowerLeftServoChannel);
         } else {
-            LogHandler::error(_TAG, "Invalid left servo to pin: %d", m_leftServoPin);
+            LogHandler::error(_TAG, "Invalid left servo to pin: %d for channel: %d", m_leftServoPin, m_lowerLeftServoChannel);
             m_initFailed = true;
         }
         m_rightServoPin = ((PinMapOSR*)pinMap)->rightServo();
@@ -92,7 +92,7 @@ public:
             m_rightServo_Int = frequencyToMicroseconds(freq);
             attachPin("right servo", m_rightServoPin, freq, m_lowerRightServoChannel);
         } else {
-            LogHandler::error(_TAG, "Invalid right servo to pin: %d", m_rightServoPin);
+            LogHandler::error(_TAG, "Invalid right servo to pin: %d for channel: %d", m_rightServoPin, m_lowerRightServoChannel);
             m_initFailed = true;
         }
         #endif
@@ -105,7 +105,7 @@ public:
                 m_leftUpperServo_Int = frequencyToMicroseconds(freq);
                 attachPin("left upper servo", m_leftUpperServoPin, freq, m_upperLeftServoChannel);
             } else {
-                LogHandler::error(_TAG, "Invalid left upper servo to pin: %d", m_leftUpperServoPin);
+                LogHandler::error(_TAG, "Invalid left upper servo to pin: %d for channel: %d", m_leftUpperServoPin, m_upperLeftServoChannel);
                 m_initFailed = true;
             }
             #ifndef ESP_PROG// The default pins for these are used on the debugger board. 12, 13, 14 & 15
@@ -116,7 +116,7 @@ public:
                     m_rightUpperServo_Int = frequencyToMicroseconds(freq);
                     attachPin("right upper servo", m_rightUpperServoPin, freq, m_upperRightServoChannel);
                 } else {
-                    LogHandler::error(_TAG, "Invalid right upper servo to pin: %d", m_rightUpperServoPin);
+                    LogHandler::error(_TAG, "Invalid right upper servo to pin: %d for channel: %d", m_rightUpperServoPin, m_upperRightServoChannel);
                     m_initFailed = true;
                 }
                 m_rightPitchServoPin = ((PinMapSR6*)pinMap)->pitchRight();
@@ -126,7 +126,7 @@ public:
                     m_pitchRightServo_Int = frequencyToMicroseconds(freq);
                     attachPin("right pitch servo", m_rightPitchServoPin, freq, m_rightPitchServoChannel);
                 } else {
-                    LogHandler::error(_TAG, "Invalid right pitch servo to pin: %d", m_rightPitchServoPin);
+                    LogHandler::error(_TAG, "Invalid right pitch servo to pin: %d for channel: %d", m_rightPitchServoPin, m_rightPitchServoChannel);
                     m_initFailed = true;
                 }
             #endif
@@ -138,7 +138,7 @@ public:
             m_pitchLeftServo_Int = frequencyToMicroseconds(freq);
             attachPin("pitch servo", m_leftPitchServoPin, freq, m_leftPitchServoChannel);
         } else {
-            LogHandler::error(_TAG, "Invalid pitch servo to pin: %u", m_leftPitchServoPin);
+            LogHandler::error(_TAG, "Invalid pitch servo to pin: %d for channel: %d", m_leftPitchServoPin, m_leftPitchServoChannel);
             m_initFailed = true;
         }
 
