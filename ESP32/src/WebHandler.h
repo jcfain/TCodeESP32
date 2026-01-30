@@ -52,7 +52,7 @@ class WebHandler : public HTTPBase {
             m_settingsFactory = SettingsFactory::getInstance();
             server->on("/wifiSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                char info[550];
+                char info[700];
                 SettingsHandler::getWifiInfo(info);
                 if (strlen(info) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting wifi settings");
@@ -421,6 +421,7 @@ class WebHandler : public HTTPBase {
             server->serveStatic("/", LittleFS, "/www/");
                 // .setDefaultFile("index-min.html");
             //     //.setCacheControl("max-age=60000");
+            //     //.setCacheControl("no-cache");
             server->begin();
             initialized = true;
         }
