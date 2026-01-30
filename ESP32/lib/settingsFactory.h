@@ -862,6 +862,8 @@ public:
                 setValue(BLDC_MOTOR_SUPPLY, 12.0f);
                 setValue(BLDC_LEFT_MOTOR_VOLTAGE, 12.0f);
                 setValue(BLDC_LEFT_MOTOR_SUPPLY, 12.0f);
+                setValue(BLDC_USEHALLSENSOR, false);
+                setValue(BLDC_LEFT_USEHALLSENSOR, false);
                 retValue = saveCommon();
             }
             PinMapSSR* pinMap = PinMapSSR::getInstance();

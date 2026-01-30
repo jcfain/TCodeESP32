@@ -142,8 +142,11 @@ class BLDCMotor {
     updateBLDCSettings(delay = defaultDebounce) {
         Utils.debounce("updateBLDCSettings", () => {
             userSettings[this.Names.BLDC_UseHallSensor] = document.getElementById(this.Names.BLDC_UseHallSensor).checked;
-            // Utils.toggleControlVisibilityByID(this.Names.HallEffect_Row, userSettings[this.Names.BLDC_UseHallSensor]);
-            userSettings[this.Names.BLDC_Pulley_Circumference] = parseInt(document.getElementById(this.Names.BLDC_Pulley_Circumference).value);
+            // Utils.toggleControlVisibilityByID(this.Names.HallEffect_Row, userSettings[this.Names.BLDC_UseHallSensor]);  
+            if(this.deviceType == DeviceType.SSR1)
+            {
+                userSettings[this.Names.BLDC_Pulley_Circumference] = parseInt(document.getElementById(this.Names.BLDC_Pulley_Circumference).value);
+            }
             userSettings[this.Names.BLDC_Motor_VoltageLimit] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_VoltageLimit).value));
             userSettings[this.Names.BLDC_Motor_SupplyVoltage] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_SupplyVoltage).value));
             userSettings[this.Names.BLDC_Motor_Current] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_Current).value));
