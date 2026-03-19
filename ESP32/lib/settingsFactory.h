@@ -35,8 +35,6 @@ SOFTWARE. */
 #include "pinMap.h"
 #include "espTimerMap.h"
 
-using SETTING_STATE_FUNCTION_PTR_T = void (*)(const SettingProfile &profile, const char* settingThatChanged);
-
 class SettingsFactory
 {
 public:
@@ -142,7 +140,7 @@ public:
         return motionProfiles;
     }
 
-    void setMessageCallback(SETTING_STATE_FUNCTION_PTR_T f)
+    void setMessageCallback(std::function<void(const SettingProfile &, const char*)> f)
     {
         LogHandler::debug(m_TAG, "setMessageCallback");
         if (f == nullptr)
@@ -897,7 +895,7 @@ private:
     MotionProfile motionProfiles[MAX_MOTION_PROFILE_COUNT];
     ButtonSet buttonSets[MAX_BUTTON_SETS];
 
-    SETTING_STATE_FUNCTION_PTR_T message_callback = 0;
+    std::function<void(const SettingProfile &, const char*)> message_callback = 0;
 
     SemaphoreHandle_t m_networkSemaphore;
     SemaphoreHandle_t m_commonSemaphore;

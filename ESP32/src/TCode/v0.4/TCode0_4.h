@@ -69,7 +69,7 @@ public:
 		setAxisData(channel, data);
 	}
 
-	void setMessageCallback(TCODE_FUNCTION_PTR_T f) override
+	void setMessageCallback(std::function<void(const char*)> f) override
 	{
 		m_eventHandler.registerOnNotify(f);
 		TCodeBaseV4::setMessageCallback(f);

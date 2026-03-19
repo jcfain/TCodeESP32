@@ -28,8 +28,6 @@ SOFTWARE. */
 // #include "LogHandler.h"
 #include "TagHandler.h"
 
-using VOICE_COMMAND_FUNCTION_PTR_T = void (*)(const char* tcodeCommand);
-
 class VoiceHandler {
     
 public:
@@ -103,7 +101,7 @@ public:
 		((VoiceHandler*)parameter)->loop();
 	}
 
-	void setMessageCallback(VOICE_COMMAND_FUNCTION_PTR_T f) {
+	void setMessageCallback(std::function<void(const char*)> f) {
 		if (f == nullptr) {
 			message_callback = 0;
 		} else {
@@ -116,7 +114,7 @@ private:
 
     //I2C communication
     DFRobot_DF2301Q_I2C asr;
-	VOICE_COMMAND_FUNCTION_PTR_T message_callback = 0;
+	std::function<void(const char*)> message_callback = 0;
     bool _isRunning = false;
     bool _isConnected = false;
 

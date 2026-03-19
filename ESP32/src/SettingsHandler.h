@@ -94,7 +94,7 @@ public:
         initialized = true;
     }
 
-    static void setMessageCallback(SETTING_STATE_FUNCTION_PTR_T f)
+    static void setMessageCallback(std::function<void(const SettingProfile &, const char*)> f)
     {
         LogHandler::debug(_TAG, "setMessageCallback");
         if (f == nullptr)
@@ -1194,7 +1194,7 @@ private:
 	static SemaphoreHandle_t m_wifiMutex;
     static SemaphoreHandle_t m_buttonsMutex;
 	static SemaphoreHandle_t m_settingsMutex;
-    static SETTING_STATE_FUNCTION_PTR_T message_callback;
+    static std::function<void(const SettingProfile &, const char*)> message_callback;
     // Use http://arduinojson.org/assistant to compute the capacity.
     static const int deserializeSize = 32768;
     static const int serializeSize = 24576;
@@ -1646,7 +1646,7 @@ bool SettingsHandler::apMode = false;
 BuildFeature SettingsHandler::buildFeatures[(int)BuildFeature::MAX_FEATURES];
 const char *SettingsHandler::_TAG = TagHandler::SettingsHandler;
 std::vector<int> SettingsHandler::systemI2CAddresses;
-SETTING_STATE_FUNCTION_PTR_T SettingsHandler::message_callback = 0;
+std::function<void(const SettingProfile &, const char*)> SettingsHandler::message_callback = 0;
 ChannelMap SettingsHandler::channelMap;
 
 char SettingsHandler::currentIP[IP_ADDRESS_LEN] = LOCALIP_DEFAULT;

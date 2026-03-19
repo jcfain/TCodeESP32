@@ -306,7 +306,7 @@ public:
 		SettingsHandler::printWebAddress(WiFi.softAPIP().toString().c_str());
 		return true;
 	}
-	void setWiFiStatusCallback(WIFI_STATUS_FUNCTION_PTR_T f)
+	void setWiFiStatusCallback(std::function<void(WiFiStatus, WiFiReason)> f)
 	{
 		wifiStatus_callback = f == nullptr ? 0 : f;
 	}
@@ -323,7 +323,7 @@ public:
 	};
 
 private:
-	WIFI_STATUS_FUNCTION_PTR_T wifiStatus_callback;
+	std::function<void(WiFiStatus, WiFiReason)> wifiStatus_callback;
 	const char *_TAG = TagHandler::WifiHandler;
 	SettingsFactory *m_settingsFactory;
 	int connectTimeOut = 10000;

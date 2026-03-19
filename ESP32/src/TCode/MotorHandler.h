@@ -35,7 +35,7 @@ public:
     virtual void read(const String &input) = 0;
     virtual void read(const char* input, size_t len) = 0;
     virtual void execute() = 0;
-    virtual void setMessageCallback(TCODE_FUNCTION_PTR_T function) = 0;
+    virtual void setMessageCallback(std::function<void(const char*)> function) = 0;
 protected:
     #ifdef ESP_ARDUINO3
     // void attachPin(const char* name, uint8_t pin, uint32_t freq, int8_t res = -1) {

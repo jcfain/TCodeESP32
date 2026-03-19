@@ -68,9 +68,6 @@ const char* TemperatureState::HEAT = "Heating";
 const char* TemperatureState::COOLING = "Cooling";
 const char* TemperatureState::OFF = "Off";
 
-using TEMP_CHANGE_FUNCTION_PTR_T = void (*)(TemperatureType type, const char* message, float temp);
-using STATE_CHANGE_FUNCTION_PTR_T = void (*)(TemperatureType type, const char* state);
-
 class TemperatureHandler {
 	
 public: 
@@ -217,7 +214,7 @@ public:
   		vTaskDelete( NULL );
 	}
 	
-	void setMessageCallback(TEMP_CHANGE_FUNCTION_PTR_T f) // Sets the callback function used by TCode
+	void setMessageCallback(std::function<void(TemperatureType, const char*, float)> f) // Sets the callback function used by TCode
 	{
 		if (f == nullptr) {
 			message_callback = 0;
@@ -225,7 +222,7 @@ public:
 			message_callback = f;
 		}
 	}
-	void setStateChangeCallback(STATE_CHANGE_FUNCTION_PTR_T f) // Sets the callback function used by TCode
+	void setStateChangeCallback(std::function<void(TemperatureType, const char*)> f) // Sets the callback function used by TCode
 	{
 		if (f == nullptr) {
 			state_change_callback = 0;
@@ -557,8 +554,8 @@ private:
 		const int resolution = 9;
 		const int delayInMillis = 750 / (1 << (12 - resolution));
 
-		TEMP_CHANGE_FUNCTION_PTR_T message_callback = 0;
-		STATE_CHANGE_FUNCTION_PTR_T state_change_callback = 0;
+		std::function<void(TemperatureType, const char*, float)> message_callback = 0;
+		std::function<void(TemperatureType, const char*)> state_change_callback = 0;
 
 		long failSafeFrequency;
 		int failSafeFrequencyLimiter = 10000;

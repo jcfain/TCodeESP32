@@ -33,8 +33,6 @@ enum class LogLevel { NONE,
                       VERBOSE };
 #define LOG_LEVEL_HELP "Sets system log level.\nValid values are: NONE=0, ERROR=1, WARNING=2, INFO=3, DEBUG=4, VERBOSE=5"
 
-using LOG_FUNCTION_PTR_T = void (*)(const char *input, size_t length,
-                                    LogLevel level);
 class LogHandler {
 public:
     static const int internal_buffer_length = 1024;
@@ -211,7 +209,7 @@ public:
 
     static const char *getLastError() { return getInstance().m_lastError; }
 
-    static void setMessageCallback(LOG_FUNCTION_PTR_T f) {
+    static void setMessageCallback(std::function<void(const char *, size_t, LogLevel)> f) {
         getInstance().m_message_callback = f == nullptr ? 0 : f;
     }
 
@@ -227,7 +225,7 @@ private:
         return logger_instance;
     }
 
-    LOG_FUNCTION_PTR_T m_message_callback = 0;
+    std::function<void(const char *, size_t, LogLevel)> m_message_callback = 0;
     LogLevel m_currentLogLevel = LogLevel::INFO;
     SemaphoreHandle_t m_xMutex = xSemaphoreCreateMutex();
     std::vector<const char*> m_tags;

@@ -176,6 +176,8 @@ private:
         for(int i = 0; i < MAX_BUTTON_SETS; i++) {
             if(m_buttonSets[i].pin > -1) {
                 for(int j = 0; j < MAX_BUTTONS; j++) {
+                    if(strnlen(m_buttonSets[i].buttons[j].command, MAX_COMMAND) == 0)
+                        continue;
                     auto value = analogRead(m_buttonSets[i].pin);
                     auto index = m_buttonSets[i].buttons[j].index;
                     // LogHandler causes stack overflow.

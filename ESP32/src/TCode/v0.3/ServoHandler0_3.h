@@ -151,7 +151,7 @@ public:
             m_tcode->sendMessage("Ready!");
     }
 
-    void setMessageCallback(TCODE_FUNCTION_PTR_T function) override {
+    void setMessageCallback(std::function<void(const char*)> function) override {
         m_tcode->setMessageCallback(function);
     }
 
