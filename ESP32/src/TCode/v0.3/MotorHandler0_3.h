@@ -56,7 +56,7 @@ protected:
 
         m_tcode->setup(FIRMWARE_VERSION_NAME);
 
-        m_servoPWMMaxDuty = static_cast<uint32_t>(pow(2, SERVO_PWM_RES) - 1);
+        m_servoPWMMaxDuty = static_cast<uint32_t>(pow(2, SERVO_PWM_RESOLUTION) - 1);
         m_settingsFactory->getValue(MAX_SERVO_RANGE, maxServoRange);
         if(!maxServoRange)
         {

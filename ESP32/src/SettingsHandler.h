@@ -246,14 +246,14 @@ public:
         JsonObject devkit = boardTypes.add<JsonObject>();
         devkit["name"] = "Devkit";
         devkit["value"] = (uint8_t)BoardType::DEVKIT;
-    #if MOTOR_TYPE == 0
+    #if MOTOR_TYPE == MOTOR_TYPE_SERVO
         JsonObject SR6MB = boardTypes.add<JsonObject>();
         SR6MB["name"] = "SR6MB";
         SR6MB["value"] = (uint8_t)BoardType::CRIMZZON;
         JsonObject INControl = boardTypes.add<JsonObject>();
         INControl["name"] = "IN-Control";
         INControl["value"] = (uint8_t)BoardType::ISAAC;
-    #elif MOTOR_TYPE == 1
+    #elif MOTOR_TYPE == MOTOR_TYPE_BLDC
         JsonObject SSR1PCB = boardTypes.add<JsonObject>();
         SSR1PCB["name"] = "SSR1PCB";
         SSR1PCB["value"] = (uint8_t)BoardType::SSR1PCB;
@@ -294,7 +294,7 @@ public:
 
         JsonArray deviceTypes = doc["deviceTypes"].to<JsonArray>();
         JsonObject defaultDevice = deviceTypes.add<JsonObject>();
-    #if MOTOR_TYPE == 0
+    #if MOTOR_TYPE == MOTOR_TYPE_SERVO
         defaultDevice["name"] = "OSR";
         defaultDevice["value"] = DeviceType::OSR;
         JsonObject SR6 = deviceTypes.add<JsonObject>();
@@ -303,7 +303,7 @@ public:
         JsonObject TVIBE = deviceTypes.add<JsonObject>();
         TVIBE["name"] = "TVIBE";
         TVIBE["value"] = DeviceType::TVIBE;
-    #elif MOTOR_TYPE == 1
+    #elif MOTOR_TYPE == MOTOR_TYPE_BLDC
         defaultDevice["name"] = "SSR1";
         defaultDevice["value"] = DeviceType::SSR1;
         JsonObject SSR2 = deviceTypes.add<JsonObject>();
@@ -1427,9 +1427,9 @@ private:
 
     static void setMotorType()
     {
-#if MOTOR_TYPE == 0
+#if MOTOR_TYPE == MOTOR_TYPE_SERVO
        m_settingsFactory->setValue(MOTOR_TYPE_SETTING, (int)MotorType::Servo);
-#elif MOTOR_TYPE == 1
+#elif MOTOR_TYPE == MOTOR_TYPE_BLDC
        m_settingsFactory->setValue(MOTOR_TYPE_SETTING, (int)MotorType::BLDC);
 #endif
     }

@@ -16,21 +16,19 @@
 #define TCODE_SETTINGS "D2\n"
 #define WIFI_PASS_DONOTCHANGE_DEFAULT "YOUR PASSWORD HERE"
 #ifdef CONFIG_IDF_TARGET_ESP32S3
-#define MODULE_CURRENT ModuleType::S3
+#include "S3/config.h"
 #elif CONFIG_IDF_TARGET_ESP32
-#define MODULE_CURRENT ModuleType::WROOM32
+#include "ESP32/config.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "C6/config.h"
+// #elif CONFIG_IDF_TARGET_ESP32E22
+// #include "E22/config.h"
 #endif
-
+#define MOTOR_TYPE_SERVO 0
+#define MOTOR_TYPE_BLDC 1
 
 // Other functions
 #define VALVE_DEFAULT 5000        // Auto-valve default suction level (low-high, 0-9999) 
-
-
-#ifdef CONFIG_IDF_TARGET_ESP32
-#define SERVO_PWM_RES 16
-#elif CONFIG_IDF_TARGET_ESP32S3
-#define SERVO_PWM_RES 14
-#endif
 
 #define ESP_TIMER_FREQUENCY_DEFAULT 50
 #define ESP_VIB_TIMER_FREQUENCY_DEFAULT 8000
@@ -61,13 +59,7 @@
 //     #define CaseFan_PWM 13
 
 //     #define ValveServo_PWM 14         // Valve Servo
-#ifdef CONFIG_IDF_TARGET_ESP32
-    #define MAX_TIMERS 8
-#elif CONFIG_IDF_TARGET_ESP32S3
-    #define MAX_TIMERS 4
-#endif
 
-#define MAX_CHANNELS (MAX_TIMERS << 1)
 
 // const Channel ChannelMapV2[9] = {
 //     {"L0","Stroke",0,500,999,false,false,0,500,999},

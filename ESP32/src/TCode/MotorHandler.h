@@ -40,7 +40,7 @@ protected:
     #ifdef ESP_ARDUINO3
     // void attachPin(const char* name, uint8_t pin, uint32_t freq, int8_t res = -1) {
     void attachPin(const char* name, uint8_t pin, uint32_t freq, int8_t channel = -1, uint8_t res = 0) {
-        uint8_t resolution = res > 0 ? res : SERVO_PWM_RES;
+        uint8_t resolution = res > 0 ? res : SERVO_PWM_RESOLUTION;
         bool success = false;
         if(channel > -1) 
         {
@@ -58,7 +58,7 @@ protected:
     }
     #else
     void attachPin(const char* name, uint8_t pin, uint32_t freq, int8_t channel, int8_t res = -1) {
-        uint8_t resolution = res > -1 ? res : SERVO_PWM_RES;
+        uint8_t resolution = res > -1 ? res : SERVO_PWM_RESOLUTION;
         LogHandler::debug(TagHandler::MotorHandler, "Connecting %s servo to pin: %d @ freq: %d on channel: %d", name, pin, freq, channel);
         ledcSetup(channel,freq,resolution);
         ledcAttachPin(pin,channel);

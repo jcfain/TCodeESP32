@@ -22,10 +22,10 @@
 #include "TCode/MotorHandler.h"
 // #include "BLEConfigurationHandler.h"
 
-#if MOTOR_TYPE == 0
+#if MOTOR_TYPE == MOTOR_TYPE_SERVO
 #include "ServoHandler0_3.h"
 #include "ServoHandler0_4.h"
-#elif MOTOR_TYPE == 1
+#elif MOTOR_TYPE == MOTOR_TYPE_BLDC
 #include "BLDCHandler0_3.h"
 #include "BLDCHandler0_4.h"
 #endif
@@ -214,7 +214,7 @@ public:
         systemCommandHandler->registerExternalCommandCallback(std::bind(&InitHandler::tcodePassthroughCommandCallback, this, std::placeholders::_1));
         LogHandler::debug(TagHandler::Main, "System command handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
-    #if MOTOR_TYPE == 0
+    #if MOTOR_TYPE == MOTOR_TYPE_SERVO
         if (settingsFactory->getTcodeVersion() == TCodeVersion::v0_3)
         {
             motorHandler = new ServoHandler0_3();
@@ -223,16 +223,16 @@ public:
         {
             motorHandler = new ServoHandler0_4();
         }
-    #if !DEBUG_BUILD && TCODE_V2
-        // else if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_2)
-        // 	motorHandler = new ServoHandler0_2();
-    #endif
+        #if !DEBUG_BUILD && TCODE_V2
+            // else if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_2)
+            // 	motorHandler = new ServoHandler0_2();
+        #endif
         else
         {
             LogHandler::error(TagHandler::Main, "Invalid TCode version: %ld", settingsFactory->getTcodeVersion());
             return false; // TODO: this stops apmode and not what we want
         }
-    #elif MOTOR_TYPE == 1
+    #elif MOTOR_TYPE == MOTOR_TYPE_BLDC
         if (settingsFactory->getTcodeVersion() == TCodeVersion::v0_3)
         {
             motorHandler = new BLDCHandler0_3();
@@ -242,8 +242,7 @@ public:
             motorHandler = new BLDCHandler0_4();
         }
     #else
-        LogHandler::error(TagHandler::Main, "Invalid motor type defined!");
-        return;
+        #error "Build error! Invalid motor type defined!"
     #endif
 
         motorHandler->setMessageCallback(std::bind(&InitHandler::TCodeCommandCallback, this, std::placeholders::_1));

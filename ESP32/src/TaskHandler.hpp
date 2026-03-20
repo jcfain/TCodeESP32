@@ -31,7 +31,7 @@ public:
 			displayHandler,				  /* Task input parameter */
 			1,							  /* Priority of the task */
 			&displayTask,				  /* Task handle. */
-			APP_CPU_NUM);				  /* Core where the task should run */
+			TASK_CPU_NUM);				  /* Core where the task should run */
 		if (displayStatus != pdPASS)
 		{
 			LogHandler::error(TagHandler::Main, "Could not start display task.");
@@ -48,7 +48,7 @@ public:
             temperatureHandler,			   /* Task input parameter */
             1,							   /* Priority of the task */
             &temperatureTask,			   /* Task handle. */
-            APP_CPU_NUM);				   /* Core where the task should run */
+            TASK_CPU_NUM);				   /* Core where the task should run */
         if (tempStartStatus != pdPASS)
         {
             LogHandler::error(TagHandler::Main, "Could not start temperature task.");
@@ -65,7 +65,7 @@ public:
             batteryHandler,			   /* Task input parameter */
             1,						   /* Priority of the task */
             &batteryTask,			   /* Task handle. */
-            APP_CPU_NUM);			   /* Core where the task should run */
+            TASK_CPU_NUM);			   /* Core where the task should run */
         if (batteryStatus != pdPASS)
         {
             LogHandler::error(TagHandler::Main, "Could not start battery task.");
@@ -98,7 +98,7 @@ public:
             voiceHandler,			  /* Task input parameter */
             1,						  /* Priority of the task */
             &voiceTask,				  /* Task handle. */
-            APP_CPU_NUM);			  /* Core where the task should run */
+            TASK_CPU_NUM);			  /* Core where the task should run */
         if (voiceStatus != pdPASS)
         {
             LogHandler::error(TagHandler::Main, "Could not start voice task.");

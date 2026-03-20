@@ -9,7 +9,7 @@ enum class TCodeVersion: int
     MAX
 };
 
-#if MOTOR_TYPE == 1
+#if MOTOR_TYPE == MOTOR_TYPE_BLDC
 enum BLDCMotorPosition 
 {
     Right,
@@ -44,6 +44,8 @@ enum class ModuleType: int
 {
     WROOM32,
     S3,
+    C6,
+    E22,
     MAX
 };
 #define MODULE_TYPES_HELP "WROOM32=0, S3=1"
@@ -56,12 +58,14 @@ enum class BoardType: int
     CRIMZZON,
     ISAAC,
     SSR1PCB,
+    DEVKIT_C6,
+    DEVKIT_E22,
     MAX
 };
-#if MOTOR_TYPE == 1
-#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SSR1PCB=5"
+#if MOTOR_TYPE == MOTOR_TYPE_BLDC
+#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SSR1PCB=5, DEVKITC6=6, DEVKITC61=7"
 #else
-#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SR6MB=3, InControl=4"
+#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SR6MB=3, InControl=4, DEVKITC6=6, DEVKITC61=7"
 #endif
 
 enum class MotorType: int
@@ -83,7 +87,7 @@ enum class DeviceType: int
     MAX
 };
 
-#if MOTOR_TYPE == 1
+#if MOTOR_TYPE == MOTOR_TYPE_BLDC
 #define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: SSR1=2, SSR2=4"
 #else
 #define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: OSR=0, SR6=1, TVIBE=3"

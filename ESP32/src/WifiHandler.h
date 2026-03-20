@@ -23,10 +23,10 @@ SOFTWARE. */
 #pragma once
 
 #if ESP8266 == 1
-#include <ESP8266WiFi.h>
+	#include <ESP8266WiFi.h>
 #else
-#include <WiFi.h>
-#include <esp_wifi.h>
+	#include <WiFi.h>
+	#include <esp_wifi.h>
 #endif
 // // #include "LogHandler.h"
 #include "SettingsHandler.h"
@@ -86,6 +86,7 @@ public:
 		onApEventID = WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info)
 								   { this->WiFiEvent(event, info); });
 		WiFi.mode(WIFI_STA);
+		//WiFi.setBandMode(wifi_band_mode_t::WIFI_BAND_MODE_5G_ONLY);
 		WiFi.setSleep(false);
 		WiFi.setHostname(hostname);
 		bool isStatic = STATICIP_DEFAULT;

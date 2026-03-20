@@ -668,7 +668,7 @@ public:
             getValue(BATTERY_CAPACITY_MAX, batteryCapacityMax);
             if(targeted) {initCommonMessages(name); return;}
         }
-    #if MOTOR_TYPE == 0
+    #if MOTOR_TYPE == MOTOR_TYPE_SERVO
         if(!name || !strcmp(name, RIGHT_SERVO_ZERO)) {
             getValue(RIGHT_SERVO_ZERO, RightServo_ZERO);
             if(targeted) {initCommonMessages(name); return;}
@@ -693,7 +693,7 @@ public:
             getValue(PITCH_RIGHT_SERVO_ZERO, PitchRightServo_ZERO);
             if(targeted) {initCommonMessages(name); return;}
         }
-    #elif MOTOR_TYPE == 1
+    #elif MOTOR_TYPE == MOTOR_TYPE_BLDC
         if(!name || !strcmp(name, BLDC_TWIST_MULTIPLIER)) {
             getValue(BLDC_TWIST_MULTIPLIER, m_twistMultiplier);
             if(targeted) {initCommonMessages(name); return;}
@@ -951,7 +951,7 @@ private:
             {CONTINUOUS_TWIST, "Continous twist", "Ignores any feedback signal", SettingType::Boolean, CONTINUOUS_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {FEEDBACK_TWIST, "Feedback twist", "For feed back servos", SettingType::Boolean, FEEDBACK_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {ANALOG_TWIST, "Analog twist", "Analog feedback servo", SettingType::Boolean, ANALOG_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}}
-#if MOTOR_TYPE == 1
+#if MOTOR_TYPE == MOTOR_TYPE_BLDC
             ,{BLDC_TWIST_MULTIPLIER, "BLDC Twist multiplier", "BLDC Twist multiplier", SettingType::Number, BLDC_TWIST_MULTIPLIER_DEFAULT, RestartRequired::NO, {SettingProfile::Bldc}},
             {BLDC_RAILLENGTH, "Rail length", "SSR1 rail length", SettingType::Number, BLDC_RAILLENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
@@ -974,7 +974,7 @@ private:
             {BLDC_LEFT_MOTOR_PARAMETERSKNOWN, "Left Motor parameters known", "Left BLDC Motor params known", SettingType::Boolean, BLDC_LEFT_MOTOR_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_LEFT_MOTOR_ZEROELECANGLE, "Left Motor ZeroElecAngle", "Left BLDC Motor ZeroElecAngle", SettingType::Float, BLDC_LEFT_MOTOR_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}}
             
-#elif MOTOR_TYPE == 0
+#elif MOTOR_TYPE == MOTOR_TYPE_SERVO
             ,{RIGHT_SERVO_ZERO, "Right servo zero", "The zero calibration for the right servo", SettingType::Number, RIGHT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {LEFT_SERVO_ZERO, "Left servo zero", "The zero calibration for the left servo", SettingType::Number, LEFT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {RIGHT_UPPER_SERVO_ZERO, "Right upper servo zero", "The zero calibration for the right upper servo", SettingType::Number, RIGHT_UPPER_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
