@@ -153,7 +153,7 @@ public:
 		oneWireInternal.begin(m_internalTempPin);
 		sensorsInternal.setOneWire(&oneWireInternal);
 		sensorsInternal.begin();
-		if(!sensorsSleeve.getAddress(internalDeviceAddress, 0)) {
+		if(!sensorsInternal.getAddress(internalDeviceAddress, 0)) {
 			LogHandler::error(_TAG, "No temp sensor found on internal bus (index 0).");
 			sleeveTempInitialized = false;
 			return;
