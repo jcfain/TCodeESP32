@@ -33,6 +33,7 @@ class TagHandler {
     static const char* SettingsHandler;
     static const char* WifiHandler;
     static const char* UdpHandler;
+    static const char* SerialHandler;
     static const char* WebsocketsHandler;
     static const char* WebHandler;
     static const char* WebsocketBase;
@@ -68,6 +69,7 @@ const char* TagHandler::BatteryHandler = "battery-handler";
 const char* TagHandler::SettingsHandler = "settings-handler";
 const char* TagHandler::WifiHandler = "wifi-handler";
 const char* TagHandler::UdpHandler = "udp-handler";
+const char* TagHandler::SerialHandler = "serial-handler";
 const char* TagHandler::WebsocketsHandler = "websocket-handler";
 const char* TagHandler::WebsocketBase = "websocket-base";
 const char* TagHandler::SecureWebsocketsHandler = "secure-websocket-handler";
@@ -109,6 +111,7 @@ const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::WebsocketBase,
     TagHandler::HTTPSHandler,
     TagHandler::UdpHandler,
+    TagHandler::SerialHandler,
     TagHandler::ServoHandler,
     TagHandler::TCodeHandler,
     //TagHandler::ServoHandler2,

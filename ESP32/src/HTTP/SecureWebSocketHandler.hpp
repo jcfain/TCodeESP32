@@ -16,8 +16,8 @@ class SecureWebSocketHandler : public WebSocketBase {
 public:
     void setup(HTTPSServer& httpsServer) {
         LogHandler::info(_TAG, "Setting up secure webSocket");
-        tCodeInQueue = xQueueCreate(5, sizeof(char[255]));
-        if(!tCodeInQueue || tCodeInQueue == NULL) {
+        m_TCodeQueue = xQueueCreate(5, sizeof(char[255]));
+        if(!m_TCodeQueue || m_TCodeQueue == NULL) {
             LogHandler::error(_TAG, "Error creating the tcode queue");
         }
         // Initialize the slots

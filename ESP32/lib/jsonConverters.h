@@ -3,6 +3,7 @@
 #include <map>
 #include "ArduinoJson.h"
 #include "enum.h"
+#include "LogHandler.h"
 
 void convertFromJson(JsonVariantConst src, TCodeVersion& dst) {
     dst = static_cast<TCodeVersion>(src.as<uint8_t>());

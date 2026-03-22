@@ -57,20 +57,29 @@ SettingsFactory *settingsFactory;
 bool setupSucceeded = false;
 bool restarting = false;
 
-String serialData;
-char commandTCodeData[MAX_COMMAND];
-char udpData[MAX_COMMAND];
-char webSocketData[MAX_COMMAND];
+char tcodeData[MAX_COMMAND];
+size_t tcodeData_len;
+// char serialData[MAX_COMMAND];
+size_t serialData_len;
+// String serialData;
+// char commandTCodeData[MAX_COMMAND];
+size_t commandTCodeData_len;
+// char udpData[MAX_COMMAND];
+size_t udpData_len;
+// char webSocketData[MAX_COMMAND];
+size_t webSocketData_len;
 #if BLE_TCODE
-char bleData[MAX_COMMAND];
+// char bleData[MAX_COMMAND];
+size_t bleData_len;
 #endif
 #if BLUETOOTH_TCODE
-String bluetoothData;
+// char bluetoothData[MAX_COMMAND];
+size_t bluetoothData_len;
 #endif
 char movement[MAX_COMMAND];
+size_t movement_len;
 ButtonModel *buttonCommand = 0;
 bool dStopped = false;
-bool tcodeV2Recieved = false;
 bool bluetoothEnabled = BLUETOOTH_ENABLED_DEFAULT;
 bool bleEnabled = BLE_ENABLED_DEFAULT;
 
@@ -83,21 +92,23 @@ void setup()
 }
 
 // Main loop functions/////////////////////////////////////////////////
-void readTCode(String &tcode)
-{
-	if (initHandler->motorHandler)
-	{
-		initHandler->motorHandler->read(tcode);
-		tcode.clear();
-	}
-}
+// void readTCode(String &tcode)
+// {
+// 	if (initHandler->motorHandler)
+// 	{
+// 		initHandler->motorHandler->read(tcode);
+// 		tcode.clear();
+// 	}
+// }
 
-void readTCode(char *tcode, int len)
+void readTCode(char *tcode, size_t& len)
 {
 	if (initHandler->motorHandler)
 	{
 		initHandler->motorHandler->read(tcode, len);
-		tcode[0] = {0};
+		//tcode[0] = {0};
+		memset(tcode, 0, len);
+		len = 0;
 	}
 }
 
@@ -110,9 +121,10 @@ void processButton()
 		{
 			char command[MAX_COMMAND];
 			initHandler->systemCommandHandler->process(buttonCommand, command);
-			if (strlen(command) > 0)
+			size_t commandLen = strnlen(command, MAX_COMMAND);
+			if (commandLen > 0)
 			{
-				readTCode(command, strlen(command));
+				readTCode(command, commandLen);
 			}
 		}
 	}
@@ -120,91 +132,109 @@ void processButton()
 
 void getTCodeInput()
 {
-	if (Serial.available() > 0)
+// 	serialData_len = 0;
+// 	movement_len = 0;
+// 	commandTCodeData_len = 0;
+// 	udpData_len = 0;
+// 	webSocketData_len = 0;
+// 	bleData_len = 0;
+// #if BLUETOOTH_TCODE
+// 	bluetoothData_len = 0;
+// #endif
+	if (initHandler->serialHandler && initHandler->serialHandler->available())
 	{
-		serialData = Serial.readStringUntil('\n');
-		if(!serialData.isEmpty())
-			serialData += '\n';
+		serialData_len = initHandler->serialHandler->read(tcodeData);
 	}
-	else if (serialData.length())
+	else if (initHandler->systemCommandHandler && initHandler->systemCommandHandler->available())
 	{
-		serialData.clear();
-	}
-	if (initHandler->systemCommandHandler)
-	{
-		initHandler->systemCommandHandler->getTCode(commandTCodeData);
+		commandTCodeData_len = initHandler->systemCommandHandler->read(tcodeData);
 	}
 #if BLUETOOTH_TCODE
-	if (btHandler && btHandler->isConnected() && btHandler->available() > 0)
+	// else if (initHandler->bluetoothHandler && initHandler->bluetoothHandler->isConnected() && initHandler->bluetoothHandler->available() > 0)
+	// {
+	// 	size_t len = initHandler->bluetoothHandler.readBytesUntil('\n', tcodeData, MAX_COMMAND);
+	// 	if(len < MAX_COMMAND) {
+	// 		bluetoothData_len = len;
+	// 		tcodeData[bluetoothData_len] = '\n';
+	// 	}
+	// }
+	else if (initHandler->bluetoothHandler && initHandler->bluetoothHandler->available())
 	{
-		bluetoothData = btHandler->readStringUntil('\n');
+		bluetoothData_len = initHandler->bluetoothHandler->read(tcodeData);
 	}
 #endif
 #if WIFI_TCODE
-	if (initHandler->webSocketHandler)
+	else if (initHandler->webSocketHandler && initHandler->webSocketHandler->available())
 	{
 		benchHandler->benchStart(1);
-		initHandler->webSocketHandler->getTCode(webSocketData);
+		webSocketData_len = initHandler->webSocketHandler->read(tcodeData);
 		benchHandler->benchFinish("Websocket get", 1);
 	}
-	if (initHandler->udpHandler)
+	else if (initHandler->udpHandler && initHandler->udpHandler->available())
 	{
 		benchHandler->benchStart(2);
-		initHandler->udpHandler->read(udpData);
+		udpData_len = initHandler->udpHandler->read(tcodeData);
 		benchHandler->benchFinish("Udp get", 2);
 	}
 #endif
 #if BLE_TCODE
-	if (initHandler->bleHandler)
+	else if (initHandler->bleHandler && initHandler->bleHandler->available())
 	{
-		initHandler->bleHandler->read(bleData);
+		bleData_len = initHandler->bleHandler->read(tcodeData);
 	}
 #endif
 }
 
 void processCommand()
 {
-	// Read and process tcode $ and # commands
-	if (serialData.length() > 0)
+	if(initHandler->systemCommandHandler && initHandler->systemCommandHandler->isCommand(tcodeData))
 	{
-		if (initHandler->systemCommandHandler && initHandler->systemCommandHandler->isCommand(serialData.c_str()))
+		size_t * len = 0;
+		// Read and process tcode $ and # commands
+		if (serialData_len > 0)
 		{
-			// initHandler->systemCommandHandler->process(serialData.c_str());
-			readTCode(serialData);
+			len = &serialData_len;
 		}
-	}
 #if BLUETOOTH_TCODE
-	if (bluetoothData.length() > 0)
-	{
-		if (initHandler->systemCommandHandler && initHandler->systemCommandHandler->isCommand(bluetoothData.c_str()))
+		else if (bluetoothData_len > 0)
 		{
-			// initHandler->systemCommandHandler->process(bluetoothData.c_str());
-			readTCode(bluetoothData);
+			len = &bluetoothData_len;
 		}
-	}
 #endif
 #if WIFI_TCODE
-	else if (strlen(udpData) > 0 && initHandler->systemCommandHandler && initHandler->systemCommandHandler->isCommand(udpData))
-	{
-		// initHandler->systemCommandHandler->process(udpData);
-		readTCode(udpData, strlen(udpData));
-	}
-	else if (strlen(webSocketData) > 0 && initHandler->systemCommandHandler && initHandler->systemCommandHandler->isCommand(webSocketData))
-	{
-		// initHandler->systemCommandHandler->process(webSocketData);
-		readTCode(webSocketData, strlen(webSocketData));
-	}
+		else if (udpData_len > 0)
+		{
+			len = &udpData_len;
+		}
+		else if (webSocketData_len > 0)
+		{
+			len = &webSocketData_len;
+		}
 #endif
+		if(len)
+		{
+			readTCode(tcodeData, *len);
+		}
+	}
 }
 
 void processMotionHandlerMovement()
 {
 	initHandler->motionHandler->getMovement(movement, MAX_COMMAND);
-	if (strlen(movement) > 0)
+	size_t len = strlen(movement);
+	if (len > 0)
 	{
 		LogHandler::verbose(TagHandler::MainLoop, "motion handler writing: %s", movement);
-		readTCode(movement, strlen(movement));
+		readTCode(movement, len);
 	}
+}
+
+void stop()
+{
+	size_t len = 7;
+	char stop[len] = "DSTOP\n";
+	readTCode(stop, len);
+	dStopped = true;
 }
 
 void loop()
@@ -215,7 +245,6 @@ void loop()
 	// 	return;
 	// }
 	// LogHandler::verbose(TagHandler::MainLoop, "Enter loop ############################################");
-	tcodeV2Recieved = false;
 	benchHandler->benchStart(0);
 	if (SettingsHandler::restartRequired > -1 || restarting)
 	{ // check the flag here to determine if a restart is required
@@ -235,8 +264,7 @@ void loop()
 #if BUILD_TEMP
 	else if (initHandler->temperatureHandler && initHandler->temperatureHandler->isMaxTempTriggered())
 	{
-		char stop[7] = "DSTOP\n";
-		readTCode(stop, 7);
+		stop();
 		LogHandler::error(TagHandler::Main, "Internal temp has reached maximum user set. Main loop disabled! Restart system to enable the loop.");
 		initHandler->temperatureHandler->setFanState();
 		vTaskDelay(5000 / portTICK_PERIOD_MS);
@@ -262,41 +290,41 @@ void loop()
 				{ // Motion overrides all other input
 					processMotionHandlerMovement();
 				}
-				else if (strlen(commandTCodeData) > 0)
+				else if (commandTCodeData_len > 0)
 				{
-					LogHandler::verbose(TagHandler::MainLoop, "system command tcode writing: %s", commandTCodeData);
-					readTCode(commandTCodeData, strlen(commandTCodeData));
+					LogHandler::verbose(TagHandler::MainLoop, "System command tcode received. Writing: %s, len: %u", tcodeData, commandTCodeData_len);
+					readTCode(tcodeData, commandTCodeData_len);
 				}
-				else if (serialData.length() > 0)
+				else if (serialData_len > 0)
 				{
-					LogHandler::verbose(TagHandler::MainLoop, "serial writing: %s", serialData.c_str());
-					readTCode(serialData);
+					LogHandler::verbose(TagHandler::MainLoop, "Serial tcode received. Writing: %s, len: %u", tcodeData, serialData_len);
+					readTCode(tcodeData, serialData_len);
 #if WIFI_TCODE == 1
 				}
-				else if (strlen(webSocketData) > 0)
+				else if (webSocketData_len > 0)
 				{
-					LogHandler::verbose(TagHandler::MainLoop, "webSocket writing: %s", webSocketData);
-					readTCode(webSocketData, strlen(webSocketData));
+					LogHandler::verbose(TagHandler::MainLoop, "WebSocket tcode received. Writing: %s, len: %u", tcodeData, webSocketData_len);
+					readTCode(tcodeData, webSocketData_len);
 				}
-				else if (!SettingsHandler::apMode && strlen(udpData) > 0)
+				else if (!SettingsHandler::apMode && udpData_len > 0)
 				{
 					benchHandler->benchStart(6);
-					LogHandler::verbose(TagHandler::MainLoop, "udp writing: %s", udpData);
-					readTCode(udpData, strlen(udpData));
+					LogHandler::verbose(TagHandler::MainLoop, "Udp tcode received. Writing: %s, len: %u", tcodeData, udpData_len);
+					readTCode(tcodeData, udpData_len);
 					benchHandler->benchFinish("Udp write", 6);
 #endif
 #if BLE_TCODE
 				}
-				else if (strlen(bleData) > 0)
+				else if (bleData_len > 0)
 				{
-					LogHandler::verbose(TagHandler::MainLoop, "BLE writing: %s", bleData);
-					readTCode(bleData, strlen(bleData));
+					LogHandler::verbose(TagHandler::MainLoop, "BLE tcode received. Writing: %s, len: %u", tcodeData, bleData_len);
+					readTCode(tcodeData, bleData_len);
 #endif
 #if BLUETOOTH_TCODE
 				}
-				else if (bluetoothData.length() > 0)
+				else if (bluetoothData_len > 0)
 				{
-					LogHandler::verbose(TagHandler::MainLoop, "bluetooth writing: %s", bluetoothData.c_str());
+					LogHandler::verbose(TagHandler::MainLoop, "Bluetooth tcode received. Writing: %s, len: %u", tcodeData, bluetoothData_len);
 					readTCode(bluetoothData);
 #endif
 				}
@@ -307,16 +335,13 @@ void loop()
 				// movement[0] = {0};
 				// udpData[0] = {0};
 				// webSocketData[0] = {0};
-				// serialData.clear();
-				char stop[7] = "DSTOP\n";
-				readTCode(stop, 7);
-				dStopped = true;
-				tcodeV2Recieved = false;
+				// serialData[0] = {0};
+				stop();
 #if BLE_TCODE
 				// bleData = {0};
 #endif
 #if BLUETOOTH_TCODE
-				// bluetoothData.clear();
+				// bluetoothData = {0};
 #endif
 			}
 

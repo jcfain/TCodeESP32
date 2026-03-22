@@ -151,7 +151,8 @@ public:
             m_tcode->sendMessage("Ready!");
     }
 
-    void setMessageCallback(std::function<void(const char*)> function) override {
+    void setMessageCallback(std::function<void(const char*)> function) override 
+    {
         m_tcode->setMessageCallback(function);
     }
 
@@ -162,7 +163,8 @@ public:
     
     void read(const char* input, size_t len) override
     {
-        for (int i = 0; i < len; i++) {
+        for (int i = 0; i < len; i++) 
+        {
             read(input[i]);
         }
     }
@@ -178,7 +180,8 @@ public:
 // int testVar = -1;
 // int testVar2 = -1;
     void execute() override {
-        if(m_initFailed) {
+        if(m_initFailed) 
+        {
             return;
         }
         if(m_deviceType != DeviceType::TVIBE)

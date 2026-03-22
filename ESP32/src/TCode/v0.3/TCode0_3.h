@@ -2,7 +2,7 @@
 #pragma once
 
 #include <EEPROM.h>
-#include "Axis.h"
+#include "TCode/v0.3/Axis.h"
 #include "TCodeBase.h"
 #include "TagHandler.h"
 // -----------------------------

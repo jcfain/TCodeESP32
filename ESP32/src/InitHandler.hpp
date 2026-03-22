@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 
+#include "SerialHandler.h"
 #include <TCode.h>
 #include "LogHandler.h"
 #include "SettingsHandler.h"
@@ -67,6 +68,7 @@
 class InitHandler
 {
 public:
+    SerialHandler *serialHandler;
     SystemCommandHandler *systemCommandHandler = 0;
     MotorHandler *motorHandler = 0;
     BatteryHandler *batteryHandler = 0;
@@ -87,7 +89,7 @@ public:
     BLEHandler *bleHandler = 0;
 #endif
 #if BLUETOOTH_TCODE
-    BluetoothHandler *btHandler = 0;
+    BluetoothHandler *bluetoothHandler = 0;
 #endif
 #if BUILD_DISPLAY
     DisplayHandler *displayHandler = 0;
@@ -107,8 +109,8 @@ public:
         // see if we can use the onboard led for status
         // https://github.com/kriswiner/ESP32/blob/master/PWM/ledcWrite_demo_ESP32.ino
         // digitalWrite(5, LOW);// Turn off on-board blue led
-
-        Serial.begin(115200);
+        serialHandler = new SerialHandler();
+        serialHandler->setup();
         Serial.printf("Startup DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
         LogHandler::setLogLevel(LogLevel::INFO);
@@ -521,11 +523,11 @@ private:
 #if BLUETOOTH_TCODE
     void startBlueTooth()
     {
-        if (bluetoothEnabled && !btHandler)
+        if (bluetoothEnabled && !bluetoothHandler)
         {
             displayPrint("Starting Bluetooth serial");
-            btHandler = new BluetoothHandler();
-            btHandler->setup();
+            bluetoothHandler = new BluetoothHandler();
+            bluetoothHandler->setup();
         }
     }
 #endif
@@ -647,7 +649,7 @@ private:
     }
 #endif
 
-// TODO move to CallbackHandler//////////////////////////////////////////////////////////////
+// TODO move to CallbackHandler or freertos queues///////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
     void TCodeCommandCallback(const char *in)
@@ -660,21 +662,20 @@ private:
         else
         {
     #if BLUETOOTH_TCODE
-            if (btHandler && btHandler->isConnected())
-                btHandler->CommandCallback(in);
+            if (bluetoothHandler && bluetoothHandler->isConnected())
+                bluetoothHandler->CommandCallback(in);
     #endif
     #if BLE_TCODE
             if (bleHandler && bleHandler->isConnected())
-                bleHandler->CommandCallback(in);
+                bleHandler->send(in);
     #endif
     #if WIFI_TCODE
             if (webSocketHandler)
-                webSocketHandler->CommandCallback(in);
+                webSocketHandler->send(in);
             if (udpHandler)
-                udpHandler->CommandCallback(in);
+                udpHandler->send(in);
     #endif
-            if (Serial)
-                Serial.println(in);
+            serialHandler->send(in);
         }
     }
 
@@ -689,20 +690,19 @@ private:
             strcat(temp, "\n");
     //////////////////////////////////////////////////////////////////////////////////////
     #if BLUETOOTH_TCODE
-            if (btHandler && btHandler->isConnected())
-                btHandler->CommandCallback(temp);
+            if (bluetoothHandler && bluetoothHandler->isConnected())
+                bluetoothHandler->send(temp);
     #endif
     #if BLE_TCODE
 
     #endif
     #if WIFI_TCODE
             if (webSocketHandler)
-                webSocketHandler->CommandCallback(temp);
+                webSocketHandler->send(temp);
             if (udpHandler)
-                udpHandler->CommandCallback(temp);
+                udpHandler->send(temp);
     #endif
-            if (Serial)
-                Serial.println(temp);
+            serialHandler->send(temp);
         }
     }
 
