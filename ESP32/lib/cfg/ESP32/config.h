@@ -1,7 +1,7 @@
 #pragma once
 // CONFIG_IDF_TARGET_ESP32
 #define MODULE_CURRENT ModuleType::WROOM32
-#define SERVO_PWM_RESOLUTION 16
+#define MAX_PWM_RESOLUTION 16
 #define MAX_TIMERS 8
 #define MAX_CHANNELS (MAX_TIMERS << 1)
 #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::DEVKIT

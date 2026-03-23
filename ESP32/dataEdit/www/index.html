@@ -476,6 +476,14 @@
 								<input id="maxServoRange" type="number" min="140" max="360" oninput="updateMaxServoRange()">
 							</div>
 						</div>
+						<div class="tRow ">
+							<div class="tCell" title="The servo resolution for all servos">
+								<span>Servo resolution (bit)</span> 
+							</div>
+							<div class="tCell">
+								<input id="servoResolution" type="number" min="1" max="16" oninput="setPWMResolution()">
+							</div>
+						</div>
 						<div class="tRow">
 							<div class="tCell">
 								<span></span> 
@@ -731,6 +739,14 @@
 								<input id="analogTwist" type="checkbox" onchange="updateAnalogTwist()">
 							</div>
 						</div>
+						<div class="tRow ">
+							<div class="tCell" title="The servo resolution for all servos">
+								<span>Vibe resolution (bit)</span> 
+							</div>
+							<div class="tCell">
+								<input id="vibeResolution" type="number" min="1" max="16" oninput="setPWMResolution()">
+							</div>
+						</div>
 						<div class="tRow">
 							<div class="tCell">
 								<span>Vibe 1 PIN</span> 
@@ -817,6 +833,14 @@
 							</div>
 							<div class="tCell">
 								<input id="lubeEnabled" type="checkbox" onchange="updateLubeEnabled()">
+							</div>
+						</div>
+						<div class="tRow ">
+							<div class="tCell" title="The servo resolution for all servos">
+								<span>Lube resolution (bit)</span> 
+							</div>
+							<div class="tCell">
+								<input id="lubeResolution" type="number" min="1" max="16" oninput="setPWMResolution()">
 							</div>
 						</div>
 						<div class="tRow">

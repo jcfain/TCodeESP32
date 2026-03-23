@@ -397,7 +397,7 @@ class WebHandler : public HTTPBase {
             server->onNotFound([this](AsyncWebServerRequest *request) 
 			{
                 if (handleStaticFile(request)) return;
-                Serial.printf("AsyncWebServerRequest Not found: %s", request->url().c_str());
+                Serial.printf("AsyncWebServerRequest Not found: %s\n", request->url().c_str());
                 if (request->method() == AsyncWebRequestMethod::AsyncWebRequestMethodType::HTTP_OPTIONS) {
                     request->send(200);
                 } else {

@@ -29,6 +29,7 @@ SOFTWARE. */
 #include <vector>
 #include <map>
 #include <Wire.h>
+#include "soc/rtc.h"
 // // #include "LogHandler.h"
 #include "utils.h"
 #include "TagHandler.h"
@@ -390,6 +391,8 @@ public:
         }
         doc["chipID"] = chipId;
 
+        doc["maxPWMResolution"] = MAX_PWM_RESOLUTION;
+        doc["apbClockFrequency"] =  rtc_clk_apb_freq_get();
         doc["decoyPass"] = DECOY_PASS;
         doc["apMode"] = apMode;
         doc["defaultIP"] = m_settingsFactory->getAPModeIP();

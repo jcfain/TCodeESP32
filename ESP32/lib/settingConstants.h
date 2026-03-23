@@ -110,6 +110,11 @@
 #define HOLD_PWM_DEFAULT 110
 #define DISPLAY_I2C_ADDRESS_DEFAULT "0x3c"
 #define DISPLAY_I2C_ADDRESS_LEN 5
+
+#define SERVO_RESOLUTION_DEFAULT MAX_PWM_RESOLUTION
+#define VIBE_RESOLUTION_DEFAULT 8
+#define LUBE_RESOLUTION_DEFAULT 8
+
 #define HEATER_THRESHOLD_DEFAULT 5.0f
 #define HEATER_RESOLUTION_DEFAULT 8
 // #define HEATER_FREQUENCY_DEFAULT 50
@@ -231,6 +236,9 @@
 #define HOLD_PWM "HoldPWM"
 #define CASE_FAN_MAX_PWM "caseFanMaxPWM"
 #define DISPLAY_I2C_ADDRESS "Display_I2C_Address"
+#define SERVO_RESOLUTION "servoResolution"
+#define VIBE_RESOLUTION "vibeResolution"
+#define LUBE_RESOLUTION "lubeResolution"
 #define HEATER_THRESHOLD "heaterThreshold"
 #define HEATER_RESOLUTION "heaterResolution"
 // #define HEATER_FREQUENCY "heaterFrequency"

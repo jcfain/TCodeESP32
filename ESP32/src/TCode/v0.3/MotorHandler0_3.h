@@ -55,8 +55,12 @@ protected:
         PinMap* pinMap = m_settingsFactory->getPins();
 
         m_tcode->setup(FIRMWARE_VERSION_NAME);
+        int vibeResolution, lubeResolution;
+        m_settingsFactory->getValue(SERVO_RESOLUTION, servoResolution);
+        m_settingsFactory->getValue(VIBE_RESOLUTION, vibeResolution);
+        m_settingsFactory->getValue(LUBE_RESOLUTION, lubeResolution);
 
-        m_servoPWMMaxDuty = static_cast<uint32_t>(pow(2, SERVO_PWM_RESOLUTION) - 1);
+        m_servoPWMMaxDuty = static_cast<uint32_t>(pow(2, servoResolution) - 1);
         m_settingsFactory->getValue(MAX_SERVO_RANGE, maxServoRange);
         if(!maxServoRange)
         {
@@ -65,6 +69,9 @@ protected:
         }
         ms_per_rad = 114592/maxServoRange;
         LogHandler::debug(_TAG, "MS_PER_RAD: %d", ms_per_rad);
+        LogHandler::debug(_TAG, "Servo Resolution: %d", servoResolution);
+        LogHandler::debug(_TAG, "Vibe Resolution: %d", vibeResolution);
+        LogHandler::debug(_TAG, "Lube Resolution: %d", lubeResolution);
         
         m_valveServoPin = pinMap->valve();
         m_valveServoChannel = pinMap->valveChannel();
@@ -116,7 +123,7 @@ protected:
                 m_tcode->AxisInput("A2",0,' ',0);
                 pinMode(m_lubeButtonPin, INPUT);
                 int freq = pinMap->getChannelFrequency(m_vib1Channel);
-                attachPin("lube", m_vib1Pin, freq, m_vib1Channel, 8);
+                attachPin("lube", m_vib1Pin, freq, m_vib1Channel, lubeResolution);
                 // m_vib1_Int = frequencyToMicroseconds(freq);
                 lubeRegistered = true;
             }
@@ -128,7 +135,7 @@ protected:
         if(m_vib0Pin > -1 && m_vib0Channel > -1) {
             m_tcode->RegisterAxis("V0", "Vibe1");
             int freq = pinMap->getChannelFrequency(m_vib0Channel);
-            attachPin("vib 1", m_vib0Pin, freq, m_vib0Channel, 8);
+            attachPin("vib 1", m_vib0Pin, freq, m_vib0Channel, vibeResolution);
             // m_vib0_Int = frequencyToMicroseconds(freq);
         } else {
             m_vib0Pin = -1;
@@ -140,7 +147,7 @@ protected:
             if(m_vib1Pin > -1 && m_vib1Channel > -1) {
                 m_tcode->RegisterAxis("V1", "Vibe2");
                 int freq = pinMap->getChannelFrequency(m_vib1Channel);
-                attachPin("vib 2", m_vib1Pin, freq, m_vib1Channel, 8);
+                attachPin("vib 2", m_vib1Pin, freq, m_vib1Channel, vibeResolution);
                 // m_vib1_Int = frequencyToMicroseconds(freq);
             } else {
                 m_vib1Pin = -1;
@@ -151,7 +158,7 @@ protected:
         if(m_vib2Pin > -1 && m_vib2Channel > -1) {
             m_tcode->RegisterAxis("V2", "Vibe3");
             int freq = pinMap->getChannelFrequency(m_vib2Channel);
-            attachPin("vib 3", m_vib2Pin, freq, m_vib2Channel, 8);
+            attachPin("vib 3", m_vib2Pin, freq, m_vib2Channel, vibeResolution);
             // m_vib2_Int = frequencyToMicroseconds(freq);
         } else {
             m_vib2Pin = -1;
@@ -161,7 +168,7 @@ protected:
         if(m_vib3Pin > -1 && m_vib3Channel > -1) {
             m_tcode->RegisterAxis("V3", "Vibe4");
             int freq = pinMap->getChannelFrequency(m_vib3Channel);
-            attachPin("vib 4", m_vib3Pin, freq, m_vib3Channel, 8);
+            attachPin("vib 4", m_vib3Pin, freq, m_vib3Channel, vibeResolution);
             // m_vib3_Int = frequencyToMicroseconds(freq);
         } else {
             m_vib3Pin = -1;

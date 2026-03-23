@@ -1007,6 +1007,9 @@ private:
             {HOLD_PWM, "Hold PWM", "PWM when the sleeve is at target", SettingType::Number, HOLD_PWM_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {CASE_FAN_MAX_PWM, "Max Fan PWM", "PWM when the fan is at its max speed", SettingType::Number, CASE_FAN_MAX_PWM_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {DISPLAY_I2C_ADDRESS, "Display I2C address", "I2C address of the display", SettingType::String, DISPLAY_I2C_ADDRESS_DEFAULT, RestartRequired::YES, {SettingProfile::Display}},
+            {SERVO_RESOLUTION, "Servo resolution", "Resolution for the servo PWM", SettingType::Number, SERVO_RESOLUTION_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Servo}},
+            {VIBE_RESOLUTION, "Vibe resolution", "Resolution for the vibe PWM", SettingType::Number, VIBE_RESOLUTION_DEFAULT, RestartRequired::YES, {SettingProfile::PWM}},
+            {LUBE_RESOLUTION, "Lube resolution", "Resolution for the lube PWM", SettingType::Number, LUBE_RESOLUTION_DEFAULT, RestartRequired::YES, {SettingProfile::PWM}},
             {HEATER_THRESHOLD, "Heater thresh hold", "The HoldPWM will be sent while the temp less than or equal to TargetTemp + heaterThreshold", SettingType::Float, HEATER_THRESHOLD_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},// TODo: what is this exactly
             {HEATER_RESOLUTION, "Heater resolution", "Resolution for the Heater PWM", SettingType::Number, HEATER_RESOLUTION_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {FAN_CONTROL_ENABLED, "Fan control enabled", "Enable PWM fan", SettingType::Boolean, FAN_CONTROL_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},

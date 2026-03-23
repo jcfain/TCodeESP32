@@ -1,7 +1,7 @@
 #pragma once
 // CONFIG_IDF_TARGET_ESP32C6
 #define MODULE_CURRENT ModuleType::C6
-#define SERVO_PWM_RESOLUTION 14
+#define MAX_PWM_RESOLUTION 14
 #define MAX_TIMERS 6
 #define MAX_CHANNELS 6
 #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::DEVKIT_C6

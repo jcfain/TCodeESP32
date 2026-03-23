@@ -1,7 +1,7 @@
 #pragma once
 // CONFIG_IDF_TARGET_ESP32S3
 #define MODULE_CURRENT ModuleType::S3
-#define SERVO_PWM_RESOLUTION 14
+#define MAX_PWM_RESOLUTION 14
 #define MAX_TIMERS 4
 #define MAX_CHANNELS (MAX_TIMERS << 1)
 #ifdef S3_ZERO

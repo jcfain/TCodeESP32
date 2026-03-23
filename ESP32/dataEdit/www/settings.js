@@ -142,8 +142,14 @@ function logdebug(message) {
         console.log(message);
 }
 function get(name, uri, callback, callbackFail) {
+    request("GET", name, uri, callback, callbackFail)
+}
+function post(name, uri, callback, callbackFail) {
+    request("POST", name, uri, callback, callbackFail)
+}
+function request(method, name, uri, callback, callbackFail) {
 	var xhr = new XMLHttpRequest();
-	xhr.open('GET', uri, true);
+	xhr.open(method, uri, true);
 	xhr.responseType = 'json';
 	xhr.onload = function() {
         var status = xhr.status;
@@ -182,7 +188,7 @@ function pingDevice() {
         clearTimeout(serverPollingTimeOut);
         serverPollingTimeOut = null;
     }
-    get("ping", EndPointType.Ping.uri, function(xhr) {
+    post("ping", EndPointType.Ping.uri, function(xhr) {
         result = xhr.response;
         if(!result || result.status === "restarting") {
             startServerPoll();
@@ -1036,8 +1042,19 @@ function setUserSettings()
 	document.getElementById("Display_I2C_Address").value = userSettings["Display_I2C_Address"];
     document.getElementById("Display_I2C_Address_text").value = userSettings["Display_I2C_Address"];
 	// document.getElementById("heaterFailsafeTime").value = userSettings["heaterFailsafeTime"];
+    var servoResolution = document.getElementById("servoResolution");
+	servoResolution.value = userSettings["servoResolution"];
+    servoResolution.max = systemInfo.maxPWMResolution
+    var vibeResolution = document.getElementById("vibeResolution");
+	vibeResolution.value = userSettings["vibeResolution"];
+    vibeResolution.max = systemInfo.maxPWMResolution
+    var lubeResolution = document.getElementById("lubeResolution");
+	lubeResolution.value = userSettings["lubeResolution"];
+    lubeResolution.max = systemInfo.maxPWMResolution
 	document.getElementById("heaterThreshold").value = userSettings["heaterThreshold"];
-	document.getElementById("heaterResolution").value = userSettings["heaterResolution"];
+    var heaterResolution = document.getElementById("heaterResolution")
+	heaterResolution.value = userSettings["heaterResolution"];
+    heaterResolution.max = systemInfo.maxPWMResolution
     
 	// document.getElementById("Display_Rst_PIN").readOnly = newtoungeHatExists;
 
@@ -1046,7 +1063,9 @@ function setUserSettings()
     document.getElementById('fanControlEnabled').checked = userSettings["fanControlEnabled"];
     document.getElementById('internalTempForFan').value = userSettings["internalTempForFan"];
     document.getElementById('internalMaxTemp').value = userSettings["internalMaxTemp"];
-    document.getElementById('caseFanResolution').value = userSettings["caseFanResolution"];
+    var caseFanResolution = document.getElementById("caseFanResolution")
+	caseFanResolution.value = userSettings["caseFanResolution"];
+    caseFanResolution.max = systemInfo.maxPWMResolution
     document.getElementById('caseFanMaxPWM').value = userSettings["caseFanMaxPWM"];
 
     document.getElementById('vibTimeout').value = userSettings["vibTimeout"];
@@ -2446,6 +2465,17 @@ function setVoiceSettings() {
         setRestartRequired();
         updateUserSettings(0);
     }
+}
+function setPWMResolution() {
+    debounceInput("setPWMResolution", function() {
+        if(validateIntControl("servoResolution", userSettings, "servoResolution")
+            && validateIntControl("vibeResolution", userSettings, "vibeResolution")
+            && validateIntControl("lubeResolution", userSettings, "lubeResolution"))
+        {
+            setRestartRequired();
+            updateUserSettings(0);
+        }
+    }, defaultDebounce);
 }
 function setFanControl() {
     debounceInput("caseFanSettings", function() {
