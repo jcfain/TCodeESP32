@@ -4,10 +4,10 @@
 #include <HTTPSServer.hpp>
 #include <WebsocketHandler.hpp>
 #include "WebSocketBase.h"
-#include "SettingsHandler.h"
-#include "LogHandler.h"
-#include "TagHandler.h"
-#include "BatteryHandler.h"
+#include "settings/SettingsHandler.h"
+#include "logging/LogHandler.h"
+#include "logging/TagHandler.h"
+#include "sensors/BatteryHandler.h"
 #include "SecureWebSocketClient.hpp"
 
 

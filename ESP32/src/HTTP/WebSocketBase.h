@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 // #include "LogHandler.h"
-#include "BatteryHandler.h"
+#include "sensors/BatteryHandler.h"
 
 class WebSocketBase {
     public:
@@ -11,23 +11,23 @@ class WebSocketBase {
     virtual void sendCommand(const char* command, const char* message = 0) = 0;
     virtual void closeAll() = 0;
 
-    void getTCode(char* webSocketData) 
+    void getTCode(char* webSocketData)
     {
         if(!tCodeInQueue || tCodeInQueue == NULL)
         {
             if(millis() >= lastMessage + messageLimit) {
                 lastMessage = millis();
-                LogHandler::error(_TAG, "TCode queue was null");
+                LogHandler::error(Tags::WebSocketServer, "TCode queue was null");
             }
             return;
-        } 
-        if(xQueueReceive(tCodeInQueue, webSocketData, 0)) 
+        }
+        if (xQueueReceive(tCodeInQueue, webSocketData, 0))
         {
             //tcode->toCharArray(webSocketData, tcode->length() + 1);
             // Serial.print("Top tcode: ");
             // Serial.println(webSocketData);
         }
-        else 
+        else
         {
             webSocketData[0] = {0};
         }
@@ -52,18 +52,18 @@ protected:
         else
             sprintf(buf, "{ \"command\": \"%s\" , \"message\": \"%s\" }", command, message);
     }
-    void processWebSocketTextMessage(const char* msg) 
+    void processWebSocketTextMessage(const char* msg)
     {
-        if(strpbrk(msg, "{") == nullptr)  
+        if (strpbrk(msg, "{") == nullptr)
         {
             if(!tCodeInQueue || tCodeInQueue == NULL)
             {
-                LogHandler::error(_TAG, "TCode queue was null");
-            } 
-            else 
+                LogHandler::error(Tags::WebSocketServer, "TCode queue was null");
+            }
+            else
             {
-                
-                LogHandler::verbose(_TAG, "Websocket tcode in: %s", msg);
+
+                LogHandler::verbose(Tags::WebSocketServer, "Websocket tcode in: %s", msg);
                 xQueueSend(tCodeInQueue, msg, 0);
 // Serial.print("Time between ws calls: ");
 // Serial.println(millis() - lastCall);
@@ -71,7 +71,7 @@ protected:
 // lastCall = millis();
                 //executeTCode(msg);
             }
-            // if (strcmp(msg, SettingsHandler::HandShakeChannel) == 0) 
+            // if (strcmp(msg, SettingsHandler::HandShakeChannel) == 0)
             // {
             //     sendCommand(SettingsHandler::TCodeVersionName);
             // }
@@ -80,14 +80,14 @@ protected:
         {
             JsonDocument doc; //255
             DeserializationError error = deserializeJson(doc, msg);
-            if (error) 
+            if (error)
             {
-                LogHandler::error(_TAG, "Failed to read websocket json");
+                LogHandler::error(Tags::WebSocketServer, "Failed to read websocket json");
                 return;
             }
             JsonObject jsonObj = doc.as<JsonObject>();
 
-            if(!jsonObj["command"].isNull()) 
+            if (!jsonObj["command"].isNull())
             {
                 String command = jsonObj["command"].as<String>();
                 String message = jsonObj["message"].as<String>();
@@ -99,10 +99,10 @@ protected:
                 // Serial.println(message->c_str());
                 // if(tCodeInQueue == NULL)return;
                 // xQueueSend(tCodeInQueue, &message, 0);
-            } 
-            // else 
+            }
+            // else
             // {
-            //     LogHandler::verbose(_TAG, "Websocket tcode in JSON: %s", msg);
+            //     LogHandler::verbose(Tags::WebSocketServer, "Websocket tcode in JSON: %s", msg);
             //     char tcode[MAX_COMMAND];
             //     SettingsHandler::processTCodeJson(tcode, msg);
             //     // Serial.print("tcode JSON converted:");
@@ -113,7 +113,6 @@ protected:
     }
 
 private:
-    const char* _TAG = "webSocket-base";
     // std::mutex serial_mtx;
     // static QueueHandle_t debugInQueue;
     // static TaskHandle_t* emptyQueueHandle;

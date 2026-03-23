@@ -16,7 +16,7 @@
 // Setting defaults
 
 #if MOTOR_TYPE == 0
-    #define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::OSR
+#define DEVICE_TYPE_DEFAULT (uint8_t)DEFAULT_DEVICE
 #else
     #define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::SSR1
 #endif
@@ -35,7 +35,7 @@
 #define AP_MODE_SUBNET_DEFAULT "255.255.255.0"
 #ifndef BOARD_TYPE_DEFAULT
 #if CONFIG_IDF_TARGET_ESP32
-    #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::DEVKIT
+#define BOARD_TYPE_DEFAULT (uint8_t)DEFAULT_BOARD
 #elif CONFIG_IDF_TARGET_ESP32S3
     #ifdef S3_ZERO
         #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::ZERO
@@ -44,7 +44,7 @@
     #endif
 #endif
 #else
-    #define BOARD_TYPE_DEFAULT BOARD_TYPE
+#define BOARD_TYPE_DEFAULT DEFAULT_BOARD
 #endif
 #define LOG_LEVEL_DEFAULT (uint8_t)LogLevel::INFO
 //#define FULL_BUILD_DEFAULT false

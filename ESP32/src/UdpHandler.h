@@ -22,99 +22,120 @@ SOFTWARE. */
 
 #pragma once
 
-
 #include <Arduino.h>
 #include <AsyncUDP.h>
 #include <ArduinoJson.h>
-#include "SettingsHandler.h"
+#include <WiFi.h>
+#include "settings/SettingsHandler.h"
 #include "logging/LogHandler.h"
 #include "TagHandler.h"
+#include "tasks/TaskHandler.h"
 
-
-class Udphandler
+class UdpHandler : public TaskHandler::Task
 {
-  public:
-    bool setup(int localPort) 
-    {
-		LogHandler::info(_TAG, "Starting UDP on port: %ld", localPort);
-		if(!m_server.listen(localPort)) 
+public:
+	UdpHandler() : Task(TaskHandler::Rates::SLOW) {}
+	void setup() override
+	{
+		// Defer UDP initialization until WiFi/lwip is ready
+		// Don't initialize here - let loop() handle it on first real call
+		udpInitialized = false;
+		m_TCodeQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
+		SettingsFactory* m_settingsFactory = SettingsFactory::getInstance();
+		m_tcodeVersion = m_settingsFactory->getTcodeVersion();
+	}
+
+	bool initializeUdp()
+	{
+		if (udpInitialized)
+			return true;
+
+		int localPort = SettingsFactory::getInstance()->getUdpServerPort();
+		LogHandler::info(Tags::Udp, "Starting UDP on port: %ld", localPort);
+		if (!m_udp.listen(localPort))
 		{
-        	LogHandler::error(_TAG, "UDP Error Listening");
+			LogHandler::error(Tags::Udp, "UDP Error Listening");
 			return false;
 		}
-        LogHandler::info(_TAG, "UDP Listening");
-    	SettingsFactory* m_settingsFactory = SettingsFactory::getInstance();
-		m_tcodeVersion = m_settingsFactory->getTcodeVersion();
-		m_server.onPacket(udpCallback, static_cast<void*>(this));
-		//m_server.onPacket(udpCallback2);
-        m_TCodeQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
-		// if(xTaskCreatePinnedToCore(
-		// 	handlerTask,/* Function to implement the task */
-		// 	"UDPTask", /* Name of the task */
-		// 	configMINIMAL_STACK_SIZE*4,  /* Stack size in words */
-		// 	static_cast<void*>(this),  /* Task input parameter */
-		// 	tskIDLE_PRIORITY,  /* Priority of the task */
-		// 	&m_task,  /* Task handle. */
-		// 	WIFI_TASK_CORE_ID) == pdFALSE) /* Core where the task should run */
-		// 	return; 
-		initialized = true;
+		LogHandler::info(Tags::Udp, "UDP Listening");
+		m_udp.onPacket(udpCallback, static_cast<void*>(this));
+		udpInitialized = true;
 		return true;
-    }
-	
-	static void udpCallback(void * arg, AsyncUDPPacket& packet) 
+	}
+
+	void loop() override
 	{
-		Udphandler* udp = static_cast<Udphandler*>(arg);
-		//LogHandler::verbose(udp->_TAG, "UDP recieve: %s", packet.data());
+		// Lazy-initialize UDP once WiFi/lwip is ready
+		if (!udpInitialized)
+		{
+			// Do not call AsyncUDP until WiFi stack has been enabled.
+			if (WiFi.getMode() == WIFI_OFF)
+			{
+				return;
+			}
+
+			// Try initialize; if it fails, retry on a later tick.
+			initializeUdp();
+		}
+	}
+
+	static void udpCallback(void *arg, AsyncUDPPacket &packet)
+	{
+		UdpHandler *udp = static_cast<UdpHandler *>(arg);
+		// LogHandler::verbose(udp->Tags::Udp, "UDP recieve: %s", packet.data());
 		udp->_lastConnectedPort = packet.remotePort();
 		udp->_lastConnectedIP = packet.remoteIP();
 		udp->packetBuffer[0] = {0};
-		
+
 		memcpy(udp->packetBuffer, packet.data(), packet.length());
-		//size_t len = packet.readBytes(udp->packetBuffer, sizeof(packetBuffer));
+		// size_t len = packet.readBytes(udp->packetBuffer, sizeof(packetBuffer));
 		udp->packetBuffer[packet.length()] = '\0';
-		if(xQueueSend(udp->m_TCodeQueue, udp->packetBuffer, 0) != pdTRUE)
-			LogHandler::error(udp->_TAG, "UDP queue full");
+		if (xQueueSend(udp->m_TCodeQueue, udp->packetBuffer, 0) != pdTRUE)
+			LogHandler::error(Tags::Udp, "UDP queue full");
 	}
 
-	void CommandCallback(const char* in) 
-	{ //This overwrites the callback for message return
-		if(initialized && _lastConnectedPort > 0) {
-			LogHandler::debug(_TAG, "Sending udp to client: %s", in);
+	void CommandCallback(const char *in)
+	{ // This overwrites the callback for message return
+		if (udpInitialized && _lastConnectedPort > 0)
+		{
+			LogHandler::debug(Tags::Udp, "Sending udp to client: %s", in);
 			int i = 0;
 			AsyncUDPMessage message;
 			while (in[i] != 0)
 				message.write((uint8_t)in[i++]);
-			m_server.sendTo(message, _lastConnectedIP, _lastConnectedPort);
-			//m_server.endPacket();
+			m_udp.sendTo(message, _lastConnectedIP, _lastConnectedPort);
+			// m_udp.endPacket();
 		}
 	}
 
-    void read(char* buf) 
-    {
-		if (!initialized) 
+	void read(char *buf)
+	{
+		if (!udpInitialized)
 		{
 			buf[0] = {0};
 			return;
 		}
-        if(xQueueReceive(m_TCodeQueue, buf, 0)) {
-            //LogHandler::verbose(_TAG, "Recieve tcode: %s", buf);
-        } else {
-            //LogHandler::error(_TAG, "Failed to read from queue");
-            buf[0] = {0};
+		if (xQueueReceive(m_TCodeQueue, buf, 0))
+		{
+			// LogHandler::verbose(Tags::Udp, "Recieve tcode: %s", buf);
+		}
+		else
+		{
+			// LogHandler::error(Tags::Udp, "Failed to read from queue");
+			buf[0] = {0};
 			return;
-        }
-    }
-    
-  private: 
-    const char* _TAG = TagHandler::UdpHandler;
+		}
+	}
+
+private:
 	TCodeVersion m_tcodeVersion;
-    TaskHandle_t m_task;
-    QueueHandle_t m_TCodeQueue;
-	
-    AsyncUDP m_server;
+	TaskHandle_t m_task;
+	QueueHandle_t m_TCodeQueue;
+
+	AsyncUDP m_udp;
 	IPAddress _lastConnectedIP;
 	int _lastConnectedPort = 0;
-    bool initialized = false;
-    char packetBuffer[MAX_COMMAND] = {0}; //buffer to hold incoming packet
-    char jsonIdentifier[2] = "{";
+	bool udpInitialized = false;
+	char packetBuffer[MAX_COMMAND] = {0}; // buffer to hold incoming packet
+	char jsonIdentifier[2] = "{";
 };

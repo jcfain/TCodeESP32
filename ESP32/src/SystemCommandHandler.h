@@ -24,25 +24,31 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
-#include "SettingsHandler.h"
+#if ESP8266 == 1
+#include <ESP8266WiFi.h>
+#else
+#include <WiFi.h>
+#endif
+#include "settings/SettingsHandler.h"
 #include "utils.h"
-#include "TagHandler.h"
+#include "logging/LogHandler.h"
+#include "logging/TagHandler.h"
 #include "struct/command.hpp"
 #include "settingsFactory.h"
 
 class SystemCommandHandler {
-public: 
+public:
 	SystemCommandHandler() {
 		tCodeQueue = xQueueCreate(10, sizeof(char[MAX_COMMAND]));
 		if(tCodeQueue == NULL) {
-			LogHandler::error(_TAG, "Error creating the tcode queue");
+			LogHandler::error(Tags::SystemCommand, "Error creating the tcode queue");
 		}
 		m_settingsFactory = SettingsFactory::getInstance();
 	}
     bool process(const char* in) {
 		xSemaphoreTake(xMutex, portMAX_DELAY);
 		if(isSaveCommand(in)) {
-			LogHandler::debug(_TAG, "Enter process save command: %s", in);
+			LogHandler::debug(Tags::SystemCommand, "Enter process save command: %s", in);
 			for(Command command : saveCommands) {
 				if(match(in, command.command)) {
 					command.callback();
@@ -51,12 +57,12 @@ public:
 				}
 			}
 
-			LogHandler::error(_TAG, "Unknown save command: %s\n", in);
+			LogHandler::error(Tags::SystemCommand, "Unknown save command: %s\n", in);
 			xSemaphoreGive(xMutex);
 			return false;
 
 		} else if(isOtherCommand(in)) {
-			LogHandler::debug(_TAG, "Enter process other command: %s", in);
+			LogHandler::debug(Tags::SystemCommand, "Enter process other command: %s", in);
 
 			for(auto command : commands) {
 				if(match(in, command.command)) {
@@ -74,10 +80,10 @@ public:
 				}
 			}
 			CommandValuePair valuePair;
-			if(!getCommandValue(in, valuePair)) 
+			if(!getCommandValue(in, valuePair))
 				return false;
 
-			LogHandler::debug(_TAG, "Value command: %s:%s", valuePair.command, valuePair.value);
+			LogHandler::debug(Tags::SystemCommand, "Value command: %s:%s", valuePair.command, valuePair.value);
 			for(auto command : commandCharValues) {
 				if(match(valuePair.command, command.command)) {
 					command.callback(valuePair.value);
@@ -98,7 +104,7 @@ public:
 				}
 			}
 
-			LogHandler::error(_TAG, "Unknown command: %s", in);
+			LogHandler::error(Tags::SystemCommand, "Unknown command: %s", in);
 			xSemaphoreGive(xMutex);
 			return false;
 		}
@@ -117,22 +123,22 @@ public:
 	// 	}
 	// 	if(!button->isPressed()) {// Filter out other commands button release event for now.
 	// 		strlcpy(buf, button->command, MAX_COMMAND);
-	// 	} 
+	// 	}
 	// 	return false;
 	// }
 
 	/// @brief This function is mainly for concatenating the button state for commands sent externally.
-	/// @param button 
-	/// @param buf 
+	/// @param button
+	/// @param buf
 	/// @return true if any commands where added.
 	bool process(ButtonModel* button, char buf[MAX_COMMAND]) {
-		LogHandler::debug(_TAG, "Enter process button command: %s", button->command);
+		LogHandler::debug(Tags::SystemCommand, "Enter process button command: %s", button->command);
 		char temp[MAX_COMMAND];
 		strlcpy(temp, button->command, MAX_COMMAND);
    		char *token = strtok(temp, " ");//Split incoming at TCode delemiter "space"
 		buf[0] = {0};
 		while( token != NULL ) {// Specify if the button is pressed or released only for externaly sent commands.
-			LogHandler::debug(_TAG, "Searching command: %s", token);
+			LogHandler::debug(Tags::SystemCommand, "Searching command: %s", token);
 			bool externalFound = false;
 			for(auto command : commandExternal) {
 				if(match(command.command, token)) {
@@ -150,7 +156,7 @@ public:
 		}
 		if(strlen(buf)) {
 			strcat(buf, "\n");
-			LogHandler::debug(_TAG, "Finish process button command: %s", buf);
+			LogHandler::debug(Tags::SystemCommand, "Finish process button command: %s", buf);
 			return true;
 		}
 		return false;
@@ -160,7 +166,7 @@ public:
 		return isSaveCommand(in) || isOtherCommand(in);
 		//return strpbrk(DELEMITER_SAVE, in) != nullptr || strpbrk(DELEMITER, in) != nullptr;
 	}
-	
+
 	bool isSaveCommand(const char* in) {
 		return startsWith(in, DELEMITER_SAVE);
 	}
@@ -171,21 +177,21 @@ public:
 	bool isValueCommand(const char* in) {
 		 return contains(in, (&DELEMITER_VALUE));
 	}
-	
+
 	bool isSettingCommand(const char* in) {
 		return startsWith(in, DELEMITER);
 	}
 
-	
+
 	void registerExternalCommandCallback(std::function<void(const char*)> callback) {
 		m_externalCommandCallback = callback;
 	}
 
-    bool getTCode(char* buf) 
+    bool getTCode(char* buf)
     {
         if(!tCodeQueue) {
             return false;
-        } 
+        }
         if(!xQueueReceive(tCodeQueue, buf, 0)) {
             buf[0] = {0};
 			return false;
@@ -193,17 +199,16 @@ public:
 		return true;
     }
 
-private: 
+private:
 	SemaphoreHandle_t xMutex = xSemaphoreCreateMutex();
     QueueHandle_t tCodeQueue;
-	const char* _TAG = TagHandler::SystemCommandHandler;
 	SettingsFactory* m_settingsFactory;
 	std::function<void(const char*)> m_externalCommandCallback = 0;
 	std::function<void(const char*)> m_otherCommandCallback = 0;
 
     const char* DELEMITER = "#";
-    const char* DELEMITER_SAVE = "$"; 
-    const char DELEMITER_VALUE = ':'; 
+    const char* DELEMITER_SAVE = "$";
+    const char DELEMITER_VALUE = ':';
     const Command HELP{{"Help", "#help", "Print the help screen", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			printCommandHelp();
@@ -232,10 +237,10 @@ private:
     const Command DEFAULT_ALL{{"Default all", "$defaultAll", "Saves all settings to default", SaveRequired::NO, RestartRequired::YES, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			if(!m_settingsFactory->resetAll()) {
-				LogHandler::error(_TAG, "Error resetting all to default");
+				LogHandler::error(Tags::SystemCommand, "Error resetting all to default");
 				return false;
 			}
-			LogHandler::info(_TAG, "All settings reset to default!");
+			LogHandler::info(Tags::SystemCommand, "All settings reset to default!");
 			return true;
 		}, SaveRequired::NO, RestartRequired::YES);
 	}};
@@ -245,31 +250,38 @@ private:
 			return true;
 		});
 	}};
+	const Command PRINT_IP{ {"Print IP", "#ip", "Print current STA or AP IP address", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
+		return execute([]() -> bool {
+			IPAddress ip = (WiFi.isConnected()) ? WiFi.localIP() : WiFi.softAPIP();
+			Serial.printf("IP Address: %s\n", ip.toString().c_str());
+			return true;
+		});
+	} };
     const Command CLEAR_LOGS_INCLUDE{{"Clear log include", "#clear-log-include", "Clears all the log included tags", SaveRequired::YES, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			LogHandler::clearIncludes();
-			LogHandler::debug(_TAG, "Tags cleared");
-			return m_settingsFactory->setValue(LOG_INCLUDETAGS, LogHandler::getIncludes()) != SettingFile::NONE;
+			LogHandler::debug(Tags::SystemCommand, "Tags cleared");
+			return m_settingsFactory->setValue(LOG_INCLUDETAGS, "") != SettingFile::NONE;
 		}, SaveRequired::YES);
 	}};
     const Command CLEAR_LOGS_EXCLUDE{{"Clear log exclude", "#clear-log-exclude", "Clears all the log excluded tags", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			LogHandler::clearExcludes();
-			LogHandler::debug(_TAG, "Filters cleared");
-			return m_settingsFactory->setValue(LOG_EXCLUDETAGS, LogHandler::getExcludes()) != SettingFile::NONE;
+			LogHandler::debug(Tags::SystemCommand, "Filters cleared");
+			return m_settingsFactory->setValue(LOG_EXCLUDETAGS, "") != SettingFile::NONE;
 		}, SaveRequired::NO);
 	}};
     const Command CHANNEL_RANGES_ENABLE{{"Channel ranges enable", "#channel-ranges-enable", "Enables the channel range limits temporarily", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return validateBool("Channel ranges", true, SettingsHandler::getChannelRangesEnabled(), [this](bool value) -> bool {
 			SettingsHandler::setChannelRangesEnabled(true);
-			LogHandler::debug(_TAG, "Channel ranges enabled");
+			LogHandler::debug(Tags::SystemCommand, "Channel ranges enabled");
 			return true;
 		});
 	}};
     const Command CHANNEL_RANGES_DISABLE{{"Channel ranges disable", "#channel-ranges-disable", "Disables the channel range limits temporarily", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return validateBool("Channel ranges", false, SettingsHandler::getChannelRangesEnabled(), [this](bool value) -> bool {
 			SettingsHandler::setChannelRangesEnabled(false);
-			LogHandler::debug(_TAG, "Channel ranges disabled");
+			LogHandler::debug(Tags::SystemCommand, "Channel ranges disabled");
 			return true;
 		});
 	}};
@@ -277,21 +289,21 @@ private:
 		return execute([this]() -> bool {
 			bool enabled = SettingsHandler::getChannelRangesEnabled();
 			SettingsHandler::setChannelRangesEnabled(!enabled);
-			LogHandler::debug(_TAG, !enabled ? "Channel ranges enabled" : "Channel ranges disabled");
+			LogHandler::debug(Tags::SystemCommand, !enabled ? "Channel ranges enabled" : "Channel ranges disabled");
 			return true;
 		});
 	}};
     const Command MOTION_ENABLE{{"Motion enable", "#motion-enable", "Enables the motion generator", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return validateBool("Motion", true, SettingsHandler::getMotionEnabled(), [this](bool value) -> bool {
 			SettingsHandler::setMotionEnabled(value);
-			LogHandler::debug(_TAG, "Motion enabled");
+			LogHandler::debug(Tags::SystemCommand, "Motion enabled");
 			return true;
 		});
 	}};
     const Command MOTION_DISABLE{{"Motion disable", "#motion-disable", "Disables the motion generator", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return validateBool("Motion", false, SettingsHandler::getMotionEnabled(), [this](bool value) -> bool {
 			SettingsHandler::setMotionEnabled(value);
-			LogHandler::debug(_TAG, "Motion disabled");
+			LogHandler::debug(Tags::SystemCommand, "Motion disabled");
 			writeTCode("DSTOP\n");
 			return true;
 		});
@@ -300,7 +312,7 @@ private:
 		return execute([this]() -> bool {
 			bool enabled = SettingsHandler::getMotionEnabled();
 			SettingsHandler::setMotionEnabled(!enabled);
-			LogHandler::debug(_TAG, !enabled ? "Motion enabled" : "Motion disabled");
+			LogHandler::debug(Tags::SystemCommand, !enabled ? "Motion enabled" : "Motion disabled");
 			if(!enabled) {
 				writeTCode("DSTOP\n");
 			}
@@ -310,7 +322,7 @@ private:
     const Command MOTION_HOME{{"Motion home", "#device-home", "Sends all axis' to its home position", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		char buf[MAX_COMMAND];
 		SettingsHandler::channelMap.tCodeHome(buf);
-		LogHandler::debug(_TAG, "Device home: %s", buf);
+		LogHandler::debug(Tags::SystemCommand, "Device home: %s", buf);
 		writeTCode(buf);
 		return true;
 	}};
@@ -320,26 +332,26 @@ private:
 			return true;
 		});
 	}};
-    const Command PAUSE{{"Pause", "#pause", "Pauses all motion of the device", SaveRequired::YES, RestartRequired::YES, SettingType::NONE}, [this]() -> bool {	
+    const Command PAUSE{{"Pause", "#pause", "Pauses all motion of the device", SaveRequired::YES, RestartRequired::YES, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			SettingsHandler::motionPaused = true;
-			LogHandler::debug(_TAG, "Device paused");
+			LogHandler::debug(Tags::SystemCommand, "Device paused");
 			return true;
 		});
 		return true;
 	}};
-    const Command RESUME{{"Resume", "#resume", "Resumes all motion of the device", SaveRequired::YES, RestartRequired::YES, SettingType::NONE}, [this]() -> bool {	
+    const Command RESUME{{"Resume", "#resume", "Resumes all motion of the device", SaveRequired::YES, RestartRequired::YES, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			SettingsHandler::motionPaused = false;
-			LogHandler::debug(_TAG, "Device resumed");
+			LogHandler::debug(Tags::SystemCommand, "Device resumed");
 			return true;
 		});
 		return true;
 	}};
-    const Command PAUSE_TOGGLE{{"Pause toggle", "#pause-toggle", "Pauses all motion of the device", SaveRequired::YES, RestartRequired::YES, SettingType::NONE}, [this]() -> bool {	
+    const Command PAUSE_TOGGLE{{"Pause toggle", "#pause-toggle", "Pauses all motion of the device", SaveRequired::YES, RestartRequired::YES, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			SettingsHandler::motionPaused = !SettingsHandler::motionPaused;
-			LogHandler::debug(_TAG, SettingsHandler::motionPaused ? "Device paused" : "Device resumed");
+			LogHandler::debug(Tags::SystemCommand, SettingsHandler::motionPaused ? "Device paused" : "Device resumed");
 			return true;
 		});
 		return true;
@@ -347,7 +359,7 @@ private:
     const CommandValue<const int> MOTION_HOME_SPEED{{"Motion home", "#device-home", "Sends all axis' to its home position at specified speed (S)", SaveRequired::NO, RestartRequired::NO, SettingType::Number}, [this](const int value) -> bool {
 		char buf[MAX_COMMAND];
 		SettingsHandler::channelMap.tCodeHome(buf, value);
-		LogHandler::debug(_TAG, "Device home speed: %s", buf);
+		LogHandler::debug(Tags::SystemCommand, "Device home speed: %s", buf);
 		writeTCode(buf);
 		return true;
 	}};
@@ -356,14 +368,14 @@ private:
 			m_settingsFactory->setValue(SSID_SETTING, value);
 			//strcpy(SettingsHandler::ssid, value);
 			return true;
-		}, SaveRequired::YES, RestartRequired::YES); 
+		}, SaveRequired::YES, RestartRequired::YES);
 	}};
     const CommandValue<const char*>WIFI_PASS{{"Wifi pass", "#wifi-pass", "Sets the password of the wifi AP", SaveRequired::YES, RestartRequired::YES, SettingType::String}, [this](const char* value) -> bool {
 		return validateMaxLength("Wifi password", value, WIFI_PASS_LEN, true, [this](const char* value) -> bool {
 			m_settingsFactory->setValue(WIFI_PASS_SETTING, value);
 			//strcpy(SettingsHandler::wifiPass, value);
 			return true;
-		}, SaveRequired::YES, RestartRequired::YES); 
+		}, SaveRequired::YES, RestartRequired::YES);
 	}};
     const CommandValue<const int>BOARD_TYPE{{"Board type", "#board-type", BOARD_TYPES_HELP, SaveRequired::YES, RestartRequired::YES, SettingType::Number}, [this](const int value) -> bool {
 		return executeValue<const int>(value, [this](const int value) -> bool {
@@ -378,7 +390,7 @@ private:
     const CommandValue<const int>LOG_LEVEL{{"Log level", "#log-level", LOG_LEVEL_HELP, SaveRequired::YES, RestartRequired::NO, SettingType::Number}, [this](const int value) -> bool {
 		return executeValue<const int>(value, [this](const int value) -> bool {
 			if(value > (int)LogLevel::VERBOSE || value < 0) {
-				LogHandler::error(_TAG, "Invalid value: %ld. Valid log levels are %s", value, LOG_LEVEL_HELP);
+				LogHandler::error(Tags::SystemCommand, "Invalid value: %ld. Valid log levels are %s", value, LOG_LEVEL_HELP);
 				return false;
 			}
 			return m_settingsFactory->setValue(LOG_LEVEL_SETTING, value) != SettingFile::NONE;
@@ -386,55 +398,50 @@ private:
 	}};
     const CommandValue<const char*>ADD_LOG_INCLUDE{{"Add log include", "#add-log-include", "Adds a tag to the log includes", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
 		return executeValue<const char*>(value, [this](const char* value) -> bool {
-			if(!TagHandler::HasTag(value)) {
-				LogHandler::error(_TAG, "Invalid value: %s", value);
+			uint32_t tag_masks = 0;
+			if (Tags::from_str(value, tag_masks))
+			{
+				LogHandler::error(Tags::SystemCommand, "Invalid value(s): %s", value);
 				return false;
 			}
-			if(!LogHandler::addInclude(value)) {
-				LogHandler::error(_TAG, "Tag already exists: %s", value);
-				return false;
-			}
-			
-			return m_settingsFactory->setValue(LOG_INCLUDETAGS, LogHandler::getIncludes()) != SettingFile::NONE;
+			LogHandler::addIncludes(tag_masks);
+			return m_settingsFactory->setValue(LOG_INCLUDETAGS, Tags::as_str(LogHandler::getIncludes()).c_str()) != SettingFile::NONE;
 		}, SaveRequired::YES);
 	}};
     const CommandValue<const char*>REMOVE_LOG_INCLUDE{{"Remove log include", "#remove-log-include", "Removes a tag from the log includes", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
 		return executeValue<const char*>(value, [this](const char* value) -> bool {
-			if(!TagHandler::HasTag(value)) {
-				LogHandler::error(_TAG, "Invalid value: %s", value);
+			uint32_t tag_masks = 0;
+			if (Tags::from_str(value, tag_masks))
+			{
+				LogHandler::error(Tags::SystemCommand, "Invalid value(s): %s", value);
 				return false;
 			}
-			if(!LogHandler::removeInclude(value)) {
-				LogHandler::error(_TAG, "Tag did not exist: %s", value);
-				return false;
-			}
-			return m_settingsFactory->setValue(LOG_INCLUDETAGS, LogHandler::getIncludes()) != SettingFile::NONE;
+			LogHandler::removeIncludes(tag_masks);
+			return m_settingsFactory->setValue(LOG_INCLUDETAGS, Tags::as_str(LogHandler::getIncludes()).c_str()) != SettingFile::NONE;
 		}, SaveRequired::YES);
 	}};
     const CommandValue<const char*>ADD_LOG_EXCLUDE{{"Add log exclude", "#add-log-exclude", "Adds a tag to the log excludes", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
 		return executeValue<const char*>(value, [this](const char* value) -> bool {
-			if(!TagHandler::HasTag(value)) {
-				LogHandler::error(_TAG, "Invalid value: %s", value);
+			uint32_t tag_masks = 0;
+			if (Tags::from_str(value, tag_masks))
+			{
+				LogHandler::error(Tags::SystemCommand, "Invalid value(s): %s", value);
 				return false;
 			}
-			if(!LogHandler::addExclude(value)) {
-			LogHandler::error(_TAG, "Tag filter already exists: %s", value);
-				return false;
-			}
-			return m_settingsFactory->setValue(LOG_EXCLUDETAGS, LogHandler::getExcludes()) != SettingFile::NONE;
+			LogHandler::addExcludes(tag_masks);
+			return m_settingsFactory->setValue(LOG_EXCLUDETAGS, Tags::as_str(LogHandler::getExcludes()).c_str()) != SettingFile::NONE;
 		}, SaveRequired::YES);
 	}};
     const CommandValue<const char*>REMOVE_LOG_EXCLUDE{{"Remove log exclude", "#remove-log-exclude", "Removes a tag from the log excludes", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
 		return executeValue<const char*>(value, [this](const char* value) -> bool {
-			if(!TagHandler::HasTag(value)) {
-				LogHandler::error(_TAG, "Invalid value: %s", value);
+			uint32_t tag_masks = 0;
+			if (Tags::from_str(value, tag_masks))
+			{
+				LogHandler::error(Tags::SystemCommand, "Invalid value(s): %s", value);
 				return false;
 			}
-			if(!LogHandler::removeExclude(value)) {
-				LogHandler::error(_TAG, "Tag filter did not exist: %s", value);
-				return false;
-			}
-			return m_settingsFactory->setValue(LOG_EXCLUDETAGS, LogHandler::getExcludes()) != SettingFile::NONE;
+			LogHandler::removeExclude(tag_masks);
+			return m_settingsFactory->setValue(LOG_EXCLUDETAGS, Tags::as_str(LogHandler::getExcludes()).c_str()) != SettingFile::NONE;
 		}, SaveRequired::YES);
 	}};
     const CommandValue<const char*>MOTION_PROFILE_NAME{{"Motion profile set by name", "#motion-profile-name", "Sets the current running profile by name", SaveRequired::NO, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
@@ -447,7 +454,7 @@ private:
 		return validateGreaterThanZero("Motion profile", value, [this](int value) -> bool {
 			int profileAsIndex = value - 1;
 			if(profileAsIndex > MAX_MOTION_PROFILE_COUNT) {
-				LogHandler::error(_TAG, "Motion profile %ld does not exist", profileAsIndex);
+				LogHandler::error(Tags::SystemCommand, "Motion profile %ld does not exist", profileAsIndex);
 				return false;
 			}
 			SettingsHandler::setMotionProfile(profileAsIndex);
@@ -478,17 +485,17 @@ private:
 		}
 		return true;
 	}};
-    const CommandValue<const char*> SETTING{{"Setting", "#setting", "Modify a setting ex. #setting:<name>:<value>", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {	
+    const CommandValue<const char*> SETTING{{"Setting", "#setting", "Modify a setting ex. #setting:<name>:<value>", SaveRequired::YES, RestartRequired::NO, SettingType::String}, [this](const char* value) -> bool {
 		CommandValuePair valuePair;
-		if(!getCommandValue(value, valuePair)) 
+		if(!getCommandValue(value, valuePair))
 			return false;
-		const Setting* setting = m_settingsFactory->getSetting(valuePair.command);	
+		const Setting* setting = m_settingsFactory->getSetting(valuePair.command);
 		if(!setting) {
 			return false;
 		}
 		return executeValue<const char*>(value, [this, setting, valuePair](const char* value) -> bool {
-			
-			LogHandler::debug(_TAG, "Searching for setting command '%s' value: '%s'", valuePair.command, valuePair.value);
+
+			LogHandler::debug(Tags::SystemCommand, "Searching for setting command '%s' value: '%s'", valuePair.command, valuePair.value);
 			bool error = false;
 			switch(setting->type) {
 				case SettingType::String: {
@@ -504,7 +511,7 @@ private:
 					if(m_settingsFactory->setValue(setting->name, value) != SettingFile::NONE) {
 						return true;
 					}
-					LogHandler::debug(_TAG, "value: %d", value);
+					LogHandler::debug(Tags::SystemCommand, "value: %d", value);
 				}
 				break;
 				case SettingType::Float: {
@@ -514,7 +521,7 @@ private:
 					if(m_settingsFactory->setValue(setting->name, value) != SettingFile::NONE) {
 						return true;
 					}
-					LogHandler::debug(_TAG, "value: %f", value);
+					LogHandler::debug(Tags::SystemCommand, "value: %f", value);
 				}
 				break;
 				case SettingType::Double: {
@@ -524,7 +531,7 @@ private:
 					if(m_settingsFactory->setValue(setting->name, value) != SettingFile::NONE) {
 						return true;
 					}
-					LogHandler::debug(_TAG, "value: %f", value);
+					LogHandler::debug(Tags::SystemCommand, "value: %f", value);
 				}
 				break;
 				case SettingType::Boolean: {
@@ -534,7 +541,7 @@ private:
 					if(m_settingsFactory->setValue(setting->name, value) != SettingFile::NONE) {
 						return true;
 					}
-					LogHandler::debug(_TAG, "value: %d", value);
+					LogHandler::debug(Tags::SystemCommand, "value: %d", value);
 				}
 				break;
 				case SettingType::ArrayString: {
@@ -544,23 +551,24 @@ private:
 				}
 				break;
 				default:
-					LogHandler::error(_TAG, "Invalid setting type: %ld", (int)setting->type);
+					LogHandler::error(Tags::SystemCommand, "Invalid setting type: %ld", (int)setting->type);
 			}
 			return false;
 		}, SaveRequired::YES, setting->isRestartRequired);
 	}};
-	
+
 
 	Command saveCommands[2] {
         SAVE,
         DEFAULT_ALL,
 	};
 
-    Command commands[17] = {
+	Command commands[18] = {
         HELP,
 		AVAILABLE_SETTINGS,
 		PRINT_MEMORY,
         RESTART,
+		PRINT_IP,
         CLEAR_LOGS_INCLUDE,
         CLEAR_LOGS_EXCLUDE,
 		CHANNEL_RANGES_ENABLE,
@@ -609,7 +617,7 @@ private:
 	// void setupSettingsCommands() {
 
 	// 	auto allSettings = m_settingsFactory->AllSettings;
-		
+
     //     for(SettingFileInfo* settingsInfo : allSettings)
     //     {
 	// 		for(const Setting& setting : settingsInfo->settings)
@@ -650,7 +658,7 @@ private:
 	// 				}
 	// 				break;
 	// 				default:
-	// 					LogHandler::error(_TAG, "Invalid setting type: %ld", (int)setting.type);
+	// 					LogHandler::error(Tags::SystemCommand, "Invalid setting type: %ld", (int)setting.type);
 	// 			}
 	// 		}
     //     }
@@ -682,20 +690,20 @@ private:
 			// Commands with values
 			int indexofDelim = getposition(in, strlen(in), DELEMITER_VALUE);
 			if(indexofDelim == -1) {
-				LogHandler::error(_TAG, "Invalid command format: '%s' missing colon, correct format is #<command>:<value>", in);
+				LogHandler::error(Tags::SystemCommand, "Invalid command format: '%s' missing colon, correct format is #<command>:<value>", in);
 				xSemaphoreGive(xMutex);
 				return false;
 			}
 			const char* commandAlone = substr(in, 0, indexofDelim);
 			if(!strlen(commandAlone)) {
-				LogHandler::error(_TAG, "Invalid command format: '%s' missing command, correct format is #<command>:<value>", in);
+				LogHandler::error(Tags::SystemCommand, "Invalid command format: '%s' missing command, correct format is #<command>:<value>", in);
 				xSemaphoreGive(xMutex);
 				return false;
 			}
 			valuePair.command = commandAlone;
 			const char* valueAlone = substr(in, indexofDelim +1, strlen(in));
 			if(!strlen(valueAlone)) {
-				LogHandler::error(_TAG, "Invalid command format: '%s' missing value, correct format is #<command>:<value>", in);
+				LogHandler::error(Tags::SystemCommand, "Invalid command format: '%s' missing value, correct format is #<command>:<value>", in);
 				xSemaphoreGive(xMutex);
 				return false;
 			}
@@ -705,7 +713,7 @@ private:
 
 	int getInt(const char* value, bool &error) {
 		if(!isStringIntegral(value)) {
-			LogHandler::debug(_TAG, "getInt '%s' not integral", value);
+			LogHandler::debug(Tags::SystemCommand, "getInt '%s' not integral", value);
 			error = true;
 			return false;
 		}
@@ -713,7 +721,7 @@ private:
 	}
 	float getFloat(const char* value, bool &error) {
 		if(!isStringIntegral(value)) {
-			LogHandler::debug(_TAG, "getFloat '%s' not integral", value);
+			LogHandler::debug(Tags::SystemCommand, "getFloat '%s' not integral", value);
 			error = true;
 			return false;
 		}
@@ -721,7 +729,7 @@ private:
 	}
 	double getDouble(const char* value, bool &error) {
 		if(!isStringIntegral(value)) {
-			LogHandler::debug(_TAG, "getDouble '%s' not integral", value);
+			LogHandler::debug(Tags::SystemCommand, "getDouble '%s' not integral", value);
 			error = true;
 			return false;
 		}
@@ -736,7 +744,7 @@ private:
 		}
 		uint8_t valueInt = getInt(value, error);
 		if(error) {
-			LogHandler::debug(_TAG, "getBoolean '%s' not integral", value);
+			LogHandler::debug(Tags::SystemCommand, "getBoolean '%s' not integral", value);
 			return false;
 		}
 		if(valueInt == 0 || valueInt == 1)
@@ -900,7 +908,7 @@ private:
 		char buf[MAX_COMMAND] = {0};
 
 		auto allSettings = m_settingsFactory->AllSettings;
-		
+
         for(SettingFileInfo* settingsInfo : allSettings)
         {
 			for(const Setting& setting : settingsInfo->settings)

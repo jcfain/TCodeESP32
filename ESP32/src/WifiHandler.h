@@ -29,9 +29,9 @@ SOFTWARE. */
 #include <esp_wifi.h>
 #endif
 // // #include "LogHandler.h"
-#include "SettingsHandler.h"
+#include "settings/SettingsHandler.h"
 #include "TagHandler.h"
-#include "TaskHandler.h"
+#include "tasks/TaskHandler.h"
 
 enum class WiFiStatus
 {
@@ -47,9 +47,10 @@ enum class WiFiReason
 	AP_MODE
 };
 using WIFI_STATUS_FUNCTION_PTR_T = void (*)(WiFiStatus status, WiFiReason reason);
-class WifiHandler : public Task
+class WifiHandler : public TaskHandler::Task
 {
 public:
+	WifiHandler() : Task(TaskHandler::Rates::ONDEMAND) {}
 	~WifiHandler()
 	{
 		if (onApEventID != 0)
@@ -76,64 +77,73 @@ public:
 	{
 		return _apMode;
 	}
-	bool connect(const char* hostname, const char* ssid, const char* pass)
+	bool connect(const char *ssid, const char *pass)
 	{
-		LogHandler::info(_TAG, "Setting up wifi");
+		LogHandler::info(Tags::Wifi, "Setting up wifi");
 		m_settingsFactory = SettingsFactory::getInstance();
 		_apMode = false;
+		m_connectingInProgress = true;
 		// Serial.println("Setting mode");
 		// if (onApEventID != 0)
 		// 	WiFi.removeEvent(onApEventID);
+		if (onApEventID != 0)
+			WiFi.removeEvent(onApEventID);
 		onApEventID = WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info)
 								   { this->WiFiEvent(event, info); });
 		WiFi.mode(WIFI_STA);
 		WiFi.setSleep(false);
-		WiFi.setHostname(hostname);
-		bool isStatic = STATICIP_DEFAULT;
+		WiFi.setHostname("TCodeESP32");
+		bool isStatic = false;
 		m_settingsFactory->getValue(STATICIP, isStatic);
 		if (isStatic)
 		{
 			const char *ipAddressString = m_settingsFactory->getValue(LOCALIP);
-			LogHandler::info(_TAG, "Setting static IP settings: %s", ipAddressString);
+			LogHandler::info(Tags::Wifi, "Setting static IP settings: %s", ipAddressString);
 			IPAddress ipAddress;
 			if (!ipAddress.fromString(ipAddressString))
 			{
-				LogHandler::error(_TAG, "Invalid static IP address: %s", ipAddressString);
+				LogHandler::error(Tags::Wifi, "Invalid static IP address: %s", ipAddressString);
 				return false;
 			}
 			IPAddress gateway;
 			const char *gatewayString = m_settingsFactory->getValue(GATEWAY);
 			if (!gateway.fromString(gatewayString))
 			{
-				LogHandler::error(_TAG, "Invalid static gateway address: %s", gatewayString);
+				LogHandler::error(Tags::Wifi, "Invalid static gateway address: %s", gatewayString);
 				return false;
 			}
 			IPAddress subnet;
 			const char *subnetString = m_settingsFactory->getValue(SUBNET);
 			if (!subnet.fromString(subnetString))
 			{
-				LogHandler::error(_TAG, "Invalid static subnet address: %s", subnetString);
+				LogHandler::error(Tags::Wifi, "Invalid static subnet address: %s", subnetString);
 				return false;
 			}
 			IPAddress dns1 = (uint32_t)0;
 			const char *dns1String = m_settingsFactory->getValue(DNS1);
 			if (strlen(dns1String) > 0 && !dns1.fromString(dns1String))
 			{
-				LogHandler::error(_TAG, "Invalid static dns1 address: %s", dns1String);
+				LogHandler::error(Tags::Wifi, "Invalid static dns1 address: %s", dns1String);
 				return false;
 			}
 			IPAddress dns2 = (uint32_t)0;
 			const char *dns2String = m_settingsFactory->getValue(DNS2);
 			if (strlen(dns2String) > 0 && !dns2.fromString(dns2String))
 			{
-				LogHandler::error(_TAG, "Invalid static dns2 address: %s", dns2String);
+				LogHandler::error(Tags::Wifi, "Invalid static dns2 address: %s", dns2String);
 				return false;
 			}
 
 			WiFi.config(ipAddress, gateway, subnet, dns1, dns2);
 		}
 		printMac();
-		LogHandler::info(_TAG, "Establishing connection to %s", ssid);
+		LogHandler::info(Tags::Wifi, "Establishing connection to %s", ssid);
+		if (WiFi.status() == WL_CONNECTED && strcmp(WiFi.SSID().c_str(), ssid) == 0)
+		{
+			LogHandler::info(Tags::Wifi, "Already connected to %s", ssid);
+			m_connectingInProgress = false;
+			return true;
+		}
 		if (pass[0] == '\0')
 			WiFi.begin(ssid);
 		else
@@ -141,18 +151,19 @@ public:
 		int connectStartTimeout = millis() + connectTimeOut;
 		while (!isConnected() && millis() < connectStartTimeout)
 		{
-			vTaskDelay(1000/portTICK_PERIOD_MS);
-			Serial.print(".");
+			vTaskDelay(250 / portTICK_PERIOD_MS);
 		}
 		if (millis() >= connectStartTimeout)
 		{
-			LogHandler::error(_TAG, "Wifi timed out connection to AP");
+			LogHandler::error(Tags::Wifi, "Wifi timed out connection to AP");
+			m_connectingInProgress = false;
 			WiFi.disconnect(true, true);
 			return false;
 		}
 
 		WiFi.setSleep(false);
 		_apMode = false;
+		m_connectingInProgress = false;
 		return true;
 	}
 
@@ -173,27 +184,27 @@ public:
 		switch (event)
 		{
 		case ARDUINO_EVENT_WIFI_STA_START:
-			LogHandler::info(_TAG, "Station Mode Started");
+			LogHandler::info(Tags::Wifi, "Station Mode Started");
 			break;
 		case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+			m_connectingInProgress = false;
 			strncpy(SettingsHandler::currentIP, WiFi.localIP().toString().c_str(), IP4ADDR_STRLEN_MAX);
-			strncpy(SettingsHandler::currentGateway, WiFi.gatewayIP().toString().c_str(), IP4ADDR_STRLEN_MAX);
-			strncpy(SettingsHandler::currentSubnet, WiFi.subnetMask().toString().c_str(), IP4ADDR_STRLEN_MAX);
+			strncpy(SettingsHandler::currentGateway, WiFi.subnetMask().toString().c_str(), IP4ADDR_STRLEN_MAX);
+			strncpy(SettingsHandler::currentSubnet, WiFi.gatewayIP().toString().c_str(), IP4ADDR_STRLEN_MAX);
 			strncpy(SettingsHandler::currentDns1, WiFi.dnsIP().toString().c_str(), IP4ADDR_STRLEN_MAX);
-			LogHandler::info(_TAG, "Connected to: %s", WiFi.SSID().c_str());
-			LogHandler::info(_TAG, "IP Address: %s", SettingsHandler::currentIP);
+			LogHandler::info(Tags::Wifi, "Connected to: %s", WiFi.SSID().c_str());
+			LogHandler::info(Tags::Wifi, "IP Address: %s", SettingsHandler::currentIP);
 			if (wifiStatus_callback)
 				wifiStatus_callback(WiFiStatus::IP, WiFiReason::UNKNOWN);
-			//SettingsHandler::printWebAddress(SettingsHandler::currentIP);
+			// SettingsHandler::printWebAddress(SettingsHandler::currentIP);
 			break;
 		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
 		{
-			LogHandler::warning(_TAG, "Disconnected from station, attempting reconnection");
-			LogHandler::info(_TAG, "Reason: %u", lastReason);
 			uint8_t reason = info.wifi_sta_disconnected.reason;
+			LogHandler::warning(Tags::Wifi, "Disconnected from station, reason: %u", reason);
 			if (reason == WIFI_REASON_NO_AP_FOUND)
 			{
-				LogHandler::info(_TAG, "WIFI_REASON_NO_AP_FOUND");
+				LogHandler::info(Tags::Wifi, "WIFI_REASON_NO_AP_FOUND");
 				lastReason = reason;
 			}
 			else if (reason == WIFI_REASON_AUTH_FAIL || reason == WIFI_REASON_CONNECTION_FAIL)
@@ -202,24 +213,37 @@ public:
 			}
 			else if (reason == WIFI_REASON_BEACON_TIMEOUT || reason == WIFI_REASON_HANDSHAKE_TIMEOUT)
 			{
-				LogHandler::info(_TAG, "WIFI_REASON_BEACON_TIMEOUT or WIFI_REASON_HANDSHAKE_TIMEOUT");
+				LogHandler::info(Tags::Wifi, "WIFI_REASON_BEACON_TIMEOUT or WIFI_REASON_HANDSHAKE_TIMEOUT");
 			}
 			else if (reason == WIFI_REASON_AUTH_EXPIRE)
 			{
-				LogHandler::info(_TAG, "WIFI_REASON_AUTH_EXPIRE");
+				LogHandler::info(Tags::Wifi, "WIFI_REASON_AUTH_EXPIRE");
 			}
 			else
 			{
-				LogHandler::info(_TAG, "Unknown reason %u", lastReason);
+				LogHandler::info(Tags::Wifi, "Unknown reason %u", lastReason);
 			}
-			WiFi.reconnect();
+
+			// Avoid reconnect races while the initial WiFi.begin() connection is still in progress.
+			if (m_connectingInProgress)
+			{
+				LogHandler::debug(Tags::Wifi, "Initial STA connect still in progress; skipping immediate reconnect");
+				break;
+			}
+
+			const unsigned long now = millis();
+			if (!_apMode && WiFi.getMode() == WIFI_STA && (now - m_lastReconnectAttemptMs) > 2000)
+			{
+				m_lastReconnectAttemptMs = now;
+				WiFi.reconnect();
+			}
 			break;
 		}
 		case ARDUINO_EVENT_WIFI_STA_STOP:
-			LogHandler::error(_TAG, "Station Mode Stopped: %u", info.wifi_sta_disconnected.reason);
+			LogHandler::error(Tags::Wifi, "Station Mode Stopped: %u", info.wifi_sta_disconnected.reason);
 			if (lastReason == WIFI_REASON_NO_AP_FOUND)
 			{
-				LogHandler::info(_TAG, "WIFI_REASON_NO_AP_FOUND");
+				LogHandler::info(Tags::Wifi, "WIFI_REASON_NO_AP_FOUND");
 				if (wifiStatus_callback)
 					wifiStatus_callback(WiFiStatus::DISCONNECTED, WiFiReason::NO_AP);
 			}
@@ -236,22 +260,22 @@ public:
 			lastReason = 0;
 			break;
 		case ARDUINO_EVENT_WPS_ER_SUCCESS:
-			LogHandler::info(_TAG, "WPS Successfull, stopping WPS and connecting to: %s", WiFi.SSID().c_str());
+			LogHandler::info(Tags::Wifi, "WPS Successfull, stopping WPS and connecting to: %s", WiFi.SSID().c_str());
 			WiFi.begin();
 			break;
 		case ARDUINO_EVENT_WPS_ER_FAILED:
-			LogHandler::error(_TAG, "WPS Failed, retrying");
+			LogHandler::error(Tags::Wifi, "WPS Failed, retrying");
 			WiFi.reconnect();
 			break;
 		case ARDUINO_EVENT_WPS_ER_TIMEOUT:
-			LogHandler::error(_TAG, "WPS Timedout, retrying");
+			LogHandler::error(Tags::Wifi, "WPS Timedout, retrying");
 			WiFi.reconnect();
 			break;
 		case ARDUINO_EVENT_WPS_ER_PIN:
-			LogHandler::debug(_TAG, "ARDUINO_EVENT_WPS_ER_PIN");
+			LogHandler::debug(Tags::Wifi, "ARDUINO_EVENT_WPS_ER_PIN");
 			break;
 		case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
-			LogHandler::debug(_TAG, "ARDUINO_EVENT_WIFI_AP_STACONNECTED");
+			LogHandler::debug(Tags::Wifi, "ARDUINO_EVENT_WIFI_AP_STACONNECTED");
 			if (wifiStatus_callback)
 				wifiStatus_callback(WiFiStatus::CONNECTED, WiFiReason::AP_MODE);
 			// if(_apMode)
@@ -263,7 +287,7 @@ public:
 			// }
 			break;
 		case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
-			LogHandler::debug(_TAG, "ARDUINO_EVENT_WIFI_AP_STADISCONNECTED");
+			LogHandler::debug(Tags::Wifi, "ARDUINO_EVENT_WIFI_AP_STADISCONNECTED");
 			if (wifiStatus_callback)
 				wifiStatus_callback(WiFiStatus::DISCONNECTED, WiFiReason::AP_MODE);
 			if (_apMode)
@@ -276,13 +300,13 @@ public:
 		}
 	}
 
-	bool startAp(const char* hostname, const char* ssid, const char* pass, const uint8_t& channel, const bool& hidden, const char* ip, const char* subnet, const char* gateway)
+	bool startAp(const char *ssid, const char *pass, const uint8_t &channel, const bool &hidden, const char *ip, const char *subnet, const char *gateway)
 	{
 		// WiFi.disconnect(true, true);
-		LogHandler::info(TagHandler::WifiHandler, "Starting in APMode: SSID: %s, Hidden: %u, Channel: %u, IP: %s, Subnet: %s, Gateway: %s", ssid, hidden, channel, ip, subnet, gateway);
-		// LogHandler::info(TagHandler::WifiHandler, "Password: %s", pass);
+		LogHandler::info(Tags::Wifi, "Starting in APMode: SSID: %s, Hidden: %u, Channel: %u, IP: %s, Subnet: %s, Gateway: %s", ssid, hidden, channel, ip, subnet, gateway);
+		// LogHandler::info(Tags::Wifi, "Password: %s", pass);
 		WiFi.mode(WIFI_AP);
-		WiFi.setHostname(hostname);
+		// WiFi.setHostname("TCodeESP32");
 
 		WiFi.softAP(ssid, pass, channel, hidden, 1);
 		printMac();
@@ -299,11 +323,12 @@ public:
 		gateway_.fromString(ip);
 		if (!WiFi.softAPConfig(ip_, gateway_, subnet_))
 		{
-			LogHandler::error(_TAG, "AP Mode Failed to configure");
+			LogHandler::error(Tags::Wifi, "AP Mode Failed to configure");
 			return false;
 		}
 		_apMode = true;
-		LogHandler::info(TagHandler::WifiHandler, "APMode started");
+		m_connectingInProgress = false;
+		LogHandler::info(Tags::Wifi, "APMode started");
 		SettingsHandler::printWebAddress(WiFi.softAPIP().toString().c_str());
 		return true;
 	}
@@ -313,13 +338,13 @@ public:
 	}
 	static void disable()
 	{
-		LogHandler::info(TagHandler::WifiHandler, "Disable WiFi");
+		LogHandler::info(Tags::Wifi, "Disable WiFi");
 		WiFi.disconnect(true, true);
 		WiFi.mode(WIFI_OFF);
 		esp_err_t disable = esp_wifi_deinit();
 		if (disable != ESP_OK)
 		{
-			LogHandler::error(TagHandler::WifiHandler, "Disable fail: %s", esp_err_to_name(disable));
+			LogHandler::error(Tags::Wifi, "Disable fail: %s", esp_err_to_name(disable));
 		}
 	};
 
@@ -333,13 +358,14 @@ public:
 
 private:
 	WIFI_STATUS_FUNCTION_PTR_T wifiStatus_callback;
-	const char *_TAG = TagHandler::WifiHandler;
 	SettingsFactory *m_settingsFactory;
 	int connectTimeOut = 10000;
 	int onApEventID = 0;
 	static int8_t _rssi;
 	static bool _apMode;
 	uint8_t lastReason;
+	bool m_connectingInProgress = false;
+	unsigned long m_lastReconnectAttemptMs = 0;
 	//  String translateEncryptionType(wifi_auth_mode_t encryptionType) {
 	//    switch (encryptionType) {
 	//      case (WIFI_AUTH_OPEN):
@@ -358,14 +384,14 @@ private:
 	//  }
 	void printMac()
 	{
-    	//char macAddress[18] = {0};
-		#ifdef ESP_ARDUINO3
-        //strlcpy(macAddress, Network.macAddress().c_str(), sizeof(macAddress));
-		LogHandler::info(_TAG, "Mac: %s", Network.macAddress().c_str());
-		#else
-        //strlcpy(macTemp, WiFi.macAddress().c_str(), sizeof(macTemp));
-		LogHandler::info(_TAG, "Mac: %s", WiFi.macAddress().c_str());
-		#endif
+// char macAddress[18] = {0};
+#ifdef ESP_ARDUINO3
+		// strlcpy(macAddress, Network.macAddress().c_str(), sizeof(macAddress));
+		LogHandler::info(Tags::Wifi, "Mac: %s", Network.macAddress().c_str());
+#else
+		// strlcpy(macTemp, WiFi.macAddress().c_str(), sizeof(macTemp));
+		LogHandler::info(Tags::Wifi, "Mac: %s", WiFi.macAddress().c_str());
+#endif
 	}
 };
 bool WifiHandler::_apMode = false;

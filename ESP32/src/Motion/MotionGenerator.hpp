@@ -24,7 +24,7 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
-#include "SettingsHandler.h"
+#include "settings/SettingsHandler.h"
 // #include "LogHandler.h"
 #include "TagHandler.h"
 

@@ -22,7 +22,7 @@
 #pragma once
 
 #include "TCode0_3.h"
-#include "SettingsHandler.h"
+#include "settings/SettingsHandler.h"
 #include "Global.h"
 #include "MotorHandler0_3.h"
 #include "TagHandler.h"

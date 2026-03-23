@@ -27,10 +27,10 @@ SOFTWARE. */
 #include <list>
 #include <PsychicHttp.h>
 //#include "HTTP/WebSocketBase.h"
-#include "SettingsHandler.h"
+#include "settings/SettingsHandler.h"
 // #include "LogHandler.h"
-#include "TagHandler.h"
-#include "BatteryHandler.h"
+#include "logging/TagHandler.h"
+#include "sensors/BatteryHandler.h"
 
 PsychicWebSocketHandler ws;
 

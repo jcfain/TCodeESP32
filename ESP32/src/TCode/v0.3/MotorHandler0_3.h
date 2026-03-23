@@ -25,7 +25,7 @@ SOFTWARE. */
 #include <Arduino.h>
 #include "Global.h"
 #include "TCode0_3.h"
-#include "SettingsHandler.h"
+#include "settings/SettingsHandler.h"
 #include "TagHandler.h"
 #include "logging/LogHandler.h"
 

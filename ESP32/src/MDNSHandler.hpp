@@ -30,7 +30,7 @@ SOFTWARE. */
 #else
 #include <ESPmDNS.h>
 #endif
-#include "SettingsHandler.h"
+#include "settings/SettingsHandler.h"
 // #include "LogHandler.h"
 class MDNSHandler {
     public:

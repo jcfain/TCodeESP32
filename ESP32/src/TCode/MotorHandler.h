@@ -25,7 +25,7 @@ SOFTWARE. */
 #include <Arduino.h>
 #include "Global.h"
 #include "TCodeBase.h"
-#include "SettingsHandler.h"
+#include "settings/SettingsHandler.h"
 #include "TagHandler.h"
 
 class MotorHandler {

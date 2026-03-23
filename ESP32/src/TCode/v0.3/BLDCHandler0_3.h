@@ -22,7 +22,7 @@
 #include <SimpleFOCDrivers.h>
 #include <encoders/mt6701/MagneticSensorMT6701SSI.h>
 #include "TCode0_3.h"
-#include "SettingsHandler.h"
+#include "settings/SettingsHandler.h"
 #include "Global.h"
 #include "MotorHandler0_3.h"
 #include "TagHandler.h"

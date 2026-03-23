@@ -21,7 +21,7 @@
 #pragma once
 
 #include <ESP32Servo.h>
-#include "SettingsHandler.h"
+#include "settings/SettingsHandler.h"
 #include "ToyComs.h"
 #include "Global.h"
 #include "MotorHandler.h"

@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 #include <mutex>
-#include "SettingsHandler.h"
+#include "settings/SettingsHandler.h"
 // #include "LogHandler.h"
 #include "TagHandler.h"
 #include "MotionGenerator.hpp"

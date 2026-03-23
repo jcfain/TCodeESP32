@@ -32,10 +32,10 @@ SOFTWARE. */
 // #endif
 //#include <AsyncJson.h>
 #include "HTTP/HTTPBase.h"
-#include "WifiHandler.h"
+#include "network/WifiHandler.h"
 #include "WebSocketHandler_psychic.h"
-#include "TagHandler.h"
-#include "SystemCommandHandler.h"
+#include "logging/TagHandler.h"
+#include "messages/SystemCommandHandler.h"
 // #if !CONFIG_HTTPD_WS_SUPPORT
 // #error This example cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
 // #endif

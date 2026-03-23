@@ -17,7 +17,7 @@
 
 #include "HTTPBase.h"
 #include "SecureWebSocketHandler.hpp"
-#include "SettingsHandler.h"
+#include "settings/SettingsHandler.h"
 #include "TagHandler.h"
 #include "LogHandler.h"
 #include "SystemCommandHandler.h"
