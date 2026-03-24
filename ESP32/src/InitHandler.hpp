@@ -23,10 +23,10 @@
 #include "TCode/MotorHandler.h"
 // #include "BLEConfigurationHandler.h"
 
-#if MOTOR_TYPE == MOTOR_TYPE_SERVO
+#ifdef MOTOR_TYPE_SERVO
 #include "ServoHandler0_3.h"
 #include "ServoHandler0_4.h"
-#elif MOTOR_TYPE == MOTOR_TYPE_BLDC
+#elif defined MOTOR_TYPE_BLDC
 #include "BLDCHandler0_3.h"
 #include "BLDCHandler0_4.h"
 #endif
@@ -216,7 +216,7 @@ public:
         systemCommandHandler->registerExternalCommandCallback(std::bind(&InitHandler::tcodePassthroughCommandCallback, this, std::placeholders::_1));
         LogHandler::debug(TagHandler::Main, "System command handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
-    #if MOTOR_TYPE == MOTOR_TYPE_SERVO
+    #ifdef MOTOR_TYPE_SERVO
         if (settingsFactory->getTcodeVersion() == TCodeVersion::v0_3)
         {
             motorHandler = new ServoHandler0_3();
@@ -234,7 +234,7 @@ public:
             LogHandler::error(TagHandler::Main, "Invalid TCode version: %ld", settingsFactory->getTcodeVersion());
             return false; // TODO: this stops apmode and not what we want
         }
-    #elif MOTOR_TYPE == MOTOR_TYPE_BLDC
+    #elif defined MOTOR_TYPE_BLDC
         if (settingsFactory->getTcodeVersion() == TCodeVersion::v0_3)
         {
             motorHandler = new BLDCHandler0_3();

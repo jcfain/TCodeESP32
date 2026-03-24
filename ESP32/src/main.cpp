@@ -42,7 +42,8 @@ SOFTWARE. */
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266WebServer.h>
 #endif
-
+#include "constants.h"
+#include "enum.h"
 #include "utils.h"
 #include <LittleFS.h>
 #include "InitHandler.hpp"

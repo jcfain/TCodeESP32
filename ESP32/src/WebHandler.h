@@ -188,7 +188,7 @@ class WebHandler : public HTTPBase {
             {
                 auto deviceTypeString = request->pathArg(0);
                 int deviceType = deviceTypeString.isEmpty() ? 
-                #if MOTOR_TYPE == MOTOR_TYPE_SERVO
+                #ifdef MOTOR_TYPE_SERVO
                 (int)DeviceType::OSR 
                 #else
                 (int)DeviceType::SSR1 

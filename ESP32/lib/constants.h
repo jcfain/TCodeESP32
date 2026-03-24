@@ -1,6 +1,6 @@
 #pragma once
 
-#include "struct/channel.h"
+#include "channel.h"
 
 #define FIRMWARE_VERSION 0.497f
 #define FIRMWARE_VERSION_NAME "0.497a\n"
@@ -24,8 +24,9 @@
 // #elif CONFIG_IDF_TARGET_ESP32E22
 // #include "E22/config.h"
 #endif
-#define MOTOR_TYPE_SERVO 0
-#define MOTOR_TYPE_BLDC 1
+#if !defined(MOTOR_TYPE_SERVO) && !defined(MOTOR_TYPE_BLDC)
+    #error "Invalid motor type"
+#endif
 
 // Other functions
 #define VALVE_DEFAULT 5000        // Auto-valve default suction level (low-high, 0-9999) 

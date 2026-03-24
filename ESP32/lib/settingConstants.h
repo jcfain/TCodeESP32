@@ -15,12 +15,13 @@
 
 // Setting defaults
 
-#if MOTOR_TYPE == MOTOR_TYPE_SERVO
+#ifdef MOTOR_TYPE_SERVO
     #define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::OSR
+    #define MOTOR_TYPE_DEFAULT (uint8_t)MotorType::Servo
 #else 
     #define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::SSR1
+    #define MOTOR_TYPE_DEFAULT (uint8_t)MotorType::BLDC
 #endif
-#define MOTOR_TYPE_DEFAULT MOTOR_TYPE
 #define IP_ADDRESS_LEN IP4ADDR_STRLEN_MAX //16
 #define SSID_DEFAULT "YOUR SSID HERE"
 #define SSID_LEN 32

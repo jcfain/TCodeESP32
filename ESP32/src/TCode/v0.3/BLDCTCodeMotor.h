@@ -19,7 +19,7 @@ class BLDCTCodeMotor
 public:
     BLDCTCodeMotor(
         DeviceType deviceType,
-        BLDCMotorPosition motorChannel,
+        BLDCMotorPosition motorPosition,
         BLDCEncoderType encoderType, 
         int8_t chipSelectPin,
         int8_t encoderPin,
@@ -37,8 +37,8 @@ public:
         float zeroAngle = NOT_SET,
         Direction sensor_direction = Direction::CW) : 
             m_deviceType(deviceType),
-            m_motorPosition(motorChannel),
-            m_name(getName(motorChannel)),
+            m_motorPosition(motorPosition),
+            m_name(getName(motorPosition)),
             angToPos(angToPos), 
             topStartOffset(topStartOffset), 
             endStopOffset(endStopOffset),
