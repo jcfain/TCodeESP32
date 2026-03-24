@@ -57,10 +57,12 @@ ESPTimer = {
             table.body.appendChild(timerFrequencyRow.row);
         }
         const helpTextNodeDiv = document.createElement("div");
+        helpTextNodeDiv.style = "font-size: 0.6em;"
         const freqMhz = systemInfo.apbClockFrequency / 1000000;
         helpTextNodeDiv.innerHTML = 
 `
-To calculate the MAXIMUM frequency use the formula: 
+To calculate the MAXIMUM frequency for your chip (Not the servo)
+<br>use the formula: 
 <br>&nbsp&nbsp&nbsp&nbsp ${systemInfo.apbClockFrequency} ÷ (2^resolution)
 <br>The max resolution for your chip is ${systemInfo.maxPWMResolution} bit
 <br>The APB clock frequency is ${freqMhz} Mhz
