@@ -839,7 +839,7 @@ public:
         }
         else if(motorType == MotorType::BLDC)
         {
-            if (newType != DeviceType::SSR1 && newType != DeviceType::SSR2)
+            if (newType != DeviceType::NONE && newType != DeviceType::SSR1 && newType != DeviceType::SSR2)
             {
                 LogHandler::error(m_TAG, "[changeDeviceType] Invalid device type (%ld) for current motor. Valid device types are %s", value, DEVICE_TYPES_HELP);
                 return false;
@@ -855,13 +855,11 @@ public:
             {
                 LogHandler::info(m_TAG, "[changeDeviceType] Overriding default settings for SSR2");
                 setValue(BLDC_ENCODER, BLDCEncoderType::SPI);
-                setValue(BLDC_LEFT_ENCODER, BLDCEncoderType::SPI);
+                setValue(BLDC_B_ENCODER, BLDCEncoderType::SPI);
                 setValue(BLDC_MOTOR_VOLTAGE, 12.0f);
                 setValue(BLDC_MOTOR_SUPPLY, 12.0f);
-                setValue(BLDC_LEFT_MOTOR_VOLTAGE, 12.0f);
-                setValue(BLDC_LEFT_MOTOR_SUPPLY, 12.0f);
-                setValue(BLDC_USEHALLSENSOR, false);
-                setValue(BLDC_LEFT_USEHALLSENSOR, false);
+                setValue(BLDC_B_MOTOR_VOLTAGE, 12.0f);
+                setValue(BLDC_B_MOTOR_SUPPLY, 12.0f);
                 retValue = saveCommon();
             }
             PinMapSSR* pinMap = PinMapSSR::getInstance();
@@ -965,14 +963,13 @@ private:
             {BLDC_MOTOR_PARAMETERSKNOWN, "Motor parameters known", "BLDC Motor A params known", SettingType::Boolean, BLDC_MOTOR_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_MOTOR_ZEROELECANGLE, "Motor ZeroElecAngle", "BLDC Motor A ZeroElecAngle", SettingType::Float, BLDC_MOTOR_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             
-            {BLDC_LEFT_ENCODER, "BLDC left encoder type", "Select the type of Left bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_LEFT_USEHALLSENSOR, "Use left hall sensor", "Use Hall sensor for Left BLDC sensor", SettingType::Boolean, BLDC_USEHALLSENSOR_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_LEFT_PULLEY_CIRCUMFERENCE, "Pull left circumference", "The pulley circumference for Left BLDC motor", SettingType::Number, BLDC_LEFT_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_LEFT_MOTOR_VOLTAGE, "Left Motor voltage limit", "BLDC Left Motor voltage limit", SettingType::Float, BLDC_LEFT_MOTOR_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_LEFT_MOTOR_SUPPLY, "Left Motor Supply voltage", "BLDC Left Motor supply voltage", SettingType::Float, BLDC_LEFT_MOTOR_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_LEFT_MOTOR_CURRENT, "Left Motor current", "BLDC Left Motor current", SettingType::Float, BLDC_LEFT_MOTOR_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_LEFT_MOTOR_PARAMETERSKNOWN, "Left Motor parameters known", "Left BLDC Motor params known", SettingType::Boolean, BLDC_LEFT_MOTOR_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_LEFT_MOTOR_ZEROELECANGLE, "Left Motor ZeroElecAngle", "Left BLDC Motor ZeroElecAngle", SettingType::Float, BLDC_LEFT_MOTOR_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}}
+            {BLDC_B_ENCODER, "BLDC left encoder type", "Select the type of Left bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_B_PULLEY_CIRCUMFERENCE, "Pull left circumference", "The pulley circumference for Left BLDC motor", SettingType::Number, BLDC_B_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_B_MOTOR_VOLTAGE, "Left Motor voltage limit", "BLDC Left Motor voltage limit", SettingType::Float, BLDC_B_MOTOR_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_B_MOTOR_SUPPLY, "Left Motor Supply voltage", "BLDC Left Motor supply voltage", SettingType::Float, BLDC_B_MOTOR_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_B_MOTOR_CURRENT, "Left Motor current", "BLDC Left Motor current", SettingType::Float, BLDC_B_MOTOR_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_B_MOTOR_PARAMETERSKNOWN, "Left Motor parameters known", "Left BLDC Motor params known", SettingType::Boolean, BLDC_B_MOTOR_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_B_MOTOR_ZEROELECANGLE, "Left Motor ZeroElecAngle", "Left BLDC Motor ZeroElecAngle", SettingType::Float, BLDC_B_MOTOR_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}}
             
 #elif defined MOTOR_TYPE_SERVO
             ,{RIGHT_SERVO_ZERO, "Right servo zero", "The zero calibration for the right servo", SettingType::Number, RIGHT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
@@ -1087,13 +1084,12 @@ private:
             {BLDC_PWMCHANNEL2_PIN, "PWM channel2 PIN", "Pin for the BLDC PWM 2", SettingType::Number, BLDC_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
             {BLDC_PWMCHANNEL3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
             // Twist BLDC
-            {BLDC_LEFT_ENCODER_PIN, "Twist Encoder PIN", "Pin the BLDC Twist encoder is on", SettingType::Number, BLDC_LEFT_ENCODER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
-            {BLDC_LEFT_CHIPSELECT_PIN, "Twist Chipselect PIN", "Pin the BLDC Twist chip select is on", SettingType::Number, BLDC_LEFT_CHIPSELECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
-            {BLDC_LEFT_ENABLE_PIN, "Twist Enable PIN", "Pin the BLDC Twist enable is on", SettingType::Number, BLDC_LEFT_ENABLE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
-            {BLDC_LEFT_HALLEFFECT_PIN, "Twist Halleffect PIN", "Pin the hall effect for Twist is on", SettingType::Number, BLDC_LEFT_HALLEFFECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
-            {BLDC_LEFT_PWMCHANNEL1_PIN, "Twist PWM channel1 PIN", "Pin for the Twist BLDC PWM 1", SettingType::Number, BLDC_LEFT_PWMCHANNEL1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
-            {BLDC_LEFT_PWMCHANNEL2_PIN, "Twist PWM channel2 PIN", "Pin for the Twist BLDC PWM 2", SettingType::Number, BLDC_LEFT_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
-            {BLDC_LEFT_PWMCHANNEL3_PIN, "Twist PWM channel3 PIN", "Pin for the Twist BLDC PWM 3", SettingType::Number, BLDC_LEFT_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}}
+            {BLDC_B_ENCODER_PIN, "Twist Encoder PIN", "Pin the BLDC Twist encoder is on", SettingType::Number, BLDC_B_ENCODER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_B_CHIPSELECT_PIN, "Twist Chipselect PIN", "Pin the BLDC Twist chip select is on", SettingType::Number, BLDC_B_CHIPSELECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_B_ENABLE_PIN, "Twist Enable PIN", "Pin the BLDC Twist enable is on", SettingType::Number, BLDC_B_ENABLE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_B_PWMCHANNEL1_PIN, "Twist PWM channel1 PIN", "Pin for the Twist BLDC PWM 1", SettingType::Number, BLDC_B_PWMCHANNEL1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+            {BLDC_B_PWMCHANNEL2_PIN, "Twist PWM channel2 PIN", "Pin for the Twist BLDC PWM 2", SettingType::Number, BLDC_B_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+            {BLDC_B_PWMCHANNEL3_PIN, "Twist PWM channel3 PIN", "Pin for the Twist BLDC PWM 3", SettingType::Number, BLDC_B_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}}
             #if CONFIG_IDF_TARGET_ESP32
             ,{ESP_H_TIMER0_FREQUENCY, "High timer 0 frequency", "Frequency for the high timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
             ,{ESP_H_TIMER1_FREQUENCY, "High timer 1 frequency", "Frequency for the high timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
@@ -1626,8 +1622,15 @@ private:
             case DeviceType::SR6:
                 m_currentPinMap = loadSR6Pins();
             break;
-            default:
+            case DeviceType::OSR:
                 m_currentPinMap = loadOSRPins();
+            break;
+            default:
+                #ifdef MOTOR_TYPE_BLDC
+                    m_currentPinMap = loadSSRPins();
+                #elif defined MOTOR_TYPE_SERVO
+                    m_currentPinMap = loadOSRPins();
+                #endif
 
         }
     }
@@ -1752,19 +1755,17 @@ private:
         getValue(BLDC_PWMCHANNEL3_PIN, pin);
         pinMap->setPwmChannel3(pin);
 
-        getValue(BLDC_LEFT_ENCODER_PIN, pin);
+        getValue(BLDC_B_ENCODER_PIN, pin);
         pinMap->setLeftEncoder(pin);
-        getValue(BLDC_LEFT_CHIPSELECT_PIN, pin);
+        getValue(BLDC_B_CHIPSELECT_PIN, pin);
         pinMap->setLeftChipSelect(pin);
-        getValue(BLDC_LEFT_ENABLE_PIN, pin);
+        getValue(BLDC_B_ENABLE_PIN, pin);
         pinMap->setLeftEnable(pin);
-        getValue(BLDC_LEFT_HALLEFFECT_PIN, pin);
-        pinMap->setLeftHallEffect(pin);
-        getValue(BLDC_LEFT_PWMCHANNEL1_PIN, pin);
+        getValue(BLDC_B_PWMCHANNEL1_PIN, pin);
         pinMap->setLeftPwmChannel1(pin);
-        getValue(BLDC_LEFT_PWMCHANNEL2_PIN, pin);
+        getValue(BLDC_B_PWMCHANNEL2_PIN, pin);
         pinMap->setLeftPwmChannel2(pin);
-        getValue(BLDC_LEFT_PWMCHANNEL3_PIN, pin);
+        getValue(BLDC_B_PWMCHANNEL3_PIN, pin);
         pinMap->setLeftPwmChannel3(pin);
         return pinMap;
 
@@ -1895,13 +1896,12 @@ private:
         setValue(BLDC_PWMCHANNEL1_PIN, pinMap->pwmChannel1());
         setValue(BLDC_PWMCHANNEL2_PIN, pinMap->pwmChannel2());
         setValue(BLDC_PWMCHANNEL3_PIN, pinMap->pwmChannel3());
-        setValue(BLDC_LEFT_ENCODER_PIN, pinMap->leftEncoder());
-        setValue(BLDC_LEFT_CHIPSELECT_PIN, pinMap->leftChipSelect());
-        setValue(BLDC_LEFT_ENABLE_PIN, pinMap->leftEnable());
-        setValue(BLDC_LEFT_HALLEFFECT_PIN, pinMap->leftHallEffect());
-        setValue(BLDC_LEFT_PWMCHANNEL1_PIN, pinMap->leftPwmChannel1());
-        setValue(BLDC_LEFT_PWMCHANNEL2_PIN, pinMap->leftPwmChannel2());
-        setValue(BLDC_LEFT_PWMCHANNEL3_PIN, pinMap->leftPwmChannel3());
+        setValue(BLDC_B_ENCODER_PIN, pinMap->motorBEncoder());
+        setValue(BLDC_B_CHIPSELECT_PIN, pinMap->motorBChipSelect());
+        setValue(BLDC_B_ENABLE_PIN, pinMap->motorBEnable());
+        setValue(BLDC_B_PWMCHANNEL1_PIN, pinMap->motorBPwmChannel1());
+        setValue(BLDC_B_PWMCHANNEL2_PIN, pinMap->motorBPwmChannel2());
+        setValue(BLDC_B_PWMCHANNEL3_PIN, pinMap->motorBPwmChannel3());
         savePins();
     }
 

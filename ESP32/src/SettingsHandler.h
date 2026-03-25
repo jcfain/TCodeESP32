@@ -296,8 +296,8 @@ public:
         JsonArray deviceTypes = doc["deviceTypes"].to<JsonArray>();
         JsonObject defaultDevice = deviceTypes.add<JsonObject>();
     #ifdef MOTOR_TYPE_SERVO
-        defaultDevice["name"] = "OSR";
-        defaultDevice["value"] = DeviceType::OSR;
+        defaultDevice["name"] = DEVICE_TYPE_NAME_DEFAULT;
+        defaultDevice["value"] = DEVICE_TYPE_DEFAULT;
         JsonObject SR6 = deviceTypes.add<JsonObject>();
         SR6["name"] = "SR6";
         SR6["value"] = DeviceType::SR6;
@@ -305,8 +305,11 @@ public:
         TVIBE["name"] = "TVIBE";
         TVIBE["value"] = DeviceType::TVIBE;
     #elif defined MOTOR_TYPE_BLDC
-        defaultDevice["name"] = "SSR1";
-        defaultDevice["value"] = DeviceType::SSR1;
+        defaultDevice["name"] = DEVICE_TYPE_NAME_DEFAULT;
+        defaultDevice["value"] = DEVICE_TYPE_DEFAULT;
+        JsonObject SSR1 = deviceTypes.add<JsonObject>();
+        SSR1["name"] = "SSR1";
+        SSR1["value"] = DeviceType::SSR1;
         JsonObject SSR2 = deviceTypes.add<JsonObject>();
         SSR2["name"] = "SSR2";
         SSR2["value"] = DeviceType::SSR2;

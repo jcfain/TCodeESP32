@@ -202,11 +202,11 @@ public:
         m_sensor->update();
         sensorAngle = m_sensor->getAngle();
         // Determine the linear position of the receiver in (0-10000)
-        if(m_motorPosition == BLDCMotorPosition::Right)
+        if(m_motorPosition == BLDCMotorPosition::B)
         {
             m_motorAnglePosition = (sensorAngle - zeroAngle)*angToPos; 
         }
-        else if(m_motorPosition == BLDCMotorPosition::Left)
+        else if(m_motorPosition == BLDCMotorPosition::A)
         {
             m_motorAnglePosition = -(sensorAngle - zeroAngle)*angToPos; 
         }
@@ -237,7 +237,7 @@ public:
                     {
                         LogHandler::debug(m_TAG, "Set %s bootmode false read hall", m_name);
                         m_bootmode = false;
-                        if(m_motorPosition == BLDCMotorPosition::Right)
+                        if(m_motorPosition == BLDCMotorPosition::B)
                             zeroAngle = sensorAngle - topStartOffset;
                     } 
                     else if (millis() > (startTime + 2000)) 
@@ -246,7 +246,7 @@ public:
                         m_bootmode = false;
                         LogHandler::debug(m_TAG, "Set %s bootmode false hall timeout", m_name);
                         // zeroAngle = sensorAngle - topStartOffset - endStopOffset;
-                        if(m_motorPosition == BLDCMotorPosition::Right)
+                        if(m_motorPosition == BLDCMotorPosition::B)
                             zeroAngle = sensorAngle - (topStartOffset - endStopOffset);
                     }
                 }
@@ -259,7 +259,7 @@ public:
                     {
                         m_bootmode = false;
                         LogHandler::debug(m_TAG, "Set %s bootmode false", m_name);
-                        if(m_motorPosition == BLDCMotorPosition::Right)
+                        if(m_motorPosition == BLDCMotorPosition::B)
                             zeroAngle = sensorAngle + endStopOffset;
                     }
                 } 
@@ -271,11 +271,11 @@ public:
                 {
                     m_bootmode = false;
                     LogHandler::debug(m_TAG, "Set %s bootmode false", m_name);
-                    if(m_motorPosition == BLDCMotorPosition::Right)
+                    if(m_motorPosition == BLDCMotorPosition::B)
                     {
                         zeroAngle = sensorAngle + topStartOffset;
                     }
-                    else if(m_motorPosition == BLDCMotorPosition::Left)
+                    else if(m_motorPosition == BLDCMotorPosition::A)
                     {
                         zeroAngle = sensorAngle - topStartOffset;
                     }
@@ -295,11 +295,11 @@ public:
         }
         else if(m_deviceType == DeviceType::SSR2 && twistTCode > -1)
         {
-            if(m_motorPosition == BLDCMotorPosition::Right)
+            if(m_motorPosition == BLDCMotorPosition::B)
             {
                 m_targetMotorPosition = strokeTCode + multiplier*(twistTCode-5000);
             }
-            else if(m_motorPosition == BLDCMotorPosition::Left)
+            else if(m_motorPosition == BLDCMotorPosition::A)
             {
                 m_targetMotorPosition = strokeTCode - multiplier*(twistTCode-5000);
             }
@@ -309,13 +309,13 @@ public:
     void move()
     {
         float motorVoltageNew;
-        if(m_motorPosition == BLDCMotorPosition::Right) 
+        if(m_motorPosition == BLDCMotorPosition::B) 
         {
             motorVoltageNew = P_CONST*(m_targetMotorPosition - m_motorAnglePosition);
             if (m_bootmode && motorVoltageNew < -0.5) 
                  motorVoltageNew = -0.5; 
         }
-        else if(m_motorPosition == BLDCMotorPosition::Left)
+        else if(m_motorPosition == BLDCMotorPosition::A)
         {
             motorVoltageNew = -P_CONST*(m_targetMotorPosition - m_motorAnglePosition);// Note the negative here
             if (m_bootmode && motorVoltageNew > 0.5) 
@@ -373,12 +373,12 @@ private:
     {
         switch (motorChannel)
         {
-            case BLDCMotorPosition::Right:
-                return "Right";
+            case BLDCMotorPosition::B:
+                return "B";
                 break;
             
             default:
-                return "Left";
+                return "A";
                 break;
         }
     }

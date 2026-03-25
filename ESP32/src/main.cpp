@@ -362,7 +362,7 @@ void loop()
 #endif
 		}
 	}
-	if (!setupSucceeded)
+	if (!setupSucceeded && SettingsHandler::restartRequired == -1 && !restarting)
 	{
 		LogHandler::error(TagHandler::Main, "There was an issue in setup");
 		vTaskDelay(5000 / portTICK_PERIOD_MS);

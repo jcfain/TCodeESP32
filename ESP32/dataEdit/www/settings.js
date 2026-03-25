@@ -80,11 +80,12 @@ let BoardType = {
     SSR1PCB: 5
 };
 let DeviceType = {
-    OSR: 0,
-    SR6: 1,
-    SSR1: 2,
-    TVIBE: 3,
-    SSR2: 4
+    NONE: 0,
+    OSR: 1,
+    SR6: 2,
+    SSR1: 3,
+    SSR2: 4,
+    TVIBE: 5
 };
 let BLEDeviceType = {
     TCODE: 0,
@@ -120,8 +121,8 @@ var startUpHostName;
 var startUpWebPort;
 var startUpStaticIP;
 var startUpLocalIP;
-var rightMotor;
-var leftMotor;
+var motorA;
+var motorB;
 const defaultDebounce = 3000;
 
 //PWM availible on: 2,4,5,12-19,21-23,25-27,32-33
@@ -946,7 +947,8 @@ function setUserSettings()
     
     document.getElementById('boardType').value = userSettings["boardType"];
     const isSSR1PCB = isBoardType(BoardType.SSR1PCB);
-    document.getElementById("deviceType").disabled = isBoardType(BoardType.CRIMZZON) || isBoardType(BoardType.ISAAC) || isSSR1PCB;
+    const deviceTypeElement = document.getElementById("deviceType");
+    deviceTypeElement.disabled = isBoardType(BoardType.CRIMZZON) || isBoardType(BoardType.ISAAC) || isSSR1PCB;
     document.getElementById("BLDC_Encoder").disabled = isSSR1PCB;
 
 	document.getElementById("maxServoRange").value = userSettings["maxServoRange"];
@@ -964,40 +966,41 @@ function setUserSettings()
         document.getElementById("BLDC_StrokeLength").value = userSettings["BLDC_StrokeLength"];
         document.getElementById("BLDC_TwistMultiplier").value = userSettings["BLDC_TwistMultiplier"];
         Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
-        if(!rightMotor)
-            rightMotor = new BLDCMotor(userSettings.deviceType);
-        rightMotor.setup();
+        if(!motorA)
+            motorA = new BLDCMotor(userSettings.deviceType);// No name due to settings property name and html node ids.
+        motorA.setup();
         document.getElementById("BLDC_HallEffect_PIN").value = pinoutSettings["BLDC_HallEffect_PIN"];
-        rightMotor.setupPins();
+        motorA.setupPins();
         const tableNode = document.getElementById("deviceSettingsTableBody");
-        const rightSettingsButton = document.getElementById("rightButtonRow");
-        if(!rightSettingsButton)
+        const motorASettingsButton = document.getElementById("motorAButtonRow");
+        if(!motorASettingsButton)
         {
-            const rightLabel = userSettings.deviceType == DeviceType.SSR2 ? "Right motor settings" : "Motor settings";
-            const rightBLDCNode = Utils.createFormButtonRow("rightButtonRow", "bldcRightSettingsButton", rightLabel, function() { 
-                rightMotor.ModalNode.show() 
+            const motorALabel = isSSR2() ? "Motor A settings" : "Motor settings";
+            const motorABLDCNode = Utils.createFormButtonRow("motorAButtonRow", "bldcRightSettingsButton", motorALabel, function() { 
+                motorA.ModalNode.show() 
             });
-            rightBLDCNode.row.classList.add("BLDCOnly");
+            motorABLDCNode.button.disabled = userSettings.deviceType == DeviceType.NONE;
+            motorABLDCNode.row.classList.add("BLDCOnly");
             const siblingNode = document.getElementById("EncoderType");
-            siblingNode.insertAdjacentElement('afterend', rightBLDCNode.row);
+            siblingNode.insertAdjacentElement('afterend', motorABLDCNode.row);
         }
-        if(userSettings.deviceType == DeviceType.SSR2)
+        if(isSSR2())
         {
-            if(!leftMotor)
-                leftMotor = new BLDCMotor(userSettings.deviceType, "Left");
-            leftMotor.setup();
-            leftMotor.setupPins();
-            const leftSettingsButton = document.getElementById("leftButtonRow");
-            if(!leftSettingsButton)
+            if(!motorB)
+                motorB = new BLDCMotor(userSettings.deviceType, "B");
+            motorB.setup();
+            motorB.setupPins();
+            const motorBSettingsButton = document.getElementById("motorBButtonRow");
+            if(!motorBSettingsButton)
             {
-                const leftBLDCNode = Utils.createFormButtonRow("leftButtonRow", "bldcLeftSettingsButton", "Left motor settings", function() { 
-                    leftMotor.ModalNode.show() 
+                const motorBBLDCNode = Utils.createFormButtonRow("motorBButtonRow", "bldcLeftSettingsButton", "Motor B settings", function() { 
+                    motorB.ModalNode.show() 
                 });
-                leftBLDCNode.row.classList.add("BLDCOnly");
-                leftBLDCNode.row.classList.add("SSR2Only");
+                motorBBLDCNode.row.classList.add("BLDCOnly");
+                motorBBLDCNode.row.classList.add("SSR2Only");
                 // tableNode.appendChild(leftBLDCNode.row);
-                const siblingNode = document.getElementById("rightButtonRow");
-                siblingNode.insertAdjacentElement('afterend', leftBLDCNode.row);
+                const siblingNode = document.getElementById("motorAButtonRow");
+                siblingNode.insertAdjacentElement('afterend', motorBBLDCNode.row);
             }
         }
         toggleBLDCEncoderOptions();
@@ -1015,7 +1018,12 @@ function setUserSettings()
 	document.getElementById("Squeeze_ZERO").value = userSettings["Squeeze_ZERO"];
 	document.getElementById("lubeEnabled").checked = userSettings["lubeEnabled"];
 	document.getElementById("lubeAmount").value = userSettings["lubeAmount"];
-	document.getElementById("deviceType").value = userSettings["deviceType"];
+	deviceTypeElement.value = userSettings["deviceType"];
+    if(userSettings.deviceType == DeviceType.NONE) {
+        deviceTypeElement.classList.add("pulse-yellow");
+    } else {
+        deviceTypeElement.classList.remove("pulse-yellow");
+    }
 	document.getElementById("autoValve").checked = userSettings["autoValve"];
 	document.getElementById("inverseValve").checked = userSettings["inverseValve"];
 	document.getElementById("valveServo90Degrees").checked = userSettings["valveServo90Degrees"];
@@ -1730,7 +1738,7 @@ function updateFriendlyName()
 // These encoder functions could be removed in the future if multiple encoders are added
 function setEncoderType() {
     userSettings["BLDC_Encoder"] = parseInt(document.getElementById("BLDC_Encoder").value);
-    userSettings["BLDC_LeftEncoder"] = parseInt(document.getElementById("BLDC_Encoder").value);
+    userSettings["BLDC_BEncoder"] = parseInt(document.getElementById("BLDC_Encoder").value);
     toggleBLDCEncoderOptions();
     setRestartRequired();
     updateUserSettings(0);
@@ -1813,10 +1821,18 @@ function setupDeviceTypes() {
 function setDeviceType() {
     var element = document.getElementById('deviceType');
     let newValue = element.value;// Parsed to int in the backend
-    if(confirm("This will reset the current pinout to default. Continue?")) {
+    if(userSettings["deviceType"] == DeviceType.NONE || confirm("This will reset the current pinout to default. Continue?")) {
         postDeviceType(newValue);
     } else {
         element.value = userSettings["deviceType"];
+    }
+    if(element.value != DeviceType.NONE)
+    {
+        element.classList.remove("pulse-yellow");
+    }
+    else
+    {
+        element.classList.add("pulse-yellow");
     }
 }
 
@@ -1908,9 +1924,9 @@ function toggleEnableTimerChannels(element) {
 function updatePins() 
 {
     if(systemInfo.motorType == MotorType.BLDC) {
-        rightMotor.updateBLDCPins();
-        if(leftMotor)
-            leftMotor.updateBLDCPins();
+        motorA.updateBLDCPins();
+        if(motorB)
+            motorB.updateBLDCPins();
         return;
     }
     Utils.debounce("updatePins", () => 
@@ -2114,12 +2130,12 @@ function validatePWMPin(pin, pinName, assignedPins, duplicatePins, pwmErrors, in
 function validatePins() {
     if(systemInfo.motorType == MotorType.BLDC) {
         if(isSSR1())
-            return rightMotor.validateBLDCPins();
+            return motorA.validateBLDCPins();
         else {
-            var rightPinValues = rightMotor.validateBLDCPins();
+            var rightPinValues = motorA.validateBLDCPins();
             if(!rightPinValues)
                 return rightPinValues;
-            var leftPinValues = leftMotor.validateBLDCPins()
+            var leftPinValues = motorB.validateBLDCPins()
             if(!leftPinValues)
                 return leftPinValues;
             return rightPinValues;// Return which? bad programming practice....
@@ -2916,6 +2932,20 @@ function checkMigrateData(key, value, firmwareVersion) {
                 return BoardType.CRIMZZON; 
             } else if(value == 2) {
                 return BoardType.ISAAC; 
+            }
+        }
+    } else if(key == "deviceType") { 
+        if(!firmwareVersion || firmwareVersion < 0.497) {
+            if(value == 0) {
+                return DeviceType.OSR; 
+            } else if(value == 1) {
+                return DeviceType.SR6; 
+            } else if(value == 2) {
+                return DeviceType.SSR1; 
+            } else if(value == 3) {
+                return DeviceType.TVIBE; 
+            } else if(value == 4) {
+                return DeviceType.SSR2; 
             }
         }
     }

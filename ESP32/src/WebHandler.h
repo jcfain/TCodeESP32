@@ -191,7 +191,7 @@ class WebHandler : public HTTPBase {
                 #ifdef MOTOR_TYPE_SERVO
                 (int)DeviceType::OSR 
                 #else
-                (int)DeviceType::SSR1 
+                (int)DeviceType::NONE 
                 #endif
                 : deviceTypeString.toInt();
 				if (m_settingsFactory->changeDeviceType(deviceType))

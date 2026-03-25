@@ -156,6 +156,14 @@ body {
 .restart-required:hover {
   background-color: green;
 }
+.pulse-yellow {
+  animation: pulseGreenNotification 1s infinite;
+}
+@keyframes pulseGreenNotification {
+  50% {
+    box-shadow: -1px 1px 8px 0 yellow,1px -1px 8px 0 yellow,1px 1px 8px 0 yellow,-1px -1px 8px 0 yellow;
+  }
+}
 .resetAllSettings {
   color: white;
   background-color: darkred;

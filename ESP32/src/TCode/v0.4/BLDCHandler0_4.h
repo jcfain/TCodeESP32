@@ -65,9 +65,17 @@ class BLDCHandler0_4 : public MotorHandler0_4 {
 public:
     BLDCHandler0_4() : MotorHandler0_4(new TCode0_4()) { }
 
-    void setup() override {
+    bool setup() override {
         bootmode = true;
+        return false; // This isnt ready any where near
         m_settingsFactory = SettingsFactory::getInstance();
+        // m_deviceType = DeviceType::NONE;
+        // m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
+        // if(m_deviceType == DeviceType::NONE)
+        // {
+        //     LogHandler::error(_TAG, "No device type selected. Visit the web config or use the command to set a device before starting the firmware.");
+        //     return false;
+        // }
         //PinMapInfo pinMapInfo = m_settingsFactory->getPins();
         PinMapSSR* pinMap = PinMapSSR::getInstance();
         int pullyCircumference = -1;
@@ -96,7 +104,7 @@ public:
             } else {
                 LogHandler::error(_TAG, "Invalid ChipSelect pin %d", pinMap->chipSelect());
                 m_initFailed = true;
-                return;
+                return false;
             }
         } else if(encoderType == BLDCEncoderType::PWM) {
             LogHandler::info(_TAG, "Selected encoder: PWM");
@@ -106,7 +114,7 @@ public:
             } else {
                 LogHandler::error(_TAG, "Invalid encoder pin %d", pinMap->encoder());
                 m_initFailed = true;
-                return;
+                return false;
             }
         } else {
             if(pinMap->chipSelect() > -1) {
@@ -116,7 +124,7 @@ public:
             } else {
                 LogHandler::error(_TAG, "Invalid ChipSelect pin %d", pinMap->chipSelect());
                 m_initFailed = true;
-                return;
+                return false;
             }
         }
         // BLDC motor & driver instance
@@ -248,6 +256,7 @@ public:
             LogHandler::info(_TAG, "Error in setup");
         else
             LogHandler::info(_TAG, "Ready!");
+        return true;
     }
 
     void read(byte inByte) override {

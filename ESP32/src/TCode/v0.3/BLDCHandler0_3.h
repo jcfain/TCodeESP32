@@ -65,11 +65,17 @@ class BLDCHandler0_3 : public MotorHandler0_3 {
 public:
     BLDCHandler0_3() : MotorHandler0_3(new TCode0_3()) { }
 
-    void setup() override {
+    bool setup() override {
         m_settingsFactory = SettingsFactory::getInstance();
         //PinMapInfo pinMapInfo = m_settingsFactory->getPins();
-        m_deviceType = DeviceType::SSR1;
+        m_deviceType = DeviceType::NONE;
         m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
+
+        if(m_deviceType == DeviceType::NONE)
+        {
+            LogHandler::error(_TAG, "No device type selected. Visit the web config or use the command to set a device before starting the firmware.");
+            return false;
+        }
         
         float angToPos,topStartOffset,endstopOffset;
         if(m_deviceType == DeviceType::SSR1)
@@ -119,9 +125,9 @@ public:
             m_settingsFactory->getValue(BLDC_MOTOR_ZEROELECANGLE, zeroElecAngle);
         }
 
-        rightMotor = new BLDCTCodeMotor(
+        motorA = new BLDCTCodeMotor(
             m_deviceType,
-            BLDCMotorPosition::Right,
+            BLDCMotorPosition::A,
             encoderType, 
             pinMap->chipSelect(),
             pinMap->encoder(),
@@ -138,11 +144,12 @@ public:
             paramsKnown,
             zeroElecAngle);
                 
-        if(!rightMotor->initialized()) 
+        if(!motorA->initialized()) 
         {
             m_initFailed = true;
-            delete rightMotor;
-            rightMotor = 0;
+            delete motorA;
+            motorA = 0;
+            return false;
         }
 
 
@@ -156,34 +163,34 @@ public:
             // LogHandler::debug(_TAG, "leftEndstopOffset: %f", leftEndstopOffset);
 
             // Begin tracking encoder
-            m_settingsFactory->getValue(BLDC_LEFT_ENCODER, encoderType);
-            double leftMotorVoltage = BLDC_LEFT_MOTOR_VOLTAGE_DEFAULT;
-            m_settingsFactory->getValue(BLDC_LEFT_MOTOR_VOLTAGE, leftMotorVoltage);
+            m_settingsFactory->getValue(BLDC_B_ENCODER, encoderType);
+            double leftMotorVoltage = BLDC_B_MOTOR_VOLTAGE_DEFAULT;
+            m_settingsFactory->getValue(BLDC_B_MOTOR_VOLTAGE, leftMotorVoltage);
             // power supply voltage [V]
-            double leftSupplyVoltage = BLDC_LEFT_MOTOR_SUPPLY_DEFAULT;
-            m_settingsFactory->getValue(BLDC_LEFT_MOTOR_SUPPLY, leftSupplyVoltage);
+            double leftSupplyVoltage = BLDC_B_MOTOR_SUPPLY_DEFAULT;
+            m_settingsFactory->getValue(BLDC_B_MOTOR_SUPPLY, leftSupplyVoltage);
             // limiting motor movements
-            double leftMotorCurrent = BLDC_LEFT_MOTOR_CURRENT_DEFAULT;
-            m_settingsFactory->getValue(BLDC_LEFT_MOTOR_CURRENT, leftMotorCurrent);
+            double leftMotorCurrent = BLDC_B_MOTOR_CURRENT_DEFAULT;
+            m_settingsFactory->getValue(BLDC_B_MOTOR_CURRENT, leftMotorCurrent);
 
             // init current sense
-            paramsKnown = BLDC_LEFT_MOTOR_PARAMETERSKNOWN_DEFAULT;
-            zeroElecAngle = BLDC_LEFT_MOTOR_ZEROELECANGLE_DEFAULT;
-            m_settingsFactory->getValue(BLDC_LEFT_MOTOR_PARAMETERSKNOWN, paramsKnown);
+            paramsKnown = BLDC_B_MOTOR_PARAMETERSKNOWN_DEFAULT;
+            zeroElecAngle = BLDC_B_MOTOR_ZEROELECANGLE_DEFAULT;
+            m_settingsFactory->getValue(BLDC_B_MOTOR_PARAMETERSKNOWN, paramsKnown);
             if(paramsKnown) 
             {
-                m_settingsFactory->getValue(BLDC_LEFT_MOTOR_ZEROELECANGLE, zeroElecAngle);
+                m_settingsFactory->getValue(BLDC_B_MOTOR_ZEROELECANGLE, zeroElecAngle);
             }
-            leftMotor = new BLDCTCodeMotor(
+            motorB = new BLDCTCodeMotor(
                 m_deviceType,
-                BLDCMotorPosition::Left,
+                BLDCMotorPosition::B,
                 encoderType,
-                pinMap->leftChipSelect(),
-                pinMap->leftEncoder(),
-                pinMap->leftPwmChannel1(),
-                pinMap->leftPwmChannel2(),
-                pinMap->leftPwmChannel3(),
-                pinMap->leftEnable(),
+                pinMap->motorBChipSelect(),
+                pinMap->motorBEncoder(),
+                pinMap->motorBPwmChannel1(),
+                pinMap->motorBPwmChannel2(),
+                pinMap->motorBPwmChannel3(),
+                pinMap->motorBEnable(),
                 leftMotorVoltage,
                 leftSupplyVoltage,
                 leftMotorCurrent,
@@ -193,10 +200,11 @@ public:
                 paramsKnown,
                 zeroElecAngle);
 
-            if(!leftMotor->initialized()) {
+            if(!motorB->initialized()) {
                 m_initFailed = true;
-                delete leftMotor;
-                leftMotor = 0;
+                delete motorB;
+                motorB = 0;
+                return false;
             }
         }
 
@@ -204,41 +212,39 @@ public:
         m_tcode->setup(FIRMWARE_VERSION_NAME);
 
         // Register device axes
-        if(rightMotor)
+
+        bool useHallSensor = BLDC_USEHALLSENSOR_DEFAULT;
+        m_settingsFactory->getValue(BLDC_USEHALLSENSOR, useHallSensor);
+        int hallSensorPin = pinMap->hallEffect();
+        if(motorA) 
         {
             m_tcode->RegisterAxis(TCODE_CHANNEL_STROKE, "Up");
             bool useHallSensor = BLDC_USEHALLSENSOR_DEFAULT;
             m_settingsFactory->getValue(BLDC_USEHALLSENSOR, useHallSensor);
             int hallSensorPin = pinMap->hallEffect();
             if(useHallSensor && hallSensorPin > -1) {
-                rightMotor->useHallSensor(hallSensorPin);
+                motorA->useHallSensor(hallSensorPin);
             } else if(useHallSensor) {
                 LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d...ignoring", pinMap->hallEffect());
                 // m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
             }
         }
-
-        if(leftMotor) 
+        if(motorB)
         {
-            m_tcode->RegisterAxis(TCODE_CHANNEL_TWIST, "Twist");
-            bool useHallSensor = BLDC_USEHALLSENSOR_DEFAULT;
-            m_settingsFactory->getValue(BLDC_LEFT_USEHALLSENSOR, useHallSensor);
-            int hallSensorPin = pinMap->leftHallEffect();
             if(useHallSensor && hallSensorPin > -1) {
-                leftMotor->useHallSensor(hallSensorPin);
-            } else if(useHallSensor) {
-                LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d...ignoring", pinMap->hallEffect());
-                // m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
+                motorB->useHallSensor(hallSensorPin);
             }
+            m_tcode->RegisterAxis(TCODE_CHANNEL_TWIST, "Twist");
         }
         
-        setupCommon(leftMotor ? TCODE_CHANNEL_TWIST : "");// TODO make this better, im brainfog right now.
+        setupCommon(motorB ? TCODE_CHANNEL_TWIST : "");// TODO make this better, im brainfog right now.
 
         // Signal ready to start
         if(m_initFailed)
             LogHandler::error(_TAG, "Error in setup");
         else
             LogHandler::info(_TAG, "Ready!");
+        return true;
     }
 
     void read(byte inByte) override {
@@ -276,12 +282,12 @@ public:
 
         if(m_deviceType == DeviceType::SSR1)
         {
-            if(rightMotor && rightMotor->initialized())
+            if(motorA && motorA->initialized())
             {
-                rightMotor->bootCalibrate();
-                rightMotor->update();
-                rightMotor->process(stroke);
-                rightMotor->move();
+                motorA->bootCalibrate();
+                motorA->update();
+                motorA->process(stroke);
+                motorA->move();
             }
         } 
         else if(m_deviceType == DeviceType::SSR2)
@@ -291,23 +297,23 @@ public:
             {
                 twist = TCODE_MAX - twist;
             }
-            if(leftMotor && leftMotor->initialized())
+            if(motorA && motorA->initialized())
             {
-                leftMotor->bootCalibrate();
-                leftMotor->update();
-                leftMotor->process(stroke, twist, m_settingsFactory->getBLDCTwistMultiplier());
+                motorA->bootCalibrate();
+                motorA->update();
+                motorA->process(stroke, twist, m_settingsFactory->getBLDCTwistMultiplier());
             }
-            if(rightMotor && rightMotor->initialized())
+            if(motorB && motorB->initialized())
             {
-                rightMotor->bootCalibrate();
-                rightMotor->update();
-                rightMotor->process(stroke, twist, m_settingsFactory->getBLDCTwistMultiplier());
+                motorB->bootCalibrate();
+                motorB->update();
+                motorB->process(stroke, twist, m_settingsFactory->getBLDCTwistMultiplier());
             }
 
-            if(rightMotor && rightMotor->initialized())
-                rightMotor->move();
-            if(leftMotor && leftMotor->initialized())
-                leftMotor->move();
+            if(motorA && motorA->initialized())
+                motorA->move();
+            if(motorB && motorB->initialized())
+                motorB->move();
         }
 
         executeCommon(stroke);
@@ -320,8 +326,8 @@ private:
     bool m_initFailed = false;
     SettingsFactory* m_settingsFactory;
 
-    BLDCTCodeMotor* rightMotor = 0;
-    BLDCTCodeMotor* leftMotor = 0;
+    BLDCTCodeMotor* motorA = 0;
+    BLDCTCodeMotor* motorB = 0;
 
     DeviceType m_deviceType;
 };

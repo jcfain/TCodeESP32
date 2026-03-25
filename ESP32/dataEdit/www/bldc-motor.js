@@ -35,15 +35,10 @@ class BLDCMotor {
         if(!this.ModalNode)
         {
             this.ModalNode = document.createElement("modal-component");
-            this.ModalNode.id = this.name + "MotorSettings";
+            this.ModalNode.id = "motor" + this.name + "Settings";
             const header = document.createElement("span");
-            header.innerText = this.name.length == 0 ? "Right Motor Settings" : this.name + " Motor Settings"  
-            var headerText = "Motor Settings";
-            if(deviceType == DeviceType.SSR1) {
-                header.innerText = headerText;
-            } else {
-                header.innerText = this.name.length == 0 ? "Right " + headerText : this.name + " " + headerText
-            }
+            // This is like this because the settings for the A motor does not have 'A' in it for SSR1.
+            header.innerText = isSSR1() ? "Motor Settings" : "Motor " + (this.name.length ? this.name : "A") + " Settings"
             header.setAttribute("slot", "title");
             this.ModalNode.appendChild(header);
             document.body.appendChild(this.ModalNode);
@@ -60,7 +55,7 @@ class BLDCMotor {
         // this.Names.BLDC_Encoder = "BLDC_" + name + "Encoder";
         // this.Names.BLDC_UseHallSensor = "BLDC_" + name + "UseHallSensor";
         this.Names.BLDC_Encoder = "BLDC_Encoder";
-        this.Names.BLDC_UseHallSensor = "BLDC_UseHallSensor";
+        // this.Names.BLDC_UseHallSensor = "BLDC_UseHallSensor";
         this.Names.BLDC_Pulley_Circumference = "BLDC_" + name + "Pulley_Circumference";
         this.Names.BLDC_Motor_VoltageLimit = "BLDC_" + name + "Motor_VoltageLimit";
         this.Names.BLDC_Motor_SupplyVoltage = "BLDC_" + name + "Motor_SupplyVoltage";
@@ -141,7 +136,7 @@ class BLDCMotor {
     // TODO: move bldc stuff in to here. Follow this pattern moving forward.
     updateBLDCSettings(delay = defaultDebounce) {
         Utils.debounce("updateBLDCSettings", () => {
-            userSettings[this.Names.BLDC_UseHallSensor] = document.getElementById(this.Names.BLDC_UseHallSensor).checked;
+            // userSettings[this.Names.BLDC_UseHallSensor] = document.getElementById(this.Names.BLDC_UseHallSensor).checked;
             // Utils.toggleControlVisibilityByID(this.Names.HallEffect_Row, userSettings[this.Names.BLDC_UseHallSensor]);  
             if(this.deviceType == DeviceType.SSR1)
             {
@@ -171,7 +166,7 @@ class BLDCMotor {
                 pinoutSettings[this.Names.BLDC_PWMchannel2_PIN] = pinValues.BLDC_PWMchannel2_PIN;
                 pinoutSettings[this.Names.BLDC_PWMchannel3_PIN] = pinValues.BLDC_PWMchannel3_PIN;
                 // pinoutSettings[this.Names.BLDC_HallEffect_PIN] = pinValues.BLDC_HallEffect_PIN;
-                pinoutSettings["BLDC_HallEffect_PIN"] = pinValues.BLDC_HallEffect_PIN;
+                // pinoutSettings["BLDC_HallEffect_PIN"] = pinValues.BLDC_HallEffect_PIN;
                 updateCommonPins(pinValues);
                 setRestartRequired();
                 postPinoutSettings(0);
@@ -187,7 +182,7 @@ class BLDCMotor {
         pinValues.BLDC_PWMchannel1_PIN = parseInt(document.getElementById(this.Names.BLDC_PWMchannel1_PIN).value);
         pinValues.BLDC_PWMchannel2_PIN = parseInt(document.getElementById(this.Names.BLDC_PWMchannel2_PIN).value);
         pinValues.BLDC_PWMchannel3_PIN = parseInt(document.getElementById(this.Names.BLDC_PWMchannel3_PIN).value);
-        pinValues.BLDC_HallEffect_PIN = parseInt(document.getElementById("BLDC_HallEffect_PIN").value);
+        // pinValues.BLDC_HallEffect_PIN = parseInt(document.getElementById("BLDC_HallEffect_PIN").value);
         getCommonPinValues(pinValues);
         return pinValues;
     }
@@ -201,7 +196,7 @@ class BLDCMotor {
         var pinValues = this.getBLDCPinValues();
         if(userSettings["disablePinValidation"])
             return pinValues;
-        const name = isSSR2() && this.name.length == 0 ? "Right" : this.name;
+        const name = this.name;
         if(isModuleType(ModuleType.S3))
         {
             if(isBoardType(BoardType.ZERO)) {
@@ -236,9 +231,9 @@ class BLDCMotor {
         validatePWMPin(pinValues.BLDC_PWMchannel2_PIN, name+" PWMchannel2", assignedPins, duplicatePins, pwmErrors, invalidPins);
         validatePWMPin(pinValues.BLDC_PWMchannel3_PIN, name+" PWMchannel3", assignedPins, duplicatePins, pwmErrors, invalidPins);
 
-        if(userSettings["BLDC_UseHallSensor"] && this.deviceType == DeviceType.SSR1) {
-            validatePin(pinValues.BLDC_HallEffect_PIN, "Hall effect", assignedPins, duplicatePins, false, invalidPins);
-        }
+        // if(userSettings["BLDC_UseHallSensor"] && this.deviceType == DeviceType.SSR1) {
+        //     validatePin(pinValues.BLDC_HallEffect_PIN, "Hall effect", assignedPins, duplicatePins, false, invalidPins);
+        // }
         
         validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors, invalidPins);
 

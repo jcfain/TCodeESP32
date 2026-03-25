@@ -156,6 +156,11 @@ public:
         // LogHandler::setLogLevel(LogLevel::DEBUG);
 
         const PinMap *pinMap = settingsFactory->getPins();
+        if(!pinMap)
+        {
+            LogHandler::warning(TagHandler::Main, "No pin map defined");
+            return false;
+        }
 
         SettingsHandler::init();
         SettingsHandler::setMessageCallback(std::bind(&InitHandler::settingChangeCallback, this, std::placeholders::_1, std::placeholders::_2));
@@ -407,7 +412,10 @@ public:
     #endif
         // otaHandler.setup();
         displayPrint("Setting up motor");
-        motorHandler->setup();
+        if(!motorHandler->setup())
+        {
+            return false;
+        }
         LogHandler::debug(TagHandler::Main, "Motor DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         motionHandler = new MotionHandler();
         motionHandler->setup(settingsFactory->getTcodeVersion());

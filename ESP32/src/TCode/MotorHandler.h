@@ -30,7 +30,7 @@ SOFTWARE. */
 
 class MotorHandler {
 public:
-    virtual void setup() = 0;
+    virtual bool setup() = 0;
     virtual void read(byte inByte) = 0;
     virtual void read(const String &input) = 0;
     virtual void read(const char* input, size_t len) = 0;

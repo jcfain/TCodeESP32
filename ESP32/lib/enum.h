@@ -12,8 +12,8 @@ enum class TCodeVersion: int
 #ifdef MOTOR_TYPE_BLDC
 enum class BLDCMotorPosition 
 {
-    Right,
-    Left
+    A,
+    B
 };
 #endif
 
@@ -79,18 +79,19 @@ enum class MotorType: int
 
 enum class DeviceType: int
 {
+    NONE,
     OSR,
     SR6,
     SSR1,
-    TVIBE,
     SSR2,
+    TVIBE,
     MAX
 };
 
 #ifdef MOTOR_TYPE_BLDC
-#define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: SSR1=2, SSR2=4"
+#define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: SSR1=2, SSR2=3"
 #else
-#define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: OSR=0, SR6=1, TVIBE=3"
+#define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: OSR=0, SR6=1, TVIBE=5"
 #endif
 
 enum class BLDCEncoderType: int {
