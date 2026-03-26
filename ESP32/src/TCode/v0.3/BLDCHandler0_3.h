@@ -70,13 +70,19 @@ public:
         //PinMapInfo pinMapInfo = m_settingsFactory->getPins();
         m_deviceType = DeviceType::NONE;
         m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
-
         if(m_deviceType == DeviceType::NONE)
         {
             LogHandler::error(_TAG, "No device type selected. Visit the web config or use the command to set a device before starting the firmware.");
             return false;
         }
-        
+        BLDCEncoderType encoderType = (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
+        m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
+        if(encoderType == BLDCEncoderType::NONE)
+        {
+            LogHandler::error(_TAG, "No encoder type selected. Visit the web config or use the command to set an encoder before starting the firmware.");
+            return false;
+        }
+
         float angToPos,topStartOffset,endstopOffset;
         if(m_deviceType == DeviceType::SSR1)
         {
@@ -105,8 +111,6 @@ public:
         
         PinMapSSR* pinMap = PinMapSSR::getInstance();
 
-        BLDCEncoderType encoderType = (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
-        m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
         double rightMotorVoltage = BLDC_MOTOR_VOLTAGE_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTOR_VOLTAGE, rightMotorVoltage);
         // power supply voltage [V]

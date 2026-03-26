@@ -95,6 +95,7 @@ enum class DeviceType: int
 #endif
 
 enum class BLDCEncoderType: int {
+    NONE,
     MT6701,
     SPI,
     PWM,

@@ -96,9 +96,10 @@ let BLELoveDeviceType = {
     EDGE: 0
 };
 let BLDCEncoderType = {
-    MT6701: 0,
-    SPI: 1,
-    PWM: 2
+    NONE: 0,
+    MT6701: 1,
+    SPI: 2,
+    PWM: 3
 };
 const TCodeModifierType = {
     INTERVAL: "I",
@@ -960,7 +961,13 @@ function setUserSettings()
     ESPTimer.setup();
     if(systemInfo.motorType === MotorType.BLDC) 
     {
-        document.getElementById("BLDC_Encoder").value = userSettings["BLDC_Encoder"];
+        const encoderTypeElement = document.getElementById("BLDC_Encoder");
+        encoderTypeElement.value = userSettings["BLDC_Encoder"];
+        if(userSettings.BLDC_Encoder == BLDCEncoderType.NONE) {
+            encoderTypeElement.classList.add("pulse-yellow");
+        } else {
+            encoderTypeElement.classList.remove("pulse-yellow");
+        }
         document.getElementById("BLDC_UseHallSensor").checked = userSettings["BLDC_UseHallSensor"];
         document.getElementById("BLDC_RailLength").value = userSettings["BLDC_RailLength"];
         document.getElementById("BLDC_StrokeLength").value = userSettings["BLDC_StrokeLength"];
@@ -1737,9 +1744,17 @@ function updateFriendlyName()
 
 // These encoder functions could be removed in the future if multiple encoders are added
 function setEncoderType() {
-    userSettings["BLDC_Encoder"] = parseInt(document.getElementById("BLDC_Encoder").value);
-    userSettings["BLDC_BEncoder"] = parseInt(document.getElementById("BLDC_Encoder").value);
+    const element = document.getElementById("BLDC_Encoder");
+    userSettings["BLDC_Encoder"] = parseInt(element.value);
     toggleBLDCEncoderOptions();
+    if(userSettings.BLDC_Encoder != BLDCEncoderType.NONE)
+    {
+        element.classList.remove("pulse-yellow");
+    }
+    else
+    {
+        element.classList.add("pulse-yellow");
+    }
     setRestartRequired();
     updateUserSettings(0);
 }
@@ -1820,13 +1835,13 @@ function setupDeviceTypes() {
 }
 function setDeviceType() {
     var element = document.getElementById('deviceType');
-    let newValue = element.value;// Parsed to int in the backend
+    let newValue = parseInt(element.value);// Parsed to int in the backend
     if(userSettings["deviceType"] == DeviceType.NONE || confirm("This will reset the current pinout to default. Continue?")) {
         postDeviceType(newValue);
     } else {
         element.value = userSettings["deviceType"];
     }
-    if(element.value != DeviceType.NONE)
+    if(userSettings.deviceType != DeviceType.NONE)
     {
         element.classList.remove("pulse-yellow");
     }
@@ -2946,6 +2961,16 @@ function checkMigrateData(key, value, firmwareVersion) {
                 return DeviceType.TVIBE; 
             } else if(value == 4) {
                 return DeviceType.SSR2; 
+            }
+        }
+    } else if(key == "BLDC_Encoder") { 
+        if(!firmwareVersion || firmwareVersion < 0.497) {
+            if(value == 0) {
+                return BLDCEncoderType.MT6701; 
+            } else if(value == 1) {
+                return BLDCEncoderType.SPI; 
+            } else if(value == 2) {
+                return BLDCEncoderType.PWM; 
             }
         }
     }

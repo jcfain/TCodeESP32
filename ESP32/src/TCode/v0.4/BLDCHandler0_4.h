@@ -19,7 +19,7 @@
 #pragma once
 
 #include <SimpleFOC.h>
-#include <SimpleFOCDrivers.h>
+#include <SimpleFOCDrivers.h> 
 #include <encoders/mt6701/MagneticSensorMT6701SSI.h>
 
 #include "TCode0_4.h"
@@ -67,15 +67,23 @@ public:
 
     bool setup() override {
         bootmode = true;
+        LogHandler::error(_TAG, "Sorry TCode v4 is probably broken at this point");
         return false; // This isnt ready any where near
         m_settingsFactory = SettingsFactory::getInstance();
-        // m_deviceType = DeviceType::NONE;
-        // m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
-        // if(m_deviceType == DeviceType::NONE)
-        // {
-        //     LogHandler::error(_TAG, "No device type selected. Visit the web config or use the command to set a device before starting the firmware.");
-        //     return false;
-        // }
+        m_deviceType = DeviceType::NONE;
+        m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
+        if(m_deviceType == DeviceType::NONE)
+        {
+            LogHandler::error(_TAG, "No device type selected. Visit the web config or use the command to set a device before starting the firmware.");
+            return false;
+        }
+        BLDCEncoderType encoderType = (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
+        m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
+        if(encoderType == BLDCEncoderType::NONE)
+        {
+            LogHandler::error(_TAG, "No encoder type selected. Visit the web config or use the command to set an encoder before starting the firmware.");
+            return false;
+        }
         //PinMapInfo pinMapInfo = m_settingsFactory->getPins();
         PinMapSSR* pinMap = PinMapSSR::getInstance();
         int pullyCircumference = -1;
@@ -92,8 +100,6 @@ public:
         LogHandler::debug(_TAG, "ENDSTOP_START_OFFSET: %f", ENDSTOP_START_OFFSET);
 
         // Begin tracking encoder
-        BLDCEncoderType encoderType = BLDCEncoderType::MT6701;
-        m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
         LogHandler::debug(_TAG, "Encoder type: %d", encoderType);
 
         if(encoderType == BLDCEncoderType::MT6701) {
@@ -384,6 +390,7 @@ private:
     SettingsFactory* m_settingsFactory;
     bool m_useHallSensor = false;
     int8_t m_hallSensorPin = -1;
+    DeviceType m_deviceType;
     // Drive Parameters
 
     // The control code needs to know the angle of the motor relative to the encoder - "Zero elec. angle".

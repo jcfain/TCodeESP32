@@ -315,8 +315,11 @@ public:
         SSR2["value"] = DeviceType::SSR2;
         JsonArray encoderTypes = doc["encoderTypes"].to<JsonArray>();
         JsonObject defaultEncoder = encoderTypes.add<JsonObject>();
-        defaultEncoder["name"] = "MT6701 SSI";
-        defaultEncoder["value"] = BLDCEncoderType::MT6701;
+        defaultEncoder["name"] = "NONE";
+        defaultEncoder["value"] = BLDCEncoderType::NONE;
+        JsonObject MT6701 = encoderTypes.add<JsonObject>();
+        MT6701["name"] = "MT6701 SSI";
+        MT6701["value"] = BLDCEncoderType::MT6701;
         JsonObject PWM = encoderTypes.add<JsonObject>();
         PWM["name"] = "PWM";
         PWM["value"] = BLDCEncoderType::PWM;
