@@ -38,11 +38,12 @@ public:
         Direction sensor_direction = Direction::CW) : 
             m_deviceType(deviceType),
             m_motorPosition(motorPosition),
-            m_name(getName(motorPosition)),
-            angToPos(angToPos), 
-            topStartOffset(topStartOffset), 
-            endStopOffset(endStopOffset),
-            zeroAngle(zeroAngle)
+            m_name(getName(motorPosition))
+            //,
+            // angToPos(angToPos), 
+            // topStartOffset(topStartOffset), 
+            // endStopOffset(endStopOffset),
+            // zeroAngle(zeroAngle)
     { 
         if(encoderType == BLDCEncoderType::MT6701) 
         {
@@ -182,164 +183,177 @@ public:
         return !m_initFailed;
     }
 
-    void resetCalibration()
-    {
-        m_bootmode = true;
-    }
-
-    bool update() 
-    {
-        if(!initialized())
-            return false;
-        if(!startTime) 
-        {
-            // Record start time
-            startTime = millis();
-            LogHandler::info(m_TAG, "%s startTime: %ld", m_name, startTime);
-        }
+    void loopFOC() {
         motor->loopFOC();
-        // Update sensor position
-        m_sensor->update();
-        sensorAngle = m_sensor->getAngle();
-        // Determine the linear position of the receiver in (0-10000)
-        if(m_motorPosition == BLDCMotorPosition::B)
-        {
-            m_motorAnglePosition = (sensorAngle - zeroAngle)*angToPos; 
-        }
-        else if(m_motorPosition == BLDCMotorPosition::A)
-        {
-            m_motorAnglePosition = -(sensorAngle - zeroAngle)*angToPos; 
-        }
-        //LogHandler::verbose(_TAG, "zeroAngle: %f", zeroAngle);
-        return true;
+    }
+    void move(float voltage) {
+        motor->move(voltage);
     }
 
-    bool bootCalibrate()
+    Sensor* sensor()
     {
-        if(!initialized())
-            return false;
-        if(!m_bootmode)
-            return true;
-
-        // Control by motor voltage
-        // Mode 0 is startup mode. 
-        // Distance of travel is 12,000 (>10,000) just to make sure that the receiver reaches the top/bottom.
-        if (m_bootmode) 
-        {
-            // If using a hall sensor, roll upwards until the magnet triggers the hall effect sensor
-            if (m_deviceType == DeviceType::SSR1) 
-            {
-                if (m_useHallSensor) 
-                {
-                    //LogHandler::verbose(_TAG, "Hall senso millis()-startTime: %ld", millis()-startTime);
-                    m_targetMotorPosition = map(millis()-startTime,0,2000,0,12000);
-                    if (!digitalRead(m_hallSensorPin)) 
-                    {
-                        LogHandler::debug(m_TAG, "Set %s bootmode false read hall", m_name);
-                        m_bootmode = false;
-                        if(m_motorPosition == BLDCMotorPosition::B)
-                            zeroAngle = sensorAngle - topStartOffset;
-                    } 
-                    else if (millis() > (startTime + 2000)) 
-                    {
-                        // Timeout after two seconds if sensor not triggered
-                        m_bootmode = false;
-                        LogHandler::debug(m_TAG, "Set %s bootmode false hall timeout", m_name);
-                        // zeroAngle = sensorAngle - topStartOffset - endStopOffset;
-                        if(m_motorPosition == BLDCMotorPosition::B)
-                            zeroAngle = sensorAngle - (topStartOffset - endStopOffset);
-                    }
-                }
-                else
-                {
-                    // Otherwise roll downwards for two seconds and press against bottom stop.
-                    // LogHandler::verbose(_TAG, "millis()-startTime: %ld", millis()-startTime);
-                    m_targetMotorPosition = map(millis()-startTime,0,2000,0,-12000);
-                    if (millis() > (startTime + 2000)) 
-                    {
-                        m_bootmode = false;
-                        LogHandler::debug(m_TAG, "Set %s bootmode false", m_name);
-                        if(m_motorPosition == BLDCMotorPosition::B)
-                            zeroAngle = sensorAngle + endStopOffset;
-                    }
-                } 
-            } 
-            else if(m_deviceType == DeviceType::SSR2)
-            {
-                m_targetMotorPosition = map(millis()-startTime,0,2000,0,-12000);
-                if (millis() > (startTime + 2000)) 
-                {
-                    m_bootmode = false;
-                    LogHandler::debug(m_TAG, "Set %s bootmode false", m_name);
-                    if(m_motorPosition == BLDCMotorPosition::B)
-                    {
-                        zeroAngle = sensorAngle + topStartOffset;
-                    }
-                    else if(m_motorPosition == BLDCMotorPosition::A)
-                    {
-                        zeroAngle = sensorAngle - topStartOffset;
-                    }
-                }
-            }   
-        } 
-        return true;
+        return m_sensor;
     }
 
-    void process(int strokeTCode, int twistTCode = -1, int multiplier = 1) 
+    const char* name()
     {
-        if(m_bootmode)
-            return;
-        if(m_deviceType == DeviceType::SSR1 && twistTCode == -1)
-        {
-            m_targetMotorPosition = strokeTCode;
-        }
-        else if(m_deviceType == DeviceType::SSR2 && twistTCode > -1)
-        {
-            if(m_motorPosition == BLDCMotorPosition::B)
-            {
-                m_targetMotorPosition = strokeTCode + multiplier*(twistTCode-5000);
-            }
-            else if(m_motorPosition == BLDCMotorPosition::A)
-            {
-                m_targetMotorPosition = strokeTCode - multiplier*(twistTCode-5000);
-            }
-        }
+        return m_name;
     }
 
-    void move()
-    {
-        float motorVoltageNew;
-        if(m_motorPosition == BLDCMotorPosition::B) 
-        {
-            motorVoltageNew = P_CONST*(m_targetMotorPosition - m_motorAnglePosition);
-            if (m_bootmode && motorVoltageNew < -0.5) 
-                 motorVoltageNew = -0.5; 
-        }
-        else if(m_motorPosition == BLDCMotorPosition::A)
-        {
-            motorVoltageNew = -P_CONST*(m_targetMotorPosition - m_motorAnglePosition);// Note the negative here
-            if (m_bootmode && motorVoltageNew > 0.5) 
-                    motorVoltageNew = 0.5; 
-        }
-        // Low pass filter to reduce motor noise
-        motorVoltage = LOW_PASS*motorVoltage + (1-LOW_PASS)*motorVoltageNew; 
-        // Motion control function
-        motor->move(motorVoltage);
-        log();
-    }
+    // bool update() 
+    // {
+    //     if(!initialized())
+    //         return false;
+    //     if(!startTime) 
+    //     {
+    //         // Record start time
+    //         startTime = millis();
+    //         LogHandler::info(m_TAG, "%s startTime: %ld", m_name, startTime);
+    //     }
+    //     motor->loopFOC();
+    //     // Update sensor position
+    //     m_sensor->update();
+    //     sensorAngle = m_sensor->getAngle();
+    //     // Determine the linear position of the receiver in (0-10000)
+    //     if(m_motorPosition == BLDCMotorPosition::B)
+    //     {
+    //         m_motorAnglePosition = (sensorAngle - zeroAngle)*angToPos; 
+    //     }
+    //     else if(m_motorPosition == BLDCMotorPosition::A)
+    //     {
+    //         m_motorAnglePosition = -(sensorAngle - zeroAngle)*angToPos; 
+    //     }
+    //     //LogHandler::verbose(_TAG, "zeroAngle: %f", zeroAngle);
+    //     return true;
+    // }
 
-    void useHallSensor(int pin)
-    {
-        m_useHallSensor = pin > -1;
-        m_hallSensorPin = -1;
+    // bool bootCalibrate()
+    // {
+    //     if(!initialized())
+    //         return false;
+    //     if(!m_bootmode)
+    //         return true;
+
+    //     // Control by motor voltage
+    //     // Mode 0 is startup mode. 
+    //     // Distance of travel is 12,000 (>10,000) just to make sure that the receiver reaches the top/bottom.
+    //     if (m_bootmode) 
+    //     {
+    //         // If using a hall sensor, roll upwards until the magnet triggers the hall effect sensor
+    //         if (m_deviceType == DeviceType::SSR1) 
+    //         {
+    //             if (m_useHallSensor) 
+    //             {
+    //                 //LogHandler::verbose(_TAG, "Hall senso millis()-startTime: %ld", millis()-startTime);
+    //                 m_targetMotorPosition = map(millis()-startTime,0,2000,0,12000);
+    //                 if (!digitalRead(m_hallSensorPin)) 
+    //                 {
+    //                     LogHandler::debug(m_TAG, "Set %s bootmode false read hall", m_name);
+    //                     m_bootmode = false;
+    //                     if(m_motorPosition == BLDCMotorPosition::B)
+    //                         zeroAngle = sensorAngle - topStartOffset;
+    //                 } 
+    //                 else if (millis() > (startTime + 2000)) 
+    //                 {
+    //                     // Timeout after two seconds if sensor not triggered
+    //                     m_bootmode = false;
+    //                     LogHandler::debug(m_TAG, "Set %s bootmode false hall timeout", m_name);
+    //                     // zeroAngle = sensorAngle - topStartOffset - endStopOffset;
+    //                     if(m_motorPosition == BLDCMotorPosition::B)
+    //                         zeroAngle = sensorAngle - (topStartOffset - endStopOffset);
+    //                 }
+    //             }
+    //             else
+    //             {
+    //                 // Otherwise roll downwards for two seconds and press against bottom stop.
+    //                 // LogHandler::verbose(_TAG, "millis()-startTime: %ld", millis()-startTime);
+    //                 m_targetMotorPosition = map(millis()-startTime,0,2000,0,-12000);
+    //                 if (millis() > (startTime + 2000)) 
+    //                 {
+    //                     m_bootmode = false;
+    //                     LogHandler::debug(m_TAG, "Set %s bootmode false", m_name);
+    //                     if(m_motorPosition == BLDCMotorPosition::B)
+    //                         zeroAngle = sensorAngle + endStopOffset;
+    //                 }
+    //             } 
+    //         } 
+    //         else if(m_deviceType == DeviceType::SSR2)
+    //         {
+    //             m_targetMotorPosition = map(millis()-startTime,0,2000,0,-12000);
+    //             if (millis() > (startTime + 2000)) 
+    //             {
+    //                 m_bootmode = false;
+    //                 LogHandler::debug(m_TAG, "Set %s bootmode false", m_name);
+    //                 if(m_motorPosition == BLDCMotorPosition::B)
+    //                 {
+    //                     zeroAngle = sensorAngle + topStartOffset;
+    //                 }
+    //                 else if(m_motorPosition == BLDCMotorPosition::A)
+    //                 {
+    //                     zeroAngle = sensorAngle - topStartOffset;
+    //                 }
+    //             }
+    //         }   
+    //     } 
+    //     return true;
+    // }
+
+    // void process(int strokeTCode, int twistTCode = -1, int multiplier = 1) 
+    // {
+    //     if(m_bootmode)
+    //         return;
+    //     if(m_deviceType == DeviceType::SSR1 && twistTCode == -1)
+    //     {
+    //         m_targetMotorPosition = strokeTCode;
+    //     }
+    //     else if(m_deviceType == DeviceType::SSR2 && twistTCode > -1)
+    //     {
+    //         if(m_motorPosition == BLDCMotorPosition::B)
+    //         {
+    //             m_targetMotorPosition = strokeTCode + multiplier*(twistTCode-5000);
+    //         }
+    //         else if(m_motorPosition == BLDCMotorPosition::A)
+    //         {
+    //             m_targetMotorPosition = strokeTCode - multiplier*(twistTCode-5000);
+    //         }
+    //     }
+    // }
+
+    // void move()
+    // {
+    //     float motorVoltageNew;
+    //     if(m_motorPosition == BLDCMotorPosition::B) 
+    //     {
+    //         motorVoltageNew = P_CONST*(m_targetMotorPosition - m_motorAnglePosition);
+    //         if (m_bootmode && motorVoltageNew < -0.5) 
+    //              motorVoltageNew = -0.5; 
+    //     }
+    //     else if(m_motorPosition == BLDCMotorPosition::A)
+    //     {
+    //         motorVoltageNew = -P_CONST*(m_targetMotorPosition - m_motorAnglePosition);// Note the negative here
+    //         if (m_bootmode && motorVoltageNew > 0.5) 
+    //                 motorVoltageNew = 0.5; 
+    //     }
+    //     // Low pass filter to reduce motor noise
+    //     motorVoltage = LOW_PASS*motorVoltage + (1-LOW_PASS)*motorVoltageNew; 
+    //     // Motion control function
+    //     motor->move(motorVoltage);
+    //     log();
+    // }
+
+    // void useHallSensor(int pin)
+    // {
+    //     m_useHallSensor = pin > -1;
+    //     m_hallSensorPin = -1;
         
-        if(m_useHallSensor) 
-        {
-            LogHandler::info(m_TAG, "%s Using Hall Sensor", m_name);
-            // Set pinmode for hall sensor
-            pinMode(m_hallSensorPin, INPUT_PULLUP);
-        } 
-    }
+    //     if(m_useHallSensor) 
+    //     {
+    //         LogHandler::info(m_TAG, "%s Using Hall Sensor", m_name);
+    //         // Set pinmode for hall sensor
+    //         pinMode(m_hallSensorPin, INPUT_PULLUP);
+    //     } 
+    // }
+
 
 
 private:
@@ -351,26 +365,9 @@ private:
     BLDCMotor* motor;
     BLDCDriver3PWM* driver;
     bool m_initFailed = false;
-    bool m_bootmode = true;
-    float zeroAngle = 0.00;
-    float sensorAngle = 0.00;
-    float m_motorAnglePosition = 0.00;
-    float m_targetMotorPosition = 0.00;
-    unsigned long startTime = 0;
-    float motorVoltage = 0.00;
-    float angToPos; // Number to convert a motor angle to a 0-10000 axis position
-    float topStartOffset; // Angle turned by pulley for a full stroke
-    float endStopOffset;  // Offset angle from bottom endstop on startup (rad)
-    bool m_useHallSensor = false;
-    int m_hallSensorPin = -1;
-
-    // Logging limiter!
-    unsigned long previousMillis = 0; // variable to store the time of the last report
-    const long interval = 10; // interval at which to send reports (in ms)
-    int counter = 0;
-
     const char* getName(BLDCMotorPosition motorChannel)
     {
+        return m_name;
         switch (motorChannel)
         {
             case BLDCMotorPosition::B:
@@ -380,21 +377,6 @@ private:
             default:
                 return "A";
                 break;
-        }
-    }
-
-    void log() 
-    {
-        if(LogHandler::getLogLevel() == LogLevel::VERBOSE) 
-        {
-            unsigned long currentMillis = millis();
-            if (currentMillis - previousMillis >= interval) 
-            {
-                previousMillis = currentMillis;
-                LogHandler::verbose(m_TAG, "%s motor position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngle: %f \t angle: %f\n", m_name, m_motorAnglePosition, motorVoltage, m_bootmode, zeroAngle, sensorAngle);
-                counter = 0;
-            }
-            counter++;
         }
     }
 };
