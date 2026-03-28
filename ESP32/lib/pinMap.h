@@ -324,6 +324,8 @@ private:
     int8_t m_i2cSda = I2C_SDA_PIN_DEFAULT;
     int8_t m_i2cScl = I2C_SCL_PIN_DEFAULT;
     int8_t m_buttonSetPins[MAX_BUTTON_SETS] = BUTTON_SET_PINS_DEFAULT;
+    int8_t m_brushedMotorA = BRUSHED_MOTOR_A_PIN_DEFAULT;
+    int8_t m_brushedMotorB = BRUSHED_MOTOR_B_PIN_DEFAULT;
 
     virtual void overideDefaults() =0;
 
@@ -590,13 +592,22 @@ class PinMapSR6PCB : PinMapSR6 {
             setI2cSda(22);
             setI2cScl(21);
 
-            setValve(-1);
-            setTwist(-1);
+            setLeftServo(5);
+            setRightServo(23);
+            setLeftUpperServo(17);
+            setRightUpperServo(19);
+            setPitchLeft(16);
+            setPitchRight(18);
+            setValve(4);
+            setTwist(26);
             setSqueeze(-1);
             setVibe0(-1);
-            setVibe1(-1);
+            setVibe1(25);
             setVibe2(-1);
-            setVibe3(-1);
+            setVibe3(33);
+            // Hack to force 33 low
+            pinMode(33, INPUT_PULLDOWN);
+            setLubeButton(2);
             setSleeveTemp(-1);
             setInternalTemp(-1);
             setCaseFan(-1);

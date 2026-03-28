@@ -13,15 +13,15 @@ class PowerHandler {
         bool setup() {
             Wire.begin();
             if (!SettingsHandler::waitForI2CDevices(MCP4018_ADDRESS)) {
-                LogHandler::error(_TAG, "MCP4018 not found on I2C bus.");
+                LogHandler::error(Tags::Battery, "MCP4018 not found on I2C bus.");
                 return false;
             }
             long timeout = millis() + 10000;
             while(!mcp4018.begin()) {
-                LogHandler::error(_TAG, "Failed to initialize MCP4018. Retrying...");
+                LogHandler::error(Tags::Battery, "Failed to initialize MCP4018. Retrying...");
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
                 if(millis() > timeout) {
-                    LogHandler::error(_TAG, "Detecting MCP4018 timed out. Exit.");
+                    LogHandler::error(Tags::Battery, "Detecting MCP4018 timed out. Exit.");
                     return false;
                 }
             }

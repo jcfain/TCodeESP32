@@ -25,6 +25,7 @@ SOFTWARE. */
 #include <Arduino.h>
 #include <LittleFS.h>
 #include <WebServer.h>
+#include <memory>
 #if ESP8266 == 1
 #include <ESPAsyncTCP.h>
 #else
@@ -56,8 +57,8 @@ public:
         m_settingsFactory = SettingsFactory::getInstance();
         server->on("/wifiSettings", HTTP_GET, [](AsyncWebServerRequest *request)
                    {
-                char info[550];
-                SettingsHandler::getWifiInfo(info);
+                char info[1024];
+                SettingsHandler::getWifiInfo(info, sizeof(info));
                 if (strlen(info) == 0) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting wifi settings");
                     request->send(response);
@@ -73,8 +74,7 @@ public:
 
         server->on("/pins", HTTP_GET, [this](AsyncWebServerRequest *request)
                    {
-                       request->send(LittleFS, PIN_SETTINGS_PATH, "application/json");
-                       // sendChunked(request, PIN_SETTINGS_PATH);
+                sendChunked(request, PIN_SETTINGS_PATH);
                    });
 
         server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -84,14 +84,26 @@ public:
                     request->send(response);
                     return;
                 }
-                String systemInfo;
-                SettingsHandler::getSystemInfo(systemInfo);
-                if (!systemInfo.length()) {
+                auto systemInfo = std::make_shared<String>();
+                SettingsHandler::getSystemInfo(*systemInfo);
+                if (!systemInfo->length()) {
                     AsyncWebServerResponse *response = request->beginResponse(504, "application/text", "Error getting user settings");
                     request->send(response);
                     return;
                 }
-                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", systemInfo.c_str());
+                // Stream the JSON in chunks so AsyncWebServer doesn't need to
+                // buffer the entire body at once, reducing peak heap usage.
+                AsyncWebServerResponse* response = request->beginChunkedResponse(
+                    "application/json",
+                    [systemInfo](uint8_t* buffer, size_t maxLen, size_t index) -> size_t {
+                        size_t totalLen = systemInfo->length();
+                        if (index >= totalLen)
+                            return 0;
+                        size_t remaining = totalLen - index;
+                        size_t toSend = remaining < maxLen ? remaining : maxLen;
+                        memcpy(buffer, systemInfo->c_str() + index, toSend);
+                        return toSend;
+                    });
                 request->send(response); });
 
         server->on("/motionProfiles", HTTP_GET, [this](AsyncWebServerRequest *request)
@@ -160,12 +172,9 @@ public:
         // 	}
         // });
 
-        server->on("^\\/sensor\\/([0-9]+)$", HTTP_GET, [](AsyncWebServerRequest *request)
-                   { String sensorId = request->pathArg(0); });
-
-        server->on("^\\/changeBoard\\/([0-9]+)$", HTTP_POST, [this](AsyncWebServerRequest *request)
+        server->on("/changeBoard", HTTP_POST, [this](AsyncWebServerRequest* request)
                    {
-                auto boardTypeString = request->pathArg(0);
+                String boardTypeString = request->hasParam("value") ? request->getParam("value")->value() : "";
                 int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
                 // if(boardType == (int)BoardType::CRIMZZON || boardType == (int)BoardType::ISAAC) {
                 //     m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SR6);
@@ -185,9 +194,9 @@ public:
                     AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error changing board type\"}");
                     request->send(response);
                 } });
-        server->on("^\\/changeDevice\\/([0-9]+)$", HTTP_POST, [this](AsyncWebServerRequest *request)
+                server->on("/changeDevice", HTTP_POST, [this](AsyncWebServerRequest* request)
                    {
-                auto deviceTypeString = request->pathArg(0);
+                        String deviceTypeString = request->hasParam("value") ? request->getParam("value")->value() : "";
                 int deviceType = deviceTypeString.isEmpty() ? (int)DeviceType::OSR : deviceTypeString.toInt();
                 // Serial.println("Settings pinout default");
                 // m_settingsFactory->setValue(DEVICE_TYPE, deviceType);
@@ -400,10 +409,11 @@ public:
         //     sendChunked(request, "/www/motion-generator-min.js", 1024, "text/javascript");
         // });
 
-        // server->rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
-        server->serveStatic("/", LittleFS, "/www/");
-        // .setDefaultFile("index-min.html");
-        //     //.setCacheControl("max-age=60000");
+        // Static files are served via handleStaticFile() in onNotFound.
+        // We use request->send(FS, path, mime) with the ORIGINAL (non-.gz)
+        // path — AsyncFileResponse's FS constructor automatically tries
+        // path.gz and sets Content-Encoding: gzip correctly.  The File-based
+        // constructor used by serveStatic does NOT do this properly.
         server->begin();
         initialized = true;
     }
@@ -477,18 +487,13 @@ private:
                 LogHandler::debug(Tags::Web, "[beginChunkedResponse] Enter chunked file: %s\n", file.name());
                 size_t length;
 
-                // Restrict chunk size so we don't run out of RAM
-                // static const size_t max_chunk{chunkSize};
-                // if (max_chunk < max_len)
-                // {
-                //     LogHandler::debug(Tags::Web,"Max chunk %u Max len %u for: %s\n", chunkSize, max_len, file.name());
-                //     length = file.read(buffer, max_chunk);
-                // }
-                // else
-                // {
-                // LogHandler::debug(Tags::Web,"Max len %u exceded max chunk %u for: %s\n", max_len, chunkSize, file.name());
-                length = file.read(buffer, max_len);
-                // }
+                // Cap chunk size to limit peak memory per TCP send.
+                // 4096 balances throughput vs memory — small enough to keep
+                // heap use bounded with many concurrent responses, large enough
+                // to fill multiple TCP segments per round-trip.
+                static constexpr size_t MAX_CHUNK = 4096;
+                size_t readLen = max_len > MAX_CHUNK ? MAX_CHUNK : max_len;
+                length = file.read(buffer, readLen);
 
                 if (length == 0)
                 {
@@ -509,47 +514,41 @@ private:
     bool handleStaticFile(AsyncWebServerRequest *request)
     {
         String requestUrl = request->url();
-        LogHandler::debug(Tags::Web, "[handleStaticFile] requet url: %s", requestUrl);
+        LogHandler::debug(Tags::Web, "[handleStaticFile] request url: %s", requestUrl);
         String path = "/www" + requestUrl;
         LogHandler::debug(Tags::Web, "[handleStaticFile] static path: %s", path);
 
         if (path.endsWith("/"))
             path += F("index-min.html");
-        String mimeType;
+
+        // Detect mime type from the original path (before any .gz check)
+        const char* mimeType;
+        if (path.endsWith(".html"))
+            mimeType = "text/html";
+        else if (path.endsWith(".js"))
+            mimeType = "text/javascript";
+        else if (path.endsWith(".json"))
+            mimeType = "application/json";
+        else if (path.endsWith(".css"))
+            mimeType = "text/css";
+        else if (path.endsWith(".ico"))
+            mimeType = "image/x-icon";
+        else
+            mimeType = "application/octet-stream";
+
+        // Prefer the .gz file directly — avoids the error log from the
+        // FS constructor trying to open the non-existent uncompressed file.
+        // sendChunked caps per-response memory, preventing _ack() failures
+        // when the browser opens many parallel connections.
         String pathWithGz = path + ".gz";
-
-        if (LittleFS.exists(pathWithGz) || LittleFS.exists(path))
-        {
-            bool gzipped = false;
-            if (LittleFS.exists(pathWithGz))
-            {
-                gzipped = true;
-                path += ".gz";
-            }
-            // else
-            // {
-            if (path.endsWith(".html"))
-            {
-                mimeType = "text/html";
-            }
-            else if (path.endsWith(".js"))
-            {
-                mimeType = "text/javascript";
-            }
-            else if (path.endsWith(".json"))
-            {
-                mimeType = "application/json";
-            }
-            else if (path.endsWith(".css"))
-            {
-                mimeType = "text/css";
-            }
-            // }
-            sendChunked(request, path.c_str(), mimeType.c_str(), gzipped);
-
+        if (LittleFS.exists(pathWithGz)) {
+            sendChunked(request, pathWithGz.c_str(), mimeType, true);
             return true;
         }
-
+        if (LittleFS.exists(path)) {
+            sendChunked(request, path.c_str(), mimeType);
+            return true;
+        }
         return false;
     }
     // void startMDNS(char* hostName, char* friendlyName)

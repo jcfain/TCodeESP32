@@ -35,6 +35,8 @@
 #define BUTTON_SET_PINS_2 -1
 #define BUTTON_SET_PINS_3 -1
 #define BUTTON_SET_PINS_4 -1
+#define BRUSHED_MOTOR_A_PIN_DEFAULT -1
+#define BRUSHED_MOTOR_B_PIN_DEFAULT -1
 
 #elif MOTOR_TYPE == 1 // BLDC motor
 // Common PWM
@@ -70,6 +72,8 @@
 #define BUTTON_SET_PINS_2 -1
 #define BUTTON_SET_PINS_3 -1
 #define BUTTON_SET_PINS_4 -1
+#define BRUSHED_MOTOR_A_PIN_DEFAULT -1
+#define BRUSHED_MOTOR_B_PIN_DEFAULT -1
 
 #endif
 

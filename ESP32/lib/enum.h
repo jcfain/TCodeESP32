@@ -89,6 +89,14 @@ enum class BLDCEncoderType: int {
 };
 #define BLDC_ENCODER_TYPES_HELP "MT6701=0, SPI=1, PWM=2"
 
+enum class LubeButtonPinMode : int {
+    PULL_UP,
+    PULL_DOWN,
+    FLOAT,
+    MAX
+};
+#define LUBE_BUTTON_PIN_MODE_HELP "PULL_UP=0, PULL_DOWN=1, FLOAT=2"
+
 enum class BLEDeviceType: int {
     TCODE,
     LOVE,

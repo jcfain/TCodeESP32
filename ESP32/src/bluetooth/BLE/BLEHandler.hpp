@@ -55,7 +55,7 @@ public:
         m_subHandler = getHandler();
         m_subHandler->setup(m_TCodeQueue);
 
-        // LogHandler::debug(_TAG, "Setting up BLE Characteristics");
+        // LogHandler::debug(Tags::BLE, "Setting up BLE Characteristics");
         //  if(m_isHC) {
         //      m_tcodeCharacteristic = new BLECharacteristic(callbacks->CHARACTERISTIC_UUID, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
         //      m_tcodeCharacteristic2 = new BLECharacteristic(callbacks->CHARACTERISTIC_UUID2, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
@@ -63,7 +63,7 @@ public:
         //  } else {
         //      m_tcodeCharacteristic = new BLECharacteristic(callbacks->CHARACTERISTIC_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
         //  }
-        //  LogHandler::debug(_TAG, "Setting up BLE Characteristic Callbacks");
+        //  LogHandler::debug(Tags::BLE, "Setting up BLE Characteristic Callbacks");
         //  m_tcodeCharacteristic->setCallbacks(callbacks);
 
         // pService->addCharacteristic(m_tcodeCharacteristic);
@@ -101,13 +101,13 @@ public:
     //         auto len = handler->m_tcodeCharacteristic->getDataLength();
     //         if(len) {
     //             const char* value = handler->m_tcodeCharacteristic->getValue().c_str();
-    //             LogHandler::verbose(_TAG, "Recieve tcode: %s", value);
+    //             LogHandler::verbose(Tags::BLE, "Recieve tcode: %s", value);
     //             //strncpy(buf, value, m_tcodeCharacteristic->getDataLength());
     //             // if(strlen(value))
     //             //     handler->m_motorHandler->read(value, len);
     //             //handler->m_motorHandler->read(value);
     //             if(xQueueSend(m_TCodeQueue, value, 0) != pdTRUE) {
-    //                 //LogHandler::error(_TAG, "Failed to write to queue");
+    //                 //LogHandler::error(Tags::BLE, "Failed to write to queue");
     //             }
     //         }
     //         xTaskDelayUntil(&pxPreviousWakeTime, 10/portTICK_PERIOD_MS);
@@ -126,49 +126,48 @@ public:
         // }
         if (xQueueReceive(m_TCodeQueue, buf, 0))
         {
-            // LogHandler::verbose(_TAG, "Recieve tcode: %s", buf);
+            // LogHandler::verbose(Tags::BLE, "Recieve tcode: %s", buf);
         }
         else
         {
-            // LogHandler::error(_TAG, "Failed to read from queue");
+            // LogHandler::error(Tags::BLE, "Failed to read from queue");
             buf[0] = {0};
         }
     }
 
     bool isConnected()
     {
-        if(!m_subHandler)
+        if (!m_subHandler)
             return false;
         return m_subHandler->isConnected();
     }
 
     void CommandCallback(const char *in)
     {
-        if(m_subHandler)
+        if (m_subHandler)
             m_subHandler->CommandCallback(in);
     }
 
     static void disable()
     {
-        LogHandler::info(_TAG, "Disable BLE");
-        //BLEDevice::deinit();
-        //esp_err_t disable = esp_bt_controller_deinit();
+        LogHandler::info(Tags::BLE, "Disable BLE");
+        // BLEDevice::deinit();
+        // esp_err_t disable = esp_bt_controller_deinit();
         esp_err_t disable = esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
         // esp_bluedroid_disable();
         // esp_bluedroid_deinit();
         // esp_bt_controller_disable();
         // esp_bt_controller_deinit();
-        //esp_err_t disable = esp_bt_mem_release(ESP_BT_MODE_BTDM);
+        // esp_err_t disable = esp_bt_mem_release(ESP_BT_MODE_BTDM);
         if (disable != ESP_OK)
         {
-            LogHandler::error(_TAG, "Disable fail: %s", esp_err_to_name(disable));
+            LogHandler::error(Tags::BLE, "Disable fail: %s", esp_err_to_name(disable));
         }
     };
 
 private:
     // friend class BLETCodeControlCallback;
     // friend class BLELoveControlCallback;
-    static Tags::tag_t _TAG;
     // const char* BLE_DEVICE_NAME = "TCODE-ESP32";
     // const char* BLE_TCODE_SERVICE_UUID = "ff1b451d-3070-4276-9c81-5dc5ea1043bc";
     // const char* BLE_TCODE_CHARACTERISTIC_UUID = "c5f1543e-338d-47a0-8525-01e3c621359d";
@@ -190,19 +189,18 @@ private:
     {
         if (m_bleDeviceType == BLEDeviceType::LOVE)
         {
-            LogHandler::info(_TAG, "Setting up BLE Love handler");
+            LogHandler::info(Tags::BLE, "Setting up BLE Love handler");
             static BLEHandlerLove bleHandler;
             return &bleHandler;
         }
         if (m_bleDeviceType == BLEDeviceType::HC)
         {
-            LogHandler::info(_TAG, "Setting up BLE HC handler");
+            LogHandler::info(Tags::BLE, "Setting up BLE HC handler");
             static BLEHandlerHC bleHandler;
             return &bleHandler;
         }
-        LogHandler::info(_TAG, "Setting up BLE Tcode handler");
+        LogHandler::info(Tags::BLE, "Setting up BLE Tcode handler");
         static BLEHandlerTCode bleHandler;
         return &bleHandler;
     };
 };
-Tags::tag_t BLEHandler::_TAG = Tags::BLE;

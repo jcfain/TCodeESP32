@@ -77,6 +77,14 @@ public:
 			// Try initialize; if it fails, retry on a later tick.
 			initializeUdp();
 		}
+
+		// Drain queued UDP TCode commands and forward to motor task
+		char buf[MAX_COMMAND];
+		while (xQueueReceive(m_TCodeQueue, buf, 0) == pdTRUE)
+		{
+			extern void feedMotorCommand(const char* cmd, size_t len);
+			feedMotorCommand(buf, strlen(buf));
+		}
 	}
 
 	static void udpCallback(void *arg, AsyncUDPPacket &packet)

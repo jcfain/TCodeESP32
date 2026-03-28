@@ -35,21 +35,24 @@ SOFTWARE. */
 #include "TagHandler.h"
 #include "constants.h"
 
-class BLEHCControlCallback: public BLECharacteristicCallbacksBase
+class BLEHCControlCallback : public BLECharacteristicCallbacksBase
 {
 public:
-    BLEHCControlCallback(QueueHandle_t tcodeQueue): m_TCodeQueue(tcodeQueue) { }
-    // At some point this signature will change because its in master so if Bluetooth breaks, check the source class signature.
-    #ifdef NIMBLE_LATEST
-    void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo)  override {
-    #else
-    void onWrite(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc)  override {
-    #endif
+    BLEHCControlCallback(QueueHandle_t tcodeQueue) : m_TCodeQueue(tcodeQueue) {}
+// At some point this signature will change because its in master so if Bluetooth breaks, check the source class signature.
+#ifdef NIMBLE_LATEST
+    void onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &connInfo) override
+    {
+#else
+    void onWrite(NimBLECharacteristic *pCharacteristic, ble_gap_conn_desc *desc) override
+    {
+#endif
         // uint16_t handle = pCharacteristic->getHandle();
         NimBLEAttValue rxValue = pCharacteristic->getValue();
         size_t rxLength = rxValue.length();
-        const uint8_t* rxData = rxValue.data();
-        if(rxLength > 4) {
+        const uint8_t *rxData = rxValue.data();
+        if (rxLength > 4)
+        {
             Serial.println("Warning: it seems the format of HC data has changed.");
             return;
         }
@@ -60,15 +63,15 @@ public:
         // // // uint8_t x;
         // // // sscanf(rxValue, "%x", &x);
         // // //int value = (int)strtol(rxValue, NULL, 0);
-        // // // LogHandler::info(_TAG, "rxValue: %u", *rxValue);
+        // // // LogHandler::info(Tags::BLE, "rxValue: %u", *rxValue);
         // Serial.print("rxLength: ");
         // Serial.print(rxLength);
         // Serial.println();
         // Serial.print("handle: ");
         // Serial.print(handle);
         // Serial.println();
-        // // LogHandler::info(m_TAG, "handle: %d", handle);
-        // // LogHandler::info(m_TAG, "rxLength: %d", rxLength);
+        // // LogHandler::info(mTags::BLE, "handle: %d", handle);
+        // // LogHandler::info(mTags::BLE, "rxLength: %d", rxLength);
 
         // // // xQueueSend(m_TCodeQueue, input, 0);
         // // Serial.println();
@@ -83,26 +86,28 @@ public:
         // Serial.println();
         uint8_t n = rxLength;
         uint64_t totalBytes = 0ul;
-        while (n--) totalBytes = totalBytes * 256 + rxData[n];// Concatenate and convert to big endian.
+        while (n--)
+            totalBytes = totalBytes * 256 + rxData[n]; // Concatenate and convert to big endian.
         uint16_t tcodeBytes = totalBytes & 0x0000FFFF;
         uint16_t speedBytes = (totalBytes & 0xFFFF0000) >> 16;
         tcode[MAX_COMMAND] = {0};
         snprintf(tcode, MAX_COMMAND, "L0%03dI%d\n", tcodeBytes, speedBytes);
 
         LogHandler::verbose(Tags::BLE, "Receive HC tcode: %s", tcode);
-        if(xQueueSend(m_TCodeQueue, tcode, 0) != pdTRUE) {
+        if (xQueueSend(m_TCodeQueue, tcode, 0) != pdTRUE)
+        {
             LogHandler::error(Tags::BLE, "Failed to write to queue");
         }
     }
+
 private:
-    Tags::tag_t m_TAG = Tags::BLE;
     QueueHandle_t m_TCodeQueue;
     char tcode[MAX_COMMAND] = {0};
 
     template <typename T>
     T swap_endian(T u)
     {
-        static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
+        static_assert(CHAR_BIT == 8, "CHAR_BIT != 8");
 
         union
         {

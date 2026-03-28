@@ -101,6 +101,7 @@
 #define INVERSE_TWIST_DEFAULT false
 #define LUBE_AMOUNT_DEFAULT 255
 #define LUBE_ENABLED_DEFAULT false
+#define LUBE_BUTTON_PIN_MODE_DEFAULT (uint8_t)LubeButtonPinMode::PULL_UP
 #define DISPLAY_ENABLED_DEFAULT false
 #define SLEEVE_TEMP_DISPLAYED_DEFAULT false
 #define VERSION_DISPLAYED_DEFAULT true
@@ -209,6 +210,7 @@
 #define INVERSE_TWIST "inverseTwist"
 #define LUBE_AMOUNT "lubeAmount"
 #define LUBE_ENABLED "lubeEnabled"
+#define LUBE_BUTTON_PIN_MODE "lubeButtonPinMode"
 #define DISPLAY_ENABLED "displayEnabled"
 #define SLEEVE_TEMP_DISPLAYED "sleeveTempDisplayed"
 #define VERSION_DISPLAYED "versionDisplayed"

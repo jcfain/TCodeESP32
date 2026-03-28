@@ -15,10 +15,10 @@
 class SecureWebSocketHandler : public WebSocketBase {
 public:
     void setup(HTTPSServer& httpsServer) {
-        LogHandler::info(_TAG, "Setting up secure webSocket");
+        LogHandler::info(Tags::SecureWebSocketServer, "Setting up secure webSocket");
         tCodeInQueue = xQueueCreate(5, sizeof(char[255]));
         if(!tCodeInQueue || tCodeInQueue == NULL) {
-            LogHandler::error(_TAG, "Error creating the tcode queue");
+            LogHandler::error(Tags::SecureWebSocketServer, "Error creating the tcode queue");
         }
         // Initialize the slots
         for(int i = 0; i < MAX_CLIENTS; i++) activeClients[i] = nullptr;
@@ -26,7 +26,7 @@ public:
         setSecureWebSocketMessageCallback(onMessage);
         isInitialized = true;
         httpsServer.registerNode(new WebsocketNode("/ws", &SecureWebSocketClient::create));
-        LogHandler::info(_TAG, "Ready");
+        LogHandler::info(Tags::SecureWebSocketServer, "Ready");
     }
 
     static void onMessage(const char* message) {
@@ -42,7 +42,7 @@ public:
         }
     }
 
-    void CommandCallback(const char* in) override 
+    void CommandCallback(const char* in) override
     { //This overwrites the callback for message return
         if(isInitialized && hasClients())
             sendCommand(in);
@@ -69,8 +69,8 @@ public:
             activeClients[i]->close();
         }
     }
-private: 
-    static const char* _TAG;
+private:
+    static const char* Tags::SecureWebSocketServer;
     static int m_lastSend;
     static SecureWebSocketHandler* instanceRef;
 
@@ -93,6 +93,6 @@ private:
         return instanceRef;
     }
 };
-const char* SecureWebSocketHandler::_TAG = TagHandler::SecureWebsocketsHandler;
+const char* SecureWebSocketHandler::Tags::SecureWebSocketServer = Tags::SecureWebsocketsHandler;
 SecureWebSocketHandler* SecureWebSocketHandler::instanceRef;
 int SecureWebSocketHandler::m_lastSend = 0;

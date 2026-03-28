@@ -34,10 +34,10 @@ public:
         // so you do not need to pass it explicitly)
         static_cast<SecureWebSocketHandler*>(webSocketHandler)->setup(secureServer);
 
-        LogHandler::info(_TAG, "Starting secure https server...");
+        LogHandler::info(Tags::Https, "Starting secure https server...");
         secureServer.start();
         if (secureServer.isRunning()) {
-            LogHandler::info(_TAG, "Server ready.");
+            LogHandler::info(Tags::Https, "Server ready.");
             m_connected = true;
         }
     }
@@ -52,7 +52,7 @@ public:
     }
 	static void startLoop(void* ref)
 	{
-		//LogHandler::debug(TagHandler::DisplayHandler, "Starting loop");
+		//LogHandler::debug(Tags::DisplayHandler, "Starting loop");
 		//if(((DisplayHandler*)displayHandlerRef)->isConnected())
 			((HTTPSHandler*)ref)->loop();
 	}
@@ -64,7 +64,7 @@ public:
 
         	vTaskDelay(1/portTICK_PERIOD_MS);
         }
-        
+
   		vTaskDelete( NULL );
     }
 
@@ -182,7 +182,7 @@ public:
 
 private:
 
-    static const char* _TAG;
+    static const char* Tags::Https;
     // Create an SSL certificate object from the files included above
     SSLCert cert = SSLCert(
         example_crt_DER, example_crt_DER_len,
@@ -192,7 +192,7 @@ private:
     // Create an SSL-enabled server that uses the certificate
     // The contstructor takes some more parameters, but we go for default values here.
     HTTPSServer secureServer = HTTPSServer(&cert);
-    
+
     static const char contentTypes[7][6][32];
 
     static void beginResponse(HTTPResponse * res, int code, const char* contentType, const char* message) {
@@ -204,20 +204,20 @@ private:
     }
 
     void setupHandlers(WebSocketBase* webSocketHandler, bool apMode) {
-        
+
         // For every resource available on the server, we need to create a ResourceNode
         // The ResourceNode links URL and HTTP method to a handler function
         ResourceNode * nodeRoot    = new ResourceNode("/", "GET", &handleSPIFFS);
         ResourceNode * nodeFavicon = new ResourceNode("/favicon.ico", "GET", &handleFavicon);
         ResourceNode * spiffsNode = new ResourceNode("", "", &handleSPIFFS);
-        
+
         secureServer.registerNode(nodeRoot);
         secureServer.setDefaultNode(spiffsNode);
         secureServer.registerNode(nodeFavicon);
-        
-        secureServer.registerNode(new ResourceNode("/userSettings", "GET", [](HTTPRequest * req, HTTPResponse * res) 
+
+        secureServer.registerNode(new ResourceNode("/userSettings", "GET", [](HTTPRequest * req, HTTPResponse * res)
         {
-            LogHandler::verbose(_TAG, "Get userSettings");
+            LogHandler::verbose(Tags::Https, "Get userSettings");
             SettingsHandler::printFree();
             ////req->send(SPIFFS, "/userSettings.json");
             // DynamicJsonDocument doc(SettingsHandler::deserialize);
@@ -232,16 +232,16 @@ private:
             }
             // if(strcmp(doc["wifiPass"], SettingsHandler::defaultWifiPass) != 0 )
             //     doc["wifiPass"] = "Too bad haxor!";// Do not send password if its not default
-                
+
             // doc["lastRebootReason"] = SettingsHandler::lastRebootReason;
             // String output;
             // serializeJson(doc, output);
             //AsyncWebServerResponse *response = req->beginResponse(200, "application/json", settings);
             HTTPSHandler::beginResponse(res, 200, "application/json", settings);
-        }));   
-        secureServer.registerNode(new ResourceNode("/systemInfo", "GET", [](HTTPRequest * req, HTTPResponse * res) 
+        }));
+        secureServer.registerNode(new ResourceNode("/systemInfo", "GET", [](HTTPRequest * req, HTTPResponse * res)
         {
-            LogHandler::verbose(_TAG, "systemInfo");
+            LogHandler::verbose(Tags::Https, "systemInfo");
             SettingsHandler::printFree();
             char systemInfo[1024];
             SettingsHandler::getSystemInfo(systemInfo);
@@ -252,26 +252,26 @@ private:
             }
             //AsyncWebServerResponse *response = req->beginResponse(200, "application/json", systemInfo);
                 HTTPSHandler::beginResponse(res, 200, "application/json", systemInfo);
-        }));   
-        
-        // secureServer.registerNode(new ResourceNode("/log", "GET", [](HTTPRequest * req, HTTPResponse * res) 
+        }));
+
+        // secureServer.registerNode(new ResourceNode("/log", "GET", [](HTTPRequest * req, HTTPResponse * res)
         // {
         //     Serial.println("Get log...");
         //     req->send(SPIFFS, SettingsHandler::logPath);
-        // }));   
+        // }));
 
-        // secureServer.registerNode(new ResourceNode("/connectWifi", "POST", [](HTTPRequest * req, HTTPResponse * res) 
+        // secureServer.registerNode(new ResourceNode("/connectWifi", "POST", [](HTTPRequest * req, HTTPResponse * res)
         // {
         //     WifiHandler wifi;
         //     const size_t capacity = JSON_OBJECT_SIZE(2);
         //     DynamicJsonDocument doc(capacity);
-        //     if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass)) 
+        //     if (wifi.connect(SettingsHandler::ssid, SettingsHandler::wifiPass))
         //     {
 
         //         doc["connected"] = true;
         //         doc["IPAddress"] = wifi.ip().toString();
         //     }
-        //     else 
+        //     else
         //     {
         //         doc["connected"] = false;
         //         doc["IPAddress"] = "0.0.0.0";
@@ -283,31 +283,31 @@ private:
         //     req->send(response);
         // }));
 
-        // secureServer.registerNode(new ResourceNode("/toggleContinousTwist", "POST", [](HTTPRequest * req, HTTPResponse * res) 
+        // secureServer.registerNode(new ResourceNode("/toggleContinousTwist", "POST", [](HTTPRequest * req, HTTPResponse * res)
         // {
         //     SettingsHandler::continuousTwist = !SettingsHandler::continuousTwist;
-        //     if (SettingsHandler::save()) 
+        //     if (SettingsHandler::save())
         //     {
         //         char returnJson[45];
         //         sprintf(returnJson, "{\"msg\":\"done\", \"continousTwist\":%s }", SettingsHandler::continuousTwist ? "true" : "false");
         //         AsyncWebServerResponse *response = req->beginResponse(200, "application/json", returnJson);
         //         req->send(response);
-        //     } 
-        //     else 
+        //     }
+        //     else
         //     {
         //         AsyncWebServerResponse *response = req->beginResponse(200, "application/json", "{\"msg\":\"Error saving settings\"}");
         //         req->send(response);
         //     }
         // });
 
-        // secureServer.registerNode(new ResourceNode("^\\/sensor\\/([0-9]+)$", "GET", [] (HTTPRequest * req, HTTPResponse * res) 
+        // secureServer.registerNode(new ResourceNode("^\\/sensor\\/([0-9]+)$", "GET", [] (HTTPRequest * req, HTTPResponse * res)
         // {
         //     String sensorId = req->pathArg(0);
         // }));
 
         secureServer.registerNode(new ResourceNode("/restart", "POST", [](HTTPRequest * req, HTTPResponse * res)
         {
-            LogHandler::verbose(_TAG, "restart");
+            LogHandler::verbose(Tags::Https, "restart");
             SettingsHandler::printFree();
             //if(apMode) {
                 //req->send(200, "text/plain",String("Restarting device, wait about 10-20 seconds and navigate to ") + (SettingsHandler::hostname) + ".local or the network IP address in your browser address bar.");
@@ -328,7 +328,7 @@ private:
         }));
         secureServer.registerNode(new ResourceNode("/settings", "POST", [](HTTPRequest * req, HTTPResponse * res)
         {
-            LogHandler::verbose(_TAG, "Puot settings");
+            LogHandler::verbose(Tags::Https, "Puot settings");
             SettingsHandler::printFree();
             const int capacity = SettingsHandler::getDeserializeSize();
             DynamicJsonDocument doc(capacity);
@@ -351,23 +351,23 @@ private:
                 // Clean up
                 return;
             }
-            
+
             DeserializationError error = deserializeJson(doc, buffer);
             if (error)
             {
                 HTTPSHandler::beginResponse(res, 504, "application/text", "Error deserializing settings json");
                 return;
             }
-            
+
             JsonObject reqObj = doc.as<JsonObject>();
              if(SettingsHandler::update(reqObj))
             {
-                if (SettingsHandler::save()) 
+                if (SettingsHandler::save())
                 {
                     // AsyncWebServerResponse *response = req->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     HTTPSHandler::beginResponse(res, 200, "application/json", "{\"msg\":\"done\"}");
-                } 
-                else 
+                }
+                else
                 {
                     // AsyncWebServerResponse *response = req->beginResponse(200, "application/json", "{\"msg\":\"Error saving settings\"}");
                     HTTPSHandler::beginResponse(res, 200, "application/json", "{\"msg\":\"Error saving settings\"}");
@@ -386,12 +386,12 @@ private:
         //     JsonObject jsonObj = json.as<JsonObject>();
         //     if(SettingsHandler::update(jsonObj))
         //     {
-        //         if (SettingsHandler::save()) 
+        //         if (SettingsHandler::save())
         //         {
         //             AsyncWebServerResponse *response = req->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
         //             req->send(response);
-        //         } 
-        //         else 
+        //         }
+        //         else
         //         {
         //             AsyncWebServerResponse *response = req->beginResponse(200, "application/json", "{\"msg\":\"Error saving settings\"}");
         //             req->send(response);
@@ -406,24 +406,24 @@ private:
     }
     /**
      * This handler function will try to load the requested resource from SPIFFS's /public folder.
-     * 
+     *
      * If the method is not GET, it will throw 405, if the file is not found, it will throw 404.
      */
     static void handleSPIFFS(HTTPRequest * req, HTTPResponse * res) {
-        LogHandler::verbose(_TAG, "Spiffs: %s", req->getRequestString().c_str());
+        LogHandler::verbose(Tags::Https, "Spiffs: %s", req->getRequestString().c_str());
         SettingsHandler::printFree();
         // We only handle GET here
         if (req->getMethod() == "GET") {
             // Redirect / to /index.html
             std::string reqFile = req->getRequestString()=="/" ? "/index-min.html" : req->getRequestString();
-            LogHandler::verbose(_TAG, "Get File: %s", reqFile.c_str());
+            LogHandler::verbose(Tags::Https, "Get File: %s", reqFile.c_str());
 
             // Try to open the file
             std::string filename = std::string("/www") + reqFile;
 
             // Check if the file exists
             if (!SPIFFS.exists(filename.c_str())) {
-                LogHandler::error(_TAG, "Spiffs file not found: %s", filename.c_str());
+                LogHandler::error(Tags::Https, "Spiffs file not found: %s", filename.c_str());
                 HTTPSHandler::beginResponse(res, 404, "application/text", filename.c_str());
                 return;
             }
@@ -462,7 +462,7 @@ private:
         }
     }
 };
-const char* HTTPSHandler::_TAG = TagHandler::HTTPSHandler;
+const char* HTTPSHandler::Tags::Https = Tags::HTTPSHandler;
 const char HTTPSHandler::contentTypes[7][6][32] = {
         {".html", "text/html"},
         {".css",  "text/css"},

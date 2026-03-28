@@ -56,25 +56,9 @@ protected:
     {
         if (strpbrk(msg, "{") == nullptr)
         {
-            if(!tCodeInQueue || tCodeInQueue == NULL)
-            {
-                LogHandler::error(Tags::WebSocketServer, "TCode queue was null");
-            }
-            else
-            {
-
-                LogHandler::verbose(Tags::WebSocketServer, "Websocket tcode in: %s", msg);
-                xQueueSend(tCodeInQueue, msg, 0);
-// Serial.print("Time between ws calls: ");
-// Serial.println(millis() - lastCall);
-// //Serial.println(msg);
-// lastCall = millis();
-                //executeTCode(msg);
-            }
-            // if (strcmp(msg, SettingsHandler::HandShakeChannel) == 0)
-            // {
-            //     sendCommand(SettingsHandler::TCodeVersionName);
-            // }
+            LogHandler::verbose(Tags::WebSocketServer, "Websocket tcode in: %s", msg);
+            extern void feedMotorCommand(const char* cmd, size_t len);
+            feedMotorCommand(msg, strlen(msg));
         }
         else
         {

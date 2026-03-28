@@ -55,7 +55,7 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
     void onWrite(BLECharacteristic *pCharacteristic)
     {
         SettingsHandler::printMemory();
-        LogHandler::verbose(_TAG, "*** BLE onWrite");
+        LogHandler::verbose(Tags::BLEConfiguration, "*** BLE onWrite");
         #ifdef ESP_ARDUINO3
             String rxValue = pCharacteristic->getValue();
         #else
@@ -64,8 +64,8 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
 
         if (rxValue.length() > 0)
         {
-            LogHandler::debug(_TAG, "*********");
-            LogHandler::debug(_TAG, "BLE Characteristic Received Value: ");
+            LogHandler::debug(Tags::BLEConfiguration, "*********");
+            LogHandler::debug(Tags::BLEConfiguration, "BLE Characteristic Received Value: ");
 
             for (int i = 0; i < rxValue.length(); i++) {
                 Serial.print(rxValue[i]);
@@ -76,61 +76,61 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
             // Do stuff based on the command received from the app
             if (rxValue.find(">>r<<") == 0) // Restart
             {
-                LogHandler::debug(_TAG, "*** BLE Restarting");
+                LogHandler::debug(Tags::BLEConfiguration, "*** BLE Restarting");
                 ESP.restart();
             }
             else if (rxValue.find(">>t<<") == -1)
             {
                 pCharacteristic->setValue(">"); // More please (Doesnt really matter as the que is client side)
                 pCharacteristic->notify();
-                LogHandler::debug(_TAG, "*** BLE Characteristic Sent Value: ");
-                LogHandler::debug(_TAG, "Ok");
-                LogHandler::debug(_TAG, " ***");
+                LogHandler::debug(Tags::BLEConfiguration, "*** BLE Characteristic Sent Value: ");
+                LogHandler::debug(Tags::BLEConfiguration, "Ok");
+                LogHandler::debug(Tags::BLEConfiguration, " ***");
                 recievedJsonConfiguration += rxValue.data();
             }
             else
             {
                 // Save json
-                LogHandler::debug(_TAG, "Done: %s", recievedJsonConfiguration);
+                LogHandler::debug(Tags::BLEConfiguration, "Done: %s", recievedJsonConfiguration);
                 if(SettingsHandler::saveAll(recievedJsonConfiguration))
                 {
                     pCharacteristic->setValue(">>f<<"); // Finish saving
                     pCharacteristic->notify();
-                    LogHandler::debug(_TAG, "*** BLE Finish saving");
+                    LogHandler::debug(Tags::BLEConfiguration, "*** BLE Finish saving");
                 }
                 else
                 {
                     pCharacteristic->setValue(">>e<<"); // Error
-                    LogHandler::error(_TAG, "*** BLE Error saving");
+                    LogHandler::error(Tags::BLEConfiguration, "*** BLE Error saving");
                     pCharacteristic->notify();
                 }
                 recievedJsonConfiguration = "";
             }
 
             Serial.println();
-            LogHandler::verbose(_TAG, "BLE onWrite ***");
+            LogHandler::verbose(Tags::BLEConfiguration, "BLE onWrite ***");
         }
     }
     void onRead(BLECharacteristic *pCharacteristic)
     {
-        LogHandler::verbose(_TAG, "*** BLE onRead");
+        LogHandler::verbose(Tags::BLEConfiguration, "*** BLE onRead");
         // char* sentValue = SettingsHandler::getJsonForBLE();
         if(sendJsonConfiguration.empty()) {
             char settings[2048] = {0};
             #warning need to send settings somehow
             //SettingsHandler::ser(settings);
-            LogHandler::debug(_TAG, "BLE Get wifi settings: %s", settings);
+            LogHandler::debug(Tags::BLEConfiguration, "BLE Get wifi settings: %s", settings);
             if (strlen(settings) == 0) {
-                LogHandler::error(_TAG, "*** BLE onRead empty");
+                LogHandler::error(Tags::BLEConfiguration, "*** BLE onRead empty");
                 pCharacteristic->setValue(">>e<<");
                 pCharacteristic->notify();
                 return;
             }
-            //LogHandler::info(_TAG, "*** Sent Value: %s", wifiSetting);
+            //LogHandler::info(Tags::BLEConfiguration, "*** Sent Value: %s", wifiSetting);
             //const int len = strlen(wifiSetting);
-            //LogHandler::info(_TAG, "*** strlen: %i", strlen(wifiSetting));
+            //LogHandler::info(Tags::BLEConfiguration, "*** strlen: %i", strlen(wifiSetting));
             sendJsonConfiguration = std::string(settings);
-            LogHandler::debug(_TAG, "BLE Get wifi string: %s", sendJsonConfiguration.c_str());
+            LogHandler::debug(Tags::BLEConfiguration, "BLE Get wifi string: %s", sendJsonConfiguration.c_str());
         }
 
         // size_t chunksize = wifiSettingsString.size()/19+1;
@@ -164,7 +164,7 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
                 pCharacteristic->notify();
             }
         } else {
-            LogHandler::debug(_TAG, ">>f<<");
+            LogHandler::debug(Tags::BLEConfiguration, ">>f<<");
             pCharacteristic->setValue(">>f<<");
             pCharacteristic->notify();
             sendJsonConfiguration = "";
@@ -190,7 +190,7 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks
         //     pCharacteristic->notify();
         // }
         Serial.println();
-        LogHandler::debug(_TAG, "BLE Onread Ok ***");
+        LogHandler::debug(Tags::BLEConfiguration, "BLE Onread Ok ***");
     }
 public:
     void resetState() {
@@ -200,7 +200,7 @@ public:
         sendChunkIndex = 0;
     }
 private:
-    Tags::tag_t _TAG = Tags::BLE;
+    Tags::tag_t Tags::BLEConfiguration = Tags::BLE;
     // QueueHandle_t debugInQueue;
     // int m_lastSend;
     // TaskHandle_t* emptyQueueHandle;
@@ -211,41 +211,41 @@ CharacteristicCallbacks *characteristicCallbacks = new CharacteristicCallbacks()
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer)
     {
-        LogHandler::debug(_TAG, "*********");
-        LogHandler::debug(_TAG, "Device connected");
+        LogHandler::debug(Tags::BLEConfiguration, "*********");
+        LogHandler::debug(Tags::BLEConfiguration, "Device connected");
         characteristicCallbacks->resetState();
     };
     void onDisconnect(BLEServer* pServer)
     {
-        LogHandler::debug(_TAG, "*********");
-        LogHandler::debug(_TAG, "Device disconnected");
+        LogHandler::debug(Tags::BLEConfiguration, "*********");
+        LogHandler::debug(Tags::BLEConfiguration, "Device disconnected");
         characteristicCallbacks->resetState();
         BLEDevice::startAdvertising();
     }
 private:
-    Tags::tag_t _TAG = Tags::BLE;
+    Tags::tag_t Tags::BLEConfiguration = Tags::BLE;
 };
 
 class DescriptorCallbacks: public BLEDescriptorCallbacks
 {
     void onWrite(BLEDescriptor *pDescriptor)
     {
-        LogHandler::debug(_TAG, "*********");
-        LogHandler::debug(_TAG, "Descriptor onWrite: ");
+        LogHandler::debug(Tags::BLEConfiguration, "*********");
+        LogHandler::debug(Tags::BLEConfiguration, "Descriptor onWrite: ");
     }
     void onRead(BLEDescriptor *pDescriptor)
     {
-        LogHandler::debug(_TAG, "*********");
-        LogHandler::debug(_TAG, "Descriptor onRead: ");
+        LogHandler::debug(Tags::BLEConfiguration, "*********");
+        LogHandler::debug(Tags::BLEConfiguration, "Descriptor onRead: ");
     }
 private:
-    Tags::tag_t _TAG = Tags::BLE;
+    Tags::tag_t Tags::BLEConfiguration = Tags::BLE;
 };
 
 class BLEConfigurationHandler
 {
     private:
-        Tags::tag_t _TAG = Tags::BLE;
+        Tags::tag_t Tags::BLEConfiguration = Tags::BLE;
         BLECharacteristic *pCharacteristic;
         bool deviceConnected = false;
         bool isInitailized = false;
@@ -257,7 +257,7 @@ class BLEConfigurationHandler
     void setup()
     {
         // Create the BLE Device
-        LogHandler::info(_TAG, "Setup BLE: %s", "TCodeConfig");
+        LogHandler::info(Tags::BLEConfiguration, "Setup BLE: %s", "TCodeConfig");
         BLEDevice::init("TCodeConfig"); // Give it a name
         //BLEDevice::setMTU(23);
         // Create the BLE Server
@@ -291,20 +291,20 @@ class BLEConfigurationHandler
         pAdvertising->setScanResponse(true);
         pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
         BLEDevice::startAdvertising();
-        LogHandler::info(_TAG, "BLE waiting a client connection to notify...");
+        LogHandler::info(Tags::BLEConfiguration, "BLE waiting a client connection to notify...");
 
         isInitailized = true;
 
-        LogHandler::debug(_TAG, "Exit setup");
+        LogHandler::debug(Tags::BLEConfiguration, "Exit setup");
     }
 
     void stop()
     {
         if(isInitailized)
         {
-            LogHandler::info(_TAG, "Stop");
+            LogHandler::info(Tags::BLEConfiguration, "Stop");
             BLEDevice::deinit(true);
-            LogHandler::debug(_TAG, "deinit");
+            LogHandler::debug(Tags::BLEConfiguration, "deinit");
             isInitailized = false;
             if(pServer != nullptr)
                 delete(pServer);

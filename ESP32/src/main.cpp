@@ -85,9 +85,29 @@ TickType_t pxPreviousWakeTime = millis();
 bool setupSucceeded = false;
 bool restarting = false;
 unsigned long restartAtMs = 0;
+bool networkingBringupAttempted = false;
+const unsigned long NETWORK_BRINGUP_DELAY_MS = 3000;
 
-void displayPrint(const char* message);
-void startNetworking(bool apMode, int webPort, int udpPort, const char* hostname, const char* friendlyName);
+// --- Motor task configuration ---
+// Motor control runs on a dedicated FreeRTOS task pinned to PRO_CPU (Core 0)
+// so that WiFi, networking, and other blocking work on APP_CPU (Core 1)
+// cannot starve the time-critical FOC control loop.
+static const uint32_t MOTOR_TASK_STACK_SIZE = 16384;
+static const UBaseType_t MOTOR_TASK_PRIORITY = configMAX_PRIORITIES - 1;
+static const BaseType_t MOTOR_TASK_CORE = PRO_CPU_NUM;
+static const uint32_t MOTOR_CMD_QUEUE_SIZE = 32;
+static const uint32_t MOTOR_CMD_MAX_LEN = 128;
+
+struct MotorCommand
+{
+	char data[MOTOR_CMD_MAX_LEN];
+	size_t len;
+};
+static QueueHandle_t motorCmdQueue = nullptr;
+static volatile bool motorSetupComplete = false;
+
+void displayPrint(const char *message);
+void startNetworking(bool apMode, int webPort, int udpPort, const char *hostname, const char *friendlyName);
 void ensureNetworkingAvailable();
 
 extern WifiHandler wifi;
@@ -129,11 +149,21 @@ WifiHandler wifi;
 UdpHandler udpHandler;
 ButtonHandler buttonHandler;
 BatteryHandler batteryHandler;
-HTTPBase* webHandler = nullptr;
-WebSocketBase* webSocketHandler = nullptr;
+HTTPBase *webHandler = nullptr;
+WebSocketBase *webSocketHandler = nullptr;
 bool networkingStarted = false;
 
-void displayPrint(const char* message)
+// Motor handler - instantiated and initialized regardless of WiFi state
+#if MOTOR_TYPE == 0
+ServoHandler0_3 motorHandlerV03;
+ServoHandler0_4 motorHandlerV04;
+#elif MOTOR_TYPE == 1
+BLDCHandler0_3 motorHandlerV03;
+BLDCHandler0_4 motorHandlerV04;
+#endif
+MotorHandler *motorHandler = nullptr;
+
+void displayPrint(const char *message)
 {
 	if (message && message[0] != '\0')
 	{
@@ -142,7 +172,7 @@ void displayPrint(const char* message)
 	}
 }
 
-void startNetworking(bool apMode, int webPort, int udpPort, const char* hostname, const char* friendlyName)
+void startNetworking(bool apMode, int webPort, int udpPort, const char *hostname, const char *friendlyName)
 {
 	(void)udpPort;
 	(void)hostname;
@@ -175,14 +205,14 @@ void startNetworking(bool apMode, int webPort, int udpPort, const char* hostname
 void ensureNetworkingAvailable()
 {
 #if WIFI_TCODE
-	SettingsFactory* settingsFactory = SettingsFactory::getInstance();
+	SettingsFactory *settingsFactory = SettingsFactory::getInstance();
 	const int webPort = settingsFactory->getWebServerPort();
 	const int udpPort = settingsFactory->getUdpServerPort();
-	const char* hostname = settingsFactory->getHostname();
-	const char* friendlyName = settingsFactory->getFriendlyName();
+	const char *hostname = settingsFactory->getHostname();
+	const char *friendlyName = settingsFactory->getFriendlyName();
 
-	char ssid[SSID_LEN] = { 0 };
-	char pass[WIFI_PASS_LEN] = { 0 };
+	char ssid[SSID_LEN] = {0};
+	char pass[WIFI_PASS_LEN] = {0};
 	settingsFactory->getValue(SSID_SETTING, ssid, sizeof(ssid));
 	settingsFactory->getValue(WIFI_PASS_SETTING, pass, sizeof(pass));
 
@@ -230,6 +260,53 @@ void ensureNetworkingAvailable()
 #endif
 }
 
+// Dedicated motor control task – runs on PRO_CPU so it is never blocked
+// by WiFi / networking / web-server work that lives on APP_CPU.
+static void motorTaskFunc(void *param)
+{
+	MotorHandler *handler = static_cast<MotorHandler *>(param);
+	LogHandler::info(Tags::Main, "Motor task starting on core %d", xPortGetCoreID());
+
+	// Run motor hardware setup on this core (sensor, driver, FOC init)
+	handler->setup();
+	motorSetupComplete = true;
+	LogHandler::info(Tags::Main, "Motor setup complete on core %d, entering control loop", xPortGetCoreID());
+
+	MotorCommand cmd;
+	for (;;)
+	{
+		// Drain any queued TCode commands before each control cycle
+		while (xQueueReceive(motorCmdQueue, &cmd, 0) == pdTRUE)
+		{
+			handler->read(cmd.data, cmd.len);
+		}
+
+		// Execute motor control (sensor read → FOC → move)
+		handler->execute();
+
+		// Yield for 1 tick (~1 ms) so the IDLE task can feed the watchdog
+		// and lower-priority tasks on this core can run.
+		vTaskDelay(1);
+	}
+}
+
+// Thread-safe: enqueue a TCode command for the motor task.
+// Called from serial / network handlers on any core.
+void feedMotorCommand(const char *cmd, size_t len)
+{
+	if (!motorCmdQueue || !cmd || len == 0)
+		return;
+
+	MotorCommand motorCmd;
+	size_t copyLen = (len < MOTOR_CMD_MAX_LEN - 1) ? len : (MOTOR_CMD_MAX_LEN - 1);
+	memcpy(motorCmd.data, cmd, copyLen);
+	motorCmd.data[copyLen] = '\0';
+	motorCmd.len = copyLen;
+
+	// Non-blocking send – if the queue is full the command is dropped.
+	xQueueSend(motorCmdQueue, &motorCmd, 0);
+}
+
 void setup()
 {
 	Serial.begin(115200);
@@ -251,37 +328,82 @@ void setup()
 	FilesystemHandler::init();
 	Serial.println("BOOT: SettingsHandler::init");
 	SettingsHandler::init();
+
+	SettingsFactory *settingsFactory = SettingsFactory::getInstance();
+	const TCodeVersion tcodeVersion = settingsFactory->getTcodeVersion();
+#if MOTOR_TYPE == 0
+	motorHandler = (tcodeVersion == TCodeVersion::v0_3) ? static_cast<MotorHandler *>(&motorHandlerV03) : static_cast<MotorHandler *>(&motorHandlerV04);
+#elif MOTOR_TYPE == 1
+	motorHandler = (tcodeVersion == TCodeVersion::v0_3) ? static_cast<MotorHandler *>(&motorHandlerV03) : static_cast<MotorHandler *>(&motorHandlerV04);
+#endif
+	LogHandler::info(Tags::Main, "Selected motor handler for TCode version: %s", settingsFactory->getTcodeVersionString());
+
 	Serial.println("BOOT: SerialHandler::init");
 	SerialHandler::init();
 
-	TaskHandler::Manager& taskManager = TaskHandler::global();
+	TaskHandler::Manager &taskManager = TaskHandler::global();
 	Serial.println("BOOT: Registering tasks");
 	LogHandler::info(Tags::Main, "Initializing tasks");
-	taskManager.critical(&serialHandler);     // Ensure serial commands always stay responsive
+	taskManager.critical(&serialHandler); // Ensure serial commands always stay responsive
 	LogHandler::info(Tags::Main, "Serial handler initialized");
-	taskManager.critical(&buttonHandler);     // Command/input path
+	taskManager.critical(&buttonHandler); // Command/input path
 	LogHandler::info(Tags::Main, "Button handler initialized");
-	taskManager.priority(&wifi);              // Network connection state machine
+	taskManager.priority(&wifi); // Network connection state machine
 	LogHandler::info(Tags::Main, "WiFi handler initialized");
-	taskManager.priority(&udpHandler);        // TCode ingress/egress transport
+	taskManager.priority(&udpHandler); // TCode ingress/egress transport
 	LogHandler::info(Tags::Main, "UDP handler initialized");
-	taskManager.auxiliary(&batteryHandler);   // Low-priority telemetry polling
+	taskManager.auxiliary(&batteryHandler); // Low-priority telemetry polling
 	LogHandler::info(Tags::Main, "Battery handler initialized");
 	// Handles advanced fuctions (motor, ota, wifi, etc)
 	Serial.println("BOOT: OperatingModeHandler::init");
 	OperatingModeHandler::init();
 	LogHandler::info(Tags::Main, "Operating mode handler initialized");
+
+	// Create the command queue used by feedMotorCommand() from any core
+	motorCmdQueue = xQueueCreate(MOTOR_CMD_QUEUE_SIZE, sizeof(MotorCommand));
+
+	// Launch motor control on a dedicated FreeRTOS task pinned to PRO_CPU.
+	// Motor setup() + execute() both run on that core so there is zero
+	// contention with WiFi / networking work on APP_CPU.
+	Serial.println("BOOT: Starting motor task on PRO_CPU");
+	if (motorHandler)
+	{
+		BaseType_t rc = xTaskCreatePinnedToCore(
+			motorTaskFunc,
+			"motor",
+			MOTOR_TASK_STACK_SIZE,
+			motorHandler,
+			MOTOR_TASK_PRIORITY,
+			nullptr,
+			MOTOR_TASK_CORE);
+		if (rc != pdPASS)
+		{
+			LogHandler::error(Tags::Main, "Failed to create motor task!");
+		}
+	}
+	else
+	{
+		LogHandler::error(Tags::Main, "Motor handler not initialized – skipping motor task");
+	}
+
 	Serial.println("BOOT: taskManager.start");
 	taskManager.start();
 	LogHandler::info(Tags::Main, "Tasks started");
-	Serial.println("BOOT: network bring-up");
-	ensureNetworkingAvailable();
 	Serial.println("BOOT: setup complete");
 }
 
 void loop()
 {
 	TaskHandler::global().update();
+
+	// Motor control runs on its own FreeRTOS task (PRO_CPU) – nothing to do here.
+
+	if (!networkingBringupAttempted && millis() >= NETWORK_BRINGUP_DELAY_MS)
+	{
+		networkingBringupAttempted = true;
+		Serial.println("BOOT: network bring-up");
+		ensureNetworkingAvailable();
+	}
 
 	if (SettingsHandler::restartRequired >= 0 && !restarting)
 	{

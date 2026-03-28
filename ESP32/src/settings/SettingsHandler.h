@@ -206,15 +206,16 @@ public:
         return true;
     }
 
-    static void getWifiInfo(char *buf)
+    static void getWifiInfo(char* buf, size_t bufLen)
     {
-        JsonDocument doc; // 100
+        const JsonDocument& srcDoc = m_settingsFactory->getNetworkSettings();
 
-        JsonDocument wifiDoc = m_settingsFactory->getNetworkSettings();
+        // We must copy because we need to mask passwords before serializing
+        JsonDocument doc;
+        doc.set(srcDoc);
 
-        doc.set(wifiDoc);
         const char *wifiPass = doc[WIFI_PASS_SETTING];
-        if (strcmp(wifiPass, WIFI_PASS_DONOTCHANGE_DEFAULT))
+        if (wifiPass && strcmp(wifiPass, WIFI_PASS_DONOTCHANGE_DEFAULT))
         {
             doc[WIFI_PASS_SETTING] = DECOY_PASS; // Never set to actual password
         }
@@ -223,7 +224,7 @@ public:
             doc[WIFI_PASS_SETTING] = WIFI_PASS_DONOTCHANGE_DEFAULT;
         }
         const char *apPass = doc[AP_MODE_PASS];
-        if (strcmp(apPass, AP_MODE_PASS_DEFAULT))
+        if (apPass && strcmp(apPass, AP_MODE_PASS_DEFAULT))
         {
             doc[AP_MODE_PASS] = DECOY_PASS; // Never set to actual password
         }
@@ -232,13 +233,12 @@ public:
             doc[AP_MODE_PASS] = AP_MODE_PASS_DEFAULT;
         }
 
-        String output;
-        serializeJson(doc, output);
+        size_t written = serializeJson(doc, buf, bufLen);
         doc.clear();
+        if (written == 0)
+            buf[0] = '\0';
         if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
-            Serial.printf("Network Info: %s\n", output.c_str());
-        buf[0] = {0};
-        strcpy(buf, output.c_str());
+            Serial.printf("Network Info: %s\n", buf);
     }
 
     static void getSystemInfo(String &buf)
@@ -359,6 +359,17 @@ public:
         SPI["value"] = BLDCEncoderType::SPI;
 #endif
 
+        JsonArray lubeButtonPinModes = doc["lubeButtonPinModes"].to<JsonArray>();
+        JsonObject lubePullUp = lubeButtonPinModes.add<JsonObject>();
+        lubePullUp["name"] = "Pull-up";
+        lubePullUp["value"] = LubeButtonPinMode::PULL_UP;
+        JsonObject lubePullDown = lubeButtonPinModes.add<JsonObject>();
+        lubePullDown["name"] = "Pull-down";
+        lubePullDown["value"] = LubeButtonPinMode::PULL_DOWN;
+        JsonObject lubeFloating = lubeButtonPinModes.add<JsonObject>();
+        lubeFloating["name"] = "Floating";
+        lubeFloating["value"] = LubeButtonPinMode::FLOAT;
+
         JsonArray bleDeviceTypes = doc["bleDeviceTypes"].to<JsonArray>();
         JsonObject defaultBleDevice = bleDeviceTypes.add<JsonObject>();
         defaultBleDevice["name"] = "TCode";
@@ -430,7 +441,11 @@ public:
         doc["decoyPass"] = DECOY_PASS;
         doc["apMode"] = apMode;
         doc["defaultIP"] = m_settingsFactory->getAPModeIP();
-        // String output;
+
+        // Measure required size, then serialize directly — avoids having
+        // both the JsonDocument and a large String/buffer on the heap at once.
+        size_t jsonLen = measureJson(doc);
+        buf.reserve(jsonLen);
         serializeJson(doc, buf);
         doc.clear();
         if (LogHandler::getLogLevel() == LogLevel::VERBOSE)

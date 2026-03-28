@@ -92,7 +92,7 @@ public:
 								   { this->WiFiEvent(event, info); });
 		WiFi.mode(WIFI_STA);
 		WiFi.setSleep(false);
-		WiFi.setHostname("TCodeESP32");
+		WiFi.setHostname(m_settingsFactory->getHostname());
 		bool isStatic = false;
 		m_settingsFactory->getValue(STATICIP, isStatic);
 		if (isStatic)
@@ -306,7 +306,7 @@ public:
 		LogHandler::info(Tags::Wifi, "Starting in APMode: SSID: %s, Hidden: %u, Channel: %u, IP: %s, Subnet: %s, Gateway: %s", ssid, hidden, channel, ip, subnet, gateway);
 		// LogHandler::info(Tags::Wifi, "Password: %s", pass);
 		WiFi.mode(WIFI_AP);
-		// WiFi.setHostname("TCodeESP32");
+		WiFi.setHostname(SettingsFactory::getInstance()->getHostname());
 
 		WiFi.softAP(ssid, pass, channel, hidden, 1);
 		printMac();

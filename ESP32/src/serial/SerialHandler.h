@@ -63,6 +63,13 @@ public:
                 if (m_index > 0)
                 {
                     m_buffer[m_index] = '\0';
+                    // Feed motor commands directly to motor handler (independent of WiFi)
+                    if (isTCodeCommand(m_buffer))
+                    {
+                        extern void feedMotorCommand(const char *cmd, size_t len);
+                        feedMotorCommand(m_buffer, m_index);
+                    }
+                    // Also process as system commands
                     m_commandHandler.process(m_buffer);
                     m_index = 0;
                     m_buffer[0] = '\0';
@@ -83,8 +90,21 @@ public:
     }
 
 private:
+    // Check if command is T-Code (e.g., L0123, R0456, etc.)
+    bool isTCodeCommand(const char *cmd)
+    {
+        if (!cmd || !cmd[0])
+            return false;
+        // TCode commands start with L, R, V, A followed by digit
+        char first = cmd[0];
+        return (first == 'L' || first == 'R' || first == 'V' || first == 'A' ||
+                first == 'l' || first == 'r' || first == 'v' || first == 'a') &&
+               (cmd[1] >= '0' && cmd[1] <= '9');
+    }
+
+private:
     SystemCommandHandler m_commandHandler;
-    char m_buffer[MAX_COMMAND] = { 0 };
+    char m_buffer[MAX_COMMAND] = {0};
     size_t m_index = 0;
 };
 

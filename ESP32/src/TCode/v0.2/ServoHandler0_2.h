@@ -3,7 +3,7 @@
 // by TempestMAx 1-7-20
 // Please copy, share, learn, innovate, give attribution.
 // Decodes T-code commands and uses them to control servos and vibration motors
-// Can handle three linear channels (L0, L1, L2), three rotation channels (R0, R1, R2) 
+// Can handle three linear channels (L0, L1, L2), three rotation channels (R0, R1, R2)
 // and two vibration channels (V0, V1)
 // This code is designed to drive the OSR series of robot, but is also intended to be
 // used as a template to be adapted to run other t-code controlled arduino projects
@@ -33,7 +33,7 @@ volatile int twistPulseLength = 0;
 volatile int twistPulseCycle = 1099;
 volatile int twistPulseStart = 0;
 // Twist position detection functions
-void IRAM_ATTR twistChange() 
+void IRAM_ATTR twistChange()
 {
 	if(digitalRead(twistFeedBackPin) == HIGH)
 	{
@@ -49,12 +49,12 @@ void IRAM_ATTR twistChange()
 class ServoHandler0_2 : public MotorHandler
 {
 private:
-    const char* _TAG = TagHandler::ServoHandler2;
+    const char* Tags::Servo = Tags::ServoHandler2;
 	SettingsFactory* m_settingsFactory;
 	DeviceType m_deviceType;
     int MainServo_Freq;
     int PitchServo_Freq;
-    ToyComms toy; 
+    ToyComms toy;
     // Declare servos
     Servo RightServo;
     Servo LeftServo;
@@ -97,7 +97,7 @@ private:
     float xRot,yRot,zRot;
     // Vibration variables
     float vibe0,vibe1;
-	
+
 	int suck;
     // Velocity tracker variables, for T-Valve
     float xLast;
@@ -112,7 +112,7 @@ private:
 
 	// Function to calculate the angle for the main arm servos
 	// Inputs are target x,y coords of receiver pivot in 1/100 of a mm
-	int SetMainServo(float x, float y) 
+	int SetMainServo(float x, float y)
 	{
 		x /= 100; y /= 100;          // Convert to mm
 		float gamma = atan2(x,y);    // Angle of line from servo pivot to receiver pivot
@@ -127,7 +127,7 @@ private:
 	// Function to calculate the angle for the pitcher arm servos
 	// Inputs are target x,y,z coords of receiver upper pivot in 1/100 of a mm
 	// Also pitch in 1/100 of a degree
-	int SetPitchServo(float x, float y, float z, float pitch) 
+	int SetPitchServo(float x, float y, float z, float pitch)
 	{
 		pitch *= 0.0001745; // Convert to radians
 		x += 5500*sin(0.2618 + pitch);
@@ -146,7 +146,7 @@ private:
 public:
     // Setup function
     // This is run once, when the arduino starts
-    void setup() override 
+    void setup() override
     {
 		m_settingsFactory = SettingsFactory::getInstance();
         m_settingsFactory->getValue(SERVO_FREQUENCY, MainServo_Freq);
@@ -168,11 +168,11 @@ public:
 		TwistServo.setPeriodHertz(twistFreq);
         m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
         PinMap* pinMap;
-        if (m_deviceType == DeviceType::SR6) 
+        if (m_deviceType == DeviceType::SR6)
         {
             pinMap = PinMapSR6::getInstance();
-        } 
-        else 
+        }
+        else
         {
             pinMap = PinMapOSR::getInstance();
 			RightServo_PIN = ((PinMapOSR*)pinMap)->rightServo();
@@ -180,7 +180,7 @@ public:
 			PitchLeftServo_PIN =((PinMapOSR*)pinMap)->pitchLeft();
         }
 
-        if (m_deviceType == DeviceType::SR6) 
+        if (m_deviceType == DeviceType::SR6)
 		{
 			RightUpperServo_PIN = ((PinMapSR6*)pinMap)->pitchLeft();
 			LeftUpperServo_PIN = m_settingsFactory->getLeftUpperServo_PIN();
@@ -194,102 +194,102 @@ public:
         if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
 			// Declare servos and set zero
 			rightServoConnected = RightServo.attach(RightServo_PIN);
-			if (rightServoConnected == 0) 
+			if (rightServoConnected == 0)
 			{
 				// Serial.print("Failure to connect to right pin: ");
 				// Serial.println(RightServo_PIN);
-				LogHandler::error(_TAG, "Failure to connect to right pin: %i", RightServo_PIN);
+				LogHandler::error(Tags::Servo, "Failure to connect to right pin: %i", RightServo_PIN);
 			}
 			leftServoConnected = LeftServo.attach(LeftServo_PIN);
-			if (leftServoConnected == 0) 
+			if (leftServoConnected == 0)
 			{
 				// Serial.print("Failure to connect to left pin: ");
 				// Serial.println(LeftServo_PIN);
-				LogHandler::error(_TAG, "Failure to connect to left pin: %i", LeftServo_PIN);
+				LogHandler::error(Tags::Servo, "Failure to connect to left pin: %i", LeftServo_PIN);
 			}
 		}
 		if(m_settingsFactory->sr6Mode)
 		{
 			leftUpperServoConnected = LeftUpperServo.attach(LeftUpperServo_PIN);
-			if (leftUpperServoConnected == 0) 
+			if (leftUpperServoConnected == 0)
 			{
 				// Serial.print("Failure to connect to left upper pin: ");
 				// Serial.println(LeftUpperServo_PIN);
-				LogHandler::error(_TAG, "Failure to connect to left upper pin: %i", LeftUpperServo_PIN);
+				LogHandler::error(Tags::Servo, "Failure to connect to left upper pin: %i", LeftUpperServo_PIN);
 			}
 			if(!DEBUG_BUILD) {// The default pins for these are used on the debugger board.
 				rightUpperServoConnected = RightUpperServo.attach(RightUpperServo_PIN);
-				if (rightUpperServoConnected == 0) 
+				if (rightUpperServoConnected == 0)
 				{
 					// Serial.print("Failure to connect to right upper pin: ");
 					// Serial.println(RightUpperServo_PIN);
-					LogHandler::error(_TAG, "Failure to connect to right upper pin: %i", RightUpperServo_PIN);
+					LogHandler::error(Tags::Servo, "Failure to connect to right upper pin: %i", RightUpperServo_PIN);
 				}
 				pitchRightServoConnected = PitchRightServo.attach(PitchRightServo_PIN);
-				if (pitchRightServoConnected == 0) 
+				if (pitchRightServoConnected == 0)
 				{
 					// Serial.print("Failure to connect to pitch right pin: ");
 					// Serial.println(PitchRightServo_PIN);
-					LogHandler::error(_TAG, "Failure to connect to pitch right pin: %i", PitchRightServo_PIN);
+					LogHandler::error(Tags::Servo, "Failure to connect to pitch right pin: %i", PitchRightServo_PIN);
 				}
 			}
 		}
         pitchServoConnected = PitchLeftServo.attach(PitchLeftServo_PIN);
-        if (pitchServoConnected == 0) 
+        if (pitchServoConnected == 0)
         {
             // Serial.print("Failure to connect to pitch left pin: ");
             // Serial.println(PitchLeftServo_PIN);
-			LogHandler::error(_TAG, "Failure to connect to pitch left pin: %i", PitchLeftServo_PIN);
+			LogHandler::error(Tags::Servo, "Failure to connect to pitch left pin: %i", PitchLeftServo_PIN);
         }
         valveServoConnected = ValveServo.attach(ValveServo_PIN);
-        if (valveServoConnected == 0) 
+        if (valveServoConnected == 0)
         {
             // Serial.print("Failure to connect to valve pin: ");
             // Serial.println(ValveServo_PIN);
-			LogHandler::error(_TAG, "Failure to connect to valve pin: %i", ValveServo_PIN);
+			LogHandler::error(Tags::Servo, "Failure to connect to valve pin: %i", ValveServo_PIN);
         }
-        twistServoConnected = TwistServo.attach(TwistServo_PIN); 
-        if (twistServoConnected == 0) 
+        twistServoConnected = TwistServo.attach(TwistServo_PIN);
+        if (twistServoConnected == 0)
         {
             // Serial.print("Failure to connect to twist pin: ");
             // Serial.println(TwistServo_PIN);
-			LogHandler::error(_TAG, "Failure to connect to twist pin: %i", TwistServo_PIN);
+			LogHandler::error(Tags::Servo, "Failure to connect to twist pin: %i", TwistServo_PIN);
         }
 
         delay(500);
-        
-        if (rightServoConnected != 0) 
+
+        if (rightServoConnected != 0)
 		{
         	RightServo.writeMicroseconds(m_settingsFactory->getRightServo_ZERO());
 		}
-        if (leftServoConnected != 0) 
+        if (leftServoConnected != 0)
 		{
         	LeftServo.writeMicroseconds(m_settingsFactory->getLeftServo_ZERO());
 		}
 		if(m_settingsFactory->getDeviceType() == DeviceType::SR6)
 		{
-			if (rightUpperServoConnected != 0) 
+			if (rightUpperServoConnected != 0)
 			{
 				RightUpperServo.writeMicroseconds(m_settingsFactory->getRightUpperServo_ZERO());
 			}
-			if (pitchRightServoConnected != 0) 
+			if (pitchRightServoConnected != 0)
 			{
 				PitchRightServo.writeMicroseconds(m_settingsFactory->getPitchRightServo_ZERO());
 			}
-			if (leftUpperServoConnected != 0) 
+			if (leftUpperServoConnected != 0)
 			{
 				LeftUpperServo.writeMicroseconds(m_settingsFactory->getLeftUpperServo_ZERO());
 			}
 		}
-        if (pitchServoConnected != 0) 
+        if (pitchServoConnected != 0)
 		{
         	PitchLeftServo.writeMicroseconds(m_settingsFactory->getPitchLeftServo_ZERO());
 		}
-        if (valveServoConnected != 0) 
+        if (valveServoConnected != 0)
 		{
         	ValveServo.writeMicroseconds(m_settingsFactory->getValveServo_ZERO());
 		}
-        if (twistServoConnected != 0) 
+        if (twistServoConnected != 0)
 		{
         	TwistServo.writeMicroseconds(m_settingsFactory->getTwistServo_ZERO());
 		}
@@ -304,7 +304,7 @@ public:
         analogWrite(Vibe1_PIN,127);
         delay(300);
         analogWrite(Vibe1_PIN,0);
-  		pinMode(LubeManual_PIN,INPUT);
+  		pinMode(LubeManual_PIN, m_settingsFactory->getLubeButtionPinMode());
 
         // Set servo pulse interval
         tick = 1000/m_settingsFactory->getServoFrequency(); //ms
@@ -330,25 +330,25 @@ public:
 
     void read(const String &input) override
     {
-		for (int x = 0; x < sizeof(input.length() + 1); x++) { 
-			read(input[x]); 
+		for (int x = 0; x < sizeof(input.length() + 1); x++) {
+			read(input[x]);
 			execute();
-		} 
+		}
     }
 
-    void read(byte inByte) override 
+    void read(byte inByte) override
     {
         // Send the serial bytes to the t-code object
         // This is the only required input for the object
         toy.serialRead(inByte);
     }
 
-    void execute() override 
+    void execute() override
     {
 
         // Pulse Servos based on time interval
         // This function will run every 20ms, sending a pulse to the servos
-        if (millis() > nextPulse) { 
+        if (millis() > nextPulse) {
             unsigned long t = nextPulse;
             nextPulse = nextPulse + tick;
             // Collect inputs
@@ -375,7 +375,7 @@ public:
             vibe1 = toy.xVibe(1,t);
 
             // If you want to mix your servos differently, enter your code below:
-            
+
 
             //Calculate valve position
 			//Track receiver velocity
@@ -394,8 +394,8 @@ public:
 					ValveCmd = 0;
 				}
 				xValve = (4*xValve + ValveCmd)/5;
-			} 
-			else 
+			}
+			else
 			{
 				float Vel,ValveCmd;
 				Vel = xLin - xLast;
@@ -405,12 +405,12 @@ public:
 				} else {
 					ValveCmd = 1000-suck;
 				}
-				xValve = (2*xValve + ValveCmd)/3;     
+				xValve = (2*xValve + ValveCmd)/3;
 			}
 
             //Serial.print("xValve: ");
             //Serial.println(xValve);
-            if (m_settingsFactory->getFeedbackTwist() && !m_settingsFactory->getContinuousTwist()) 
+            if (m_settingsFactory->getFeedbackTwist() && !m_settingsFactory->getContinuousTwist())
 			{
 				// Calculate twist position
                 //noInterrupts();
@@ -437,7 +437,7 @@ public:
 
 				// Main
             	int lowerLeftValue,upperLeftValue,pitchLeftValue,pitchRightValue,upperRightValue,lowerRightValue;
-				if(m_settingsFactory->getInverseStroke()) 
+				if(m_settingsFactory->getInverseStroke())
 				{
 					lowerLeftValue = SetMainServo(16248 - fwd, 1500 - thrust - roll);
 					upperLeftValue = SetMainServo(16248 - fwd, 1500 + thrust + roll);
@@ -445,8 +445,8 @@ public:
 					lowerRightValue = SetMainServo(16248 - fwd, 1500 - thrust + roll);
 					pitchLeftValue = SetPitchServo(16248 - fwd, 4500 + thrust, -side + 1.5*roll, -pitch);
 					pitchRightValue = SetPitchServo(16248 - fwd, 4500 + thrust, side - 1.5*roll, -pitch);
-				} 
-				else 
+				}
+				else
 				{
 					lowerLeftValue = SetMainServo(16248 - fwd, 1500 + thrust + roll);
 					upperLeftValue = SetMainServo(16248 - fwd, 1500 - thrust - roll);
@@ -455,20 +455,20 @@ public:
 					pitchLeftValue = SetPitchServo(16248 - fwd, 4500 - thrust, side - 1.5*roll, -pitch);
 					pitchRightValue = SetPitchServo(16248 - fwd, 4500 - thrust, -side + 1.5*roll, -pitch);
 				}
-				if (leftServoConnected != 0) 
+				if (leftServoConnected != 0)
 					LeftServo.writeMicroseconds(m_settingsFactory->getLeftServo_ZERO() - lowerLeftValue);
-				if (leftUpperServoConnected != 0) 
+				if (leftUpperServoConnected != 0)
 					LeftUpperServo.writeMicroseconds(m_settingsFactory->getLeftUpperServo_ZERO() + upperLeftValue);
-				if (rightServoConnected != 0) 
+				if (rightServoConnected != 0)
 					RightServo.writeMicroseconds(m_settingsFactory->getRightServo_ZERO() + lowerRightValue);
-				if (rightUpperServoConnected != 0) 
+				if (rightUpperServoConnected != 0)
 					RightUpperServo.writeMicroseconds(m_settingsFactory->getRightUpperServo_ZERO() - upperRightValue);
-				if (pitchServoConnected != 0) 
+				if (pitchServoConnected != 0)
 					PitchLeftServo.writeMicroseconds(constrain(m_settingsFactory->getPitchLeftServo_ZERO() - pitchLeftValue, m_settingsFactory->PitchLeftServo_ZERO-600, m_settingsFactory->PitchLeftServo_ZERO+1000));
-				if (pitchRightServoConnected != 0) 
+				if (pitchRightServoConnected != 0)
 					PitchRightServo.writeMicroseconds(constrain(m_settingsFactory->getPitchRightServo_ZERO() + pitchRightValue, m_settingsFactory->PitchRightServo_ZERO-1000, m_settingsFactory->PitchRightServo_ZERO+600));
 			}
-			else 
+			else
 			{
 				//Serial.print("OSR mode");
 				// Mix and send servo channels
@@ -476,8 +476,8 @@ public:
 				int stroke,roll,pitch;
 				stroke = map(xLin,1,1000,-350,350);
 				roll   = map(yRot,1,1000,-180,180);
-				pitch  = map(zRot,1,1000,-350,350);  
-				//valve  = map(valve,1000,1, 1,1000);  
+				pitch  = map(zRot,1,1000,-350,350);
+				//valve  = map(valve,1000,1, 1,1000);
 				//valve  = constrain(xValve, 0, 1000);
 				// Serial.print("m_settingsFactory->continousTwist: ");
 				// Serial.println(m_settingsFactory->continousTwist);
@@ -491,32 +491,32 @@ public:
 
 				//Serial.printf("a %d, b %d, c %d, d %d, twist %d\n", a,b,c,d,twist);
 				//Serial.printf("zRot %d, yLin %d, yRot %d, zRot %d, xRot %d\n", xLin,yLin,yRot,zRot,xRot);
-				
+
 				// Send signals to the servos
 				// Note: 1000 = -45deg, 2000 = +45deg
 
-				if(m_settingsFactory->getInverseStroke()) 
+				if(m_settingsFactory->getInverseStroke())
 				{
-					if (rightServoConnected != 0) 
+					if (rightServoConnected != 0)
 						RightServo.writeMicroseconds(m_settingsFactory->getRightServo_ZERO() + stroke + roll);
-					if (leftServoConnected != 0) 
+					if (leftServoConnected != 0)
 						LeftServo.writeMicroseconds(m_settingsFactory->getLeftServo_ZERO() - stroke + roll);
-				} 
-				else 
+				}
+				else
 				{
-					if (rightServoConnected != 0) 
+					if (rightServoConnected != 0)
 						RightServo.writeMicroseconds(m_settingsFactory->getRightServo_ZERO() - stroke + roll);
-					if (leftServoConnected != 0) 
+					if (leftServoConnected != 0)
 						LeftServo.writeMicroseconds(m_settingsFactory->getLeftServo_ZERO() + stroke + roll);
 				}
-				if(m_settingsFactory->getInversePitch()) 
+				if(m_settingsFactory->getInversePitch())
 				{
-					if (pitchServoConnected != 0) 
+					if (pitchServoConnected != 0)
 						PitchLeftServo.writeMicroseconds(m_settingsFactory->getPitchLeftServo_ZERO() + pitch);
 				}
-				else 
+				else
 				{
-					if (pitchServoConnected != 0) 
+					if (pitchServoConnected != 0)
 						PitchLeftServo.writeMicroseconds(m_settingsFactory->getPitchLeftServo_ZERO() - pitch);
 				}
 			}
@@ -527,49 +527,49 @@ public:
         	if (m_settingsFactory->getInverseValve()) { valve = -valve; }
 			if(m_settingsFactory->getValveServo90Degrees())
 			{
-				if (m_settingsFactory->getInverseValve()) { 
+				if (m_settingsFactory->getInverseValve()) {
 					valve = map(valve,0,500,-500,500);
-				} 
+				}
 				else
 				{
 					valve = map(valve,-500,0,-500,500);
 				}
 			}
 
-        	if (m_settingsFactory->getFeedbackTwist() && !m_settingsFactory->getContinuousTwist()) 
+        	if (m_settingsFactory->getFeedbackTwist() && !m_settingsFactory->getContinuousTwist())
 			{
 				twist = 2*(xRot - map(twistPos,-1500,1500,1000,1));
 				twist = constrain(twist, -750, 750);
-			} 
-			else 
+			}
+			else
 			{
     			twist  = map(xRot,0,1000,1000,-1000);
 			}
 
-			if (valveServoConnected != 0) 
+			if (valveServoConnected != 0)
 				ValveServo.writeMicroseconds(m_settingsFactory->getValveServo_ZERO() + valve);
-			if (twistServoConnected != 0) 
+			if (twistServoConnected != 0)
 				TwistServo.writeMicroseconds(m_settingsFactory->getTwistServo_ZERO() + twist);
 
             // Done with servo channels
 
             // Output vibration channels
             // These should drive PWM pins connected to vibration motors via MOSFETs or H-bridges.
-            if ((vibe0 > 1) && (vibe0 <= 1000)) 
+            if ((vibe0 > 1) && (vibe0 <= 1000))
                 analogWrite(Vibe0_PIN, (uint16_t)map(vibe0,2,1000,31,255));
-			else 
+			else
                 analogWrite(Vibe0_PIN,0);
 
-            if ((vibe1 > 1) && (vibe1 <= 1000)) 
+            if ((vibe1 > 1) && (vibe1 <= 1000))
                 analogWrite(Vibe1_PIN, (uint16_t)map(vibe1,2,1000,31,255));
-			else if (digitalRead(LubeManual_PIN) == HIGH) 
+			else if (digitalRead(LubeManual_PIN) == HIGH)
 				// For iLube - if no software action, check the manual button too
 				analogWrite(Vibe1_PIN, lubeAmount);
-			else 
+			else
       			analogWrite(Vibe1_PIN,0);
 
             // Done with vibration channels
-            
+
         }
     }
 };

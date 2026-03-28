@@ -29,14 +29,14 @@ public:
     void onMessage(WebsocketInputStreambuf * inbuf) override;
     void onClose() override;
 private:
-    static const char* _TAG;
+    static const char* Tags::SecureWebSocketClient;
 };
 
-const char* SecureWebSocketClient::_TAG = TagHandler::SecureWebsocketClient;
+const char* SecureWebSocketClient::Tags::SecureWebSocketClient = Tags::SecureWebsocketClient;
 SecureWebSocketClient* activeClients[MAX_CLIENTS];
 
 WebsocketHandler * SecureWebSocketClient::create() {
-    LogHandler::debug(_TAG, "Creating new chat client!");
+    LogHandler::debug(Tags::SecureWebSocketClient, "Creating new chat client!");
     SettingsHandler::printFree();
     SecureWebSocketClient* handler = new SecureWebSocketClient();
     for(int i = 0; i < MAX_CLIENTS; i++) {
@@ -51,10 +51,10 @@ WebsocketHandler * SecureWebSocketClient::create() {
 
 void SecureWebSocketClient::onClose() {
     SettingsHandler::printFree();
-    LogHandler::info(_TAG, "Close wss client!");
+    LogHandler::info(Tags::SecureWebSocketClient, "Close wss client!");
     for(int i = 0; i < MAX_CLIENTS; i++) {
         if (activeClients[i] == this) {
-            LogHandler::info(_TAG, "Delete client!");
+            LogHandler::info(Tags::SecureWebSocketClient, "Delete client!");
             activeClients[i] = nullptr;
             SettingsHandler::printFree();
         }
@@ -66,7 +66,7 @@ void SecureWebSocketClient::onMessage(WebsocketInputStreambuf * inbuf) {
     std::ostringstream ss;
     ss << inbuf;
     const char* msg = ss.str().c_str();
-    //LogHandler::verbose(_TAG, "Secure message recieved: %s", msg);
+    //LogHandler::verbose(Tags::SecureWebSocketClient, "Secure message recieved: %s", msg);
     if(secure_websocket_message_callback) {
         secure_websocket_message_callback(msg);
         // // Send it back to every client
