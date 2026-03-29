@@ -293,6 +293,8 @@ public:
             systemI2CAddressesJsonArray.add(buf);
         }
 
+        int deviceType = DEVICE_TYPE_DEFAULT;
+        m_settingsFactory->getValue(DEVICE_TYPE, deviceType);
         JsonArray deviceTypes = doc["deviceTypes"].to<JsonArray>();
         JsonObject defaultDevice = deviceTypes.add<JsonObject>();
     #ifdef MOTOR_TYPE_SERVO
@@ -317,12 +319,15 @@ public:
         JsonObject defaultEncoder = encoderTypes.add<JsonObject>();
         defaultEncoder["name"] = "NONE";
         defaultEncoder["value"] = BLDCEncoderType::NONE;
-        JsonObject MT6701 = encoderTypes.add<JsonObject>();
-        MT6701["name"] = "MT6701 SSI";
-        MT6701["value"] = BLDCEncoderType::MT6701;
-        JsonObject PWM = encoderTypes.add<JsonObject>();
-        PWM["name"] = "PWM";
-        PWM["value"] = BLDCEncoderType::PWM;
+        if(static_cast<DeviceType>(deviceType) != DeviceType::SSR2)
+        {
+            JsonObject MT6701 = encoderTypes.add<JsonObject>();
+            MT6701["name"] = "MT6701 SSI";
+            MT6701["value"] = BLDCEncoderType::MT6701;
+            JsonObject PWM = encoderTypes.add<JsonObject>();
+            PWM["name"] = "PWM";
+            PWM["value"] = BLDCEncoderType::PWM;
+        }
         JsonObject SPI = encoderTypes.add<JsonObject>();
         SPI["name"] = "SPI";
         SPI["value"] = BLDCEncoderType::SPI;

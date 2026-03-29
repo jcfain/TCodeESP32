@@ -24,10 +24,6 @@ SOFTWARE. */
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 #define ESP_ARDUINO3
 #endif
-#if DEBUG_BUILD
-#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
-#include "esp_log.h"
-#endif
 #include <Arduino.h>
 #include <EEPROM.h>
 

@@ -812,7 +812,7 @@ public:
         else if(boardType == BoardType::SSR1PCB) 
         {
             setValue(DEVICE_TYPE, DeviceType::SSR1);
-            setValue(BLDC_ENCODER, BLDCEncoderType::MT6701);
+            setValue(BLDC_MOTORA_ENCODER, BLDCEncoderType::MT6701);
         }
         LogHandler::info(m_TAG, "[changeBoardType] Settings pinout default");
         setValue(BOARD_TYPE_SETTING, boardType);
@@ -854,12 +854,12 @@ public:
             if (newType == DeviceType::SSR2)
             {
                 LogHandler::info(m_TAG, "[changeDeviceType] Overriding default settings for SSR2");
-                setValue(BLDC_ENCODER, BLDCEncoderType::SPI);
-                setValue(BLDC_B_ENCODER, BLDCEncoderType::SPI);
-                setValue(BLDC_MOTOR_VOLTAGE, 12.0f);
-                setValue(BLDC_MOTOR_SUPPLY, 12.0f);
-                setValue(BLDC_B_MOTOR_VOLTAGE, 12.0f);
-                setValue(BLDC_B_MOTOR_SUPPLY, 12.0f);
+                setValue(BLDC_MOTORA_ENCODER, BLDCEncoderType::SPI);
+                setValue(BLDC_MOTORB_ENCODER, BLDCEncoderType::SPI);
+                setValue(BLDC_MOTORA_VOLTAGE, 12.0f);
+                setValue(BLDC_MOTORA_SUPPLY, 12.0f);
+                setValue(BLDC_MOTORB_VOLTAGE, 12.0f);
+                setValue(BLDC_MOTORB_SUPPLY, 12.0f);
                 retValue = saveCommon();
             }
             PinMapSSR* pinMap = PinMapSSR::getInstance();
@@ -954,22 +954,22 @@ private:
             {BLDC_RAILLENGTH, "Rail length", "SSR1 rail length", SettingType::Number, BLDC_RAILLENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
 
-            {BLDC_ENCODER, "BLDC encoder type", "Select the type of bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORA_ENCODER, "BLDC encoder type", "Select the type of bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_USEHALLSENSOR, "Use hall sensor", "Use Hall sensor for BLDC sensor", SettingType::Boolean, BLDC_USEHALLSENSOR_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_PULLEY_CIRCUMFERENCE, "Pull circumference", "The pulley circumference for BLDC motor", SettingType::Number, BLDC_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTOR_VOLTAGE, "Motor voltage limit", "BLDC Motor voltage limit", SettingType::Float, BLDC_MOTOR_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTOR_SUPPLY, "Motor Supply voltage", "BLDC Motor supply voltage", SettingType::Float, BLDC_MOTOR_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTOR_CURRENT, "Motor current", "BLDC Motor current", SettingType::Float, BLDC_MOTOR_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTOR_PARAMETERSKNOWN, "Motor parameters known", "BLDC Motor A params known", SettingType::Boolean, BLDC_MOTOR_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTOR_ZEROELECANGLE, "Motor ZeroElecAngle", "BLDC Motor A ZeroElecAngle", SettingType::Float, BLDC_MOTOR_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORA_PULLEY_CIRCUMFERENCE, "Pull circumference", "The pulley circumference for BLDC motor", SettingType::Number, BLDC_MOTORA_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORA_VOLTAGE, "Motor voltage limit", "BLDC Motor voltage limit", SettingType::Float, BLDC_MOTORA_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORA_SUPPLY, "Motor Supply voltage", "BLDC Motor supply voltage", SettingType::Float, BLDC_MOTORA_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORA_CURRENT, "Motor current", "BLDC Motor current", SettingType::Float, BLDC_MOTORA_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORA_PARAMETERSKNOWN, "Motor parameters known", "BLDC Motor A params known", SettingType::Boolean, BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORA_ZEROELECANGLE, "Motor ZeroElecAngle", "BLDC Motor A ZeroElecAngle", SettingType::Float, BLDC_MOTORA_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             
-            {BLDC_B_ENCODER, "BLDC left encoder type", "Select the type of Left bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_B_PULLEY_CIRCUMFERENCE, "Pull left circumference", "The pulley circumference for Left BLDC motor", SettingType::Number, BLDC_B_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_B_MOTOR_VOLTAGE, "Left Motor voltage limit", "BLDC Left Motor voltage limit", SettingType::Float, BLDC_B_MOTOR_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_B_MOTOR_SUPPLY, "Left Motor Supply voltage", "BLDC Left Motor supply voltage", SettingType::Float, BLDC_B_MOTOR_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_B_MOTOR_CURRENT, "Left Motor current", "BLDC Left Motor current", SettingType::Float, BLDC_B_MOTOR_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_B_MOTOR_PARAMETERSKNOWN, "Left Motor parameters known", "Left BLDC Motor params known", SettingType::Boolean, BLDC_B_MOTOR_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_B_MOTOR_ZEROELECANGLE, "Left Motor ZeroElecAngle", "Left BLDC Motor ZeroElecAngle", SettingType::Float, BLDC_B_MOTOR_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}}
+            {BLDC_MOTORB_ENCODER, "BLDC left encoder type", "Select the type of Left bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORB_PULLEY_CIRCUMFERENCE, "Pull left circumference", "The pulley circumference for Left BLDC motor", SettingType::Number, BLDC_MOTORB_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORB_VOLTAGE, "Left Motor voltage limit", "BLDC Left Motor voltage limit", SettingType::Float, BLDC_MOTORB_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORB_SUPPLY, "Left Motor Supply voltage", "BLDC Left Motor supply voltage", SettingType::Float, BLDC_MOTORB_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORB_CURRENT, "Left Motor current", "BLDC Left Motor current", SettingType::Float, BLDC_MOTORB_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORB_PARAMETERSKNOWN, "Left Motor parameters known", "Left BLDC Motor params known", SettingType::Boolean, BLDC_MOTORB_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORB_ZEROELECANGLE, "Left Motor ZeroElecAngle", "Left BLDC Motor ZeroElecAngle", SettingType::Float, BLDC_MOTORB_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}}
             
 #elif defined MOTOR_TYPE_SERVO
             ,{RIGHT_SERVO_ZERO, "Right servo zero", "The zero calibration for the right servo", SettingType::Number, RIGHT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},

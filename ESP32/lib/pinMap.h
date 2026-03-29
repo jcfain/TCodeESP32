@@ -621,7 +621,7 @@ public:
         // //  EXT_Input3_PIN = 39;
         // //  EXT_Input4_PIN = 36;
 
-        #warning How to handle other board setting overrides?
+        // TODO: How to handle other board setting overrides?
         // heaterResolution = json["heaterResolution"] | 8;
         // caseFanResolution = json["caseFanResolution"] | 10;
         // caseFanFrequency = json["caseFanFrequency"] | 25;

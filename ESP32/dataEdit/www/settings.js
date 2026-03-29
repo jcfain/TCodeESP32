@@ -949,9 +949,13 @@ function setUserSettings()
     document.getElementById('boardType').value = userSettings["boardType"];
     const isSSR1PCB = isBoardType(BoardType.SSR1PCB);
     const deviceTypeElement = document.getElementById("deviceType");
+	deviceTypeElement.value = userSettings["deviceType"];
     deviceTypeElement.disabled = isBoardType(BoardType.CRIMZZON) || isBoardType(BoardType.ISAAC) || isSSR1PCB;
-    document.getElementById("BLDC_Encoder").disabled = isSSR1PCB;
-
+    if(userSettings.deviceType == DeviceType.NONE) {
+        deviceTypeElement.classList.add("pulse-yellow");
+    } else {
+        deviceTypeElement.classList.remove("pulse-yellow");
+    }
 	document.getElementById("maxServoRange").value = userSettings["maxServoRange"];
 	
 	document.getElementById("feedbackTwist").checked = userSettings["feedbackTwist"];
@@ -963,6 +967,7 @@ function setUserSettings()
     {
         const encoderTypeElement = document.getElementById("BLDC_Encoder");
         encoderTypeElement.value = userSettings["BLDC_Encoder"];
+        encoderTypeElement.disabled = isSSR1PCB;
         if(userSettings.BLDC_Encoder == BLDCEncoderType.NONE) {
             encoderTypeElement.classList.add("pulse-yellow");
         } else {
@@ -1025,12 +1030,6 @@ function setUserSettings()
 	document.getElementById("Squeeze_ZERO").value = userSettings["Squeeze_ZERO"];
 	document.getElementById("lubeEnabled").checked = userSettings["lubeEnabled"];
 	document.getElementById("lubeAmount").value = userSettings["lubeAmount"];
-	deviceTypeElement.value = userSettings["deviceType"];
-    if(userSettings.deviceType == DeviceType.NONE) {
-        deviceTypeElement.classList.add("pulse-yellow");
-    } else {
-        deviceTypeElement.classList.remove("pulse-yellow");
-    }
 	document.getElementById("autoValve").checked = userSettings["autoValve"];
 	document.getElementById("inverseValve").checked = userSettings["inverseValve"];
 	document.getElementById("valveServo90Degrees").checked = userSettings["valveServo90Degrees"];

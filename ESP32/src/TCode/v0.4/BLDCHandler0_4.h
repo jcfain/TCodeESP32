@@ -78,7 +78,7 @@ public:
             return false;
         }
         BLDCEncoderType encoderType = (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
-        m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
+        m_settingsFactory->getValue(BLDC_MOTORA_ENCODER, encoderType);
         if(encoderType == BLDCEncoderType::NONE)
         {
             LogHandler::error(_TAG, "No encoder type selected. Visit the web config or use the command to set an encoder before starting the firmware.");
@@ -87,7 +87,7 @@ public:
         //PinMapInfo pinMapInfo = m_settingsFactory->getPins();
         PinMapSSR* pinMap = PinMapSSR::getInstance();
         int pullyCircumference = -1;
-        m_settingsFactory->getValue(BLDC_PULLEY_CIRCUMFERENCE, pullyCircumference);
+        m_settingsFactory->getValue(BLDC_MOTORA_PULLEY_CIRCUMFERENCE, pullyCircumference);
         int strokeLength = -1;
         m_settingsFactory->getValue(BLDC_STROKELENGTH, strokeLength);
         int railLength = -1;
@@ -176,21 +176,21 @@ public:
         
         // driver config
         // Max DC voltage allowed - default voltage_limit
-        double motorVoltage = BLDC_MOTOR_VOLTAGE_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTOR_VOLTAGE, motorVoltage);
+        double motorVoltage = BLDC_MOTORA_VOLTAGE_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, motorVoltage);
         LogHandler::debug(_TAG, "Voltage limit: %f", motorVoltage);
         driverA->voltage_limit = motorVoltage;
         // power supply voltage [V]
-        double supplyVoltage = BLDC_MOTOR_SUPPLY_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTOR_SUPPLY, supplyVoltage);
+        double supplyVoltage = BLDC_MOTORA_SUPPLY_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTORA_SUPPLY, supplyVoltage);
         LogHandler::debug(_TAG, "Voltage supply: %f", supplyVoltage);
         driverA->voltage_power_supply = supplyVoltage;
         // driver init
         driverA->init();
 
         // limiting motor movements
-        double motorACurrent = BLDC_MOTOR_CURRENT_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTOR_CURRENT, motorACurrent);
+        double motorACurrent = BLDC_MOTORA_CURRENT_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTORA_CURRENT, motorACurrent);
         LogHandler::debug(_TAG, "Current: %f", motorACurrent);
         motorA->current_limit = motorACurrent;   // [Amps]
         // motorA->voltage_limit = motorAVoltage;  // TODO
@@ -218,11 +218,11 @@ public:
         motorA->useMonitoring(Serial);
 
         // init current sense
-        bool paramsKnown = BLDC_MOTOR_PARAMETERSKNOWN_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTOR_PARAMETERSKNOWN, paramsKnown);
+        bool paramsKnown = BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTORA_PARAMETERSKNOWN, paramsKnown);
         if(paramsKnown) {
-            double zeroElecAngle = BLDC_MOTOR_ZEROELECANGLE_DEFAULT;
-            m_settingsFactory->getValue(BLDC_MOTOR_ZEROELECANGLE, zeroElecAngle);
+            double zeroElecAngle = BLDC_MOTORA_ZEROELECANGLE_DEFAULT;
+            m_settingsFactory->getValue(BLDC_MOTORA_ZEROELECANGLE, zeroElecAngle);
         // Set sensor angle and pre-set zero angle to current angle
             LogHandler::info(_TAG, "Setting MotorA parameters: %f", zeroElecAngle);
             motorA->sensor_direction = MotorA_SensorDirection;

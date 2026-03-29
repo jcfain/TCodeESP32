@@ -15,6 +15,11 @@ enum class BLDCMotorPosition
     A,
     B
 };
+enum class BLDCBootMode {
+    CALIBRATE,
+    HOMING,
+    NORMAL
+};
 #endif
 
 // enum class LogLevel {

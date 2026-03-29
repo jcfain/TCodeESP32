@@ -49,7 +49,10 @@ class WebHandler : public HTTPBase {
 		    LogHandler::info(_TAG, "Starting web server on port: %i", port);
             server = new AsyncWebServer(port);
             ((WebSocketHandler*)webSocketHandler)->setup(server);
+
+            LogHandler::debug(_TAG, "Finished webSocket");
             m_settingsFactory = SettingsFactory::getInstance();
+            LogHandler::debug(_TAG, "Setting up endpoints");
             server->on("/wifiSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 char info[700];
@@ -433,6 +436,7 @@ class WebHandler : public HTTPBase {
                 // .setDefaultFile("index-min.html");
             //     //.setCacheControl("max-age=60000");
             //     //.setCacheControl("no-cache");
+            LogHandler::debug(_TAG, "starting server");
             server->begin();
             initialized = true;
         }
@@ -487,7 +491,7 @@ class WebHandler : public HTTPBase {
                         const size_t max_len,
                         const size_t index) mutable -> size_t
                     {
-		                LogHandler::debug(_TAG,"[beginChunkedResponse] Enter chunked file: %s\n", file.name());
+		                LogHandler::verbose(_TAG,"[beginChunkedResponse] Enter chunked file: %s\n", file.name());
                         size_t length;
 
                         // Restrict chunk size so we don't run out of RAM
@@ -505,7 +509,7 @@ class WebHandler : public HTTPBase {
 
                         if (length == 0)
                         {
-		                    LogHandler::debug(_TAG,"[beginChunkedResponse] Close file: %s\n", file.name());
+		                    LogHandler::verbose(_TAG,"[beginChunkedResponse] Close file: %s\n", file.name());
                             file.close();
                         }
 

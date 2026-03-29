@@ -113,7 +113,11 @@ public:
         serialHandler->setup();
         Serial.printf("Startup DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
-        LogHandler::setLogLevel(LogLevel::INFO);
+        #if DEBUG_BUILD == 1
+            LogHandler::setLogLevel(LogLevel::DEBUG);
+        #else
+            LogHandler::setLogLevel(LogLevel::INFO);
+        #endif
         LogHandler::setMessageCallback(std::bind(&InitHandler::logCallBack, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
         Serial.println();
@@ -144,7 +148,6 @@ public:
         }
         LogHandler::debug(TagHandler::Main, "LittleFS DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
-        // LogHandler::setLogLevel(LogLevel::DEBUG);
         settingsFactory = SettingsFactory::getInstance();
         settingsFactory->setMessageCallback(std::bind(&InitHandler::settingChangeCallback, this, std::placeholders::_1, std::placeholders::_2));
         if (!settingsFactory->init())
@@ -410,13 +413,6 @@ public:
             }
         }
     #endif
-        // otaHandler.setup();
-        displayPrint("Setting up motor");
-        if(!motorHandler->setup())
-        {
-            return false;
-        }
-        LogHandler::debug(TagHandler::Main, "Motor DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         motionHandler = new MotionHandler();
         motionHandler->setup(settingsFactory->getTcodeVersion());
         LogHandler::debug(TagHandler::Main, "Motion handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
@@ -430,6 +426,14 @@ public:
                                 settingsFactory->getBootButtonCommand(),
                                 settingsFactory->getButtonSets());
         }
+        
+        // otaHandler.setup();
+        displayPrint("Setting up motor");
+        if(!motorHandler->setup())
+        {
+            return false;
+        }
+        LogHandler::debug(TagHandler::Main, "Motor DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
         LogHandler::debug(TagHandler::Main, "Setup finished");
         SettingsHandler::printFree();
@@ -811,7 +815,10 @@ private:
         {
             if (!strcmp(settingThatChanged, LOG_LEVEL_SETTING))
             {
-                LogHandler::setLogLevel(settingsFactory->getLogLevel());
+                
+                #if DEBUG_BUILD != 1
+                    LogHandler::setLogLevel(settingsFactory->getLogLevel());
+                #endif
             }
             else if (!strcmp(settingThatChanged, LOG_INCLUDETAGS))
             {
