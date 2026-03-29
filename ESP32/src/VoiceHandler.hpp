@@ -27,6 +27,7 @@ SOFTWARE. */
 #include <Wire.h>
 // #include "LogHandler.h"
 #include "TagHandler.h"
+#include "callback.h"
 
 class VoiceHandler {
     
@@ -101,7 +102,7 @@ public:
 		((VoiceHandler*)parameter)->loop();
 	}
 
-	void setMessageCallback(std::function<void(const char*)> f) {
+	void setMessageCallback(TCodeCommandCallback f) {
 		if (f == nullptr) {
 			message_callback = 0;
 		} else {
@@ -114,7 +115,7 @@ private:
 
     //I2C communication
     DFRobot_DF2301Q_I2C asr;
-	std::function<void(const char*)> message_callback = 0;
+	TCodeCommandCallback message_callback = 0;
     bool _isRunning = false;
     bool _isConnected = false;
 

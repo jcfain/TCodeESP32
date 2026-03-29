@@ -22,8 +22,8 @@ SOFTWARE. */
 
 
 #pragma once
-
-
+#include <Arduino.h>
+#include "settingsFactory.h"
 
 // Twist position monitor variables
 volatile int twistPulseLength = 0;
@@ -57,3 +57,5 @@ void IRAM_ATTR twistChange()
 	}
   	//interrupts();
 }
+
+

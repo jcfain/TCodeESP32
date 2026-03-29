@@ -1,6 +1,59 @@
 #pragma once
 #include <cstdint>
 
+enum class LogLevel 
+{ 
+    NONE,
+    ERROR,
+    WARNING,
+    INFO,
+    DEBUG,
+    VERBOSE 
+};
+
+enum class SettingType
+{
+    NONE,
+    Boolean,
+    Number,
+    String,
+    Float,
+    Double,
+    ArrayString,
+    ArrayInt,
+    MAX
+};
+
+enum class SettingProfile
+{
+    System,
+    Wireless,
+    Wifi,
+    Button,
+    MotionProfile,
+    Temperature,
+    Display,
+    Servo,
+    Pin,
+    Timer,
+    Bldc,
+    Battery,
+    Voice,
+    PWM,
+    Analog,
+    Bluetooth,
+    Ble,
+    ChannelRanges,
+    Vib,
+    Disabled,
+    MAX
+};
+
+enum class RestartRequired {
+    NO,
+    YES
+};
+
 enum class TCodeVersion: int
 {
     //v0_2,
@@ -143,4 +196,9 @@ enum class ESPTimerChannelNum: int8_t {
     LOW3_CH6,
     LOW3_CH7,
     MAX
+};
+
+enum class TemperatureType {
+	INTERNAL,
+	SLEEVE
 };

@@ -161,7 +161,7 @@ public:
         return true;
     }
 
-    void setMessageCallback(std::function<void(const char*)> function) override {
+    void setMessageCallback(TCodeCommandCallback function) override {
         m_tcode->setMessageCallback(function);
     }
 

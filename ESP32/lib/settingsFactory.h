@@ -34,6 +34,8 @@ SOFTWARE. */
 #include "settingConstants.h"
 #include "pinMap.h"
 #include "espTimerMap.h"
+#include "buttonSet.h"
+#include "motionProfile.h"
 
 class SettingsFactory
 {
@@ -140,7 +142,7 @@ public:
         return motionProfiles;
     }
 
-    void setMessageCallback(std::function<void(const SettingProfile &, const char*)> f)
+    void setMessageCallback(SettingsChangeCallback f)
     {
         LogHandler::debug(m_TAG, "setMessageCallback");
         if (f == nullptr)
@@ -893,7 +895,7 @@ private:
     MotionProfile motionProfiles[MAX_MOTION_PROFILE_COUNT];
     ButtonSet buttonSets[MAX_BUTTON_SETS];
 
-    std::function<void(const SettingProfile &, const char*)> message_callback = 0;
+    SettingsChangeCallback message_callback = 0;
 
     SemaphoreHandle_t m_networkSemaphore;
     SemaphoreHandle_t m_commonSemaphore;

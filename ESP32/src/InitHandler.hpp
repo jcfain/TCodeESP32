@@ -1,99 +1,9 @@
 #pragma once
-
-#include <Arduino.h>
-
-#include "SerialHandler.h"
-#include <TCode.h>
-#include "LogHandler.h"
-#include "SettingsHandler.h"
-#include "SystemCommandHandler.h"
-#if WIFI_TCODE
-#include "WifiHandler.h"
-#endif
-
-#if BUILD_TEMP
-#include "TemperatureHandler.h"
-#endif
-#if BUILD_DISPLAY
-#include "DisplayHandler.h"
-#endif
-#if BLUETOOTH_TCODE
-#include "BluetoothHandler.h"
-#endif
-#include "TCode/MotorHandler.h"
-// #include "BLEConfigurationHandler.h"
-
-#ifdef MOTOR_TYPE_SERVO
-#include "ServoHandler0_3.h"
-#include "ServoHandler0_4.h"
-#elif defined MOTOR_TYPE_BLDC
-#include "BLDCHandler0_3.h"
-#include "BLDCHandler0_4.h"
-#endif
-
-#if WIFI_TCODE
-#include "UdpHandler.h"
-// #include "TcpHandler.h"
-#include "HTTP/HTTPBase.h"
-#include "HTTP/WebSocketBase.h"
-#if !SECURE_WEB
-#include "WebHandler.h"
-//#include "WebHandler_psychic.h"
-#else
-#include "HTTP\HTTPSHandler.hpp"
-#endif
-#include "MDNSHandler.hpp"
-#endif
-// #include "OTAHandler.h"
-#if BLE_TCODE
-#include "BLEHandler.hpp"
-#endif
-
-#if WIFI_TCODE
-#if !SECURE_WEB
-#include "WebSocketHandler.h"
-//#include "WebSocketHandler_psychic.h"
-#else
-#include "HTTP/SecureWebSocketHandler.hpp"
-#endif
-#endif
-
-#include "BatteryHandler.h"
-#include "MotionHandler.hpp"
-#include "VoiceHandler.hpp"
-#include "ButtonHandler.hpp"
-
-#include "TaskHandler.hpp"
+#include "InstanceHandler.h"
 
 class InitHandler
 {
 public:
-    SerialHandler *serialHandler;
-    SystemCommandHandler *systemCommandHandler = 0;
-    MotorHandler *motorHandler = 0;
-    BatteryHandler *batteryHandler = 0;
-    MotionHandler *motionHandler = 0;
-    VoiceHandler *voiceHandler;
-    ButtonHandler *buttonHandler = 0;
-#if WIFI_TCODE
-    Udphandler *udpHandler = 0;
-    WifiHandler wifi;
-    MDNSHandler mdnsHandler;
-    HTTPBase *webHandler = 0;
-    WebSocketBase *webSocketHandler = 0;
-#endif
-#if BUILD_TEMP
-    TemperatureHandler *temperatureHandler = 0;
-#endif
-#if BLE_TCODE
-    BLEHandler *bleHandler = 0;
-#endif
-#if BLUETOOTH_TCODE
-    BluetoothHandler *bluetoothHandler = 0;
-#endif
-#if BUILD_DISPLAY
-    DisplayHandler *displayHandler = 0;
-#endif
     static InitHandler* getInstance() 
     {
         static InitHandler instance;
@@ -118,7 +28,7 @@ public:
         #else
             LogHandler::setLogLevel(LogLevel::INFO);
         #endif
-        LogHandler::setMessageCallback(std::bind(&InitHandler::logCallBack, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+        LogHandler::setMessageCallback(logCallBack);
 
         Serial.println();
         LogHandler::info(TagHandler::Main, "Firmware version: %s", FIRMWARE_VERSION_NAME);
@@ -149,7 +59,7 @@ public:
         LogHandler::debug(TagHandler::Main, "LittleFS DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
         settingsFactory = SettingsFactory::getInstance();
-        settingsFactory->setMessageCallback(std::bind(&InitHandler::settingChangeCallback, this, std::placeholders::_1, std::placeholders::_2));
+        settingsFactory->setMessageCallback(settingChangeCallback);
         if (!settingsFactory->init())
         {
             LogHandler::error(TagHandler::Main, "Failed to load settings...");
@@ -166,7 +76,7 @@ public:
         }
 
         SettingsHandler::init();
-        SettingsHandler::setMessageCallback(std::bind(&InitHandler::settingChangeCallback, this, std::placeholders::_1, std::placeholders::_2));
+        SettingsHandler::setMessageCallback(settingChangeCallback);
         LogHandler::debug(TagHandler::Main, "Settings handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
     #if BLE_TCODE
@@ -221,7 +131,7 @@ public:
         int Display_I2C_Address = (int)strtol(Display_I2C_AddressString, NULL, 0);
 
         systemCommandHandler = new SystemCommandHandler();
-        systemCommandHandler->registerExternalCommandCallback(std::bind(&InitHandler::tcodePassthroughCommandCallback, this, std::placeholders::_1));
+        systemCommandHandler->registerExternalCommandCallback(tcodePassthroughCommandCallback);
         LogHandler::debug(TagHandler::Main, "System command handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
     #ifdef MOTOR_TYPE_SERVO
@@ -255,7 +165,7 @@ public:
         #error "Build error! Invalid motor type defined!"
     #endif
 
-        motorHandler->setMessageCallback(std::bind(&InitHandler::TCodeCommandCallback, this, std::placeholders::_1));
+        motorHandler->setMessageCallback(tcodeCommandCallback);
         LogHandler::debug(TagHandler::Main, "Motor handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         // SystemCommandHandler::registerOtherCommandCallback(TCodeCommandCallback);
 
@@ -293,8 +203,8 @@ public:
                                     caseFanFrequency,
                                     caseFanResolution,
                                     caseFanMaxPWM);
-            temperatureHandler->setMessageCallback(std::bind(&InitHandler::tempChangeCallBack, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-            temperatureHandler->setStateChangeCallback(std::bind(&InitHandler::tempStateChangeCallBack, this, std::placeholders::_1, std::placeholders::_2));
+            temperatureHandler->setMessageCallback(tempChangeCallBack);
+            temperatureHandler->setStateChangeCallback(tempStateChangeCallBack);
             LogHandler::debug(TagHandler::Main, "Start temperature task");
             taskHandler->startTemperatureTask(temperatureHandler);
             LogHandler::debug(TagHandler::Main, "Temp DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
@@ -465,7 +375,7 @@ private:
             if (batteryHandler->setup())
             {
                 taskHandler->startBatteryTask(batteryHandler);
-                batteryHandler->setMessageCallback(std::bind(&InitHandler::batteryVoltageCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+                batteryHandler->setMessageCallback(batteryVoltageCallback);
             }
         }
         if (voiceEnabled)
@@ -474,7 +384,7 @@ private:
             if (voiceHandler->setup())
             {
                 taskHandler->startVoiceTask(voiceHandler);
-                voiceHandler->setMessageCallback(std::bind(&InitHandler::TCodeCommandCallback, this, std::placeholders::_1));
+                voiceHandler->setMessageCallback(tcodeCommandCallback);
             }
         }
     }
@@ -664,253 +574,253 @@ private:
 // TODO move to CallbackHandler or freertos queues///////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
-    void TCodeCommandCallback(const char *in)
-    {
+    // void TCodeCommandCallback(const char *in)
+    // {
 
-        if (systemCommandHandler->isCommand(in))
-        {
-            systemCommandHandler->process(in);
-        }
-        else
-        {
-    #if BLUETOOTH_TCODE
-            if (bluetoothHandler && bluetoothHandler->isConnected())
-                bluetoothHandler->CommandCallback(in);
-    #endif
-    #if BLE_TCODE
-            if (bleHandler && bleHandler->isConnected())
-                bleHandler->send(in);
-    #endif
-    #if WIFI_TCODE
-            if (webSocketHandler)
-                webSocketHandler->send(in);
-            if (udpHandler)
-                udpHandler->send(in);
-    #endif
-            serialHandler->send(in);
-        }
-    }
+    //     if (systemCommandHandler->isCommand(in))
+    //     {
+    //         systemCommandHandler->process(in);
+    //     }
+    //     else
+    //     {
+    // #if BLUETOOTH_TCODE
+    //         if (bluetoothHandler && bluetoothHandler->isConnected())
+    //             bluetoothHandler->CommandCallback(in);
+    // #endif
+    // #if BLE_TCODE
+    //         if (bleHandler && bleHandler->isConnected())
+    //             bleHandler->send(in);
+    // #endif
+    // #if WIFI_TCODE
+    //         if (webSocketHandler)
+    //             webSocketHandler->send(in);
+    //         if (udpHandler)
+    //             udpHandler->send(in);
+    // #endif
+    //         serialHandler->send(in);
+    //     }
+    // }
 
-    void tcodePassthroughCommandCallback(const char *in)
-    {
-        if (systemCommandHandler->isCommand(in))
-        {
-            // This seems wrong but since we are only calling this from one place its fine for now.
-            char temp[strlen(in) + 2];
-            temp[0] = {0};
-            strcpy(temp, in);
-            strcat(temp, "\n");
-    //////////////////////////////////////////////////////////////////////////////////////
-    #if BLUETOOTH_TCODE
-            if (bluetoothHandler && bluetoothHandler->isConnected())
-                bluetoothHandler->send(temp);
-    #endif
-    #if BLE_TCODE
+    // void tcodePassthroughCommandCallback(const char *in)
+    // {
+    //     if (systemCommandHandler->isCommand(in))
+    //     {
+    //         // This seems wrong but since we are only calling this from one place its fine for now.
+    //         char temp[strlen(in) + 2];
+    //         temp[0] = {0};
+    //         strcpy(temp, in);
+    //         strcat(temp, "\n");
+    // //////////////////////////////////////////////////////////////////////////////////////
+    // #if BLUETOOTH_TCODE
+    //         if (bluetoothHandler && bluetoothHandler->isConnected())
+    //             bluetoothHandler->send(temp);
+    // #endif
+    // #if BLE_TCODE
 
-    #endif
-    #if WIFI_TCODE
-            if (webSocketHandler)
-                webSocketHandler->send(temp);
-            if (udpHandler)
-                udpHandler->send(temp);
-    #endif
-            serialHandler->send(temp);
-        }
-    }
+    // #endif
+    // #if WIFI_TCODE
+    //         if (webSocketHandler)
+    //             webSocketHandler->send(temp);
+    //         if (udpHandler)
+    //             udpHandler->send(temp);
+    // #endif
+    //         serialHandler->send(temp);
+    //     }
+    // }
 
-    void profileChangeCallback(uint8_t profile)
-    {
-    }
+    // void profileChangeCallback(uint8_t profile)
+    // {
+    // }
 
-    void logCallBack(const char *input, size_t length, LogLevel level)
-    {
-    #if WIFI_TCODE
-        // if(webSocketHandler) {
-        // 	webSocketHandler->sendDebug(in, level);
-        // }
-    #endif
-    }
+    // void logCallBack(const char *input, size_t length, LogLevel level)
+    // {
+    // #if WIFI_TCODE
+    //     // if(webSocketHandler) {
+    //     // 	webSocketHandler->sendDebug(in, level);
+    //     // }
+    // #endif
+    // }
 
-    #if BUILD_TEMP
-    void tempChangeCallBack(TemperatureType type, const char *message, float temp)
-    {
-    #if WIFI_TCODE
-        if (webSocketHandler)
-        {
-            if (strpbrk(message, "{") == nullptr)
-            {
-                webSocketHandler->sendCommand(message);
-            }
-            else
-            {
-                if (type == TemperatureType::SLEEVE)
-                {
-                    webSocketHandler->sendCommand("sleeveTempStatus", message);
-                }
-                else
-                {
-                    webSocketHandler->sendCommand("internalTempStatus", message);
-                }
-            }
-        }
-    #endif
-    #if BUILD_DISPLAY
-        if (displayHandler)
-        {
-            if (type == TemperatureType::SLEEVE)
-            {
-                displayHandler->setSleeveTemp(temp);
-            }
-            else
-            {
-                displayHandler->setInternalTemp(temp);
-            }
-        }
-    #endif
-    }
+    // #if BUILD_TEMP
+    // void tempChangeCallBack(TemperatureType type, const char *message, float temp)
+    // {
+    // #if WIFI_TCODE
+    //     if (webSocketHandler)
+    //     {
+    //         if (strpbrk(message, "{") == nullptr)
+    //         {
+    //             webSocketHandler->sendCommand(message);
+    //         }
+    //         else
+    //         {
+    //             if (type == TemperatureType::SLEEVE)
+    //             {
+    //                 webSocketHandler->sendCommand("sleeveTempStatus", message);
+    //             }
+    //             else
+    //             {
+    //                 webSocketHandler->sendCommand("internalTempStatus", message);
+    //             }
+    //         }
+    //     }
+    // #endif
+    // #if BUILD_DISPLAY
+    //     if (displayHandler)
+    //     {
+    //         if (type == TemperatureType::SLEEVE)
+    //         {
+    //             displayHandler->setSleeveTemp(temp);
+    //         }
+    //         else
+    //         {
+    //             displayHandler->setInternalTemp(temp);
+    //         }
+    //     }
+    // #endif
+    // }
 
-    void tempStateChangeCallBack(TemperatureType type, const char *state)
-    {
-    #if BUILD_DISPLAY
-        if (displayHandler)
-        {
-            if (type == TemperatureType::SLEEVE)
-            {
-                LogHandler::verbose(TagHandler::Main, "tempStateChangeCallBack heat: %s", state);
-                displayHandler->setHeateState(state);
-                if (temperatureHandler)
-                    displayHandler->setHeateStateShort(temperatureHandler->getShortSleeveControlStatus(state));
-            }
-            else
-            {
-                LogHandler::verbose(TagHandler::Main, "tempStateChangeCallBack fan: %s", state);
-                displayHandler->setFanState(state);
-            }
-        }
-    #endif
-    }
-    #endif
+    // void tempStateChangeCallBack(TemperatureType type, const char *state)
+    // {
+    // #if BUILD_DISPLAY
+    //     if (displayHandler)
+    //     {
+    //         if (type == TemperatureType::SLEEVE)
+    //         {
+    //             LogHandler::verbose(TagHandler::Main, "tempStateChangeCallBack heat: %s", state);
+    //             displayHandler->setHeateState(state);
+    //             if (temperatureHandler)
+    //                 displayHandler->setHeateStateShort(temperatureHandler->getShortSleeveControlStatus(state));
+    //         }
+    //         else
+    //         {
+    //             LogHandler::verbose(TagHandler::Main, "tempStateChangeCallBack fan: %s", state);
+    //             displayHandler->setFanState(state);
+    //         }
+    //     }
+    // #endif
+    // }
+    // #endif
 
-    void batteryVoltageCallback(float capacityRemainingPercentage, float capacityRemaining, float voltage, float temperature)
-    {
-    #if BUILD_DISPLAY
-        if (displayHandler)
-        {
-            displayHandler->setBatteryInformation(capacityRemainingPercentage, voltage, temperature);
-        }
-    #endif
-    #if WIFI_TCODE
-        if (webSocketHandler)
-        {
-            String statusJson("{\"batteryCapacityRemaining\":\"" + String(capacityRemaining) + "\", \"batteryCapacityRemainingPercentage\":\"" + String(capacityRemainingPercentage) + "\", \"batteryVoltage\":\"" + String(voltage) + "\", \"batteryTemperature\":\"" + String(temperature) + "\"}");
-            webSocketHandler->sendCommand("batteryStatus", statusJson.c_str());
-        }
-    #endif
-    }
+    // void batteryVoltageCallback(float capacityRemainingPercentage, float capacityRemaining, float voltage, float temperature)
+    // {
+    // #if BUILD_DISPLAY
+    //     if (displayHandler)
+    //     {
+    //         displayHandler->setBatteryInformation(capacityRemainingPercentage, voltage, temperature);
+    //     }
+    // #endif
+    // #if WIFI_TCODE
+    //     if (webSocketHandler)
+    //     {
+    //         String statusJson("{\"batteryCapacityRemaining\":\"" + String(capacityRemaining) + "\", \"batteryCapacityRemainingPercentage\":\"" + String(capacityRemainingPercentage) + "\", \"batteryVoltage\":\"" + String(voltage) + "\", \"batteryTemperature\":\"" + String(temperature) + "\"}");
+    //         webSocketHandler->sendCommand("batteryStatus", statusJson.c_str());
+    //     }
+    // #endif
+    // }
 
-    void settingChangeCallback(const SettingProfile &profile, const char *settingThatChanged)
-    {
-        LogHandler::verbose(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
-        if (profile == SettingProfile::System)
-        {
-            if (!strcmp(settingThatChanged, LOG_LEVEL_SETTING))
-            {
+    // void settingChangeCallback(const SettingProfile &profile, const char *settingThatChanged)
+    // {
+    //     LogHandler::verbose(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
+    //     if (profile == SettingProfile::System)
+    //     {
+    //         if (!strcmp(settingThatChanged, LOG_LEVEL_SETTING))
+    //         {
                 
-                #if DEBUG_BUILD != 1
-                    LogHandler::setLogLevel(settingsFactory->getLogLevel());
-                #endif
-            }
-            else if (!strcmp(settingThatChanged, LOG_INCLUDETAGS))
-            {
-                LogHandler::setIncludes(settingsFactory->getLogIncludes());
-            }
-            else if (!strcmp(settingThatChanged, LOG_EXCLUDETAGS))
-            {
-                LogHandler::setExcludes(settingsFactory->getLogExcludes());
-            }
-        }
-        else if (profile == SettingProfile::MotionProfile)
-        {
-            if (strcmp(settingThatChanged, MOTION_PROFILE_SELECTED_INDEX) == 0 || strcmp(settingThatChanged, MOTION_PROFILES) == 0) {
-                motionHandler->setMotionChannels(SettingsHandler::getMotionChannels());
-            //} else if(strcmp(settingThatChanged, "motionChannels") == 0) {
-            // 	motionHandler->setMotionChannels(SettingsHandler::getGetMotionChannels()());
-            } else if (strcmp(settingThatChanged, MOTION_ENABLED) == 0) {
-                LogHandler::verbose(TagHandler::Main, "MOTION_ENABLED: %d", SettingsHandler::getMotionEnabled());
-                motionHandler->setEnabled(SettingsHandler::getMotionEnabled());
-            }
-            // else if(strcmp(settingThatChanged, "motionAmplitudeGlobal") == 0)
-            // 	motionHandler->setAmplitude(SettingsHandler::getGetMotionAmplitudeGlobal()());
-            // else if(strcmp(settingThatChanged, "motionOffsetGlobal") == 0)
-            // 	motionHandler->setOffset(SettingsHandler::getGetMotionOffsetGlobal()());
-            // else if(strcmp(settingThatChanged, "motionPeriodGlobal") == 0)
-            // 	motionHandler->setPeriod(SettingsHandler::getGetMotionPeriodGlobal()());
-            // else if(strcmp(settingThatChanged, "motionUpdateGlobal") == 0)
-            // 	motionHandler->setUpdate(SettingsHandler::getGetMotionUpdateGlobal()());
-            // else if(strcmp(settingThatChanged, "motionPhaseGlobal") == 0)
-            // 	motionHandler->setPhase(SettingsHandler::getGetMotionPhaseGlobal()());
-            // else if(strcmp(settingThatChanged, "motionReversedGlobal") == 0)
-            // 	motionHandler->setReverse(SettingsHandler::getGetMotionReversedGlobal()());
-            // else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandom") == 0)
-            // 	motionHandler->setAmplitudeRandom(SettingsHandler::getGetMotionAmplitudeGlobalRandom()());
-            // else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandomMin") == 0)
-            // 	motionHandler->setAmplitudeRandomMin(SettingsHandler::getGetMotionAmplitudeGlobalRandomMin()());
-            // else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandomMax") == 0)
-            // 	motionHandler->setAmplitudeRandomMax(SettingsHandler::getGetMotionAmplitudeGlobalRandomMax()());
-            // else if(strcmp(settingThatChanged, "motionPeriodGlobalRandom") == 0)
-            // 	motionHandler->setPeriodRandom(SettingsHandler::getGetMotionPeriodGlobalRandom()());
-            // else if(strcmp(settingThatChanged, "motionPeriodGlobalRandomMin") == 0)
-            // 	motionHandler->setPeriodRandomMin(SettingsHandler::getGetMotionPeriodGlobalRandomMin()());
-            // else if(strcmp(settingThatChanged, "motionPeriodGlobalRandomMax") == 0)
-            // 	motionHandler->setPeriodRandomMax(SettingsHandler::getGetMotionPeriodGlobalRandomMax()());
-            // else if(strcmp(settingThatChanged, "motionOffsetGlobalRandom") == 0)
-            // 	motionHandler->setOffsetRandom(SettingsHandler::getGetMotionOffsetGlobalRandom()());
-            // else if(strcmp(settingThatChanged, "motionOffsetGlobalRandomMin") == 0)
-            // 	motionHandler->setOffsetRandomMin(SettingsHandler::getGetMotionOffsetGlobalRandomMin()());
-            // else if(strcmp(settingThatChanged, "motionOffsetGlobalRandomMax") == 0)
-            // 	motionHandler->setOffsetRandomMax(SettingsHandler::getGetMotionOffsetGlobalRandomMax()());
-            // else if(strcmp(settingThatChanged, "motionRandomChangeMin") == 0)
-            // 	motionHandler->setMotionRandomChangeMin(SettingsHandler::getGetMotionRandomChangeMin()());
-            // else if(strcmp(settingThatChanged, "motionRandomChangeMax") == 0)
-            // 	motionHandler->setMotionRandomChangeMax(SettingsHandler::getGetMotionRandomChangeMax()());
-        }
-        else if (voiceHandler && profile == SettingProfile::Voice)
-        {
-            if (strcmp(settingThatChanged, "voiceMuted") == 0)
-            {
-                voiceHandler->setMuteMode(settingsFactory->getVoiceMuted());
-            }
-            else if (strcmp(settingThatChanged, "voiceVolume") == 0)
-            {
-                voiceHandler->setVolume(settingsFactory->getVoiceVolume());
-            }
-            else if (strcmp(settingThatChanged, "voiceWakeTime") == 0)
-            {
-                voiceHandler->setWakeTime(settingsFactory->getVoiceWakeTime());
-            }
-        }
-        else if (buttonHandler && profile == SettingProfile::Button)
-        {
-            if (strcmp(settingThatChanged, "bootButtonCommand") == 0)
-                buttonHandler->updateBootButtonCommand(settingsFactory->getBootButtonCommand());
-            else if (strcmp(settingThatChanged, "analogButtonCommands") == 0)
-            {
-                buttonHandler->updateAnalogButtonCommands(settingsFactory->getButtonSets());
-            }
-            else if (strcmp(settingThatChanged, "buttonAnalogDebounce") == 0)
-            {
-                buttonHandler->updateAnalogDebounce(settingsFactory->getButtonAnalogDebounce());
-            }
-        }
-        else if (profile == SettingProfile::ChannelRanges)
-        { 
-            if (strcmp(settingThatChanged, CHANNEL_PROFILE) == 0) {
-                // TODO add channe; specific updates when moving to its own save...maybe...
-                motionHandler->updateChannelRanges();
-            } else if (strcmp(settingThatChanged, "channelRangesEnabled") == 0) {
-                webSocketHandler->sendCommand("channelRangesEnabled", SettingsHandler::getChannelRangesEnabled() ? "true" : "false");
-            }
+    //             #if DEBUG_BUILD != 1
+    //                 LogHandler::setLogLevel(settingsFactory->getLogLevel());
+    //             #endif
+    //         }
+    //         else if (!strcmp(settingThatChanged, LOG_INCLUDETAGS))
+    //         {
+    //             LogHandler::setIncludes(settingsFactory->getLogIncludes());
+    //         }
+    //         else if (!strcmp(settingThatChanged, LOG_EXCLUDETAGS))
+    //         {
+    //             LogHandler::setExcludes(settingsFactory->getLogExcludes());
+    //         }
+    //     }
+    //     else if (profile == SettingProfile::MotionProfile)
+    //     {
+    //         if (strcmp(settingThatChanged, MOTION_PROFILE_SELECTED_INDEX) == 0 || strcmp(settingThatChanged, MOTION_PROFILES) == 0) {
+    //             motionHandler->setMotionChannels(SettingsHandler::getMotionChannels());
+    //         //} else if(strcmp(settingThatChanged, "motionChannels") == 0) {
+    //         // 	motionHandler->setMotionChannels(SettingsHandler::getGetMotionChannels()());
+    //         } else if (strcmp(settingThatChanged, MOTION_ENABLED) == 0) {
+    //             LogHandler::verbose(TagHandler::Main, "MOTION_ENABLED: %d", SettingsHandler::getMotionEnabled());
+    //             motionHandler->setEnabled(SettingsHandler::getMotionEnabled());
+    //         }
+    //         // else if(strcmp(settingThatChanged, "motionAmplitudeGlobal") == 0)
+    //         // 	motionHandler->setAmplitude(SettingsHandler::getGetMotionAmplitudeGlobal()());
+    //         // else if(strcmp(settingThatChanged, "motionOffsetGlobal") == 0)
+    //         // 	motionHandler->setOffset(SettingsHandler::getGetMotionOffsetGlobal()());
+    //         // else if(strcmp(settingThatChanged, "motionPeriodGlobal") == 0)
+    //         // 	motionHandler->setPeriod(SettingsHandler::getGetMotionPeriodGlobal()());
+    //         // else if(strcmp(settingThatChanged, "motionUpdateGlobal") == 0)
+    //         // 	motionHandler->setUpdate(SettingsHandler::getGetMotionUpdateGlobal()());
+    //         // else if(strcmp(settingThatChanged, "motionPhaseGlobal") == 0)
+    //         // 	motionHandler->setPhase(SettingsHandler::getGetMotionPhaseGlobal()());
+    //         // else if(strcmp(settingThatChanged, "motionReversedGlobal") == 0)
+    //         // 	motionHandler->setReverse(SettingsHandler::getGetMotionReversedGlobal()());
+    //         // else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandom") == 0)
+    //         // 	motionHandler->setAmplitudeRandom(SettingsHandler::getGetMotionAmplitudeGlobalRandom()());
+    //         // else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandomMin") == 0)
+    //         // 	motionHandler->setAmplitudeRandomMin(SettingsHandler::getGetMotionAmplitudeGlobalRandomMin()());
+    //         // else if(strcmp(settingThatChanged, "motionAmplitudeGlobalRandomMax") == 0)
+    //         // 	motionHandler->setAmplitudeRandomMax(SettingsHandler::getGetMotionAmplitudeGlobalRandomMax()());
+    //         // else if(strcmp(settingThatChanged, "motionPeriodGlobalRandom") == 0)
+    //         // 	motionHandler->setPeriodRandom(SettingsHandler::getGetMotionPeriodGlobalRandom()());
+    //         // else if(strcmp(settingThatChanged, "motionPeriodGlobalRandomMin") == 0)
+    //         // 	motionHandler->setPeriodRandomMin(SettingsHandler::getGetMotionPeriodGlobalRandomMin()());
+    //         // else if(strcmp(settingThatChanged, "motionPeriodGlobalRandomMax") == 0)
+    //         // 	motionHandler->setPeriodRandomMax(SettingsHandler::getGetMotionPeriodGlobalRandomMax()());
+    //         // else if(strcmp(settingThatChanged, "motionOffsetGlobalRandom") == 0)
+    //         // 	motionHandler->setOffsetRandom(SettingsHandler::getGetMotionOffsetGlobalRandom()());
+    //         // else if(strcmp(settingThatChanged, "motionOffsetGlobalRandomMin") == 0)
+    //         // 	motionHandler->setOffsetRandomMin(SettingsHandler::getGetMotionOffsetGlobalRandomMin()());
+    //         // else if(strcmp(settingThatChanged, "motionOffsetGlobalRandomMax") == 0)
+    //         // 	motionHandler->setOffsetRandomMax(SettingsHandler::getGetMotionOffsetGlobalRandomMax()());
+    //         // else if(strcmp(settingThatChanged, "motionRandomChangeMin") == 0)
+    //         // 	motionHandler->setMotionRandomChangeMin(SettingsHandler::getGetMotionRandomChangeMin()());
+    //         // else if(strcmp(settingThatChanged, "motionRandomChangeMax") == 0)
+    //         // 	motionHandler->setMotionRandomChangeMax(SettingsHandler::getGetMotionRandomChangeMax()());
+    //     }
+    //     else if (voiceHandler && profile == SettingProfile::Voice)
+    //     {
+    //         if (strcmp(settingThatChanged, "voiceMuted") == 0)
+    //         {
+    //             voiceHandler->setMuteMode(settingsFactory->getVoiceMuted());
+    //         }
+    //         else if (strcmp(settingThatChanged, "voiceVolume") == 0)
+    //         {
+    //             voiceHandler->setVolume(settingsFactory->getVoiceVolume());
+    //         }
+    //         else if (strcmp(settingThatChanged, "voiceWakeTime") == 0)
+    //         {
+    //             voiceHandler->setWakeTime(settingsFactory->getVoiceWakeTime());
+    //         }
+    //     }
+    //     else if (buttonHandler && profile == SettingProfile::Button)
+    //     {
+    //         if (strcmp(settingThatChanged, "bootButtonCommand") == 0)
+    //             buttonHandler->updateBootButtonCommand(settingsFactory->getBootButtonCommand());
+    //         else if (strcmp(settingThatChanged, "analogButtonCommands") == 0)
+    //         {
+    //             buttonHandler->updateAnalogButtonCommands(settingsFactory->getButtonSets());
+    //         }
+    //         else if (strcmp(settingThatChanged, "buttonAnalogDebounce") == 0)
+    //         {
+    //             buttonHandler->updateAnalogDebounce(settingsFactory->getButtonAnalogDebounce());
+    //         }
+    //     }
+    //     else if (profile == SettingProfile::ChannelRanges)
+    //     { 
+    //         if (strcmp(settingThatChanged, CHANNEL_PROFILE) == 0) {
+    //             // TODO add channe; specific updates when moving to its own save...maybe...
+    //             motionHandler->updateChannelRanges();
+    //         } else if (strcmp(settingThatChanged, "channelRangesEnabled") == 0) {
+    //             webSocketHandler->sendCommand("channelRangesEnabled", SettingsHandler::getChannelRangesEnabled() ? "true" : "false");
+    //         }
             
-        }
-    }
+    //     }
+    // }
 };

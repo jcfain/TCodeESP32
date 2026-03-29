@@ -29,7 +29,7 @@ using namespace TCode::Datatypes;
 
 class EventHandler: public TCodeIObserver<TCodeEvent> {
 public:
-    void registerOnNotify(std::function<void(const char*)> f)
+    void registerOnNotify(TCodeCommandCallback f)
 	{
 		message_callback = f;
 	}

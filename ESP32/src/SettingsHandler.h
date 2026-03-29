@@ -43,6 +43,7 @@ SOFTWARE. */
 #include "channelMap.hpp"
 #include "settingConstants.h"
 #include "settingsFactory.h"
+#include "callback.h"
 
 #define DESERIALIZE_SIZE 32768
 #define SERIALIZE_SIZE 24576
@@ -95,7 +96,7 @@ public:
         initialized = true;
     }
 
-    static void setMessageCallback(std::function<void(const SettingProfile &, const char*)> f)
+    static void setMessageCallback(SettingsChangeCallback f)
     {
         LogHandler::debug(_TAG, "setMessageCallback");
         if (f == nullptr)
@@ -1208,7 +1209,7 @@ private:
 	static SemaphoreHandle_t m_wifiMutex;
     static SemaphoreHandle_t m_buttonsMutex;
 	static SemaphoreHandle_t m_settingsMutex;
-    static std::function<void(const SettingProfile &, const char*)> message_callback;
+    static inline SettingsChangeCallback message_callback = 0;
     // Use http://arduinojson.org/assistant to compute the capacity.
     static const int deserializeSize = 32768;
     static const int serializeSize = 24576;
@@ -1660,7 +1661,6 @@ bool SettingsHandler::apMode = false;
 BuildFeature SettingsHandler::buildFeatures[(int)BuildFeature::MAX_FEATURES];
 const char *SettingsHandler::_TAG = TagHandler::SettingsHandler;
 std::vector<int> SettingsHandler::systemI2CAddresses;
-std::function<void(const SettingProfile &, const char*)> SettingsHandler::message_callback = 0;
 ChannelMap SettingsHandler::channelMap;
 
 char SettingsHandler::currentIP[IP_ADDRESS_LEN] = LOCALIP_DEFAULT;

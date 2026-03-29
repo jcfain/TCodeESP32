@@ -30,11 +30,8 @@ SOFTWARE. */
 #include "SettingsHandler.h"
 // #include "LogHandler.h"
 #include "TagHandler.h"
-
-enum class TemperatureType {
-	INTERNAL,
-	SLEEVE
-};
+#include "callback.h"
+#include "enum.h"
 
 class TemperatureState {
 	public:
@@ -214,7 +211,7 @@ public:
   		vTaskDelete( NULL );
 	}
 	
-	void setMessageCallback(std::function<void(TemperatureType, const char*, float)> f) // Sets the callback function used by TCode
+	void setMessageCallback(TempChangeCallback f) // Sets the callback function used by TCode
 	{
 		if (f == nullptr) {
 			message_callback = 0;
@@ -222,7 +219,7 @@ public:
 			message_callback = f;
 		}
 	}
-	void setStateChangeCallback(std::function<void(TemperatureType, const char*)> f) // Sets the callback function used by TCode
+	void setStateChangeCallback(TempChangeStateCallback f) // Sets the callback function used by TCode
 	{
 		if (f == nullptr) {
 			state_change_callback = 0;
@@ -554,8 +551,8 @@ private:
 		const int resolution = 9;
 		const int delayInMillis = 750 / (1 << (12 - resolution));
 
-		std::function<void(TemperatureType, const char*, float)> message_callback = 0;
-		std::function<void(TemperatureType, const char*)> state_change_callback = 0;
+		TempChangeCallback message_callback = 0;
+		TempChangeStateCallback state_change_callback = 0;
 
 		long failSafeFrequency;
 		int failSafeFrequencyLimiter = 10000;

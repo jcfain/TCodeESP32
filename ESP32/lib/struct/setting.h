@@ -26,49 +26,8 @@ SOFTWARE. */
 //#include <variant>
 #include <mpark/variant.hpp>
 //#include <variant.hpp>
+#include "enum.h"
 
-enum class SettingType
-{
-    NONE,
-    Boolean,
-    Number,
-    String,
-    Float,
-    Double,
-    ArrayString,
-    ArrayInt,
-    MAX
-};
-
-enum class SettingProfile
-{
-    System,
-    Wireless,
-    Wifi,
-    Button,
-    MotionProfile,
-    Temperature,
-    Display,
-    Servo,
-    Pin,
-    Timer,
-    Bldc,
-    Battery,
-    Voice,
-    PWM,
-    Analog,
-    Bluetooth,
-    Ble,
-    ChannelRanges,
-    Vib,
-    Disabled,
-    MAX
-};
-
-enum class RestartRequired {
-    NO,
-    YES
-};
 
 struct Setting
 {

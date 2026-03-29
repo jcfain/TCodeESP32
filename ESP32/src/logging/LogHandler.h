@@ -21,16 +21,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 #pragma once
 #include <Arduino.h>
-
 #include <mutex>
 #include <vector>
 
-enum class LogLevel { NONE,
-                      ERROR,
-                      WARNING,
-                      INFO,
-                      DEBUG,
-                      VERBOSE };
+#include "enum.h"
+#include "callback.h"
+
 #define LOG_LEVEL_HELP "Sets system log level.\nValid values are: NONE=0, ERROR=1, WARNING=2, INFO=3, DEBUG=4, VERBOSE=5"
 
 class LogHandler {
@@ -209,7 +205,7 @@ public:
 
     static const char *getLastError() { return getInstance().m_lastError; }
 
-    static void setMessageCallback(std::function<void(const char *, size_t, LogLevel)> f) {
+    static void setMessageCallback(LogCallback f) {
         getInstance().m_message_callback = f == nullptr ? 0 : f;
     }
 
@@ -225,7 +221,7 @@ private:
         return logger_instance;
     }
 
-    std::function<void(const char *, size_t, LogLevel)> m_message_callback = 0;
+    LogCallback m_message_callback = 0;
     LogLevel m_currentLogLevel = LogLevel::INFO;
     SemaphoreHandle_t m_xMutex = xSemaphoreCreateMutex();
     std::vector<const char*> m_tags;

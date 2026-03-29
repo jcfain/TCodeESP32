@@ -91,18 +91,18 @@ void setup()
 // Main loop functions/////////////////////////////////////////////////
 // void readTCode(String &tcode)
 // {
-// 	if (initHandler->motorHandler)
+// 	if (motorHandler)
 // 	{
-// 		initHandler->motorHandler->read(tcode);
+// 		motorHandler->read(tcode);
 // 		tcode.clear();
 // 	}
 // }
 
 void readTCode(char *tcode, size_t& len)
 {
-	if (initHandler->motorHandler)
+	if (motorHandler)
 	{
-		initHandler->motorHandler->read(tcode, len);
+		motorHandler->read(tcode, len);
 		//tcode[0] = {0};
 		memset(tcode, 0, len);
 		len = 0;
@@ -111,13 +111,13 @@ void readTCode(char *tcode, size_t& len)
 
 void processButton()
 {
-	if (initHandler->buttonHandler)
+	if (buttonHandler)
 	{
-		initHandler->buttonHandler->read(buttonCommand);
+		buttonHandler->read(buttonCommand);
 		if (buttonCommand)
 		{
 			char command[MAX_COMMAND];
-			initHandler->systemCommandHandler->process(buttonCommand, command);
+			systemCommandHandler->process(buttonCommand, command);
 			size_t commandLen = strnlen(command, MAX_COMMAND);
 			if (commandLen > 0)
 			{
@@ -138,13 +138,13 @@ void getTCodeInput()
 // #if BLUETOOTH_TCODE
 // 	bluetoothData_len = 0;
 // #endif
-	if (initHandler->serialHandler && initHandler->serialHandler->available())
+	if (serialHandler && serialHandler->available())
 	{
-		serialData_len = initHandler->serialHandler->read(tcodeData);
+		serialData_len = serialHandler->read(tcodeData);
 	}
-	else if (initHandler->systemCommandHandler && initHandler->systemCommandHandler->available())
+	else if (systemCommandHandler && systemCommandHandler->available())
 	{
-		commandTCodeData_len = initHandler->systemCommandHandler->read(tcodeData);
+		commandTCodeData_len = systemCommandHandler->read(tcodeData);
 	}
 #if BLUETOOTH_TCODE
 	// else if (initHandler->bluetoothHandler && initHandler->bluetoothHandler->isConnected() && initHandler->bluetoothHandler->available() > 0)
@@ -161,30 +161,30 @@ void getTCodeInput()
 	}
 #endif
 #if WIFI_TCODE
-	else if (initHandler->webSocketHandler && initHandler->webSocketHandler->available())
+	else if (webSocketHandler && webSocketHandler->available())
 	{
 		benchHandler->benchStart(1);
-		webSocketData_len = initHandler->webSocketHandler->read(tcodeData);
+		webSocketData_len = webSocketHandler->read(tcodeData);
 		benchHandler->benchFinish("Websocket get", 1);
 	}
-	else if (initHandler->udpHandler && initHandler->udpHandler->available())
+	else if (udpHandler && udpHandler->available())
 	{
 		benchHandler->benchStart(2);
-		udpData_len = initHandler->udpHandler->read(tcodeData);
+		udpData_len = udpHandler->read(tcodeData);
 		benchHandler->benchFinish("Udp get", 2);
 	}
 #endif
 #if BLE_TCODE
-	else if (initHandler->bleHandler && initHandler->bleHandler->available())
+	else if (bleHandler && bleHandler->available())
 	{
-		bleData_len = initHandler->bleHandler->read(tcodeData);
+		bleData_len = bleHandler->read(tcodeData);
 	}
 #endif
 }
 
 void processCommand()
 {
-	if(initHandler->systemCommandHandler && initHandler->systemCommandHandler->isCommand(tcodeData))
+	if(systemCommandHandler && systemCommandHandler->isCommand(tcodeData))
 	{
 		size_t * len = 0;
 		// Read and process tcode $ and # commands
@@ -217,7 +217,7 @@ void processCommand()
 
 void processMotionHandlerMovement()
 {
-	initHandler->motionHandler->getMovement(movement, MAX_COMMAND);
+	motionHandler->getMovement(movement, MAX_COMMAND);
 	size_t len = strlen(movement);
 	if (len > 0)
 	{
@@ -237,7 +237,7 @@ void stop()
 void loop()
 {
 	// if(setupSucceeded && SettingsHandler::getSaving()) {
-	// 	initHandler->motorHandler->execute();
+	// 	motorHandler->execute();
 	// 	vTaskDelay(250/portTICK_PERIOD_MS);
 	// 	return;
 	// }
@@ -259,11 +259,11 @@ void loop()
 		SettingsHandler::restartRequired--;
 	}
 #if BUILD_TEMP
-	else if (initHandler->temperatureHandler && initHandler->temperatureHandler->isMaxTempTriggered())
+	else if (temperatureHandler && temperatureHandler->isMaxTempTriggered())
 	{
 		stop();
 		LogHandler::error(TagHandler::Main, "Internal temp has reached maximum user set. Main loop disabled! Restart system to enable the loop.");
-		initHandler->temperatureHandler->setFanState();
+		temperatureHandler->setFanState();
 		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	}
 #endif
@@ -343,16 +343,16 @@ void loop()
 			}
 
 			benchHandler->benchStart(4);
-			if (initHandler->motorHandler)
-				initHandler->motorHandler->execute();
+			if (motorHandler)
+				motorHandler->execute();
 			benchHandler->benchFinish("Execute", 4);
 
 #if BUILD_TEMP
 			benchHandler->benchStart(5);
-			if (initHandler->temperatureHandler && initHandler->temperatureHandler->isRunning())
+			if (temperatureHandler && temperatureHandler->isRunning())
 			{
-				initHandler->temperatureHandler->setHeaterState();
-				initHandler->temperatureHandler->setFanState();
+				temperatureHandler->setHeaterState();
+				temperatureHandler->setFanState();
 			}
 			benchHandler->benchFinish("Temp check", 5);
 #endif

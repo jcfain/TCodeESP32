@@ -91,7 +91,7 @@ public:
         return true;
     }
 
-	void setMessageCallback(std::function<void(float, float, float, float)> f) {
+	void setMessageCallback(BatteryVoltageCallback f) {
 		if (f == nullptr) {
 			message_callback = 0;
 		} else {
@@ -195,7 +195,7 @@ public:
     //}
 private:
     static const char* _TAG;
-	std::function<void(float, float, float, float)> message_callback = 0;
+	BatteryVoltageCallback message_callback = 0;
     static LTC2944 gauge;
     unsigned long lastTick = 0;
     int tick = 5000;
