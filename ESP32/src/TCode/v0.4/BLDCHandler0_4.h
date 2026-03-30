@@ -92,12 +92,12 @@ public:
         m_settingsFactory->getValue(BLDC_STROKELENGTH, strokeLength);
         int railLength = -1;
         m_settingsFactory->getValue(BLDC_RAILLENGTH, railLength);
-        ANG_TO_POS = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
-        LogHandler::debug(_TAG, "ANG_TO_POS: %f", ANG_TO_POS);
-        TOP_START_OFFSET = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
-        LogHandler::debug(_TAG, "TOP_START_OFFSET: %f", TOP_START_OFFSET);
-        ENDSTOP_START_OFFSET = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
-        LogHandler::debug(_TAG, "ENDSTOP_START_OFFSET: %f", ENDSTOP_START_OFFSET);
+        angToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
+        LogHandler::debug(_TAG, "angToPos: %f", angToPos);
+        topStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
+        LogHandler::debug(_TAG, "topStartOffset: %f", topStartOffset);
+        endStopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
+        LogHandler::debug(_TAG, "endStopOffset: %f", endStopOffset);
 
         // Begin tracking encoder
         LogHandler::debug(_TAG, "Encoder type: %d", encoderType);
@@ -325,7 +325,7 @@ public:
             //LogHandler::verbose(_TAG, "update SPI angle: %f", angle);
         }
         // Determine the linear position of the receiver in (0-10000)
-        xPosition = (angle - zeroAngle)*ANG_TO_POS; 
+        xPosition = (angle - zeroAngle)*angToPos; 
         //LogHandler::verbose(_TAG, "zeroAngle: %f", zeroAngle);
 
         // Control by motor voltage
@@ -340,12 +340,12 @@ public:
                 if (!digitalRead(m_hallSensorPin)) {
                     LogHandler::debug(_TAG, "Set bootmode false read hall");
                     bootmode = false;
-                    zeroAngle = angle - TOP_START_OFFSET;
+                    zeroAngle = angle - topStartOffset;
                 } else if (millis() > (startTime + 2000)) {
                     // Timeout after two seconds if sensor not triggered
                     bootmode = false;
                     LogHandler::debug(_TAG, "Set bootmode false hall timeout");
-                    zeroAngle = angle - TOP_START_OFFSET - ENDSTOP_START_OFFSET;
+                    zeroAngle = angle - topStartOffset - endStopOffset;
                 }
                 motorVoltageNew = P_CONST*(xLin - xPosition);
             } else {
@@ -355,7 +355,7 @@ public:
                 if (millis() > (startTime + 2000)) {
                     bootmode = false;
                     LogHandler::debug(_TAG, "Set bootmode false NO HALL timeout");
-                    zeroAngle = angle + ENDSTOP_START_OFFSET;
+                    zeroAngle = angle + endStopOffset;
                 }
                 motorVoltageNew = P_CONST*(xLin - xPosition);
                 if (motorVoltageNew < -0.5) { motorVoltageNew = -0.5; }
@@ -423,7 +423,7 @@ private:
     int counter = 0;
 
     // Derived constants
-    float ANG_TO_POS; // Number to convert a motor angle to a 0-10000 axis position
-    float TOP_START_OFFSET; // Angle turned by pulley for a full stroke
-    float ENDSTOP_START_OFFSET;  // Offset angle from bottom endstop on startup (rad)
+    float angToPos; // Number to convert a motor angle to a 0-10000 axis position
+    float topStartOffset; // Angle turned by pulley for a full stroke
+    float endStopOffset;  // Offset angle from bottom endstop on startup (rad)
 };

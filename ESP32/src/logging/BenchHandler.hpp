@@ -13,13 +13,25 @@ public:
     {
         
     }
+    void enable()
+    {
+        benchEnable = true;
+    }
+    void disable()
+    {
+        benchEnable = false;
+    }
     void benchStart(int benchNumber)
     {
+        if(!benchEnable)
+            return;
         if (benchEnable || (benchEnableZero && benchNumber == 0))
             bench[benchNumber] = micros();
     }
     void benchFinish(const char *systemUnderBench, int benchNumber)
     {
+        if(!benchEnable)
+            return;
         if (benchEnable || (benchEnableZero && benchNumber == 0))
         {
             unsigned long timeTaken = micros() - bench[benchNumber];

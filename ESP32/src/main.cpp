@@ -84,6 +84,7 @@ void setup()
 {
 	benchHandler = benchHandler->getInstance();
 	benchHandler->init();
+	// benchHandler->enable();
 	initHandler = InitHandler::getInstance();
 	setupSucceeded = initHandler->init();
 }
@@ -103,8 +104,8 @@ void readTCode(char *tcode, size_t& len)
 	if (motorHandler)
 	{
 		motorHandler->read(tcode, len);
-		//tcode[0] = {0};
-		memset(tcode, 0, len);
+		tcode[0] = {0};
+		//memset(tcode, 0, len);
 		len = 0;
 	}
 }
@@ -345,7 +346,7 @@ void loop()
 			benchHandler->benchStart(4);
 			if (motorHandler)
 				motorHandler->execute();
-			benchHandler->benchFinish("Execute", 4);
+			benchHandler->benchFinish("Motor handler Execute", 4);
 
 #if BUILD_TEMP
 			benchHandler->benchStart(5);

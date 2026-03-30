@@ -65,61 +65,139 @@ public:
     BLDCHandler0_3() : MotorHandler0_3(new TCode0_3()) { }
 
     bool setup() override {
-        bootmode = true;
         m_settingsFactory = SettingsFactory::getInstance();
-        //PinMapInfo pinMapInfo = m_settingsFactory->getPins();
-        PinMapSSR* pinMap = PinMapSSR::getInstance();
-        int pullyCircumference = -1;
-        m_settingsFactory->getValue(BLDC_MOTORA_PULLEY_CIRCUMFERENCE, pullyCircumference);
-        int strokeLength = -1;
-        m_settingsFactory->getValue(BLDC_STROKELENGTH, strokeLength);
-        int railLength = -1;
-        m_settingsFactory->getValue(BLDC_RAILLENGTH, railLength);
-        ANG_TO_POS = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
-        LogHandler::debug(_TAG, "ANG_TO_POS: %f", ANG_TO_POS);
-        TOP_START_OFFSET = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
-        LogHandler::debug(_TAG, "TOP_START_OFFSET: %f", TOP_START_OFFSET);
-        ENDSTOP_START_OFFSET = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
-        LogHandler::debug(_TAG, "ENDSTOP_START_OFFSET: %f", ENDSTOP_START_OFFSET);
-
-        // Begin tracking encoder
-        BLDCEncoderType encoderType = BLDCEncoderType::MT6701;
-        m_settingsFactory->getValue(BLDC_MOTORA_ENCODER, encoderType);
-        LogHandler::debug(_TAG, "Encoder type: %d", encoderType);
-
-        if(encoderType == BLDCEncoderType::MT6701) {
-            LogHandler::info(_TAG, "Selected encoder: MT6701");
-            if(pinMap->chipSelect() > -1) {
-                LogHandler::info(_TAG, "Setup BLDC motor on MT6701 chip select pin: %d", pinMap->chipSelect());
-                sensorMT6701 = new MagneticSensorMT6701SSI(pinMap->chipSelect());
-            } else {
-                LogHandler::error(_TAG, "Invalid ChipSelect pin %d", pinMap->chipSelect());
+        m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
+        if(m_deviceType == DeviceType::NONE)
+        {
+            LogHandler::error(_TAG, "No device type selected. Visit the web config or use the command to set a device before starting the firmware.");
+            return false;
+        }
+        m_settingsFactory->getValue(BLDC_MOTORA_ENCODER, encoderAType);
+        LogHandler::debug(_TAG, "Motor A Encoder type: %d", encoderAType);
+        if(encoderAType == BLDCEncoderType::NONE)
+        {
+            LogHandler::error(_TAG, "No encoder type selected. Visit the web config or use the command to set an encoder before starting the firmware.");
+            return false;
+        }
+        if(m_deviceType == DeviceType::SSR2)
+        {
+            m_settingsFactory->getValue(BLDC_MOTORB_ENCODER, encoderBType);
+            LogHandler::debug(_TAG, "Motor B Encoder type: %d", encoderBType);
+            if(encoderBType == BLDCEncoderType::NONE)
+            {
+                LogHandler::error(_TAG, "No encoder type selected. Visit the web config or use the command to set an encoder before starting the firmware.");
                 return false;
             }
-        } else if(encoderType == BLDCEncoderType::PWM) {
-            LogHandler::info(_TAG, "Selected encoder: PWM");
+        }
+        //PinMapInfo pinMapInfo = m_settingsFactory->getPins();
+        PinMapSSR* pinMap = PinMapSSR::getInstance();
+
+        if(m_deviceType == DeviceType::SSR1)
+        {
+            int pullyCircumference = -1;
+            m_settingsFactory->getValue(BLDC_MOTORA_PULLEY_CIRCUMFERENCE, pullyCircumference);
+            int strokeLength = -1;
+            m_settingsFactory->getValue(BLDC_STROKELENGTH, strokeLength);
+            int railLength = -1;
+            m_settingsFactory->getValue(BLDC_RAILLENGTH, railLength);
+            angToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
+            LogHandler::debug(_TAG, "angToPos: %f", angToPos);
+            topStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
+            LogHandler::debug(_TAG, "topStartOffset: %f", topStartOffset);
+            endStopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
+            LogHandler::debug(_TAG, "endStopOffset: %f", endStopOffset);
+        }
+        else
+        {
+            LogHandler::debug(_TAG, "[setup] SSR2");
+            angToPos = 530.516; // Number to convert a motor angle to a 0-10000 axis position
+            LogHandler::debug(_TAG, "angToPos: %f", angToPos);
+            topStartOffset = 2*3.14159*0.05; // Angle turned by pulley for a full stroke
+            LogHandler::debug(_TAG, "topStartOffset: %f", topStartOffset);
+            endStopOffset = 1;// Not used on SSR2 currently
+            //initEncoder = new InitEncoders(pinMap->chipSelect(), pinMap->motorBChipSelect(), &SPI);
+            LogHandler::info(_TAG, "TwistMultiplier %f", m_settingsFactory->getBLDCTwistMultiplier());
+        }
+
+        // Begin tracking encoder
+
+        if(encoderAType == BLDCEncoderType::MT6701) {
+            LogHandler::info(_TAG, "Selected Motor A encoder: MT6701");
+            if(pinMap->chipSelect() > -1) {
+                LogHandler::info(_TAG, "Setup BLDC motor A on MT6701 chip select pin: %d", pinMap->chipSelect());
+                sensorMT6701 = new MagneticSensorMT6701SSI(pinMap->chipSelect());
+            } else {
+                LogHandler::error(_TAG, "Invalid Motor A ChipSelect pin %d", pinMap->chipSelect());
+                return false;
+            }
+        } else if(encoderAType == BLDCEncoderType::PWM) {
+            LogHandler::info(_TAG, "Selected Motor A encoder: PWM");
             if(pinMap->encoder() > -1) {
-                LogHandler::info(_TAG, "Setup BLDC motor on PWM encoder pin: %d", pinMap->encoder());
+                LogHandler::info(_TAG, "Setup BLDC motor A on PWM encoder pin: %d", pinMap->encoder());
                 sensorPWM = new MagneticSensorPWM(pinMap->encoder(), 5, 928);
             } else {
-                LogHandler::error(_TAG, "Invalid encoder pin %d", pinMap->encoder());
+                LogHandler::error(_TAG, "Invalid Motor A encoder pin %d", pinMap->encoder());
                 return false;
             }
         } else {
             if(pinMap->chipSelect() > -1) {
-                LogHandler::info(_TAG, "Selected encoder: SPI");
-                LogHandler::info(_TAG, "Setup BLDC motor on SPI chip select pin: %d", pinMap->chipSelect());
+                LogHandler::info(_TAG, "Selected Motor A encoder: SPI");
+                LogHandler::info(_TAG, "Setup BLDC motor A on SPI chip select pin: %d", pinMap->chipSelect());
                 sensorSPI = new MagneticSensorSPI(pinMap->chipSelect(), 14, 0x3FFF);
             } else {
-                LogHandler::error(_TAG, "Invalid ChipSelect pin %d", pinMap->chipSelect());
+                LogHandler::error(_TAG, "Invalid Motor A ChipSelect pin %d", pinMap->chipSelect());
                 return false;
+            }
+        }
+
+        if(m_deviceType == DeviceType::SSR2)
+        {
+            BLDCEncoderType encoderBType = (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
+            m_settingsFactory->getValue(BLDC_MOTORB_ENCODER, encoderBType);
+            LogHandler::debug(_TAG, "Motor B Encoder type: %d", encoderBType);
+            if(encoderBType == BLDCEncoderType::MT6701) {
+                LogHandler::info(_TAG, "Selected Motor B encoder: MT6701");
+                if(pinMap->motorBChipSelect() > -1) {
+                    LogHandler::info(_TAG, "Setup BLDC motor B on MT6701 chip select pin: %d", pinMap->motorBChipSelect());
+                    sensorB_MT6701 = new MagneticSensorMT6701SSI(pinMap->motorBChipSelect());
+                } else {
+                    LogHandler::error(_TAG, "Invalid ChipSelect pin %d", pinMap->motorBChipSelect());
+                    return false;
+                }
+            } else if(encoderBType == BLDCEncoderType::PWM) {
+                LogHandler::info(_TAG, "Selected Motor B encoder: PWM");
+                if(pinMap->motorBEncoder() > -1) {
+                    LogHandler::info(_TAG, "Setup BLDC motor B on PWM encoder pin: %d", pinMap->motorBEncoder());
+                    sensorB_PWM = new MagneticSensorPWM(pinMap->motorBEncoder(), 5, 928);
+                } else {
+                    LogHandler::error(_TAG, "Invalid Motor B encoder pin %d", pinMap->motorBEncoder());
+                    return false;
+                }
+            } else {
+                if(pinMap->motorBChipSelect() > -1) {
+                    LogHandler::info(_TAG, "Selected Motor B encoder: SPI");
+                    LogHandler::info(_TAG, "Setup BLDC motor B on SPI chip select pin: %d", pinMap->motorBChipSelect());
+                    sensorB_SPI = new MagneticSensorSPI(pinMap->motorBChipSelect(), 14, 0x3FFF);
+                } else {
+                    LogHandler::error(_TAG, "Invalid Motor B ChipSelect pin %d", pinMap->motorBChipSelect());
+                    return false;
+                }
             }
         }
         // BLDC motor & driver instance
         motorA = new BLDCMotor(11,11.1);
+        if(m_deviceType == DeviceType::SSR2)
+            motorB = new BLDCMotor(11,11.1);
+        
         // BLDCDriver3PWM driver = BLDCDriver3PWM(pwmA, pwmB, pwmC, Enable(optional));
-        LogHandler::info(_TAG, "Setup BLDC PWM pins 1: %d, 2: %d, 3: %d, enable: %d", pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
+        LogHandler::info(_TAG, "Setup Motor A BLDC pins PWM1: %d, PWM2: %d, PWM3: %d, enable: %d", pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
         driverA = new BLDCDriver3PWM(pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
+        if(motorB)
+        {
+            LogHandler::info(_TAG, "Setup Motor B BLDC pins PWM1: %d, PWM2: %d, PWM3: %d, enable: %d", pinMap->motorBPwmChannel1(), pinMap->motorBPwmChannel2(), pinMap->motorBPwmChannel3(), pinMap->motorBEnable());
+            driverB = new BLDCDriver3PWM(pinMap->motorBPwmChannel1(), pinMap->motorBPwmChannel2(), pinMap->motorBPwmChannel3(), pinMap->motorBEnable());
+        }
+
 
         // Start serial connection and report status
         m_tcode->setup(FIRMWARE_VERSION_NAME);
@@ -128,7 +206,10 @@ public:
         //EEPROM.begin(320); Done in TCode class
 
         // Register device axes
-        m_tcode->RegisterAxis("L0", "Up");
+        m_tcode->RegisterAxis(TCODE_CHANNEL_STROKE, "Up");
+        if(m_deviceType == DeviceType::SSR2)
+            m_tcode->RegisterAxis(TCODE_CHANNEL_TWIST, "Twist");
+
         m_settingsFactory->getValue(BLDC_USEHALLSENSOR, m_useHallSensor);
         m_hallSensorPin = pinMap->hallEffect();
         if(m_useHallSensor && m_hallSensorPin > -1) {
@@ -145,56 +226,118 @@ public:
         if(sensorMT6701) {
             //SPI.begin(pinMap->i2cScl(), pinMap->i2cSda(), 11, pinMap->chipSelect()); // Do we need MOSI custom?
             sensorMT6701->init();
-            LogHandler::debug(_TAG, "init sensorMT6701");
+            LogHandler::debug(_TAG, "init Motor A sensorMT6701");
         } else if (sensorPWM) { 
             sensorPWM->init(); 
-            LogHandler::debug(_TAG, "init sensorPWM");
+            LogHandler::debug(_TAG, "init Motor A sensorPWM");
         } else { 
             //SPI.begin(pinMap->i2cScl(), pinMap->i2cSda(), 11, pinMap->chipSelect()); // Do we need this custom?
             sensorSPI->init(); 
-            LogHandler::debug(_TAG, "init sensorSPI");
+            LogHandler::debug(_TAG, "init Motor A sensorSPI");
+        }
+        if(motorB)
+        {
+            if(sensorB_MT6701) {
+                //SPI.begin(pinMap->i2cScl(), pinMap->i2cSda(), 11, pinMap->chipSelect()); // Do we need MOSI custom?
+                sensorB_MT6701->init();
+                LogHandler::debug(_TAG, "init Motor B sensorMT6701");
+            } else if (sensorB_PWM) { 
+                sensorB_PWM->init(); 
+                LogHandler::debug(_TAG, "init Motor B sensorPWM");
+            } else { 
+                //SPI.begin(pinMap->i2cScl(), pinMap->i2cSda(), 11, pinMap->chipSelect()); // Do we need this custom?
+                sensorB_SPI->init(); 
+                LogHandler::debug(_TAG, "init Motor B sensorSPI");
+            }
         }
 
         // driver config
         // Max DC voltage allowed - default voltage_limit
         double motorAVoltage = BLDC_MOTORA_VOLTAGE_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, motorAVoltage);
-        LogHandler::debug(_TAG, "Voltage: %f", motorAVoltage);
+        LogHandler::debug(_TAG, "Motor A Voltage: %f", motorAVoltage);
         driverA->voltage_limit = motorAVoltage;
         // power supply voltage [V]
         double supplyAVoltage = BLDC_MOTORA_SUPPLY_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_SUPPLY, supplyAVoltage);
         driverA->voltage_power_supply = supplyAVoltage;
+
+        if(motorB)
+        {
+            double motorBVoltage = BLDC_MOTORB_VOLTAGE_DEFAULT;
+            m_settingsFactory->getValue(BLDC_MOTORB_VOLTAGE, motorBVoltage);
+            LogHandler::debug(_TAG, "Motor B Voltage: %f", motorBVoltage);
+            driverB->voltage_limit = motorBVoltage;
+            // power supply voltage [V]
+            double supplyBVoltage = BLDC_MOTORB_SUPPLY_DEFAULT;
+            m_settingsFactory->getValue(BLDC_MOTORB_SUPPLY, supplyBVoltage);
+            driverB->voltage_power_supply = supplyBVoltage;
+        }
         // driver init
         driverA->init();
+        driverB->init();
 
         // limiting motor movements
         double motorACurrent = BLDC_MOTORA_CURRENT_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_CURRENT, motorACurrent);
-        LogHandler::debug(_TAG, "Current: %f", motorACurrent);
+        LogHandler::debug(_TAG, "Motor A Current: %f", motorACurrent);
         motorA->current_limit = motorACurrent;   // [Amps] 
 
         // set control loop type to be used
         motorA->torque_controller = TorqueControlType::voltage;
         motorA->controller = MotionControlType::torque;
 
+
+        if(motorB)
+        {
+            // limiting motor movements
+            double motorBCurrent = BLDC_MOTORB_CURRENT_DEFAULT;
+            m_settingsFactory->getValue(BLDC_MOTORB_CURRENT, motorBCurrent);
+            LogHandler::debug(_TAG, "Motor B Current: %f", motorBCurrent);
+            motorB->current_limit = motorBCurrent;   // [Amps] 
+
+            // set control loop type to be used
+            motorB->torque_controller = TorqueControlType::voltage;
+            motorB->controller = MotionControlType::torque;
+        }
+
         // link the motor to the sensor
         if(sensorMT6701) {
             motorA->linkSensor(sensorMT6701); 
-            LogHandler::debug(_TAG, "linkSensor sensorMT6701");
+            LogHandler::debug(_TAG, "Motor A linkSensor sensorMT6701");
         } else if (sensorPWM) { 
             motorA->linkSensor(sensorPWM); 
-            LogHandler::debug(_TAG, "linkSensor sensorPWM");
+            LogHandler::debug(_TAG, "Motor A linkSensor sensorPWM");
         } else { 
             motorA->linkSensor(sensorSPI); 
-            LogHandler::debug(_TAG, "linkSensor sensorSPI");
+            LogHandler::debug(_TAG, "Motor A linkSensor sensorSPI");
+        }
+        if(motorB)
+        {
+            if(sensorB_MT6701) {
+                motorB->linkSensor(sensorB_MT6701); 
+                LogHandler::debug(_TAG, "Motor B linkSensor sensorMT6701");
+            } else if (sensorPWM) { 
+                motorB->linkSensor(sensorB_PWM); 
+                LogHandler::debug(_TAG, "Motor B linkSensor sensorPWM");
+            } else { 
+                motorB->linkSensor(sensorB_SPI); 
+                LogHandler::debug(_TAG, "Motor B linkSensor sensorSPI");
+            }
         }
         // link the motor and the driver
         motorA->linkDriver(driverA);
+        if(motorB)
+            motorB->linkDriver(driverB);
 
         // initialize motor
         motorA->init();
+        if(motorB)
+            motorB->init();
+
         motorA->useMonitoring(Serial);
+        if(motorB)
+            motorB->useMonitoring(Serial);
 
         // init current sense
         bool paramsKnown = BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT;
@@ -203,43 +346,82 @@ public:
             double zeroElecAngle = BLDC_MOTORA_ZEROELECANGLE_DEFAULT;
             m_settingsFactory->getValue(BLDC_MOTORA_ZEROELECANGLE, zeroElecAngle);
         // Set sensor angle and pre-set zero angle to current angle
-            LogHandler::info(_TAG, "Setting MotorA parameters: %f", zeroElecAngle);
+            LogHandler::info(_TAG, "Setting Motor A parameters: %f", zeroElecAngle);
             motorA->sensor_direction = MotorA_SensorDirection;
             motorA->zero_electric_angle  = zeroElecAngle; // rad
         }
 
+        if(motorB)
+        {
+            bool paramsKnownB = BLDC_MOTORB_PARAMETERSKNOWN_DEFAULT;
+            m_settingsFactory->getValue(BLDC_MOTORB_PARAMETERSKNOWN, paramsKnownB);
+            if(paramsKnownB) {
+                double zeroElecAngleB = BLDC_MOTORB_ZEROELECANGLE_DEFAULT;
+                m_settingsFactory->getValue(BLDC_MOTORB_ZEROELECANGLE, zeroElecAngleB);
+            // Set sensor angle and pre-set zero angle to current angle
+                LogHandler::info(_TAG, "Setting Motor B parameters: %f", zeroElecAngleB);
+                motorB->sensor_direction = MotorB_SensorDirection;
+                motorB->zero_electric_angle  = zeroElecAngleB; // rad
+            }
+        }
+
         if (motorA->initFOC())  {
-            LogHandler::info(_TAG, "FOC init success!");
+            LogHandler::info(_TAG, "Motor A FOC init success!");
         } else {
-            LogHandler::error(_TAG, "FOC init failed!");
+            LogHandler::error(_TAG, "Motor A FOC init failed!");
             return false;
         }
+        if(motorB)
+        {
+            if (motorB->initFOC())  {
+                LogHandler::info(_TAG, "Motor B FOC init success!");
+            } else {
+                LogHandler::error(_TAG, "Motor B FOC init failed!");
+                return false;
+            }
+        }
         LogHandler::info(_TAG, "BLDC_MotorA_ZeroElecAngle %f", motorA->zero_electric_angle);
+        LogHandler::info(_TAG, "BLDC_MotorB_ZeroElecAngle %f", motorB->zero_electric_angle);
 
         
         // link the motor to the sensor
         if(sensorMT6701) {
             sensorMT6701->update();
-            zeroAngle = sensorMT6701->getAngle();
-            LogHandler::debug(_TAG, "MT6701 zeroAngle: %f", zeroAngle);
+            zeroAngleA = sensorMT6701->getAngle();
+            LogHandler::debug(_TAG, "Motor A MT6701 zeroAngle: %f", zeroAngleA);
         } else if (sensorPWM) { 
             sensorPWM->update(); 
-            zeroAngle = sensorPWM->getAngle();
-            LogHandler::debug(_TAG, "PWM zeroAngle: %f", zeroAngle);
+            zeroAngleA = sensorPWM->getAngle();
+            LogHandler::debug(_TAG, "Motor A PWM zeroAngle: %f", zeroAngleA);
         } else { 
             sensorSPI->update();
-            zeroAngle = sensorSPI->getAngle();
-            LogHandler::debug(_TAG, "SPI zeroAngle: %f", zeroAngle);
+            zeroAngleA = sensorSPI->getAngle();
+            LogHandler::debug(_TAG, "Motor A SPI zeroAngle: %f", zeroAngleA);
+        }
+
+        if(motorB)
+        {
+            if(sensorB_MT6701) {
+                sensorB_MT6701->update();
+                zeroAngleB = sensorB_MT6701->getAngle();
+                LogHandler::debug(_TAG, "Motor B MT6701 zeroAngle: %f", zeroAngleB);
+            } else if (sensorB_PWM) { 
+                sensorB_PWM->update(); 
+                zeroAngleB = sensorB_PWM->getAngle();
+                LogHandler::debug(_TAG, "Motor B PWM zeroAngle: %f", zeroAngleB);
+            } else { 
+                sensorB_SPI->update();
+                zeroAngleB = sensorB_SPI->getAngle();
+                LogHandler::debug(_TAG, "Motor B SPI zeroAngle: %f", zeroAngleB);
+            }
         }
 
 
         setupCommon();
 
         // Signal ready to start
-        if(!m_initialized)
-            LogHandler::error(_TAG, "Error in setup");
-        else
-            LogHandler::info(_TAG, "Ready!");
+        m_initialized = true;
+        LogHandler::info(_TAG, "Ready!");
         return true;
     }
 
@@ -263,8 +445,106 @@ public:
         m_tcode->setMessageCallback(function);
     }
 
-
     void execute() override {
+        // executeCommon(stroke);
+        if(!m_initialized)
+            return;
+        // Collect inputs
+        // These functions query the t-code object for the position/level at a specified time
+        // Number recieved will be an integer, 0-9999
+        int strokeTCode = channelRead(TCODE_CHANNEL_STROKE);
+        if (m_settingsFactory->getInverseStroke())
+        {
+            strokeTCode = 9999 - strokeTCode;
+        }
+        // LogHandler::verbose(m_TAG, "strokeTCode: %ld", strokeTCode);
+
+        if(m_deviceType == DeviceType::SSR1)
+        {
+            executeSSR1(strokeTCode);
+        }
+        else if(m_deviceType == DeviceType::SSR2)
+        {
+            int twistTCode = channelRead(TCODE_CHANNEL_TWIST);
+            if (m_settingsFactory->getInverseTwist())
+            {
+                twistTCode = 9999 - twistTCode;
+            }
+            // LogHandler::verbose(m_TAG, "twistTCode: %ld", twistTCode);
+            executeSSR2(strokeTCode, twistTCode);
+        }
+
+        // executeCommon(strokeTCode);
+       
+        log();
+    }
+
+private:
+
+    const char* _TAG = TagHandler::BLDCHandler;
+    bool m_initialized = false;
+    SettingsFactory* m_settingsFactory;
+    DeviceType m_deviceType;
+    bool m_useHallSensor = false;
+    int8_t m_hallSensorPin = -1;
+    BLDCBootMode m_bootmode = BLDCBootMode::CALIBRATE;
+    // Drive Parameters
+
+    // The control code needs to know the angle of the motor relative to the encoder - "Zero elec. angle".
+    // If a value is not entered it will perform a quick operation on startup to estimate this.
+    // This will be displayed in the serial monitor each time the device starts up.
+    // If the device is noticably faster in one direction the angle is out of alignment, try increasing or decreasing it by small increments (eg +/- 0.1).
+    Direction MotorA_SensorDirection = Direction::CW; // Do not change. If the motor is showing CCW rotate the motor connector 180 degrees to reverse the motor.
+    // BLDC motorA & driver instance
+    BLDCMotor* motorA;
+    BLDCDriver3PWM* driverA;
+    BLDCEncoderType encoderAType =  (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
+    MagneticSensorMT6701SSI* sensorMT6701 = 0;
+    MagneticSensorPWM* sensorPWM = 0;
+    MagneticSensorSPI* sensorSPI = 0;
+    float zeroAngleA = 0.00;
+    float sensorAngleA = 0.00;
+    float m_motorAnglePositionA = 0.00;
+    float motorVoltageA = 0.00;
+
+    ///SSR2 only
+    Direction MotorB_SensorDirection = Direction::CW;// Do not change. If the motor is showing CCW rotate the motor connector 180 degrees to reverse the motor.
+    // BLDC motorB & driver instance
+    BLDCMotor* motorB;
+    BLDCDriver3PWM* driverB;
+    BLDCEncoderType encoderBType =  (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
+    MagneticSensorMT6701SSI* sensorB_MT6701 = 0;
+    MagneticSensorPWM* sensorB_PWM = 0;
+    MagneticSensorSPI* sensorB_SPI = 0;
+    float zeroAngleB = 0.00;
+    float sensorAngleB = 0.00;
+    float m_motorAnglePositionB = 0.00;
+    float motorVoltageB = 0.00;
+
+    float strokePosition;
+    float twistPosition;
+    int startPoint;
+    ///
+
+    // Position variables
+    //float zeroAngle = 0.00;
+    //float xPosition = 0.00;
+    unsigned long startTime = 0;
+    //float motorVoltage = 0.00;
+
+    // IGNORE!
+    unsigned long previousMillis = 0; // variable to store the time of the last report
+    const long interval = 10; // interval at which to send reports (in ms)
+    int counter = 0;
+
+    // Derived constants
+    float angToPos; // Number to convert a motor angle to a 0-10000 axis position
+    float topStartOffset; // Angle turned by pulley for a full stroke
+    float endStopOffset;  // Offset angle from bottom endstop on startup (rad)
+
+
+
+    void executeSSR1(int& strokeTCode) {
 
         if(!m_initialized) {
             return;
@@ -277,129 +557,239 @@ public:
         // Run motor FOC loop
         motorA->loopFOC();
 
-        // Collect inputs
-        // These functions query the t-code object for the position/level at a specified time
-        // Number recieved will be an integer, 0-9999
-        int xLin = channelRead("L0");
-        if (m_settingsFactory->getInverseStroke())
-        {
-            xLin = 9999 - xLin;
-        }
-        //LogHandler::verbose(_TAG, "xLin: %ld", xLin);
-
-
         // Update sensor position
-        float angle;
         if(sensorMT6701) {
             sensorMT6701->update();
-            angle = sensorMT6701->getAngle();
+            sensorAngleA = sensorMT6701->getAngle();
             //LogHandler::verbose(_TAG, "update MT6701 angle: %f", angle);
         } else if (sensorPWM) { 
             sensorPWM->update();
-            angle = sensorPWM->getAngle();
+            sensorAngleA = sensorPWM->getAngle();
             //LogHandler::verbose(_TAG, "update PWM angle: %f", angle);
         } else {
             sensorSPI->update();
-            angle = sensorSPI->getAngle();
+            sensorAngleA = sensorSPI->getAngle();
             //LogHandler::verbose(_TAG, "update SPI angle: %f", angle);
         }
         // Determine the linear position of the receiver in (0-10000)
-        xPosition = (angle - zeroAngle)*ANG_TO_POS; 
+        strokePosition = (sensorAngleA - zeroAngleA)*angToPos; 
         //LogHandler::verbose(_TAG, "zeroAngle: %f", zeroAngle);
 
         // Control by motor voltage
         float motorVoltageNew;
         // Mode 0 is startup mode. 
         // Distance of travel is 12,000 (>10,000) just to make sure that the receiver reaches the top/bottom.
-        if (bootmode) {
+        if (m_bootmode == BLDCBootMode::CALIBRATE) {
             // If using a hall sensor, roll upwards until the magnet triggers the hall effect sensor
             if (m_useHallSensor) {
                 //LogHandler::verbose(_TAG, "Hall senso millis()-startTime: %ld", millis()-startTime);
-                xLin  = map(millis()-startTime,0,2000,0,12000);
+                strokeTCode = map(millis()-startTime,0,2000,0,12000);
                 if (!digitalRead(m_hallSensorPin)) {
                     LogHandler::debug(_TAG, "Set bootmode false read hall");
-                    bootmode = false;
-                    zeroAngle = angle - TOP_START_OFFSET;
+                    m_bootmode = BLDCBootMode::NORMAL;
+                    zeroAngleA = angle - topStartOffset;
                 } else if (millis() > (startTime + 2000)) {
                     // Timeout after two seconds if sensor not triggered
-                    bootmode = false;
+                    m_bootmode = BLDCBootMode::NORMAL;
                     LogHandler::debug(_TAG, "Set bootmode false hall timeout");
-                    zeroAngle = angle - TOP_START_OFFSET - ENDSTOP_START_OFFSET;
+                    zeroAngleA = angle - topStartOffset - endStopOffset;
                 }
-                motorVoltageNew = P_CONST*(xLin - xPosition);
+                motorVoltageNew = P_CONST*(strokeTCode - strokePosition);
             } else {
                 // Otherwise roll downwards for two seconds and press against bottom stop.
                 // LogHandler::verbose(_TAG, "millis()-startTime: %ld", millis()-startTime);
-                xLin  = map(millis()-startTime,0,2000,0,-12000);
+                strokeTCode  = map(millis()-startTime,0,2000,0,-12000);
                 if (millis() > (startTime + 2000)) {
-                    bootmode = false;
+                    m_bootmode = BLDCBootMode::NORMAL;
                     LogHandler::debug(_TAG, "Set bootmode false NO HALL timeout");
-                    zeroAngle = angle + ENDSTOP_START_OFFSET;
+                    zeroAngleA = angle + endStopOffset;
                 }
-                motorVoltageNew = P_CONST*(xLin - xPosition);
+                motorVoltageNew = P_CONST*(strokeTCode - strokePosition);
                 if (motorVoltageNew < -0.5) { motorVoltageNew = -0.5; }
             }
         // Otherwise set motor voltage based on position error     
         } else {
-            motorVoltageNew = P_CONST*(xLin - xPosition);
+            motorVoltageNew = P_CONST*(strokeTCode - strokePosition);
         }
         // Low pass filter to reduce motor noise
-        motorVoltage = LOW_PASS*motorVoltage + (1-LOW_PASS)*motorVoltageNew;  
+        motorVoltageA = LOW_PASS*motorVoltageA + (1-LOW_PASS)*motorVoltageNew;  
         // Motion control function
-        motorA->move(motorVoltage);
+        motorA->move(motorVoltageA);
+    }
 
-        if(LogHandler::getLogLevel() == LogLevel::VERBOSE) {
+    void executeSSR2(int strokeTCode, int twistTCode)
+    { 
+        if(!m_initialized)
+            return;
+        if(!startTime) {
+            // Record start time
+            startTime = millis();
+            LogHandler::verbose(_TAG, "startTime: %ld", startTime);
+        }
+        // Run motor FOC loop
+        motorA->loopFOC();
+        motorB->loopFOC();
+
+        float twistMultiplier = m_settingsFactory->getBLDCTwistMultiplier();
+        float twistLimit = 0.5f; //TODO make this a setting
+
+        // Update sensor position
+        if(sensorMT6701) {
+            sensorMT6701->update();
+            sensorAngleA = sensorMT6701->getAngle();
+            //LogHandler::verbose(_TAG, "update MT6701 angle: %f", angle);
+        } else if (sensorPWM) { 
+            sensorPWM->update();
+            sensorAngleA = sensorB_PWM->getAngle();
+            //LogHandler::verbose(_TAG, "update PWM angle: %f", angle);
+        } else {
+            sensorSPI->update();
+            sensorAngleA = sensorSPI->getAngle();
+            //LogHandler::verbose(_TAG, "update SPI angle: %f", angle);
+        }
+        if(sensorB_MT6701) {
+            sensorB_MT6701->update();
+            sensorAngleB = sensorB_MT6701->getAngle();
+            //LogHandler::verbose(_TAG, "update MT6701 angle: %f", angle);
+        } else if (sensorB_PWM) { 
+            sensorB_PWM->update();
+            sensorAngleB = sensorB_PWM->getAngle();
+            //LogHandler::verbose(_TAG, "update PWM angle: %f", angle);
+        } else {
+            sensorB_SPI->update();
+            sensorAngleB = sensorB_SPI->getAngle();
+            //LogHandler::verbose(_TAG, "update SPI angle: %f", angle);
+        }
+        // m_sensorA->update();
+        // float angleA = m_sensorA->getAngle();
+        // m_sensorB->update();
+        // float angleB = m_sensorA->getAngle();
+        // Determine the linear position of the receiver in (0-10000)
+        m_motorAnglePositionA = -(sensorAngleA - zeroAngleA)*angToPos;
+        m_motorAnglePositionB = (sensorAngleB - zeroAngleB)*angToPos;
+        strokePosition = 0.5*(m_motorAnglePositionA + m_motorAnglePositionB);
+        twistPosition = m_motorAnglePositionB - m_motorAnglePositionA;
+
+        // Position control
+        float strokeTargetPosition, twistTargetPosition;
+        if (m_bootmode == BLDCBootMode::CALIBRATE) 
+        {
+            // LogHandler::debug(_TAG, "Boot mode CALIBRATE: startTime %i, millis: %ld !digitalRead(m_hallSensorPin)", startTime, millis());
+            if(m_useHallSensor)
+            {
+                strokeTargetPosition = map(millis()-startTime,0,2000,0,12000);
+                twistTargetPosition = 0;
+                if (!digitalRead(m_hallSensorPin)) 
+                {
+                    LogHandler::debug(_TAG, "Boot mode HOMING: startTime %i, millis: %ld !digitalRead(m_hallSensorPin)", startTime, millis());
+                    m_bootmode = BLDCBootMode::HOMING;
+                    zeroAngleA = sensorAngleA + 10000/angToPos;
+                    zeroAngleB = sensorAngleB - 10000/angToPos;
+                    LogHandler::debug(_TAG, "m_useHallSensor zeroAngleA %i", zeroAngleA);
+                    LogHandler::debug(_TAG, "m_useHallSensor zeroAngleB %i", zeroAngleB);
+                    startPoint = 9999;
+                    startTime = millis();
+                    Serial.println("Ready!");
+                } 
+                else if (millis() > (startTime + 2000)) 
+                {
+                    LogHandler::debug(_TAG, "Boot mode HOMING: startTime %i, millis: %ld m_useHallSensor millis() > (startTime + 2000)", startTime, millis());
+                    m_bootmode = BLDCBootMode::HOMING;
+                    zeroAngleA = sensorAngleA + 10000/angToPos + topStartOffset;
+                    zeroAngleB = sensorAngleB - 10000/angToPos - topStartOffset;
+                    LogHandler::debug(_TAG, "m_useHallSensor millis() > (startTime + 2000) zeroAngleA %i", zeroAngleA);
+                    LogHandler::debug(_TAG, "m_useHallSensor millis() > (startTime + 2000) zeroAngleB %i", zeroAngleB);
+                    startPoint = 9999;
+                    startTime = millis();
+                    Serial.println("Ready!");
+                }
+            }
+            else
+            {
+                strokeTargetPosition = map(millis()-startTime,0,2000,0,-12000);
+                twistTargetPosition = 0;
+                if (millis() > (startTime + 2000)) 
+                {
+                    LogHandler::debug(_TAG, "Boot mode HOMING: startTime %i, millis: %ld", startTime, millis());
+                    m_bootmode = BLDCBootMode::HOMING;
+                    zeroAngleA = sensorAngleA - topStartOffset;
+                    zeroAngleB = sensorAngleB + topStartOffset;
+                    LogHandler::debug(_TAG, "zeroAngleA %i", zeroAngleA);
+                    LogHandler::debug(_TAG, "zeroAngleB %i", zeroAngleB);
+                    startPoint = 0;
+                    startTime = millis();
+                    Serial.println("Ready!");
+                }
+            }
+        } 
+        else if (m_bootmode == BLDCBootMode::HOMING) 
+        {
+            strokeTargetPosition = map(millis()-startTime,0,2000,startPoint,strokeTCode);
+            twistTargetPosition = 0;
+            if (millis() > (startTime + 2000)) 
+            {
+                LogHandler::debug(_TAG, "Boot mode NORMAL: startTime %i, millis: %ld", startTime, millis());
+                m_bootmode = BLDCBootMode::NORMAL;
+            }
+        } 
+        else 
+        {
+            // Otherwise set motor voltage based on position   
+            strokeTargetPosition = strokeTCode;
+            twistTargetPosition = twistMultiplier*(5000 - twistTCode);
+        }
+
+        float strokeVoltage, twistVoltage;
+        strokeVoltage = P_CONST*(strokeTargetPosition - strokePosition);
+        twistVoltage = P_CONST*(twistTargetPosition - twistPosition);
+        if (twistVoltage > twistLimit) {twistVoltage = twistLimit;}
+        if (twistVoltage < -twistLimit) {twistVoltage = -twistLimit;}
+
+        // Control by motor voltage
+        float motorVoltageNewA;
+        motorVoltageNewA = -strokeVoltage + twistVoltage;
+        if (m_bootmode == BLDCBootMode::CALIBRATE) 
+        {
+            if (motorVoltageNewA < -0.5) { motorVoltageNewA = -0.5; }
+            if (motorVoltageNewA > 0.5) { motorVoltageNewA = 0.5; } 
+        }
+
+        // Low pass filter to reduce motor noise
+        motorVoltageA = LOW_PASS*motorVoltageA + (1-LOW_PASS)*motorVoltageNewA;  
+        // Motion control function
+        motorA->move(motorVoltageA);
+
+            // Control by motor voltage
+        float motorVoltageNewB;
+        motorVoltageNewB = strokeVoltage + twistVoltage;
+        if (m_bootmode == BLDCBootMode::CALIBRATE) 
+        {
+            if (motorVoltageNewB < -0.5) { motorVoltageNewB = -0.5; }
+            if (motorVoltageNewB > 0.5) { motorVoltageNewB = 0.5; }
+        }
+
+        // Low pass filter to reduce motor noise
+        motorVoltageB = LOW_PASS*motorVoltageB + (1-LOW_PASS)*motorVoltageNewB;  
+        // Motion control function
+        motorB->move(motorVoltageB);
+    }
+
+    void log() 
+    {
+        if(!m_initialized)
+            return;
+        if(LogHandler::getLogLevel() == LogLevel::VERBOSE) 
+        {
             unsigned long currentMillis = millis();
-            if (currentMillis - previousMillis >= interval) {
+            if (currentMillis - previousMillis >= interval) 
+            {
                 previousMillis = currentMillis;
-                LogHandler::verbose(_TAG, "xPosition: %f \t motorVoltage: %f \t bootmode: %ld \t xLin: %ld \t zeroAngle: %f \t angle: %f\n", xPosition, motorVoltage, bootmode, xLin, zeroAngle, angle);
+                LogHandler::verbose(_TAG, "%s motor position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleA: %f \t sensorAngleA: %f\n", "Motor A", m_motorAnglePositionA, motorVoltageA, m_bootmode, zeroAngleA, sensorAngleA);
+                if(motorB)
+                    LogHandler::verbose(_TAG, "%s motor position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleB: %f \t sensorAngleB: %f\n", "Motor B", m_motorAnglePositionB, motorVoltageB, m_bootmode, zeroAngleB, sensorAngleB);
                 counter = 0;
             }
             counter++;
         }
-
-        executeCommon(xLin);
-       
     }
-
-private:
-
-    const char* _TAG = TagHandler::BLDCHandler;
-    bool m_initialized = false;
-    SettingsFactory* m_settingsFactory;
-    bool m_useHallSensor = false;
-    int8_t m_hallSensorPin = -1;
-    // Drive Parameters
-
-    // The control code needs to know the angle of the motor relative to the encoder - "Zero elec. angle".
-    // If a value is not entered it will perform a quick operation on startup to estimate this.
-    // This will be displayed in the serial monitor each time the device starts up.
-    // If the device is noticably faster in one direction the angle is out of alignment, try increasing or decreasing it by small increments (eg +/- 0.1).
-    Direction MotorA_SensorDirection = Direction::CW; // Do not change. If the motor is showing CCW rotate the motor connector 180 degrees to reverse the motor.
-
-    // BLDC motor & driver instance
-    BLDCMotor* motorA;
-    // BLDCDriver3PWM driver = BLDCDriver3PWM(pwmA, pwmB, pwmC, Enable(optional));
-    BLDCDriver3PWM* driverA;
-    // Declare a PWM and an SPI sensor. Only one will be used.
-    MagneticSensorMT6701SSI* sensorMT6701 = 0;
-    MagneticSensorPWM* sensorPWM = 0;
-    MagneticSensorSPI* sensorSPI = 0;
-
-    // Position variables
-    float zeroAngle = 0.00;
-    float xPosition = 0.00;
-    bool bootmode = true;
-    unsigned long startTime = 0;
-    float motorVoltage = 0.00;
-
-    // IGNORE!
-    unsigned long previousMillis = 0; // variable to store the time of the last report
-    const long interval = 10; // interval at which to send reports (in ms)
-    int counter = 0;
-
-    // Derived constants
-    float ANG_TO_POS; // Number to convert a motor angle to a 0-10000 axis position
-    float TOP_START_OFFSET; // Angle turned by pulley for a full stroke
-    float ENDSTOP_START_OFFSET;  // Offset angle from bottom endstop on startup (rad)
 };

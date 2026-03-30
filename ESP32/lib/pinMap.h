@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include "LogHandler.h"
-
+#include "TagHandler.h"
 #include "espTimerMap.h"
 #if CONFIG_IDF_TARGET_ESP32
     #include "ESP32/pinDefaults.h"
