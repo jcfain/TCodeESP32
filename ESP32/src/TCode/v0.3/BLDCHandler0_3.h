@@ -752,26 +752,14 @@ private:
             if (currentMillis - previousMillis >= interval) 
             {
                 previousMillis = currentMillis;
-                // if(LogHandler::getLogLevel() >= LogLevel::DEBUG) 
-                // {
-                    //SIMPLEFOC_DEBUG("Motor A position: %f", m_motorAnglePositionA);
-                    LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleA: %f \t sensorAngleA: %f\n", 
-                       "Motor A", m_motorAnglePositionA, motorVoltageA, m_bootmode, zeroAngleA, sensorAngleA);
-                    if(motorB) 
-                    {
-                        //SIMPLEFOC_DEBUG("Motor B position: %f", m_motorAnglePositionB);
-                        LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleB: %f \t sensorAngleB: %f\n", 
-                           "Motor B", m_motorAnglePositionB, motorVoltageB, m_bootmode, zeroAngleB, sensorAngleB);
-                    }
-                // }
-                // else if(LogHandler::getLogLevel() == LogLevel::DEBUG) 
-                // {
-                //     SIMPLEFOC_DEBUG("Motor A position: %f", m_motorAnglePositionA);
-                //     if(motorB) 
-                //     {
-                //         SIMPLEFOC_DEBUG("Motor B position: %f", m_motorAnglePositionB);
-                //     }
-                // }                        
+                LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleA: %f \t sensorAngleA: %f\n", 
+                    "Motor A", m_motorAnglePositionA, motorVoltageA, m_bootmode, zeroAngleA, sensorAngleA);
+                if(motorB) 
+                {
+                    //SIMPLEFOC_DEBUG("Motor B position: %f", m_motorAnglePositionB);
+                    LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleB: %f \t sensorAngleB: %f\n", 
+                        "Motor B", m_motorAnglePositionB, motorVoltageB, m_bootmode, zeroAngleB, sensorAngleB);
+                }                      
                 counter = 0;
             }
             counter++;

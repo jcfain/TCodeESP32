@@ -244,9 +244,9 @@ void loop()
 	// }
 	// LogHandler::verbose(TagHandler::MainLoop, "Enter loop ############################################");
 	benchHandler->benchStart(0);
-	if (SettingsHandler::restartRequired > -1 || restarting)
+	if (SettingsHandler::restartInSecs > -1 || restarting)
 	{ // check the flag here to determine if a restart is required
-		if (SettingsHandler::restartRequired <= 0 && !restarting)
+		if (SettingsHandler::restartInSecs <= 0 && !restarting)
 		{
 			LogHandler::info(TagHandler::Main, "Restarting ESP");
 			ESP.restart();
@@ -254,10 +254,10 @@ void loop()
 		}
 		else
 		{
-			LogHandler::info(TagHandler::Main, "Restarting ESP in: %ld", SettingsHandler::restartRequired);
+			LogHandler::info(TagHandler::Main, "Restarting ESP in: %ld", SettingsHandler::restartInSecs);
 		}
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
-		SettingsHandler::restartRequired--;
+		SettingsHandler::restartInSecs--;
 	}
 #if BUILD_TEMP
 	else if (temperatureHandler && temperatureHandler->isMaxTempTriggered())
@@ -359,7 +359,7 @@ void loop()
 #endif
 		}
 	}
-	if (!setupSucceeded && SettingsHandler::restartRequired == -1 && !restarting)
+	if (!setupSucceeded && SettingsHandler::restartInSecs == -1 && !restarting)
 	{
 		LogHandler::error(TagHandler::Main, "There was an issue in setup");
 		vTaskDelay(5000 / portTICK_PERIOD_MS);

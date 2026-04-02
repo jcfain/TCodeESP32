@@ -55,6 +55,7 @@ public:
             return false;
         loadCommonCache();
         loadPinCache();
+        m_initialized = true;
         return true;
     }
     
@@ -84,6 +85,7 @@ public:
     }
     // Cached requires restart
     // DeviceType getDeviceType() const { return m_deviceType; }
+    bool restartRequired() const { return m_restartRequired; };
     int getUdpServerPort() const { return udpServerPort; }
     int getWebServerPort() const { return webServerPort; }
     const char* getHostname() const { return hostname; }
@@ -365,7 +367,7 @@ public:
             if(currentValue != value) {
                 LogHandler::debug(m_TAG, "Change wifi value T: %s", name);
                 xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
-                //const Setting* setting = getSetting(name);
+                checkRestartRequired(&m_networkFileInfo, name);
                 m_networkFileInfo.doc[name] = value;
                 //loadWifiLiveCache(name); // Not needed now
                 xSemaphoreGive(m_networkSemaphore);
@@ -382,7 +384,7 @@ public:
             if(currentValue != value) {
                 LogHandler::debug(m_TAG, "Change common value T: %s", name);
                 xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
-                //const Setting* setting = getSetting(name);
+                checkRestartRequired(&m_commonFileInfo, name);
                 m_commonFileInfo.doc[name] = value;
                 loadCommonLiveCache(name);
                 xSemaphoreGive(m_commonSemaphore);
@@ -399,7 +401,7 @@ public:
             if(currentValue != value) {
                 LogHandler::debug(m_TAG, "Change pin value T: %s", name);
                 xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
-                //const Setting* setting = getSetting(name);
+                checkRestartRequired(&m_pinsFileInfo, name);
                 m_pinsFileInfo.doc[name] = value;
                 //loadPinCache(); // Not needed now
                 xSemaphoreGive(m_pinSemaphore);
@@ -426,6 +428,7 @@ public:
         if(fileInfo->doc[name].isNull() || strcmp(currentValue, value)) {
             LogHandler::debug(m_TAG, "Change value: %s old value: %s new value: %s", name, currentValue, strcmp(name, AP_MODE_PASS) || strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DONOTCHANGE_DEFAULT) ? value : "<Redacted>");
             fileInfo->doc[name] = value;
+            checkRestartRequired(fileInfo, name);
             if(fileInfo->file == SettingFile::Common) {
                 loadCommonLiveCache(name);
             }
@@ -447,6 +450,7 @@ public:
             return SettingFile::NONE;
         }
         fileInfo->doc[name] = value;
+        checkRestartRequired(fileInfo, name);
         if(fileInfo->file == SettingFile::Common) {
             loadCommonLiveCache(name);
         }
@@ -466,6 +470,7 @@ public:
             return;
         }
         const Setting* setting = fileInfo->getSetting(name);
+        checkRestartRequired(setting, name);
         defaultToJson(setting, fileInfo->doc);
         if(fileInfo->file == SettingFile::Common) {
             loadCommonLiveCache(name);
@@ -908,6 +913,8 @@ public:
 private:
     const char* m_TAG = TagHandler::SettingsFactory;
     PinMap* m_currentPinMap;
+    bool m_restartRequired = false;
+    bool m_initialized = false;
     // const int m_commonDeserializeSize = 32768;
     // const int m_commonSerializeSize = 24576;
 
@@ -1191,6 +1198,24 @@ private:
     float m_BLDCPIDProportionalConst;
     float m_BLDCLowpassFilter;
 
+    // The following cause restart required on boot. Need to figure out how to stop it until all has been loaded.
+    void checkRestartRequired(SettingFileInfo* fileInfo, const char* settingName)
+    {
+        // if(!m_restartRequired && m_initialized)
+        // {
+        //     const Setting* setting = fileInfo->getSetting(settingName);
+        //     checkRestartRequired(setting, settingName);
+        // }
+    }
+
+    void checkRestartRequired(const Setting* setting, const char* settingName)
+    {
+        // if(setting && m_initialized && !m_restartRequired )
+        // {
+        //     m_restartRequired = setting->isRestartRequired == RestartRequired::YES;
+        // }
+    }
+    
     bool load(SettingFileInfo &fileInfo)
     {
         LogHandler::info(m_TAG, "Loading file: %s", fileInfo.path);

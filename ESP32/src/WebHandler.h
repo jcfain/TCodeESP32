@@ -80,7 +80,7 @@ class WebHandler : public HTTPBase {
 
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                if(SettingsHandler::restartRequired > -1 || !SettingsHandler::initialized) {
+                if(SettingsHandler::restartInSecs > -1 || !SettingsHandler::initialized) {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"status\": \"restarting\"}");
                     request->send(response);
                     return;
@@ -245,7 +245,7 @@ class WebHandler : public HTTPBase {
             server->on("/ping", HTTP_POST, [this](AsyncWebServerRequest *request)
             {
                 Serial.println("Ping");
-                if(SettingsHandler::restartRequired > -1 || !SettingsHandler::initialized) {
+                if(SettingsHandler::restartInSecs > -1 || !SettingsHandler::initialized) {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"status\": \"restarting\"}");
                     request->send(response);
                     return;

@@ -54,7 +54,7 @@ class SettingsHandler
 {
 public:
     static bool initialized;
-    static int restartRequired;
+    static int restartInSecs;
     static bool saving;
     static bool motionPaused;
     static bool fullBuild;
@@ -136,7 +136,7 @@ public:
 	static void restart(const int delayInSec = 0) {
 		LogHandler::info(_TAG, "Schedule device restart in %ld seconds", delayInSec);
         // Restart in main task loop
-		restartRequired = delayInSec;
+		restartInSecs = delayInSec;
 	}
 
     static void printWebAddress(const char* hostAddress) 
@@ -408,6 +408,7 @@ public:
         doc["decoyPass"] = DECOY_PASS;
         doc["apMode"] = apMode;
         doc["defaultIP"] = m_settingsFactory->getAPModeIP();
+        doc["restartRequired"] = m_settingsFactory->restartRequired();
         //String output;
         serializeJson(doc, buf);
         doc.clear();
@@ -1652,7 +1653,7 @@ SemaphoreHandle_t SettingsHandler::m_wifiMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_buttonsMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_settingsMutex = xSemaphoreCreateMutex();
 bool SettingsHandler::initialized = false;
-int SettingsHandler::restartRequired = -1;
+int SettingsHandler::restartInSecs = -1;
 bool SettingsHandler::saving = false;
 bool SettingsHandler::motionPaused = false;
 bool SettingsHandler::fullBuild = false;

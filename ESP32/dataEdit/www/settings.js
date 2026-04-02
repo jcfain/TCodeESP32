@@ -737,6 +737,8 @@ function startServerPoll() {
 function setSystemInfo() {
     if(!systemInfo)
         showError("Error getting system info!");
+    if(systemInfo.restartRequired)
+        showRestartRequired();
     document.getElementById('version').value = systemInfo.esp32Version;
     document.getElementById('macAddressSystemInfo').value = systemInfo.mac;
     document.getElementById('ipAddressSystemInfo').value = systemInfo.localIP;
@@ -1843,7 +1845,7 @@ function setupDeviceTypes() {
 function setDeviceType() {
     var element = document.getElementById('deviceType');
     let newValue = parseInt(element.value);// Parsed to int in the backend
-    if(userSettings["deviceType"] == DeviceType.NONE || confirm("This will reset the current pinout to default. Continue?")) {
+    if(confirm("This will reset the device specific settings to default and reboot. Continue?")) {
         postDeviceType(newValue);
     } else {
         element.value = userSettings["deviceType"];
