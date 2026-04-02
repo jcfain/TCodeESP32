@@ -342,105 +342,22 @@
 								<input id="BLDC_HallEffect_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
-						<!-- 
 						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
-								<span>Pulley circumference (mm)</span> 
+								<span>PID proportional const</span> 
 							</div>
 							<div class="tCell">
-								<input id="BLDC_Pulley_Circumference" type="number" min="0" max="2147483647" oninput="updateBLDCSettings()">
-							</div>
-						</div>
-						<div class="tRow BLDCOnly hidden">
-							<div class="tCell">
-								<span>Supply Voltage</span>
-							</div>
-							<div class="tCell">
-								<input id="BLDC_MotorA_SupplyVoltage" type="number" min="0.0" max="2147483647" step="0.01"
-									oninput="updateBLDCSettings()">
+								<input id="BLDC_PIDProportionalConstant" type="number" min="0" max="1.00000" step="0.00001" oninput="updateBLDCSettings()">
 							</div>
 						</div>
 						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
-								<span>Voltage Limit</span> 
+								<span>Low pass filter</span> 
 							</div>
 							<div class="tCell">
-								<input id="BLDC_MotorA_VoltageLimit" type="number" min="0.0" max="2147483647" step="0.01" oninput="updateBLDCSettings()">
+								<input id="BLDC_LowPassFilter" type="number" min="0" max="1.000" step="0.001" oninput="updateBLDCSettings()">
 							</div>
 						</div>
-						<div class="tRow BLDCOnly hidden">
-							<div class="tCell">
-								<span>Current (AMP)</span> 
-							</div>
-							<div class="tCell">
-								<input id="BLDC_MotorA_Current" type="number" min="0.0" max="2147483647" step="0.01" oninput="updateBLDCSettings()">
-							</div>
-						</div>
-						<div class="tRow BLDCOnly BLDCPWM hidden">
-							<div class="tCell">
-								<span>Encoder PIN</span> 
-							</div>
-							<div class="tCell">
-								<input id="BLDC_Encoder_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
-							</div>
-						</div>
-						<div class="tRow BLDCOnly BLDCSPI hidden">
-							<div class="tCell">
-								<span>ChipSelect PIN</span> 
-							</div>
-							<div class="tCell">
-								<input id="BLDC_ChipSelect_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
-							</div>
-						</div>
-						<div class="tRow BLDCOnly hidden">
-							<div class="tCell">
-								<span>Enable PIN</span> 
-							</div>
-							<div class="tCell">
-								<input id="BLDC_Enable_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
-							</div>
-						</div>
-						<div class="tRow BLDCOnly hidden">
-							<div class="tCell">
-								<span>PWMchannel1 PIN</span> 
-							</div>
-							<div class="tCell">
-								<input id="BLDC_PWMchannel1_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
-							</div>
-						</div>
-						<div class="tRow BLDCOnly hidden">
-							<div class="tCell">
-								<span>PWMchannel2 PIN</span> 
-							</div>
-							<div class="tCell">
-								<input id="BLDC_PWMchannel2_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
-							</div>
-						</div>
-						<div class="tRow BLDCOnly hidden">
-							<div class="tCell">
-								<span>PWMchannel3 PIN</span> 
-							</div>
-							<div class="tCell">
-								<input id="BLDC_PWMchannel3_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
-							</div>
-						</div>
-						<div class="tRow BLDCOnly hidden">
-							<div class="tCell">
-								<span title="Once you know the zero elec angle for the motor enter it below and check this">Parameters known</span> 
-							</div>
-							<div class="tCell">
-								<input id="BLDC_MotorA_ParametersKnown" type="checkbox" onclick="updateBLDCSettings()"></input>
-							</div>
-						</div>
-						<div id="ZeroElecAngle" class="tRow BLDCOnly hidden">
-							<div class="tCell" title="This number is the zero angle (in radians) for the motor relative to the encoder">
-								<span>Zero Elec Angle</span> 
-							</div>
-							<div class="tCell">
-								<input id="BLDC_MotorA_ZeroElecAngle" type="number" min="0.0" max="2147483647" step="0.01" oninput="updateBLDCSettings()">
-							</div>
-						</div>
-						-->
 						<div class="tRow BLDCOnly SSR1Only hidden">
 							<div class="tCell">
 								<span>Rail length (mm)</span> 
@@ -459,10 +376,18 @@
 						</div> 
 						<div class="tRow BLDCOnly SSR2Only hidden">
 							<div class="tCell">
-								<span>Twist Multiplier (bldc)</span> 
+								<span>Twist Multiplier</span> 
 							</div>
 							<div class="tCell">
-								<input id="BLDC_TwistMultiplier" type="number" min="0.00" max="2147483647" step="0.01" oninput="updateBLDCTwistMultiplier()">
+								<input id="BLDC_TwistMultiplier" type="number" min="0.00" max="2147483647" step="0.01" oninput="updateBLDCTwistSettings()">
+							</div>
+						</div> 
+						<div class="tRow BLDCOnly SSR2Only hidden">
+							<div class="tCell">
+								<span>Twist Limit</span> 
+							</div>
+							<div class="tCell">
+								<input id="BLDC_TwistLimit" type="number" min="0.000" max="1.000" step="0.001" oninput="updateBLDCTwistSettings()">
 							</div>
 						</div> 
 

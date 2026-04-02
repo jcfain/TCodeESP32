@@ -977,6 +977,9 @@ function setUserSettings()
         document.getElementById("BLDC_RailLength").value = userSettings["BLDC_RailLength"];
         document.getElementById("BLDC_StrokeLength").value = userSettings["BLDC_StrokeLength"];
         document.getElementById("BLDC_TwistMultiplier").value = userSettings["BLDC_TwistMultiplier"];
+        document.getElementById("BLDC_TwistLimit").value = userSettings["BLDC_TwistLimit"];
+        document.getElementById("BLDC_PIDProportionalConstant").value = userSettings["BLDC_PIDProportionalConstant"];
+        document.getElementById("BLDC_LowPassFilter").value = userSettings["BLDC_LowPassFilter"];
         Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
         if(!motorA)
             motorA = new BLDCMotor(userSettings.deviceType);// No name due to settings property name and html node ids.
@@ -1766,9 +1769,11 @@ function updateBLDCUseHallSensor() {
         updateUserSettings();
     }
 }
-function updateBLDCTwistMultiplier() {
-    Utils.debounce("updateBLDCTwistMultiplier", () => {
-        if(validateFloatControl("BLDC_TwistMultiplier", userSettings, "BLDC_TwistMultiplier")) {
+function updateBLDCTwistSettings() {
+    Utils.debounce("updateBLDCTwistSettings", () => {
+        if(validateFloatControl("BLDC_TwistMultiplier", userSettings, "BLDC_TwistMultiplier") && 
+            validateFloatControl("BLDC_TwistLimit", userSettings, "BLDC_TwistLimit")
+        ) {
             updateUserSettings(0);
         }
     }, defaultDebounce);
@@ -1776,7 +1781,10 @@ function updateBLDCTwistMultiplier() {
 function updateBLDCSettings() {
     Utils.debounce("updateBLDCSettings", () => {
         if(validateIntControl("BLDC_RailLength", userSettings, "BLDC_RailLength") && 
-            validateIntControl("BLDC_StrokeLength", userSettings, "BLDC_StrokeLength")) {
+            validateIntControl("BLDC_StrokeLength", userSettings, "BLDC_StrokeLength") && 
+            validateFloatControl("BLDC_LowPassFilter", userSettings, "BLDC_LowPassFilter") && 
+            validateFloatControl("BLDC_PIDProportionalConstant", userSettings, "BLDC_PIDProportionalConstant")
+        ) {
             setRestartRequired();
             updateUserSettings(0);
         }

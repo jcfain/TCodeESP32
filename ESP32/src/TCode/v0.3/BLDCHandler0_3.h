@@ -28,40 +28,11 @@
 #include "MotorHandler0_3.h"
 #include "TagHandler.h"
 #include "settingsFactory.h"
+#include "BLDCTCodeSensorSPI.h"
 
 
-// Control constants
-// (a.k.a. magic numbers for Eve)
-#define P_CONST 0.002             // Motor PID proportional constant
-#define LOW_PASS 0.8              // Low pass filter factor for static noise reduction ( number < 1, 0 = none)
-
-// // encoder position monitor variables
-// volatile int encoderPulseLength = 464;
-// volatile int encoderPulseCycle = 920;
-// volatile int encoderPulseStart = 0;
-// volatile int lastEncoderPulseCycle; 
-// // range is 5-928
-// volatile int longest = 500;
-// volatile int shortest = 500;
-
-
-
-// Encoder Interrupt detector
-// void IRAM_ATTR encoderChange() {
-//     long currentMicros = esp_timer_get_time();
-//     if(digitalRead(SettingsHandler::getBLDC_Encoder_PIN()) == HIGH)
-//     {
-//         encoderPulseCycle = currentMicros-encoderPulseStart;
-//         encoderPulseStart = currentMicros;
-//     }
-//     else
-//     {
-//         encoderPulseLength = currentMicros-encoderPulseStart;
-//     }
-// }
-
-class BLDCHandler0_3 : public MotorHandler0_3 {
-
+class BLDCHandler0_3 : public MotorHandler0_3 
+{
 public:
     BLDCHandler0_3() : MotorHandler0_3(new TCode0_3()) { }
 
@@ -93,6 +64,7 @@ public:
         //PinMapInfo pinMapInfo = m_settingsFactory->getPins();
         PinMapSSR* pinMap = PinMapSSR::getInstance();
 
+        InitEncoders initEncoder(pinMap->chipSelect(), pinMap->motorBChipSelect(), &SPI);
         if(m_deviceType == DeviceType::SSR1)
         {
             int pullyCircumference = -1;
@@ -121,30 +93,46 @@ public:
         }
 
         // Begin tracking encoder
-        if(encoderAType == BLDCEncoderType::MT6701) {
+        if(encoderAType == BLDCEncoderType::MT6701) 
+        {
             LogHandler::info(_TAG, "Selected Motor A encoder: MT6701");
-            if(pinMap->chipSelect() > -1) {
+            if(pinMap->chipSelect() > -1) 
+            {
                 LogHandler::info(_TAG, "Setup BLDC motor A on MT6701 chip select pin: %d", pinMap->chipSelect());
                 sensorA = new MagneticSensorMT6701SSI(pinMap->chipSelect());;
-            } else {
+            } 
+            else 
+            {
                 LogHandler::error(_TAG, "Invalid Motor A ChipSelect pin %d", pinMap->chipSelect());
                 return false;
             }
-        } else if(encoderAType == BLDCEncoderType::PWM) {
+        } 
+        else if(encoderAType == BLDCEncoderType::PWM) 
+        {
             LogHandler::info(_TAG, "Selected Motor A encoder: PWM");
-            if(pinMap->encoder() > -1) {
+            if(pinMap->encoder() > -1) 
+            {
                 LogHandler::info(_TAG, "Setup BLDC motor A on PWM encoder pin: %d", pinMap->encoder());
                 sensorA = new MagneticSensorPWM(pinMap->encoder(), 5, 928);;
-            } else {
+            } 
+            else 
+            {
                 LogHandler::error(_TAG, "Invalid Motor A encoder pin %d", pinMap->encoder());
                 return false;
             }
-        } else {
-            if(pinMap->chipSelect() > -1) {
+        } 
+        else 
+        {
+            if(pinMap->chipSelect() > -1) 
+            {
                 LogHandler::info(_TAG, "Selected Motor A encoder: SPI");
                 LogHandler::info(_TAG, "Setup BLDC motor A on SPI chip select pin: %d", pinMap->chipSelect());
-                sensorA = new MagneticSensorSPI(pinMap->chipSelect(), 14, 0x3FFF);;
-            } else {
+                // sensorA = new MagneticSensorSPI(pinMap->chipSelect(), 14, 0x3FFF);
+                ReadEncoder readEncoder(pinMap->chipSelect(), &SPI);
+                sensorA = new BLDCTCodeSensorSPI(readEncoder, initEncoder);
+            } 
+            else 
+            {
                 LogHandler::error(_TAG, "Invalid Motor A ChipSelect pin %d", pinMap->chipSelect());
                 return false;
             }
@@ -155,30 +143,46 @@ public:
             BLDCEncoderType encoderBType = (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
             m_settingsFactory->getValue(BLDC_MOTORB_ENCODER, encoderBType);
             LogHandler::debug(_TAG, "Motor B Encoder type: %d", encoderBType);
-            if(encoderBType == BLDCEncoderType::MT6701) {
+            if(encoderBType == BLDCEncoderType::MT6701) 
+            {
                 LogHandler::info(_TAG, "Selected Motor B encoder: MT6701");
-                if(pinMap->motorBChipSelect() > -1) {
+                if(pinMap->motorBChipSelect() > -1) 
+                {
                     LogHandler::info(_TAG, "Setup BLDC motor B on MT6701 chip select pin: %d", pinMap->motorBChipSelect());
                     sensorB = new MagneticSensorMT6701SSI(pinMap->motorBChipSelect());;
-                } else {
+                } 
+                else 
+                {
                     LogHandler::error(_TAG, "Invalid ChipSelect pin %d", pinMap->motorBChipSelect());
                     return false;
                 }
-            } else if(encoderBType == BLDCEncoderType::PWM) {
+            } 
+            else if(encoderBType == BLDCEncoderType::PWM) 
+            {
                 LogHandler::info(_TAG, "Selected Motor B encoder: PWM");
-                if(pinMap->motorBEncoder() > -1) {
+                if(pinMap->motorBEncoder() > -1) 
+                {
                     LogHandler::info(_TAG, "Setup BLDC motor B on PWM encoder pin: %d", pinMap->motorBEncoder());
                     sensorB = new MagneticSensorPWM(pinMap->motorBEncoder(), 5, 928);;
-                } else {
+                } 
+                else 
+                {
                     LogHandler::error(_TAG, "Invalid Motor B encoder pin %d", pinMap->motorBEncoder());
                     return false;
                 }
-            } else {
-                if(pinMap->motorBChipSelect() > -1) {
+            } 
+            else 
+            {
+                if(pinMap->motorBChipSelect() > -1) 
+                {
                     LogHandler::info(_TAG, "Selected Motor B encoder: SPI");
                     LogHandler::info(_TAG, "Setup BLDC motor B on SPI chip select pin: %d", pinMap->motorBChipSelect());
-                    sensorB = new MagneticSensorSPI(pinMap->motorBChipSelect(), 14, 0x3FFF);;
-                } else {
+                    //sensorB = new MagneticSensorSPI(pinMap->motorBChipSelect(), 14, 0x3FFF);
+                    ReadEncoder readEncoder(pinMap->motorBChipSelect(), &SPI);
+                    sensorB = new BLDCTCodeSensorSPI(readEncoder, initEncoder);
+                } 
+                else 
+                {
                     LogHandler::error(_TAG, "Invalid Motor B ChipSelect pin %d", pinMap->motorBChipSelect());
                     return false;
                 }
@@ -210,41 +214,56 @@ public:
 
         m_settingsFactory->getValue(BLDC_USEHALLSENSOR, m_useHallSensor);
         m_hallSensorPin = pinMap->hallEffect();
-        if(m_useHallSensor && m_hallSensorPin > -1) {
+        if(m_useHallSensor && m_hallSensorPin > -1) 
+        {
             LogHandler::info(_TAG, "Using Hall Sensor");
             // Set pinmode for hall sensor
             pinMode(m_hallSensorPin, INPUT_PULLUP);
-        } else if(m_useHallSensor) {
+        } 
+        else if(m_useHallSensor) 
+        {
             LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d...ignoring", pinMap->hallEffect());
             m_useHallSensor = false;
             // m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
         }
         
         // initialise encoder hardware
-        if(encoderAType == BLDCEncoderType::MT6701) {
+        if(encoderAType == BLDCEncoderType::MT6701) 
+        {
             //SPI.begin(pinMap->i2cScl(), pinMap->i2cSda(), 11, pinMap->chipSelect()); // Do we need MOSI custom?
             static_cast<MagneticSensorMT6701SSI*>(sensorA)->init();
             LogHandler::debug(_TAG, "init Motor A sensorMT6701");
-        } else if(encoderAType == BLDCEncoderType::PWM) {
+        } 
+        else if(encoderAType == BLDCEncoderType::PWM) 
+        {
             static_cast<MagneticSensorPWM*>(sensorA)->init();
             LogHandler::debug(_TAG, "init Motor A sensorPWM");
-        } else { 
+        } 
+        else 
+        { 
             //SPI.begin(pinMap->i2cScl(), pinMap->i2cSda(), 11, pinMap->chipSelect()); // Do we need this custom?
-            static_cast<MagneticSensorSPI*>(sensorA)->init();
+            // static_cast<MagneticSensorSPI*>(sensorA)->init();
+            static_cast<BLDCTCodeSensorSPI*>(sensorA)->init();
             LogHandler::debug(_TAG, "init Motor A sensorSPI");
         }
         if(motorB)
         {
-            if(encoderAType == BLDCEncoderType::MT6701) {
+            if(encoderAType == BLDCEncoderType::MT6701) 
+            {
                 //SPI.begin(pinMap->i2cScl(), pinMap->i2cSda(), 11, pinMap->chipSelect()); // Do we need MOSI custom?
                 static_cast<MagneticSensorMT6701SSI*>(sensorB)->init();
                 LogHandler::debug(_TAG, "init Motor B sensorMT6701");
-            } else if(encoderAType == BLDCEncoderType::PWM) {
+            } 
+            else if(encoderAType == BLDCEncoderType::PWM) 
+            {
                 static_cast<MagneticSensorPWM*>(sensorB)->init();
                 LogHandler::debug(_TAG, "init Motor B sensorPWM");
-            } else { 
+            } 
+            else 
+            { 
                 //SPI.begin(pinMap->i2cScl(), pinMap->i2cSda(), 11, pinMap->chipSelect()); // Do we need this custom?
-                static_cast<MagneticSensorSPI*>(sensorB)->init();
+                // static_cast<MagneticSensorSPI*>(sensorB)->init();
+                static_cast<BLDCTCodeSensorSPI*>(sensorB)->init();
                 LogHandler::debug(_TAG, "init Motor B sensorSPI");
             }
         }
@@ -323,10 +342,11 @@ public:
         // init current sense
         bool paramsKnown = BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_PARAMETERSKNOWN, paramsKnown);
-        if(paramsKnown) {
+        if(paramsKnown) 
+        {
             double zeroElecAngle = BLDC_MOTORA_ZEROELECANGLE_DEFAULT;
             m_settingsFactory->getValue(BLDC_MOTORA_ZEROELECANGLE, zeroElecAngle);
-        // Set sensor angle and pre-set zero angle to current angle
+            // Set sensor angle and pre-set zero angle to current angle
             LogHandler::info(_TAG, "Setting Motor A parameters: %f", zeroElecAngle);
             motorA->sensor_direction = MotorA_SensorDirection;
             motorA->zero_electric_angle  = zeroElecAngle; // rad
@@ -336,27 +356,34 @@ public:
         {
             bool paramsKnownB = BLDC_MOTORB_PARAMETERSKNOWN_DEFAULT;
             m_settingsFactory->getValue(BLDC_MOTORB_PARAMETERSKNOWN, paramsKnownB);
-            if(paramsKnownB) {
+            if(paramsKnownB) 
+            {
                 double zeroElecAngleB = BLDC_MOTORB_ZEROELECANGLE_DEFAULT;
                 m_settingsFactory->getValue(BLDC_MOTORB_ZEROELECANGLE, zeroElecAngleB);
-            // Set sensor angle and pre-set zero angle to current angle
+                // Set sensor angle and pre-set zero angle to current angle
                 LogHandler::info(_TAG, "Setting Motor B parameters: %f", zeroElecAngleB);
                 motorB->sensor_direction = MotorB_SensorDirection;
                 motorB->zero_electric_angle  = zeroElecAngleB; // rad
             }
         }
 
-        if (motorA->initFOC())  {
+        if (motorA->initFOC())  
+        {
             LogHandler::info(_TAG, "Motor A FOC init success!");
-        } else {
+        } 
+        else 
+        {
             LogHandler::error(_TAG, "Motor A FOC init failed!");
             return false;
         }
         if(motorB)
         {
-            if (motorB->initFOC())  {
+            if (motorB->initFOC())  
+            {
                 LogHandler::info(_TAG, "Motor B FOC init success!");
-            } else {
+            } 
+            else 
+            {
                 LogHandler::error(_TAG, "Motor B FOC init failed!");
                 return false;
             }
@@ -376,7 +403,7 @@ public:
         }
 
 
-        //setupCommon();
+        setupCommon();
 
         // Signal ready to start
         m_initialized = true;
@@ -384,11 +411,13 @@ public:
         return true;
     }
 
-    void read(byte inByte) override {
+    void read(byte inByte) override 
+    {
         m_tcode->read(inByte);
     }
 
-    void read(const String &input) override {
+    void read(const String &input) override 
+    {
         m_tcode->read(input);
     }
     
@@ -434,7 +463,7 @@ public:
             executeSSR2(strokeTCode, twistTCode);
         }
 
-        // executeCommon(strokeTCode);
+        executeCommon(strokeTCode);
        
         log();
     }
@@ -470,7 +499,7 @@ private:
     // BLDC motorB & driver instance
     BLDCMotor* motorB;
     BLDCDriver3PWM* driverB;
-    BLDCEncoderType encoderBType =  (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
+    BLDCEncoderType encoderBType = (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
     Sensor* sensorB = 0;
     float zeroAngleB = 0.00;
     float sensorAngleB = 0.00;
@@ -522,6 +551,9 @@ private:
         strokePosition = (sensorAngleA - zeroAngleA)*angToPos; 
         //LogHandler::verbose(_TAG, "zeroAngle: %f", zeroAngle);
 
+        // Control constants
+        float pidProportionalConst = m_settingsFactory->getBLDCPIDProportionalConst(); // Motor PID proportional constant
+        float lowPassFilter = m_settingsFactory->getBLDCLowPassFilter(); // Low pass filter factor for static noise reduction ( number < 1, 0 = none)
         // Control by motor voltage
         float motorVoltageNew;
         // Mode 0 is startup mode. 
@@ -546,7 +578,7 @@ private:
                     LogHandler::debug(_TAG, "Set bootmode false hall timeout");
                     zeroAngleA = sensorAngleA - topStartOffset - endStopOffset;
                 }
-                motorVoltageNew = P_CONST*(strokeTCode - strokePosition);
+                motorVoltageNew = pidProportionalConst*(strokeTCode - strokePosition);
             } 
             else 
             {
@@ -559,17 +591,17 @@ private:
                     LogHandler::debug(_TAG, "Set bootmode false NO HALL timeout");
                     zeroAngleA = sensorAngleA + endStopOffset;
                 }
-                motorVoltageNew = P_CONST*(strokeTCode - strokePosition);
+                motorVoltageNew = pidProportionalConst*(strokeTCode - strokePosition);
                 if (motorVoltageNew < -0.5) { motorVoltageNew = -0.5; }
             } 
         } 
         else 
         {
             // Otherwise set motor voltage based on position 
-            motorVoltageNew = P_CONST*(strokeTCode - strokePosition);
+            motorVoltageNew = pidProportionalConst*(strokeTCode - strokePosition);
         }
         // Low pass filter to reduce motor noise
-        motorVoltageA = LOW_PASS*motorVoltageA + (1-LOW_PASS)*motorVoltageNew;  
+        motorVoltageA = lowPassFilter*motorVoltageA + (1-lowPassFilter)*motorVoltageNew;  
         // Motion control function
         motorA->move(motorVoltageA);
     }
@@ -589,8 +621,7 @@ private:
         motorB->loopFOC();
 
         float twistMultiplier = m_settingsFactory->getBLDCTwistMultiplier();
-        #warning make twistLimit a setting
-        float twistLimit = 0.5f; 
+        float twistLimit = m_settingsFactory->getBLDCTwistLimit();
 
         // Update sensor position
         sensorA->update();
@@ -672,9 +703,12 @@ private:
             twistTargetPosition = twistMultiplier*(5000 - twistTCode);
         }
 
+        // Control constants
+        float pidProportionalConst = m_settingsFactory->getBLDCPIDProportionalConst(); // Motor PID proportional constant
+        float lowPassFilter = m_settingsFactory->getBLDCLowPassFilter();  // Low pass filter factor for static noise reduction ( number < 1, 0 = none)
         float strokeVoltage, twistVoltage;
-        strokeVoltage = P_CONST*(strokeTargetPosition - strokePosition);
-        twistVoltage = P_CONST*(twistTargetPosition - twistPosition);
+        strokeVoltage = pidProportionalConst*(strokeTargetPosition - strokePosition);
+        twistVoltage = pidProportionalConst*(twistTargetPosition - twistPosition);
         if (twistVoltage > twistLimit) {twistVoltage = twistLimit;}
         if (twistVoltage < -twistLimit) {twistVoltage = -twistLimit;}
 
@@ -688,7 +722,7 @@ private:
         }
 
         // Low pass filter to reduce motor noise
-        motorVoltageA = LOW_PASS*motorVoltageA + (1-LOW_PASS)*motorVoltageNewA;  
+        motorVoltageA = lowPassFilter*motorVoltageA + (1-lowPassFilter)*motorVoltageNewA;  
         // Motion control function
         motorA->move(motorVoltageA);
 
@@ -702,7 +736,7 @@ private:
         }
 
         // Low pass filter to reduce motor noise
-        motorVoltageB = LOW_PASS*motorVoltageB + (1-LOW_PASS)*motorVoltageNewB;  
+        motorVoltageB = lowPassFilter*motorVoltageB + (1-lowPassFilter)*motorVoltageNewB;  
         // Motion control function
         motorB->move(motorVoltageB);
     }
@@ -722,7 +756,8 @@ private:
                     //SIMPLEFOC_DEBUG("Motor A position: %f", m_motorAnglePositionA);
                     LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleA: %f \t sensorAngleA: %f\n", 
                        "Motor A", m_motorAnglePositionA, motorVoltageA, m_bootmode, zeroAngleA, sensorAngleA);
-                    if(motorB) {
+                    if(motorB) 
+                    {
                         //SIMPLEFOC_DEBUG("Motor B position: %f", m_motorAnglePositionB);
                         LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleB: %f \t sensorAngleB: %f\n", 
                            "Motor B", m_motorAnglePositionB, motorVoltageB, m_bootmode, zeroAngleB, sensorAngleB);
@@ -731,7 +766,8 @@ private:
                 else if(LogHandler::getLogLevel() == LogLevel::DEBUG) 
                 {
                     SIMPLEFOC_DEBUG("Motor A position: %f", m_motorAnglePositionA);
-                    if(motorB) {
+                    if(motorB) 
+                    {
                         SIMPLEFOC_DEBUG("Motor B position: %f", m_motorAnglePositionB);
                     }
                 }                        

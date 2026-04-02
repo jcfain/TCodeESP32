@@ -133,7 +133,10 @@ public:
     double getInternalTempForFanOn() const { return internalTempForFanOn; }
     bool getVibTimeoutEnabled() const { return vibTimeoutEnabled; }
     int getVibTimeout() const { return vibTimeout; }
-    float getBLDCTwistMultiplier() const { return m_twistMultiplier; }
+    float getBLDCTwistMultiplier() const { return m_BLDCTwistMultiplier; }
+    float getBLDCTwistLimit() const { return m_BLDCTwistLimit; }
+    float getBLDCPIDProportionalConst() { return m_BLDCPIDProportionalConst; }
+    float getBLDCLowPassFilter() { return m_BLDCLowpassFilter; }
 
     ButtonSet* getButtonSets() {
         return buttonSets;
@@ -697,7 +700,7 @@ public:
         }
     #elif defined MOTOR_TYPE_BLDC
         if(!name || !strcmp(name, BLDC_TWIST_MULTIPLIER)) {
-            getValue(BLDC_TWIST_MULTIPLIER, m_twistMultiplier);
+            getValue(BLDC_TWIST_MULTIPLIER, m_BLDCTwistMultiplier);
             if(targeted) {initCommonMessages(name); return;}
         }
     #endif
@@ -784,6 +787,22 @@ public:
         }
         if(!name || !strcmp(name, VIB_TIMEOUT_ENABLED)) {
             getValue(VIB_TIMEOUT_ENABLED, vibTimeoutEnabled);
+            if(targeted) {initCommonMessages(name); return;}
+        }
+        if(!name || !strcmp(name, BLDC_TWIST_MULTIPLIER)) {
+            getValue(BLDC_TWIST_MULTIPLIER, m_BLDCTwistMultiplier);
+            if(targeted) {initCommonMessages(name); return;}
+        }
+        if(!name || !strcmp(name, BLDC_TWIST_LIMIT)) {
+            getValue(BLDC_TWIST_LIMIT, m_BLDCTwistLimit);
+            if(targeted) {initCommonMessages(name); return;}
+        }
+        if(!name || !strcmp(name, BLDC_PID_PROPORTIONAL_CONST)) {
+            getValue(BLDC_PID_PROPORTIONAL_CONST, m_BLDCPIDProportionalConst);
+            if(targeted) {initCommonMessages(name); return;}
+        }
+        if(!name || !strcmp(name, BLDC_LOWPASS_FILTER)) {
+            getValue(BLDC_LOWPASS_FILTER, m_BLDCLowpassFilter);
             if(targeted) {initCommonMessages(name); return;}
         }
         initCommonMessages();
@@ -952,9 +971,12 @@ private:
             {FEEDBACK_TWIST, "Feedback twist", "For feed back servos", SettingType::Boolean, FEEDBACK_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {ANALOG_TWIST, "Analog twist", "Analog feedback servo", SettingType::Boolean, ANALOG_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}}
 #ifdef MOTOR_TYPE_BLDC
-            ,{BLDC_TWIST_MULTIPLIER, "BLDC Twist multiplier", "BLDC Twist multiplier", SettingType::Number, BLDC_TWIST_MULTIPLIER_DEFAULT, RestartRequired::NO, {SettingProfile::Bldc}},
+            ,{BLDC_TWIST_MULTIPLIER, "BLDC Twist multiplier", "BLDC Twist multiplier", SettingType::Float, BLDC_TWIST_MULTIPLIER_DEFAULT, RestartRequired::NO, {SettingProfile::Bldc}},
             {BLDC_RAILLENGTH, "Rail length", "SSR1 rail length", SettingType::Number, BLDC_RAILLENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_PID_PROPORTIONAL_CONST, "PID proportional constant", "PID proportional const", SettingType::Float, BLDC_PID_PROPORTIONAL_CONST_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_LOWPASS_FILTER, "Low pass filter", "Low pass filter", SettingType::Float, BLDC_LOWPASS_FILTER_DEFAULT, RestartRequired::NO, {SettingProfile::Bldc}},
+            {BLDC_TWIST_LIMIT, "Twist limit", "BLDC twist limit", SettingType::Float, BLDC_TWIST_LIMIT_DEFAULT, RestartRequired::NO, {SettingProfile::Bldc}},
 
             {BLDC_MOTORA_ENCODER, "BLDC encoder type", "Select the type of bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_USEHALLSENSOR, "Use hall sensor", "Use Hall sensor for BLDC sensor", SettingType::Boolean, BLDC_USEHALLSENSOR_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
@@ -1164,7 +1186,10 @@ private:
     int8_t voiceWakeTime;
     int vibTimeout;
     bool vibTimeoutEnabled;
-    float m_twistMultiplier;
+    float m_BLDCTwistMultiplier;
+    float m_BLDCTwistLimit;
+    float m_BLDCPIDProportionalConst;
+    float m_BLDCLowpassFilter;
 
     bool load(SettingFileInfo &fileInfo)
     {
