@@ -20,6 +20,7 @@
 
 #include <SimpleFOC.h>
 #include <SimpleFOCDrivers.h>
+// #include <SimpleFOCDebug.h>
 #include <encoders/mt6701/MagneticSensorMT6701SSI.h>
 #include "TCode0_3.h"
 #include "SettingsHandler.h"
@@ -187,7 +188,6 @@ public:
         motorA = new BLDCMotor(11,11.1);
         if(m_deviceType == DeviceType::SSR2)
             motorB = new BLDCMotor(11,11.1);
-        
         // BLDCDriver3PWM driver = BLDCDriver3PWM(pwmA, pwmB, pwmC, Enable(optional));
         LogHandler::info(_TAG, "Setup Motor A BLDC pins PWM1: %d, PWM2: %d, PWM3: %d, enable: %d", pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
         driverA = new BLDCDriver3PWM(pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
@@ -255,6 +255,7 @@ public:
         m_settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, motorAVoltage);
         LogHandler::debug(_TAG, "Motor A Voltage: %f", motorAVoltage);
         driverA->voltage_limit = motorAVoltage;
+        // motorA->voltage_limit = motorAVoltage;
         // power supply voltage [V]
         double supplyAVoltage = BLDC_MOTORA_SUPPLY_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_SUPPLY, supplyAVoltage);
@@ -266,6 +267,7 @@ public:
             m_settingsFactory->getValue(BLDC_MOTORB_VOLTAGE, motorBVoltage);
             LogHandler::debug(_TAG, "Motor B Voltage: %f", motorBVoltage);
             driverB->voltage_limit = motorBVoltage;
+            // motorB->voltage_limit = motorAVoltage;
             // power supply voltage [V]
             double supplyBVoltage = BLDC_MOTORB_SUPPLY_DEFAULT;
             m_settingsFactory->getValue(BLDC_MOTORB_SUPPLY, supplyBVoltage);
@@ -315,6 +317,8 @@ public:
         motorA->useMonitoring(Serial);
         if(motorB)
             motorB->useMonitoring(Serial);
+        //if(LogHandler::getLogLevel() == LogLevel::DEBUG)
+            SimpleFOCDebug::enable(&Serial);
 
         // init current sense
         bool paramsKnown = BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT;
@@ -486,7 +490,7 @@ private:
 
     // IGNORE!
     unsigned long previousMillis = 0; // variable to store the time of the last report
-    const long interval = 10; // interval at which to send reports (in ms)
+    const long interval = 500; // interval at which to send reports (in ms)
     int counter = 0;
 
     // Derived constants
@@ -707,15 +711,30 @@ private:
     {
         if(!m_initialized)
             return;
-        if(LogHandler::getLogLevel() == LogLevel::VERBOSE) 
+        if(LogHandler::getLogLevel() >= LogLevel::DEBUG) 
         {
             unsigned long currentMillis = millis();
             if (currentMillis - previousMillis >= interval) 
             {
                 previousMillis = currentMillis;
-                LogHandler::verbose(_TAG, "%s motor position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleA: %f \t sensorAngleA: %f\n", "Motor A", m_motorAnglePositionA, motorVoltageA, m_bootmode, zeroAngleA, sensorAngleA);
-                if(motorB)
-                    LogHandler::verbose(_TAG, "%s motor position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleB: %f \t sensorAngleB: %f\n", "Motor B", m_motorAnglePositionB, motorVoltageB, m_bootmode, zeroAngleB, sensorAngleB);
+                if(LogHandler::getLogLevel() == LogLevel::VERBOSE) 
+                {
+                    //SIMPLEFOC_DEBUG("Motor A position: %f", m_motorAnglePositionA);
+                    LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleA: %f \t sensorAngleA: %f\n", 
+                       "Motor A", m_motorAnglePositionA, motorVoltageA, m_bootmode, zeroAngleA, sensorAngleA);
+                    if(motorB) {
+                        //SIMPLEFOC_DEBUG("Motor B position: %f", m_motorAnglePositionB);
+                        LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleB: %f \t sensorAngleB: %f\n", 
+                           "Motor B", m_motorAnglePositionB, motorVoltageB, m_bootmode, zeroAngleB, sensorAngleB);
+                    }
+                }
+                else if(LogHandler::getLogLevel() == LogLevel::DEBUG) 
+                {
+                    SIMPLEFOC_DEBUG("Motor A position: %f", m_motorAnglePositionA);
+                    if(motorB) {
+                        SIMPLEFOC_DEBUG("Motor B position: %f", m_motorAnglePositionB);
+                    }
+                }                        
                 counter = 0;
             }
             counter++;
