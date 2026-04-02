@@ -706,6 +706,7 @@ private:
         // Control constants
         float pidProportionalConst = m_settingsFactory->getBLDCPIDProportionalConst(); // Motor PID proportional constant
         float lowPassFilter = m_settingsFactory->getBLDCLowPassFilter();  // Low pass filter factor for static noise reduction ( number < 1, 0 = none)
+        //LogHandler::debug(_TAG, "pidProportionalConst %f, lowPassFilter: %f", pidProportionalConst, lowPassFilter);
         float strokeVoltage, twistVoltage;
         strokeVoltage = pidProportionalConst*(strokeTargetPosition - strokePosition);
         twistVoltage = pidProportionalConst*(twistTargetPosition - twistPosition);
@@ -751,8 +752,8 @@ private:
             if (currentMillis - previousMillis >= interval) 
             {
                 previousMillis = currentMillis;
-                if(LogHandler::getLogLevel() == LogLevel::VERBOSE) 
-                {
+                // if(LogHandler::getLogLevel() >= LogLevel::DEBUG) 
+                // {
                     //SIMPLEFOC_DEBUG("Motor A position: %f", m_motorAnglePositionA);
                     LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleA: %f \t sensorAngleA: %f\n", 
                        "Motor A", m_motorAnglePositionA, motorVoltageA, m_bootmode, zeroAngleA, sensorAngleA);
@@ -762,15 +763,15 @@ private:
                         LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleB: %f \t sensorAngleB: %f\n", 
                            "Motor B", m_motorAnglePositionB, motorVoltageB, m_bootmode, zeroAngleB, sensorAngleB);
                     }
-                }
-                else if(LogHandler::getLogLevel() == LogLevel::DEBUG) 
-                {
-                    SIMPLEFOC_DEBUG("Motor A position: %f", m_motorAnglePositionA);
-                    if(motorB) 
-                    {
-                        SIMPLEFOC_DEBUG("Motor B position: %f", m_motorAnglePositionB);
-                    }
-                }                        
+                // }
+                // else if(LogHandler::getLogLevel() == LogLevel::DEBUG) 
+                // {
+                //     SIMPLEFOC_DEBUG("Motor A position: %f", m_motorAnglePositionA);
+                //     if(motorB) 
+                //     {
+                //         SIMPLEFOC_DEBUG("Motor B position: %f", m_motorAnglePositionB);
+                //     }
+                // }                        
                 counter = 0;
             }
             counter++;
