@@ -25,7 +25,7 @@
 #include "ToyComs.h"
 #include "Global.h"
 #include "MotorHandler.h"
-#include "TagHandler.h"
+#include "logging/TagHandler.h"
 
 /* volatile int twistFeedBackPin = m_settingsFactory->TwistFeedBack_PIN;
 // Twist position monitor variables

@@ -27,7 +27,7 @@ SOFTWARE. */
 #include "MotorHandler.h"
 #include "TCode0_4.h"
 #include "settings/SettingsHandler.h"
-#include "TagHandler.h"
+#include "logging/TagHandler.h"
 
 class MotorHandler0_4 : public MotorHandler
 {
@@ -228,6 +228,8 @@ protected:
         m_tcode->read("D1\n");
     }
 
+    bool m_initFailed = false;
+
     void executeCommon(const int xLin)
     {
         if (!m_tcode || m_initFailed)
@@ -260,7 +262,6 @@ protected:
     }
 
 private:
-    bool m_initFailed = false;
     SettingsFactory *m_settingsFactory;
     bool m_isAnalogTwist = false;
     bool m_isTwistFeedBack = false;
@@ -559,16 +560,16 @@ private:
         }
         switch (m_settingsFactory->getLubeButtonPinMode())
         {
-            case INPUT_PULLDOWN:
-                m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
-                break;
-            case INPUT:
-                m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
-                break;
-            case INPUT_PULLUP:
-            default:
-                m_manualLubeOverride = digitalRead(m_lubeButtonPin) == LOW;
-                break;
+        case INPUT_PULLDOWN:
+            m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
+            break;
+        case INPUT:
+            m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
+            break;
+        case INPUT_PULLUP:
+        default:
+            m_manualLubeOverride = digitalRead(m_lubeButtonPin) == LOW;
+            break;
         }
         if (m_manualLubeOverride)
         {

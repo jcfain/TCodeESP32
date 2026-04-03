@@ -26,7 +26,7 @@ SOFTWARE. */
 #include "Global.h"
 #include "TCode0_3.h"
 #include "settings/SettingsHandler.h"
-#include "TagHandler.h"
+#include "logging/TagHandler.h"
 #include "logging/LogHandler.h"
 
 class MotorHandler0_3 : public MotorHandler
@@ -221,6 +221,8 @@ protected:
         read("D1");
     }
 
+    bool m_initFailed = false;
+
     void executeCommon(const int xLin)
     {
         if (!m_tcode || m_initFailed)
@@ -253,7 +255,6 @@ protected:
     }
 
 private:
-    bool m_initFailed = false;
     SettingsFactory *m_settingsFactory;
     bool m_isAnalogTwist = false;
     bool m_isTwistFeedBack = false;
@@ -553,17 +554,17 @@ private:
         }
         switch (m_settingsFactory->getLubeButtonPinMode())
         {
-            case INPUT_PULLDOWN:
-                m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
-                break;
-            case INPUT:
-                m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
-                break;
-            case INPUT_PULLUP:
-                m_manualLubeOverride = digitalRead(m_lubeButtonPin) == LOW;
-                break;
-            default:
-                m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
+        case INPUT_PULLDOWN:
+            m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
+            break;
+        case INPUT:
+            m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
+            break;
+        case INPUT_PULLUP:
+            m_manualLubeOverride = digitalRead(m_lubeButtonPin) == LOW;
+            break;
+        default:
+            m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
         }
         if (m_manualLubeOverride)
         {

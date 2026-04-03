@@ -32,7 +32,7 @@ For now this is only for first configs */
 #include <sstream>
 #include "settings/SettingsHandler.h"
 // #include "LogHandler.h"
-#include "TagHandler.h"
+#include "logging/TagHandler.h"
 
 
 #define SERVICE_UUID "ff1b451d-3070-4276-9c81-5dc5ea1043bc" // UART service UUID

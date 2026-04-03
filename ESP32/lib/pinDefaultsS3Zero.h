@@ -9,7 +9,6 @@
 // ESP32-S3-Zero does not employ a USB to UART chip. When flashing firmware, press and hold the BOOT button (GPIO0) and then connect the Type-C cable.
 // The "TX" and "RX" markings on the board indicate the default UART0 pins for ESP32-S3-Zero. Specifically, TX is GPIO43, and RX is GPIO44.
 
-
 // Common PWM
 #define VALVE_SERVO_PIN_DEFAULT -1
 #define VALVE_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::NONE
@@ -38,7 +37,7 @@
 #define TEMP_PIN_DEFAULT -1
 #define I2C_SDA_PIN_DEFAULT 13
 #define I2C_SCL_PIN_DEFAULT 12
-#define BUTTON_SET_PINS_DEFAULT {}// Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
+#define BUTTON_SET_PINS_DEFAULT "" // Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
 #define BUTTON_SET_PINS_1 14
 #define BUTTON_SET_PINS_2 -1
 #define BUTTON_SET_PINS_3 -1

@@ -31,7 +31,7 @@ SOFTWARE. */
 #include "esp_coexist.h"
 #include "constants.h"
 // #include "LogHandler.h"
-#include "TagHandler.h"
+#include "logging/TagHandler.h"
 #include "TCode/MotorHandler.h"
 #include "logging/LogHandler.h"
 #include "BLEHandlerBase.h"

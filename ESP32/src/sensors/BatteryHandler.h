@@ -28,7 +28,7 @@ SOFTWARE. */
 #include "settings/SettingsHandler.h"
 #include "utils.h"
 #include "LogHandler.h"
-#include "TagHandler.h"
+#include "logging/TagHandler.h"
 #include "tasks/TaskHandler.h"
 
 using BATTERY_STATE_FUNCTION_PTR_T = void (*)(float capacityRemainingPercentage, float capacityRemaining, float voltage, float temperature);

@@ -3,7 +3,7 @@
 
 #include "enum.h"
 
-//#define GET_DEFAULT(X)
+// #define GET_DEFAULT(X)
 
 #define COMMON_SETTINGS_PATH "/userSettings.json"
 #define PIN_SETTINGS_PATH "/pins.json"
@@ -14,14 +14,17 @@
 #define CHANNELS_SETTINGS_PATH "/channels.json"
 
 // Setting defaults
-
+#ifndef DEFAULT_DEVICE
 #if MOTOR_TYPE == 0
-#define DEVICE_TYPE_DEFAULT (uint8_t)DEFAULT_DEVICE
+#define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::OSR
 #else
-    #define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::SSR1
+#define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::SSR1
+#endif
+#else
+#define DEVICE_TYPE_DEFAULT (int)DEFAULT_DEVICE
 #endif
 #define MOTOR_TYPE_DEFAULT MOTOR_TYPE
-#define IP_ADDRESS_LEN IP4ADDR_STRLEN_MAX //16
+#define IP_ADDRESS_LEN IP4ADDR_STRLEN_MAX // 16
 #define SSID_DEFAULT "YOUR SSID HERE"
 #define SSID_LEN 32
 #define WIFI_PASS_DEFAULT "YOUR PASSWORD HERE"
@@ -33,21 +36,21 @@
 #define AP_MODE_IP_DEFAULT "192.168.69.1"
 #define AP_MODE_GATEWAY_DEFAULT "192.168.69.254"
 #define AP_MODE_SUBNET_DEFAULT "255.255.255.0"
-#ifndef BOARD_TYPE_DEFAULT
+#ifndef DEFAULT_BOARD
 #if CONFIG_IDF_TARGET_ESP32
-#define BOARD_TYPE_DEFAULT (uint8_t)DEFAULT_BOARD
+#define BOARD_TYPE_DEFAULT (uint8_t)BoardType::N8R8
 #elif CONFIG_IDF_TARGET_ESP32S3
-    #ifdef S3_ZERO
-        #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::ZERO
-    #else
-        #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::N8R8
-    #endif
+#ifdef S3_ZERO
+#define BOARD_TYPE_DEFAULT (uint8_t)BoardType::ZERO
+#else
+#define BOARD_TYPE_DEFAULT (uint8_t)BoardType::N8R8
+#endif
 #endif
 #else
-#define BOARD_TYPE_DEFAULT DEFAULT_BOARD
+#define BOARD_TYPE_DEFAULT (int)DEFAULT_BOARD
 #endif
 #define LOG_LEVEL_DEFAULT (uint8_t)LogLevel::INFO
-//#define FULL_BUILD_DEFAULT false
+// #define FULL_BUILD_DEFAULT false
 #define TCODE_VERSION_DEFAULT (uint8_t)TCodeVersion::v0_3
 #define UDP_SERVER_PORT_DEFAULT 8000
 #define WEBSERVER_PORT_DEFAULT 80
@@ -120,7 +123,7 @@
 #define FAN_CONTROL_ENABLED_DEFAULT false
 // #define CASE_FAN_FREQUENCY_DEFAULT 25
 #define CASE_FAN_RESOLUTION_DEFAULT 10
-#define CASE_FAN_MAX_PWM_DEFAULT 1023// Set for default CASE_FAN_RESOLUTION_DEFAULT 10 bit
+#define CASE_FAN_MAX_PWM_DEFAULT 1023 // Set for default CASE_FAN_RESOLUTION_DEFAULT 10 bit
 #define INTERNAL_TEMP_FOR_FAN_DEFAULT 30.0
 #define INTERNAL_MAX_TEMP_DEFAULT 50.0
 #define TEMP_INTERNAL_ENABLED_DEFAULT false
@@ -133,8 +136,9 @@
 #define VOICE_WAKE_TIME_DEFAULT 10
 #define VOICE_VOLUME_DEFAULT 5
 // Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
-#define LOG_INCLUDETAGS_DEFAULT {}
-#define LOG_EXCLUDETAGS_DEFAULT {}
+// Use "" as placeholder — variant<int,char*,float,double,bool> cannot hold {}.
+#define LOG_INCLUDETAGS_DEFAULT ""
+#define LOG_EXCLUDETAGS_DEFAULT ""
 
 #define BOOT_BUTTON_ENABLED_DEFAULT false
 #define BOOT_BUTTON_COMMAND_DEFAULT "#motion-profile-cycle"
@@ -158,7 +162,7 @@
 
 #define BOARD_TYPE_SETTING "boardType"
 #define LOG_LEVEL_SETTING "logLevel"
-//#define FULL_BUILD "fullBuild"
+// #define FULL_BUILD "fullBuild"
 #define TCODE_VERSION_SETTING "TCodeVersion"
 #define UDP_SERVER_PORT "udpServerPort"
 #define WEBSERVER_PORT "webServerPort"
@@ -177,7 +181,7 @@
 #define BLDC_USEHALLSENSOR "BLDC_UseHallSensor"
 #define BLDC_PULLEY_CIRCUMFERENCE "BLDC_Pulley_Circumference"
 #define BLDC_MOTORA_VOLTAGE "BLDC_MotorA_VoltageLimit"
-#define BLDC_MOTORA_SUPPLY  "BLDC_MotorA_SupplyVoltage"
+#define BLDC_MOTORA_SUPPLY "BLDC_MotorA_SupplyVoltage"
 #define BLDC_MOTORA_CURRENT "BLDC_MotorA_Current"
 #define BLDC_MOTORA_PARAMETERSKNOWN "BLDC_MotorA_ParametersKnown"
 #define BLDC_MOTORA_ZEROELECANGLE "BLDC_MotorA_ZeroElecAngle"
@@ -190,7 +194,7 @@
 #define DNS1 "dns1"
 #define DNS2 "dns2"
 #define MDNS_ENABLED "mdnsEnabled"
-//#define SR6MODE "sr6Mode"
+// #define SR6MODE "sr6Mode"
 #define RIGHT_SERVO_ZERO "RightServo_ZERO"
 #define LEFT_SERVO_ZERO "LeftServo_ZERO"
 #define RIGHT_UPPER_SERVO_ZERO "RightUpperServo_ZERO"

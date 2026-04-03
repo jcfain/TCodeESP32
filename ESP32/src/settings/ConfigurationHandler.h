@@ -1,0 +1,12 @@
+#ifndef CONFIG_HANDLER_H
+#define CONFIG_HANDLER_H
+
+enum class OperatingMode
+{
+    STARTUP_MODE,
+    CONFIGURATION_MODE,
+    OTA_MODE,
+    NORMAL_OPERATION,
+};
+
+#endif // CONFIG_HANDLER_H

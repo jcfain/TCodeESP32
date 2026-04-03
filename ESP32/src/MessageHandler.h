@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "TagHandler.h"
+#include "logging/TagHandler.h"
 
 namespace Messages {
 struct message_t

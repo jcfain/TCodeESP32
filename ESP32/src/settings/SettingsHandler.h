@@ -31,7 +31,7 @@ SOFTWARE. */
 #include <Wire.h>
 // // #include "LogHandler.h"
 #include "utils.h"
-#include "TagHandler.h"
+#include "logging/TagHandler.h"
 #include "struct/voice.h"
 #include "struct/motionProfile.h"
 #include "struct/channel.h"

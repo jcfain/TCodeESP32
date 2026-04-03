@@ -73,9 +73,7 @@ public:
                 sendChunked(request, COMMON_SETTINGS_PATH); });
 
         server->on("/pins", HTTP_GET, [this](AsyncWebServerRequest *request)
-                   {
-                sendChunked(request, PIN_SETTINGS_PATH);
-                   });
+                   { sendChunked(request, PIN_SETTINGS_PATH); });
 
         server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request)
                    {
@@ -172,7 +170,7 @@ public:
         // 	}
         // });
 
-        server->on("/changeBoard", HTTP_POST, [this](AsyncWebServerRequest* request)
+        server->on("/changeBoard", HTTP_POST, [this](AsyncWebServerRequest *request)
                    {
                 String boardTypeString = request->hasParam("value") ? request->getParam("value")->value() : "";
                 int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
@@ -194,7 +192,7 @@ public:
                     AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error changing board type\"}");
                     request->send(response);
                 } });
-                server->on("/changeDevice", HTTP_POST, [this](AsyncWebServerRequest* request)
+        server->on("/changeDevice", HTTP_POST, [this](AsyncWebServerRequest *request)
                    {
                         String deviceTypeString = request->hasParam("value") ? request->getParam("value")->value() : "";
                 int deviceType = deviceTypeString.isEmpty() ? (int)DeviceType::OSR : deviceTypeString.toInt();
@@ -477,6 +475,13 @@ private:
         LogHandler::debug(Tags::Web, "[sendChunked] Open file: %s\n", filePath);
         File file{LittleFS.open(filePath, FILE_READ)};
 
+        if (!file)
+        {
+            LogHandler::error(Tags::Web, "[sendChunked] Failed to open: %s", filePath);
+            request->send(500, "text/plain", "File read error");
+            return;
+        }
+
         AsyncWebServerResponse *response = request->beginChunkedResponse(
             mimeType,
             [this, file](
@@ -504,6 +509,14 @@ private:
                 return length;
             });
 
+        if (!response)
+        {
+            LogHandler::error(Tags::Web, "[sendChunked] Failed to create response (heap: %u)", ESP.getFreeHeap());
+            file.close();
+            request->send(503, "text/plain", "Out of memory");
+            return;
+        }
+
         // Force download
         // response->addHeader("Content-Disposition", "attachment; filename=\"userSettings.json\"");
         if (isGZip)
@@ -522,7 +535,7 @@ private:
             path += F("index-min.html");
 
         // Detect mime type from the original path (before any .gz check)
-        const char* mimeType;
+        const char *mimeType;
         if (path.endsWith(".html"))
             mimeType = "text/html";
         else if (path.endsWith(".js"))
@@ -541,11 +554,13 @@ private:
         // sendChunked caps per-response memory, preventing _ack() failures
         // when the browser opens many parallel connections.
         String pathWithGz = path + ".gz";
-        if (LittleFS.exists(pathWithGz)) {
+        if (LittleFS.exists(pathWithGz))
+        {
             sendChunked(request, pathWithGz.c_str(), mimeType, true);
             return true;
         }
-        if (LittleFS.exists(path)) {
+        if (LittleFS.exists(path))
+        {
             sendChunked(request, path.c_str(), mimeType);
             return true;
         }

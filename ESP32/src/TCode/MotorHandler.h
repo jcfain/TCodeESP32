@@ -26,50 +26,56 @@ SOFTWARE. */
 #include "Global.h"
 #include "TCodeBase.h"
 #include "settings/SettingsHandler.h"
-#include "TagHandler.h"
+#include "logging/TagHandler.h"
 
-class MotorHandler {
+class MotorHandler
+{
 public:
     virtual void setup() = 0;
     virtual void read(byte inByte) = 0;
     virtual void read(const String &input) = 0;
-    virtual void read(const char* input, size_t len) = 0;
+    virtual void read(const char *input, size_t len) = 0;
     virtual void execute() = 0;
     virtual void setMessageCallback(TCODE_FUNCTION_PTR_T function) = 0;
+
 protected:
-    #ifdef ESP_ARDUINO3
+#ifdef ESP_ARDUINO3
     // void attachPin(const char* name, uint8_t pin, uint32_t freq, int8_t res = -1) {
-    void attachPin(const char* name, uint8_t pin, uint32_t freq, int8_t channel = -1, uint8_t res = 0) {
+    void attachPin(const char *name, uint8_t pin, uint32_t freq, int8_t channel = -1, uint8_t res = 0)
+    {
         uint8_t resolution = res > 0 ? res : SERVO_PWM_RES;
         bool success = false;
-        if(channel > -1) 
+        if (channel > -1)
         {
-            LogHandler::debug(TagHandler::MotorHandler, "Connecting %s servo to pin: %d @ freq: %d channel: %d resolution: %d", name, pin, freq, channel, resolution);
+            LogHandler::debug(Tags::Motor, "Connecting %s servo to pin: %d @ freq: %d channel: %d resolution: %d", name, pin, freq, channel, resolution);
             success = ledcAttachChannel(pin, freq, resolution, channel);
-        } 
+        }
         else
         {
-            LogHandler::debug(TagHandler::MotorHandler, "Connecting %s servo to pin: %d @ freq: %d resolution: %d", name, pin, freq, resolution);
+            LogHandler::debug(Tags::Motor, "Connecting %s servo to pin: %d @ freq: %d resolution: %d", name, pin, freq, resolution);
             success = ledcAttach(pin, freq, resolution);
         }
-        if(!success) {
-            LogHandler::error(TagHandler::MotorHandler, "Error attaching %s pin", name);
+        if (!success)
+        {
+            LogHandler::error(Tags::Motor, "Error attaching %s pin", name);
         }
     }
-    #else
-    void attachPin(const char* name, uint8_t pin, uint32_t freq, int8_t channel, int8_t res = -1) {
+#else
+    void attachPin(const char *name, uint8_t pin, uint32_t freq, int8_t channel, int8_t res = -1)
+    {
         uint8_t resolution = res > -1 ? res : SERVO_PWM_RES;
-        LogHandler::debug(TagHandler::MotorHandler, "Connecting %s servo to pin: %d @ freq: %d on channel: %d", name, pin, freq, channel);
-        ledcSetup(channel,freq,resolution);
-        ledcAttachPin(pin,channel);
+        LogHandler::debug(Tags::Motor, "Connecting %s servo to pin: %d @ freq: %d on channel: %d", name, pin, freq, channel);
+        ledcSetup(channel, freq, resolution);
+        ledcAttachPin(pin, channel);
     }
-    #endif
-    
+#endif
+
     /**
      * This method gets the period of the frequency 1/f
      * and converts the units to microseconds * 1000000
      */
-    int frequencyToMicroseconds(int freq) {
-        return 1000000/freq;
+    int frequencyToMicroseconds(int freq)
+    {
+        return 1000000 / freq;
     }
 };

@@ -172,7 +172,7 @@ public:
     void setButtonSetPin(const int8_t pin, int8_t index) {
         if(index >= MAX_BUTTON_SETS)
         {
-            LogHandler::error("Pin_map", "Invalid index for button set %d", index);
+            LogHandler::error(Tags::PinMap, "Invalid index for button set %d", index);
             return;
         }
         m_buttonSetPins[index] = pin;
@@ -187,23 +187,23 @@ public:
     // void setChannelFrequency(ESPTimerChannelNum channel, int frequency) {
     //     int8_t timer = getTimer(channel);
     //     if(timer > MAX_TIMERS - 1 || timer < 0) {
-    //         LogHandler::error("Pin_map", "Invalid channel '%d' when setting frequency: %d", (int8_t)channel, frequency);
+    //         LogHandler::error(Tags::PinMap, "Invalid channel '%d' when setting frequency: %d", (int8_t)channel, frequency);
     //         return;
     //     }
     //     if(frequency < 0) {
-    //         LogHandler::error("Pin_map", "Invalid frequency '%d' when setting frequency for channel: %d", frequency, (int8_t)channel);
+    //         LogHandler::error(Tags::PinMap, "Invalid frequency '%d' when setting frequency for channel: %d", frequency, (int8_t)channel);
     //         return;
     //     }
     //     m_timerFreq[timer] = frequency;
     // }
     int getChannelFrequency(int8_t channel) const {
         if(channel < 0 || channel >= (MAX_TIMERS << 1)) {
-            LogHandler::error("Pin_map", "Invalid channel '%d' when getting frequency", channel);
+            LogHandler::error(Tags::PinMap, "Invalid channel '%d' when getting frequency", channel);
             return -1;
         }
         const ESPTimer* timer = getTimer(static_cast<ESPTimerChannelNum>(channel));
         if(!timer) {
-            LogHandler::error("Pin_map", "Invalid channel '%d' when getting frequency", channel);
+            LogHandler::error(Tags::PinMap, "Invalid channel '%d' when getting frequency", channel);
             return -1;
         }
         return timer->frequency;
@@ -211,18 +211,18 @@ public:
 
     void setTimerFrequency(int8_t timerIndex, int frequency) {
         if(timerIndex > MAX_TIMERS - 1 || timerIndex < 0) {
-            LogHandler::error("Pin_map", "Invalid timer index '%d' when setting frequency: %d", timerIndex, frequency);
+            LogHandler::error(Tags::PinMap, "Invalid timer index '%d' when setting frequency: %d", timerIndex, frequency);
             return;
         }
         if(frequency < 0) {
-            LogHandler::error("Pin_map", "Invalid frequency '%d' when setting for timer index: %d", frequency, timerIndex);
+            LogHandler::error(Tags::PinMap, "Invalid frequency '%d' when setting for timer index: %d", frequency, timerIndex);
             return;
         }
         m_timers[timerIndex].frequency = frequency;
     }
     int getTimerFrequency(int8_t timerIndex) const {
         if(timerIndex > MAX_TIMERS - 1 || timerIndex < 0) {
-            //LogHandler::error("Pin_map", "Invalid timer '%d' when getting frequency", timer);
+            //LogHandler::error(Tags::PinMap, "Invalid timer '%d' when getting frequency", timer);
             return -1;
         }
         return m_timers[timerIndex].frequency;

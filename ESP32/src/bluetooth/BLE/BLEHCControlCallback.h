@@ -32,7 +32,7 @@ SOFTWARE. */
 #include "logging/LogHandler.h"
 
 #include "BLECharacteristicCallbacksBase.h"
-#include "TagHandler.h"
+#include "logging/TagHandler.h"
 #include "constants.h"
 
 class BLEHCControlCallback : public BLECharacteristicCallbacksBase

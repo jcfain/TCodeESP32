@@ -30,7 +30,7 @@
 #define TEMP_PIN_DEFAULT 5
 #define I2C_SDA_PIN_DEFAULT 21
 #define I2C_SCL_PIN_DEFAULT 22
-#define BUTTON_SET_PINS_DEFAULT {}// Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
+#define BUTTON_SET_PINS_DEFAULT "" // Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
 #define BUTTON_SET_PINS_1 39
 #define BUTTON_SET_PINS_2 -1
 #define BUTTON_SET_PINS_3 -1
@@ -67,7 +67,7 @@
 #define TEMP_PIN_DEFAULT 36
 #define I2C_SDA_PIN_DEFAULT 21
 #define I2C_SCL_PIN_DEFAULT 22
-#define BUTTON_SET_PINS_DEFAULT {}// Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
+#define BUTTON_SET_PINS_DEFAULT "" // Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
 #define BUTTON_SET_PINS_1 39
 #define BUTTON_SET_PINS_2 -1
 #define BUTTON_SET_PINS_3 -1

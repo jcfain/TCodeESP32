@@ -27,7 +27,7 @@ SOFTWARE. */
 #include "settings/SettingsHandler.h"
 #include "logging/LogHandler.h"
 #include "tasks/TaskHandler.h"
-#include "TagHandler.h"
+#include "logging/TagHandler.h"
 #include "esp_coexist.h"
 #include "esp_bt.h"
 

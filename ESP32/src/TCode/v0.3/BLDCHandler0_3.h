@@ -24,13 +24,18 @@
 #include "settings/SettingsHandler.h"
 #include "Global.h"
 #include "MotorHandler0_3.h"
-#include "TagHandler.h"
+#include "logging/TagHandler.h"
 #include "settingsFactory.h"
 
 // Control constants
 // (a.k.a. magic numbers for Eve)
-#define P_CONST 0.002 // Motor PID proportional constant
-#define LOW_PASS 0.8  // Low pass filter factor for static noise reduction ( number < 1, 0 = none)
+#define P_CONST 0.002            // Motor PID proportional constant
+#define LOW_PASS 0.8             // Low pass filter factor for static noise reduction ( number < 1, 0 = none)
+#define MAX_CONTROL_VOLTAGE 3.0f // Maximum voltage the P-controller can command in normal operation
+
+#define STALL_ANGLE_THRESHOLD 0.05f        // Minimum angle change (rad) to count as movement
+#define STALL_TIMEOUT_MS 2000              // Time (ms) of no movement before declaring a stall
+#define STALL_POSITION_ERROR_THRESHOLD 500 // Min position error (0-9999) to consider motor "trying to move"
 
 // // encoder position monitor variables
 // volatile int encoderPulseLength = 464;
@@ -135,6 +140,11 @@ public:
         // BLDCDriver3PWM driver = BLDCDriver3PWM(pwmA, pwmB, pwmC, Enable(optional));
         LogHandler::info(Tags::Motor, "Setup BLDC PWM pins 1: %d, 2: %d, 3: %d, enable: %d", pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
         driverA = new BLDCDriver3PWM(pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
+        // Store pin numbers for direct GPIO kill on stall
+        m_enablePin = pinMap->enable();
+        m_pwm1Pin = pinMap->pwmChannel1();
+        m_pwm2Pin = pinMap->pwmChannel2();
+        m_pwm3Pin = pinMap->pwmChannel3();
 
         // Start serial connection and report status
         m_tcode->setup(FIRMWARE_VERSION_NAME);
@@ -308,11 +318,30 @@ public:
         {
             return;
         }
+        // Once stalled, bypass SimpleFOC and force all motor pins LOW via GPIO
+        if (m_stalled)
+        {
+            if (!m_stallPinsKilled)
+            {
+                // Reconfigure motor pins as plain GPIO to detach from LEDC/PWM peripheral
+                pinMode(m_enablePin, OUTPUT);
+                pinMode(m_pwm1Pin, OUTPUT);
+                pinMode(m_pwm2Pin, OUTPUT);
+                pinMode(m_pwm3Pin, OUTPUT);
+                m_stallPinsKilled = true;
+                LogHandler::error(Tags::Motor, "Motor pins reconfigured as GPIO and forced LOW");
+            }
+            digitalWrite(m_enablePin, LOW);
+            digitalWrite(m_pwm1Pin, LOW);
+            digitalWrite(m_pwm2Pin, LOW);
+            digitalWrite(m_pwm3Pin, LOW);
+            return;
+        }
         if (!startTime)
         {
             // Record start time
             startTime = millis();
-            LogHandler::verbose(Tags::Motor, "startTime: %ld", startTime);
+            LogHandler::info(Tags::Motor, "Bootmode calibration starting, startTime: %lu, hallSensor: %s", startTime, m_useHallSensor ? "yes" : "no");
         }
         // Run motor FOC loop
         motorA->loopFOC();
@@ -364,7 +393,7 @@ public:
                 xLin = map(millis() - startTime, 0, 2000, 0, 12000);
                 if (!digitalRead(m_hallSensorPin))
                 {
-                    LogHandler::debug(Tags::Motor, "Set bootmode false read hall");
+                    LogHandler::info(Tags::Motor, "Set bootmode false read hall");
                     bootmode = false;
                     zeroAngle = angle - TOP_START_OFFSET;
                 }
@@ -372,7 +401,7 @@ public:
                 {
                     // Timeout after two seconds if sensor not triggered
                     bootmode = false;
-                    LogHandler::debug(Tags::Motor, "Set bootmode false hall timeout");
+                    LogHandler::info(Tags::Motor, "Set bootmode false hall timeout");
                     zeroAngle = angle - TOP_START_OFFSET - ENDSTOP_START_OFFSET;
                 }
                 motorVoltageNew = P_CONST * (xLin - xPosition);
@@ -385,7 +414,7 @@ public:
                 if (millis() > (startTime + 2000))
                 {
                     bootmode = false;
-                    LogHandler::debug(Tags::Motor, "Set bootmode false NO HALL timeout");
+                    LogHandler::info(Tags::Motor, "Set bootmode false NO HALL timeout");
                     zeroAngle = angle + ENDSTOP_START_OFFSET;
                 }
                 motorVoltageNew = P_CONST * (xLin - xPosition);
@@ -399,9 +428,43 @@ public:
         else
         {
             motorVoltageNew = P_CONST * (xLin - xPosition);
+            // Clamp voltage to prevent full-speed runaway
+            if (motorVoltageNew > MAX_CONTROL_VOLTAGE)
+                motorVoltageNew = MAX_CONTROL_VOLTAGE;
+            else if (motorVoltageNew < -MAX_CONTROL_VOLTAGE)
+                motorVoltageNew = -MAX_CONTROL_VOLTAGE;
         }
         // Low pass filter to reduce motor noise
         motorVoltage = LOW_PASS * motorVoltage + (1 - LOW_PASS) * motorVoltageNew;
+
+        // Encoder stall detection: only trigger when motor has significant
+        // position error (should be moving) but encoder shows no change.
+        if (!bootmode)
+        {
+            float posError = fabs((float)xLin - xPosition);
+            if (posError > STALL_POSITION_ERROR_THRESHOLD)
+            {
+                // Motor should be moving - check if encoder is changing
+                if (fabs(angle - m_stallAngle) > STALL_ANGLE_THRESHOLD)
+                {
+                    m_stallAngle = angle;
+                    m_stallStartMs = millis();
+                }
+                else if (millis() - m_stallStartMs > STALL_TIMEOUT_MS)
+                {
+                    LogHandler::error(Tags::Motor, "Motor stalled - encoder not responding. Disabling motor.");
+                    m_stalled = true;
+                    return;
+                }
+            }
+            else
+            {
+                // Motor near target - reset stall timer
+                m_stallAngle = angle;
+                m_stallStartMs = millis();
+            }
+        }
+
         // Motion control function
         motorA->move(motorVoltage);
 
@@ -421,7 +484,6 @@ public:
     }
 
 private:
-    bool m_initFailed = false;
     SettingsFactory *m_settingsFactory;
     bool m_useHallSensor = false;
     int8_t m_hallSensorPin = -1;
@@ -448,6 +510,17 @@ private:
     bool bootmode = true;
     unsigned long startTime = 0;
     float motorVoltage = 0.00;
+
+    // Stall detection
+    float m_stallAngle = 0.00;
+    unsigned long m_stallStartMs = 0;
+    bool m_stalled = false;
+    bool m_stallPinsKilled = false;
+    // Motor pin numbers for direct GPIO kill
+    int8_t m_enablePin = -1;
+    int8_t m_pwm1Pin = -1;
+    int8_t m_pwm2Pin = -1;
+    int8_t m_pwm3Pin = -1;
 
     // IGNORE!
     unsigned long previousMillis = 0; // variable to store the time of the last report
