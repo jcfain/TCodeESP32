@@ -3,3 +3,8 @@ CONFIG_AUTOSTART_ARDUINO=y
 CONFIG_FREERTOS_HZ=1000
 CONFIG_MBEDTLS_PSK_MODES=y
 CONFIG_MBEDTLS_KEY_EXCHANGE_PSK=y
+# Reduce LWIP TCP buffer sizes so AsyncWebServer's per-ACK malloc() attempts
+# are smaller (~2920 bytes instead of ~5744), making them far less likely to
+# fail due to heap fragmentation caused by WiFi+BLE coexistence.
+CONFIG_TCP_SND_BUF_DEFAULT=2920
+CONFIG_TCP_WND_DEFAULT=2920

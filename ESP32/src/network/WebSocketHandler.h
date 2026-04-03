@@ -198,11 +198,13 @@ private:
             //  client->ping();
             //  client->client()->setNoDelay(true);
             m_clients.push_back(client);
+            ws.cleanupClients(); // free memory from any previously disconnected clients
         }
         else if (type == WS_EVT_DISCONNECT)
         {
             LogHandler::debug(Tags::WebSocketServer, "ws[%s][%u] disconnect\n", server->url(), client->id());
             m_clients.remove(client);
+            ws.cleanupClients(); // free message queues for this client immediately
         }
         else if (type == WS_EVT_ERROR)
         {

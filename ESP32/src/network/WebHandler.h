@@ -24,7 +24,6 @@ SOFTWARE. */
 
 #include <Arduino.h>
 #include <LittleFS.h>
-#include <WebServer.h>
 #include <memory>
 #if ESP8266 == 1
 #include <ESPAsyncTCP.h>
@@ -38,9 +37,6 @@ SOFTWARE. */
 #include "logging/TagHandler.h"
 #include "messages/SystemCommandHandler.h"
 #include "tasks/TaskHandler.h"
-#if !CONFIG_HTTPD_WS_SUPPORT
-#error This example cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
-#endif
 class WebHandler : public HTTPBase, public TaskHandler::Task
 {
 public:
@@ -51,8 +47,13 @@ public:
         stop();
         if (port < 1 || port > 65535)
             port = 80;
-        LogHandler::info(Tags::Web, "Starting web server on port: %i", port);
+        LogHandler::info(Tags::Web, "Starting web server on port: %i (free heap: %u)", port, ESP.getFreeHeap());
         server = new AsyncWebServer(port);
+        if (!server)
+        {
+            LogHandler::error(Tags::Web, "Failed to allocate AsyncWebServer!");
+            return;
+        }
         ((WebSocketHandler *)webSocketHandler)->setup(server);
         m_settingsFactory = SettingsFactory::getInstance();
         server->on("/wifiSettings", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -67,13 +68,11 @@ public:
                 AsyncWebServerResponse *response = request->beginResponse(200, "application/json", info);
                 request->send(response); });
 
-        server->on("/settings", HTTP_GET, [this](AsyncWebServerRequest *request)
-                   {
-                // request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json");
-                sendChunked(request, COMMON_SETTINGS_PATH); });
+        server->on("/settings", HTTP_GET, [](AsyncWebServerRequest *request)
+                   { request->send(LittleFS, COMMON_SETTINGS_PATH, "application/json"); });
 
-        server->on("/pins", HTTP_GET, [this](AsyncWebServerRequest *request)
-                   { sendChunked(request, PIN_SETTINGS_PATH); });
+        server->on("/pins", HTTP_GET, [](AsyncWebServerRequest *request)
+                   { request->send(LittleFS, PIN_SETTINGS_PATH, "application/json"); });
 
         server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request)
                    {
@@ -89,35 +88,20 @@ public:
                     request->send(response);
                     return;
                 }
-                // Stream the JSON in chunks so AsyncWebServer doesn't need to
-                // buffer the entire body at once, reducing peak heap usage.
-                AsyncWebServerResponse* response = request->beginChunkedResponse(
-                    "application/json",
-                    [systemInfo](uint8_t* buffer, size_t maxLen, size_t index) -> size_t {
-                        size_t totalLen = systemInfo->length();
-                        if (index >= totalLen)
-                            return 0;
-                        size_t remaining = totalLen - index;
-                        size_t toSend = remaining < maxLen ? remaining : maxLen;
-                        memcpy(buffer, systemInfo->c_str() + index, toSend);
-                        return toSend;
-                    });
-                request->send(response); });
+                // Use a non-chunked response so Content-Length is set and _ack()
+                // allocates min(space, remaining) per call instead of space every call.
+                // AsyncBasicResponse copies the string internally so the shared_ptr
+                // can be released immediately after send().
+                request->send(200, "application/json", *systemInfo); });
 
-        server->on("/motionProfiles", HTTP_GET, [this](AsyncWebServerRequest *request)
-                   {
-                // request->send(LittleFS, MOTION_PROFILE_SETTINGS_PATH, "application/json");
-                sendChunked(request, MOTION_PROFILE_SETTINGS_PATH); });
+        server->on("/motionProfiles", HTTP_GET, [](AsyncWebServerRequest *request)
+                   { request->send(LittleFS, MOTION_PROFILE_SETTINGS_PATH, "application/json"); });
 
-        server->on("/channelsProfile", HTTP_GET, [this](AsyncWebServerRequest *request)
-                   {
-                // request->send(LittleFS, CHANNELS_SETTINGS_PATH, "application/json");
-                sendChunked(request, CHANNELS_SETTINGS_PATH); });
+        server->on("/channelsProfile", HTTP_GET, [](AsyncWebServerRequest *request)
+                   { request->send(LittleFS, CHANNELS_SETTINGS_PATH, "application/json"); });
 
-        server->on("/buttonSettings", HTTP_GET, [this](AsyncWebServerRequest *request)
-                   {
-                // request->send(LittleFS, BUTTON_SETTINGS_PATH, "application/json");
-                sendChunked(request, BUTTON_SETTINGS_PATH); });
+        server->on("/buttonSettings", HTTP_GET, [](AsyncWebServerRequest *request)
+                   { request->send(LittleFS, BUTTON_SETTINGS_PATH, "application/json"); });
 
         // server->on("/log", HTTP_GET, [this](AsyncWebServerRequest *request)
         // {
@@ -376,6 +360,7 @@ public:
 
         server->onNotFound([this](AsyncWebServerRequest *request)
                            {
+                LogHandler::info(Tags::Web, "Request: %s %s (heap: %u)", request->methodToString(), request->url().c_str(), ESP.getFreeHeap());
                 if (handleStaticFile(request)) return;
                 Serial.printf("AsyncWebServerRequest Not found: %s", request->url().c_str());
                 if (request->method() == HTTP_OPTIONS) {
@@ -412,8 +397,10 @@ public:
         // path — AsyncFileResponse's FS constructor automatically tries
         // path.gz and sets Content-Encoding: gzip correctly.  The File-based
         // constructor used by serveStatic does NOT do this properly.
+        LogHandler::info(Tags::Web, "Calling server->begin() (free heap: %u, max block: %u)", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
         server->begin();
         initialized = true;
+        LogHandler::info(Tags::Web, "Web server started (free heap: %u)", ESP.getFreeHeap());
     }
     void stop() override
     {
@@ -492,11 +479,10 @@ private:
                 LogHandler::debug(Tags::Web, "[beginChunkedResponse] Enter chunked file: %s\n", file.name());
                 size_t length;
 
-                // Cap chunk size to limit peak memory per TCP send.
-                // 4096 balances throughput vs memory — small enough to keep
-                // heap use bounded with many concurrent responses, large enough
-                // to fill multiple TCP segments per round-trip.
-                static constexpr size_t MAX_CHUNK = 4096;
+                // Cap chunk size to one TCP MSS to limit peak memory per
+                // send.  Smaller allocations are more likely to succeed when
+                // the heap is fragmented by WiFi+BLE coexistence.
+                static constexpr size_t MAX_CHUNK = 1460;
                 size_t readLen = max_len > MAX_CHUNK ? MAX_CHUNK : max_len;
                 length = file.read(buffer, readLen);
 
@@ -549,19 +535,24 @@ private:
         else
             mimeType = "application/octet-stream";
 
-        // Prefer the .gz file directly — avoids the error log from the
-        // FS constructor trying to open the non-existent uncompressed file.
-        // sendChunked caps per-response memory, preventing _ack() failures
-        // when the browser opens many parallel connections.
+        // Use the FS-based send which sets Content-Length (known file size)
+        // instead of chunked transfer encoding.  Content-Length responses
+        // require less per-ACK buffer allocation, reducing the chance of
+        // _ack() "Failed to allocate" errors under memory pressure.
+        // Pass the gz path directly (when it exists) so AsyncFileResponse
+        // does not attempt to open the non-gz path first, which would
+        // generate a spurious VFS "does not exist" error in the log.
         String pathWithGz = path + ".gz";
         if (LittleFS.exists(pathWithGz))
         {
-            sendChunked(request, pathWithGz.c_str(), mimeType, true);
+            AsyncWebServerResponse *response = request->beginResponse(LittleFS, pathWithGz, mimeType);
+            response->addHeader("Content-Encoding", "gzip");
+            request->send(response);
             return true;
         }
         if (LittleFS.exists(path))
         {
-            sendChunked(request, path.c_str(), mimeType);
+            request->send(LittleFS, path, mimeType);
             return true;
         }
         return false;

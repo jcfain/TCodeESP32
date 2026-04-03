@@ -69,6 +69,7 @@ SOFTWARE. */
 #include "network/MDNSHandler.hpp"
 // #include "OTAHandler.h"
 #include "bluetooth/BLE/BLEHandler.hpp"
+#include <esp_bt.h>
 
 #include "network/WebSocketHandler.h"
 #include "tasks/TaskHandler.h"
@@ -89,11 +90,13 @@ bool networkingBringupAttempted = false;
 const unsigned long NETWORK_BRINGUP_DELAY_MS = 3000;
 
 // --- Motor task configuration ---
-// Motor control runs on a dedicated FreeRTOS task pinned to PRO_CPU (Core 0)
-// so that WiFi, networking, and other blocking work on APP_CPU (Core 1)
-// cannot starve the time-critical FOC control loop.
+// Motor control runs on a dedicated FreeRTOS task pinned to PRO_CPU (Core 0).
+// Priority must stay BELOW the WiFi/pp driver tasks (~23) so the WiFi stack
+// can process packets, handle WPA key rotation, and service TCP ACKs.
+// A priority of 19 still gives the motor task higher priority than most
+// application tasks while letting the WiFi stack preempt when needed.
 static const uint32_t MOTOR_TASK_STACK_SIZE = 16384;
-static const UBaseType_t MOTOR_TASK_PRIORITY = configMAX_PRIORITIES - 1;
+static const UBaseType_t MOTOR_TASK_PRIORITY = 19;
 static const BaseType_t MOTOR_TASK_CORE = PRO_CPU_NUM;
 static const uint32_t MOTOR_CMD_QUEUE_SIZE = 32;
 static const uint32_t MOTOR_CMD_MAX_LEN = 128;
@@ -182,6 +185,23 @@ void startNetworking(bool apMode, int webPort, int udpPort, const char *hostname
 	{
 		return;
 	}
+
+	// Release Bluetooth controller memory if BLE is compiled in but not
+	// used.  This returns ~60 KB of contiguous internal DRAM to the heap,
+	// which is critical for the AsyncTCP task stack allocation under
+	// WiFi+BLE coexistence heap fragmentation.
+#if BLE_TCODE && !defined(BLE_ACTIVE)
+	esp_err_t btRel = esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
+	if (btRel == ESP_OK)
+	{
+		LogHandler::info(Tags::Main, "Released BT controller memory (free heap: %u, max block: %u)",
+						 ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+	}
+	else
+	{
+		LogHandler::debug(Tags::Main, "BT mem release: %s (may already be released)", esp_err_to_name(btRel));
+	}
+#endif
 
 	if (!webHandler)
 	{

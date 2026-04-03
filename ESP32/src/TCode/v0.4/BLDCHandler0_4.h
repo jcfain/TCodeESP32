@@ -141,11 +141,6 @@ public:
         // BLDCDriver3PWM driver = BLDCDriver3PWM(pwmA, pwmB, pwmC, Enable(optional));
         LogHandler::info(Tags::Motor, "Setup BLDC PWM pins 1: %d, 2: %d, 3: %d, enable: %d", pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
         driverA = new BLDCDriver3PWM(pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
-        // Store pin numbers for direct GPIO kill on stall
-        m_enablePin = pinMap->enable();
-        m_pwm1Pin = pinMap->pwmChannel1();
-        m_pwm2Pin = pinMap->pwmChannel2();
-        m_pwm3Pin = pinMap->pwmChannel3();
 
         // Start serial connection and report status
         m_tcode->setup(FIRMWARE_VERSION_NAME);
@@ -321,23 +316,18 @@ public:
         {
             return;
         }
-        // Once stalled, bypass SimpleFOC and force all motor pins LOW via GPIO
+        // Once stalled, use SimpleFOC's disable which properly zeroes PWM
+        // duty via the LEDC peripheral.  Plain pinMode()/digitalWrite()
+        // does NOT detach the pin from LEDC on ESP-IDF 5.x, so the motor
+        // would keep spinning at whatever voltage was last commanded.
         if (m_stalled)
         {
             if (!m_stallPinsKilled)
             {
-                // Reconfigure motor pins as plain GPIO to detach from LEDC/PWM peripheral
-                pinMode(m_enablePin, OUTPUT);
-                pinMode(m_pwm1Pin, OUTPUT);
-                pinMode(m_pwm2Pin, OUTPUT);
-                pinMode(m_pwm3Pin, OUTPUT);
+                motorA->disable();
                 m_stallPinsKilled = true;
-                LogHandler::error(Tags::Motor, "Motor pins reconfigured as GPIO and forced LOW");
+                LogHandler::error(Tags::Motor, "Motor disabled via SimpleFOC after stall");
             }
-            digitalWrite(m_enablePin, LOW);
-            digitalWrite(m_pwm1Pin, LOW);
-            digitalWrite(m_pwm2Pin, LOW);
-            digitalWrite(m_pwm3Pin, LOW);
             return;
         }
         if (!startTime)
@@ -399,6 +389,8 @@ public:
                     LogHandler::info(Tags::Motor, "Set bootmode false read hall");
                     bootmode = false;
                     zeroAngle = angle - TOP_START_OFFSET;
+                    m_stallAngle = angle;
+                    m_stallStartMs = millis();
                 }
                 else if (millis() > (startTime + 2000))
                 {
@@ -406,6 +398,8 @@ public:
                     bootmode = false;
                     LogHandler::info(Tags::Motor, "Set bootmode false hall timeout");
                     zeroAngle = angle - TOP_START_OFFSET - ENDSTOP_START_OFFSET;
+                    m_stallAngle = angle;
+                    m_stallStartMs = millis();
                 }
                 motorVoltageNew = P_CONST * (xLin - xPosition);
             }
@@ -419,6 +413,8 @@ public:
                     bootmode = false;
                     LogHandler::info(Tags::Motor, "Set bootmode false NO HALL timeout");
                     zeroAngle = angle + ENDSTOP_START_OFFSET;
+                    m_stallAngle = angle;
+                    m_stallStartMs = millis();
                 }
                 motorVoltageNew = P_CONST * (xLin - xPosition);
                 if (motorVoltageNew < -0.5)
@@ -521,11 +517,6 @@ private:
     unsigned long m_stallStartMs = 0;
     bool m_stalled = false;
     bool m_stallPinsKilled = false;
-    // Motor pin numbers for direct GPIO kill
-    int8_t m_enablePin = -1;
-    int8_t m_pwm1Pin = -1;
-    int8_t m_pwm2Pin = -1;
-    int8_t m_pwm3Pin = -1;
 
     // IGNORE!
     unsigned long previousMillis = 0; // variable to store the time of the last report

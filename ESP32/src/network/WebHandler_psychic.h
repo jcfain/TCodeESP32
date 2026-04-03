@@ -77,14 +77,15 @@ public:
 
         server->on("/systemInfo", HTTP_GET, [](PsychicRequest *request)
                    {
-                String systemInfo;
-                SettingsHandler::getSystemInfo(systemInfo);
-                if (systemInfo.length() == 0) {
-                    return request->reply(504, "application/text", "Error getting user settings");
-                }
-                return request->reply(200, "application/json", systemInfo.c_str());
-                // systemInfo String is freed here after reply copies the data
-            });
+                       String systemInfo;
+                       SettingsHandler::getSystemInfo(systemInfo);
+                       if (systemInfo.length() == 0)
+                       {
+                           return request->reply(504, "application/text", "Error getting user settings");
+                       }
+                       return request->reply(200, "application/json", systemInfo.c_str());
+                       // systemInfo String is freed here after reply copies the data
+                   });
 
         server->on("/motionProfiles", HTTP_GET, [](PsychicRequest *request)
                    {
