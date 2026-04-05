@@ -94,11 +94,11 @@ class BLDCMotor {
         {
             this.createBLDCNumericFormNode(this.Names.BLDC_Pulley_Circumference, "Pulley Circumference (mm)", userSettings[this.Names.BLDC_Pulley_Circumference], () => this.updateBLDCSettings(), 0, 2147483647, 1);
         }
-        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_VoltageLimit, "Voltage limit (v)", userSettings[this.Names.BLDC_Motor_VoltageLimit], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.05);
-        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_SupplyVoltage, "Supply voltage (v)", userSettings[this.Names.BLDC_Motor_SupplyVoltage], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.05);
-        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_Current, "Motor current (a)", userSettings[this.Names.BLDC_Motor_Current], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.05);
-        this.createBLDCCheckboxFormNode(this.Names.BLDC_Motor_ParametersKnown, "Parameters known", userSettings[this.Names.BLDC_Motor_ParametersKnown], () => this.updateBLDCSettings(0));
-        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_ZeroElecAngle, "Zero elec angle (rad)", userSettings[this.Names.BLDC_Motor_ZeroElecAngle], () => this.updateBLDCSettings(), -2147483647.0, 2147483647.0, 0.05, this.Names.ZeroElecAngle_Row);
+        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_VoltageLimit, "Voltage limit (v)", userSettings[this.Names.BLDC_Motor_VoltageLimit], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.01);
+        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_SupplyVoltage, "Supply voltage (v)", userSettings[this.Names.BLDC_Motor_SupplyVoltage], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.01);
+        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_Current, "Motor current (a)", userSettings[this.Names.BLDC_Motor_Current], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.01);
+        this.createBLDCCheckboxFormNode(this.Names.BLDC_Motor_ParametersKnown, "Parameters known", userSettings[this.Names.BLDC_Motor_ParametersKnown]);
+        this.createBLDCNumericFormNode(this.Names.BLDC_Motor_ZeroElecAngle, "Zero elec angle (rad)", userSettings[this.Names.BLDC_Motor_ZeroElecAngle], () => this.updateBLDCSettings(), -2147483647.0, 2147483647.0, 0.01, this.Names.ZeroElecAngle_Row);
         // this.createBLDCNumericFormNode(this.Names.BLDC_RailLength, "Rail length (mm)", userSettings[this.Names.BLDC_RailLength], () => this.updateBLDCSettings(), 0, 2147483647);
         // this.createBLDCNumericFormNode(this.Names.BLDC_Range, (this.name.length == 0 ? "Stroke" : this.name) + " length (mm)", userSettings[this.Names.BLDC_Range], () => this.updateBLDCSettings(), 0, 2147483647, 1);
 
