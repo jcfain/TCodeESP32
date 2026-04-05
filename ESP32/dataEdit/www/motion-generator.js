@@ -193,14 +193,14 @@ MotionGenerator = {
                     function(profileIndex, channelIndex, name) {setMotionOffsetRandomClicked(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
                 
-                channelRow = Utils.createNumericFormRow("motionOffsetRandomMinRow"+profileIndex+channelIndex, "Min (tcode)", 'motionOffsetRandomMin'+profileIndex+channelIndex, motionChannel ? motionChannel.offsetMin : 3000, 0, 9999, 100,
+                channelRow = Utils.createNumericFormRow("motionOffsetRandomMinRow"+profileIndex+channelIndex, "Min (tcode)", 'motionOffsetRandomMin'+profileIndex+channelIndex, motionChannel ? motionChannel.offsetMin : 3000, 0, 9999, 1,
                     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
 
                 randomMin = channelRow.input;
                 randomRowMin = channelRow;
                 
-                channelRow = Utils.createNumericFormRow("motionOffsetRandomMaxRow"+profileIndex+channelIndex, "Max (tcode)", 'motionOffsetRandomMax'+profileIndex+channelIndex, motionChannel ? motionChannel.offsetMax : 7000, 0, 9999, 100,
+                channelRow = Utils.createNumericFormRow("motionOffsetRandomMaxRow"+profileIndex+channelIndex, "Max (tcode)", 'motionOffsetRandomMax'+profileIndex+channelIndex, motionChannel ? motionChannel.offsetMax : 7000, 0, 9999, 1,
                     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
 
@@ -208,7 +208,7 @@ MotionGenerator = {
                 toggleMotionRandomSettingsElement(randomRowMin.row, channelRow.row, offsetRan);
 
                 //Phase///////
-                channelRow = Utils.createNumericFormRow(0, "Phase (degree)", 'motionPhase'+profileIndex+channelIndex, motionChannel ? motionChannel.phase : 0, 0.0, 180.0, 20,
+                channelRow = Utils.createNumericFormRow(0, "Phase (degree)", 'motionPhase'+profileIndex+channelIndex, motionChannel ? motionChannel.phase : 0, -180, 180, 1,
                     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
 
@@ -217,14 +217,14 @@ MotionGenerator = {
                     function(profileIndex, channelIndex, name) {setMotionPhaseRandomClicked(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
                 
-                channelRow = Utils.createNumericFormRow("motionPhaseRandomMinRow"+profileIndex+channelIndex, "Min (degree)", 'motionPhaseRandomMin'+profileIndex+channelIndex, motionChannel ? motionChannel.phaseMin : 0.0, 0.0, 180.0, 20,
+                channelRow = Utils.createNumericFormRow("motionPhaseRandomMinRow"+profileIndex+channelIndex, "Min (degree)", 'motionPhaseRandomMin'+profileIndex+channelIndex, motionChannel ? motionChannel.phaseMin : 0, 0, 180, 1,
                     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
                 
                 randomMin = channelRow.input;
                 randomRowMin = channelRow;
 
-                channelRow = Utils.createNumericFormRow("motionPhaseRandomMaxRow"+profileIndex+channelIndex, "Max (degree)", 'motionPhaseRandomMax'+profileIndex+channelIndex, motionChannel ? motionChannel.phaseMax : 180.0, 0.0, 180.0, 20,
+                channelRow = Utils.createNumericFormRow("motionPhaseRandomMaxRow"+profileIndex+channelIndex, "Max (degree)", 'motionPhaseRandomMax'+profileIndex+channelIndex, motionChannel ? motionChannel.phaseMax : 180, 0, 180, 1,
                     function(profileIndex, channelIndex, name) {setMotionGeneratorSettings(profileIndex, channelIndex, name)}.bind(this, profileIndex, channelIndex, name));
                 channelTableDiv.appendChild(channelRow.row);
 
@@ -548,8 +548,8 @@ function getDefaultMotionChannel(name) {
         ranMax: 30000,
         phase: 0,
         phaseRan: false,
-        phaseMin: 0.0,
-        phaseMax: 180.0,
+        phaseMin: 0,
+        phaseMax: 180,
         reverse: false
     }
 }

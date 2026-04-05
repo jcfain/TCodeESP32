@@ -1215,7 +1215,7 @@ private:
         //     m_restartRequired = setting->isRestartRequired == RestartRequired::YES;
         // }
     }
-    
+
     bool load(SettingFileInfo &fileInfo)
     {
         LogHandler::info(m_TAG, "Loading file: %s", fileInfo.path);
@@ -1603,7 +1603,8 @@ private:
             file.close();
             return false;
         }
-        LogHandler::debug(m_TAG, "File contents: %s", file.readString().c_str());
+        if(LogHandler::getLogLevel() >= LogLevel::DEBUG)
+            LogHandler::debug(m_TAG, "File contents: %s", file.readString().c_str());
         file.close();
         return true;
     }

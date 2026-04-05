@@ -251,9 +251,10 @@ public:
 
 			LogHandler::verbose(_TAG, "internal getTempC duration: %d", micros() - start);
 
-			String statusJson("{\"temp\":\"" + String(_currentInternalTemp) + "\", \"status\":\""+m_lastInternalStatus+"\"}");
+			//String statusJson("{\"temp\":\"" + String(_currentInternalTemp) + "\", \"status\":\""+m_lastInternalStatus+"\"}");
+			buildJson(jsonBufInternal, sizeof jsonBufInternal, _currentInternalTemp, m_lastInternalStatus);
 			if(tempChanged && message_callback) {
-				message_callback(TemperatureType::INTERNAL, statusJson.c_str(), _currentInternalTemp);
+				message_callback(TemperatureType::INTERNAL, jsonBufInternal, _currentInternalTemp);
 			}
 			requestInternalTemp();
 		}
@@ -279,9 +280,10 @@ public:
 
 			LogHandler::verbose(_TAG, "sleeve getTempC duration: %d", micros() - start);
 
-			String statusJson("{\"temp\":\"" + String(_currentSleeveTemp) + "\", \"status\":\""+m_lastSleeveStatus+"\"}");
+			//String statusJson("{\"temp\":\"" + String(_currentSleeveTemp) + "\", \"status\":\""+m_lastSleeveStatus+"\"}");
+			buildJson(jsonBufSleeve, sizeof jsonBufSleeve, _currentSleeveTemp, m_lastSleeveStatus);
 			if(tempChanged && message_callback) {
-				message_callback(TemperatureType::SLEEVE, statusJson.c_str(), _currentSleeveTemp);
+				message_callback(TemperatureType::SLEEVE, jsonBufSleeve, _currentSleeveTemp);
 			}
 			requestSleeveTemp();
 		}
@@ -291,7 +293,7 @@ public:
 		if (m_caseFanPin < 0 || m_caseFanChannel < 0 || !m_fanControlEnabled || !_isRunning || !fanControlInitialized) {
 			return;
 		}
-		String currentState;
+		const char* currentState = 0;
 		if(fanControlInitialized) {
 			if(!internalTempInitialized) {
 				currentState = TemperatureState::COOLING;
@@ -371,11 +373,11 @@ public:
 			else
 				currentState = TemperatureState::DISABLED_STATE;
 		}
-		if(!currentState.isEmpty()) {
+		if(currentState) {
 			if(m_lastInternalStatus != currentState) {
 				LogHandler::debug(_TAG, "Setting fan state: %s", currentState);
 			}
-			setState(TemperatureType::INTERNAL, currentState.c_str());
+			setState(TemperatureType::INTERNAL, currentState);
 		}
 	}
 
@@ -384,7 +386,7 @@ public:
 		if (m_heaterPin < 0 || m_heatChannel < 0 || !m_sleeveTempEnabled || !_isRunning || !sleeveTempInitialized) {
 			return;
 		}
-		String currentState;
+		const char* currentState = 0;
 		if(m_sleeveTempEnabled && sleeveTempInitialized) {
 			if(failsafeTriggerSleeve) {
 				#ifdef ESP_ARDUINO3
@@ -426,7 +428,6 @@ public:
 					} else if (definitelyLessThanOREssentiallyEqual(currentTemp, (m_settingsFactory->getTargetTemp() + m_settingsFactory->getHeaterThreshold()))) {
 						if(!targetSleeveTempReached) {
 							targetSleeveTempReached = true;
-							String* command = new String("tempReached");
 							if(message_callback)
 								message_callback(TemperatureType::SLEEVE, "tempReached", _currentSleeveTemp);
 						}
@@ -452,8 +453,8 @@ public:
 			else
 				currentState = TemperatureState::DISABLED_STATE;
 		}
-		if(!currentState.isEmpty())
-			setState(TemperatureType::SLEEVE, currentState.c_str());
+		if(currentState)
+			setState(TemperatureType::SLEEVE, currentState);
 	}
 
 	const char* getShortSleeveControlStatus(const char* state) {
@@ -563,7 +564,7 @@ private:
 		DeviceAddress internalDeviceAddress;
 		//AutoPID* internalPID;
 		double _currentInternalTemp = 0.0f;
-		String m_lastInternalStatus = TemperatureState::UNKNOWN;
+		const char* m_lastInternalStatus = TemperatureState::UNKNOWN;
 		double m_lastInternalTemp = -127.0;
 		double m_currentInternalTempDuty = 0.0;
 		double m_lastInternalTempDuty = 0.0;
@@ -582,7 +583,7 @@ private:
 		DallasTemperature sensorsSleeve;
 		DeviceAddress sleeveDeviceAddress;
 		double _currentSleeveTemp = 0.0f;
-		String m_lastSleeveStatus = TemperatureState::UNKNOWN;
+		const char* m_lastSleeveStatus = TemperatureState::UNKNOWN;
 		double m_lastSleeveTemp = -127.0;
 		unsigned long lastSleeveTempRequest = 0;
 
@@ -592,6 +593,9 @@ private:
 		bool targetSleeveTempReached = false;
 		bool failsafeTriggerSleeve = false;
 		///////////////////////////////////////////
+
+		char jsonBufSleeve[50];
+		char jsonBufInternal[50];
 
 
 
@@ -627,11 +631,11 @@ private:
 	void setState(TemperatureType type, const char* state) {
 		bool stateChanged = false;
 		if(type == TemperatureType::INTERNAL) {
-			stateChanged = strcmp(state, m_lastInternalStatus.c_str()) != 0;
+			stateChanged = strcmp(state, m_lastInternalStatus) != 0;
 			if(stateChanged)
 				m_lastInternalStatus = state;
 		} else {
-			stateChanged = strcmp(state, m_lastSleeveStatus.c_str()) != 0;
+			stateChanged = strcmp(state, m_lastSleeveStatus) != 0;
 			if(stateChanged)
 				m_lastSleeveStatus = state;
 		}
@@ -647,5 +651,17 @@ private:
 	void requestSleeveTemp() {
 		sensorsSleeve.requestTemperaturesByIndex(0);
 		lastSleeveTempRequest = millis(); 
+	}
+
+	int buildJson(char* buf, size_t len, const double& temp, const char* status)
+	{
+		return snprintf(buf, len, "{\"temp\":\"%f\", \"status\":\"%s\"}", temp, status);
+		// if (ret < 0) {
+		//     return EXIT_FAILURE;
+		// }
+		// if (ret >= sizeof buffer) {
+		//     /* Result was truncated - resize the buffer and retry.
+		// }
+
 	}
 };
