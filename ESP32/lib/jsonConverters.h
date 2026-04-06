@@ -35,6 +35,16 @@ bool canConvertFromJson(JsonVariantConst src, const BuildFeature&) {
   return src.is<uint8_t>();
 }
 
+void convertFromJson(JsonVariantConst src, WifiBand& dst) {
+    dst = static_cast<WifiBand>(src.as<uint8_t>());
+}
+bool convertToJson(const WifiBand& src, JsonVariant dst) {
+    return dst.set(static_cast<uint8_t>(src));
+}
+bool canConvertFromJson(JsonVariantConst src, const WifiBand&) {
+  return src.is<uint8_t>();
+}
+
 void convertFromJson(JsonVariantConst src, BoardType& dst) {
     dst = static_cast<BoardType>(src.as<uint8_t>());
 }

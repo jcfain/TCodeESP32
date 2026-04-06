@@ -29,6 +29,7 @@
 #define SSID_LEN 32
 #define WIFI_PASS_DEFAULT "YOUR PASSWORD HERE"
 #define WIFI_PASS_LEN 63
+#define WIFI_BAND_SETTING_DEFAULT (uint8_t)WifiBand::AUTO
 #define AP_MODE_SSID_DEFAULT "TCodeESP32Setup"
 #define AP_MODE_PASS_DEFAULT "tcode_6969"
 #define AP_MODE_HIDDEN_DEFAULT false
@@ -155,6 +156,7 @@
 #define MOTOR_TYPE_SETTING "motorType"
 #define SSID_SETTING "ssid"
 #define WIFI_PASS_SETTING "wifiPass"
+#define WIFI_BAND_SETTING "wifiBand"
 #define AP_MODE_SSID "apModeSSID"
 #define AP_MODE_PASS "apModePass"
 #define AP_MODE_HIDDEN "apModeHidden"

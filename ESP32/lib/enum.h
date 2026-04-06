@@ -102,6 +102,7 @@ enum class ModuleType: int
 {
     WROOM32,
     S3,
+    C5,
     C6,
     E22,
     MAX
@@ -116,6 +117,7 @@ enum class BoardType: int
     CRIMZZON,
     ISAAC,
     SSR1PCB,
+    DEVKIT_C5,
     DEVKIT_C6,
     DEVKIT_E22,
     MAX
@@ -174,6 +176,22 @@ enum class BLELoveDeviceType: int {
     MAX
 };
 #define BLDC_LOVE_DEVICE_TYPES_HELP "EDGE=0"
+
+enum class WifiBand {
+    AUTO,
+    MODE24ghz,
+    MODE5ghz,
+    MODE6ghz,
+    MAX
+};
+#if SOC_WIFI_SUPPORT_5G
+#define WIFI_MODE_HELP "AUTO=0, 2.4ghz=1, 5ghz=2"
+#elif SOC_WIFI_SUPPORT_6G
+#define WIFI_MODE_HELP "AUTO=0, 2.4ghz=1, 5ghz=2, 6ghz=3"
+#else
+#define WIFI_MODE_HELP "AUTO=0, 2.4ghz=1"
+#endif
+
 
 enum class ESPTimerChannelNum: int8_t {
     NONE = -1,

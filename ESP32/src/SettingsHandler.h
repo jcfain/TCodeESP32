@@ -270,7 +270,33 @@ public:
         N8R8["name"] = "S3 N8R8";
         N8R8["value"] = (uint8_t)BoardType::N8R8;
     #endif
+#elif CONFIG_IDF_TARGET_ESP32C5
+    JsonObject c5Devkit = boardTypes.add<JsonObject>();
+    c5Devkit["name"] = "DEVKIT C5";
+    c5Devkit["value"] = (uint8_t)BoardType::DEVKIT_C5;
+#elif CONFIG_IDF_TARGET_ESP32C6
+    JsonObject c6Devkit = boardTypes.add<JsonObject>();
+    c6Devkit["name"] = "DEVKIT C6";
+    c6Devkit["value"] = (uint8_t)BoardType::DEVKIT_C6;
 #endif
+    JsonArray wifiBands = doc["wifiBands"].to<JsonArray>();
+    JsonObject modeAuto = wifiBands.add<JsonObject>();
+    modeAuto["name"] = "Auto";
+    modeAuto["value"] = (uint8_t)WifiBand::AUTO;
+    JsonObject mode24g = wifiBands.add<JsonObject>();
+    mode24g["name"] = "2.4ghz";
+    mode24g["value"] = (uint8_t)WifiBand::MODE24ghz;
+
+	#if SOC_WIFI_SUPPORT_5G
+    JsonObject mode5g = wifiBands.add<JsonObject>();
+    mode5g["name"] = "5ghz";
+    mode5g["value"] = (uint8_t)WifiBand::MODE5ghz;
+    #endif
+	#if SOC_WIFI_SUPPORT_6G
+    JsonObject mode6g = wifiBands.add<JsonObject>();
+    mode6g["name"] = "56ghz";
+    c5Demode6gvkit["value"] = (uint8_t)WifiMode::MODE6ghz;
+    #endif
         int motorType = MOTOR_TYPE_DEFAULT;
         m_settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);
         doc["motorType"] = motorType;

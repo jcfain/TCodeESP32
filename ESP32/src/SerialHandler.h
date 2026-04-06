@@ -28,15 +28,36 @@ SOFTWARE. */
 #include "TagHandler.h"
 #include "TCodeInterface.h"
 
+#if ARDUINO_USB_CDC_ON_BOOT  //Serial used from Native_USB_CDC | HW_CDC_JTAG
+#if ARDUINO_USB_MODE         // Hardware CDC mode
+// Arduino Serial is the HW JTAG CDC device
+#define SerialType HWCDC
+#else  // !ARDUINO_USB_MODE -- Native USB Mode
+// Arduino Serial is the Native USB CDC device
+#define SerialType USBCDC
+#endif  // ARDUINO_USB_MODE
+#else   // !ARDUINO_USB_CDC_ON_BOOT -- Serial is used from UART0
+// if not using CDC on Boot, Arduino Serial is the UART0 device
+#define SerialType HardwareSerial
+#endif  // ARDUINO_USB_CDC_ON_BOOT
 
 class SerialHandler : public TCodeInterface
 {
   public:
-    bool setup(HardwareSerial& serial = Serial, int baud = 115200, int rxpin = -1, int txpin = -1) 
+    bool setup(SerialType& serial = Serial, int baud = 115200, int rxpin = -1, int txpin = -1) 
     {
 		LogHandler::info(m_TAG, "Starting Serial baud: %i txpin: %i rxpin: %i", baud, txpin, rxpin);
         m_serial = serial;
+#if ARDUINO_USB_CDC_ON_BOOT  //Serial used from Native_USB_CDC | HW_CDC_JTAG
+#if ARDUINO_USB_MODE         // Hardware CDC mode
+// Arduino Serial is the HW JTAG CDC device
+        m_serial.begin(baud);
+#else  // !ARDUINO_USB_MODE -- Native USB Mode
         m_serial.begin(baud, 134217756UL, rxpin, txpin);
+#endif  // ARDUINO_USB_MODE
+#else   // !ARDUINO_USB_CDC_ON_BOOT -- Serial is used from UART0
+        m_serial.begin(baud, 134217756UL, rxpin, txpin);
+#endif  // ARDUINO_USB_CDC_ON_BOOT
 		if(!m_serial.availableForWrite()) 
 		{
         	LogHandler::error(m_TAG, "Serial not available");
@@ -86,7 +107,7 @@ class SerialHandler : public TCodeInterface
 private:
     bool initialized = false;
     const char* m_TAG = TagHandler::SerialHandler;
-    HardwareSerial& m_serial = Serial;
+    SerialType& m_serial = Serial;
     HardwareSerial& getSerial(uint8_t index)
     {
         switch(index) 

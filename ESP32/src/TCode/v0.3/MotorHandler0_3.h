@@ -68,10 +68,10 @@ protected:
             maxServoRange = 180;
         }
         ms_per_rad = 114592/maxServoRange;
-        LogHandler::debug(_TAG, "MS_PER_RAD: %d", ms_per_rad);
-        LogHandler::debug(_TAG, "Servo Resolution: %d", servoResolution);
-        LogHandler::debug(_TAG, "Vibe Resolution: %d", vibeResolution);
-        LogHandler::debug(_TAG, "Lube Resolution: %d", lubeResolution);
+        LogHandler::debug(_TAG, "MS_PER_RAD: %i", ms_per_rad);
+        LogHandler::debug(_TAG, "Servo Resolution: %i", servoResolution);
+        LogHandler::debug(_TAG, "Vibe Resolution: %i", vibeResolution);
+        LogHandler::debug(_TAG, "Lube Resolution: %i", lubeResolution);
         
         m_valveServoPin = pinMap->valve();
         m_valveServoChannel = pinMap->valveChannel();

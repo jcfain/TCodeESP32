@@ -52,6 +52,7 @@ public:
             m_tcode->sendMessage("Ready!");
             return true;
         }
+        setupCommon();
         LogHandler::debug(_TAG, "MS_PER_RAD: %d", ms_per_rad);
 
         // Set SR6 arms to startup positions
@@ -146,8 +147,6 @@ public:
             LogHandler::error(_TAG, "Invalid pitch servo to pin: %d for channel: %d", m_leftPitchServoPin, m_leftPitchServoChannel);
             m_initFailed = true;
         }
-
-        setupCommon();
         
         // Signal done
         if(m_initFailed)

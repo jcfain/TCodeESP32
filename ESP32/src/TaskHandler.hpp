@@ -21,6 +21,7 @@ public:
     {
 
     }
+#if BUILD_DISPLAY
     void startDisplayTask(DisplayHandler * displayHandler) 
     {
 		LogHandler::debug(TagHandler::Main, "Start Display task");
@@ -37,7 +38,8 @@ public:
 			LogHandler::error(TagHandler::Main, "Could not start display task.");
 		}
     }
-
+#endif
+#if BUILD_TEMP
     void startTemperatureTask(TemperatureHandler* temperatureHandler) 
     {
         LogHandler::debug(TagHandler::Main, "Start temperature task");
@@ -54,6 +56,7 @@ public:
             LogHandler::error(TagHandler::Main, "Could not start temperature task.");
         }
     }
+#endif
 
     void startBatteryTask(BatteryHandler* batteryHandler) 
     {

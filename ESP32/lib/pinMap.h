@@ -12,6 +12,8 @@
     #else
         #include "S3/pinDefaults.h"
     #endif
+#elif CONFIG_IDF_TARGET_ESP32C5
+    #include "C5/pinDefaults.h"
 #elif CONFIG_IDF_TARGET_ESP32C6
     #include "C6/pinDefaults.h"
 #elif CONFIG_IDF_TARGET_ESP32C61
@@ -278,6 +280,7 @@ protected:
             }
         },
 #endif
+#if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S3
         { ESP_L_TIMER0_FREQUENCY, "Low 0", ESP_TIMER_FREQUENCY_DEFAULT, {
                 {"Low 0 CH0", ESPTimerChannelNum::LOW0_CH0}, 
                 {"Low 0 CH1", ESPTimerChannelNum::LOW0_CH1}
@@ -299,6 +302,28 @@ protected:
             }
         }
     };
+#endif
+#if CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C6
+        { ESP_L_TIMER0_FREQUENCY, "Low 0", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low 0 CH0", ESPTimerChannelNum::LOW0_CH0}, 
+                {"Low 0 CH1", ESPTimerChannelNum::LOW0_CH1}
+            }
+        },
+        { ESP_L_TIMER1_FREQUENCY, "Low 1", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low 1 CH2", ESPTimerChannelNum::LOW1_CH2}, 
+                {"Low 1 CH3", ESPTimerChannelNum::LOW1_CH3}
+            }
+        },
+        { ESP_L_TIMER2_FREQUENCY, "Low 2", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low 2 CH4", ESPTimerChannelNum::LOW2_CH4}
+            }
+        },
+        { ESP_L_TIMER3_FREQUENCY, "Low 3", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low 3 CH5", ESPTimerChannelNum::LOW2_CH5}, 
+            }
+        }
+    };
+#endif
 
     // void setCommonTimers() {
     //     m_timers.timerH3 = {

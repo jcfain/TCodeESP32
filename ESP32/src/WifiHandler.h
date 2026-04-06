@@ -86,7 +86,9 @@ public:
 		onApEventID = WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info)
 								   { this->WiFiEvent(event, info); });
 		WiFi.mode(WIFI_STA);
-		//WiFi.setBandMode(wifi_band_mode_t::WIFI_BAND_MODE_5G_ONLY);
+		WifiBand band = (WifiBand)WIFI_BAND_SETTING_DEFAULT;
+		m_settingsFactory->getValue(WIFI_BAND_SETTING, band);
+		WiFi.setBandMode(toWiFiBandMode(band));
 		WiFi.setSleep(false);
 		WiFi.setHostname(hostname);
 		bool isStatic = STATICIP_DEFAULT;
@@ -358,6 +360,25 @@ private:
         //strlcpy(macTemp, WiFi.macAddress().c_str(), sizeof(macTemp));
 		LogHandler::info(_TAG, "Mac: %s", WiFi.macAddress().c_str());
 		#endif
+	}
+	wifi_band_mode_t toWiFiBandMode(WifiBand band)
+	{
+		switch(band)
+		{
+			case WifiBand::AUTO:
+				return wifi_band_mode_t::WIFI_BAND_MODE_AUTO;
+			case WifiBand::MODE24ghz:
+				return wifi_band_mode_t::WIFI_BAND_MODE_2G_ONLY;
+#if SOC_WIFI_SUPPORT_5G
+			case WifiBand::MODE5ghz:
+				return wifi_band_mode_t::WIFI_BAND_MODE_5G_ONLY;
+#endif
+#if SOC_WIFI_SUPPORT_6G
+			case WifiMode::MODE6ghz:
+				return wifi_band_mode_t::WIFI_BAND_MODE_6G_ONLY;
+#endif
+		}
+		return wifi_band_mode_t::WIFI_BAND_MODE_AUTO;
 	}
 };
 bool WifiHandler::_apMode = false;

@@ -708,6 +708,22 @@ public:
             getValue(BLDC_TWIST_MULTIPLIER, m_BLDCTwistMultiplier);
             if(targeted) {initCommonMessages(name); return;}
         }
+        if(!name || !strcmp(name, BLDC_TWIST_MULTIPLIER)) {
+            getValue(BLDC_TWIST_MULTIPLIER, m_BLDCTwistMultiplier);
+            if(targeted) {initCommonMessages(name); return;}
+        }
+        if(!name || !strcmp(name, BLDC_TWIST_LIMIT)) {
+            getValue(BLDC_TWIST_LIMIT, m_BLDCTwistLimit);
+            if(targeted) {initCommonMessages(name); return;}
+        }
+        if(!name || !strcmp(name, BLDC_PID_PROPORTIONAL_CONST)) {
+            getValue(BLDC_PID_PROPORTIONAL_CONST, m_BLDCPIDProportionalConst);
+            if(targeted) {initCommonMessages(name); return;}
+        }
+        if(!name || !strcmp(name, BLDC_LOWPASS_FILTER)) {
+            getValue(BLDC_LOWPASS_FILTER, m_BLDCLowpassFilter);
+            if(targeted) {initCommonMessages(name); return;}
+        }
     #endif
         if(!name || !strcmp(name, TWIST_SERVO_ZERO)) {
             getValue(TWIST_SERVO_ZERO, TwistServo_ZERO);
@@ -792,22 +808,6 @@ public:
         }
         if(!name || !strcmp(name, VIB_TIMEOUT_ENABLED)) {
             getValue(VIB_TIMEOUT_ENABLED, vibTimeoutEnabled);
-            if(targeted) {initCommonMessages(name); return;}
-        }
-        if(!name || !strcmp(name, BLDC_TWIST_MULTIPLIER)) {
-            getValue(BLDC_TWIST_MULTIPLIER, m_BLDCTwistMultiplier);
-            if(targeted) {initCommonMessages(name); return;}
-        }
-        if(!name || !strcmp(name, BLDC_TWIST_LIMIT)) {
-            getValue(BLDC_TWIST_LIMIT, m_BLDCTwistLimit);
-            if(targeted) {initCommonMessages(name); return;}
-        }
-        if(!name || !strcmp(name, BLDC_PID_PROPORTIONAL_CONST)) {
-            getValue(BLDC_PID_PROPORTIONAL_CONST, m_BLDCPIDProportionalConst);
-            if(targeted) {initCommonMessages(name); return;}
-        }
-        if(!name || !strcmp(name, BLDC_LOWPASS_FILTER)) {
-            getValue(BLDC_LOWPASS_FILTER, m_BLDCLowpassFilter);
             if(targeted) {initCommonMessages(name); return;}
         }
         initCommonMessages();
@@ -933,6 +933,7 @@ private:
         {
             {SSID_SETTING, "Wifi ssid", "The ssid of the WiFi AP", SettingType::String, SSID_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
             {WIFI_PASS_SETTING, "Wifi pass", "The password for the WiFi AP", SettingType::String, WIFI_PASS_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
+            {WIFI_BAND_SETTING, "Wifi band", "The band of the wifi", SettingType::Number, WIFI_BAND_SETTING_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
             {STATICIP, "Static IP", "Enable static IP for this device", SettingType::Boolean, STATICIP_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {LOCALIP, "Local IP", "The static IP of this device", SettingType::String, LOCALIP_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {GATEWAY, "Gateway", "The networks gateway", SettingType::String, GATEWAY_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
@@ -974,7 +975,7 @@ private:
             //{FULL_BUILD, "Full build", "", SettingType::Boolean, false, RestartRequired::YES, {SettingProfile::System}}, // Not sure what this was for. Doesnt appear to be used anywhere.
             {TCODE_VERSION_SETTING, "TCode version", "The version of TCode", SettingType::Number, TCODE_VERSION_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
             {MAX_SERVO_RANGE, "Max servo range", "Max range of the servos", SettingType::Number, MAX_SERVO_RANGE_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
-            {CONTINUOUS_TWIST, "Continous twist", "Ignores any feedback signal", SettingType::Boolean, CONTINUOUS_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
+            {CONTINUOUS_TWIST, "Continous twist", "Ignores any feedback signal from a feedback servo", SettingType::Boolean, CONTINUOUS_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {FEEDBACK_TWIST, "Feedback twist", "For feed back servos", SettingType::Boolean, FEEDBACK_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {ANALOG_TWIST, "Analog twist", "Analog feedback servo", SettingType::Boolean, ANALOG_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}}
 #ifdef MOTOR_TYPE_BLDC
@@ -1384,7 +1385,7 @@ private:
                 setValue(ESP_L_TIMER1_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
                 setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
                 setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
-#elif CONFIG_IDF_TARGET_ESP32S3
+#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32E22
                 setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
                 setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
                 setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
@@ -1433,7 +1434,7 @@ private:
                 setValue(ESP_L_TIMER1_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
                 setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
                 setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
-#elif CONFIG_IDF_TARGET_ESP32S3
+#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32E22
                 setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
                 setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
                 setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
@@ -1485,7 +1486,7 @@ private:
                 setValue(ESP_L_TIMER1_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
                 setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
                 setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
-#elif CONFIG_IDF_TARGET_ESP32S3
+#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32E22
                 setValue(RIGHT_SERVO_PIN, -1);
                 setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
                 setValue(LEFT_SERVO_PIN, -1);
@@ -1772,7 +1773,8 @@ private:
         pinMap->setTimerFrequency(6, timerFreq);
         getValue(ESP_L_TIMER3_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(7, timerFreq);
-#elif CONFIG_IDF_TARGET_ESP32S3
+//#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32E22
+#else
         getValue(ESP_L_TIMER0_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(0, timerFreq);
         getValue(ESP_L_TIMER1_FREQUENCY, timerFreq);
@@ -1927,7 +1929,7 @@ private:
         setValue(ESP_L_TIMER1_FREQUENCY, pinMap->getTimerFrequency(5));
         setValue(ESP_L_TIMER2_FREQUENCY, pinMap->getTimerFrequency(6));
         setValue(ESP_L_TIMER3_FREQUENCY, pinMap->getTimerFrequency(7));
-#elif CONFIG_IDF_TARGET_ESP32S3
+#else
         setValue(ESP_L_TIMER0_FREQUENCY, pinMap->getTimerFrequency(0));
         setValue(ESP_L_TIMER1_FREQUENCY, pinMap->getTimerFrequency(1));
         setValue(ESP_L_TIMER2_FREQUENCY, pinMap->getTimerFrequency(2));

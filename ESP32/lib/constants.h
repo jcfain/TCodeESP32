@@ -19,11 +19,14 @@
 #include "S3/config.h"
 #elif CONFIG_IDF_TARGET_ESP32
 #include "ESP32/config.h"
+#elif CONFIG_IDF_TARGET_ESP32C5
+#include "C5/config.h"
 #elif CONFIG_IDF_TARGET_ESP32C6
 #include "C6/config.h"
-// #elif CONFIG_IDF_TARGET_ESP32E22
-// #include "E22/config.h"
+#elif CONFIG_IDF_TARGET_ESP32E22
+#include "E22/config.h"
 #endif
+
 #if !defined(MOTOR_TYPE_SERVO) && !defined(MOTOR_TYPE_BLDC)
     #error "Invalid motor type"
 #endif
