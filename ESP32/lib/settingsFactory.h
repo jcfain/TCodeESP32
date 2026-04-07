@@ -992,7 +992,6 @@ private:
             {BLDC_MOTORA_VOLTAGE, "Motor voltage limit", "BLDC Motor voltage limit", SettingType::Float, BLDC_MOTORA_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_MOTORA_SUPPLY, "Motor Supply voltage", "BLDC Motor supply voltage", SettingType::Float, BLDC_MOTORA_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_MOTORA_CURRENT, "Motor current", "BLDC Motor current", SettingType::Float, BLDC_MOTORA_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTORA_PARAMETERSKNOWN, "Motor parameters known", "BLDC Motor A params known", SettingType::Boolean, BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_MOTORA_ZEROELECANGLE, "Motor ZeroElecAngle", "BLDC Motor A ZeroElecAngle", SettingType::Float, BLDC_MOTORA_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             
             {BLDC_MOTORB_ENCODER, "BLDC left encoder type", "Select the type of Left bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
@@ -1000,7 +999,6 @@ private:
             {BLDC_MOTORB_VOLTAGE, "Left Motor voltage limit", "BLDC Left Motor voltage limit", SettingType::Float, BLDC_MOTORB_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_MOTORB_SUPPLY, "Left Motor Supply voltage", "BLDC Left Motor supply voltage", SettingType::Float, BLDC_MOTORB_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_MOTORB_CURRENT, "Left Motor current", "BLDC Left Motor current", SettingType::Float, BLDC_MOTORB_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTORB_PARAMETERSKNOWN, "Left Motor parameters known", "Left BLDC Motor params known", SettingType::Boolean, BLDC_MOTORB_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
             {BLDC_MOTORB_ZEROELECANGLE, "Left Motor ZeroElecAngle", "Left BLDC Motor ZeroElecAngle", SettingType::Float, BLDC_MOTORB_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}}
             
 #elif defined MOTOR_TYPE_SERVO

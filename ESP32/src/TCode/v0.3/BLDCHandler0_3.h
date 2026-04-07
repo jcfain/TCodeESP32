@@ -41,14 +41,16 @@ public:
         m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
         if(m_deviceType == DeviceType::NONE)
         {
-            LogHandler::error(_TAG, "No device type selected. Visit the web config or use the command to set a device before starting the firmware.");
+            SettingsHandler::addPersistentError(initDeviceTypeError);
+            LogHandler::error(_TAG, initDeviceTypeError);
             return false;
         }
         m_settingsFactory->getValue(BLDC_MOTORA_ENCODER, encoderAType);
         LogHandler::debug(_TAG, "Motor A Encoder type: %d", encoderAType);
         if(encoderAType == BLDCEncoderType::NONE)
         {
-            LogHandler::error(_TAG, "No encoder type selected. Visit the web config or use the command to set an encoder before starting the firmware.");
+            SettingsHandler::addPersistentError(initEncoderTypeError);
+            LogHandler::error(_TAG, initEncoderTypeError);
             return false;
         }
         if(m_deviceType == DeviceType::SSR2)
@@ -57,7 +59,8 @@ public:
             LogHandler::debug(_TAG, "Motor B Encoder type: %d", encoderBType);
             if(encoderBType == BLDCEncoderType::NONE)
             {
-                LogHandler::error(_TAG, "No encoder type selected. Visit the web config or use the command to set an encoder before starting the firmware.");
+                SettingsHandler::addPersistentError(initEncoderTypeError);
+                LogHandler::error(_TAG, initEncoderTypeError);
                 return false;
             }
         }
@@ -104,6 +107,8 @@ public:
             else 
             {
                 LogHandler::error(_TAG, "Invalid Motor A ChipSelect pin %d", pinMap->chipSelect());
+                snprintf(setupError, sizeof setupError, "Invalid Motor A ChipSelect pin %d", pinMap->chipSelect());
+                SettingsHandler::addPersistentError(setupError);
                 return false;
             }
         } 
@@ -118,6 +123,8 @@ public:
             else 
             {
                 LogHandler::error(_TAG, "Invalid Motor A encoder pin %d", pinMap->encoder());
+                snprintf(setupError, sizeof setupError, "Invalid Motor A encoder pin %d", pinMap->encoder());
+                SettingsHandler::addPersistentError(setupError);
                 return false;
             }
         } 
@@ -133,7 +140,8 @@ public:
             } 
             else 
             {
-                LogHandler::error(_TAG, "Invalid Motor A ChipSelect pin %d", pinMap->chipSelect());
+                snprintf(setupError, sizeof setupError, "Invalid Motor A ChipSelect pin %d", pinMap->chipSelect());
+                SettingsHandler::addPersistentError(setupError);
                 return false;
             }
         }
@@ -154,6 +162,8 @@ public:
                 else 
                 {
                     LogHandler::error(_TAG, "Invalid ChipSelect pin %d", pinMap->motorBChipSelect());
+                    snprintf(setupError, sizeof setupError, "Invalid ChipSelect pin %d", pinMap->motorBChipSelect());
+                    SettingsHandler::addPersistentError(setupError);
                     return false;
                 }
             } 
@@ -168,6 +178,8 @@ public:
                 else 
                 {
                     LogHandler::error(_TAG, "Invalid Motor B encoder pin %d", pinMap->motorBEncoder());
+                    snprintf(setupError, sizeof setupError, "Invalid Motor B encoder pin %d", pinMap->motorBEncoder());
+                    SettingsHandler::addPersistentError(setupError);
                     return false;
                 }
             } 
@@ -184,6 +196,8 @@ public:
                 else 
                 {
                     LogHandler::error(_TAG, "Invalid Motor B ChipSelect pin %d", pinMap->motorBChipSelect());
+                    snprintf(setupError, sizeof setupError, "Invalid Motor B ChipSelect pin %d", pinMap->motorBChipSelect());
+                    SettingsHandler::addPersistentError(setupError);
                     return false;
                 }
             }
@@ -340,26 +354,22 @@ public:
             SimpleFOCDebug::enable(&Serial);
 
         // init current sense
-        bool paramsKnown = BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTORA_PARAMETERSKNOWN, paramsKnown);
-        if(paramsKnown) 
+        double zeroElecAngleA = BLDC_MOTORA_ZEROELECANGLE_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTORA_ZEROELECANGLE, zeroElecAngleA);
+        if(zeroElecAngleA > NOT_SET) 
         {
-            double zeroElecAngle = BLDC_MOTORA_ZEROELECANGLE_DEFAULT;
-            m_settingsFactory->getValue(BLDC_MOTORA_ZEROELECANGLE, zeroElecAngle);
             // Set sensor angle and pre-set zero angle to current angle
-            LogHandler::info(_TAG, "Setting Motor A parameters: %f", zeroElecAngle);
+            LogHandler::info(_TAG, "Setting Motor A parameters: %f", zeroElecAngleA);
             motorA->sensor_direction = MotorA_SensorDirection;
-            motorA->zero_electric_angle  = zeroElecAngle; // rad
+            motorA->zero_electric_angle  = zeroElecAngleA; // rad
         }
 
         if(motorB)
         {
-            bool paramsKnownB = BLDC_MOTORB_PARAMETERSKNOWN_DEFAULT;
-            m_settingsFactory->getValue(BLDC_MOTORB_PARAMETERSKNOWN, paramsKnownB);
-            if(paramsKnownB) 
+            double zeroElecAngleB = BLDC_MOTORB_ZEROELECANGLE_DEFAULT;
+            m_settingsFactory->getValue(BLDC_MOTORB_ZEROELECANGLE, zeroElecAngleB);
+            if(zeroElecAngleB > NOT_SET) 
             {
-                double zeroElecAngleB = BLDC_MOTORB_ZEROELECANGLE_DEFAULT;
-                m_settingsFactory->getValue(BLDC_MOTORB_ZEROELECANGLE, zeroElecAngleB);
                 // Set sensor angle and pre-set zero angle to current angle
                 LogHandler::info(_TAG, "Setting Motor B parameters: %f", zeroElecAngleB);
                 motorB->sensor_direction = MotorB_SensorDirection;
@@ -374,6 +384,8 @@ public:
         else 
         {
             LogHandler::error(_TAG, "Motor A FOC init failed!");
+            snprintf(setupError, sizeof setupError, "Motor A FOC init failed!");
+            SettingsHandler::addPersistentError(setupError);
             return false;
         }
         if(motorB)
@@ -385,6 +397,8 @@ public:
             else 
             {
                 LogHandler::error(_TAG, "Motor B FOC init failed!");
+                snprintf(setupError, sizeof setupError, "Motor b FOC init failed!");
+                SettingsHandler::addPersistentError(setupError);
                 return false;
             }
         }
@@ -471,6 +485,9 @@ public:
 private:
 
     const char* _TAG = TagHandler::BLDCHandler;
+    const char* initDeviceTypeError = "No device type selected. Visit the web config or use the command to set a device before starting the firmware.";
+    const char* initEncoderTypeError = "No encoder type selected. Visit the web config or use the command to set an encoder before starting the firmware.";
+    char setupError[50] = {0};
     bool m_initialized = false;
     SettingsFactory* m_settingsFactory;
     DeviceType m_deviceType;

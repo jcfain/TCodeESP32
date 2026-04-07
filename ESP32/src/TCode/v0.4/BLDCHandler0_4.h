@@ -218,15 +218,13 @@ public:
         motorA->useMonitoring(Serial);
 
         // init current sense
-        bool paramsKnown = BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTORA_PARAMETERSKNOWN, paramsKnown);
-        if(paramsKnown) {
-            double zeroElecAngle = BLDC_MOTORA_ZEROELECANGLE_DEFAULT;
-            m_settingsFactory->getValue(BLDC_MOTORA_ZEROELECANGLE, zeroElecAngle);
+        double zeroElecAngleA = BLDC_MOTORA_ZEROELECANGLE_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTORA_ZEROELECANGLE, zeroElecAngleA);
+        if(zeroElecAngleA > NOT_SET) {
         // Set sensor angle and pre-set zero angle to current angle
-            LogHandler::info(_TAG, "Setting MotorA parameters: %f", zeroElecAngle);
+            LogHandler::info(_TAG, "Setting MotorA parameters: %f", zeroElecAngleA);
             motorA->sensor_direction = MotorA_SensorDirection;
-            motorA->zero_electric_angle  = zeroElecAngle; // rad
+            motorA->zero_electric_angle  = zeroElecAngleA; // rad
         }
 
         if (motorA->initFOC())  {

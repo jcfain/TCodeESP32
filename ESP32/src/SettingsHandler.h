@@ -55,6 +55,8 @@ class SettingsHandler
 public:
     static bool initialized;
     static int restartInSecs;
+    static inline const char* errorInfo[10];
+    static inline size_t errorInfoIndex = 0;
     static bool saving;
     static bool motionPaused;
     static bool fullBuild;
@@ -107,6 +109,20 @@ public:
         {
             message_callback = f;
         }
+    }
+
+    /// The errors added will only print if the main setup fails for some reason.
+    /// Otherwise use LogHandler::error
+    static void addPersistentError(const char* value)
+    {
+        if(errorInfoIndex >= 10)
+        {
+            LogHandler::error("Too many errors in buffer! The last added erro is: %s", value);
+            return;
+        }
+        //LogHandler::debug("Add persistent error: %s", value);
+        errorInfo[errorInfoIndex] = value;
+        errorInfoIndex++;
     }
 
     static void printFree(bool forcePrint = false) {

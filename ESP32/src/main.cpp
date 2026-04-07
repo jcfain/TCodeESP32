@@ -362,6 +362,11 @@ void loop()
 	if (!setupSucceeded && SettingsHandler::restartInSecs == -1 && !restarting)
 	{
 		LogHandler::error(TagHandler::Main, "There was an issue in setup");
+		if(SettingsHandler::errorInfoIndex)
+		{
+			for(size_t i=0;i<SettingsHandler::errorInfoIndex; i++)
+				LogHandler::error(TagHandler::Main, "\t%s",SettingsHandler::errorInfo[i]);
+		}
 		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	} else {
         //xTaskDelayUntil(&pxPreviousWakeTime, 10/portTICK_PERIOD_MS);

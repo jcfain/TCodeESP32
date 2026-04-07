@@ -61,7 +61,6 @@ class BLDCMotor {
         this.Names.BLDC_Motor_SupplyVoltage = "BLDC_" + name + "Motor_SupplyVoltage";
         this.Names.BLDC_Motor_Current = "BLDC_" + name + "Motor_Current";
         this.Names.BLDC_Motor_ZeroElecAngle = "BLDC_" + name + "Motor_ZeroElecAngle";
-        this.Names.BLDC_Motor_ParametersKnown = "BLDC_" + name + "Motor_ParametersKnown";
         // this.Names.BLDC_RailLength = "BLDC_" + name + "RailLength";
         // this.Names.BLDC_Range = "BLDC_" + (name.length == 0 ? "Stroke" : name) + "Length";
         this.Names.BLDC_ChipSelect_PIN = "BLDC_" + name + "ChipSelect_PIN";
@@ -97,14 +96,12 @@ class BLDCMotor {
         this.createBLDCNumericFormNode(this.Names.BLDC_Motor_VoltageLimit, "Voltage limit (v)", userSettings[this.Names.BLDC_Motor_VoltageLimit], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.01);
         this.createBLDCNumericFormNode(this.Names.BLDC_Motor_SupplyVoltage, "Supply voltage (v)", userSettings[this.Names.BLDC_Motor_SupplyVoltage], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.01);
         this.createBLDCNumericFormNode(this.Names.BLDC_Motor_Current, "Motor current (a)", userSettings[this.Names.BLDC_Motor_Current], () => this.updateBLDCSettings(), 0.0, 2147483647.0, 0.01);
-        this.createBLDCCheckboxFormNode(this.Names.BLDC_Motor_ParametersKnown, "Parameters known", userSettings[this.Names.BLDC_Motor_ParametersKnown]);
         this.createBLDCNumericFormNode(this.Names.BLDC_Motor_ZeroElecAngle, "Zero elec angle (rad)", userSettings[this.Names.BLDC_Motor_ZeroElecAngle], () => this.updateBLDCSettings(), -2147483647.0, 2147483647.0, 0.01, this.Names.ZeroElecAngle_Row);
         // this.createBLDCNumericFormNode(this.Names.BLDC_RailLength, "Rail length (mm)", userSettings[this.Names.BLDC_RailLength], () => this.updateBLDCSettings(), 0, 2147483647);
         // this.createBLDCNumericFormNode(this.Names.BLDC_Range, (this.name.length == 0 ? "Stroke" : this.name) + " length (mm)", userSettings[this.Names.BLDC_Range], () => this.updateBLDCSettings(), 0, 2147483647, 1);
 
         // this.toggleBLDCEncoderOptions();
         // Utils.toggleControlVisibilityByID(this.Names.HallEffect_Row, userSettings[this.Names.BLDC_UseHallSensor]);
-        Utils.toggleControlVisibilityByID(this.Names.ZeroElecAngle_Row, userSettings[this.Names.BLDC_Motor_ParametersKnown]);
         this.initialized = true;
     }
 
@@ -146,10 +143,8 @@ class BLDCMotor {
             userSettings[this.Names.BLDC_Motor_SupplyVoltage] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_SupplyVoltage).value));
             userSettings[this.Names.BLDC_Motor_Current] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_Current).value));
             userSettings[this.Names.BLDC_Motor_ZeroElecAngle] = Utils.round2(parseFloat(document.getElementById(this.Names.BLDC_Motor_ZeroElecAngle).value));
-            userSettings[this.Names.BLDC_Motor_ParametersKnown] = document.getElementById(this.Names.BLDC_Motor_ParametersKnown).checked;
             // userSettings[this.Names.BLDC_RailLength] = parseInt(document.getElementById(this.Names.BLDC_RailLength).value);
             // userSettings[this.Names.BLDC_Range] = parseInt(document.getElementById(this.Names.BLDC_Range).value);
-            Utils.toggleControlVisibilityByID(this.Names.ZeroElecAngle_Row, userSettings[this.Names.BLDC_Motor_ParametersKnown]);
             setRestartRequired();
             updateUserSettings(0);
         }, delay);

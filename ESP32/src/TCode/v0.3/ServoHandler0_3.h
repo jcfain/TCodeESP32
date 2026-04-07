@@ -44,6 +44,8 @@ public:
         if(m_deviceType == DeviceType::NONE)
         {
             LogHandler::error(_TAG, "No device type selected. Visit the web config or use the command to set a device before starting the firmware.");
+            snprintf(setupError, sizeof setupError, "No device type selected. Visit the web config or use the command to set a device before starting the firmware.");
+            SettingsHandler::addPersistentError(setupError);
             return false;
         }
         if(m_deviceType == DeviceType::TVIBE) {
@@ -89,7 +91,10 @@ public:
             attachPin("left servo", m_leftServoPin, freq, m_lowerLeftServoChannel);
         } else {
             LogHandler::error(_TAG, "Invalid left servo to pin: %d for channel: %d", m_leftServoPin, m_lowerLeftServoChannel);
-            m_initFailed = true;
+            snprintf(setupError, sizeof setupError, "Invalid left servo to pin: %d for channel: %d", m_leftServoPin, m_lowerLeftServoChannel);
+            SettingsHandler::addPersistentError(setupError);
+            m_initialized = false;
+            return false;
         }
         m_rightServoPin = ((PinMapOSR*)pinMap)->rightServo();
         m_lowerRightServoChannel = ((PinMapOSR*)pinMap)->rightServoChannel();
@@ -99,7 +104,10 @@ public:
             attachPin("right servo", m_rightServoPin, freq, m_lowerRightServoChannel);
         } else {
             LogHandler::error(_TAG, "Invalid right servo to pin: %d for channel: %d", m_rightServoPin, m_lowerRightServoChannel);
-            m_initFailed = true;
+            snprintf(setupError, sizeof setupError, "Invalid right servo to pin: %d for channel: %d", m_rightServoPin, m_lowerRightServoChannel);
+            SettingsHandler::addPersistentError(setupError);
+            m_initialized = false;
+            return false;
         }
         #endif
         if(m_deviceType == DeviceType::SR6)
@@ -112,7 +120,10 @@ public:
                 attachPin("left upper servo", m_leftUpperServoPin, freq, m_upperLeftServoChannel);
             } else {
                 LogHandler::error(_TAG, "Invalid left upper servo to pin: %d for channel: %d", m_leftUpperServoPin, m_upperLeftServoChannel);
-                m_initFailed = true;
+                snprintf(setupError, sizeof setupError, "Invalid left upper servo to pin: %d for channel: %d", m_leftUpperServoPin, m_upperLeftServoChannel);
+                SettingsHandler::addPersistentError(setupError);
+                m_initialized = false;
+                return false;
             }
             #ifndef ESP_PROG// The default pins for these are used on the debugger board. 12, 13, 14 & 15
                 m_rightUpperServoPin = ((PinMapSR6*)pinMap)->rightUpperServo();
@@ -123,7 +134,10 @@ public:
                     attachPin("right upper servo", m_rightUpperServoPin, freq, m_upperRightServoChannel);
                 } else {
                     LogHandler::error(_TAG, "Invalid right upper servo to pin: %d for channel: %d", m_rightUpperServoPin, m_upperRightServoChannel);
-                    m_initFailed = true;
+                    snprintf(setupError, sizeof setupError, "Invalid right upper servo to pin: %d for channel: %d", m_rightUpperServoPin, m_upperRightServoChannel);
+                    SettingsHandler::addPersistentError(setupError);
+                    m_initialized = false;
+                    return false;
                 }
                 m_rightPitchServoPin = ((PinMapSR6*)pinMap)->pitchRight();
                 m_rightPitchServoChannel = ((PinMapSR6*)pinMap)->pitchRightChannel();
@@ -133,7 +147,10 @@ public:
                     attachPin("right pitch servo", m_rightPitchServoPin, freq, m_rightPitchServoChannel);
                 } else {
                     LogHandler::error(_TAG, "Invalid right pitch servo to pin: %d for channel: %d", m_rightPitchServoPin, m_rightPitchServoChannel);
-                    m_initFailed = true;
+                    snprintf(setupError, sizeof setupError, "Invalid right pitch servo to pin: %d for channel: %d", m_rightPitchServoPin, m_rightPitchServoChannel);
+                    SettingsHandler::addPersistentError(setupError);
+                    m_initialized = false;
+                    return false;
                 }
             #endif
         }
@@ -145,14 +162,14 @@ public:
             attachPin("pitch servo", m_leftPitchServoPin, freq, m_leftPitchServoChannel);
         } else {
             LogHandler::error(_TAG, "Invalid pitch servo to pin: %d for channel: %d", m_leftPitchServoPin, m_leftPitchServoChannel);
-            m_initFailed = true;
+            snprintf(setupError, sizeof setupError, "Invalid pitch servo to pin: %d for channel: %d", m_leftPitchServoPin, m_leftPitchServoChannel);
+            SettingsHandler::addPersistentError(setupError);
+            m_initialized = false;
+            return false;
         }
         
         // Signal done
-        if(m_initFailed)
-            m_tcode->sendMessage("Init servos error!");
-        else
-            m_tcode->sendMessage("Ready!");
+        m_tcode->sendMessage("Ready!");
         return true;
     }
 
@@ -185,10 +202,8 @@ public:
 // int testVar = -1;
 // int testVar2 = -1;
     void execute() override {
-        if(m_initFailed) 
-        {
+        if(!m_initialized) 
             return;
-        }
         if(m_deviceType != DeviceType::TVIBE)
         {
             // Collect inputs
@@ -218,7 +233,8 @@ private:
     const char* _TAG = TagHandler::ServoHandler;
     SettingsFactory* m_settingsFactory;
     DeviceType m_deviceType;
-    bool m_initFailed = false;
+    bool m_initialized = false;
+    char setupError[125];
 
     int8_t m_leftServoPin = -1;
     int8_t m_rightServoPin = -1;
