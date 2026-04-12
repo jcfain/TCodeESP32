@@ -270,8 +270,6 @@ void loop()
 #endif
 	else
 	{
-		if (setupSucceeded)
-		{
 			// otaHandler.handle();
 
 			getTCodeInput(); // Must be executed first!
@@ -280,6 +278,8 @@ void loop()
 
 			processCommand();
 
+		if (setupSucceeded)
+		{
 			if (!SettingsHandler::getMotionPaused())
 			{
 				dStopped = false;

@@ -169,6 +169,7 @@ public:
         }
         
         // Signal done
+        m_initialized = true;
         m_tcode->sendMessage("Ready!");
         return true;
     }

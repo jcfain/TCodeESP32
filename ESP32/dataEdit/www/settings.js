@@ -976,13 +976,14 @@ function setUserSettings()
             encoderTypeElement.classList.remove("pulse-yellow");
         }
         document.getElementById("BLDC_UseHallSensor").checked = userSettings["BLDC_UseHallSensor"];
+        document.getElementById("BLDC_HallEffectTypeNC").checked = userSettings["BLDC_HallEffectTypeNC"];
         document.getElementById("BLDC_RailLength").value = userSettings["BLDC_RailLength"];
         document.getElementById("BLDC_StrokeLength").value = userSettings["BLDC_StrokeLength"];
         document.getElementById("BLDC_TwistMultiplier").value = userSettings["BLDC_TwistMultiplier"];
         document.getElementById("BLDC_TwistLimit").value = userSettings["BLDC_TwistLimit"];
         document.getElementById("BLDC_PIDProportionalConstant").value = userSettings["BLDC_PIDProportionalConstant"];
         document.getElementById("BLDC_LowPassFilter").value = userSettings["BLDC_LowPassFilter"];
-        Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
+        Utils.toggleControlVisibilityByClassName("hallEffect", userSettings["BLDC_UseHallSensor"]);
         if(!motorA)
             motorA = new BLDCMotor(userSettings.deviceType);// No name due to settings property name and html node ids.
         motorA.setup();
@@ -1764,7 +1765,7 @@ function setEncoderType() {
 }
 function updateBLDCUseHallSensor() {
     userSettings["BLDC_UseHallSensor"] = document.getElementById("BLDC_UseHallSensor").checked;
-    Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
+    Utils.toggleControlVisibilityByClassName("hallEffect", userSettings["BLDC_UseHallSensor"]);
     if(validatePins())
     {
         setRestartRequired();
