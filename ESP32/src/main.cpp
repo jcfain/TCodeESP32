@@ -364,15 +364,15 @@ void setup()
 	TaskHandler::Manager &taskManager = TaskHandler::global();
 	Serial.println("BOOT: Registering tasks");
 	LogHandler::info(Tags::Main, "Initializing tasks");
-	taskManager.critical(&serialHandler); // Ensure serial commands always stay responsive
+	taskManager.priority(&serialHandler); // Serial TCode ingress
 	LogHandler::info(Tags::Main, "Serial handler initialized");
-	taskManager.critical(&buttonHandler); // Command/input path
+	taskManager.priority(&buttonHandler); // Button input
 	LogHandler::info(Tags::Main, "Button handler initialized");
 	taskManager.priority(&wifi); // Network connection state machine
 	LogHandler::info(Tags::Main, "WiFi handler initialized");
 	taskManager.priority(&udpHandler); // TCode ingress/egress transport
 	LogHandler::info(Tags::Main, "UDP handler initialized");
-	taskManager.auxiliary(&batteryHandler); // Low-priority telemetry polling
+	taskManager.priority(&batteryHandler); // Telemetry polling
 	LogHandler::info(Tags::Main, "Battery handler initialized");
 	// Handles advanced fuctions (motor, ota, wifi, etc)
 	Serial.println("BOOT: OperatingModeHandler::init");
@@ -406,17 +406,15 @@ void setup()
 		LogHandler::error(Tags::Main, "Motor handler not initialized – skipping motor task");
 	}
 
-	Serial.println("BOOT: taskManager.start");
-	taskManager.start();
-	LogHandler::info(Tags::Main, "Tasks started");
+	LogHandler::info(Tags::Main, "Tasks registered");
 	Serial.println("BOOT: setup complete");
 }
 
 void loop()
 {
-	TaskHandler::global().update();
-
+	// Cooperatively poll all communication / sensor tasks on APP_CPU (Core 1).
 	// Motor control runs on its own FreeRTOS task (PRO_CPU) – nothing to do here.
+	TaskHandler::global().core1Tasks().poll();
 
 	if (!networkingBringupAttempted && millis() >= NETWORK_BRINGUP_DELAY_MS)
 	{

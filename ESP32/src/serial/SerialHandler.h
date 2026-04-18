@@ -35,6 +35,10 @@ class SerialHandler : public TaskHandler::Task
 public:
     SerialHandler() : Task(TaskHandler::Rates::FAST) {}
 
+    // Accept streamed TCode that is not newline-terminated by flushing after a
+    // short idle gap between bytes.
+    static constexpr uint32_t SERIAL_TCODE_IDLE_FLUSH_MS = 4;
+
     static void init()
     {
         LogHandler::info(Tags::Main, "Serial command handler initialized");
@@ -44,37 +48,43 @@ public:
     {
         m_index = 0;
         m_buffer[0] = '\0';
+        m_lastByteMs = 0;
         LogHandler::info(Tags::Main, "Serial command task started");
     }
 
     void loop() override
     {
+        // Some TCode senders stream bytes without '\n'. If input pauses briefly,
+        // flush the buffered command so it still reaches the motor parser.
+        if (m_index > 0 && isTCodeCommand(m_buffer) && (millis() - m_lastByteMs) >= SERIAL_TCODE_IDLE_FLUSH_MS)
+        {
+            dispatchBufferedCommand();
+        }
+
         while (Serial.available() > 0)
         {
             const char ch = static_cast<char>(Serial.read());
+            m_lastByteMs = millis();
 
             if (ch == '\r')
             {
                 continue;
             }
 
-            if (ch == '\n')
+            if (ch == '\n' || ch == ';')
             {
                 if (m_index > 0)
                 {
-                    m_buffer[m_index] = '\0';
-                    // Feed motor commands directly to motor handler (independent of WiFi)
-                    if (isTCodeCommand(m_buffer))
-                    {
-                        extern void feedMotorCommand(const char *cmd, size_t len);
-                        feedMotorCommand(m_buffer, m_index);
-                    }
-                    // Also process as system commands
-                    m_commandHandler.process(m_buffer);
-                    m_index = 0;
-                    m_buffer[0] = '\0';
+                    dispatchBufferedCommand();
                 }
                 continue;
+            }
+
+            // If a new TCode axis token starts while a prior command is buffered,
+            // treat that as a boundary for stream-based senders.
+            if (m_index > 0 && isTCodeStartChar(ch) && isTCodeCommand(m_buffer))
+            {
+                dispatchBufferedCommand();
             }
 
             if (m_index >= (MAX_COMMAND - 1))
@@ -90,6 +100,29 @@ public:
     }
 
 private:
+    void dispatchBufferedCommand()
+    {
+        m_buffer[m_index] = '\0';
+
+        // Feed motor commands directly to motor handler (independent of WiFi)
+        if (isTCodeCommand(m_buffer))
+        {
+            extern void feedMotorCommand(const char *cmd, size_t len);
+            feedMotorCommand(m_buffer, m_index);
+        }
+
+        // Also process as system commands
+        m_commandHandler.process(m_buffer);
+        m_index = 0;
+        m_buffer[0] = '\0';
+    }
+
+    bool isTCodeStartChar(char ch)
+    {
+        return ch == 'L' || ch == 'R' || ch == 'V' || ch == 'A' ||
+               ch == 'l' || ch == 'r' || ch == 'v' || ch == 'a';
+    }
+
     // Check if command is T-Code (e.g., L0123, R0456, etc.)
     bool isTCodeCommand(const char *cmd)
     {
@@ -106,6 +139,7 @@ private:
     SystemCommandHandler m_commandHandler;
     char m_buffer[MAX_COMMAND] = {0};
     size_t m_index = 0;
+    uint32_t m_lastByteMs = 0;
 };
 
 #endif // SERIAL_HANDLER_H_

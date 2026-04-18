@@ -86,7 +86,7 @@ public:
         {
             int freq = ((PinMapOSR *)pinMap)->getChannelFrequency(m_lowerLeftServoChannel);
             m_leftServo_Int = frequencyToMicroseconds(freq);
-            attachPin("left servo", m_leftServoPin, freq, m_lowerLeftServoChannel);
+            attachServoPin("left servo", m_leftServoPin, freq, m_lowerLeftServoChannel);
         }
         else
         {
@@ -99,7 +99,7 @@ public:
         {
             int freq = ((PinMapOSR *)pinMap)->getChannelFrequency(m_lowerRightServoChannel);
             m_rightServo_Int = frequencyToMicroseconds(freq);
-            attachPin("right servo", m_rightServoPin, freq, m_lowerRightServoChannel);
+            attachServoPin("right servo", m_rightServoPin, freq, m_lowerRightServoChannel);
         }
         else
         {
@@ -115,7 +115,7 @@ public:
             {
                 int freq = ((PinMapSR6 *)pinMap)->getChannelFrequency(m_upperLeftServoChannel);
                 m_leftUpperServo_Int = frequencyToMicroseconds(freq);
-                attachPin("left upper servo", m_leftUpperServoPin, freq, m_upperLeftServoChannel);
+                attachServoPin("left upper servo", m_leftUpperServoPin, freq, m_upperLeftServoChannel);
             }
             else
             {
@@ -129,7 +129,7 @@ public:
             {
                 int freq = ((PinMapSR6 *)pinMap)->getChannelFrequency(m_upperRightServoChannel);
                 m_rightUpperServo_Int = frequencyToMicroseconds(freq);
-                attachPin("right upper servo", m_rightUpperServoPin, freq, m_upperRightServoChannel);
+                attachServoPin("right upper servo", m_rightUpperServoPin, freq, m_upperRightServoChannel);
             }
             else
             {
@@ -142,7 +142,7 @@ public:
             {
                 int freq = ((PinMapSR6 *)pinMap)->getChannelFrequency(m_rightPitchServoChannel);
                 m_pitchRightServo_Int = frequencyToMicroseconds(freq);
-                attachPin("right pitch servo", m_rightPitchServoPin, freq, m_rightPitchServoChannel);
+                attachServoPin("right pitch servo", m_rightPitchServoPin, freq, m_rightPitchServoChannel);
             }
             else
             {
@@ -157,7 +157,7 @@ public:
         {
             int freq = ((PinMapSR6 *)pinMap)->getChannelFrequency(m_leftPitchServoChannel);
             m_pitchLeftServo_Int = frequencyToMicroseconds(freq);
-            attachPin("pitch servo", m_leftPitchServoPin, freq, m_leftPitchServoChannel);
+            attachServoPin("pitch servo", m_leftPitchServoPin, freq, m_leftPitchServoChannel);
         }
         else
         {
@@ -315,15 +315,9 @@ private:
         }
 
 #ifndef ESP_PROG
-#ifdef ESP_ARDUINO3
-        ledcWrite(m_leftServoPin, leftDuty);
-        ledcWrite(m_rightServoPin, rightDuty);
-        ledcWrite(m_leftPitchServoPin, pitchDuty);
-#else
-        ledcWrite(m_lowerLeftServoChannel, leftDuty);
-        ledcWrite(m_lowerRightServoChannel, rightDuty);
-        ledcWrite(m_leftPitchServoChannel, pitchDuty);
-#endif
+        writeServo(m_leftServoPin, leftDuty);
+        writeServo(m_rightServoPin, rightDuty);
+        writeServo(m_leftPitchServoPin, pitchDuty);
 #endif
     }
 
@@ -369,21 +363,12 @@ private:
         int pitchRightDuty = map(constrain(pitchRightZero + pitchRightValue, pitchRightZero - 1000, pitchRightZero + 600), 0, m_pitchRightServo_Int, 0, m_servoPWMMaxDuty);
         // Set Servos
 #if !ESP_PROG
-#ifdef ESP_ARDUINO3
-        ledcWrite(m_leftServoPin, lowerLeftDuty);
-        ledcWrite(m_rightServoPin, lowerRightDuty);
-        ledcWrite(m_leftUpperServoPin, upperLeftDuty);
-        ledcWrite(m_rightUpperServoPin, upperRightDuty);
-        ledcWrite(m_leftPitchServoPin, pitchLeftDuty);
-        ledcWrite(m_rightPitchServoPin, pitchRightDuty);
-#else
-        ledcWrite(m_lowerLeftServoChannel, lowerLeftDuty);
-        ledcWrite(m_lowerRightServoChannel, lowerRightDuty);
-        ledcWrite(m_upperLeftServoChannel, upperLeftDuty);
-        ledcWrite(m_upperRightServoChannel, upperRightDuty);
-        ledcWrite(m_leftPitchServoChannel, pitchLeftDuty);
-        ledcWrite(m_rightPitchServoChannel, pitchRightDuty);
-#endif
+        writeServo(m_leftServoPin, lowerLeftDuty);
+        writeServo(m_rightServoPin, lowerRightDuty);
+        writeServo(m_leftUpperServoPin, upperLeftDuty);
+        writeServo(m_rightUpperServoPin, upperRightDuty);
+        writeServo(m_leftPitchServoPin, pitchLeftDuty);
+        writeServo(m_rightPitchServoPin, pitchRightDuty);
 #endif
     }
 

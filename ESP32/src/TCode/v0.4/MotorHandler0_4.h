@@ -76,7 +76,7 @@ protected:
             suck_channel = new TCodeAxis("Valve", {AxisType::Auxiliary, 1}, 0.0f);
             m_tcode->RegisterAxis(suck_channel);
             int freq = pinMap->getChannelFrequency(m_valveServoChannel);
-            attachPin("valve servo", m_valveServoPin, freq, m_valveServoChannel);
+            attachServoPin("valve servo", m_valveServoPin, freq, m_valveServoChannel);
             m_valveServo_Int = frequencyToMicroseconds(freq);
         }
         else
@@ -91,7 +91,7 @@ protected:
             twist_channel = new TCodeAxis("Twist", {AxisType::Rotation, 0}, 0.5f);
             m_tcode->RegisterAxis(twist_channel);
             int freq = pinMap->getChannelFrequency(m_twistServoChannel);
-            attachPin("twist servo", m_twistServoPin, freq, m_twistServoChannel);
+            attachServoPin("twist servo", m_twistServoPin, freq, m_twistServoChannel);
             m_twistServo_Int = frequencyToMicroseconds(freq);
         }
         else
@@ -106,7 +106,7 @@ protected:
             squeeze_channel = new TCodeAxis("Squeeze", {AxisType::Auxiliary, 3}, 0.5f);
             m_tcode->RegisterAxis(squeeze_channel);
             int freq = pinMap->getChannelFrequency(m_squeezeServoChannel);
-            attachPin("aux servo", m_squeezeServoPin, freq, m_squeezeServoChannel);
+            attachServoPin("aux servo", m_squeezeServoPin, freq, m_squeezeServoChannel);
             m_squeezeServo_Int = frequencyToMicroseconds(freq);
         }
         else
@@ -129,7 +129,7 @@ protected:
                 m_tcode->setAxisData(lube_channel, 0, AxisExtentionType::Time, 0);
                 pinMode(m_lubeButtonPin, m_settingsFactory->getLubeButtonPinMode());
                 int freq = pinMap->getChannelFrequency(m_vib1Channel);
-                attachPin("lube", m_vib1Pin, freq, m_vib1Channel, 8);
+                attachLedcPin("lube", m_vib1Pin, freq, m_vib1Channel, 8);
                 // m_vib1_Int = frequencyToMicroseconds(freq);
                 lubeRegistered = true;
             }
@@ -143,7 +143,7 @@ protected:
             vibe0_channel = new TCodeAxis("Vibe 1", {AxisType::Vibration, 0}, 0.0f);
             m_tcode->RegisterAxis(vibe0_channel);
             int freq = pinMap->getChannelFrequency(m_vib0Channel);
-            attachPin("vib 1", m_vib0Pin, freq, m_vib0Channel, 8);
+            attachLedcPin("vib 1", m_vib0Pin, freq, m_vib0Channel, 8);
             // m_vib0_Int = frequencyToMicroseconds(freq);
         }
         else
@@ -160,7 +160,7 @@ protected:
                 vibe1_channel = new TCodeAxis("Vibe 2", {AxisType::Vibration, 1}, 0.0f);
                 m_tcode->RegisterAxis(vibe1_channel);
                 int freq = pinMap->getChannelFrequency(m_vib1Channel);
-                attachPin("vib 2", m_vib1Pin, freq, m_vib1Channel, 8);
+                attachLedcPin("vib 2", m_vib1Pin, freq, m_vib1Channel, 8);
                 // m_vib1_Int = frequencyToMicroseconds(freq);
             }
             else
@@ -175,7 +175,7 @@ protected:
             vibe2_channel = new TCodeAxis("Vibe 3", {AxisType::Vibration, 2}, 0.0f);
             m_tcode->RegisterAxis(vibe2_channel);
             int freq = pinMap->getChannelFrequency(m_vib2Channel);
-            attachPin("vib 3", m_vib2Pin, freq, m_vib2Channel, 8);
+            attachLedcPin("vib 3", m_vib2Pin, freq, m_vib2Channel, 8);
             // m_vib2_Int = frequencyToMicroseconds(freq);
         }
         else
@@ -189,7 +189,7 @@ protected:
             vibe3_channel = new TCodeAxis("Vibe 4", {AxisType::Vibration, 3}, 0.0f);
             m_tcode->RegisterAxis(vibe3_channel);
             int freq = pinMap->getChannelFrequency(m_vib3Channel);
-            attachPin("vib 4", m_vib3Pin, freq, m_vib3Channel, 8);
+            attachLedcPin("vib 4", m_vib3Pin, freq, m_vib3Channel, 8);
             // m_vib3_Int = frequencyToMicroseconds(freq);
         }
         else
@@ -396,11 +396,7 @@ private:
                 else
                     twist = map(xRot, TCODE_MIN, TCODE_MAX, 1000, -1000);
             }
-#ifdef ESP_ARDUINO3
-            ledcWrite(m_twistServoPin, map(m_settingsFactory->getTwistServo_ZERO() + twist, 0, m_twistServo_Int, 0, m_servoPWMMaxDuty));
-#else
-            ledcWrite(m_twistServoChannel, map(m_settingsFactory->getTwistServo_ZERO() + twist, 0, m_twistServo_Int, 0, m_servoPWMMaxDuty));
-#endif
+            writeServo(m_twistServoPin, map(m_settingsFactory->getTwistServo_ZERO() + twist, 0, m_twistServo_Int, 0, m_servoPWMMaxDuty));
         }
     }
 
@@ -470,11 +466,7 @@ private:
                     valve = map(valve, -500, 0, -500, 500);
                 }
             }
-#ifdef ESP_ARDUINO3
-            ledcWrite(m_valveServoPin, map(m_settingsFactory->getValveServo_ZERO() + valve, 0, m_valveServo_Int, 0, m_servoPWMMaxDuty));
-#else
-            ledcWrite(m_valveServoChannel, map(m_settingsFactory->getValveServo_ZERO() + valve, 0, m_valveServo_Int, 0, m_servoPWMMaxDuty));
-#endif
+            writeServo(m_valveServoPin, map(m_settingsFactory->getValveServo_ZERO() + valve, 0, m_valveServo_Int, 0, m_servoPWMMaxDuty));
         }
     }
 
@@ -616,11 +608,7 @@ private:
         if (squeezeCmd > -1)
         {
             int squeeze = map(squeezeCmd, TCODE_MIN, TCODE_MAX, 1000, -1000);
-#ifdef ESP_ARDUINO3
-            ledcWrite(m_squeezeServoPin, map(m_settingsFactory->getSqueezeServo_ZERO() + squeeze, 0, m_squeezeServo_Int, 0, m_servoPWMMaxDuty));
-#else
-            ledcWrite(m_squeezeServoChannel, map(m_settingsFactory->getSqueezeServo_ZERO() + squeeze, 0, m_squeezeServo_Int, 0, m_servoPWMMaxDuty));
-#endif
+            writeServo(m_squeezeServoPin, map(m_settingsFactory->getSqueezeServo_ZERO() + squeeze, 0, m_squeezeServo_Int, 0, m_servoPWMMaxDuty));
         }
     }
 };

@@ -25,6 +25,7 @@ SOFTWARE. */
 #include <Arduino.h>
 #include "Global.h"
 #include "TCodeBase.h"
+#include "MCPWMServo.h"
 #include "settings/SettingsHandler.h"
 #include "logging/TagHandler.h"
 
@@ -39,33 +40,54 @@ public:
     virtual void setMessageCallback(TCODE_FUNCTION_PTR_T function) = 0;
 
 protected:
-#ifdef ESP_ARDUINO3
-    // void attachPin(const char* name, uint8_t pin, uint32_t freq, int8_t res = -1) {
-    void attachPin(const char *name, uint8_t pin, uint32_t freq, int8_t channel = -1, uint8_t res = 0)
+    /**
+     * Attach a servo-frequency PWM output using the MCPWM peripheral.
+     * Duty values use the same 0..(2^SERVO_PWM_RES - 1) range as before.
+     */
+    void attachServoPin(const char *name, uint8_t pin, uint32_t freq, int8_t channel = -1)
     {
-        uint8_t resolution = res > 0 ? res : SERVO_PWM_RES;
+        LogHandler::debug(Tags::Motor, "Connecting %s servo to pin: %d @ freq: %d (MCPWM)", name, pin, freq);
+        if (!MCPWMServo::getInstance().attachPin(pin, freq, SERVO_PWM_RES))
+        {
+            LogHandler::error(Tags::Motor, "Error attaching %s MCPWM servo on pin %d", name, pin);
+        }
+    }
+
+    /**
+     * Write a duty value to an MCPWM servo output.
+     */
+    void writeServo(uint8_t pin, uint32_t duty)
+    {
+        MCPWMServo::getInstance().write(pin, duty);
+    }
+
+    /**
+     * Attach a LEDC PWM output (for vibration motors, lube, heater, fan, etc.).
+     */
+#ifdef ESP_ARDUINO3
+    void attachLedcPin(const char *name, uint8_t pin, uint32_t freq, int8_t channel = -1, uint8_t res = 8)
+    {
         bool success = false;
         if (channel > -1)
         {
-            LogHandler::debug(Tags::Motor, "Connecting %s servo to pin: %d @ freq: %d channel: %d resolution: %d", name, pin, freq, channel, resolution);
-            success = ledcAttachChannel(pin, freq, resolution, channel);
+            LogHandler::debug(Tags::Motor, "Connecting %s to pin: %d @ freq: %d channel: %d resolution: %d (LEDC)", name, pin, freq, channel, res);
+            success = ledcAttachChannel(pin, freq, res, channel);
         }
         else
         {
-            LogHandler::debug(Tags::Motor, "Connecting %s servo to pin: %d @ freq: %d resolution: %d", name, pin, freq, resolution);
-            success = ledcAttach(pin, freq, resolution);
+            LogHandler::debug(Tags::Motor, "Connecting %s to pin: %d @ freq: %d resolution: %d (LEDC)", name, pin, freq, res);
+            success = ledcAttach(pin, freq, res);
         }
         if (!success)
         {
-            LogHandler::error(Tags::Motor, "Error attaching %s pin", name);
+            LogHandler::error(Tags::Motor, "Error attaching %s LEDC pin", name);
         }
     }
 #else
-    void attachPin(const char *name, uint8_t pin, uint32_t freq, int8_t channel, int8_t res = -1)
+    void attachLedcPin(const char *name, uint8_t pin, uint32_t freq, int8_t channel, int8_t res = 8)
     {
-        uint8_t resolution = res > -1 ? res : SERVO_PWM_RES;
-        LogHandler::debug(Tags::Motor, "Connecting %s servo to pin: %d @ freq: %d on channel: %d", name, pin, freq, channel);
-        ledcSetup(channel, freq, resolution);
+        LogHandler::debug(Tags::Motor, "Connecting %s to pin: %d @ freq: %d on channel: %d resolution: %d (LEDC)", name, pin, freq, channel, res);
+        ledcSetup(channel, freq, res);
         ledcAttachPin(pin, channel);
     }
 #endif
