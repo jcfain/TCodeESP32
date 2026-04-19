@@ -976,7 +976,6 @@ function setUserSettings()
             encoderTypeElement.classList.remove("pulse-yellow");
         }
         document.getElementById("BLDC_UseHallSensor").checked = userSettings["BLDC_UseHallSensor"];
-        document.getElementById("BLDC_HallEffectTypeNC").checked = userSettings["BLDC_HallEffectTypeNC"];
         document.getElementById("BLDC_RailLength").value = userSettings["BLDC_RailLength"];
         document.getElementById("BLDC_StrokeLength").value = userSettings["BLDC_StrokeLength"];
         document.getElementById("BLDC_TwistMultiplier").value = userSettings["BLDC_TwistMultiplier"];
@@ -1948,22 +1947,22 @@ function toggleEnableTimerChannels(element) {
 }
 function updatePins() 
 {
-    if(systemInfo.motorType == MotorType.BLDC) {
-        motorA.updateBLDCPins();
-        if(motorB)
-            motorB.updateBLDCPins();
-        return;
-    }
     Utils.debounce("updatePins", () => 
     {
         var pinValues = validatePins();
         if(pinValues) {
-            pinoutSettings["RightServo_PIN"] = pinValues.rightPin;
-            pinoutSettings["LeftServo_PIN"] = pinValues.leftPin;
-            pinoutSettings["RightUpperServo_PIN"] = pinValues.rightUpper;
-            pinoutSettings["LeftUpperServo_PIN"] = pinValues.leftUpper;
-            pinoutSettings["PitchLeftServo_PIN"] = pinValues.pitchLeft;
-            pinoutSettings["PitchRightServo_PIN"] = pinValues.pitchRight;
+            if(systemInfo.motorType == MotorType.BLDC) {
+                motorA.updateBLDCPins(pinValues);
+                if(motorB)
+                    motorB.updateBLDCPins(pinValues);
+            } else {
+                pinoutSettings["RightServo_PIN"] = pinValues.rightPin;
+                pinoutSettings["LeftServo_PIN"] = pinValues.leftPin;
+                pinoutSettings["RightUpperServo_PIN"] = pinValues.rightUpper;
+                pinoutSettings["LeftUpperServo_PIN"] = pinValues.leftUpper;
+                pinoutSettings["PitchLeftServo_PIN"] = pinValues.pitchLeft;
+                pinoutSettings["PitchRightServo_PIN"] = pinValues.pitchRight;
+            }
             updateCommonPins(pinValues);
             setRestartRequired();
             postPinoutSettings(0);
@@ -1987,8 +1986,9 @@ function updateCommonPins(pinValues) {
     pinoutSettings["Internal_Temp_PIN"] = pinValues.internalTemp;
     pinoutSettings["i2cSda_PIN"] = pinValues.i2cSda;
     pinoutSettings["i2cScl_PIN"] = pinValues.i2cScl;
-    //     pinoutSettings["Battery_Voltage_PIN"] = pinValues.Battery_Voltage_PIN;
-    // }
+    if(systemInfo.motorType == MotorType.BLDC)
+        pinoutSettings["BLDC_HallEffect_PIN"] = pinValues.BLDC_HallEffect_PIN;
+    // pinoutSettings["Battery_Voltage_PIN"] = pinValues.Battery_Voltage_PIN;
 
 }
 // function updateNonPWMPins(assignedPins) {
@@ -2153,38 +2153,44 @@ function validatePWMPin(pin, pinName, assignedPins, duplicatePins, pwmErrors, in
  * BLDC does not return ALL pins..
 */
 function validatePins() {
-    if(systemInfo.motorType == MotorType.BLDC) {
-        if(isSSR1())
-            return motorA.validateBLDCPins();
-        else {
-            var rightPinValues = motorA.validateBLDCPins();
-            if(!rightPinValues)
-                return rightPinValues;
-            var leftPinValues = motorB.validateBLDCPins()
-            if(!leftPinValues)
-                return leftPinValues;
-            return rightPinValues;// Return which? bad programming practice....
-        }    
-    }
     clearErrors("pinValidation"); 
     var assignedPins = [];
     var duplicatePins = [];
     var pwmErrors = [];
     var invalidPins = [];
-    var pinValues = getServoPinValues();
+    var pinValues = [];
+    if(systemInfo.motorType == MotorType.BLDC) 
+    {
+        assignCommonBLDCPins(assignedPins);
+        motorA.getBLDCPinValues(pinValues);
+        if(motorB)
+        {
+            motorB.getBLDCPinValues(pinValues);
+        }   
+    } else {
+        getServoPinValues(pinValues);
+    }
+    getCommonPinValues(pinValues);
     if(userSettings["disablePinValidation"])
         return pinValues;
 
-    validatePWMPin(pinValues.rightPin, "Right servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    if(systemInfo.motorType == MotorType.BLDC) 
+    {
+        motorA.validateBLDCPins(pinValues, assignedPins, duplicatePins, pwmErrors, invalidPins);
+        if(motorB)
+            motorB.validateBLDCPins(pinValues, assignedPins, duplicatePins, pwmErrors, invalidPins);
+    } else {
+        validatePWMPin(pinValues.rightPin, "Right servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
 
-    // OSR / SR6
-    validatePWMPin(pinValues.leftPin, "Left servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
-    validatePWMPin(pinValues.pitchLeft, "Pitch left servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+        // OSR / SR6
+        validatePWMPin(pinValues.leftPin, "Left servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+        validatePWMPin(pinValues.pitchLeft, "Pitch left servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
 
-    // SR6
-    validatePWMPin(pinValues.rightUpper, "Right upper servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
-    validatePWMPin(pinValues.leftUpper, "Left upper servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
-    validatePWMPin(pinValues.pitchRight, "Pitch right servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+        // SR6
+        validatePWMPin(pinValues.rightUpper, "Right upper servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+        validatePWMPin(pinValues.leftUpper, "Left upper servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+        validatePWMPin(pinValues.pitchRight, "Pitch right servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    }
 
     validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors, invalidPins);
 
@@ -2213,6 +2219,35 @@ function validatePins() {
     return pinValues;
 }
 
+// TODO do something with these hardcoded numbers.
+// Move them to readonly constants in system settings maybe.
+function assignCommonBLDCPins(assignedPins) {
+    if(isModuleType(ModuleType.S3))
+    {
+        if(isBoardType(BoardType.ZERO)) {
+            if(isBLDCSPI()) {
+                assignedPins.push({name: name+" SPI MOSI", pin:11});
+            }
+        } else {
+            // TODO validate this for N8R8
+            //assignedPins.push({name:"SPI1", pin:5});
+            assignedPins.push({name:name+" SPI CLK", pin:18});
+            assignedPins.push({name:name+" SPI MISO", pin:19});
+            if(isBLDCSPI()) {
+                assignedPins.push({name:name+" SPI MOSI", pin:23});
+            }
+        }
+    }
+    else 
+    {
+        //assignedPins.push({name:"SPI1", pin:5});
+        assignedPins.push({name:name+" SPI CLK", pin:18});
+        assignedPins.push({name:name+" SPI MISO", pin:19});
+        if(isBLDCSPI()) {
+            assignedPins.push({name:name+" SPI MOSI", pin:23});
+        }
+    }
+}
 
 function validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors, invalidPins) {
     validatePWMPin(pinValues.twistServo, "Twist servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
@@ -2292,20 +2327,22 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
         }
     }
 
+    if(userSettings["BLDC_UseHallSensor"] && systemInfo.motorType == MotorType.BLDC) {
+        validatePin(pinValues.BLDC_HallEffect_PIN, "Hall effect", assignedPins, duplicatePins, false, invalidPins);
+    }
+
     if(duplicatePins.length || invalidPins.length) 
         return false;
     return true;
 }
 
-function getServoPinValues() {
-    var pinValues = {};
+function getServoPinValues(pinValues = {}) {
     pinValues.rightPin = parseInt(document.getElementById('RightServo_PIN').value);
     pinValues.leftPin = parseInt(document.getElementById('LeftServo_PIN').value);
     pinValues.rightUpper = parseInt(document.getElementById('RightUpperServo_PIN').value);
     pinValues.leftUpper = parseInt(document.getElementById('LeftUpperServo_PIN').value);
     pinValues.pitchRight = parseInt(document.getElementById('PitchRightServo_PIN').value);
     pinValues.pitchLeft = parseInt(document.getElementById('PitchLeftServo_PIN').value);
-    getCommonPinValues(pinValues);
     return pinValues;
 }
 
@@ -2337,6 +2374,8 @@ function getCommonPinValues(pinValues) {
     buttonSetPins.forEach((node, index) => {
         pinValues.buttonSets[index] = parseInt(document.getElementById('buttonSetPin'+index).value);;
     });
+    if(systemInfo.motorType == MotorType.BLDC)
+        pinValues.BLDC_HallEffect_PIN = parseInt(document.getElementById("BLDC_HallEffect_PIN").value);
 }
 
 function updateZeros() 

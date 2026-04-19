@@ -230,13 +230,13 @@ public:
         m_hallSensorPin = pinMap->hallEffect();
         if(m_useHallSensor && m_hallSensorPin > -1) 
         {
-            LogHandler::info(_TAG, "Using Hall Sensor");
+            LogHandler::info(_TAG, "Using Hall Sensor pin: %i", m_hallSensorPin);
             // Set pinmode for hall sensor
             pinMode(m_hallSensorPin, INPUT_PULLUP);
         } 
         else if(m_useHallSensor) 
         {
-            LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %d...ignoring", pinMap->hallEffect());
+            LogHandler::warning(_TAG, "Use hall sensor true but pin is invalid %i...ignoring", m_hallSensorPin);
             m_useHallSensor = false;
             // m_settingsFactory->setValue(BLDC_USEHALLSENSOR, m_useHallSensor);
         }
@@ -410,7 +410,7 @@ public:
         sensorA->update();
         zeroAngleA = sensorA->getAngle();
 
-        if(motorB)
+        if(sensorB)
         {
             sensorB->update();
             zeroAngleB = sensorB->getAngle();
@@ -662,7 +662,7 @@ private:
                 twistTargetPosition = 0;
                 if (!digitalRead(m_hallSensorPin)) 
                 {
-                    LogHandler::debug(_TAG, "Boot mode HOMING: startTime %i, millis: %ld !digitalRead(m_hallSensorPin)", startTime, millis());
+                    LogHandler::debug(_TAG, "Boot mode HOMING: startTime %ld, millis: %ld !digitalRead(m_hallSensorPin)", startTime, millis());
                     m_bootmode = BLDCBootMode::HOMING;
                     zeroAngleA = sensorAngleA + 10000/angToPos;
                     zeroAngleB = sensorAngleB - 10000/angToPos;
@@ -674,7 +674,7 @@ private:
                 } 
                 else if (millis() > (startTime + 2000)) 
                 {
-                    LogHandler::debug(_TAG, "Boot mode HOMING: startTime %i, millis: %ld m_useHallSensor millis() > (startTime + 2000)", startTime, millis());
+                    LogHandler::debug(_TAG, "Boot mode HOMING: startTime %ld, millis: %ld m_useHallSensor millis() > (startTime + 2000)", startTime, millis());
                     m_bootmode = BLDCBootMode::HOMING;
                     zeroAngleA = sensorAngleA + 10000/angToPos + topStartOffset;
                     zeroAngleB = sensorAngleB - 10000/angToPos - topStartOffset;
@@ -691,7 +691,7 @@ private:
                 twistTargetPosition = 0;
                 if (millis() > (startTime + 2000)) 
                 {
-                    LogHandler::debug(_TAG, "Boot mode HOMING: startTime %i, millis: %ld", startTime, millis());
+                    LogHandler::debug(_TAG, "Boot mode HOMING: startTime %ld, millis: %ld", startTime, millis());
                     m_bootmode = BLDCBootMode::HOMING;
                     zeroAngleA = sensorAngleA - topStartOffset;
                     zeroAngleB = sensorAngleB + topStartOffset;
