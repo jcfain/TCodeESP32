@@ -41,23 +41,43 @@ public:
 
 protected:
     /**
-     * Attach a servo-frequency PWM output using the MCPWM peripheral.
-     * Duty values use the same 0..(2^SERVO_PWM_RES - 1) range as before.
+     * Attach a servo-frequency PWM output.
+     *
+     * @param driver  Preferred driver from the timer config.  When LEDC, MCPWM
+     *                is skipped entirely.  When MCPWM (default), LEDC is used as
+     *                an automatic fallback if MCPWM hardware resources are full.
      */
-    void attachServoPin(const char *name, uint8_t pin, uint32_t freq, int8_t channel = -1)
+    void attachServoPin(const char *name, uint8_t pin, uint32_t freq,
+                        int8_t channel = -1, PwmDriver driver = PwmDriver::MCPWM)
     {
+        if (driver == PwmDriver::LEDC)
+        {
+            LogHandler::debug(Tags::Motor, "Connecting %s servo to pin: %d @ freq: %d (LEDC forced by timer config)", name, pin, freq);
+            _attachLedcServo(name, pin, freq, channel);
+            return;
+        }
+
         LogHandler::debug(Tags::Motor, "Connecting %s servo to pin: %d @ freq: %d (MCPWM)", name, pin, freq);
         if (!MCPWMServo::getInstance().attachPin(pin, freq, SERVO_PWM_RES))
         {
-            LogHandler::error(Tags::Motor, "Error attaching %s MCPWM servo on pin %d", name, pin);
+            LogHandler::warning(Tags::Motor, "MCPWM full, falling back to LEDC for %s on pin %d", name, pin);
+            _attachLedcServo(name, pin, freq, channel);
         }
     }
 
     /**
-     * Write a duty value to an MCPWM servo output.
+     * Write a duty value to a servo output (MCPWM or LEDC fallback).
      */
     void writeServo(uint8_t pin, uint32_t duty)
     {
+        for (int i = 0; i < m_ledcFallbackCount; i++)
+        {
+            if (m_ledcFallbackPins[i] == pin)
+            {
+                ledcWrite(pin, duty);
+                return;
+            }
+        }
         MCPWMServo::getInstance().write(pin, duty);
     }
 
@@ -99,5 +119,32 @@ protected:
     int frequencyToMicroseconds(int freq)
     {
         return 1000000 / freq;
+    }
+
+private:
+    static constexpr int LEDC_FALLBACK_MAX = 8;
+    uint8_t m_ledcFallbackPins[LEDC_FALLBACK_MAX] = {};
+    int m_ledcFallbackCount = 0;
+
+    /** Attach via LEDC and register the pin in the LEDC fallback table. */
+    void _attachLedcServo(const char *name, uint8_t pin, uint32_t freq, int8_t channel)
+    {
+#ifdef ESP_ARDUINO3
+        attachLedcPin(name, pin, freq, channel, SERVO_PWM_RES);
+#else
+        if (channel > -1)
+        {
+            attachLedcPin(name, pin, freq, channel, SERVO_PWM_RES);
+        }
+        else
+        {
+            LogHandler::error(Tags::Motor, "LEDC attach for %s requires a channel on legacy IDF", name);
+            return;
+        }
+#endif
+        if (m_ledcFallbackCount < LEDC_FALLBACK_MAX)
+        {
+            m_ledcFallbackPins[m_ledcFallbackCount++] = pin;
+        }
     }
 };

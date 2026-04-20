@@ -384,6 +384,10 @@ public:
             timerObj["id"] = timer->id;
             timerObj["name"] = timer->name;
             timerObj["value"] = i;
+            timerObj["pwmDriver"] = (int8_t)timer->pwmDriver;
+            String driverKey = String(timer->id);
+            driverKey.replace("FREQUENCY", "DRIVER");
+            timerObj["driverKey"] = driverKey;
             for (size_t j = 0; j < 2; j++)
             {
                 JsonObject timerChannelObj = timerChannels.add<JsonObject>();
@@ -391,6 +395,12 @@ public:
                 timerChannelObj["value"] = timer->channels[j].channel;
             }
         }
+        doc["mcpwmMaxOutputs"] = 12;
+#if CONFIG_IDF_TARGET_ESP32
+        doc["ledcMaxOutputs"] = 16;
+#else
+        doc["ledcMaxOutputs"] = 8;
+#endif
 
         doc["localIP"] = currentIP;
         doc["gateway"] = currentGateway;

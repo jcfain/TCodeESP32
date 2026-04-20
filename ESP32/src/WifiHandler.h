@@ -207,7 +207,8 @@ public:
 				LogHandler::info(Tags::Wifi, "WIFI_REASON_NO_AP_FOUND");
 				lastReason = reason;
 			}
-			else if (reason == WIFI_REASON_AUTH_FAIL || reason == WIFI_REASON_CONNECTION_FAIL)
+			else if (reason == WIFI_REASON_AUTH_FAIL || reason == WIFI_REASON_CONNECTION_FAIL
+				|| reason == WIFI_REASON_NOT_AUTHED)  // 15: AP deauthed the station (often after wrong password)
 			{
 				lastReason = reason;
 			}
@@ -219,9 +220,13 @@ public:
 			{
 				LogHandler::info(Tags::Wifi, "WIFI_REASON_AUTH_EXPIRE");
 			}
+			else if (reason == 201)  // WIFI_REASON_ROAMING (ESP-IDF 5.x)
+			{
+				LogHandler::info(Tags::Wifi, "WIFI_REASON_ROAMING");
+			}
 			else
 			{
-				LogHandler::info(Tags::Wifi, "Unknown reason %u", lastReason);
+				LogHandler::info(Tags::Wifi, "Unknown reason %u", reason);
 			}
 
 			// Avoid reconnect races while the initial WiFi.begin() connection is still in progress.
@@ -247,7 +252,8 @@ public:
 				if (wifiStatus_callback)
 					wifiStatus_callback(WiFiStatus::DISCONNECTED, WiFiReason::NO_AP);
 			}
-			else if (lastReason == WIFI_REASON_AUTH_FAIL || lastReason == WIFI_REASON_CONNECTION_FAIL)
+			else if (lastReason == WIFI_REASON_AUTH_FAIL || lastReason == WIFI_REASON_CONNECTION_FAIL
+				|| lastReason == WIFI_REASON_NOT_AUTHED)
 			{
 				if (wifiStatus_callback)
 					wifiStatus_callback(WiFiStatus::DISCONNECTED, WiFiReason::AUTH);

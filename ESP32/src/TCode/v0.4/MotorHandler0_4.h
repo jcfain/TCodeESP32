@@ -76,7 +76,7 @@ protected:
             suck_channel = new TCodeAxis("Valve", {AxisType::Auxiliary, 1}, 0.0f);
             m_tcode->RegisterAxis(suck_channel);
             int freq = pinMap->getChannelFrequency(m_valveServoChannel);
-            attachServoPin("valve servo", m_valveServoPin, freq, m_valveServoChannel);
+            attachServoPin("valve servo", m_valveServoPin, freq, m_valveServoChannel, pinMap->getTimerDriverForChannel(m_valveServoChannel));
             m_valveServo_Int = frequencyToMicroseconds(freq);
         }
         else
@@ -91,7 +91,7 @@ protected:
             twist_channel = new TCodeAxis("Twist", {AxisType::Rotation, 0}, 0.5f);
             m_tcode->RegisterAxis(twist_channel);
             int freq = pinMap->getChannelFrequency(m_twistServoChannel);
-            attachServoPin("twist servo", m_twistServoPin, freq, m_twistServoChannel);
+            attachServoPin("twist servo", m_twistServoPin, freq, m_twistServoChannel, pinMap->getTimerDriverForChannel(m_twistServoChannel));
             m_twistServo_Int = frequencyToMicroseconds(freq);
         }
         else
@@ -106,7 +106,7 @@ protected:
             squeeze_channel = new TCodeAxis("Squeeze", {AxisType::Auxiliary, 3}, 0.5f);
             m_tcode->RegisterAxis(squeeze_channel);
             int freq = pinMap->getChannelFrequency(m_squeezeServoChannel);
-            attachServoPin("aux servo", m_squeezeServoPin, freq, m_squeezeServoChannel);
+            attachServoPin("aux servo", m_squeezeServoPin, freq, m_squeezeServoChannel, pinMap->getTimerDriverForChannel(m_squeezeServoChannel));
             m_squeezeServo_Int = frequencyToMicroseconds(freq);
         }
         else

@@ -23,11 +23,11 @@
 
 
 // Other functions
-#define VALVE_DEFAULT 5000        // Auto-valve default suction level (low-high, 0-9999) 
+#define VALVE_DEFAULT 5000        // Auto-valve default suction level (low-high, 0-9999)
 
 
 #ifdef CONFIG_IDF_TARGET_ESP32
-#define SERVO_PWM_RES 16
+#define SERVO_PWM_RES 15  // 16-bit would set period_ticks=65536 which exceeds the ESP32 MCPWM hardware 16-bit limit (max 65535)
 #elif CONFIG_IDF_TARGET_ESP32S3
 #define SERVO_PWM_RES 14
 #endif

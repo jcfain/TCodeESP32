@@ -233,6 +233,28 @@ public:
         }
         return &m_timers[timerIndex];
     }
+    const ESPTimer* getTimer(uint8_t timerIndex) const {
+        if (timerIndex >= MAX_TIMERS || timerIndex < 0) {
+            return 0;
+        }
+        return &m_timers[timerIndex];
+    }
+    void setTimerDriver(int8_t timerIndex, PwmDriver driver) {
+        if (timerIndex < 0 || timerIndex >= MAX_TIMERS) {
+            LogHandler::error(Tags::PinMap, "Invalid timer index '%d' when setting driver", timerIndex);
+            return;
+        }
+        m_timers[timerIndex].pwmDriver = driver;
+    }
+    /**
+     * Returns the configured PWM driver for the timer that owns 'channel'.
+     * Defaults to MCPWM for HIGH timers, LEDC for LOW timers.
+     */
+    PwmDriver getTimerDriverForChannel(int8_t channel) const {
+        const ESPTimer* timer = getTimer(static_cast<ESPTimerChannelNum>(channel));
+        if (!timer) return PwmDriver::LEDC;
+        return timer->pwmDriver;
+    }
 protected:
     PinMap(DeviceType deviceType, BoardType boardType) {
         m_deviceType = deviceType;
@@ -242,46 +264,48 @@ protected:
     BoardType m_boardType;
     ESPTimer m_timers[MAX_TIMERS] = {
 #if CONFIG_IDF_TARGET_ESP32
+        // HIGH timers default to MCPWM (servo-grade precision)
         { ESP_H_TIMER0_FREQUENCY, "High 0", ESP_TIMER_FREQUENCY_DEFAULT, {
                 {"High 0 CH0", ESPTimerChannelNum::HIGH0_CH0},
                 {"High 0 CH1", ESPTimerChannelNum::HIGH0_CH1}
-            }
+            }, PwmDriver::MCPWM
         },
         { ESP_H_TIMER1_FREQUENCY, "High 1", ESP_TIMER_FREQUENCY_DEFAULT, {
                 {"High 1 CH2", ESPTimerChannelNum::HIGH1_CH2},
                 {"High 1 CH3", ESPTimerChannelNum::HIGH1_CH3}
-            }
+            }, PwmDriver::MCPWM
         },
         { ESP_H_TIMER2_FREQUENCY, "High 2", ESP_TIMER_FREQUENCY_DEFAULT, {
                 {"High 2 CH4", ESPTimerChannelNum::HIGH2_CH4},
                 {"High 2 CH5", ESPTimerChannelNum::HIGH2_CH5}
-            }
+            }, PwmDriver::MCPWM
         },
         { ESP_H_TIMER3_FREQUENCY, "High 3", ESP_TIMER_FREQUENCY_DEFAULT, {
                 {"High 3 CH6", ESPTimerChannelNum::HIGH3_CH6},
                 {"High 3 CH7", ESPTimerChannelNum::HIGH3_CH7}
-            }
+            }, PwmDriver::MCPWM
         },
+        // LOW timers default to LEDC (vibe/misc)
 #endif
         { ESP_L_TIMER0_FREQUENCY, "Low 0", ESP_TIMER_FREQUENCY_DEFAULT, {
                 {"Low 0 CH0", ESPTimerChannelNum::LOW0_CH0},
                 {"Low 0 CH1", ESPTimerChannelNum::LOW0_CH1}
-            }
+            }, PwmDriver::LEDC
         },
         { ESP_L_TIMER1_FREQUENCY, "Low 1", ESP_TIMER_FREQUENCY_DEFAULT, {
                 {"Low 1 CH2", ESPTimerChannelNum::LOW1_CH2},
                 {"Low 1 CH3", ESPTimerChannelNum::LOW1_CH3}
-            }
+            }, PwmDriver::LEDC
         },
         { ESP_L_TIMER2_FREQUENCY, "Low 2", ESP_TIMER_FREQUENCY_DEFAULT, {
                 {"Low 2 CH4", ESPTimerChannelNum::LOW2_CH4},
                 {"Low 2 CH5", ESPTimerChannelNum::LOW2_CH5}
-            }
+            }, PwmDriver::LEDC
         },
         { ESP_L_TIMER3_FREQUENCY, "Low 3", ESP_TIMER_FREQUENCY_DEFAULT, {
                 {"Low 3 CH6", ESPTimerChannelNum::LOW3_CH6},
                 {"Low 3 CH7", ESPTimerChannelNum::LOW3_CH7}
-            }
+            }, PwmDriver::LEDC
         }
     };
 
@@ -536,7 +560,7 @@ public:
         // //  EXT_Input3_PIN = 39;
         // //  EXT_Input4_PIN = 36;
 
-        #warning How to handle other board setting overrides?
+        // TODO: Add per-board defaults for heater/fan/display settings if needed.
         // heaterResolution = json["heaterResolution"] | 8;
         // caseFanResolution = json["caseFanResolution"] | 10;
         // caseFanFrequency = json["caseFanFrequency"] | 25;

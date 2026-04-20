@@ -139,14 +139,29 @@ private:
         uint32_t period_ticks = 1u << resolution_bits;
         uint32_t resolution_hz = freq_hz * period_ticks;
 
-        // Find a group whose timer matches this frequency (or is free)
+        // Find a group whose timer matches this frequency (or is free) AND still has
+        // an operator slot available.  A group that matches frequency but is fully
+        // occupied must be skipped so we can try the other group.
         int grp = -1;
         for (int g = 0; g < 2; g++)
         {
             if (!m_timers[g].handle || m_timers[g].freq_hz == freq_hz)
             {
-                grp = g;
-                break;
+                // Check there is at least one operator with room
+                bool hasRoom = false;
+                for (int o = 0; o < 3; o++)
+                {
+                    if (m_opers[g][o].gen_count < 2)
+                    {
+                        hasRoom = true;
+                        break;
+                    }
+                }
+                if (hasRoom)
+                {
+                    grp = g;
+                    break;
+                }
             }
         }
         if (grp < 0)

@@ -37,10 +37,10 @@ SOFTWARE. */
 #include "logging/TagHandler.h"
 #include "messages/SystemCommandHandler.h"
 #include "tasks/TaskHandler.h"
-class WebHandler : public HTTPBase, public TaskHandler::Task
+class WebHandler : public HTTPBase
 {
 public:
-    WebHandler() : Task(TaskHandler::Rates::ONDEMAND) {}
+    WebHandler() = default;
     // bool MDNSInitialized = false;
     void setup_http(uint16_t port, WebSocketBase *webSocketHandler, bool apMode) override
     {

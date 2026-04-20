@@ -111,6 +111,16 @@ enum class BLELoveDeviceType: int {
 };
 #define BLDC_LOVE_DEVICE_TYPES_HELP "EDGE=0"
 
+/** PWM peripheral driver selection for a timer group.
+ *  MCPWM = 0: use MCPWM hardware (servo-grade precision, limited to 12 outputs).
+ *  LEDC  = 1: use LEDC hardware (general purpose, up to 16 channels).
+ */
+enum class PwmDriver : int8_t {
+    MCPWM = 0,
+    LEDC = 1
+};
+#define PWM_DRIVER_HELP "MCPWM=0, LEDC=1"
+
 enum class ESPTimerChannelNum: int8_t {
     NONE = -1,
 #if CONFIG_IDF_TARGET_ESP32

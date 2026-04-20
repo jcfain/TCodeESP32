@@ -86,7 +86,7 @@ public:
         {
             int freq = ((PinMapOSR *)pinMap)->getChannelFrequency(m_lowerLeftServoChannel);
             m_leftServo_Int = frequencyToMicroseconds(freq);
-            attachServoPin("left servo", m_leftServoPin, freq, m_lowerLeftServoChannel);
+            attachServoPin("left servo", m_leftServoPin, freq, m_lowerLeftServoChannel, pinMap->getTimerDriverForChannel(m_lowerLeftServoChannel));
         }
         else
         {
@@ -99,7 +99,7 @@ public:
         {
             int freq = ((PinMapOSR *)pinMap)->getChannelFrequency(m_lowerRightServoChannel);
             m_rightServo_Int = frequencyToMicroseconds(freq);
-            attachServoPin("right servo", m_rightServoPin, freq, m_lowerRightServoChannel);
+            attachServoPin("right servo", m_rightServoPin, freq, m_lowerRightServoChannel, pinMap->getTimerDriverForChannel(m_lowerRightServoChannel));
         }
         else
         {
@@ -115,7 +115,7 @@ public:
             {
                 int freq = ((PinMapSR6 *)pinMap)->getChannelFrequency(m_upperLeftServoChannel);
                 m_leftUpperServo_Int = frequencyToMicroseconds(freq);
-                attachServoPin("left upper servo", m_leftUpperServoPin, freq, m_upperLeftServoChannel);
+                attachServoPin("left upper servo", m_leftUpperServoPin, freq, m_upperLeftServoChannel, pinMap->getTimerDriverForChannel(m_upperLeftServoChannel));
             }
             else
             {
@@ -129,7 +129,7 @@ public:
             {
                 int freq = ((PinMapSR6 *)pinMap)->getChannelFrequency(m_upperRightServoChannel);
                 m_rightUpperServo_Int = frequencyToMicroseconds(freq);
-                attachServoPin("right upper servo", m_rightUpperServoPin, freq, m_upperRightServoChannel);
+                attachServoPin("right upper servo", m_rightUpperServoPin, freq, m_upperRightServoChannel, pinMap->getTimerDriverForChannel(m_upperRightServoChannel));
             }
             else
             {
@@ -142,7 +142,7 @@ public:
             {
                 int freq = ((PinMapSR6 *)pinMap)->getChannelFrequency(m_rightPitchServoChannel);
                 m_pitchRightServo_Int = frequencyToMicroseconds(freq);
-                attachServoPin("right pitch servo", m_rightPitchServoPin, freq, m_rightPitchServoChannel);
+                attachServoPin("right pitch servo", m_rightPitchServoPin, freq, m_rightPitchServoChannel, pinMap->getTimerDriverForChannel(m_rightPitchServoChannel));
             }
             else
             {
@@ -157,7 +157,7 @@ public:
         {
             int freq = ((PinMapSR6 *)pinMap)->getChannelFrequency(m_leftPitchServoChannel);
             m_pitchLeftServo_Int = frequencyToMicroseconds(freq);
-            attachServoPin("pitch servo", m_leftPitchServoPin, freq, m_leftPitchServoChannel);
+            attachServoPin("pitch servo", m_leftPitchServoPin, freq, m_leftPitchServoChannel, pinMap->getTimerDriverForChannel(m_leftPitchServoChannel));
         }
         else
         {

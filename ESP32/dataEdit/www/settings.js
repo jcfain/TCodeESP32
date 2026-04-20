@@ -894,6 +894,7 @@ function setPinoutSettings() {
     setPinChannel("Squeeze_CHANNEL", pinoutSettings["Squeeze_CHANNEL"]);
     setPinChannel("Heater_CHANNEL", pinoutSettings["Heater_CHANNEL"]);
     setPinChannel("Case_Fan_CHANNEL", pinoutSettings["Case_Fan_CHANNEL"]);
+    validatePwmDriverContention();
 }
 function setUserSettings()
 {
@@ -1793,6 +1794,7 @@ function onSelectPinChannel(element) {
     toggleEnableTimerChannels(element);
     setRestartRequired();
 	postPinoutSettings();
+    validatePwmDriverContention();
 }
 function toggleEnableTimerChannels(element) {
     const timerSelects = document.getElementsByName('timerChannels');
@@ -1998,6 +2000,44 @@ function validatePWMPin(pin, pinName, assignedPins, duplicatePins, pwmErrors) {
             pwmErrors.push(pinName+" pin: "+pin);
     }
 }
+/**
+ * Checks how many channel outputs are routed to MCPWM or LEDC based on the
+ * current timer driver config, and warns when hardware limits would be exceeded.
+ * MCPWM: 2 groups × 3 operators × 2 generators = 12 max outputs.
+ * LEDC:  8 (S3) or 16 (ESP32) channels max.
+ * Mirrors the existing pin-contention pattern: shows an error but does NOT
+ * block saving (the firmware auto-falls-back at runtime).
+ */
+function validatePwmDriverContention() {
+    clearErrors("pwmDriverContention");
+    if(!systemInfo["availableTimers"]) return;
+
+    const mcpwmMax = systemInfo["mcpwmMaxOutputs"] || 12;
+    const ledcMax  = systemInfo["ledcMaxOutputs"]  || 16;
+
+    const counts = ESPTimer.getDriverCounts();
+
+    var warnings = [];
+    if(counts.mcpwm > mcpwmMax) {
+        warnings.push(
+            counts.mcpwm + " outputs assigned to MCPWM timers, but hardware supports " + mcpwmMax +
+            ". The " + (counts.mcpwm - mcpwmMax) + " extra output(s) will automatically fall back to LEDC."
+        );
+    }
+    if(counts.ledc > ledcMax) {
+        warnings.push(
+            counts.ledc + " outputs assigned to LEDC timers, but hardware supports " + ledcMax +
+            ". Reduce LEDC assignments or move some to MCPWM timers."
+        );
+    }
+
+    if(warnings.length) {
+        var errorString = "<div name='pwmDriverContention'><b>PWM driver resource warning:</b><br>" +
+            "<div style='margin-left:25px;color:white;'>" + warnings.join("<br>") + "</div></div>";
+        showError(errorString);
+    }
+}
+
 /**
  * Validates the pin number values in the forms inputs.
  * Shows an error and returns the pin values or undefined if error

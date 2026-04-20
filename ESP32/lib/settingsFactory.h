@@ -1288,13 +1288,21 @@ private:
                                                                           {ESP_H_TIMER0_FREQUENCY, "High timer 0 frequency", "Frequency for the high timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
                                                                           {ESP_H_TIMER1_FREQUENCY, "High timer 1 frequency", "Frequency for the high timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
                                                                           {ESP_H_TIMER2_FREQUENCY, "High timer 2 frequency", "Frequency for the high timer 2", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_H_TIMER3_FREQUENCY, "High timer 3 frequency", "Frequency for the high timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
+                                                                          {ESP_H_TIMER3_FREQUENCY, "High timer 3 frequency", "Frequency for the high timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
+                                                                          {ESP_H_TIMER0_DRIVER, "High timer 0 driver", "PWM driver for high timer 0 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::MCPWM, RestartRequired::YES, {SettingProfile::Timer}},
+                                                                          {ESP_H_TIMER1_DRIVER, "High timer 1 driver", "PWM driver for high timer 1 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::MCPWM, RestartRequired::YES, {SettingProfile::Timer}},
+                                                                          {ESP_H_TIMER2_DRIVER, "High timer 2 driver", "PWM driver for high timer 2 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::MCPWM, RestartRequired::YES, {SettingProfile::Timer}},
+                                                                          {ESP_H_TIMER3_DRIVER, "High timer 3 driver", "PWM driver for high timer 3 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::MCPWM, RestartRequired::YES, {SettingProfile::Timer}}
 #endif
                                                                           ,
                                                                           {ESP_L_TIMER0_FREQUENCY, "Low timer 0 frequency", "Frequency for the low timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
                                                                           {ESP_L_TIMER1_FREQUENCY, "Low timer 1 frequency", "Frequency for the low timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
                                                                           {ESP_L_TIMER2_FREQUENCY, "Low timer 2 frequency", "Frequency for the low timer 2", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_L_TIMER3_FREQUENCY, "Low timer 3 frequency", "Frequency for the low timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}}};
+                                                                          {ESP_L_TIMER3_FREQUENCY, "Low timer 3 frequency", "Frequency for the low timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
+                                                                          {ESP_L_TIMER0_DRIVER, "Low timer 0 driver", "PWM driver for low timer 0 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::LEDC, RestartRequired::YES, {SettingProfile::Timer}},
+                                                                          {ESP_L_TIMER1_DRIVER, "Low timer 1 driver", "PWM driver for low timer 1 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::LEDC, RestartRequired::YES, {SettingProfile::Timer}},
+                                                                          {ESP_L_TIMER2_DRIVER, "Low timer 2 driver", "PWM driver for low timer 2 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::LEDC, RestartRequired::YES, {SettingProfile::Timer}},
+                                                                          {ESP_L_TIMER3_DRIVER, "Low timer 3 driver", "PWM driver for low timer 3 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::LEDC, RestartRequired::YES, {SettingProfile::Timer}}} };
 
     SettingsFactory()
     {
@@ -1968,32 +1976,57 @@ private:
         }
 
         int timerFreq = -1;
+        int8_t timerDriver = -1;
 #if CONFIG_IDF_TARGET_ESP32
         getValue(ESP_H_TIMER0_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(0, timerFreq);
+        getValue(ESP_H_TIMER0_DRIVER, timerDriver);
+        pinMap->setTimerDriver(0, static_cast<PwmDriver>(timerDriver));
         getValue(ESP_H_TIMER1_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(1, timerFreq);
+        getValue(ESP_H_TIMER1_DRIVER, timerDriver);
+        pinMap->setTimerDriver(1, static_cast<PwmDriver>(timerDriver));
         getValue(ESP_H_TIMER2_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(2, timerFreq);
+        getValue(ESP_H_TIMER2_DRIVER, timerDriver);
+        pinMap->setTimerDriver(2, static_cast<PwmDriver>(timerDriver));
         getValue(ESP_H_TIMER3_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(3, timerFreq);
+        getValue(ESP_H_TIMER3_DRIVER, timerDriver);
+        pinMap->setTimerDriver(3, static_cast<PwmDriver>(timerDriver));
         getValue(ESP_L_TIMER0_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(4, timerFreq);
+        getValue(ESP_L_TIMER0_DRIVER, timerDriver);
+        pinMap->setTimerDriver(4, static_cast<PwmDriver>(timerDriver));
         getValue(ESP_L_TIMER1_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(5, timerFreq);
+        getValue(ESP_L_TIMER1_DRIVER, timerDriver);
+        pinMap->setTimerDriver(5, static_cast<PwmDriver>(timerDriver));
         getValue(ESP_L_TIMER2_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(6, timerFreq);
+        getValue(ESP_L_TIMER2_DRIVER, timerDriver);
+        pinMap->setTimerDriver(6, static_cast<PwmDriver>(timerDriver));
         getValue(ESP_L_TIMER3_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(7, timerFreq);
+        getValue(ESP_L_TIMER3_DRIVER, timerDriver);
+        pinMap->setTimerDriver(7, static_cast<PwmDriver>(timerDriver));
 #elif CONFIG_IDF_TARGET_ESP32S3
         getValue(ESP_L_TIMER0_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(0, timerFreq);
+        getValue(ESP_L_TIMER0_DRIVER, timerDriver);
+        pinMap->setTimerDriver(0, static_cast<PwmDriver>(timerDriver));
         getValue(ESP_L_TIMER1_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(1, timerFreq);
+        getValue(ESP_L_TIMER1_DRIVER, timerDriver);
+        pinMap->setTimerDriver(1, static_cast<PwmDriver>(timerDriver));
         getValue(ESP_L_TIMER2_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(2, timerFreq);
+        getValue(ESP_L_TIMER2_DRIVER, timerDriver);
+        pinMap->setTimerDriver(2, static_cast<PwmDriver>(timerDriver));
         getValue(ESP_L_TIMER3_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(3, timerFreq);
+        getValue(ESP_L_TIMER3_DRIVER, timerDriver);
+        pinMap->setTimerDriver(3, static_cast<PwmDriver>(timerDriver));
 #endif
     }
     PinMapSSR1 *loadSSR1Pins()
@@ -2127,18 +2160,30 @@ private:
         setValue(I2C_SCL_PIN, pinMap->i2cScl());
 #if CONFIG_IDF_TARGET_ESP32
         setValue(ESP_H_TIMER0_FREQUENCY, pinMap->getTimerFrequency(0));
+        setValue(ESP_H_TIMER0_DRIVER, (int8_t)pinMap->getTimer(0)->pwmDriver);
         setValue(ESP_H_TIMER1_FREQUENCY, pinMap->getTimerFrequency(1));
+        setValue(ESP_H_TIMER1_DRIVER, (int8_t)pinMap->getTimer(1)->pwmDriver);
         setValue(ESP_H_TIMER2_FREQUENCY, pinMap->getTimerFrequency(2));
+        setValue(ESP_H_TIMER2_DRIVER, (int8_t)pinMap->getTimer(2)->pwmDriver);
         setValue(ESP_H_TIMER3_FREQUENCY, pinMap->getTimerFrequency(3));
+        setValue(ESP_H_TIMER3_DRIVER, (int8_t)pinMap->getTimer(3)->pwmDriver);
         setValue(ESP_L_TIMER0_FREQUENCY, pinMap->getTimerFrequency(4));
+        setValue(ESP_L_TIMER0_DRIVER, (int8_t)pinMap->getTimer(4)->pwmDriver);
         setValue(ESP_L_TIMER1_FREQUENCY, pinMap->getTimerFrequency(5));
+        setValue(ESP_L_TIMER1_DRIVER, (int8_t)pinMap->getTimer(5)->pwmDriver);
         setValue(ESP_L_TIMER2_FREQUENCY, pinMap->getTimerFrequency(6));
+        setValue(ESP_L_TIMER2_DRIVER, (int8_t)pinMap->getTimer(6)->pwmDriver);
         setValue(ESP_L_TIMER3_FREQUENCY, pinMap->getTimerFrequency(7));
+        setValue(ESP_L_TIMER3_DRIVER, (int8_t)pinMap->getTimer(7)->pwmDriver);
 #elif CONFIG_IDF_TARGET_ESP32S3
         setValue(ESP_L_TIMER0_FREQUENCY, pinMap->getTimerFrequency(0));
+        setValue(ESP_L_TIMER0_DRIVER, (int8_t)pinMap->getTimer(0)->pwmDriver);
         setValue(ESP_L_TIMER1_FREQUENCY, pinMap->getTimerFrequency(1));
+        setValue(ESP_L_TIMER1_DRIVER, (int8_t)pinMap->getTimer(1)->pwmDriver);
         setValue(ESP_L_TIMER2_FREQUENCY, pinMap->getTimerFrequency(2));
+        setValue(ESP_L_TIMER2_DRIVER, (int8_t)pinMap->getTimer(2)->pwmDriver);
         setValue(ESP_L_TIMER3_FREQUENCY, pinMap->getTimerFrequency(3));
+        setValue(ESP_L_TIMER3_DRIVER, (int8_t)pinMap->getTimer(3)->pwmDriver);
 #endif
     }
 
