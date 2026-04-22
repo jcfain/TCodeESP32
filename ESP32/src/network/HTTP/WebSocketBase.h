@@ -4,6 +4,7 @@
 #include <ArduinoJson.h>
 // #include "LogHandler.h"
 #include "sensors/BatteryHandler.h"
+#include "tcode/MotorHandler.h"
 
 class WebSocketBase {
     public:
@@ -77,6 +78,11 @@ protected:
                 String message = jsonObj["message"].as<String>();
                 if(command == "setBatteryFull") {
                     BatteryHandler::setBatteryToFull();
+                }
+                else if (command == "identifyServo") {
+                    extern MotorHandler* motorHandler;
+                    if (motorHandler)
+                        motorHandler->identifyServo(message.c_str());
                 }
                 // String* message = jsonObj["message"];
                 // Serial.print("Recieved websocket tcode message: ");

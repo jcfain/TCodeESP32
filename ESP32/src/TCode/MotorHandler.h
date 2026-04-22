@@ -39,6 +39,14 @@ public:
     virtual void execute() = 0;
     virtual void setMessageCallback(TCODE_FUNCTION_PTR_T function) = 0;
 
+    /**
+     * Wiggle a single physical servo by its slot name ("RightServo", "LeftServo",
+     * "RightUpperServo", "LeftUpperServo", "PitchServo", "PitchRightServo",
+     * "ValveServo", "TwistServo", "SqueezeServo") to allow visual identification.
+     * The default implementation is a no-op so BLDC handlers don't need to override.
+     */
+    virtual void identifyServo(const char* servoName) {}
+
 protected:
     /**
      * Attach a servo-frequency PWM output.

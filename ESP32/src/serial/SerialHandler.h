@@ -35,10 +35,6 @@ class SerialHandler : public TaskHandler::Task
 public:
     SerialHandler() : Task(TaskHandler::Rates::FAST) {}
 
-    // Accept streamed TCode that is not newline-terminated by flushing after a
-    // short idle gap between bytes.
-    static constexpr uint32_t SERIAL_TCODE_IDLE_FLUSH_MS = 4;
-
     static void init()
     {
         LogHandler::info(Tags::Main, "Serial command handler initialized");
@@ -48,43 +44,29 @@ public:
     {
         m_index = 0;
         m_buffer[0] = '\0';
-        m_lastByteMs = 0;
+        // Discard any boot-loader / log garbage sitting in the RX FIFO
+        while (Serial.available() > 0)
+        {
+            Serial.read();
+        }
         LogHandler::info(Tags::Main, "Serial command task started");
     }
 
     void loop() override
     {
-        // Some TCode senders stream bytes without '\n'. If input pauses briefly,
-        // flush the buffered command so it still reaches the motor parser.
-        if (m_index > 0 && isTCodeCommand(m_buffer) && (millis() - m_lastByteMs) >= SERIAL_TCODE_IDLE_FLUSH_MS)
-        {
-            dispatchBufferedCommand();
-        }
-
         while (Serial.available() > 0)
         {
             const char ch = static_cast<char>(Serial.read());
-            m_lastByteMs = millis();
 
-            if (ch == '\r')
-            {
-                continue;
-            }
-
-            if (ch == '\n' || ch == ';')
+            // \r, \n, and ; all act as line terminators.
+            // \r\n works: \r dispatches the command, \n finds an empty buffer.
+            if (ch == '\r' || ch == '\n' || ch == ';')
             {
                 if (m_index > 0)
                 {
                     dispatchBufferedCommand();
                 }
                 continue;
-            }
-
-            // If a new TCode axis token starts while a prior command is buffered,
-            // treat that as a boundary for stream-based senders.
-            if (m_index > 0 && isTCodeStartChar(ch) && isTCodeCommand(m_buffer))
-            {
-                dispatchBufferedCommand();
             }
 
             if (m_index >= (MAX_COMMAND - 1))
@@ -96,6 +78,7 @@ public:
             }
 
             m_buffer[m_index++] = ch;
+            m_buffer[m_index] = '\0';
         }
     }
 
@@ -104,23 +87,46 @@ private:
     {
         m_buffer[m_index] = '\0';
 
-        // Feed motor commands directly to motor handler (independent of WiFi)
+        // Feed motor commands directly to motor handler (independent of WiFi).
+        // The TCode library requires a '\n' terminator to trigger command parsing,
+        // so append one before dispatching.
         if (isTCodeCommand(m_buffer))
         {
             extern void feedMotorCommand(const char *cmd, size_t len);
-            feedMotorCommand(m_buffer, m_index);
+            if (m_index < MAX_COMMAND - 1)
+            {
+                m_buffer[m_index] = '\n';
+                m_buffer[m_index + 1] = '\0';
+                feedMotorCommand(m_buffer, m_index + 1);
+                m_buffer[m_index] = '\0';
+            }
+            else
+            {
+                feedMotorCommand(m_buffer, m_index);
+            }
         }
 
-        // Also process as system commands
+        // Also process as system commands.
+        // Some system commands (e.g. #device-home, #motion-disable) generate
+        // internal TCode (like DSTOP) that must be forwarded to the motor.
         m_commandHandler.process(m_buffer);
+        drainSystemTCode();
         m_index = 0;
         m_buffer[0] = '\0';
     }
 
-    bool isTCodeStartChar(char ch)
+    void drainSystemTCode()
     {
-        return ch == 'L' || ch == 'R' || ch == 'V' || ch == 'A' ||
-               ch == 'l' || ch == 'r' || ch == 'v' || ch == 'a';
+        extern void feedMotorCommand(const char *cmd, size_t len);
+        char buf[MAX_COMMAND];
+        while (m_commandHandler.getTCode(buf))
+        {
+            size_t len = strlen(buf);
+            if (len > 0)
+            {
+                feedMotorCommand(buf, len);
+            }
+        }
     }
 
     // Check if command is T-Code (e.g., L0123, R0456, etc.)
@@ -139,7 +145,6 @@ private:
     SystemCommandHandler m_commandHandler;
     char m_buffer[MAX_COMMAND] = {0};
     size_t m_index = 0;
-    uint32_t m_lastByteMs = 0;
 };
 
 #endif // SERIAL_HANDLER_H_

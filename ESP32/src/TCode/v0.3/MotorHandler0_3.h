@@ -254,6 +254,50 @@ protected:
         return value;
     }
 
+    void identifyServo(const char* servoName) override
+    {
+        int8_t pin = -1;
+        int servoInt = -1;
+        int zeroMicros = 1500;
+        if (strcmp(servoName, "ValveServo") == 0) {
+            pin = m_valveServoPin;
+            servoInt = m_valveServo_Int;
+            zeroMicros = m_settingsFactory->getValveServo_ZERO();
+        } else if (strcmp(servoName, "TwistServo") == 0) {
+            pin = m_twistServoPin;
+            servoInt = m_twistServo_Int;
+            zeroMicros = m_settingsFactory->getTwistServo_ZERO();
+        } else if (strcmp(servoName, "SqueezeServo") == 0) {
+            pin = m_squeezeServoPin;
+            servoInt = m_squeezeServo_Int;
+            zeroMicros = m_settingsFactory->getSqueezeServo_ZERO();
+        }
+        if (pin < 0 || servoInt < 0)
+            return;
+        struct WiggleParams {
+            MotorHandler0_3 *self;
+            int8_t pin;
+            int    servoInt;
+            int    zeroMicros;
+        };
+        auto* params = new WiggleParams{ this, pin, servoInt, zeroMicros };
+        xTaskCreate([](void* arg) {
+            auto* p = static_cast<WiggleParams*>(arg);
+            constexpr int OFFSET_US = 100;
+            uint32_t hiDuty  = static_cast<uint32_t>(map(p->zeroMicros + OFFSET_US, 0, p->servoInt, 0, (int)p->self->m_servoPWMMaxDuty));
+            uint32_t loDuty  = static_cast<uint32_t>(map(p->zeroMicros - OFFSET_US, 0, p->servoInt, 0, (int)p->self->m_servoPWMMaxDuty));
+            uint32_t midDuty = static_cast<uint32_t>(map(p->zeroMicros,             0, p->servoInt, 0, (int)p->self->m_servoPWMMaxDuty));
+            const uint32_t duties[4] = { hiDuty, loDuty, hiDuty, loDuty };
+            for (int i = 0; i < 4; i++) {
+                p->self->writeServo(p->pin, duties[i]);
+                vTaskDelay(pdMS_TO_TICKS(500));
+            }
+            p->self->writeServo(p->pin, midDuty);
+            delete p;
+            vTaskDelete(nullptr);
+        }, "servoWiggle", 2048, params, 1, nullptr);
+    }
+
 private:
     SettingsFactory *m_settingsFactory;
     bool m_isAnalogTwist = false;

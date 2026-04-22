@@ -242,6 +242,53 @@ public:
         // m_tcode->updateInterfaces();
     }
 
+    /**
+     * Wiggle a single physical servo for visual identification.
+     * Uses a small ±100µs offset from ZERO to avoid mechanical damage on a
+     * misconfigured device.  4 pulses over ~2 s then returns to centre.
+     */
+    void identifyServo(const char* servoName) override
+    {
+        int8_t pin = -1;
+        int servoInt = -1;
+        int zeroMicros = 1500;
+
+        if (strcmp(servoName, "RightServo") == 0) {
+            pin = m_rightServoPin;
+            servoInt = m_rightServo_Int;
+            zeroMicros = m_settingsFactory->getRightServo_ZERO();
+        } else if (strcmp(servoName, "LeftServo") == 0) {
+            pin = m_leftServoPin;
+            servoInt = m_leftServo_Int;
+            zeroMicros = m_settingsFactory->getLeftServo_ZERO();
+        } else if (strcmp(servoName, "RightUpperServo") == 0) {
+            pin = m_rightUpperServoPin;
+            servoInt = m_rightUpperServo_Int;
+            zeroMicros = m_settingsFactory->getRightUpperServo_ZERO();
+        } else if (strcmp(servoName, "LeftUpperServo") == 0) {
+            pin = m_leftUpperServoPin;
+            servoInt = m_leftUpperServo_Int;
+            zeroMicros = m_settingsFactory->getLeftUpperServo_ZERO();
+        } else if (strcmp(servoName, "PitchServo") == 0) {
+            pin = m_leftPitchServoPin;
+            servoInt = m_pitchLeftServo_Int;
+            zeroMicros = m_settingsFactory->getPitchLeftServo_ZERO();
+        } else if (strcmp(servoName, "PitchRightServo") == 0) {
+            pin = m_rightPitchServoPin;
+            servoInt = m_pitchRightServo_Int;
+            zeroMicros = m_settingsFactory->getPitchRightServo_ZERO();
+        } else {
+            // Valve, Twist, Squeeze — handled by parent class (has access to private members)
+            MotorHandler0_4::identifyServo(servoName);
+            return;
+        }
+
+        if (pin < 0 || servoInt < 0)
+            return;
+
+        _startWiggleTask(pin, servoInt, zeroMicros);
+    }
+
 private:
     static constexpr Tags::tag_t _TAG = Tags::Servo;
     SettingsFactory *m_settingsFactory;
@@ -370,6 +417,41 @@ private:
         writeServo(m_leftPitchServoPin, pitchLeftDuty);
         writeServo(m_rightPitchServoPin, pitchRightDuty);
 #endif
+    }
+
+    // -----------------------------------------------------------------------
+    // Wiggle helper – spawns a short-lived FreeRTOS task so the WebSocket
+    // handler is not blocked.
+    // -----------------------------------------------------------------------
+    struct WiggleParams {
+        ServoHandler0_4 *self;
+        int8_t pin;
+        int    servoInt;
+        int    zeroMicros;
+    };
+
+    static void _wiggleTask(void *arg)
+    {
+        WiggleParams *p = static_cast<WiggleParams *>(arg);
+        // ±100 µs offset → very small movement (~3°), safe regardless of config
+        constexpr int OFFSET_US = 100;
+        uint32_t hiDuty  = static_cast<uint32_t>(map(p->zeroMicros + OFFSET_US, 0, p->servoInt, 0, (int)p->self->m_servoPWMMaxDuty));
+        uint32_t loDuty  = static_cast<uint32_t>(map(p->zeroMicros - OFFSET_US, 0, p->servoInt, 0, (int)p->self->m_servoPWMMaxDuty));
+        uint32_t midDuty = static_cast<uint32_t>(map(p->zeroMicros,             0, p->servoInt, 0, (int)p->self->m_servoPWMMaxDuty));
+        const uint32_t duties[4] = { hiDuty, loDuty, hiDuty, loDuty };
+        for (int i = 0; i < 4; i++) {
+            p->self->writeServo(p->pin, duties[i]);
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
+        p->self->writeServo(p->pin, midDuty);
+        delete p;
+        vTaskDelete(nullptr);
+    }
+
+    void _startWiggleTask(int8_t pin, int servoInt, int zeroMicros)
+    {
+        WiggleParams *params = new WiggleParams{ this, pin, servoInt, zeroMicros };
+        xTaskCreate(_wiggleTask, "servoWiggle", 2048, params, 1, nullptr);
     }
 
     // Function to calculate the angle for the main arm servos

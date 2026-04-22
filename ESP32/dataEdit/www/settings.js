@@ -1335,6 +1335,22 @@ function sendTCode(tcode) {
     websocket.send(tcode+String.fromCharCode(10))
 }
 
+// Briefly move a single physical servo to identify it.
+// Sends a firmware-side command so only the specific servo moves (±100µs from zero).
+function identifyServo(servoName) {
+    if (!isWebSocketConnected()) {
+        alert("Not connected to device.");
+        return;
+    }
+    // Disable all identify buttons for 2.5 s to prevent overlapping commands
+    var buttons = document.querySelectorAll('.formButton[onclick^="identifyServo"]');
+    buttons.forEach(function(btn) { btn.disabled = true; });
+    setTimeout(function() {
+        buttons.forEach(function(btn) { btn.disabled = false; });
+    }, 2500);
+    sendWebsocketCommand("identifyServo", servoName);
+}
+
 function sendTCodeValue(channelName, value, tcodeModifierType, modifierValue) {
     var tcode = getTCodeValue(channelName, value, tcodeModifierType, modifierValue)
     sendTCode(tcode);
