@@ -342,22 +342,22 @@ void loop()
 				// bluetoothData = {0};
 #endif
 			}
+		}
 
-			benchHandler->benchStart(4);
-			if (motorHandler)
-				motorHandler->execute();
-			benchHandler->benchFinish("Motor handler Execute", 4);
+		benchHandler->benchStart(4);
+		if (motorHandler)
+			motorHandler->execute();
+		benchHandler->benchFinish("Motor handler Execute", 4);
 
 #if BUILD_TEMP
-			benchHandler->benchStart(5);
-			if (temperatureHandler && temperatureHandler->isRunning())
-			{
-				temperatureHandler->setHeaterState();
-				temperatureHandler->setFanState();
-			}
-			benchHandler->benchFinish("Temp check", 5);
-#endif
+		benchHandler->benchStart(5);
+		if (temperatureHandler && temperatureHandler->isRunning())
+		{
+			temperatureHandler->setHeaterState();
+			temperatureHandler->setFanState();
 		}
+		benchHandler->benchFinish("Temp check", 5);
+#endif
 	}
 	if (!setupSucceeded && SettingsHandler::restartInSecs == -1 && !restarting)
 	{
