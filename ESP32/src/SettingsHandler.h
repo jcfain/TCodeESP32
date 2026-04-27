@@ -93,8 +93,12 @@ public:
         loadMotionProfiles(false);
         loadButtons(false);
 
-
-        LogHandler::debug(_TAG, "Last reset reason: %s", machine_reset_cause());
+        const char* lastRebootReason = machine_reset_cause();
+        LogHandler::info(_TAG, "Last reset reason: %s", lastRebootReason);
+        if(!m_settingsFactory->addLastBootReason(lastRebootReason))
+        {
+            LogHandler::error(_TAG, "Error saving last reset reason to disk");
+        }
         initialized = true;
     }
 

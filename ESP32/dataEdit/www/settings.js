@@ -36,6 +36,7 @@ var importSettingsInputElement;
 var websocket;
 const EndPointType = {
     System: { uri: "/systemInfo"},
+    DebugInfo: { uri: "/debugInfo"},
     Common: {uri: "/settings"},
     Pins: {uri: "/pins"},
     Wifi: {uri: "/wifiSettings"},
@@ -220,10 +221,28 @@ function getSystemInfo(chain) {
         } else
             setSystemInfo();
         if(chain)
-            getPinSettings(chain);
+            getDebugInfo(chain);
         else if(!polling)
             hideLoading();
         serverPollRetryCount = 0;
+    }, function(xhr) {
+        if(!polling)
+            showError("Error getting system info!");
+        startServerPoll();
+    });
+}
+function getDebugInfo(chain) {
+    if(serverPollingTimeOut) {
+        return;
+    }
+    showLoading("Loading debug info...");
+    get("debug info", EndPointType.DebugInfo.uri, function(xhr) {
+        const debugInfo = xhr.response;
+        setDebugInfo(debugInfo);
+        if(chain)
+            getPinSettings(chain);
+        else
+            hideLoading();
     }, function(xhr) {
         if(!polling)
             showError("Error getting system info!");
@@ -827,9 +846,43 @@ function setSystemInfo() {
         adc1Pins = [1,2,3,4,5,6,7,8,9,10];
         adc2Pins = [11,12,13,14,15,16,17,18,19,20];
     }
-
-    document.getElementById('lastRebootReason').value = systemInfo.lastRebootReason;
 }
+
+function setDebugInfo(debugInfo) {
+
+    const tbody = document.getElementById('lastBootReasons');
+
+    removeAllChildren(tbody);
+    if(!debugInfo || !debugInfo.lastBootReasons || !debugInfo.lastBootReasons.length)
+    {
+        const tr = document.createElement("tr");
+        const tdNone = document.createElement("td");
+        tdNone.colSpan = "2";
+        tdNone.innerText = "These are not the droids you're looking for. Move along..."
+        tr.appendChild(tdNone);
+        tbody.appendChild(tr);
+        return;
+    }
+    debugInfo.lastBootReasons.sort((a, b) => b.eventID-a.eventID);
+    debugInfo.lastBootReasons.forEach(x => {
+        const tr = document.createElement("tr");
+        const tdDate = document.createElement("td");
+        const tdReason = document.createElement("td");
+        tdDate.innerText = x["eventID"];
+        tdReason.innerText = x["reason"];
+        tr.appendChild(tdDate);
+        tr.appendChild(tdReason);
+        tbody.appendChild(tr);
+    });
+}
+
+function clearRebootReasons()
+{
+    post("Clear reboot reasons", EndPointType.DebugInfo.uri, () => {
+        getDebugInfo();
+    });
+}
+
 function setWifiSettings() {
     document.getElementById("ssid").value = wifiSettings["ssid"];
     document.getElementById("wifiPass").value = wifiSettings["wifiPass"];
@@ -1113,6 +1166,7 @@ function setUserSettings()
     documentLoaded = true;
     //document.getElementById('debugLink').hidden = !userSettings["debug"];
 }
+
 function removeAllChildren(element) {
     if(!element) {
         return;

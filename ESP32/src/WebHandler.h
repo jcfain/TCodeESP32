@@ -78,6 +78,11 @@ class WebHandler : public HTTPBase {
                 //sendChunked(request, PIN_SETTINGS_PATH);
             }); 
 
+            server->on("/debugInfo", HTTP_GET, [this](AsyncWebServerRequest *request) 
+            {
+                request->send(LittleFS, DEBUG_INFO_PATH, "application/json");
+            }); 
+
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 if(SettingsHandler::restartInSecs > -1 || !SettingsHandler::initialized) {
@@ -170,6 +175,19 @@ class WebHandler : public HTTPBase {
                 String sensorId = request->pathArg(0);
             });
 
+            server->on("/debugInfo", HTTP_POST, [this](AsyncWebServerRequest *request) 
+            {
+                if(m_settingsFactory->resetLastBootReason())
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                    request->send(response);
+                } 
+                else 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error clearing last reboot reasons\"}");
+                    request->send(response);
+                }
+            }); 
 
             server->on("^\\/changeBoard\\/([0-9]+)$", HTTP_POST, [this](AsyncWebServerRequest *request)
             {

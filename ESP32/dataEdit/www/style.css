@@ -469,6 +469,22 @@ button:disabled {
 select[name="timerChannels"] > option:disabled {
   color: darkred
 }
+.lastRebootReasonDiv {
+  width: 100%; 
+  margin-top: 16px; 
+  max-height: 500px;
+  overflow-y: auto;
+}
+.lastRebootReasonTable {
+  text-align: center;  
+  width: 100%;
+}
+.lastRebootReasonTable tbody {
+
+}
+.lastRebootReasonTable td {
+  border-top: 1px solid white;
+}
 
 @keyframes loading-spinner {
   0% {

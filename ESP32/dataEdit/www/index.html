@@ -1391,15 +1391,22 @@
 								<textarea id="debugText" class="log-reader" readonly></textarea>
 							</div>
 						</div> -->
-						
-						<div class="tRow">
-							<div class="tCell">
-								<span>Last reboot reason</span> 
-							</div>
-							<div class="tCell">
-								<input id="lastRebootReason" type="text" readonly>
-							</div>
+						<div class="lastRebootReasonDiv">
+							<table class="lastRebootReasonTable">
+								<thead>
+									<tr>
+										<th colspan="2">Last reboot reasons</th>
+									</tr>
+									<tr>
+										<th>Event ID</th>
+										<th>Reason</th>
+									</tr>
+									<tbody id="lastBootReasons">
+									</tbody>
+								</thead>
+							</table>
 						</div>
+						<button type="button" onclick="clearRebootReasons()">Clear reboot reasons</button>
 					</div>
 				</div>
 			</div>
