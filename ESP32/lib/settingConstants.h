@@ -12,6 +12,7 @@
 #define BUTTON_SETTINGS_PATH "/buttons.json"
 #define MOTION_PROFILE_SETTINGS_PATH "/motionProfiles.json"
 #define CHANNELS_SETTINGS_PATH "/channels.json"
+#define DEBUG_INFO_PATH "/debugInfo.json"
 
 // Setting defaults
 
@@ -142,6 +143,10 @@
 // Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
 #define LOG_INCLUDETAGS_DEFAULT {}
 #define LOG_EXCLUDETAGS_DEFAULT {}
+#define DEBUG_INFO_LAST_BOOT_REASONS_DEFAULT {}
+
+#define LAST_BOOT_REASONS_MAX "lastBootReasonsMax"
+#define LAST_BOOT_REASONS_MAX_DEFAULT 50
 
 #define BOOT_BUTTON_ENABLED_DEFAULT false
 #define BOOT_BUTTON_COMMAND_DEFAULT "#motion-profile-cycle"
@@ -298,5 +303,8 @@
 #define ESP_L_TIMER1_FREQUENCY "ESP_L_TIMER1_FREQUENCY"
 #define ESP_L_TIMER2_FREQUENCY "ESP_L_TIMER2_FREQUENCY"
 #define ESP_L_TIMER3_FREQUENCY "ESP_L_TIMER3_FREQUENCY"
+
+// Readonly
+#define DEBUG_INFO_LAST_BOOT_REASONS "lastBootReasons"
 
 ;

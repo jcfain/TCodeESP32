@@ -54,7 +54,8 @@ enum class SettingFile
     Pins,
     MotionProfile,
     ButtonSet,
-    ESPTimers
+    ESPTimers,
+    DebugInfo
 };
 
 class SettingFileInfo {

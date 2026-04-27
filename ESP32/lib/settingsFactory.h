@@ -909,6 +909,58 @@ public:
         return savePins();
     }
 
+    bool addLastBootReason(const char* value)
+    {
+        SettingFileInfo debugInfo = getDebugInfo();
+        if(load(debugInfo))
+        {
+            JsonArray reasons = debugInfo.doc[DEBUG_INFO_LAST_BOOT_REASONS].as<JsonArray>();
+            if(reasons.isNull()) 
+            {
+                reasons = debugInfo.doc[DEBUG_INFO_LAST_BOOT_REASONS].to<JsonArray>();
+            }
+            else if(reasons.size() > LAST_BOOT_REASONS_MAX_DEFAULT) 
+            {
+                reasons.remove(0);
+            }
+            int index = 1;
+            if(reasons.size() > 0)
+            {
+                JsonObject lastReason = reasons[reasons.size() -1].as<JsonObject>();
+                index = lastReason["eventID"].as<int>() + 1;
+            }
+            JsonObject obj = reasons.add<JsonObject>();
+            obj["eventID"] = index;
+            obj["reason"] = value;
+            if(saveToDisk(debugInfo))
+                return true;
+        }
+
+        return false;
+    }
+
+    bool resetLastBootReason()
+    {
+        SettingFileInfo debugInfo = getDebugInfo();
+        if(load(debugInfo))
+        {
+            debugInfo.doc[DEBUG_INFO_LAST_BOOT_REASONS].to<JsonArray>();
+            if(saveToDisk(debugInfo))
+                return true;
+        }
+        return false;
+    }
+
+    SettingFileInfo getDebugInfo() 
+    {
+        return 
+        {
+            false, DEBUG_INFO_PATH, SettingFile::DebugInfo, JsonDocument(), 
+            {
+                { DEBUG_INFO_LAST_BOOT_REASONS, "Last boot reasons", "The reasons for boot up or reboot.", SettingType::ArrayString, DEBUG_INFO_LAST_BOOT_REASONS_DEFAULT, RestartRequired::YES, { SettingProfile::System, SettingProfile::Readonly }},
+            }
+        };
+    }
     
 private:
     const char* m_TAG = TagHandler::SettingsFactory;
@@ -926,6 +978,7 @@ private:
     SemaphoreHandle_t m_networkSemaphore;
     SemaphoreHandle_t m_commonSemaphore;
     SemaphoreHandle_t m_pinSemaphore;
+    SemaphoreHandle_t m_debugInfoSemaphore;
 
     SettingFileInfo m_networkFileInfo = 
     {
@@ -1133,7 +1186,6 @@ private:
         }
     };
 
-
     SettingsFactory() {
         m_networkSemaphore = xSemaphoreCreateMutex();
         m_commonSemaphore = xSemaphoreCreateMutex();
@@ -1308,6 +1360,10 @@ private:
         } else if(!strcmp(setting->name, BUTTON_SET_PINS)) {
             std::vector<int8_t> vec = { BUTTON_SET_PINS_1, BUTTON_SET_PINS_2, BUTTON_SET_PINS_3, BUTTON_SET_PINS_4 };
             doc[BUTTON_SET_PINS] = vec;
+            return true;
+        } else if(!strcmp(setting->name, DEBUG_INFO_LAST_BOOT_REASONS)) {
+            std::vector<const char*> vec = { };
+            doc[DEBUG_INFO_LAST_BOOT_REASONS] = vec;
             return true;
         }
         LogHandler::error(m_TAG, "No default vector set for: %s", setting->name);
