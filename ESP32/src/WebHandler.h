@@ -433,10 +433,10 @@ class WebHandler : public HTTPBase {
             // });
 
             //server->rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
-            server->serveStatic("/", LittleFS, "/www/");
+            server->serveStatic("/", LittleFS, "/www/")
                 // .setDefaultFile("index-min.html");
             //     //.setCacheControl("max-age=60000");
-            //     //.setCacheControl("no-cache");
+                .setCacheControl("no-cache");
             LogHandler::debug(_TAG, "starting server");
             server->begin();
             initialized = true;

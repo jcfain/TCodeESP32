@@ -124,7 +124,7 @@ void tcodeCommandCallback(const char *in)
     {
 #if BLUETOOTH_TCODE
         if (bluetoothHandler && bluetoothHandler->isConnected())
-            bluetoothHandler->CommandCallback(in);
+            bluetoothHandler->send(in);
 #endif
 #if BLE_TCODE
         if (bleHandler && bleHandler->isConnected())
