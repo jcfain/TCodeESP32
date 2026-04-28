@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +29,9 @@ SOFTWARE. */
 #include "TagHandler.h"
 #include "struct/command.hpp"
 #include "settingsFactory.h"
+#include "TCodeInterface.h"
 
-class SystemCommandHandler {
+class SystemCommandHandler : public TCodeInterface {
 public: 
 	SystemCommandHandler() {
 		tCodeQueue = xQueueCreate(10, sizeof(char[MAX_COMMAND]));
@@ -181,16 +182,18 @@ public:
 		m_externalCommandCallback = callback;
 	}
 
-    bool getTCode(char* buf) 
+    size_t available() override
     {
-        if(!tCodeQueue) {
-            return false;
-        } 
-        if(!xQueueReceive(tCodeQueue, buf, 0)) {
+        return tCodeQueue && uxQueueMessagesWaiting(tCodeQueue);
+    }
+
+    size_t read(char* buf) override
+    {
+        if(!tCodeQueue || !xQueueReceive(tCodeQueue, buf, 0)) {
             buf[0] = {0};
-			return false;
+			return 0;
         }
-		return true;
+		return strnlen(buf, MAX_COMMAND);
     }
 
 private: 
@@ -292,7 +295,7 @@ private:
 		return validateBool("Motion", false, SettingsHandler::getMotionEnabled(), [this](bool value) -> bool {
 			SettingsHandler::setMotionEnabled(value);
 			LogHandler::debug(_TAG, "Motion disabled");
-			writeTCode("DSTOP\n");
+			send("DSTOP\n");
 			return true;
 		});
 	}};
@@ -302,7 +305,7 @@ private:
 			SettingsHandler::setMotionEnabled(!enabled);
 			LogHandler::debug(_TAG, !enabled ? "Motion enabled" : "Motion disabled");
 			if(!enabled) {
-				writeTCode("DSTOP\n");
+				send("DSTOP\n");
 			}
 			return true;
 		});
@@ -311,7 +314,7 @@ private:
 		char buf[MAX_COMMAND];
 		SettingsHandler::channelMap.tCodeHome(buf);
 		LogHandler::debug(_TAG, "Device home: %s", buf);
-		writeTCode(buf);
+		send(buf);
 		return true;
 	}};
     const Command MOTION_PROFILE_CYCLE{{"Motion profile cycle", "#motion-profile-cycle", "Cycles the motion generator profiles stopping after last profile", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
@@ -348,7 +351,7 @@ private:
 		char buf[MAX_COMMAND];
 		SettingsHandler::channelMap.tCodeHome(buf, value);
 		LogHandler::debug(_TAG, "Device home speed: %s", buf);
-		writeTCode(buf);
+		send(buf);
 		return true;
 	}};
     const CommandValue<const char*>WIFI_SSID{{"Wifi ssid", "#wifi-ssid", "Sets the ssid of the wifi AP", SaveRequired::YES, RestartRequired::YES, SettingType::String}, [this](const char* value) -> bool {
@@ -668,7 +671,8 @@ private:
 		return command;
 	}
 
-	void writeTCode(const char tcode[MAX_COMMAND]) {
+	void send(const char* tcode) override 
+	{
 		if(tCodeQueue)
         	xQueueSend(tCodeQueue, tcode, 0);
 	}

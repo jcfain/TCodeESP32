@@ -2,7 +2,7 @@
 #pragma once
 
 #include <EEPROM.h>
-#include "Axis.h"
+#include "TCode/v0.3/TCodeAxis0_3.h"
 #include "TCodeBase.h"
 #include "TagHandler.h"
 // -----------------------------
@@ -36,7 +36,7 @@ public:
 		{
 			switch (type)
 			{
-			// Axis commands
+			// TCodeAxis0_3 commands
 			case 'L':
 			{
 				Linear[channel].setName(axisName);
@@ -92,7 +92,7 @@ public:
 		{
 			switch (type)
 			{
-			// Axis commands
+			// TCodeAxis0_3 commands
 			case 'L':
 				Linear[channel].Set(magnitude, extension, extMagnitude);
 				break;
@@ -119,7 +119,7 @@ public:
 		{
 			switch (type)
 			{
-			// Axis commands
+			// TCodeAxis0_3 commands
 			case 'L':
 			{
 				if (Linear[channel].isInitialized())
@@ -157,7 +157,7 @@ public:
 	// 	{
 	// 		switch (type)
 	// 		{
-	// 		// Axis commands
+	// 		// TCodeAxis0_3 commands
 	// 		case 'L':
 	// 		{
 	// 			return Linear[channel].isInitialized();
@@ -189,7 +189,7 @@ public:
 		{
 			switch (type)
 			{
-			// Axis commands
+			// TCodeAxis0_3 commands
 			case 'L':
 				t = Linear[channel].lastT;
 				break;
@@ -238,10 +238,10 @@ private:
 	const static int CHANNELS = 11;
 
 	// Declare axes
-	Axis Linear[CHANNELS];
-	Axis Rotation[CHANNELS];
-	Axis Vibration[CHANNELS];
-	Axis Auxiliary[CHANNELS];
+	TCodeAxis0_3 Linear[CHANNELS];
+	TCodeAxis0_3 Rotation[CHANNELS];
+	TCodeAxis0_3 Vibration[CHANNELS];
+	TCodeAxis0_3 Auxiliary[CHANNELS];
 
 	// Function to divide up and execute input string
 	void executeString(String bufferString)
@@ -264,7 +264,7 @@ private:
 		// Switch between command types
 		switch (command.charAt(0))
 		{
-		// Axis commands
+		// TCodeAxis0_3 commands
 		case 'L':
 		case 'l':
 		case 'R':
@@ -358,7 +358,7 @@ private:
 		{
 			switch (type)
 			{
-			// Axis commands
+			// TCodeAxis0_3 commands
 			case 'L':
 				Linear[channel].Set(magnitude, extension, extMagnitude);
 				break;
@@ -438,7 +438,7 @@ private:
 		int minVal = 0, maxVal = 0;
 		String minValString, maxValString;
 		bool valid;
-		// Axis type
+		// TCodeAxis0_3 type
 		char type = command.charAt(1);
 		switch (type)
 		{
@@ -458,7 +458,7 @@ private:
 			valid = false;
 			break;
 		}
-		// Axis channel number
+		// TCodeAxis0_3 channel number
 		int channel = (command.substring(2, 3)).toInt();
 		if (channel == 0 && command.charAt(2) != '0')
 		{

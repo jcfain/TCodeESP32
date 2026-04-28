@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,8 +27,7 @@ SOFTWARE. */
 #include <Wire.h>
 // #include "LogHandler.h"
 #include "TagHandler.h"
-
-using VOICE_COMMAND_FUNCTION_PTR_T = void (*)(const char* tcodeCommand);
+#include "callback.h"
 
 class VoiceHandler {
     
@@ -103,7 +102,7 @@ public:
 		((VoiceHandler*)parameter)->loop();
 	}
 
-	void setMessageCallback(VOICE_COMMAND_FUNCTION_PTR_T f) {
+	void setMessageCallback(TCodeCommandCallback f) {
 		if (f == nullptr) {
 			message_callback = 0;
 		} else {
@@ -116,7 +115,7 @@ private:
 
     //I2C communication
     DFRobot_DF2301Q_I2C asr;
-	VOICE_COMMAND_FUNCTION_PTR_T message_callback = 0;
+	TCodeCommandCallback message_callback = 0;
     bool _isRunning = false;
     bool _isConnected = false;
 

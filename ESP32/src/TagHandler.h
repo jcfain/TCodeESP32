@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,7 @@ class TagHandler {
     static const char* SettingsHandler;
     static const char* WifiHandler;
     static const char* UdpHandler;
+    static const char* SerialHandler;
     static const char* WebsocketsHandler;
     static const char* WebHandler;
     static const char* WebsocketBase;
@@ -46,6 +47,7 @@ class TagHandler {
     static const char* ServoHandler;
     static const char* TCodeHandler;
     static const char* BLDCHandler;
+    static const char* BLDCMotor;
     static const char* ToyHandler;
     static const char* MotorHandler;
     static const char* MotionHandler;
@@ -53,6 +55,7 @@ class TagHandler {
     static const char* ButtonHandler;
     static const char* MdnsHandler;
     static const char* SettingsFactory;
+    static const char* PinMap;
 
     static const std::vector<const char *> AvailableTags;
     static bool HasTag(const char*);
@@ -66,6 +69,7 @@ const char* TagHandler::BatteryHandler = "battery-handler";
 const char* TagHandler::SettingsHandler = "settings-handler";
 const char* TagHandler::WifiHandler = "wifi-handler";
 const char* TagHandler::UdpHandler = "udp-handler";
+const char* TagHandler::SerialHandler = "serial-handler";
 const char* TagHandler::WebsocketsHandler = "websocket-handler";
 const char* TagHandler::WebsocketBase = "websocket-base";
 const char* TagHandler::SecureWebsocketsHandler = "secure-websocket-handler";
@@ -79,6 +83,7 @@ const char* TagHandler::BluetoothHandler = "bluetooth-handler";
 const char* TagHandler::ServoHandler = "servo-handler";
 const char* TagHandler::TCodeHandler = "tcode-handler";
 const char* TagHandler::BLDCHandler = "bldc-handler";
+const char* TagHandler::BLDCMotor = "bldc-motor";
 const char* TagHandler::ToyHandler = "toy-handler";
 const char* TagHandler::MotorHandler = "motor-handler";
 const char* TagHandler::MotionHandler = "motion-handler";
@@ -86,6 +91,7 @@ const char* TagHandler::VoiceHandler = "voice-handler";
 const char* TagHandler::ButtonHandler = "button-handler";
 const char* TagHandler::MdnsHandler = "mdns-handler";
 const char* TagHandler::SettingsFactory = "settings-factory";
+const char* TagHandler::PinMap = "pinmap";
 
 
 const std::vector<const char *> TagHandler::AvailableTags = {
@@ -105,11 +111,13 @@ const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::WebsocketBase,
     TagHandler::HTTPSHandler,
     TagHandler::UdpHandler,
+    TagHandler::SerialHandler,
     TagHandler::ServoHandler,
     TagHandler::TCodeHandler,
     //TagHandler::ServoHandler2,
     TagHandler::ToyHandler,
     TagHandler::BLDCHandler,
+    TagHandler::BLDCMotor,
     TagHandler::DisplayHandler,
     TagHandler::TemperatureHandler,
     TagHandler::BatteryHandler,
@@ -122,7 +130,8 @@ const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::VoiceHandler,
     TagHandler::ButtonHandler,
     TagHandler::MdnsHandler,
-    TagHandler::SettingsFactory
+    TagHandler::SettingsFactory,
+    TagHandler::PinMap
 
 };
 

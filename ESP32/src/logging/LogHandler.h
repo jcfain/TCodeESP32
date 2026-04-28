@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,20 +21,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 #pragma once
 #include <Arduino.h>
-
 #include <mutex>
 #include <vector>
 
-enum class LogLevel { NONE,
-                      ERROR,
-                      WARNING,
-                      INFO,
-                      DEBUG,
-                      VERBOSE };
+#include "enum.h"
+#include "callback.h"
+
 #define LOG_LEVEL_HELP "Sets system log level.\nValid values are: NONE=0, ERROR=1, WARNING=2, INFO=3, DEBUG=4, VERBOSE=5"
 
-using LOG_FUNCTION_PTR_T = void (*)(const char *input, size_t length,
-                                    LogLevel level);
 class LogHandler {
 public:
     static const int internal_buffer_length = 1024;
@@ -211,7 +205,7 @@ public:
 
     static const char *getLastError() { return getInstance().m_lastError; }
 
-    static void setMessageCallback(LOG_FUNCTION_PTR_T f) {
+    static void setMessageCallback(LogCallback f) {
         getInstance().m_message_callback = f == nullptr ? 0 : f;
     }
 
@@ -227,7 +221,7 @@ private:
         return logger_instance;
     }
 
-    LOG_FUNCTION_PTR_T m_message_callback = 0;
+    LogCallback m_message_callback = 0;
     LogLevel m_currentLogLevel = LogLevel::INFO;
     SemaphoreHandle_t m_xMutex = xSemaphoreCreateMutex();
     std::vector<const char*> m_tags;

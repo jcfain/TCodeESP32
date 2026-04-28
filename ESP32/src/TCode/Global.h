@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,8 +22,8 @@ SOFTWARE. */
 
 
 #pragma once
-
-
+#include <Arduino.h>
+#include "settingsFactory.h"
 
 // Twist position monitor variables
 volatile int twistPulseLength = 0;
@@ -58,4 +58,4 @@ void IRAM_ATTR twistChange()
   	//interrupts();
 }
 
-using TCODE_FUNCTION_PTR_T = void (*)(const char* input);
+

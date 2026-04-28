@@ -29,7 +29,7 @@ using namespace TCode::Datatypes;
 
 class EventHandler: public TCodeIObserver<TCodeEvent> {
 public:
-    void registerOnNotify(TCODE_FUNCTION_PTR_T f)
+    void registerOnNotify(TCodeCommandCallback f)
 	{
 		message_callback = f;
 	}
@@ -57,7 +57,7 @@ public:
     };
 
 private:
-    TCODE_FUNCTION_PTR_T message_callback = 0;
+    std::function<void(const char*)> message_callback = 0;
     void sendDeviceCommand(DeviceCommandEvent event) {
         switch(event.type) {
             case DeviceCommandType::None:

@@ -2,18 +2,15 @@
 // IMPORTANT: The pins in this file may be overriden in th pinMap class depending on the board/device type selected
 
 #include "enum.h"
-// https://www.waveshare.com/wiki/ESP32-S3-Zero
-// Only 8 PWM channels on S3 chip..choose wisely
-// In ESP32-S3-Zero, GPIO33 to GPIO37 pins are not exposed; these pins are used for Octal PSRAM.
-// ESP32-S3-Zero uses GPIO21 to connect with WS2812 RGB LED. Please refer to this link "https://files.waveshare.com/wiki/ESP32-S3-Zero/XL-0807RGBC-WS2812B.pdf" for WS2812 specifications.
-// ESP32-S3-Zero does not employ a USB to UART chip. When flashing firmware, press and hold the BOOT button (GPIO0) and then connect the Type-C cable.
-// The "TX" and "RX" markings on the board indicate the default UART0 pins for ESP32-S3-Zero. Specifically, TX is GPIO43, and RX is GPIO44.
+#warning The c5 was included to tinker with but was not actually tested. The pinout may be incorect!
+// https://www.waveshare.com/esp32-c6-dev-kit-n8.htm
+// Only 6 PWM channels on C6 chip..choose wisely
 
 
 // Common PWM
 #define VALVE_SERVO_PIN_DEFAULT -1
 #define VALVE_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::NONE
-#define TWIST_SERVO_PIN_DEFAULT 8
+#define TWIST_SERVO_PIN_DEFAULT 7
 #define TWIST_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::NONE
 #define SQUEEZE_PIN_DEFAULT -1
 #define SQUEEZE_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::NONE
@@ -45,17 +42,17 @@
 #define BUTTON_SET_PINS_4 -1
 
 // OSR
-#define RIGHT_SERVO_PIN_DEFAULT 1
+#define RIGHT_SERVO_PIN_DEFAULT 3
 #define RIGHT_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::LOW0_CH0
-#define LEFT_SERVO_PIN_DEFAULT 2
+#define LEFT_SERVO_PIN_DEFAULT 24
 #define LEFT_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::LOW0_CH1
-#define PITCH_LEFT_SERVO_PIN_DEFAULT 3
+#define PITCH_LEFT_SERVO_PIN_DEFAULT 23
 #define PITCH_LEFT_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::LOW1_CH2
 
 // SR6
-#define RIGHT_UPPER_SERVO_PIN_DEFAULT 4
+#define RIGHT_UPPER_SERVO_PIN_DEFAULT 0
 #define RIGHT_UPPER_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::LOW2_CH4
-#define LEFT_UPPER_SERVO_PIN_DEFAULT 5
+#define LEFT_UPPER_SERVO_PIN_DEFAULT 1
 #define LEFT_UPPER_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::LOW2_CH5
 #define PITCH_RIGHTSERVO_PIN_DEFAULT 6
 #define PITCH_RIGHTSERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::LOW1_CH3
@@ -68,3 +65,12 @@
 #define BLDC_PWMCHANNEL1_PIN_DEFAULT 5
 #define BLDC_PWMCHANNEL2_PIN_DEFAULT 6
 #define BLDC_PWMCHANNEL3_PIN_DEFAULT 7
+
+// TWIST BLDC (SSR2)
+#define BLDC_B_ENCODER_PIN_DEFAULT 11
+#define BLDC_B_CHIPSELECT_PIN_DEFAULT 12
+#define BLDC_B_ENABLE_PIN_DEFAULT 13
+#define BLDC_B_HALLEFFECT_PIN_DEFAULT -1
+#define BLDC_B_PWMCHANNEL1_PIN_DEFAULT 14
+#define BLDC_B_PWMCHANNEL2_PIN_DEFAULT 16
+#define BLDC_B_PWMCHANNEL3_PIN_DEFAULT 17

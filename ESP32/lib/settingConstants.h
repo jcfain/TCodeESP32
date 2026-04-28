@@ -12,20 +12,25 @@
 #define BUTTON_SETTINGS_PATH "/buttons.json"
 #define MOTION_PROFILE_SETTINGS_PATH "/motionProfiles.json"
 #define CHANNELS_SETTINGS_PATH "/channels.json"
+#define DEBUG_INFO_PATH "/debugInfo.json"
 
 // Setting defaults
 
-#if MOTOR_TYPE == 0
+#ifdef MOTOR_TYPE_SERVO
+    #define DEVICE_TYPE_NAME_DEFAULT "OSR"
     #define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::OSR
+    #define MOTOR_TYPE_DEFAULT (uint8_t)MotorType::Servo
 #else 
-    #define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::SSR1
+    #define DEVICE_TYPE_NAME_DEFAULT "NONE"
+    #define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::NONE
+    #define MOTOR_TYPE_DEFAULT (uint8_t)MotorType::BLDC
 #endif
-#define MOTOR_TYPE_DEFAULT MOTOR_TYPE
 #define IP_ADDRESS_LEN IP4ADDR_STRLEN_MAX //16
 #define SSID_DEFAULT "YOUR SSID HERE"
 #define SSID_LEN 32
 #define WIFI_PASS_DEFAULT "YOUR PASSWORD HERE"
 #define WIFI_PASS_LEN 63
+#define WIFI_BAND_SETTING_DEFAULT (uint8_t)WifiBand::AUTO
 #define AP_MODE_SSID_DEFAULT "TCodeESP32Setup"
 #define AP_MODE_PASS_DEFAULT "tcode_6969"
 #define AP_MODE_HIDDEN_DEFAULT false
@@ -33,15 +38,6 @@
 #define AP_MODE_IP_DEFAULT "192.168.69.1"
 #define AP_MODE_GATEWAY_DEFAULT "192.168.69.254"
 #define AP_MODE_SUBNET_DEFAULT "255.255.255.0"
-#if CONFIG_IDF_TARGET_ESP32
-    #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::DEVKIT
-#elif CONFIG_IDF_TARGET_ESP32S3
-    #ifdef S3_ZERO
-        #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::ZERO
-    #else
-        #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::N8R8
-    #endif
-#endif
 #define LOG_LEVEL_DEFAULT (uint8_t)LogLevel::INFO
 //#define FULL_BUILD_DEFAULT false
 #define TCODE_VERSION_DEFAULT (uint8_t)TCodeVersion::v0_3
@@ -61,16 +57,28 @@
 #define FEEDBACK_TWIST_DEFAULT false
 #define ANALOG_TWIST_DEFAULT false
 
-#define BLDC_ENCODER_DEFAULT 0
+#define BLDC_ENCODER_DEFAULT (uint8_t)BLDCEncoderType::NONE
 #define BLDC_USEHALLSENSOR_DEFAULT false
-#define BLDC_PULLEY_CIRCUMFERENCE_DEFAULT 60
+#define BLDC_TWIST_MULTIPLIER_DEFAULT 1.0f
+#define BLDC_RAILLENGTH_DEFAULT 125
+#define BLDC_STROKELENGTH_DEFAULT 120
+#define BLDC_PID_PROPORTIONAL_CONST_DEFAULT 0.002f
+#define BLDC_LOWPASS_FILTER_DEFAULT 0.8f
+#define BLDC_TWIST_LIMIT_DEFAULT 0.5f
+
+#define BLDC_MOTORA_PULLEY_CIRCUMFERENCE_DEFAULT 60
 #define BLDC_MOTORA_VOLTAGE_DEFAULT 20.0f
 #define BLDC_MOTORA_SUPPLY_DEFAULT 20.0f
 #define BLDC_MOTORA_CURRENT_DEFAULT 1.0f
-#define BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT false
-#define BLDC_MOTORA_ZEROELECANGLE_DEFAULT 0.0f
-#define BLDC_RAILLENGTH_DEFAULT 125
-#define BLDC_STROKELENGTH_DEFAULT 120
+#define BLDC_MOTORA_ZEROELECANGLE_DEFAULT -12345.0f // FOC NOT_SET
+
+#define BLDC_MOTORB_PULLEY_CIRCUMFERENCE_DEFAULT 60
+#define BLDC_MOTORB_VOLTAGE_DEFAULT 20.0f
+#define BLDC_MOTORB_SUPPLY_DEFAULT 20.0f
+#define BLDC_MOTORB_CURRENT_DEFAULT 1.0f
+#define BLDC_MOTORB_PARAMETERSKNOWN_DEFAULT false
+#define BLDC_MOTORB_ZEROELECANGLE_DEFAULT -12345.0f // FOC NOT_SET
+
 #define STATICIP_DEFAULT false
 #define LOCALIP_DEFAULT "192.168.0.150"
 #define GATEWAY_DEFAULT "192.168.0.1"
@@ -109,6 +117,11 @@
 #define HOLD_PWM_DEFAULT 110
 #define DISPLAY_I2C_ADDRESS_DEFAULT "0x3c"
 #define DISPLAY_I2C_ADDRESS_LEN 5
+
+#define SERVO_RESOLUTION_DEFAULT MAX_PWM_RESOLUTION
+#define VIBE_RESOLUTION_DEFAULT 8
+#define LUBE_RESOLUTION_DEFAULT 8
+
 #define HEATER_THRESHOLD_DEFAULT 5.0f
 #define HEATER_RESOLUTION_DEFAULT 8
 // #define HEATER_FREQUENCY_DEFAULT 50
@@ -130,6 +143,10 @@
 // Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
 #define LOG_INCLUDETAGS_DEFAULT {}
 #define LOG_EXCLUDETAGS_DEFAULT {}
+#define DEBUG_INFO_LAST_BOOT_REASONS_DEFAULT {}
+
+#define LAST_BOOT_REASONS_MAX "lastBootReasonsMax"
+#define LAST_BOOT_REASONS_MAX_DEFAULT 50
 
 #define BOOT_BUTTON_ENABLED_DEFAULT false
 #define BOOT_BUTTON_COMMAND_DEFAULT "#motion-profile-cycle"
@@ -143,6 +160,7 @@
 #define MOTOR_TYPE_SETTING "motorType"
 #define SSID_SETTING "ssid"
 #define WIFI_PASS_SETTING "wifiPass"
+#define WIFI_BAND_SETTING "wifiBand"
 #define AP_MODE_SSID "apModeSSID"
 #define AP_MODE_PASS "apModePass"
 #define AP_MODE_HIDDEN "apModeHidden"
@@ -168,16 +186,29 @@
 #define CONTINUOUS_TWIST "continuousTwist"
 #define FEEDBACK_TWIST "feedbackTwist"
 #define ANALOG_TWIST "analogTwist"
-#define BLDC_ENCODER "BLDC_Encoder"
-#define BLDC_USEHALLSENSOR "BLDC_UseHallSensor"
-#define BLDC_PULLEY_CIRCUMFERENCE "BLDC_Pulley_Circumference"
-#define BLDC_MOTORA_VOLTAGE "BLDC_MotorA_VoltageLimit"
-#define BLDC_MOTORA_SUPPLY  "BLDC_MotorA_SupplyVoltage"
-#define BLDC_MOTORA_CURRENT "BLDC_MotorA_Current"
-#define BLDC_MOTORA_PARAMETERSKNOWN "BLDC_MotorA_ParametersKnown"
-#define BLDC_MOTORA_ZEROELECANGLE "BLDC_MotorA_ZeroElecAngle"
+
 #define BLDC_RAILLENGTH "BLDC_RailLength"
 #define BLDC_STROKELENGTH "BLDC_StrokeLength"
+#define BLDC_TWIST_MULTIPLIER "BLDC_TwistMultiplier"
+#define BLDC_USEHALLSENSOR "BLDC_UseHallSensor"
+#define BLDC_PID_PROPORTIONAL_CONST "BLDC_PIDProportionalConstant"
+#define BLDC_LOWPASS_FILTER "BLDC_LowPassFilter"
+#define BLDC_TWIST_LIMIT "BLDC_TwistLimit"
+
+#define BLDC_MOTORA_ENCODER "BLDC_Encoder"
+#define BLDC_MOTORA_PULLEY_CIRCUMFERENCE "BLDC_Pulley_Circumference"
+#define BLDC_MOTORA_VOLTAGE "BLDC_Motor_VoltageLimit"
+#define BLDC_MOTORA_SUPPLY  "BLDC_Motor_SupplyVoltage"
+#define BLDC_MOTORA_CURRENT "BLDC_Motor_Current"
+#define BLDC_MOTORA_ZEROELECANGLE "BLDC_Motor_ZeroElecAngle"
+
+#define BLDC_MOTORB_ENCODER "BLDC_BEncoder"
+#define BLDC_MOTORB_PULLEY_CIRCUMFERENCE "BLDC_BPulley_Circumference"
+#define BLDC_MOTORB_VOLTAGE "BLDC_BMotor_VoltageLimit"
+#define BLDC_MOTORB_SUPPLY  "BLDC_BMotor_SupplyVoltage"
+#define BLDC_MOTORB_CURRENT "BLDC_BMotor_Current"
+#define BLDC_MOTORB_ZEROELECANGLE "BLDC_BMotor_ZeroElecAngle"
+
 #define STATICIP "staticIP"
 #define LOCALIP "localIP"
 #define GATEWAY "gateway"
@@ -217,6 +248,9 @@
 #define HOLD_PWM "HoldPWM"
 #define CASE_FAN_MAX_PWM "caseFanMaxPWM"
 #define DISPLAY_I2C_ADDRESS "Display_I2C_Address"
+#define SERVO_RESOLUTION "servoResolution"
+#define VIBE_RESOLUTION "vibeResolution"
+#define LUBE_RESOLUTION "lubeResolution"
 #define HEATER_THRESHOLD "heaterThreshold"
 #define HEATER_RESOLUTION "heaterResolution"
 // #define HEATER_FREQUENCY "heaterFrequency"
@@ -269,5 +303,8 @@
 #define ESP_L_TIMER1_FREQUENCY "ESP_L_TIMER1_FREQUENCY"
 #define ESP_L_TIMER2_FREQUENCY "ESP_L_TIMER2_FREQUENCY"
 #define ESP_L_TIMER3_FREQUENCY "ESP_L_TIMER3_FREQUENCY"
+
+// Readonly
+#define DEBUG_INFO_LAST_BOOT_REASONS "lastBootReasons"
 
 ;

@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,6 @@ SOFTWARE. */
 // #include "LogHandler.h"
 #include "TagHandler.h"
 
-using BATTERY_STATE_FUNCTION_PTR_T = void (*)(float capacityRemainingPercentage, float capacityRemaining, float voltage, float temperature);
 /** This class is setup for a specific board with an LTC2944 gas guage 
  * The module used is CJMCU-294.
 */
@@ -92,7 +91,7 @@ public:
         return true;
     }
 
-	void setMessageCallback(BATTERY_STATE_FUNCTION_PTR_T f) {
+	void setMessageCallback(BatteryVoltageCallback f) {
 		if (f == nullptr) {
 			message_callback = 0;
 		} else {
@@ -196,7 +195,7 @@ public:
     //}
 private:
     static const char* _TAG;
-	BATTERY_STATE_FUNCTION_PTR_T message_callback = 0;
+	BatteryVoltageCallback message_callback = 0;
     static LTC2944 gauge;
     unsigned long lastTick = 0;
     int tick = 5000;

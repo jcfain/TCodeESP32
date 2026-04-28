@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,10 @@ SOFTWARE. */
 #pragma once
 
 #if ESP8266 == 1
-#include <ESP8266WiFi.h>
+	#include <ESP8266WiFi.h>
 #else
-#include <WiFi.h>
-#include <esp_wifi.h>
+	#include <WiFi.h>
+	#include <esp_wifi.h>
 #endif
 // // #include "LogHandler.h"
 #include "SettingsHandler.h"
@@ -86,6 +86,9 @@ public:
 		onApEventID = WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info)
 								   { this->WiFiEvent(event, info); });
 		WiFi.mode(WIFI_STA);
+		WifiBand band = (WifiBand)WIFI_BAND_SETTING_DEFAULT;
+		m_settingsFactory->getValue(WIFI_BAND_SETTING, band);
+		WiFi.setBandMode(toWiFiBandMode(band));
 		WiFi.setSleep(false);
 		WiFi.setHostname(hostname);
 		bool isStatic = STATICIP_DEFAULT;
@@ -306,7 +309,7 @@ public:
 		SettingsHandler::printWebAddress(WiFi.softAPIP().toString().c_str());
 		return true;
 	}
-	void setWiFiStatusCallback(WIFI_STATUS_FUNCTION_PTR_T f)
+	void setWiFiStatusCallback(std::function<void(WiFiStatus, WiFiReason)> f)
 	{
 		wifiStatus_callback = f == nullptr ? 0 : f;
 	}
@@ -323,7 +326,7 @@ public:
 	};
 
 private:
-	WIFI_STATUS_FUNCTION_PTR_T wifiStatus_callback;
+	std::function<void(WiFiStatus, WiFiReason)> wifiStatus_callback;
 	const char *_TAG = TagHandler::WifiHandler;
 	SettingsFactory *m_settingsFactory;
 	int connectTimeOut = 10000;
@@ -357,6 +360,25 @@ private:
         //strlcpy(macTemp, WiFi.macAddress().c_str(), sizeof(macTemp));
 		LogHandler::info(_TAG, "Mac: %s", WiFi.macAddress().c_str());
 		#endif
+	}
+	wifi_band_mode_t toWiFiBandMode(WifiBand band)
+	{
+		switch(band)
+		{
+			case WifiBand::AUTO:
+				return wifi_band_mode_t::WIFI_BAND_MODE_AUTO;
+			case WifiBand::MODE24ghz:
+				return wifi_band_mode_t::WIFI_BAND_MODE_2G_ONLY;
+#if SOC_WIFI_SUPPORT_5G
+			case WifiBand::MODE5ghz:
+				return wifi_band_mode_t::WIFI_BAND_MODE_5G_ONLY;
+#endif
+#if SOC_WIFI_SUPPORT_6G
+			case WifiMode::MODE6ghz:
+				return wifi_band_mode_t::WIFI_BAND_MODE_6G_ONLY;
+#endif
+		}
+		return wifi_band_mode_t::WIFI_BAND_MODE_AUTO;
 	}
 };
 bool WifiHandler::_apMode = false;

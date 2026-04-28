@@ -1,16 +1,23 @@
 #pragma once
 
 #include <stdint.h>
-
+#include "LogHandler.h"
+#include "TagHandler.h"
 #include "espTimerMap.h"
 #if CONFIG_IDF_TARGET_ESP32
-    #include "pinDefaultsWROOM32.h"
+    #include "ESP32/pinDefaults.h"
 #elif CONFIG_IDF_TARGET_ESP32S3
     #ifdef S3_ZERO
-        #include "pinDefaultsS3Zero.h"
+        #include "S3/pinDefaultsZero.h"
     #else
-        #include "pinDefaultsS3.h"
+        #include "S3/pinDefaults.h"
     #endif
+#elif CONFIG_IDF_TARGET_ESP32C5
+    #include "C5/pinDefaults.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+    #include "C6/pinDefaults.h"
+#elif CONFIG_IDF_TARGET_ESP32C61
+    #include "E22/pinDefaults.h"
 #endif
 
 // Common PWM
@@ -59,7 +66,7 @@
 #define LEFT_UPPER_SERVO_PIN "LeftUpperServo_PIN"
 #define LEFT_UPPER_SERVO_CHANNEL "LeftUpperServo_CHANNEL"
 
-// BLDC (SSR1)
+// Stroke BLDC (SSR1)
 #define BLDC_ENCODER_PIN "BLDC_Encoder_PIN"
 #define BLDC_CHIPSELECT_PIN "BLDC_ChipSelect_PIN"
 #define BLDC_ENABLE_PIN "BLDC_Enable_PIN"
@@ -67,6 +74,15 @@
 #define BLDC_PWMCHANNEL1_PIN "BLDC_PWMchannel1_PIN"
 #define BLDC_PWMCHANNEL2_PIN "BLDC_PWMchannel2_PIN"
 #define BLDC_PWMCHANNEL3_PIN "BLDC_PWMchannel3_PIN"
+
+// Twist BLDC (SSR2)
+#define BLDC_B_ENCODER_PIN "BLDC_BEncoder_PIN"
+#define BLDC_B_CHIPSELECT_PIN "BLDC_BChipSelect_PIN"
+#define BLDC_B_ENABLE_PIN "BLDC_BEnable_PIN"
+#define BLDC_B_HALLEFFECT_PIN "BLDC_BHallEffect_PIN"
+#define BLDC_B_PWMCHANNEL1_PIN "BLDC_BPWMchannel1_PIN"
+#define BLDC_B_PWMCHANNEL2_PIN "BLDC_BPWMchannel2_PIN"
+#define BLDC_B_PWMCHANNEL3_PIN "BLDC_BPWMchannel3_PIN"
 
 // class PinMap;
 
@@ -104,7 +120,7 @@ public:
     void operator=(PinMap const&) = delete;
     
     DeviceType deviceType() { return m_deviceType; }
-    void setDeviceType(DeviceType deviceType) {  m_deviceType = deviceType; }
+    virtual void setDeviceType(DeviceType deviceType) {  m_deviceType = deviceType; }
     BoardType boardType() { return m_boardType; }
     void setBoardType(BoardType boardType) { m_boardType = boardType; }
 
@@ -238,6 +254,7 @@ protected:
         m_deviceType = deviceType;
         m_boardType = boardType;
     }
+    const char* m_TAG = TagHandler::PinMap;
     DeviceType m_deviceType;
     BoardType m_boardType;
     ESPTimer m_timers[MAX_TIMERS] = {
@@ -263,6 +280,7 @@ protected:
             }
         },
 #endif
+#if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S3
         { ESP_L_TIMER0_FREQUENCY, "Low 0", ESP_TIMER_FREQUENCY_DEFAULT, {
                 {"Low 0 CH0", ESPTimerChannelNum::LOW0_CH0}, 
                 {"Low 0 CH1", ESPTimerChannelNum::LOW0_CH1}
@@ -284,6 +302,28 @@ protected:
             }
         }
     };
+#endif
+#if CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C6
+        { ESP_L_TIMER0_FREQUENCY, "Low 0", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low 0 CH0", ESPTimerChannelNum::LOW0_CH0}, 
+                {"Low 0 CH1", ESPTimerChannelNum::LOW0_CH1}
+            }
+        },
+        { ESP_L_TIMER1_FREQUENCY, "Low 1", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low 1 CH2", ESPTimerChannelNum::LOW1_CH2}, 
+                {"Low 1 CH3", ESPTimerChannelNum::LOW1_CH3}
+            }
+        },
+        { ESP_L_TIMER2_FREQUENCY, "Low 2", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low 2 CH4", ESPTimerChannelNum::LOW2_CH4}
+            }
+        },
+        { ESP_L_TIMER3_FREQUENCY, "Low 3", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"Low 3 CH5", ESPTimerChannelNum::LOW2_CH5}, 
+            }
+        }
+    };
+#endif
 
     // void setCommonTimers() {
     //     m_timers.timerH3 = {
@@ -337,11 +377,11 @@ private:
     }
 };
 
-class PinMapSSR1 : public PinMap {
+class PinMapSSR : public PinMap {
 public:
-    static PinMapSSR1* getInstance()
+    static PinMapSSR* getInstance()
     {
-        static PinMapSSR1 instance(DeviceType::SSR1, BoardType::DEVKIT);
+        static PinMapSSR instance(DeviceType::SSR1, BoardType::DEVKIT);
         return &instance;
     }
     int8_t encoder() const { return m_encoder; }
@@ -364,8 +404,73 @@ public:
 
     int8_t pwmChannel3() const { return m_pwmChannel3; }
     void setPwmChannel3(const int8_t &pwmChannel3) { m_pwmChannel3 = pwmChannel3; }
+
+    int8_t motorBEncoder() const { return m_twistEncoder; }
+    void setLeftEncoder(const int8_t &encoder) { m_twistEncoder = encoder; }
+
+    int8_t motorBChipSelect() const { return m_twistChipSelect; }
+    void setLeftChipSelect(const int8_t &chipSelect) { m_twistChipSelect = chipSelect; }
+
+    int8_t motorBEnable() const { return m_twistEnable; }
+    void setLeftEnable(const int8_t &enable) { m_twistEnable = enable; }
+
+    int8_t motorBPwmChannel1() const { return m_twistPwmChannel1; }
+    void setLeftPwmChannel1(const int8_t &pwmChannel1) { m_twistPwmChannel1 = pwmChannel1; }
+
+    int8_t motorBPwmChannel2() const { return m_twistPwmChannel2; }
+    void setLeftPwmChannel2(const int8_t &pwmChannel2) { m_twistPwmChannel2 = pwmChannel2; }
+
+    int8_t motorBPwmChannel3() const { return m_twistPwmChannel3; }
+    void setLeftPwmChannel3(const int8_t &pwmChannel3) { m_twistPwmChannel3 = pwmChannel3; }
+
+    void setDeviceType(DeviceType type) override 
+    {
+        if (type == DeviceType::NONE)
+        {
+            LogHandler::info(m_TAG, "[PinMapSSR.setDevice Setting device NONE");
+        }
+        else if(type == DeviceType::SSR1)
+        {
+            m_deviceType = type;
+            LogHandler::debug(m_TAG, "[PinMapSSR.setDevice] SSR1, Device type %i", (int)m_deviceType);
+            setEncoder(BLDC_ENCODER_PIN_DEFAULT);
+            setChipSelect(BLDC_CHIPSELECT_PIN_DEFAULT);
+            setEnable(BLDC_ENABLE_PIN_DEFAULT);
+            setPwmChannel1(BLDC_PWMCHANNEL1_PIN_DEFAULT);
+            setPwmChannel2(BLDC_PWMCHANNEL2_PIN_DEFAULT);
+            setPwmChannel3(BLDC_PWMCHANNEL3_PIN_DEFAULT);
+        } 
+        else if(type == DeviceType::SSR2)
+        {
+            m_deviceType = type;
+            LogHandler::debug(m_TAG, "[PinMapSSR.setDevice] SSR2, Device type %i", (int)m_deviceType);
+            setEncoder(-1);
+            setChipSelect(5);
+            setEnable(26);
+            setPwmChannel1(25);
+            setPwmChannel2(33);
+            setPwmChannel3(32);
+
+            setValve(-1);
+            setTwist(-1);
+            setSqueeze(-1);
+            setVibe0(-1);
+            setVibe1(-1);
+            setVibe2(-1);
+            setVibe3(-1);
+            setSleeveTemp(-1);
+            setInternalTemp(-1);
+            setCaseFan(-1);
+            setHeater(-1);
+            setTwistFeedBack(-1);
+        } 
+        else 
+        {
+            LogHandler::error(m_TAG, "[PinMapSSR.setDevice Invalid device type %i", (int)type);
+        }
+    }
 protected: 
-    PinMapSSR1(DeviceType deviceType, BoardType boardType) : PinMap(deviceType, boardType) {}
+    PinMapSSR(DeviceType deviceType, BoardType boardType) : PinMap(deviceType, boardType) {}
 private:
     int8_t m_encoder = BLDC_ENCODER_PIN_DEFAULT;
     int8_t m_chipSelect = BLDC_CHIPSELECT_PIN_DEFAULT;
@@ -374,6 +479,13 @@ private:
     int8_t m_pwmChannel1 = BLDC_PWMCHANNEL1_PIN_DEFAULT;
     int8_t m_pwmChannel2 = BLDC_PWMCHANNEL2_PIN_DEFAULT;
     int8_t m_pwmChannel3 = BLDC_PWMCHANNEL3_PIN_DEFAULT;
+    
+    int8_t m_twistEncoder = BLDC_B_ENCODER_PIN_DEFAULT;
+    int8_t m_twistChipSelect = BLDC_B_CHIPSELECT_PIN_DEFAULT;
+    int8_t m_twistEnable = BLDC_B_ENABLE_PIN_DEFAULT;
+    int8_t m_twistPwmChannel1 = BLDC_B_PWMCHANNEL1_PIN_DEFAULT;
+    int8_t m_twistPwmChannel2 = BLDC_B_PWMCHANNEL2_PIN_DEFAULT;
+    int8_t m_twistPwmChannel3 = BLDC_B_PWMCHANNEL3_PIN_DEFAULT;
     void overideDefaults() override {}
 
 };
@@ -499,7 +611,7 @@ public:
         // Common motor
         setSqueeze(19);
         setLubeButton(34);
-        setInternalTemp(34);
+        setInternalTemp(35);
         setSleeveTemp(33);
         setCaseFan(16);
         // // Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
@@ -534,7 +646,7 @@ public:
         // //  EXT_Input3_PIN = 39;
         // //  EXT_Input4_PIN = 36;
 
-        #warning How to handle other board setting overrides?
+        // TODO: How to handle other board setting overrides?
         // heaterResolution = json["heaterResolution"] | 8;
         // caseFanResolution = json["caseFanResolution"] | 10;
         // caseFanFrequency = json["caseFanFrequency"] | 25;
@@ -545,7 +657,7 @@ protected:
 };
 
 
-class PinMapSSR1PCB : public PinMapSSR1 {
+class PinMapSSR1PCB : public PinMapSSR {
     public:
         static PinMapSSR1PCB* getInstance()
         {
@@ -576,5 +688,5 @@ class PinMapSSR1PCB : public PinMapSSR1 {
             setTwistFeedBack(-1);
         }
     protected: 
-        PinMapSSR1PCB(DeviceType deviceType, BoardType boardType) : PinMapSSR1(deviceType, boardType) {}
+        PinMapSSR1PCB(DeviceType deviceType, BoardType boardType) : PinMapSSR(deviceType, boardType) {}
 };

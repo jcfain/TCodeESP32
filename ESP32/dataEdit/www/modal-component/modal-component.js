@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -73,6 +73,7 @@ modalTemplate.innerHTML = `
         display: flex;
         justify-content: center;
         overflow-y: auto;
+        margin: 16px;
     }
     .modal-container {
         display: flex;
@@ -80,7 +81,7 @@ modalTemplate.innerHTML = `
         flex-wrap: nowrap;
         justify-content: space-between;
         box-shadow: -1px 1px 5px 0 cornflowerblue,1px -1px 5px 0 lightblue,1px 1px 5px 0 lightblue,-1px -1px 5px 0 cornflowerblue;
-        min-width: 40vw;
+        min-width: fit-content;
     }
     
 @media only screen and (-webkit-min-device-pixel-ratio: 2.75) {

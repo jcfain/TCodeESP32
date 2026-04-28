@@ -1,9 +1,9 @@
 #pragma once
 
-#include "struct/channel.h"
+#include "channel.h"
 
-#define FIRMWARE_VERSION 0.483f
-#define FIRMWARE_VERSION_NAME "0.483b\n"
+#define FIRMWARE_VERSION 0.5f
+#define FIRMWARE_VERSION_NAME "0.5b\n"
 #define MAX_BUTTON_SETS 4
 #define MAX_BUTTONS 4
 #define MAX_COMMAND 256
@@ -16,21 +16,23 @@
 #define TCODE_SETTINGS "D2\n"
 #define WIFI_PASS_DONOTCHANGE_DEFAULT "YOUR PASSWORD HERE"
 #ifdef CONFIG_IDF_TARGET_ESP32S3
-#define MODULE_CURRENT ModuleType::S3
+#include "S3/config.h"
 #elif CONFIG_IDF_TARGET_ESP32
-#define MODULE_CURRENT ModuleType::WROOM32
+#include "ESP32/config.h"
+#elif CONFIG_IDF_TARGET_ESP32C5
+#include "C5/config.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "C6/config.h"
+#elif CONFIG_IDF_TARGET_ESP32E22
+#include "E22/config.h"
 #endif
 
+#if !defined(MOTOR_TYPE_SERVO) && !defined(MOTOR_TYPE_BLDC)
+    #error "Invalid motor type"
+#endif
 
 // Other functions
 #define VALVE_DEFAULT 5000        // Auto-valve default suction level (low-high, 0-9999) 
-
-
-#ifdef CONFIG_IDF_TARGET_ESP32
-#define SERVO_PWM_RES 16
-#elif CONFIG_IDF_TARGET_ESP32S3
-#define SERVO_PWM_RES 14
-#endif
 
 #define ESP_TIMER_FREQUENCY_DEFAULT 50
 #define ESP_VIB_TIMER_FREQUENCY_DEFAULT 8000
@@ -61,13 +63,7 @@
 //     #define CaseFan_PWM 13
 
 //     #define ValveServo_PWM 14         // Valve Servo
-#ifdef CONFIG_IDF_TARGET_ESP32
-    #define MAX_TIMERS 8
-#elif CONFIG_IDF_TARGET_ESP32S3
-    #define MAX_TIMERS 4
-#endif
 
-#define MAX_CHANNELS (MAX_TIMERS << 1)
 
 // const Channel ChannelMapV2[9] = {
 //     {"L0","Stroke",0,500,999,false,false,0,500,999},
@@ -80,6 +76,21 @@
 //     {"V0","Vibe 0",0,500,999,true,false,0,500,999},
 //     {"V1","Vibe 1/Lube",0,500,999,true,false,0,500,999}
 // };
+
+#define TCODE_CHANNEL_STROKE "L0"
+#define TCODE_CHANNEL_SURGE "L1"
+#define TCODE_CHANNEL_SWAY "L2"
+#define TCODE_CHANNEL_TWIST "R0"
+#define TCODE_CHANNEL_ROLL "R1"
+#define TCODE_CHANNEL_PITCH "R2"
+#define TCODE_CHANNEL_VIBE1 "V0"
+#define TCODE_CHANNEL_VIBE2 "V1"
+#define TCODE_CHANNEL_VIBE3 "V2"
+#define TCODE_CHANNEL_VIBE4 "V3"
+#define TCODE_CHANNEL_SUCK "A0"
+#define TCODE_CHANNEL_SUCK_LEVEL "A1"
+#define TCODE_CHANNEL_LUBE "A2"
+#define TCODE_CHANNEL_AUX "A3"
 
 const Channel ChannelMapV3[14] = {
     {"L0","Stroke",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},

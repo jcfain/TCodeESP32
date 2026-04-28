@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -49,7 +49,10 @@ class WebHandler : public HTTPBase {
 		    LogHandler::info(_TAG, "Starting web server on port: %i", port);
             server = new AsyncWebServer(port);
             ((WebSocketHandler*)webSocketHandler)->setup(server);
+
+            LogHandler::debug(_TAG, "Finished webSocket");
             m_settingsFactory = SettingsFactory::getInstance();
+            LogHandler::debug(_TAG, "Setting up endpoints");
             server->on("/wifiSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 char info[700];
@@ -75,9 +78,14 @@ class WebHandler : public HTTPBase {
                 //sendChunked(request, PIN_SETTINGS_PATH);
             }); 
 
+            server->on("/debugInfo", HTTP_GET, [this](AsyncWebServerRequest *request) 
+            {
+                request->send(LittleFS, DEBUG_INFO_PATH, "application/json");
+            }); 
+
             server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
-                if(SettingsHandler::restartRequired > -1 || !SettingsHandler::initialized) {
+                if(SettingsHandler::restartInSecs > -1 || !SettingsHandler::initialized) {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"status\": \"restarting\"}");
                     request->send(response);
                     return;
@@ -167,23 +175,29 @@ class WebHandler : public HTTPBase {
                 String sensorId = request->pathArg(0);
             });
 
+            server->on("/debugInfo", HTTP_POST, [this](AsyncWebServerRequest *request) 
+            {
+                if(m_settingsFactory->resetLastBootReason())
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                    request->send(response);
+                } 
+                else 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error clearing last reboot reasons\"}");
+                    request->send(response);
+                }
+            }); 
 
             server->on("^\\/changeBoard\\/([0-9]+)$", HTTP_POST, [this](AsyncWebServerRequest *request)
             {
                 auto boardTypeString = request->pathArg(0);
                 int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
-                // if(boardType == (int)BoardType::CRIMZZON || boardType == (int)BoardType::ISAAC) {
-                //     m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SR6);
-                // } else if(boardType == (int)BoardType::SSR1PCB) {
-                //     m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SSR1);
-                //     m_settingsFactory->setValue(BLDC_ENCODER, BLDCEncoderType::MT6701);
-                // }
-                // Serial.println("Settings pinout default");
-                // m_settingsFactory->setValue(BOARD_TYPE_SETTING, boardType);
                 if(m_settingsFactory->changeBoardType(boardType))
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
+			        SettingsHandler::restart(5);
                 } 
                 else 
                 {
@@ -194,14 +208,18 @@ class WebHandler : public HTTPBase {
             server->on("^\\/changeDevice\\/([0-9]+)$", HTTP_POST, [this](AsyncWebServerRequest *request)
             {
                 auto deviceTypeString = request->pathArg(0);
-                int deviceType = deviceTypeString.isEmpty() ? (int)DeviceType::OSR : deviceTypeString.toInt();
-                // Serial.println("Settings pinout default");
-                // m_settingsFactory->setValue(DEVICE_TYPE, deviceType);
-                // if(m_settingsFactory->saveCommon() && m_settingsFactory->defaultPinout())
+                int deviceType = deviceTypeString.isEmpty() ? 
+                #ifdef MOTOR_TYPE_SERVO
+                (int)DeviceType::OSR 
+                #else
+                (int)DeviceType::NONE 
+                #endif
+                : deviceTypeString.toInt();
 				if (m_settingsFactory->changeDeviceType(deviceType))
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
+			        SettingsHandler::restart(5);
                 } 
                 else 
                 {
@@ -232,12 +250,26 @@ class WebHandler : public HTTPBase {
             {
                 Serial.println("Settings default");
                 if(m_settingsFactory->resetAll()) {
+                    String message = "{\"msg\":\"restarting\",\"apMode\":";
+                    message += SettingsHandler::restart ? "true}" : "false}";
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
 			        SettingsHandler::restart(5);
                 } else {
                     sendError(request);
                 }
+            });
+
+            server->on("/ping", HTTP_POST, [this](AsyncWebServerRequest *request)
+            {
+                Serial.println("Ping");
+                if(SettingsHandler::restartInSecs > -1 || !SettingsHandler::initialized) {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"status\": \"restarting\"}");
+                    request->send(response);
+                    return;
+                }
+                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                request->send(response);
             });
 
             AsyncCallbackJsonWebHandler* settingsUpdateHandler = new AsyncCallbackJsonWebHandler("/settings", [this](AsyncWebServerRequest *request, JsonVariant &json)
@@ -386,8 +418,9 @@ class WebHandler : public HTTPBase {
             server->onNotFound([this](AsyncWebServerRequest *request) 
 			{
                 if (handleStaticFile(request)) return;
-                Serial.printf("AsyncWebServerRequest Not found: %s", request->url().c_str());
-                if (request->method() == HTTP_OPTIONS) {
+                Serial.printf("AsyncWebServerRequest Not found: %s\n", request->url().c_str());
+                if (request->method() == AsyncWebRequestMethod::AsyncWebRequestMethodType::HTTP_OPTIONS) {
+                //if (request->method() == HTTP_OPTIONS) {
                     request->send(200);
                 } else {
                     AsyncWebServerResponse *response = request->beginResponse(404, "application/text", String("AsyncWebServerRequest Not found") + request->url());
@@ -418,10 +451,11 @@ class WebHandler : public HTTPBase {
             // });
 
             //server->rewrite("/", "/wifiSettings.htm").setFilter(ON_AP_FILTER);
-            server->serveStatic("/", LittleFS, "/www/");
+            server->serveStatic("/", LittleFS, "/www/")
                 // .setDefaultFile("index-min.html");
             //     //.setCacheControl("max-age=60000");
-            //     //.setCacheControl("no-cache");
+                .setCacheControl("no-cache");
+            LogHandler::debug(_TAG, "starting server");
             server->begin();
             initialized = true;
         }
@@ -476,7 +510,7 @@ class WebHandler : public HTTPBase {
                         const size_t max_len,
                         const size_t index) mutable -> size_t
                     {
-		                LogHandler::debug(_TAG,"[beginChunkedResponse] Enter chunked file: %s\n", file.name());
+		                LogHandler::verbose(_TAG,"[beginChunkedResponse] Enter chunked file: %s\n", file.name());
                         size_t length;
 
                         // Restrict chunk size so we don't run out of RAM
@@ -494,7 +528,7 @@ class WebHandler : public HTTPBase {
 
                         if (length == 0)
                         {
-		                    LogHandler::debug(_TAG,"[beginChunkedResponse] Close file: %s\n", file.name());
+		                    LogHandler::verbose(_TAG,"[beginChunkedResponse] Close file: %s\n", file.name());
                             file.close();
                         }
 

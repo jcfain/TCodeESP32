@@ -1,7 +1,7 @@
 #pragma once
 #include "enum.h"
 // IMPORTANT: The pins in this file may be overriden in th pinMap class depending on the board/device type selected
-#if MOTOR_TYPE == 0 // SERVO
+#ifdef MOTOR_TYPE_SERVO
 // Common PWM
 #define VALVE_SERVO_PIN_DEFAULT 25
 #define VALVE_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::HIGH3_CH6
@@ -36,7 +36,7 @@
 #define BUTTON_SET_PINS_3 -1
 #define BUTTON_SET_PINS_4 -1
 
-#elif MOTOR_TYPE == 1 // BLDC motor
+#elif defined MOTOR_TYPE_BLDC
 // Common PWM
 #define VALVE_SERVO_PIN_DEFAULT 12
 #define VALVE_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::HIGH3_CH6
@@ -89,7 +89,7 @@
 #define PITCH_RIGHTSERVO_PIN_DEFAULT 14
 #define PITCH_RIGHTSERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::HIGH1_CH3
 
-// BLDC (SSR1)
+// Motor A BLDC (SSR1)
 #define BLDC_ENCODER_PIN_DEFAULT 33
 #define BLDC_CHIPSELECT_PIN_DEFAULT 5
 #define BLDC_ENABLE_PIN_DEFAULT 14
@@ -97,3 +97,11 @@
 #define BLDC_PWMCHANNEL1_PIN_DEFAULT 27
 #define BLDC_PWMCHANNEL2_PIN_DEFAULT 26
 #define BLDC_PWMCHANNEL3_PIN_DEFAULT 25
+
+// Motor B BLDC (SSR2)
+#define BLDC_B_ENCODER_PIN_DEFAULT 34
+#define BLDC_B_CHIPSELECT_PIN_DEFAULT 4
+#define BLDC_B_ENABLE_PIN_DEFAULT 13
+#define BLDC_B_PWMCHANNEL1_PIN_DEFAULT 12
+#define BLDC_B_PWMCHANNEL2_PIN_DEFAULT 14
+#define BLDC_B_PWMCHANNEL3_PIN_DEFAULT 27

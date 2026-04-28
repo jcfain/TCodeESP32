@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,8 +34,8 @@ SOFTWARE. */
 #include "settingConstants.h"
 #include "pinMap.h"
 #include "espTimerMap.h"
-
-using SETTING_STATE_FUNCTION_PTR_T = void (*)(const SettingProfile &profile, const char* settingThatChanged);
+#include "buttonSet.h"
+#include "motionProfile.h"
 
 class SettingsFactory
 {
@@ -55,6 +55,7 @@ public:
             return false;
         loadCommonCache();
         loadPinCache();
+        m_initialized = true;
         return true;
     }
     
@@ -84,6 +85,7 @@ public:
     }
     // Cached requires restart
     // DeviceType getDeviceType() const { return m_deviceType; }
+    bool restartRequired() const { return m_restartRequired; };
     int getUdpServerPort() const { return udpServerPort; }
     int getWebServerPort() const { return webServerPort; }
     const char* getHostname() const { return hostname; }
@@ -133,6 +135,10 @@ public:
     double getInternalTempForFanOn() const { return internalTempForFanOn; }
     bool getVibTimeoutEnabled() const { return vibTimeoutEnabled; }
     int getVibTimeout() const { return vibTimeout; }
+    float getBLDCTwistMultiplier() const { return m_BLDCTwistMultiplier; }
+    float getBLDCTwistLimit() const { return m_BLDCTwistLimit; }
+    float getBLDCPIDProportionalConst() { return m_BLDCPIDProportionalConst; }
+    float getBLDCLowPassFilter() { return m_BLDCLowpassFilter; }
 
     ButtonSet* getButtonSets() {
         return buttonSets;
@@ -141,7 +147,7 @@ public:
         return motionProfiles;
     }
 
-    void setMessageCallback(SETTING_STATE_FUNCTION_PTR_T f)
+    void setMessageCallback(SettingsChangeCallback f)
     {
         LogHandler::debug(m_TAG, "setMessageCallback");
         if (f == nullptr)
@@ -226,9 +232,9 @@ public:
                 LogHandler::error(m_TAG, "getValue T called before pins file initialized");
                 return SettingFile::NONE;
             }
-            xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
+            xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
             value = m_pinsFileInfo.doc[name].as<T>();
-            xSemaphoreGive(m_commonSemaphore);
+            xSemaphoreGive(m_pinSemaphore);
             return SettingFile::Pins;
         }    
         else
@@ -361,7 +367,7 @@ public:
             if(currentValue != value) {
                 LogHandler::debug(m_TAG, "Change wifi value T: %s", name);
                 xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
-                //const Setting* setting = getSetting(name);
+                checkRestartRequired(&m_networkFileInfo, name);
                 m_networkFileInfo.doc[name] = value;
                 //loadWifiLiveCache(name); // Not needed now
                 xSemaphoreGive(m_networkSemaphore);
@@ -378,7 +384,7 @@ public:
             if(currentValue != value) {
                 LogHandler::debug(m_TAG, "Change common value T: %s", name);
                 xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
-                //const Setting* setting = getSetting(name);
+                checkRestartRequired(&m_commonFileInfo, name);
                 m_commonFileInfo.doc[name] = value;
                 loadCommonLiveCache(name);
                 xSemaphoreGive(m_commonSemaphore);
@@ -395,7 +401,7 @@ public:
             if(currentValue != value) {
                 LogHandler::debug(m_TAG, "Change pin value T: %s", name);
                 xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
-                //const Setting* setting = getSetting(name);
+                checkRestartRequired(&m_pinsFileInfo, name);
                 m_pinsFileInfo.doc[name] = value;
                 //loadPinCache(); // Not needed now
                 xSemaphoreGive(m_pinSemaphore);
@@ -422,6 +428,7 @@ public:
         if(fileInfo->doc[name].isNull() || strcmp(currentValue, value)) {
             LogHandler::debug(m_TAG, "Change value: %s old value: %s new value: %s", name, currentValue, strcmp(name, AP_MODE_PASS) || strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DONOTCHANGE_DEFAULT) ? value : "<Redacted>");
             fileInfo->doc[name] = value;
+            checkRestartRequired(fileInfo, name);
             if(fileInfo->file == SettingFile::Common) {
                 loadCommonLiveCache(name);
             }
@@ -443,6 +450,7 @@ public:
             return SettingFile::NONE;
         }
         fileInfo->doc[name] = value;
+        checkRestartRequired(fileInfo, name);
         if(fileInfo->file == SettingFile::Common) {
             loadCommonLiveCache(name);
         }
@@ -462,6 +470,7 @@ public:
             return;
         }
         const Setting* setting = fileInfo->getSetting(name);
+        checkRestartRequired(setting, name);
         defaultToJson(setting, fileInfo->doc);
         if(fileInfo->file == SettingFile::Common) {
             loadCommonLiveCache(name);
@@ -669,6 +678,7 @@ public:
             getValue(BATTERY_CAPACITY_MAX, batteryCapacityMax);
             if(targeted) {initCommonMessages(name); return;}
         }
+    #ifdef MOTOR_TYPE_SERVO
         if(!name || !strcmp(name, RIGHT_SERVO_ZERO)) {
             getValue(RIGHT_SERVO_ZERO, RightServo_ZERO);
             if(targeted) {initCommonMessages(name); return;}
@@ -693,6 +703,28 @@ public:
             getValue(PITCH_RIGHT_SERVO_ZERO, PitchRightServo_ZERO);
             if(targeted) {initCommonMessages(name); return;}
         }
+    #elif defined MOTOR_TYPE_BLDC
+        if(!name || !strcmp(name, BLDC_TWIST_MULTIPLIER)) {
+            getValue(BLDC_TWIST_MULTIPLIER, m_BLDCTwistMultiplier);
+            if(targeted) {initCommonMessages(name); return;}
+        }
+        if(!name || !strcmp(name, BLDC_TWIST_MULTIPLIER)) {
+            getValue(BLDC_TWIST_MULTIPLIER, m_BLDCTwistMultiplier);
+            if(targeted) {initCommonMessages(name); return;}
+        }
+        if(!name || !strcmp(name, BLDC_TWIST_LIMIT)) {
+            getValue(BLDC_TWIST_LIMIT, m_BLDCTwistLimit);
+            if(targeted) {initCommonMessages(name); return;}
+        }
+        if(!name || !strcmp(name, BLDC_PID_PROPORTIONAL_CONST)) {
+            getValue(BLDC_PID_PROPORTIONAL_CONST, m_BLDCPIDProportionalConst);
+            if(targeted) {initCommonMessages(name); return;}
+        }
+        if(!name || !strcmp(name, BLDC_LOWPASS_FILTER)) {
+            getValue(BLDC_LOWPASS_FILTER, m_BLDCLowpassFilter);
+            if(targeted) {initCommonMessages(name); return;}
+        }
+    #endif
         if(!name || !strcmp(name, TWIST_SERVO_ZERO)) {
             getValue(TWIST_SERVO_ZERO, TwistServo_ZERO);
             if(targeted) {initCommonMessages(name); return;}
@@ -806,7 +838,7 @@ public:
         else if(boardType == BoardType::SSR1PCB) 
         {
             setValue(DEVICE_TYPE, DeviceType::SSR1);
-            setValue(BLDC_ENCODER, BLDCEncoderType::MT6701);
+            setValue(BLDC_MOTORA_ENCODER, BLDCEncoderType::MT6701);
         }
         LogHandler::info(m_TAG, "[changeBoardType] Settings pinout default");
         setValue(BOARD_TYPE_SETTING, boardType);
@@ -825,7 +857,7 @@ public:
         getValue(MOTOR_TYPE_SETTING, motorType);
         if(motorType == MotorType::Servo)
         {
-            if (newType == DeviceType::SSR1)
+            if (newType == DeviceType::SSR1 || newType == DeviceType::SSR2)
             {
                 LogHandler::error(m_TAG, "[changeDeviceType] Invalid device type (%ld) for current motor. Valid device types are %s", value, DEVICE_TYPES_HELP);
                 return false;
@@ -833,15 +865,37 @@ public:
         }
         else if(motorType == MotorType::BLDC)
         {
-            if (newType != DeviceType::SSR1)
+            if (newType != DeviceType::NONE && newType != DeviceType::SSR1 && newType != DeviceType::SSR2)
             {
                 LogHandler::error(m_TAG, "[changeDeviceType] Invalid device type (%ld) for current motor. Valid device types are %s", value, DEVICE_TYPES_HELP);
                 return false;
             }
         }
-        Serial.println("Settings pinout default");
+        LogHandler::info(m_TAG, "[changeDeviceType] Settings pinout default");
         setValue(DEVICE_TYPE, newType);
-        return saveCommon() && defaultPinout();
+        bool retValue = saveCommon() && defaultPinout();
+        // Override for new device type AFTER default!
+        if(motorType == MotorType::BLDC)
+        {
+            if (newType == DeviceType::SSR2)
+            {
+                LogHandler::info(m_TAG, "[changeDeviceType] Overriding default settings for SSR2");
+                setValue(BLDC_MOTORA_ENCODER, BLDCEncoderType::SPI);
+                setValue(BLDC_MOTORB_ENCODER, BLDCEncoderType::SPI);
+                setValue(BLDC_MOTORA_VOLTAGE, 12.0f);
+                setValue(BLDC_MOTORA_SUPPLY, 12.0f);
+                setValue(BLDC_MOTORB_VOLTAGE, 12.0f);
+                setValue(BLDC_MOTORB_SUPPLY, 12.0f);
+                retValue = saveCommon();
+            }
+            PinMapSSR* pinMap = PinMapSSR::getInstance();
+            pinMap->setDeviceType(newType);
+            m_pinsFileInfo.initialized = true;
+            syncSSRAndCommonPinsToDisk(pinMap);
+            loadDefaultChannelsForDeviceType();
+            retValue = saveToDisk(m_pinsFileInfo);
+        }
+        return retValue;
     }
 
     bool defaultPinout() {
@@ -855,21 +909,76 @@ public:
         return savePins();
     }
 
+    bool addLastBootReason(const char* value)
+    {
+        SettingFileInfo debugInfo = getDebugInfo();
+        if(load(debugInfo))
+        {
+            JsonArray reasons = debugInfo.doc[DEBUG_INFO_LAST_BOOT_REASONS].as<JsonArray>();
+            if(reasons.isNull()) 
+            {
+                reasons = debugInfo.doc[DEBUG_INFO_LAST_BOOT_REASONS].to<JsonArray>();
+            }
+            else if(reasons.size() > LAST_BOOT_REASONS_MAX_DEFAULT) 
+            {
+                reasons.remove(0);
+            }
+            int index = 1;
+            if(reasons.size() > 0)
+            {
+                JsonObject lastReason = reasons[reasons.size() -1].as<JsonObject>();
+                index = lastReason["eventID"].as<int>() + 1;
+            }
+            JsonObject obj = reasons.add<JsonObject>();
+            obj["eventID"] = index;
+            obj["reason"] = value;
+            if(saveToDisk(debugInfo))
+                return true;
+        }
+
+        return false;
+    }
+
+    bool resetLastBootReason()
+    {
+        SettingFileInfo debugInfo = getDebugInfo();
+        if(load(debugInfo))
+        {
+            debugInfo.doc[DEBUG_INFO_LAST_BOOT_REASONS].to<JsonArray>();
+            if(saveToDisk(debugInfo))
+                return true;
+        }
+        return false;
+    }
+
+    SettingFileInfo getDebugInfo() 
+    {
+        return 
+        {
+            false, DEBUG_INFO_PATH, SettingFile::DebugInfo, JsonDocument(), 
+            {
+                { DEBUG_INFO_LAST_BOOT_REASONS, "Last boot reasons", "The reasons for boot up or reboot.", SettingType::ArrayString, DEBUG_INFO_LAST_BOOT_REASONS_DEFAULT, RestartRequired::YES, { SettingProfile::System, SettingProfile::Readonly }},
+            }
+        };
+    }
     
 private:
     const char* m_TAG = TagHandler::SettingsFactory;
     PinMap* m_currentPinMap;
+    bool m_restartRequired = false;
+    bool m_initialized = false;
     // const int m_commonDeserializeSize = 32768;
     // const int m_commonSerializeSize = 24576;
 
     MotionProfile motionProfiles[MAX_MOTION_PROFILE_COUNT];
     ButtonSet buttonSets[MAX_BUTTON_SETS];
 
-    SETTING_STATE_FUNCTION_PTR_T message_callback = 0;
+    SettingsChangeCallback message_callback = 0;
 
     SemaphoreHandle_t m_networkSemaphore;
     SemaphoreHandle_t m_commonSemaphore;
     SemaphoreHandle_t m_pinSemaphore;
+    SemaphoreHandle_t m_debugInfoSemaphore;
 
     SettingFileInfo m_networkFileInfo = 
     {
@@ -877,6 +986,7 @@ private:
         {
             {SSID_SETTING, "Wifi ssid", "The ssid of the WiFi AP", SettingType::String, SSID_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
             {WIFI_PASS_SETTING, "Wifi pass", "The password for the WiFi AP", SettingType::String, WIFI_PASS_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
+            {WIFI_BAND_SETTING, "Wifi band", "The band of the wifi", SettingType::Number, WIFI_BAND_SETTING_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
             {STATICIP, "Static IP", "Enable static IP for this device", SettingType::Boolean, STATICIP_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {LOCALIP, "Local IP", "The static IP of this device", SettingType::String, LOCALIP_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
             {GATEWAY, "Gateway", "The networks gateway", SettingType::String, GATEWAY_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi}},
@@ -918,21 +1028,33 @@ private:
             //{FULL_BUILD, "Full build", "", SettingType::Boolean, false, RestartRequired::YES, {SettingProfile::System}}, // Not sure what this was for. Doesnt appear to be used anywhere.
             {TCODE_VERSION_SETTING, "TCode version", "The version of TCode", SettingType::Number, TCODE_VERSION_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
             {MAX_SERVO_RANGE, "Max servo range", "Max range of the servos", SettingType::Number, MAX_SERVO_RANGE_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
-            {CONTINUOUS_TWIST, "Continous twist", "Ignores any feedback signal", SettingType::Boolean, CONTINUOUS_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
+            {CONTINUOUS_TWIST, "Continous twist", "Ignores any feedback signal from a feedback servo", SettingType::Boolean, CONTINUOUS_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {FEEDBACK_TWIST, "Feedback twist", "For feed back servos", SettingType::Boolean, FEEDBACK_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {ANALOG_TWIST, "Analog twist", "Analog feedback servo", SettingType::Boolean, ANALOG_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}}
-#if MOTOR_TYPE == 1
-            ,{BLDC_ENCODER, "BLDC encoder type", "Select the type of bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_USEHALLSENSOR, "Use hall sensor", "Use Hall sensor for BLDC sensor", SettingType::Boolean, BLDC_USEHALLSENSOR_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_PULLEY_CIRCUMFERENCE, "Pull circumference", "The pulley circumference for BLDC motor", SettingType::Number, BLDC_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTORA_VOLTAGE, "Motor A voltage limit", "BLDC Motor A voltage limit", SettingType::Float, BLDC_MOTORA_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTORA_SUPPLY, "Motor A Supply voltage", "BLDC Motor A supply voltage", SettingType::Float, BLDC_MOTORA_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTORA_CURRENT, "Motor A current", "BLDC Motor A current", SettingType::Float, BLDC_MOTORA_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTORA_PARAMETERSKNOWN, "Motor A parameters known", "BLDC Motor A params known", SettingType::Boolean, BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_MOTORA_ZEROELECANGLE, "Motor A ZeroElecAngle", "BLDC Motor A ZeroElecAngle", SettingType::Float, BLDC_MOTORA_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+#ifdef MOTOR_TYPE_BLDC
+            ,{BLDC_TWIST_MULTIPLIER, "BLDC Twist multiplier", "BLDC Twist multiplier", SettingType::Float, BLDC_TWIST_MULTIPLIER_DEFAULT, RestartRequired::NO, {SettingProfile::Bldc}},
             {BLDC_RAILLENGTH, "Rail length", "SSR1 rail length", SettingType::Number, BLDC_RAILLENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-            {BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}}
-#elif MOTOR_TYPE == 0
+            {BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_PID_PROPORTIONAL_CONST, "PID proportional constant", "PID proportional const", SettingType::Float, BLDC_PID_PROPORTIONAL_CONST_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_LOWPASS_FILTER, "Low pass filter", "Low pass filter", SettingType::Float, BLDC_LOWPASS_FILTER_DEFAULT, RestartRequired::NO, {SettingProfile::Bldc}},
+            {BLDC_TWIST_LIMIT, "Twist limit", "BLDC twist limit", SettingType::Float, BLDC_TWIST_LIMIT_DEFAULT, RestartRequired::NO, {SettingProfile::Bldc}},
+
+            {BLDC_MOTORA_ENCODER, "BLDC encoder type", "Select the type of bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_USEHALLSENSOR, "Use hall sensor", "Use Hall sensor for BLDC sensor", SettingType::Boolean, BLDC_USEHALLSENSOR_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORA_PULLEY_CIRCUMFERENCE, "Pull circumference", "The pulley circumference for BLDC motor", SettingType::Number, BLDC_MOTORA_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORA_VOLTAGE, "Motor voltage limit", "BLDC Motor voltage limit", SettingType::Float, BLDC_MOTORA_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORA_SUPPLY, "Motor Supply voltage", "BLDC Motor supply voltage", SettingType::Float, BLDC_MOTORA_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORA_CURRENT, "Motor current", "BLDC Motor current", SettingType::Float, BLDC_MOTORA_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORA_ZEROELECANGLE, "Motor ZeroElecAngle", "BLDC Motor A ZeroElecAngle", SettingType::Float, BLDC_MOTORA_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            
+            {BLDC_MOTORB_ENCODER, "BLDC left encoder type", "Select the type of Left bldc encoder installed", SettingType::Number, BLDC_ENCODER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORB_PULLEY_CIRCUMFERENCE, "Pull left circumference", "The pulley circumference for Left BLDC motor", SettingType::Number, BLDC_MOTORB_PULLEY_CIRCUMFERENCE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORB_VOLTAGE, "Left Motor voltage limit", "BLDC Left Motor voltage limit", SettingType::Float, BLDC_MOTORB_VOLTAGE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORB_SUPPLY, "Left Motor Supply voltage", "BLDC Left Motor supply voltage", SettingType::Float, BLDC_MOTORB_SUPPLY_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORB_CURRENT, "Left Motor current", "BLDC Left Motor current", SettingType::Float, BLDC_MOTORB_CURRENT_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
+            {BLDC_MOTORB_ZEROELECANGLE, "Left Motor ZeroElecAngle", "Left BLDC Motor ZeroElecAngle", SettingType::Float, BLDC_MOTORB_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}}
+            
+#elif defined MOTOR_TYPE_SERVO
             ,{RIGHT_SERVO_ZERO, "Right servo zero", "The zero calibration for the right servo", SettingType::Number, RIGHT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {LEFT_SERVO_ZERO, "Left servo zero", "The zero calibration for the left servo", SettingType::Number, LEFT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {RIGHT_UPPER_SERVO_ZERO, "Right upper servo zero", "The zero calibration for the right upper servo", SettingType::Number, RIGHT_UPPER_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
@@ -965,6 +1087,9 @@ private:
             {HOLD_PWM, "Hold PWM", "PWM when the sleeve is at target", SettingType::Number, HOLD_PWM_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {CASE_FAN_MAX_PWM, "Max Fan PWM", "PWM when the fan is at its max speed", SettingType::Number, CASE_FAN_MAX_PWM_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {DISPLAY_I2C_ADDRESS, "Display I2C address", "I2C address of the display", SettingType::String, DISPLAY_I2C_ADDRESS_DEFAULT, RestartRequired::YES, {SettingProfile::Display}},
+            {SERVO_RESOLUTION, "Servo resolution", "Resolution for the servo PWM", SettingType::Number, SERVO_RESOLUTION_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Servo}},
+            {VIBE_RESOLUTION, "Vibe resolution", "Resolution for the vibe PWM", SettingType::Number, VIBE_RESOLUTION_DEFAULT, RestartRequired::YES, {SettingProfile::PWM}},
+            {LUBE_RESOLUTION, "Lube resolution", "Resolution for the lube PWM", SettingType::Number, LUBE_RESOLUTION_DEFAULT, RestartRequired::YES, {SettingProfile::PWM}},
             {HEATER_THRESHOLD, "Heater thresh hold", "The HoldPWM will be sent while the temp less than or equal to TargetTemp + heaterThreshold", SettingType::Float, HEATER_THRESHOLD_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},// TODo: what is this exactly
             {HEATER_RESOLUTION, "Heater resolution", "Resolution for the Heater PWM", SettingType::Number, HEATER_RESOLUTION_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
             {FAN_CONTROL_ENABLED, "Fan control enabled", "Enable PWM fan", SettingType::Boolean, FAN_CONTROL_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature}},
@@ -1033,14 +1158,21 @@ private:
             {I2C_SDA_PIN, "I2C SDA PIN", "Pin of the I2C SDA", SettingType::Number, I2C_SDA_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::System, SettingProfile::Pin}},
             {I2C_SCL_PIN, "I2C SCL PIN", "Pin of the I2C SCL", SettingType::Number, I2C_SCL_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::System, SettingProfile::Pin}},
             {BUTTON_SET_PINS, "Button set pins", "Pins for each button set. (Max 4)", SettingType::ArrayInt, BUTTON_SET_PINS_DEFAULT, RestartRequired::YES, {SettingProfile::Pin, SettingProfile::Analog}},
-            // BLDC
+            // Stroke BLDC
             {BLDC_ENCODER_PIN, "Encoder PIN", "Pin the BLDC encoder is on", SettingType::Number, BLDC_ENCODER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_CHIPSELECT_PIN, "Chipselect PIN", "Pin the BLDC chip select is on", SettingType::Number, BLDC_CHIPSELECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_ENABLE_PIN, "Enable PIN", "Pin the BLDC enable is on", SettingType::Number, BLDC_ENABLE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_HALLEFFECT_PIN, "Halleffect PIN", "Pin the hall effect is on", SettingType::Number, BLDC_HALLEFFECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
             {BLDC_PWMCHANNEL1_PIN, "PWM channel1 PIN", "Pin for the BLDC PWM 1", SettingType::Number, BLDC_PWMCHANNEL1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
             {BLDC_PWMCHANNEL2_PIN, "PWM channel2 PIN", "Pin for the BLDC PWM 2", SettingType::Number, BLDC_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
-            {BLDC_PWMCHANNEL3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}}
+            {BLDC_PWMCHANNEL3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+            // Twist BLDC
+            {BLDC_B_ENCODER_PIN, "Twist Encoder PIN", "Pin the BLDC Twist encoder is on", SettingType::Number, BLDC_B_ENCODER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_B_CHIPSELECT_PIN, "Twist Chipselect PIN", "Pin the BLDC Twist chip select is on", SettingType::Number, BLDC_B_CHIPSELECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_B_ENABLE_PIN, "Twist Enable PIN", "Pin the BLDC Twist enable is on", SettingType::Number, BLDC_B_ENABLE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
+            {BLDC_B_PWMCHANNEL1_PIN, "Twist PWM channel1 PIN", "Pin for the Twist BLDC PWM 1", SettingType::Number, BLDC_B_PWMCHANNEL1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+            {BLDC_B_PWMCHANNEL2_PIN, "Twist PWM channel2 PIN", "Pin for the Twist BLDC PWM 2", SettingType::Number, BLDC_B_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+            {BLDC_B_PWMCHANNEL3_PIN, "Twist PWM channel3 PIN", "Pin for the Twist BLDC PWM 3", SettingType::Number, BLDC_B_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}}
             #if CONFIG_IDF_TARGET_ESP32
             ,{ESP_H_TIMER0_FREQUENCY, "High timer 0 frequency", "Frequency for the high timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
             ,{ESP_H_TIMER1_FREQUENCY, "High timer 1 frequency", "Frequency for the high timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}
@@ -1053,7 +1185,6 @@ private:
             ,{ESP_L_TIMER3_FREQUENCY, "Low timer 3 frequency", "Frequency for the low timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}}  
         }
     };
-
 
     SettingsFactory() {
         m_networkSemaphore = xSemaphoreCreateMutex();
@@ -1113,6 +1244,28 @@ private:
     int8_t voiceWakeTime;
     int vibTimeout;
     bool vibTimeoutEnabled;
+    float m_BLDCTwistMultiplier;
+    float m_BLDCTwistLimit;
+    float m_BLDCPIDProportionalConst;
+    float m_BLDCLowpassFilter;
+
+    // The following cause restart required on boot. Need to figure out how to stop it until all has been loaded.
+    void checkRestartRequired(SettingFileInfo* fileInfo, const char* settingName)
+    {
+        // if(!m_restartRequired && m_initialized)
+        // {
+        //     const Setting* setting = fileInfo->getSetting(settingName);
+        //     checkRestartRequired(setting, settingName);
+        // }
+    }
+
+    void checkRestartRequired(const Setting* setting, const char* settingName)
+    {
+        // if(setting && m_initialized && !m_restartRequired )
+        // {
+        //     m_restartRequired = setting->isRestartRequired == RestartRequired::YES;
+        // }
+    }
 
     bool load(SettingFileInfo &fileInfo)
     {
@@ -1208,6 +1361,10 @@ private:
             std::vector<int8_t> vec = { BUTTON_SET_PINS_1, BUTTON_SET_PINS_2, BUTTON_SET_PINS_3, BUTTON_SET_PINS_4 };
             doc[BUTTON_SET_PINS] = vec;
             return true;
+        } else if(!strcmp(setting->name, DEBUG_INFO_LAST_BOOT_REASONS)) {
+            std::vector<const char*> vec = { };
+            doc[DEBUG_INFO_LAST_BOOT_REASONS] = vec;
+            return true;
         }
         LogHandler::error(m_TAG, "No default vector set for: %s", setting->name);
         return false;
@@ -1240,7 +1397,7 @@ private:
                 PinMapSSR1PCB* pinMap = PinMapSSR1PCB::getInstance();
                 pinMap->overideDefaults();
                 m_pinsFileInfo.initialized = true;
-                syncSSR1AndCommonPinsToDisk(pinMap);
+                syncSSRAndCommonPinsToDisk(pinMap);
                 loadDefaultChannelsForDeviceType();
                 return saveToDisk(m_pinsFileInfo);
             }
@@ -1282,7 +1439,7 @@ private:
                 setValue(ESP_L_TIMER1_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
                 setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
                 setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
-#elif CONFIG_IDF_TARGET_ESP32S3
+#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32E22
                 setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
                 setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
                 setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
@@ -1331,7 +1488,7 @@ private:
                 setValue(ESP_L_TIMER1_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
                 setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
                 setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
-#elif CONFIG_IDF_TARGET_ESP32S3
+#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32E22
                 setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
                 setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
                 setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
@@ -1357,7 +1514,8 @@ private:
 #endif
                 break;
             }
-            case DeviceType::SSR1: {
+            case DeviceType::SSR1:
+            case DeviceType::SSR2: {
                 LogHandler::debug(m_TAG, "Loading default channels and pins for SSR1");
 #if CONFIG_IDF_TARGET_ESP32
                 setValue(RIGHT_SERVO_PIN, -1);
@@ -1382,7 +1540,7 @@ private:
                 setValue(ESP_L_TIMER1_FREQUENCY, ESP_VIB_TIMER_FREQUENCY_DEFAULT);
                 setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
                 setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
-#elif CONFIG_IDF_TARGET_ESP32S3
+#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32E22
                 setValue(RIGHT_SERVO_PIN, -1);
                 setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
                 setValue(LEFT_SERVO_PIN, -1);
@@ -1500,7 +1658,8 @@ private:
             file.close();
             return false;
         }
-        LogHandler::debug(m_TAG, "File contents: %s", file.readString().c_str());
+        if(LogHandler::getLogLevel() >= LogLevel::DEBUG)
+            LogHandler::debug(m_TAG, "File contents: %s", file.readString().c_str());
         file.close();
         return true;
     }
@@ -1565,13 +1724,21 @@ private:
         switch(deviceType) 
         {
             case DeviceType::SSR1:
-                m_currentPinMap = loadSSR1Pins();
+            case DeviceType::SSR2:
+                m_currentPinMap = loadSSRPins();
             break;
             case DeviceType::SR6:
                 m_currentPinMap = loadSR6Pins();
             break;
-            default:
+            case DeviceType::OSR:
                 m_currentPinMap = loadOSRPins();
+            break;
+            default:
+                #ifdef MOTOR_TYPE_BLDC
+                    m_currentPinMap = loadSSRPins();
+                #elif defined MOTOR_TYPE_SERVO
+                    m_currentPinMap = loadOSRPins();
+                #endif
 
         }
     }
@@ -1660,7 +1827,8 @@ private:
         pinMap->setTimerFrequency(6, timerFreq);
         getValue(ESP_L_TIMER3_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(7, timerFreq);
-#elif CONFIG_IDF_TARGET_ESP32S3
+//#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32E22
+#else
         getValue(ESP_L_TIMER0_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(0, timerFreq);
         getValue(ESP_L_TIMER1_FREQUENCY, timerFreq);
@@ -1671,13 +1839,14 @@ private:
         pinMap->setTimerFrequency(3, timerFreq);
 #endif
     }
-    PinMapSSR1* loadSSR1Pins() 
+
+    PinMapSSR* loadSSRPins() 
     {
         if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadSSR1Pins called before initialized");
             return 0;
         }
-        PinMapSSR1* pinMap = PinMapSSR1::getInstance();
+        PinMapSSR* pinMap = PinMapSSR::getInstance();
         loadCommonPins(pinMap);
         int8_t pin = -1;
         getValue(BLDC_ENCODER_PIN, pin);
@@ -1694,9 +1863,23 @@ private:
         pinMap->setPwmChannel2(pin);
         getValue(BLDC_PWMCHANNEL3_PIN, pin);
         pinMap->setPwmChannel3(pin);
+
+        getValue(BLDC_B_ENCODER_PIN, pin);
+        pinMap->setLeftEncoder(pin);
+        getValue(BLDC_B_CHIPSELECT_PIN, pin);
+        pinMap->setLeftChipSelect(pin);
+        getValue(BLDC_B_ENABLE_PIN, pin);
+        pinMap->setLeftEnable(pin);
+        getValue(BLDC_B_PWMCHANNEL1_PIN, pin);
+        pinMap->setLeftPwmChannel1(pin);
+        getValue(BLDC_B_PWMCHANNEL2_PIN, pin);
+        pinMap->setLeftPwmChannel2(pin);
+        getValue(BLDC_B_PWMCHANNEL3_PIN, pin);
+        pinMap->setLeftPwmChannel3(pin);
         return pinMap;
 
     }
+
     PinMapOSR* loadOSRPins() 
     {
         if(!m_pinsFileInfo.initialized) {
@@ -1800,7 +1983,7 @@ private:
         setValue(ESP_L_TIMER1_FREQUENCY, pinMap->getTimerFrequency(5));
         setValue(ESP_L_TIMER2_FREQUENCY, pinMap->getTimerFrequency(6));
         setValue(ESP_L_TIMER3_FREQUENCY, pinMap->getTimerFrequency(7));
-#elif CONFIG_IDF_TARGET_ESP32S3
+#else
         setValue(ESP_L_TIMER0_FREQUENCY, pinMap->getTimerFrequency(0));
         setValue(ESP_L_TIMER1_FREQUENCY, pinMap->getTimerFrequency(1));
         setValue(ESP_L_TIMER2_FREQUENCY, pinMap->getTimerFrequency(2));
@@ -1808,10 +1991,10 @@ private:
 #endif
     }
 
-    void syncSSR1AndCommonPinsToDisk(const PinMapSSR1* pinMap) 
+    void syncSSRAndCommonPinsToDisk(const PinMapSSR* pinMap) 
     {
         if(!m_pinsFileInfo.initialized) {
-            LogHandler::error(m_TAG, "syncSSR1AndCommonPinsToDisk called before initialized");
+            LogHandler::error(m_TAG, "syncSSRAndCommonPinsToDisk called before initialized");
             return;
         }
         syncCommonPinsToDoc(pinMap);
@@ -1822,6 +2005,12 @@ private:
         setValue(BLDC_PWMCHANNEL1_PIN, pinMap->pwmChannel1());
         setValue(BLDC_PWMCHANNEL2_PIN, pinMap->pwmChannel2());
         setValue(BLDC_PWMCHANNEL3_PIN, pinMap->pwmChannel3());
+        setValue(BLDC_B_ENCODER_PIN, pinMap->motorBEncoder());
+        setValue(BLDC_B_CHIPSELECT_PIN, pinMap->motorBChipSelect());
+        setValue(BLDC_B_ENABLE_PIN, pinMap->motorBEnable());
+        setValue(BLDC_B_PWMCHANNEL1_PIN, pinMap->motorBPwmChannel1());
+        setValue(BLDC_B_PWMCHANNEL2_PIN, pinMap->motorBPwmChannel2());
+        setValue(BLDC_B_PWMCHANNEL3_PIN, pinMap->motorBPwmChannel3());
         savePins();
     }
 

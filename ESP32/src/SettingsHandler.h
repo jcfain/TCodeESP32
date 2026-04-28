@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,7 @@ SOFTWARE. */
 #include <vector>
 #include <map>
 #include <Wire.h>
+#include "soc/rtc.h"
 // // #include "LogHandler.h"
 #include "utils.h"
 #include "TagHandler.h"
@@ -42,6 +43,7 @@ SOFTWARE. */
 #include "channelMap.hpp"
 #include "settingConstants.h"
 #include "settingsFactory.h"
+#include "callback.h"
 
 #define DESERIALIZE_SIZE 32768
 #define SERIALIZE_SIZE 24576
@@ -52,7 +54,9 @@ class SettingsHandler
 {
 public:
     static bool initialized;
-    static int restartRequired;
+    static int restartInSecs;
+    static inline const char* errorInfo[10];
+    static inline size_t errorInfoIndex = 0;
     static bool saving;
     static bool motionPaused;
     static bool fullBuild;
@@ -75,24 +79,6 @@ public:
 
     static bool apMode;
 
-    
-    // template<typename T,
-    //          typename = std::enable_if<!std::is_const<T>::value || std::is_integral<T>::value || std::is_enum<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
-    // static void getValue(const char* name, T &value)
-    // {
-    //     m_settingsFactory->getValue(name, value);
-    // }
-    
-    // static void getValue(const char* name, char* value, size_t len)
-    // {
-    //     m_settingsFactory->getValue(name, value, len);
-    // }
-
-    // static void defaultValue(const char* name) 
-    // {
-    //     m_settingsFactory->defaultValue(name);
-    // }
-
     static void init()
     {
         m_settingsFactory = SettingsFactory::getInstance();
@@ -107,12 +93,16 @@ public:
         loadMotionProfiles(false);
         loadButtons(false);
 
-
-        LogHandler::debug(_TAG, "Last reset reason: %s", machine_reset_cause());
+        const char* lastRebootReason = machine_reset_cause();
+        LogHandler::info(_TAG, "Last reset reason: %s", lastRebootReason);
+        if(!m_settingsFactory->addLastBootReason(lastRebootReason))
+        {
+            LogHandler::error(_TAG, "Error saving last reset reason to disk");
+        }
         initialized = true;
     }
 
-    static void setMessageCallback(SETTING_STATE_FUNCTION_PTR_T f)
+    static void setMessageCallback(SettingsChangeCallback f)
     {
         LogHandler::debug(_TAG, "setMessageCallback");
         if (f == nullptr)
@@ -125,9 +115,19 @@ public:
         }
     }
 
-    // static bool isBoardType(BoardType value) {
-    //     return m_settingsFactory->getBoardType() == value;
-    // }
+    /// The errors added will only print if the main setup fails for some reason.
+    /// Otherwise use LogHandler::error
+    static void addPersistentError(const char* value)
+    {
+        if(errorInfoIndex >= 10)
+        {
+            LogHandler::error("Too many errors in buffer! The last added erro is: %s", value);
+            return;
+        }
+        //LogHandler::debug("Add persistent error: %s", value);
+        errorInfo[errorInfoIndex] = value;
+        errorInfoIndex++;
+    }
 
     static void printFree(bool forcePrint = false) {
         if(forcePrint || LogHandler::getLogLevel() == LogLevel::DEBUG)
@@ -156,7 +156,7 @@ public:
 	static void restart(const int delayInSec = 0) {
 		LogHandler::info(_TAG, "Schedule device restart in %ld seconds", delayInSec);
         // Restart in main task loop
-		restartRequired = delayInSec;
+		restartInSecs = delayInSec;
 	}
 
     static void printWebAddress(const char* hostAddress) 
@@ -260,22 +260,22 @@ public:
         JsonObject v03 = tcodeVersions.add<JsonObject>();
         v03["name"] = "v0.3";
         v03["value"] = TCodeVersion::v0_3;
-        JsonObject v04 = tcodeVersions.add<JsonObject>();
-        v04["name"] = "v0.4 (Experimental)";
-        v04["value"] = TCodeVersion::v0_4;
+        // JsonObject v04 = tcodeVersions.add<JsonObject>();
+        // v04["name"] = "v0.4 (Experimental)";
+        // v04["value"] = TCodeVersion::v0_4;
         JsonArray boardTypes = doc["boardTypes"].to<JsonArray>();
 #if CONFIG_IDF_TARGET_ESP32
         JsonObject devkit = boardTypes.add<JsonObject>();
         devkit["name"] = "Devkit";
         devkit["value"] = (uint8_t)BoardType::DEVKIT;
-    #if MOTOR_TYPE == 0
+    #ifdef MOTOR_TYPE_SERVO
         JsonObject SR6MB = boardTypes.add<JsonObject>();
         SR6MB["name"] = "SR6MB";
         SR6MB["value"] = (uint8_t)BoardType::CRIMZZON;
         JsonObject INControl = boardTypes.add<JsonObject>();
         INControl["name"] = "IN-Control";
         INControl["value"] = (uint8_t)BoardType::ISAAC;
-    #elif MOTOR_TYPE == 1
+    #elif defined MOTOR_TYPE_BLDC
         JsonObject SSR1PCB = boardTypes.add<JsonObject>();
         SSR1PCB["name"] = "SSR1PCB";
         SSR1PCB["value"] = (uint8_t)BoardType::SSR1PCB;
@@ -290,7 +290,33 @@ public:
         N8R8["name"] = "S3 N8R8";
         N8R8["value"] = (uint8_t)BoardType::N8R8;
     #endif
+#elif CONFIG_IDF_TARGET_ESP32C5
+    JsonObject c5Devkit = boardTypes.add<JsonObject>();
+    c5Devkit["name"] = "DEVKIT C5";
+    c5Devkit["value"] = (uint8_t)BoardType::DEVKIT_C5;
+#elif CONFIG_IDF_TARGET_ESP32C6
+    JsonObject c6Devkit = boardTypes.add<JsonObject>();
+    c6Devkit["name"] = "DEVKIT C6";
+    c6Devkit["value"] = (uint8_t)BoardType::DEVKIT_C6;
 #endif
+    JsonArray wifiBands = doc["wifiBands"].to<JsonArray>();
+    JsonObject modeAuto = wifiBands.add<JsonObject>();
+    modeAuto["name"] = "Auto";
+    modeAuto["value"] = (uint8_t)WifiBand::AUTO;
+    JsonObject mode24g = wifiBands.add<JsonObject>();
+    mode24g["name"] = "2.4ghz";
+    mode24g["value"] = (uint8_t)WifiBand::MODE24ghz;
+
+	#if SOC_WIFI_SUPPORT_5G
+    JsonObject mode5g = wifiBands.add<JsonObject>();
+    mode5g["name"] = "5ghz";
+    mode5g["value"] = (uint8_t)WifiBand::MODE5ghz;
+    #endif
+	#if SOC_WIFI_SUPPORT_6G
+    JsonObject mode6g = wifiBands.add<JsonObject>();
+    mode6g["name"] = "56ghz";
+    c5Demode6gvkit["value"] = (uint8_t)WifiMode::MODE6ghz;
+    #endif
         int motorType = MOTOR_TYPE_DEFAULT;
         m_settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);
         doc["motorType"] = motorType;
@@ -314,27 +340,41 @@ public:
             systemI2CAddressesJsonArray.add(buf);
         }
 
+        int deviceType = DEVICE_TYPE_DEFAULT;
+        m_settingsFactory->getValue(DEVICE_TYPE, deviceType);
         JsonArray deviceTypes = doc["deviceTypes"].to<JsonArray>();
         JsonObject defaultDevice = deviceTypes.add<JsonObject>();
-    #if MOTOR_TYPE == 0
-        defaultDevice["name"] = "OSR";
-        defaultDevice["value"] = DeviceType::OSR;
+    #ifdef MOTOR_TYPE_SERVO
+        defaultDevice["name"] = DEVICE_TYPE_NAME_DEFAULT;
+        defaultDevice["value"] = DEVICE_TYPE_DEFAULT;
         JsonObject SR6 = deviceTypes.add<JsonObject>();
         SR6["name"] = "SR6";
         SR6["value"] = DeviceType::SR6;
         JsonObject TVIBE = deviceTypes.add<JsonObject>();
         TVIBE["name"] = "TVIBE";
         TVIBE["value"] = DeviceType::TVIBE;
-    #elif MOTOR_TYPE == 1
-        defaultDevice["name"] = "SSR1";
-        defaultDevice["value"] = DeviceType::SSR1;
+    #elif defined MOTOR_TYPE_BLDC
+        defaultDevice["name"] = DEVICE_TYPE_NAME_DEFAULT;
+        defaultDevice["value"] = DEVICE_TYPE_DEFAULT;
+        JsonObject SSR1 = deviceTypes.add<JsonObject>();
+        SSR1["name"] = "SSR1";
+        SSR1["value"] = DeviceType::SSR1;
+        JsonObject SSR2 = deviceTypes.add<JsonObject>();
+        SSR2["name"] = "SSR2";
+        SSR2["value"] = DeviceType::SSR2;
         JsonArray encoderTypes = doc["encoderTypes"].to<JsonArray>();
         JsonObject defaultEncoder = encoderTypes.add<JsonObject>();
-        defaultEncoder["name"] = "MT6701 SSI";
-        defaultEncoder["value"] = BLDCEncoderType::MT6701;
-        JsonObject PWM = encoderTypes.add<JsonObject>();
-        PWM["name"] = "PWM";
-        PWM["value"] = BLDCEncoderType::PWM;
+        defaultEncoder["name"] = "NONE";
+        defaultEncoder["value"] = BLDCEncoderType::NONE;
+        if(static_cast<DeviceType>(deviceType) != DeviceType::SSR2)
+        {
+            JsonObject MT6701 = encoderTypes.add<JsonObject>();
+            MT6701["name"] = "MT6701 SSI";
+            MT6701["value"] = BLDCEncoderType::MT6701;
+            JsonObject PWM = encoderTypes.add<JsonObject>();
+            PWM["name"] = "PWM";
+            PWM["value"] = BLDCEncoderType::PWM;
+        }
         JsonObject SPI = encoderTypes.add<JsonObject>();
         SPI["name"] = "SPI";
         SPI["value"] = BLDCEncoderType::SPI;
@@ -409,9 +449,12 @@ public:
         }
         doc["chipID"] = chipId;
 
+        doc["maxPWMResolution"] = MAX_PWM_RESOLUTION;
+        doc["apbClockFrequency"] =  rtc_clk_apb_freq_get();
         doc["decoyPass"] = DECOY_PASS;
         doc["apMode"] = apMode;
         doc["defaultIP"] = m_settingsFactory->getAPModeIP();
+        doc["restartRequired"] = m_settingsFactory->restartRequired();
         //String output;
         serializeJson(doc, buf);
         doc.clear();
@@ -1213,425 +1256,14 @@ private:
 	static SemaphoreHandle_t m_wifiMutex;
     static SemaphoreHandle_t m_buttonsMutex;
 	static SemaphoreHandle_t m_settingsMutex;
-    static SETTING_STATE_FUNCTION_PTR_T message_callback;
+    static inline SettingsChangeCallback message_callback = 0;
     // Use http://arduinojson.org/assistant to compute the capacity.
-    // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
-    // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
     static const int deserializeSize = 32768;
     static const int serializeSize = 24576;
-    // 3072
 
     static bool motionEnabled;
     static int motionSelectedProfileIndex;
     static int motionDefaultProfileIndex;
-    // static MotionProfile motionProfiles[maxMotionProfileCount];
-    
-    // static bool voiceEnabled;
-    // static bool voiceMuted;
-    // static int voiceWakeTime ;
-    // static int voiceVolume;
-
-//     static bool update(JsonObject json)
-//     {
-//         logLevel = (LogLevel)(json["logLevel"] | 2);
-//         LogHandler::setLogLevel(logLevel);
-//         LogHandler::debug(_TAG, "Load Json: Memory usage: %u bytes", json.memoryUsage());
-
-//         boardType = (BoardType)(json["boardType"] | (uint8_t)BoardType::DEVKIT);
-
-//         if(isBoardType(BoardType::CRIMZZON) || isBoardType(BoardType::ISAAC)) {
-//             TCodeVersionEnum = TCodeVersion::v0_3;
-//             TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
-//         }
-        // std::vector<String> includesVec;
-        // setValue(json, includesVec, "log", "log-include-tags");
-        // LogHandler::setIncludes(includesVec);
-
-        // std::vector<String> excludesVec;
-        // setValue(json, excludesVec, "log", "log-exclude-tags");
-        // LogHandler::setExcludes(excludesVec);
-
-//         if(!isBoardType(BoardType::CRIMZZON)) {
-//             TCodeVersionEnum = (TCodeVersion)(json["TCodeVersion"] | 1);
-//             TCodeVersionName = TCodeVersionMapper(TCodeVersionEnum);
-//         }
-
-//         channelMap.init(TCodeVersionEnum, motorType);
-
-// #if MOTOR_TYPE == 1
-//         for (auto x : ChannelMapBLDC) {
-//             currentChannels.push_back(x);
-//         }
-// #else
-//         currentChannels.clear();
-//         if(TCodeVersionEnum == TCodeVersion::v0_2) {
-//             // for (size_t i = 0; i < (sizeof(ChannelMapV2)/sizeof(Channel)); i++) {
-//             //     currentChannels.push_back(ChannelMapV2[i]);
-//             // }
-//             for (auto x : ChannelMapV2) {
-//                 currentChannels.push_back(x);
-//             }
-//         } else {
-//             for (auto x : ChannelMapV3) {
-//                 currentChannels.push_back(x);
-//             }
-//         }  
-// #endif
-
-
-//         int tcodeMax = TCodeVersionEnum == TCodeVersion::v0_2 ? 999 : 9999;
-//         for (size_t i = 0; i < currentChannels.size(); i++)
-//         {
-//             uint16_t min = json["channelRanges"][currentChannels[i].Name]["min"].as<uint16_t>();
-//             uint16_t max = json["channelRanges"][currentChannels[i].Name]["max"].as<uint16_t>();
-//             currentChannels[i].min = !min ? 1 : min;
-//             currentChannels[i].max = !max ? tcodeMax : max;
-//         }
-        
-//         sendMessage("channelRanges", "channelRanges");// TODO: channelranges should be in its own json
-
-//         udpServerPort = json["udpServerPort"] | 8000;
-//         webServerPort = json["webServerPort"] | 80;
-//         const char *hostnameTemp = json["hostname"] | "tcode";
-//         if (hostnameTemp != nullptr)
-//             strcpy(hostname, hostnameTemp);
-//         const char *friendlyNameTemp = json["friendlyName"] | "ESP32 TCode";
-//         if (friendlyNameTemp != nullptr)
-//             strcpy(friendlyName, friendlyNameTemp);
-
-//         bluetoothEnabled = json["bluetoothEnabled"] | false;
-
-//         // Servo motors//////////////////////////////////////////////////////////////////////////////////
-//         pitchFrequencyIsDifferent = json["pitchFrequencyIsDifferent"];
-//         msPerRad = json["msPerRad"] | 637;
-//         servoFrequency = json["servoFrequency"] | 50;
-//         pitchFrequency = json[pitchFrequencyIsDifferent ? "pitchFrequency" : "servoFrequency"] | servoFrequency;
-//         sr6Mode = json["sr6Mode"];
-
-//         RightServo_ZERO = json["RightServo_ZERO"] | 1500;
-//         LeftServo_ZERO = json["LeftServo_ZERO"] | 1500;
-//         RightUpperServo_ZERO = json["RightUpperServo_ZERO"] | 1500;
-//         LeftUpperServo_ZERO = json["LeftUpperServo_ZERO"] | 1500;
-//         PitchLeftServo_ZERO = json["PitchLeftServo_ZERO"] | 1500;
-//         PitchRightServo_ZERO = json["PitchRightServo_ZERO"] | 1500;
-
-//         BLDC_UsePWM = json["BLDC_UsePWM"] | false; // Must be before pinout is set
-//         BLDC_UseMT6701 = json["BLDC_UseMT6701"] | true;
-//         BLDC_UseHallSensor = json["BLDC_UseHallSensor"] | false;
-//         BLDC_Pulley_Circumference = json["BLDC_Pulley_Circumference"] | 60;
-//         BLDC_MotorA_Voltage = round2(json["BLDC_MotorA_Voltage"] | 20.0);
-//         BLDC_MotorA_Current = round2(json["BLDC_MotorA_Current"] | 1.0);
-//         BLDC_MotorA_ParametersKnown = json["BLDC_MotorA_ParametersKnown"] | false;
-//         BLDC_MotorA_ZeroElecAngle = round2(json["BLDC_MotorA_ZeroElecAngle"] | 0.00);
-//         BLDC_RailLength = json["BLDC_RailLength"] | 125;
-//         BLDC_StrokeLength = json["BLDC_StrokeLength"] | 120;
-
-//         setBoardPinout(json);
-        
-//         if(isBoardType(BoardType::CRIMZZON)) {
-//             heaterResolution = json["heaterResolution"] | 8;
-//             caseFanResolution = json["caseFanResolution"] | 10;
-//             caseFanFrequency = json["caseFanFrequency"] | 25;
-//             Display_Screen_Height = json["Display_Screen_Height"] | 32;
-//         }
-
-//         twistFrequency = json["twistFrequency"] | 50;
-//         squeezeFrequency = json["squeezeFrequency"] | 50;
-//         valveFrequency = json["valveFrequency"] | 50;
-//         continuousTwist = json["continuousTwist"];
-//         feedbackTwist = json["feedbackTwist"];
-//         analogTwist = json["analogTwist"];
-//         TwistServo_ZERO = json["TwistServo_ZERO"] | 1500;
-//         ValveServo_ZERO = json["ValveServo_ZERO"] | 1500;
-//         SqueezeServo_ZERO = json["Squeeze_ZERO"] | 1500;
-
-//         staticIP = json["staticIP"];
-//         const char *localIPTemp = json["localIP"] | "192.168.0.150";
-//         if (localIPTemp != nullptr)
-//             strcpy(localIP, localIPTemp);
-//         const char *gatewayTemp = json["gateway"] | "192.168.0.1";
-//         if (gatewayTemp != nullptr)
-//             strcpy(gateway, gatewayTemp);
-//         const char *subnetTemp = json["subnet"] | "255.255.255.0";
-//         if (subnetTemp != nullptr)
-//             strcpy(subnet, subnetTemp);
-//         const char *dns1Temp = json["dns1"] | "8.8.8.8";
-//         if (dns1Temp != nullptr)
-//             strcpy(dns1, dns1Temp);
-//         const char *dns2Temp = json["dns2"] | "8.8.4.4";
-//         if (dns2Temp != nullptr)
-//             strcpy(dns2, dns2Temp);
-
-//         autoValve = json["autoValve"];
-//         inverseValve = json["inverseValve"];
-//         valveServo90Degrees = json["valveServo90Degrees"];
-//         inverseStroke = json["inverseStroke"];
-//         inversePitch = json["inversePitch"];
-//         lubeEnabled = json["lubeEnabled"];
-//         lubeAmount = json["lubeAmount"] | 255;
-//         displayEnabled = json["displayEnabled"] | true;
-//         sleeveTempDisplayed = json["sleeveTempDisplayed"];
-//         internalTempDisplayed = json["internalTempDisplayed"];
-//         versionDisplayed = json["versionDisplayed"] | true;
-//         Display_Screen_Width = json["Display_Screen_Width"] | 128;
-//         if(!isBoardType(BoardType::CRIMZZON)) {
-//             Display_Screen_Height = json["Display_Screen_Height"] | 64;
-//         }
-//         const char *Display_I2C_AddressTemp = json["Display_I2C_Address"] | "0x3c";
-//         if (Display_I2C_AddressTemp != nullptr)
-//             Display_I2C_Address = (int)strtol(Display_I2C_AddressTemp, NULL, 0);
-//         Display_Rst_PIN = json["Display_Rst_PIN"] | -1;
-
-//         tempSleeveEnabled = json["tempSleeveEnabled"];
-//         heaterThreshold = json["heaterThreshold"] | 5.0;
-//         heaterFrequency = json["heaterFrequency"] | 50;
-//         if(!isBoardType(BoardType::CRIMZZON)) {
-//             heaterResolution = json["heaterResolution"] | 8;
-//         }
-//         TargetTemp = json["TargetTemp"] | 40.0;
-//         HeatPWM = json["HeatPWM"] | 255;
-//         HoldPWM = json["HoldPWM"] | 110;
-
-//         tempInternalEnabled = json["tempInternalEnabled"];
-//         fanControlEnabled = json["fanControlEnabled"];
-//         internalTempForFan = json["internalTempForFan"] | 30.0;
-//         internalMaxTemp = json["internalMaxTemp"] | 50.0;
-
-//         batteryLevelEnabled = json["batteryLevelEnabled"];
-//         batteryLevelNumeric = json["batteryLevelNumeric"];
-//         batteryVoltageMax = json["batteryVoltageMax"] | 12.6;
-//         batteryCapacityMax = json["batteryCapacityMax"] | 3500;
-
-//         if(!isBoardType(BoardType::CRIMZZON)) {
-//             caseFanFrequency = json["caseFanFrequency"] | 25;
-//             caseFanResolution = json["caseFanResolution"] | 10;
-//         }
-//         caseFanMaxDuty = pow(2, caseFanResolution) - 1;
-        
-//         lubeEnabled = json["lubeEnabled"];
-
-//         setValue(json, voiceEnabled, "voiceHandler", "voiceEnabled", false);
-//         setValue(json, voiceMuted, "voiceHandler", "voiceMuted", false);
-//         setValue(json, voiceVolume, "voiceHandler", "voiceVolume", 0);
-//         setValue(json, voiceWakeTime, "voiceHandler", "voiceWakeTime", 10);
-
-//         lastRebootReason = machine_reset_cause();
-//         LogHandler::debug(_TAG, "Last reset reason: %s", SettingsHandler::lastRebootReason);
-
-//         LogUpdateDebug();
-//         return true;
-//     }
-
-//     static bool compileCommonJsonDocument(DynamicJsonDocument& doc)
-//     {
-//         // LogHandler::info(_TAG, "Save settings");
-//         // Delete existing file, otherwise the configuration is appended to the file
-//         // Serial.print("LittleFS used: ");
-//         // Serial.println(LittleFS.usedBytes() + "/" + LittleFS.totalBytes());
-//         // if (!LittleFS.remove(userSettingsFilePath))
-//         // {
-//         //     LogHandler::error(_TAG, "Failed to remove settings file: %s", userSettingsFilePath);
-//         // }
-//         // File file = LittleFS.open(userSettingsFilePath, FILE_WRITE);
-//         // if (!file)
-//         // {
-//         //     LogHandler::error(_TAG, "Failed to create settings file: %s", userSettingsFilePath);
-//         //     return false;
-//         // }
-
-//         // // Allocate a temporary docdocument
-//         // DynamicdocDocument doc(serializeSize);
-
-//         doc["boardType"] = (uint8_t)boardType;
-//         doc["logLevel"] = (int)logLevel;
-//         LogHandler::setLogLevel(logLevel);
-//         // Serial.println("logLevel: ");
-//         // Serial.println((int)logLevel);
-//         // Serial.println( doc["logLevel"] .as<int>());
-//         // Serial.println((int)doc["logLevel"]);
-
-//         // std::vector<const char*> tags;
-//         //  tags.push_back(TagHandler::DisplayHandler);
-//         //  tags.push_back(TagHandler::BLDCHandler);
-//         //  tags.push_back(TagHandler::ServoHandler3);
-//         // LogHandler::setTags(tags);
-        
-//         for (size_t i = 0; i < currentChannels.size(); i++)
-//         {
-//             doc["channelRanges"][currentChannels[i].Name]["min"] = currentChannels[i].min;
-//             doc["channelRanges"][currentChannels[i].Name]["max"] = currentChannels[i].max;
-//             // LogHandler::debug(_TAG, "save %s min: %i", currentChannels[i].Name, doc["channelRanges"][currentChannels[i].Name]["min"].as<int>());
-//             // LogHandler::debug(_TAG, "save %s max: %i", currentChannels[i].Name, doc["channelRanges"][currentChannels[i].Name]["max"].as<int>());
-//         }
-
-//         if (!tempInternalEnabled)
-//         {
-//             internalTempDisplayed = false;
-//             fanControlEnabled = false;
-//         }
-//         if (!tempSleeveEnabled)
-//         {
-//             sleeveTempDisplayed = false;
-//         }
-//         doc["fullBuild"] = fullBuild;
-//         doc["TCodeVersion"] = (int)TCodeVersionEnum;
-        
-//         doc["udpServerPort"] = udpServerPort;
-//         doc["webServerPort"] = webServerPort;
-//         doc["hostname"] = hostname;
-//         doc["friendlyName"] = friendlyName;
-//         doc["bluetoothEnabled"] = bluetoothEnabled;
-//         doc["pitchFrequencyIsDifferent"] = pitchFrequencyIsDifferent;
-//         doc["msPerRad"] = msPerRad;
-//         doc["servoFrequency"] = servoFrequency;
-//         doc["pitchFrequency"] = pitchFrequency;
-//         doc["valveFrequency"] = valveFrequency;
-//         doc["twistFrequency"] = twistFrequency;
-//         doc["squeezeFrequency"] = squeezeFrequency;
-//         doc["continuousTwist"] = continuousTwist;
-//         doc["feedbackTwist"] = feedbackTwist;
-//         doc["analogTwist"] = analogTwist;
-//         doc["TwistFeedBack_PIN"] = TwistFeedBack_PIN;
-//         doc["RightServo_PIN"] = RightServo_PIN;
-//         doc["LeftServo_PIN"] = LeftServo_PIN;
-//         doc["RightUpperServo_PIN"] = RightUpperServo_PIN;
-//         doc["LeftUpperServo_PIN"] = LeftUpperServo_PIN;
-//         doc["PitchLeftServo_PIN"] = PitchLeftServo_PIN;
-//         doc["PitchRightServo_PIN"] = PitchRightServo_PIN;
-//         doc["ValveServo_PIN"] = ValveServo_PIN;
-//         doc["TwistServo_PIN"] = TwistServo_PIN;
-//         doc["Squeeze_PIN"] = Squeeze_PIN;
-//         doc["Vibe0_PIN"] = Vibe0_PIN;
-//         doc["Vibe1_PIN"] = Vibe1_PIN;
-//         doc["Vibe2_PIN"] = Vibe2_PIN;
-//         doc["Vibe3_PIN"] = Vibe3_PIN;
-//         doc["Case_Fan_PIN"] = Case_Fan_PIN;
-//         doc["LubeButton_PIN"] = LubeButton_PIN;
-//         doc["Internal_Temp_PIN"] = Internal_Temp_PIN;
-
-//         doc["BLDC_UsePWM"] = BLDC_UsePWM;
-//         doc["BLDC_UseMT6701"] = BLDC_UseMT6701;
-//         doc["BLDC_UseHallSensor"] = BLDC_UseHallSensor;
-//         doc["BLDC_Pulley_Circumference"] = BLDC_Pulley_Circumference;
-//         doc["BLDC_Encoder_PIN"] = BLDC_Encoder_PIN;
-//         doc["BLDC_ChipSelect_PIN"] = BLDC_ChipSelect_PIN;
-//         doc["BLDC_Enable_PIN"] = BLDC_Enable_PIN;
-//         doc["BLDC_HallEffect_PIN"] = BLDC_HallEffect_PIN;
-//         doc["BLDC_PWMchannel1_PIN"] = BLDC_PWMchannel1_PIN;
-//         doc["BLDC_PWMchannel2_PIN"] = BLDC_PWMchannel2_PIN;
-//         doc["BLDC_PWMchannel3_PIN"] = BLDC_PWMchannel3_PIN;
-//         doc["BLDC_MotorA_Voltage"] = round2(BLDC_MotorA_Voltage);
-//         doc["BLDC_MotorA_Current"] = round2(BLDC_MotorA_Current);
-//         doc["BLDC_MotorA_ParametersKnown"] = BLDC_MotorA_ParametersKnown;
-//         doc["BLDC_MotorA_ZeroElecAngle"] = round2(BLDC_MotorA_ZeroElecAngle);
-//         doc["BLDC_RailLength"] = BLDC_RailLength;
-//         doc["BLDC_StrokeLength"] = BLDC_StrokeLength;
-        
-//         LogHandler::debug(_TAG, "save %s max: %f", "BLDC_MotorA_Voltage", doc["BLDC_MotorA_Current"].as<float>());
-
-//         doc["staticIP"] = staticIP;
-//         doc["localIP"] = localIP;
-//         doc["gateway"] = gateway;
-//         doc["subnet"] = subnet;
-//         doc["dns1"] = dns1;
-//         doc["dns2"] = dns2;
-
-//         doc["sr6Mode"] = sr6Mode;
-//         doc["RightServo_ZERO"] = RightServo_ZERO;
-//         doc["LeftServo_ZERO"] = LeftServo_ZERO;
-//         doc["RightUpperServo_ZERO"] = RightUpperServo_ZERO;
-//         doc["LeftUpperServo_ZERO"] = LeftUpperServo_ZERO;
-//         doc["PitchLeftServo_ZERO"] = PitchLeftServo_ZERO;
-//         doc["PitchRightServo_ZERO"] = PitchRightServo_ZERO;
-//         doc["TwistServo_ZERO"] = TwistServo_ZERO;
-//         doc["ValveServo_ZERO"] = ValveServo_ZERO;
-//         doc["Squeeze_ZERO"] = SqueezeServo_ZERO;
-//         doc["autoValve"] = autoValve;
-//         doc["inverseValve"] = inverseValve;
-//         doc["valveServo90Degrees"] = valveServo90Degrees;
-//         doc["inverseStroke"] = inverseStroke;
-//         doc["inversePitch"] = inversePitch;
-//         doc["lubeAmount"] = lubeAmount;
-//         doc["lubeEnabled"] = lubeEnabled;
-//         doc["displayEnabled"] = displayEnabled;
-//         doc["sleeveTempDisplayed"] = sleeveTempDisplayed;
-//         doc["versionDisplayed"] = versionDisplayed;
-//         doc["internalTempDisplayed"] = internalTempDisplayed;
-//         doc["tempSleeveEnabled"] = tempSleeveEnabled;
-//         doc["Display_Screen_Width"] = Display_Screen_Width;
-//         doc["Display_Screen_Height"] = Display_Screen_Height;
-//         doc["TargetTemp"] = TargetTemp;
-//         doc["HeatPWM"] = HeatPWM;
-//         doc["HoldPWM"] = HoldPWM;
-//         std::stringstream Display_I2C_Address_String;
-//         Display_I2C_Address_String << "0x" << std::hex << Display_I2C_Address;
-//         doc["Display_I2C_Address"] = Display_I2C_Address_String.str();
-//         doc["Display_Rst_PIN"] = Display_Rst_PIN;
-//         doc["Temp_PIN"] = Sleeve_Temp_PIN;
-//         doc["Heater_PIN"] = Heater_PIN;
-//         // doc["heaterFailsafeTime"] = String(heaterFailsafeTime);
-//         doc["heaterThreshold"] = heaterThreshold;
-//         doc["heaterResolution"] = heaterResolution;
-//         doc["heaterFrequency"] = heaterFrequency;
-//         doc["fanControlEnabled"] = fanControlEnabled;
-//         doc["caseFanFrequency"] = caseFanFrequency;
-//         doc["caseFanResolution"] = caseFanResolution;
-//         doc["internalTempForFan"] = internalTempForFan;
-//         doc["internalMaxTemp"] = internalMaxTemp;
-//         doc["tempInternalEnabled"] = tempInternalEnabled;
-
-//         doc["batteryLevelEnabled"] = batteryLevelEnabled;
-//         //doc["Battery_Voltage_PIN"] = Battery_Voltage_PIN;
-//         doc["batteryLevelNumeric"] = batteryLevelNumeric;
-//         doc["batteryVoltageMax"] = round2(batteryVoltageMax);
-//         doc["batteryCapacityMax"] = batteryCapacityMax;
-
-//         doc["voiceEnabled"] = voiceEnabled;
-//         doc["voiceMuted"] = voiceMuted;
-//         doc["voiceWakeTime"] = voiceWakeTime;
-//         doc["voiceVolume"] = voiceVolume;
-
-
-//         JsonArray includes = doc.createNestedArray("log-include-tags");
-//         std::vector<String> includesVec = LogHandler::getIncludes();
-//         for (int i = 0; i < includesVec.size(); i++)
-//         {
-//             includes.add(includesVec[i]);
-//         }
-
-//         JsonArray excludes = doc.createNestedArray("log-exclude-tags");
-//         std::vector<String> excludesVec = LogHandler::getExcludes();
-//         for (int i = 0; i < excludesVec.size(); i++)
-//         {
-//             excludes.add(excludesVec[i]);
-//         }
-
-//         LogHandler::debug(_TAG, "isNull: %u", doc.isNull());
-//         if (doc.isNull())
-//         {
-//             LogHandler::error(_TAG, "document is null!");
-//             // file.close();
-//             return false;
-//         }
-
-//         LogHandler::debug(_TAG, "Memory usage: %u bytes", doc.memoryUsage());
-//         if (doc.memoryUsage() == 0)
-//         {
-//             LogHandler::error(_TAG, "document is empty!");
-//             // file.close();
-//             return false;
-//         }
-
-//         LogHandler::debug(_TAG, "Is overflowed: %u", doc.overflowed());
-//         if (doc.overflowed())
-//         {
-//             LogHandler::error(_TAG, "document is overflowed! Increase serialize size: %u", doc.memoryUsage());
-//             // file.close();
-//             return false;
-//         }
-
-//         return true;
-//     }
 
     /// @brief Locks the mutex checks for an existing file and creates  it if it doesnt exist. Calls the callback function and gives the mutex.
     /// @param filepath 
@@ -1798,123 +1430,6 @@ private:
         }
         return false;
     }
-//     /** If the parameter json is ommited or the pin value doesnt exist on the object then the pins are set to default. */
-//     static void setBoardPinout(JsonObject json = JsonObject()) {
-    
-// #if MOTOR_TYPE == 0
-//     if(isBoardType(BoardType::ISAAC)) {
-//         // RightServo_PIN = 2;
-//         // LeftServo_PIN = 13;
-//         // PitchLeftServo_PIN = 14;
-//         // ValveServo_PIN = 5;
-//         // TwistServo_PIN = 27;
-//         // TwistFeedBack_PIN = 33;
-//         // Vibe0_PIN = 15;
-//         // Vibe1_PIN = 16;
-//         // LubeButton_PIN = 36;
-//         // RightUpperServo_PIN = 4;
-//         // LeftUpperServo_PIN = 12;
-//         // PitchRightServo_PIN = 17;
-//         // Sleeve_Temp_PIN = 25;
-//         // Heater_PIN = 19;
-//         // Squeeze_PIN = 26;
-//         TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 32;
-//         RightServo_PIN = json["RightServo_PIN"] | 4;
-//         LeftServo_PIN = json["LeftServo_PIN"] | 13;
-//         RightUpperServo_PIN = json["RightUpperServo_PIN"] | 16;
-//         LeftUpperServo_PIN = json["LeftUpperServo_PIN"] | 27;
-//         PitchLeftServo_PIN = json["PitchLeftServo_PIN"] | 26;
-//         PitchRightServo_PIN = json["PitchRightServo_PIN"] | 17;
-//         ValveServo_PIN = json["ValveServo_PIN"] | 18;
-//         TwistServo_PIN = json["TwistServo_PIN"] | 25;
-//         // Common motor
-//         Squeeze_PIN = json["Squeeze_PIN"] | 19;
-//         LubeButton_PIN = json["LubeButton_PIN"] | 34;
-//         // Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
-//         Sleeve_Temp_PIN = json["Temp_PIN"] | 33;
-//         // Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
-//         Vibe0_PIN = json["Vibe0_PIN"] | 15;
-//         Vibe1_PIN = json["Vibe1_PIN"] | 2;
-//         // Vibe2_PIN = json["Vibe2_PIN"] | 23;
-//         // Vibe3_PIN = json["Vibe3_PIN"] | 32;
-//         Heater_PIN = json["Heater_PIN"] | 5;
-//     } else if(isBoardType(BoardType::CRIMZZON)) {
-
-//         Vibe3_PIN = json["Vibe3_PIN"] | 26;
-//         Internal_Temp_PIN = json["Internal_Temp_PIN"] | 32;
-
-//         // EXT
-//         //  EXT_Input2_PIN = 34;
-//         //  EXT_Input3_PIN = 39;
-//         //  EXT_Input4_PIN = 36;
-
-//         heaterResolution = json["heaterResolution"] | 8;
-//         caseFanResolution = json["caseFanResolution"] | 10;
-//         caseFanFrequency = json["caseFanFrequency"] | 25;
-//         Display_Screen_Height = json["Display_Screen_Height"] | 32;
-//         TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 0;
-//     }
-//     if(!isBoardType(BoardType::ISAAC)) { // Devkit v1 pins
-//         if(!isBoardType(BoardType::CRIMZZON)) {
-//             TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 26;
-//         }
-//         // Common motor
-//         Squeeze_PIN = json["Squeeze_PIN"] | 17;
-//         LubeButton_PIN = json["LubeButton_PIN"] | 35;
-//         if(!isBoardType(BoardType::CRIMZZON)) {
-//             Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
-//         }
-//         Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
-
-//         //Stock servo motors
-//         RightServo_PIN = json["RightServo_PIN"] | 13;
-//         LeftServo_PIN = json["LeftServo_PIN"] | 15;
-//         RightUpperServo_PIN = json["RightUpperServo_PIN"] | 12;
-//         LeftUpperServo_PIN = json["LeftUpperServo_PIN"] | 2;
-//         PitchLeftServo_PIN = json["PitchLeftServo_PIN"] | 4;
-//         PitchRightServo_PIN = json["PitchRightServo_PIN"] | 14;
-
-//         Heater_PIN = json["Heater_PIN"] | 33;
-//         ValveServo_PIN = json["ValveServo_PIN"] | 25;
-//         TwistServo_PIN = json["TwistServo_PIN"] | 27;
-//         Sleeve_Temp_PIN = json["Temp_PIN"] | 5;
-//         Vibe0_PIN = json["Vibe0_PIN"] | 18;
-//         Vibe1_PIN = json["Vibe1_PIN"] | 19;
-//         Vibe2_PIN = json["Vibe2_PIN"] | 23;
-//         if(!isBoardType(BoardType::CRIMZZON)) {
-//             Vibe3_PIN = json["Vibe3_PIN"] | 32;
-//         }
-//     }
-// #elif MOTOR_TYPE == 1 
-//         // BLDC motor
-//         BLDC_Encoder_PIN = json["BLDC_Encoder_PIN"] | 33;
-//         BLDC_ChipSelect_PIN = json["BLDC_ChipSelect_PIN"] | 5;
-//         BLDC_Enable_PIN = json["BLDC_Enable_PIN"] | 14;
-//         BLDC_PWMchannel1_PIN = json["BLDC_PWMchannel1_PIN"] | 27;
-//         BLDC_PWMchannel2_PIN = json["BLDC_PWMchannel2_PIN"] | 26;
-//         BLDC_PWMchannel3_PIN = json["BLDC_PWMchannel3_PIN"] | 25;
-
-//         // PWM
-//         Heater_PIN = json["Heater_PIN"] | 15;
-//         Sleeve_Temp_PIN = json["Temp_PIN"] | 36;
-//         Vibe0_PIN = json["Vibe0_PIN"] | 2;
-//         Vibe1_PIN = json["Vibe1_PIN"] | 4;
-//         Vibe2_PIN = json["Vibe2_PIN"] | -1;
-//         Vibe3_PIN = json["Vibe3_PIN"] | -1;
-//         Case_Fan_PIN = json["Case_Fan_PIN"] | 16;
-
-//         // PWM servo
-//         ValveServo_PIN = json["ValveServo_PIN"] | 12;
-//         TwistServo_PIN = json["TwistServo_PIN"] | 13;
-//         Squeeze_PIN = json["Squeeze_PIN"] | 17;
-
-//         // Input
-//         TwistFeedBack_PIN = json["TwistFeedBack_PIN"] | 26;
-//         LubeButton_PIN = json["LubeButton_PIN"] | 35;
-//         Internal_Temp_PIN = json["Internal_Temp_PIN"] | 34;
-//         BLDC_HallEffect_PIN = json["BLDC_HallEffect_PIN"] | 35;
-// #endif
-// }
 
     static void setBuildFeatures()
     {
@@ -1974,9 +1489,9 @@ private:
 
     static void setMotorType()
     {
-#if MOTOR_TYPE == 0
+#ifdef MOTOR_TYPE_SERVO
        m_settingsFactory->setValue(MOTOR_TYPE_SETTING, (int)MotorType::Servo);
-#elif MOTOR_TYPE == 1
+#elif defined MOTOR_TYPE_BLDC
        m_settingsFactory->setValue(MOTOR_TYPE_SETTING, (int)MotorType::BLDC);
 #endif
     }
@@ -2175,163 +1690,6 @@ private:
             break;
         }
     }
-
-    // static bool LogDeserializationError(DeserializationError error, const char* filename) {
-    //     if (error)
-    //     {
-    //         LogHandler::error(_TAG, "Error deserializing json: %s", filename);
-    //         switch (error.code())
-    //         {
-    //         case DeserializationError::Code::Ok:
-    //             LogHandler::error(_TAG, "Code: Ok");
-    //             break;
-    //         case DeserializationError::Code::EmptyInput:
-    //             LogHandler::error(_TAG, "Code: EmptyInput");
-    //             break;
-    //         case DeserializationError::Code::IncompleteInput:
-    //             LogHandler::error(_TAG, "Code: IncompleteInput");
-    //             break;
-    //         case DeserializationError::Code::InvalidInput:
-    //             LogHandler::error(_TAG, "Code: InvalidInput");
-    //             break;
-    //         case DeserializationError::Code::NoMemory:
-    //             LogHandler::error(_TAG, "Code: NoMemory");
-    //             break;
-    //         case DeserializationError::Code::TooDeep:
-    //             LogHandler::error(_TAG, "Code: TooDeep");
-    //             break;
-    //         }
-    //         return true;
-    //     }
-    //     return false;
-    // }
-
-    // static void LogSaveDebug(const DynamicJsonDocument doc)
-    // {
-        //Commented out due to error in logger on hostname.
-        // LogHandler::debug(_TAG, "save TCodeVersionEnum: %i", doc["TCodeVersion"].as<int>());
-        // LogHandler::debug(_TAG, "save ssid: %s", doc["ssid"].as<String>());
-        // // LogHandler::debug(_TAG, "save pass: %s", doc["wifiPass"].as<String>());
-        // LogHandler::debug(_TAG, "save udpServerPort: %i", doc["udpServerPort"].as<int>());
-        // LogHandler::debug(_TAG, "save webServerPort: %i", doc["webServerPort"].as<int>());
-        // LogHandler::debug(_TAG, "save hostname: %s", doc["hostname"].as<const char*>());
-        // LogHandler::debug(_TAG, "save friendlyName: %s", doc["friendlyName"].as<const char*>());
-        // LogHandler::debug(_TAG, "save pitchFrequencyIsDifferent ", doc["pitchFrequencyIsDifferent"].as<bool>());
-        // LogHandler::debug(_TAG, "save msPerRad: %i", doc["msPerRad"].as<int>());
-        // LogHandler::debug(_TAG, "save servoFrequency: %i", doc["servoFrequency"].as<int>());
-        // LogHandler::debug(_TAG, "save  pitchFrequency: %i", doc["pitchFrequency"].as<int>());
-        // LogHandler::debug(_TAG, "save valveFrequency: %i", doc["valveFrequency"].as<int>());
-        // LogHandler::debug(_TAG, "save twistFrequency: %i", doc["twistFrequency"].as<int>());
-        // LogHandler::debug(_TAG, "save continuousTwist: %i", doc["continuousTwist"].as<bool>());
-        // LogHandler::debug(_TAG, "save feedbackTwist: %i", doc["feedbackTwist"].as<bool>());
-        // LogHandler::debug(_TAG, "save analogTwist: %i", doc["analogTwist"].as<bool>());
-        // LogHandler::debug(_TAG, "save TwistFeedBack_PIN: %i", doc["TwistFeedBack_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save RightServo_PIN: %i", doc["RightServo_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save LeftServo_PIN: %i", doc["LeftServo_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save RightUpperServo_PIN: %i", doc["RightUpperServo_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save LeftUpperServo_PIN: %i", doc["LeftUpperServo_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save PitchLeftServo_PIN: %i", doc["PitchLeftServo_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save PitchRightServo_PIN: %i", doc["PitchRightServo_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save ValveServo_PIN: %i", doc["ValveServo_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save TwistServo_PIN: %i", doc["TwistServo_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save Vibe0_PIN: %i", doc["Vibe0_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save Vibe1_PIN: %i", doc["Vibe1_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save Lube_Pin: %i", doc["Lube_Pin"].as<int>());
-        // LogHandler::debug(_TAG, "save LubeButton_PIN: %i", doc["LubeButton_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save staticIP: %i", doc["staticIP"].as<bool>());
-        // LogHandler::debug(_TAG, "save localIP: %s", doc["localIP"].as<const char*>());
-        // LogHandler::debug(_TAG, "save gateway: %s", doc["gateway"].as<const char*>());
-        // LogHandler::debug(_TAG, "save subnet: %s", doc["subnet"].as<const char*>());
-        // LogHandler::debug(_TAG, "save dns1: %s", doc["dns1"].as<const char*>());
-        // LogHandler::debug(_TAG, "save dns2: %s", doc["dns2"].as<const char*>());
-        // LogHandler::debug(_TAG, "save sr6Mode: %i", doc["sr6Mode"].as<bool>());
-        // LogHandler::debug(_TAG, "save RightServo_ZERO: %i", doc["RightServo_ZERO"].as<int>());
-        // LogHandler::debug(_TAG, "save LeftServo_ZERO: %i", doc["LeftServo_ZERO"].as<int>());
-        // LogHandler::debug(_TAG, "save RightUpperServo_ZERO: %i", doc["RightUpperServo_ZERO"].as<int>());
-        // LogHandler::debug(_TAG, "save LeftUpperServo_ZERO: %i", doc["LeftUpperServo_ZERO"].as<int>());
-        // LogHandler::debug(_TAG, "save PitchLeftServo_ZERO: %i", doc["PitchLeftServo_ZERO"].as<int>());
-        // LogHandler::debug(_TAG, "save PitchRightServo_ZERO: %i", doc["PitchRightServo_ZERO"].as<int>());
-        // LogHandler::debug(_TAG, "save TwistServo_ZERO: %i", doc["TwistServo_ZERO"].as<int>());
-        // LogHandler::debug(_TAG, "save ValveServo_ZERO: %i", doc["ValveServo_ZERO"].as<int>());
-        // LogHandler::debug(_TAG, "save autoValve: %i", doc["autoValve"].as<bool>());
-        // LogHandler::debug(_TAG, "save inverseValve: %i", doc["inverseValve"].as<bool>());
-        // LogHandler::debug(_TAG, "save valveServo90Degrees: %i", doc["valveServo90Degrees"].as<bool>());
-        // LogHandler::debug(_TAG, "save inverseStroke: %i", doc["inverseStroke"].as<bool>());
-        // LogHandler::debug(_TAG, "save inversePitch: %i", doc["inversePitch"].as<bool>());
-        // LogHandler::debug(_TAG, "save lubeEnabled: %i", doc["lubeEnabled"].as<bool>());
-        // LogHandler::debug(_TAG, "save lubeAmount: %i", doc["lubeAmount"].as<int>());
-        // LogHandler::debug(_TAG, "save Temp_PIN: %i", doc["Temp_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save Heater_PIN: %i", doc["Heater_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save displayEnabled: %i", doc["displayEnabled"].as<bool>());
-        // LogHandler::debug(_TAG, "save sleeveTempDisplayed: %i", doc["sleeveTempDisplayed"].as<bool>());
-        // LogHandler::debug(_TAG, "save internalTempDisplayed: %i", doc["internalTempDisplayed"].as<bool>());
-        // LogHandler::debug(_TAG, "save tempSleeveEnabled: %i", doc["tempSleeveEnabled"].as<bool>());
-        // LogHandler::debug(_TAG, "save tempInternalEnabled: %i", doc["tempInternalEnabled"].as<bool>());
-        // LogHandler::debug(_TAG, "save Display_Screen_Width: %i", doc["Display_Screen_Width"].as<int>());
-        // LogHandler::debug(_TAG, "save internalMaxTemp: %f", doc["internalMaxTemp"].as<double>());
-        // LogHandler::debug(_TAG, "save internalTempForFan: %f", doc["internalTempForFan"].as<double>());
-        // LogHandler::debug(_TAG, "save Display_Screen_Height: %i", doc["Display_Screen_Height"].as<int>());
-        // LogHandler::debug(_TAG, "save TargetTemp: %f", doc["TargetTemp"].as<double>());
-        // LogHandler::debug(_TAG, "save HeatPWM: %i", doc["HeatPWM"].as<int>());
-        // LogHandler::debug(_TAG, "save HoldPWM: %i", doc["HoldPWM"].as<int>());
-        // LogHandler::debug(_TAG, "save Display_I2C_Address: %i", doc["Display_I2C_Address"].as<int>());
-        // LogHandler::debug(_TAG, "save Display_Rst_PIN: %i", doc["Display_Rst_PIN"].as<int>());
-        // LogHandler::debug(_TAG, "save heaterFailsafeTime: %ld", doc["heaterFailsafeTime"].as<long>());
-        // LogHandler::debug(_TAG, "save heaterThreshold: %i", doc["heaterThreshold"].as<int>());
-        // LogHandler::debug(_TAG, "save heaterResolution: %i", doc["heaterResolution"].as<int>());
-        // LogHandler::debug(_TAG, "save heaterFrequency: %i", doc["heaterFrequency"].as<int>());
-        // LogHandler::debug(_TAG, "save newtoungeHatExists: %i", doc["newtoungeHatExists"].as<bool>());
-        // LogHandler::debug(_TAG, "save logLevel: %i", doc["logLevel"].as<int>());
-        // LogHandler::debug(_TAG, "save bluetoothEnabled: %i", doc["bluetoothEnabled"].as<bool>());
-    // }
-
-    // static void LogUpdateDebug()
-    // {
-    //     LogHandler::debug(_TAG, "update TCodeVersionEnum: %i", TCodeVersionEnum);
-    //     LogHandler::debug(_TAG, "update ssid: %s", ssid);
-    //     //LogHandler::debug(_TAG, "update wifiPass: %s", wifiPass);
-    //     LogHandler::debug(_TAG, "update udpServerPort: %i", udpServerPort);
-    //     LogHandler::debug(_TAG, "update webServerPort: %i", webServerPort);
-    //     LogHandler::debug(_TAG, "update hostname: %s", hostname);
-    //     LogHandler::debug(_TAG, "update friendlyName: %s", friendlyName);
-    //     LogHandler::debug(_TAG, "update pitchFrequencyIsDifferent: %i", pitchFrequencyIsDifferent);
-    //     LogHandler::debug(_TAG, "update msPerRad: %i", msPerRad);
-    //     LogHandler::debug(_TAG, "update servoFrequency: %i", servoFrequency);
-    //     LogHandler::debug(_TAG, "update pitchFrequency: %i", pitchFrequency);
-    //     LogHandler::debug(_TAG, "update valveFrequency: %i", valveFrequency);
-    //     LogHandler::debug(_TAG, "update twistFrequency: %i", twistFrequency);
-    //     LogHandler::debug(_TAG, "update continuousTwist: %i", continuousTwist);
-    //     LogHandler::debug(_TAG, "update feedbackTwist: %i", feedbackTwist);max
-    //     LogHandler::debug(_TAG, "update PitchRightServo_ZERO: %i", PitchRightServo_ZERO);
-    //     LogHandler::debug(_TAG, "update TwistServo_ZERO: %i", TwistServo_ZERO);
-    //     LogHandler::debug(_TAG, "update ValveServo_ZERO: %i", ValveServo_ZERO);
-    //     LogHandler::debug(_TAG, "update autoValve: %i", autoValve);
-    //     LogHandler::debug(_TAG, "update inverseValve: %i", inverseValve);
-    //     LogHandler::debug(_TAG, "update valveServo90Degrees: %i", valveServo90Degrees);
-    //     LogHandler::debug(_TAG, "update inverseStroke: %i", inverseStroke);
-    //     LogHandler::debug(_TAG, "update inversePitch: %i", inversePitch);
-    //     LogHandler::debug(_TAG, "update lubeEnabled: %i", lubeEnabled);
-    //     LogHandler::debug(_TAG, "update lubeAmount: %i", lubeAmount);
-    //     LogHandler::debug(_TAG, "update displayEnabled: %i", displayEnabled);
-    //     LogHandler::debug(_TAG, "update sleeveTempDisplayed: %i", sleeveTempDisplayed);
-    //     LogHandler::debug(_TAG, "update internalTempDisplayed: %i", internalTempDisplayed);
-    //     LogHandler::debug(_TAG, "update tempSleeveEnabled: %i", tempSleeveEnabled);
-    //     LogHandler::debug(_TAG, "update tempInternalEnabled: %i", tempInternalEnabled);
-    //     LogHandler::debug(_TAG, "update Display_Screen_Width: %i", Display_Screen_Width);
-    //     LogHandler::debug(_TAG, "update Display_Screen_Height: %i", Display_Screen_Height);
-    //     LogHandler::debug(_TAG, "update TargetTemp: %i", TargetTemp);
-    //     LogHandler::debug(_TAG, "update HeatPWM: %i", HeatPWM);
-    //     LogHandler::debug(_TAG, "update HoldPWM: %i", HoldPWM);
-    //     LogHandler::debug(_TAG, "update Display_I2C_Address: %i", Display_I2C_Address);
-    //     LogHandler::debug(_TAG, "update Display_Rst_PIN: %i", Display_Rst_PIN);
-    //     LogHandler::debug(_TAG, "update Sleeve_Temp_PIN: %i", Sleeve_Temp_PIN);
-    //     LogHandler::debug(_TAG, "update Heater_PIN: %i", Heater_PIN);
-    //     LogHandler::debug(_TAG, "update heaterThreshold: %d", heaterThreshold);
-    //     LogHandler::debug(_TAG, "update heaterResolution: %i", heaterResolution);
-    //     LogHandler::debug(_TAG, "update heaterFrequency: %i", heaterFrequency);
-    //     LogHandler::debug(_TAG, "update logLevel: %i", (int)logLevel);
-    //     LogHandler::debug(_TAG, "update bluetoothEnabled: %i", (int)bluetoothEnabled);
-    // }
 };
 
 SettingsFactory* SettingsHandler::m_settingsFactory;
@@ -2341,17 +1699,15 @@ SemaphoreHandle_t SettingsHandler::m_wifiMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_buttonsMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_settingsMutex = xSemaphoreCreateMutex();
 bool SettingsHandler::initialized = false;
-int SettingsHandler::restartRequired = -1;
+int SettingsHandler::restartInSecs = -1;
 bool SettingsHandler::saving = false;
 bool SettingsHandler::motionPaused = false;
 bool SettingsHandler::fullBuild = false;
 bool SettingsHandler::apMode = false;
 
-// BoardType SettingsHandler::boardType = BoardType::DEVKIT;
 BuildFeature SettingsHandler::buildFeatures[(int)BuildFeature::MAX_FEATURES];
 const char *SettingsHandler::_TAG = TagHandler::SettingsHandler;
 std::vector<int> SettingsHandler::systemI2CAddresses;
-SETTING_STATE_FUNCTION_PTR_T SettingsHandler::message_callback = 0;
 ChannelMap SettingsHandler::channelMap;
 
 char SettingsHandler::currentIP[IP_ADDRESS_LEN] = LOCALIP_DEFAULT;
@@ -2360,168 +1716,6 @@ char SettingsHandler::currentSubnet[IP_ADDRESS_LEN] = SUBNET_DEFAULT;
 char SettingsHandler::currentDns1[IP_ADDRESS_LEN] = DNS1_DEFAULT;
 char SettingsHandler::currentDns2[IP_ADDRESS_LEN] = DNS2_DEFAULT;
 
-
-// MotorType SettingsHandler::motorType = MotorType::Servo;
-// const char SettingsHandler::HandShakeChannel[4] = "D1\n";
-// const char SettingsHandler::SettingsChannel[4] = "D2\n";
-// const char *SettingsHandler::userSettingsFilePath = "/userSettings.json";
-// const char *SettingsHandler::wifiPassFilePath = "/wifiInfo.json";
-// const char *SettingsHandler::buttonsFilePath = "/buttons.json";
-// const char *SettingsHandler::motionProfilesFilePath = "/motionProfiles.json";
-// const char *SettingsHandler::logPath = "/log.json";
-// const char *SettingsHandler::defaultWifiPass = "YOUR PASSWORD HERE";
-// const char *SettingsHandler::decoyPass = "Too bad haxor!";
-// const char SettingsHandler::defaultIP[15] = "192.168.69.1";
-// const char SettingsHandler::defaultGateWay[15] = "192.168.69.254";
-// const char SettingsHandler::defaultSubnet[15] = "255.255.255.0";
-// bool SettingsHandler::bluetoothEnabled = true;
-// LogLevel SettingsHandler::logLevel = LogLevel::INFO;
-// bool SettingsHandler::isTcp = true;
-// char SettingsHandler::ssid[32];
-// char SettingsHandler::wifiPass[63];
-// char SettingsHandler::hostname[63];
-// char SettingsHandler::friendlyName[100];
-// int SettingsHandler::udpServerPort;
-// int SettingsHandler::webServerPort;
-// int SettingsHandler::PitchRightServo_PIN;
-// int SettingsHandler::RightUpperServo_PIN;
-// int SettingsHandler::RightServo_PIN;
-// int SettingsHandler::PitchLeftServo_PIN;
-// int SettingsHandler::LeftUpperServo_PIN;
-// int SettingsHandler::LeftServo_PIN;
-// int SettingsHandler::ValveServo_PIN;
-// int SettingsHandler::TwistServo_PIN;
-// int SettingsHandler::TwistFeedBack_PIN;
-// int SettingsHandler::Vibe0_PIN;
-// int SettingsHandler::Vibe1_PIN;
-// int SettingsHandler::LubeButton_PIN;
-// int SettingsHandler::Sleeve_Temp_PIN;
-// int SettingsHandler::Heater_PIN;
-// int SettingsHandler::I2C_SDA_PIN_obsolete = 21;
-// int SettingsHandler::I2C_SCL_PIN_obsolete = 22;
-
-// int SettingsHandler::Internal_Temp_PIN;
-// int SettingsHandler::Case_Fan_PIN;
-// int SettingsHandler::Squeeze_PIN;
-// int SettingsHandler::Vibe2_PIN;
-// int SettingsHandler::Vibe3_PIN;
-
-// // int SettingsHandler::HeatLED_PIN = 32;
-// //  pin 25 cannot be servo. Throws error
-// bool SettingsHandler::lubeEnabled = true;
-
-// bool SettingsHandler::pitchFrequencyIsDifferent;
-// int SettingsHandler::msPerRad;
-// int SettingsHandler::servoFrequency;
-// int SettingsHandler::pitchFrequency;
-// int SettingsHandler::valveFrequency;
-// int SettingsHandler::twistFrequency;
-// int SettingsHandler::squeezeFrequency;
-// bool SettingsHandler::feedbackTwist = false;
-// bool SettingsHandler::continuousTwist;
-// bool SettingsHandler::analogTwist;
-// bool SettingsHandler::staticIP;
-// char SettingsHandler::localIP[15];
-// char SettingsHandler::gateway[15];
-// char SettingsHandler::subnet[15];
-// char SettingsHandler::dns1[15];
-// char SettingsHandler::dns2[15];
-// bool SettingsHandler::sr6Mode;
-// int SettingsHandler::RightServo_ZERO = 1500;
-// int SettingsHandler::LeftServo_ZERO = 1500;
-// int SettingsHandler::RightUpperServo_ZERO = 1500;
-// int SettingsHandler::LeftUpperServo_ZERO = 1500;
-// int SettingsHandler::PitchLeftServo_ZERO = 1500;
-// int SettingsHandler::PitchRightServo_ZERO = 1500;
-
-// bool SettingsHandler::BLDC_UsePWM = false;
-// bool SettingsHandler::BLDC_UseMT6701 = true;
-// bool SettingsHandler::BLDC_UseHallSensor = false;
-// int SettingsHandler::BLDC_Pulley_Circumference = 60;
-// int SettingsHandler::BLDC_Encoder_PIN = 33;// PWM feedback pin (if used) - P pad on AS5048a
-// int SettingsHandler::BLDC_Enable_PIN = 14;// Motor enable - EN on SFOCMini   
-// int SettingsHandler::BLDC_HallEffect_PIN = 12;
-// int SettingsHandler::BLDC_PWMchannel1_PIN = 27;
-// int SettingsHandler::BLDC_PWMchannel2_PIN = 26;
-// int SettingsHandler::BLDC_PWMchannel3_PIN = 25;
-// float SettingsHandler::BLDC_MotorA_Voltage = 20.0; // BLDC Motor operating voltage (12-20V)
-// float SettingsHandler::BLDC_MotorA_Current = 1.0;  // BLDC Maximum operating current (Amps)
-// int SettingsHandler::BLDC_ChipSelect_PIN = 5;         // SPI chip select pin - CSn on AS5048a (By default on ESP32: MISO = D19, MOSI = D23, CLK = D18)
-// bool SettingsHandler::BLDC_MotorA_ParametersKnown = false;     // Once you know the zero elec angle for the motor enter it below and set this flag to true.
-// float SettingsHandler::BLDC_MotorA_ZeroElecAngle = 0.00; // This number is the zero angle (in radians) for the motor relative to the encoder.
-// int SettingsHandler::BLDC_RailLength;
-// int SettingsHandler::BLDC_StrokeLength;
-
-// int SettingsHandler::TwistServo_ZERO = 1500;
-// int SettingsHandler::ValveServo_ZERO = 1500;
-// int SettingsHandler::SqueezeServo_ZERO = 1500;
-// bool SettingsHandler::autoValve = false;
-// bool SettingsHandler::inverseValve = false;
-// bool SettingsHandler::valveServo90Degrees = false;
-// bool SettingsHandler::inverseStroke = false;
-// bool SettingsHandler::inversePitch = false;
-// int SettingsHandler::lubeAmount = 255;
-
-// bool SettingsHandler::displayEnabled = false;
-// bool SettingsHandler::sleeveTempDisplayed = false;
-// bool SettingsHandler::internalTempDisplayed = false;
-// bool SettingsHandler::versionDisplayed = true;
-// bool SettingsHandler::tempSleeveEnabled = false;
-// bool SettingsHandler::tempInternalEnabled = false;
-// bool SettingsHandler::fanControlEnabled = false;
-// bool SettingsHandler::batteryLevelEnabled = true;
-// //int SettingsHandler::Battery_Voltage_PIN = 32;
-// bool SettingsHandler::batteryLevelNumeric = false;
-// double SettingsHandler::batteryVoltageMax = 12.6;
-// int SettingsHandler::batteryCapacityMax;
-// int SettingsHandler::Display_Screen_Width = 128;
-// int SettingsHandler::Display_Screen_Height = 64;
-// int SettingsHandler::caseFanMaxDuty = 255;
-// double SettingsHandler::internalTempForFan = 20.0;
-// double SettingsHandler::internalMaxTemp = 50.0;
-// int SettingsHandler::TargetTemp = 40;
-// int SettingsHandler::HeatPWM = 255;
-// int SettingsHandler::HoldPWM = 110;
-// int SettingsHandler::Display_I2C_Address = 0x3C;
-// int SettingsHandler::Display_Rst_PIN = -1;
-// // long SettingsHandler::heaterFailsafeTime = 60000;
-// float SettingsHandler::heaterThreshold = 5.0;
-// int SettingsHandler::heaterResolution = 8;
-// int SettingsHandler::heaterFrequency = 5000;
-// int SettingsHandler::caseFanFrequency = 25;
-// int SettingsHandler::caseFanResolution = 10;
-// const char *SettingsHandler::lastRebootReason;
-
-// bool SettingsHandler::voiceEnabled = false;
-// bool SettingsHandler::voiceMuted = false;
-// int SettingsHandler::voiceWakeTime = 10;
-// int SettingsHandler::voiceVolume = 10;
-
-// bool SettingsHandler::bootButtonEnabled;
-// bool SettingsHandler::buttonSetsEnabled;
-// char SettingsHandler::bootButtonCommand[MAX_COMMAND];
-
 bool SettingsHandler::motionEnabled = false;
-//char SettingsHandler::motionSelectedProfileName[MAX_MOTION_PROFILE_NAME_LENGTH];
 int SettingsHandler::motionSelectedProfileIndex = 0;
 int SettingsHandler::motionDefaultProfileIndex = 0;
-// uint8_t SettingsHandler::defaultButtonSetPin;
-// uint16_t SettingsHandler::buttonAnalogDebounce;
-//std::map<const char*, MotionProfile*, StrCompare> SettingsHandler::motionProfiles;
-// int SettingsHandler::motionUpdateGlobal;
-// int SettingsHandler::motionPeriodGlobal;
-// int SettingsHandler::motionAmplitudeGlobal;
-// int SettingsHandler::motionOffsetGlobal;
-// float SettingsHandler::motionPhaseGlobal;
-// bool SettingsHandler::motionReversedGlobal = false;
-// bool SettingsHandler::motionPeriodGlobalRandom = false;
-// bool SettingsHandler::motionAmplitudeGlobalRandom = false;
-// bool SettingsHandler::motionOffsetGlobalRandom = false;
-// int SettingsHandler::motionPeriodGlobalRandomMin;
-// int SettingsHandler::motionPeriodGlobalRandomMax;
-// int SettingsHandler::motionAmplitudeGlobalRandomMin;
-// int SettingsHandler::motionAmplitudeGlobalRandomMax;
-// int SettingsHandler::motionOffsetGlobalRandomMin;
-// int SettingsHandler::motionOffsetGlobalRandomMax;
-// int SettingsHandler::motionRandomChangeMin;
-// int SettingsHandler:: motionRandomChangeMax;

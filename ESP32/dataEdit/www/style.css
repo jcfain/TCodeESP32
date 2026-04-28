@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -155,6 +155,14 @@ body {
 }
 .restart-required:hover {
   background-color: green;
+}
+.pulse-yellow {
+  animation: pulseGreenNotification 1s infinite;
+}
+@keyframes pulseGreenNotification {
+  50% {
+    box-shadow: -1px 1px 8px 0 yellow,1px -1px 8px 0 yellow,1px 1px 8px 0 yellow,-1px -1px 8px 0 yellow;
+  }
 }
 .resetAllSettings {
   color: white;
@@ -460,6 +468,22 @@ button:disabled {
 
 select[name="timerChannels"] > option:disabled {
   color: darkred
+}
+.lastRebootReasonDiv {
+  width: 100%; 
+  margin-top: 16px; 
+  max-height: 500px;
+  overflow-y: auto;
+}
+.lastRebootReasonTable {
+  text-align: center;  
+  width: 100%;
+}
+.lastRebootReasonTable tbody {
+
+}
+.lastRebootReasonTable td {
+  border-top: 1px solid white;
 }
 
 @keyframes loading-spinner {

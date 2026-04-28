@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,9 +29,10 @@ SOFTWARE. */
 #include "SettingsHandler.h"
 #include "logging/LogHandler.h"
 #include "TagHandler.h"
+#include "TCodeInterface.h"
 
 
-class Udphandler
+class Udphandler : public TCodeInterface
 {
   public:
     bool setup(int localPort) 
@@ -76,7 +77,12 @@ class Udphandler
 			LogHandler::error(udp->_TAG, "UDP queue full");
 	}
 
-	void CommandCallback(const char* in) 
+    size_t available() override
+    {
+        return m_TCodeQueue && uxQueueMessagesWaiting(m_TCodeQueue);
+    }
+
+	void send(const char* in) override
 	{ //This overwrites the callback for message return
 		if(initialized && _lastConnectedPort > 0) {
 			LogHandler::debug(_TAG, "Sending udp to client: %s", in);
@@ -89,20 +95,16 @@ class Udphandler
 		}
 	}
 
-    void read(char* buf) 
+    size_t read(char* buf) override
     {
-		if (!initialized) 
+        if(!initialized || !xQueueReceive(m_TCodeQueue, buf, 0)) 
 		{
-			buf[0] = {0};
-			return;
-		}
-        if(xQueueReceive(m_TCodeQueue, buf, 0)) {
-            //LogHandler::verbose(_TAG, "Recieve tcode: %s", buf);
-        } else {
             //LogHandler::error(_TAG, "Failed to read from queue");
             buf[0] = {0};
-			return;
+			return 0;
         }
+        //LogHandler::verbose(_TAG, "Recieve tcode: %s", buf);
+        return strnlen(buf, MAX_COMMAND);
     }
     
   private: 

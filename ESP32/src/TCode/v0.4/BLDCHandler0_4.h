@@ -19,7 +19,7 @@
 #pragma once
 
 #include <SimpleFOC.h>
-#include <SimpleFOCDrivers.h>
+#include <SimpleFOCDrivers.h> 
 #include <encoders/mt6701/MagneticSensorMT6701SSI.h>
 
 #include "TCode0_4.h"
@@ -65,27 +65,41 @@ class BLDCHandler0_4 : public MotorHandler0_4 {
 public:
     BLDCHandler0_4() : MotorHandler0_4(new TCode0_4()) { }
 
-    void setup() override {
+    bool setup() override {
         bootmode = true;
+        LogHandler::error(_TAG, "Sorry TCode v4 is probably broken at this point");
+        return false; // This isnt ready any where near
         m_settingsFactory = SettingsFactory::getInstance();
+        m_deviceType = DeviceType::NONE;
+        m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
+        if(m_deviceType == DeviceType::NONE)
+        {
+            LogHandler::error(_TAG, "No device type selected. Visit the web config or use the command to set a device before starting the firmware.");
+            return false;
+        }
+        BLDCEncoderType encoderType = (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTORA_ENCODER, encoderType);
+        if(encoderType == BLDCEncoderType::NONE)
+        {
+            LogHandler::error(_TAG, "No encoder type selected. Visit the web config or use the command to set an encoder before starting the firmware.");
+            return false;
+        }
         //PinMapInfo pinMapInfo = m_settingsFactory->getPins();
-        PinMapSSR1* pinMap = PinMapSSR1::getInstance();
+        PinMapSSR* pinMap = PinMapSSR::getInstance();
         int pullyCircumference = -1;
-        m_settingsFactory->getValue(BLDC_PULLEY_CIRCUMFERENCE, pullyCircumference);
+        m_settingsFactory->getValue(BLDC_MOTORA_PULLEY_CIRCUMFERENCE, pullyCircumference);
         int strokeLength = -1;
         m_settingsFactory->getValue(BLDC_STROKELENGTH, strokeLength);
         int railLength = -1;
         m_settingsFactory->getValue(BLDC_RAILLENGTH, railLength);
-        ANG_TO_POS = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
-        LogHandler::debug(_TAG, "ANG_TO_POS: %f", ANG_TO_POS);
-        TOP_START_OFFSET = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
-        LogHandler::debug(_TAG, "TOP_START_OFFSET: %f", TOP_START_OFFSET);
-        ENDSTOP_START_OFFSET = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
-        LogHandler::debug(_TAG, "ENDSTOP_START_OFFSET: %f", ENDSTOP_START_OFFSET);
+        angToPos = (10000*pullyCircumference)/(2*3.14159*strokeLength); // Number to convert a motor angle to a 0-10000 axis position
+        LogHandler::debug(_TAG, "angToPos: %f", angToPos);
+        topStartOffset = 2*3.14156*strokeLength/pullyCircumference; // Angle turned by pulley for a full stroke
+        LogHandler::debug(_TAG, "topStartOffset: %f", topStartOffset);
+        endStopOffset = 2*3.14159*(railLength-strokeLength)/(2*pullyCircumference);  // Offset angle from bottom endstop on startup (rad)
+        LogHandler::debug(_TAG, "endStopOffset: %f", endStopOffset);
 
         // Begin tracking encoder
-        BLDCEncoderType encoderType = BLDCEncoderType::MT6701;
-        m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
         LogHandler::debug(_TAG, "Encoder type: %d", encoderType);
 
         if(encoderType == BLDCEncoderType::MT6701) {
@@ -96,7 +110,7 @@ public:
             } else {
                 LogHandler::error(_TAG, "Invalid ChipSelect pin %d", pinMap->chipSelect());
                 m_initFailed = true;
-                return;
+                return false;
             }
         } else if(encoderType == BLDCEncoderType::PWM) {
             LogHandler::info(_TAG, "Selected encoder: PWM");
@@ -106,7 +120,7 @@ public:
             } else {
                 LogHandler::error(_TAG, "Invalid encoder pin %d", pinMap->encoder());
                 m_initFailed = true;
-                return;
+                return false;
             }
         } else {
             if(pinMap->chipSelect() > -1) {
@@ -116,7 +130,7 @@ public:
             } else {
                 LogHandler::error(_TAG, "Invalid ChipSelect pin %d", pinMap->chipSelect());
                 m_initFailed = true;
-                return;
+                return false;
             }
         }
         // BLDC motor & driver instance
@@ -162,14 +176,15 @@ public:
         
         // driver config
         // Max DC voltage allowed - default voltage_limit
-        double motorAVoltage = BLDC_MOTORA_VOLTAGE_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, motorAVoltage);
-        LogHandler::debug(_TAG, "Voltage: %f", motorAVoltage);
-        driverA->voltage_limit = motorAVoltage;
+        double motorVoltage = BLDC_MOTORA_VOLTAGE_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, motorVoltage);
+        LogHandler::debug(_TAG, "Voltage limit: %f", motorVoltage);
+        driverA->voltage_limit = motorVoltage;
         // power supply voltage [V]
-        double supplyAVoltage = BLDC_MOTORA_SUPPLY_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTORA_SUPPLY, supplyAVoltage);
-        driverA->voltage_power_supply = supplyAVoltage;
+        double supplyVoltage = BLDC_MOTORA_SUPPLY_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTORA_SUPPLY, supplyVoltage);
+        LogHandler::debug(_TAG, "Voltage supply: %f", supplyVoltage);
+        driverA->voltage_power_supply = supplyVoltage;
         // driver init
         driverA->init();
 
@@ -203,15 +218,13 @@ public:
         motorA->useMonitoring(Serial);
 
         // init current sense
-        bool paramsKnown = BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTORA_PARAMETERSKNOWN, paramsKnown);
-        if(paramsKnown) {
-            double zeroElecAngle = BLDC_MOTORA_ZEROELECANGLE_DEFAULT;
-            m_settingsFactory->getValue(BLDC_MOTORA_ZEROELECANGLE, zeroElecAngle);
+        double zeroElecAngleA = BLDC_MOTORA_ZEROELECANGLE_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTORA_ZEROELECANGLE, zeroElecAngleA);
+        if(zeroElecAngleA > NOT_SET) {
         // Set sensor angle and pre-set zero angle to current angle
-            LogHandler::info(_TAG, "Setting MotorA parameters: %f", zeroElecAngle);
+            LogHandler::info(_TAG, "Setting MotorA parameters: %f", zeroElecAngleA);
             motorA->sensor_direction = MotorA_SensorDirection;
-            motorA->zero_electric_angle  = zeroElecAngle; // rad
+            motorA->zero_electric_angle  = zeroElecAngleA; // rad
         }
 
         if (motorA->initFOC())  {
@@ -247,6 +260,7 @@ public:
             LogHandler::info(_TAG, "Error in setup");
         else
             LogHandler::info(_TAG, "Ready!");
+        return true;
     }
 
     void read(byte inByte) override {
@@ -264,10 +278,10 @@ public:
         }
     }
 
-    void setMessageCallback(TCODE_FUNCTION_PTR_T function) override {
+    void setMessageCallback(TCodeCommandCallback function) override 
+    {
         m_tcode->setMessageCallback(function);
     }
-
 
     void execute() override {
 
@@ -309,7 +323,7 @@ public:
             //LogHandler::verbose(_TAG, "update SPI angle: %f", angle);
         }
         // Determine the linear position of the receiver in (0-10000)
-        xPosition = (angle - zeroAngle)*ANG_TO_POS; 
+        xPosition = (angle - zeroAngle)*angToPos; 
         //LogHandler::verbose(_TAG, "zeroAngle: %f", zeroAngle);
 
         // Control by motor voltage
@@ -324,12 +338,12 @@ public:
                 if (!digitalRead(m_hallSensorPin)) {
                     LogHandler::debug(_TAG, "Set bootmode false read hall");
                     bootmode = false;
-                    zeroAngle = angle - TOP_START_OFFSET;
+                    zeroAngle = angle - topStartOffset;
                 } else if (millis() > (startTime + 2000)) {
                     // Timeout after two seconds if sensor not triggered
                     bootmode = false;
                     LogHandler::debug(_TAG, "Set bootmode false hall timeout");
-                    zeroAngle = angle - TOP_START_OFFSET - ENDSTOP_START_OFFSET;
+                    zeroAngle = angle - topStartOffset - endStopOffset;
                 }
                 motorVoltageNew = P_CONST*(xLin - xPosition);
             } else {
@@ -339,7 +353,7 @@ public:
                 if (millis() > (startTime + 2000)) {
                     bootmode = false;
                     LogHandler::debug(_TAG, "Set bootmode false NO HALL timeout");
-                    zeroAngle = angle + ENDSTOP_START_OFFSET;
+                    zeroAngle = angle + endStopOffset;
                 }
                 motorVoltageNew = P_CONST*(xLin - xPosition);
                 if (motorVoltageNew < -0.5) { motorVoltageNew = -0.5; }
@@ -374,6 +388,7 @@ private:
     SettingsFactory* m_settingsFactory;
     bool m_useHallSensor = false;
     int8_t m_hallSensorPin = -1;
+    DeviceType m_deviceType;
     // Drive Parameters
 
     // The control code needs to know the angle of the motor relative to the encoder - "Zero elec. angle".
@@ -406,7 +421,7 @@ private:
     int counter = 0;
 
     // Derived constants
-    float ANG_TO_POS; // Number to convert a motor angle to a 0-10000 axis position
-    float TOP_START_OFFSET; // Angle turned by pulley for a full stroke
-    float ENDSTOP_START_OFFSET;  // Offset angle from bottom endstop on startup (rad)
+    float angToPos; // Number to convert a motor angle to a 0-10000 axis position
+    float topStartOffset; // Angle turned by pulley for a full stroke
+    float endStopOffset;  // Offset angle from bottom endstop on startup (rad)
 };

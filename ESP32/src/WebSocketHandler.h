@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -47,8 +47,8 @@ class WebSocketHandler : public WebSocketBase {
                 onWsEvent(server, client, type, arg, data, len);
             });
             server->addHandler(&ws);
-            tCodeInQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
-            if(tCodeInQueue == NULL) {
+            m_TCodeQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
+            if(m_TCodeQueue == NULL) {
                 LogHandler::error(_TAG, "Error creating the tcode queue");
             }
             // debugInQueue = xQueueCreate(10, sizeof(char[MAX_COMMAND]));
@@ -59,7 +59,7 @@ class WebSocketHandler : public WebSocketBase {
             isInitialized = true;
         }
         
-        void CommandCallback(const char* in) override { //This overwrites the callback for message return
+        void send(const char* in) override {
             if(isInitialized && ws.count() > 0)
                 sendCommand(in);
         }
@@ -133,12 +133,12 @@ class WebSocketHandler : public WebSocketBase {
 
         // void getTCode(char* webSocketData) 
         // {
-        //     if(tCodeInQueue == NULL)
+        //     if(m_TCodeQueue == NULL)
         //     {
         //         LogHandler::error(_TAG, "TCode queue was null");
         //         return;
         //     } 
-		// 	if(xQueueReceive(tCodeInQueue, webSocketData, 0)) 
+		// 	if(xQueueReceive(m_TCodeQueue, webSocketData, 0)) 
         //     {
         //         //tcode->toCharArray(webSocketData, tcode->length() + 1);
         //         // Serial.print("Top tcode: ");
@@ -164,7 +164,7 @@ class WebSocketHandler : public WebSocketBase {
         const char* _TAG = TagHandler::WebsocketsHandler;
 // unsigned long lastCall;
         std::list<AsyncWebSocketClient *> m_clients;
-        // QueueHandle_t tCodeInQueue;
+        // QueueHandle_t m_TCodeQueue;
         // static QueueHandle_t debugInQueue;
         static int m_lastSend;
         // static TaskHandle_t* emptyQueueHandle;
@@ -198,7 +198,6 @@ class WebSocketHandler : public WebSocketBase {
             else if(type == WS_EVT_DISCONNECT)
             {
                 LogHandler::debug(_TAG, "ws[%s][%u] disconnect\n", server->url(), client->id());
-                client->close();
                 m_clients.remove(client);
             } 
             else if(type == WS_EVT_ERROR)

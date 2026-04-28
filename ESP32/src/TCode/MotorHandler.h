@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,17 +30,18 @@ SOFTWARE. */
 
 class MotorHandler {
 public:
-    virtual void setup() = 0;
+    virtual bool setup() = 0;
     virtual void read(byte inByte) = 0;
     virtual void read(const String &input) = 0;
     virtual void read(const char* input, size_t len) = 0;
     virtual void execute() = 0;
-    virtual void setMessageCallback(TCODE_FUNCTION_PTR_T function) = 0;
+    virtual void setMessageCallback(TCodeCommandCallback function) = 0;
 protected:
+    int servoResolution = MAX_PWM_RESOLUTION;
     #ifdef ESP_ARDUINO3
     // void attachPin(const char* name, uint8_t pin, uint32_t freq, int8_t res = -1) {
     void attachPin(const char* name, uint8_t pin, uint32_t freq, int8_t channel = -1, uint8_t res = 0) {
-        uint8_t resolution = res > 0 ? res : SERVO_PWM_RES;
+        uint8_t resolution = res > 0 ? res : servoResolution;
         bool success = false;
         if(channel > -1) 
         {
@@ -58,7 +59,7 @@ protected:
     }
     #else
     void attachPin(const char* name, uint8_t pin, uint32_t freq, int8_t channel, int8_t res = -1) {
-        uint8_t resolution = res > -1 ? res : SERVO_PWM_RES;
+        uint8_t resolution = res > -1 ? res : servoResolution;
         LogHandler::debug(TagHandler::MotorHandler, "Connecting %s servo to pin: %d @ freq: %d on channel: %d", name, pin, freq, channel);
         ledcSetup(channel,freq,resolution);
         ledcAttachPin(pin,channel);
