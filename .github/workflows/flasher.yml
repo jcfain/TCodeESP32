@@ -20,8 +20,55 @@ defaults:
     shell: bash
 
 jobs:
-  build:
-    name: build (${{ matrix.os }})
+  firmware:
+    name: Build firmware (sr6_pcb)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install platformio
+        run: |
+          python -m pip install --upgrade pip
+          pip install platformio
+
+      - name: Build firmware + filesystem
+        working-directory: ESP32
+        run: |
+          mkdir -p cache
+          # buildfs first; `pio run -t buildfs` clobbers other build artifacts.
+          pio run -t buildfs -e sr6_pcb
+          pio run -e sr6_pcb
+          ls -la .pio/build/sr6_pcb/
+
+      - name: Stage firmware bundle
+        working-directory: ESP32
+        run: |
+          dest=flasher/python/firmware/sr6_pcb
+          mkdir -p "$dest"
+          cp .pio/build/sr6_pcb/bootloader.bin "$dest/"
+          cp .pio/build/sr6_pcb/partitions.bin "$dest/"
+          cp .pio/build/sr6_pcb/firmware.bin   "$dest/"
+          if [ -f .pio/build/sr6_pcb/littlefs.bin ]; then
+            cp .pio/build/sr6_pcb/littlefs.bin "$dest/"
+          elif [ -f .pio/build/sr6_pcb/spiffs.bin ]; then
+            cp .pio/build/sr6_pcb/spiffs.bin "$dest/littlefs.bin"
+          fi
+          cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin "$dest/" || true
+          ls -la "$dest"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-sr6_pcb
+          path: ESP32/flasher/python/firmware/sr6_pcb/
+          if-no-files-found: error
+
+  package:
+    name: Package flasher (${{ matrix.os }})
+    needs: firmware
     strategy:
       fail-fast: false
       matrix:
@@ -40,104 +87,16 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install platformio
-        run: |
-          python -m pip install --upgrade pip
-          pip install platformio
-
-      - name: Install build toolchain (warm pio cache)
-        working-directory: ESP32
-        # Force pio to materialise every package referenced by the env so
-        # the toolchain/esptool bins are guaranteed on disk before the build
-        # spawns subprocesses (Windows runners otherwise drop them from PATH).
-        run: |
-          pio pkg install -e sr6_pcb
-
-      - name: Add pio toolchain to PATH (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $base = "$env:USERPROFILE\.platformio\packages"
-          # Add toolchain xtensa bin (xtensa-esp32s3-elf-g++.exe)
-          $tc = Get-ChildItem -Path "$base" -Directory -Filter "toolchain-xtensa-esp-elf*" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($tc) {
-            $bin = Join-Path $tc.FullName "bin"
-            if (Test-Path $bin) { Add-Content -Path $env:GITHUB_PATH -Value $bin; "Added $bin" }
-          }
-          # Each tool-* package's root is the bin dir for the tool exe
-          # (mklittlefs, esptool, xtensa-esp-elf-gdb, etc.).
-          Get-ChildItem -Path "$base" -Directory -Filter "tool-*" -ErrorAction SilentlyContinue | ForEach-Object {
-            Add-Content -Path $env:GITHUB_PATH -Value $_.FullName
-            "Added $($_.FullName)"
-          }
-          # Make sure pio penv Scripts wins for pioarduino's Python helpers.
-          $penv = "$env:USERPROFILE\.platformio\penv\Scripts"
-          if (Test-Path $penv) { Add-Content -Path $env:GITHUB_PATH -Value $penv; "Added $penv" }
-
-      - name: Pre-install esptool from PyPI (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          # pioarduino tries to "uv pip install -e tool-esptoolpy" but that
-          # package isn't a Python project. Drop a minimal pyproject.toml into
-          # the package dir so uv can install it as an editable package.
-          pip install --upgrade "esptool>=4.7"
-          $pkg = "$env:USERPROFILE\.platformio\packages\tool-esptoolpy"
-          if (Test-Path $pkg) {
-            $pyproject = Join-Path $pkg "pyproject.toml"
-            $setuppy  = Join-Path $pkg "setup.py"
-            if (-not (Test-Path $pyproject) -and -not (Test-Path $setuppy)) {
-              $shim = "[build-system]`nrequires = [`"setuptools>=61`"]`nbuild-backend = `"setuptools.build_meta`"`n`n[project]`nname = `"tool-esptoolpy-shim`"`nversion = `"0.0.0`"`n"
-              Set-Content -Encoding utf8 -Path $pyproject -Value $shim
-              "Wrote shim $pyproject"
-            }
-          }
-
-      - name: Build firmware + filesystem (sr6_pcb)
-        working-directory: ESP32
-        shell: bash
-        run: |
-          mkdir -p cache
-          # IMPORTANT: build the filesystem FIRST. pioarduino's `-t buildfs`
-          # cleans the env's build dir, which would otherwise destroy the
-          # firmware/bootloader bins we need.
-          pio run -t buildfs -e sr6_pcb
-          pio run -e sr6_pcb
-          echo "--- .pio/build/sr6_pcb/ contents ---"
-          ls -la .pio/build/sr6_pcb/ || true
-
-      - name: Stage firmware bundle (sr6_pcb)
-        working-directory: ESP32
-        run: |
-          dest=flasher/python/firmware/sr6_pcb
-          mkdir -p "$dest"
-          # Bootloader / partitions: prefer the build-output copies, fall back
-          # to anything pioarduino staged in framework-arduinoespressif32-libs.
-          find_first() {
-            local name="$1"
-            shift
-            for p in "$@"; do
-              if [ -f "$p" ]; then echo "$p"; return 0; fi
-            done
-            # Last-ditch glob through the toolchain.
-            find ~/.platformio/packages -type f -name "$name" 2>/dev/null | head -n1
-          }
-          bl=$(find_first bootloader.bin .pio/build/sr6_pcb/bootloader.bin)
-          pt=$(find_first partitions.bin .pio/build/sr6_pcb/partitions.bin)
-          [ -n "$bl" ] && cp "$bl" "$dest/bootloader.bin" || { echo "::error::no bootloader.bin"; exit 1; }
-          [ -n "$pt" ] && cp "$pt" "$dest/partitions.bin" || { echo "::error::no partitions.bin"; exit 1; }
-          cp .pio/build/sr6_pcb/firmware.bin "$dest/"
-          if [ -f .pio/build/sr6_pcb/littlefs.bin ]; then
-            cp .pio/build/sr6_pcb/littlefs.bin "$dest/"
-          elif [ -f .pio/build/sr6_pcb/spiffs.bin ]; then
-            cp .pio/build/sr6_pcb/spiffs.bin "$dest/littlefs.bin"
-          fi
-          cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin "$dest/" || true
-          ls -la "$dest"
+      - name: Download firmware bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware-sr6_pcb
+          path: ESP32/flasher/python/firmware/sr6_pcb
 
       - name: Install flasher dev deps
         working-directory: ESP32/flasher/python
         run: |
+          python -m pip install --upgrade pip
           pip install -e .[dev]
 
       - name: Build executable
@@ -159,18 +118,14 @@ jobs:
         run: |
           mv TCodeFlasher "${{ matrix.artifact }}"
           chmod +x "${{ matrix.artifact }}"
-          # tar preserves the +x bit; GitHub artifacts otherwise drop it.
           tar -czvf "${{ matrix.artifact }}.tar.gz" "${{ matrix.artifact }}"
 
       - name: Package (macOS)
         if: runner.os == 'macOS'
         working-directory: ESP32/flasher/python/dist
         run: |
-          # Prefer the .app bundle (one-click launchable from Finder).
           if [ -d "TCodeFlasher.app" ]; then
             chmod +x "TCodeFlasher.app/Contents/MacOS/TCodeFlasher" || true
-            # ditto preserves resource forks/extended attrs that zip would lose,
-            # which keeps Gatekeeper happy when the user right-click → Opens.
             ditto -c -k --sequesterRsrc --keepParent \
               "TCodeFlasher.app" "${{ matrix.artifact }}.zip"
           else
@@ -189,7 +144,7 @@ jobs:
 
   release:
     name: attach to release
-    needs: build
+    needs: package
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:
