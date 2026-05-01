@@ -73,23 +73,37 @@ jobs:
         shell: pwsh
         run: |
           # pioarduino tries to "uv pip install -e tool-esptoolpy" but that
-          # package isn't a Python project — falling back to a PyPI esptool
-          # makes the bootloader/partitions emit step succeed.
+          # package isn't a Python project. Drop a minimal pyproject.toml into
+          # the package dir so uv can install it as an editable package.
           pip install --upgrade "esptool>=4.7"
+          $pkg = "$env:USERPROFILE\.platformio\packages\tool-esptoolpy"
+          if (Test-Path $pkg) {
+            $pyproject = Join-Path $pkg "pyproject.toml"
+            if (-not (Test-Path $pyproject) -and -not (Test-Path (Join-Path $pkg "setup.py"))) {
+              @"
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tool-esptoolpy-shim"
+version = "0.0.0"
+"@ | Set-Content -Encoding utf8 -Path $pyproject
+              "Wrote shim $pyproject"
+            }
+          }
 
       - name: Build firmware + filesystem (sr6_pcb)
         working-directory: ESP32
         shell: bash
         run: |
-          # The repo's platformio.ini sets build_cache_dir = ./cache (gitignored).
-          # Ensure the path exists so pio can write to it on a cold runner.
           mkdir -p cache
-          # Build firmware first; print build dir afterwards for debugging.
-          pio run -e sr6_pcb
-          echo "--- after pio run ---"
-          ls -la .pio/build/sr6_pcb/ || true
+          # IMPORTANT: build the filesystem FIRST. pioarduino's `-t buildfs`
+          # cleans the env's build dir, which would otherwise destroy the
+          # firmware/bootloader bins we need.
           pio run -t buildfs -e sr6_pcb
-          echo "--- after buildfs ---"
+          pio run -e sr6_pcb
+          echo "--- .pio/build/sr6_pcb/ contents ---"
           ls -la .pio/build/sr6_pcb/ || true
 
       - name: Stage firmware bundle (sr6_pcb)
