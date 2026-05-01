@@ -79,16 +79,10 @@ jobs:
           $pkg = "$env:USERPROFILE\.platformio\packages\tool-esptoolpy"
           if (Test-Path $pkg) {
             $pyproject = Join-Path $pkg "pyproject.toml"
-            if (-not (Test-Path $pyproject) -and -not (Test-Path (Join-Path $pkg "setup.py"))) {
-              @"
-[build-system]
-requires = ["setuptools>=61"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "tool-esptoolpy-shim"
-version = "0.0.0"
-"@ | Set-Content -Encoding utf8 -Path $pyproject
+            $setuppy  = Join-Path $pkg "setup.py"
+            if (-not (Test-Path $pyproject) -and -not (Test-Path $setuppy)) {
+              $shim = "[build-system]`nrequires = [`"setuptools>=61`"]`nbuild-backend = `"setuptools.build_meta`"`n`n[project]`nname = `"tool-esptoolpy-shim`"`nversion = `"0.0.0`"`n"
+              Set-Content -Encoding utf8 -Path $pyproject -Value $shim
               "Wrote shim $pyproject"
             }
           }
