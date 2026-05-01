@@ -79,16 +79,17 @@ jobs:
 
       - name: Build firmware + filesystem (sr6_pcb)
         working-directory: ESP32
-        env:
-          # The repo's platformio.ini sets build_cache_dir = ./cache, which is
-          # .gitignored. On a cold CI runner the cache is empty, and the
-          # pioarduino builder skips emitting bootloader.bin/partitions.bin if
-          # it can't find them in the cache. Disable the cache for CI builds.
-          PLATFORMIO_BUILD_CACHE_DIR: ""
+        shell: bash
         run: |
+          # The repo's platformio.ini sets build_cache_dir = ./cache (gitignored).
+          # Ensure the path exists so pio can write to it on a cold runner.
+          mkdir -p cache
+          # Build firmware first; print build dir afterwards for debugging.
           pio run -e sr6_pcb
+          echo "--- after pio run ---"
+          ls -la .pio/build/sr6_pcb/ || true
           pio run -t buildfs -e sr6_pcb
-          echo "--- .pio/build/sr6_pcb/ contents ---"
+          echo "--- after buildfs ---"
           ls -la .pio/build/sr6_pcb/ || true
 
       - name: Stage firmware bundle (sr6_pcb)
