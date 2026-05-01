@@ -78,7 +78,7 @@ SOFTWARE. */
 
 #include "sensors/BatteryHandler.h"
 #include "PowerHandler.h"
-#include "motion/MotionHandler.hpp"
+#include "Motion/MotionHandler.hpp"
 #include "sensors/VoiceHandler.hpp"
 #include "sensors/ButtonHandler.hpp"
 
