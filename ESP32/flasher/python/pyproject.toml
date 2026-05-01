@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tcode-flasher"
+version = "0.1.0"
+description = "Cross-platform flasher for TCode ESP32 controllers (SR6PCB, SSR1PCB)"
+requires-python = ">=3.9"
+dependencies = [
+    "esptool>=4.7,<5",
+    "pyserial>=3.5",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=6.0",
+]
+
+[project.scripts]
+tcode-flasher = "tcode_flasher.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+tcode_flasher = ["py.typed"]
