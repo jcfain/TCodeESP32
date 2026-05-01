@@ -34,6 +34,7 @@ SOFTWARE. */
 #include "logging/TagHandler.h"
 #include "struct/command.hpp"
 #include "settingsFactory.h"
+#include "tcode/MotorHandler.h"
 
 class SystemCommandHandler
 {
@@ -284,6 +285,14 @@ private:
 			SettingsHandler::restart();
 			return true; });
 						  }};
+	const Command REAPPLY_PWM{ {"Reapply PWM", "#reapply-pwm", "Hot-reattach all PWM outputs from current settings without rebooting", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool
+							  {
+								  return execute([]() -> bool
+												 {
+			LogHandler::info(Tags::SystemCommand, "Requesting PWM hot-reattach");
+			MotorHandler::requestReapply();
+			return true; });
+							  } };
 	const Command PRINT_IP{{"Print IP", "#ip", "Print current STA or AP IP address", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool
 						   {
 							   return execute([]() -> bool
@@ -630,11 +639,12 @@ private:
 		DEFAULT_ALL,
 	};
 
-	Command commands[18] = {
+	Command commands[19] = {
 		HELP,
 		AVAILABLE_SETTINGS,
 		PRINT_MEMORY,
 		RESTART,
+		REAPPLY_PWM,
 		PRINT_IP,
 		CLEAR_LOGS_INCLUDE,
 		CLEAR_LOGS_EXCLUDE,

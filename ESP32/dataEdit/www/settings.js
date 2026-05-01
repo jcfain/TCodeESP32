@@ -34,6 +34,31 @@ var restartRequired = false;
 var documentLoaded = false;
 var debugEnabled = true;
 var playSounds = false;
+
+// Pin-setting keys whose changes are hot-swappable: the firmware reapplies
+// these via MotorHandler::reapplyPwm() (called automatically after each
+// pinout save, see postPinoutSettings -> requestReapplyPwm). They do NOT
+// trigger the "restart required" indicator.
+const PWM_HOTSWAP_PIN_FIELDS = new Set([
+    "RightServo_PIN", "LeftServo_PIN",
+    "RightUpperServo_PIN", "LeftUpperServo_PIN",
+    "PitchLeftServo_PIN", "PitchRightServo_PIN",
+    "ValveServo_PIN", "TwistServo_PIN", "Squeeze_PIN",
+    "Vibe0_PIN", "Vibe1_PIN", "Vibe2_PIN", "Vibe3_PIN",
+    "LubeButton_PIN",
+    "RightServo_CHANNEL", "LeftServo_CHANNEL",
+    "RightUpperServo_CHANNEL", "LeftUpperServo_CHANNEL",
+    "PitchLeftServo_CHANNEL", "PitchRightServo_CHANNEL",
+    "ValveServo_CHANNEL", "TwistServo_CHANNEL", "Squeeze_CHANNEL",
+    "Vibe0_CHANNEL", "Vibe1_CHANNEL", "Vibe2_CHANNEL", "Vibe3_CHANNEL"
+]);
+
+// Snapshot of pinoutSettings as last persisted by the firmware. Used to
+// diff which pin keys actually changed when the user edits a value, so we
+// only set the "restart required" indicator for pins the firmware can NOT
+// hot-swap (BLDC, I2C, voltage monitors, temp, button-set, twist feedback,
+// display, heater, fan).
+var lastPinoutSnapshot = {};
 var importSettingsInputElement;
 var websocket;
 const EndPointType = {
@@ -128,6 +153,15 @@ let adc1Pins = [36,37,38,39,32,33,34,35];
 let adc2Pins = [4,0,2,15,13,12,14,27,25,26];
 
 document.addEventListener("DOMContentLoaded", function() {
+    // Restore the "Advanced settings" toggle from localStorage BEFORE
+    // the page becomes visible, so users with the toggle off don't see
+    // a flash of the timer-channel/PWM-driver UI on every reload.
+    try {
+        var advOn = localStorage.getItem('advancedMode') === '1';
+        var cb = document.getElementById('advancedSettings');
+        if (cb) cb.checked = advOn;
+        document.body.classList.toggle('advanced-mode', advOn);
+    } catch(e) { /* localStorage may be unavailable; default = off */ }
     onDocumentLoad();
     document.getElementById("page-body").style.visibility = "visible";
     hideLoading();
@@ -193,8 +227,7 @@ function getSystemInfo(chain) {
         } else
             setSystemInfo();
         if(chain)
-            getPinSettings(chain);
-        else if(!polling)
+            getPinSettings(chain);        else if(!polling)
             hideLoading();
         serverPollRetryCount = 0;
     }, function(xhr) {
@@ -210,8 +243,14 @@ function getPinSettings(chain) {
         if(!pinoutSettings) {
             showError("Error getting pinout!");
         }
-        else
+        else {
             setPinoutSettings();
+            // Seed the change-tracking snapshot so subsequent edits diff
+            // against firmware truth and only flag a restart when a
+            // non-hot-swap pin actually changed.
+            try { lastPinoutSnapshot = JSON.parse(JSON.stringify(pinoutSettings)); }
+            catch(e) { lastPinoutSnapshot = {}; }
+        }
         if(chain)
             getWifiSettings(chain);
         else
@@ -301,7 +340,131 @@ function postAndValidatePinoutSettings(debounce, callback) {
     }, debounce);
 }
 function postPinoutSettings(debounce, callback) {
-    updateUserSettings(debounce, EndPointType.Pins.uri, pinoutSettings, callback);
+    // Wrap the user-supplied callback so that, on a successful save, we
+    // automatically request a hot reapply of the PWM hardware (servos /
+    // vibes / lube). Saves the user from having to press "Reapply PWM"
+    // for any PIN/CHANNEL change covered by PWM_HOTSWAP_PIN_FIELDS — those
+    // outputs hot-swap via PwmManager::reapplyPwm without a reboot.
+    const wrapped = function() {
+        // Refresh the snapshot so the next diff is against the freshly
+        // persisted state.
+        try { lastPinoutSnapshot = JSON.parse(JSON.stringify(pinoutSettings)); }
+        catch(e) {}
+        requestReapplyPwm(false /*silent*/);
+        if (callback) callback();
+    };
+    updateUserSettings(debounce, EndPointType.Pins.uri, pinoutSettings, wrapped);
+}
+
+/**
+ * Fire the firmware /reapplyPwm endpoint. Used both by the Reapply button
+ * (showToast=true) and automatically after every pinout save (silent).
+ */
+function requestReapplyPwm(showToast) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/reapplyPwm", true);
+    xhr.responseType = 'json';
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState !== 4) return;
+        if (showToast) {
+            if (xhr.status === 200) {
+                showInfoSuccess("PWM reapply requested. Outputs are reattaching from current settings.");
+            } else {
+                showError("PWM reapply failed (status " + xhr.status + ")");
+            }
+        } else if (xhr.status !== 200) {
+            logdebug("Silent /reapplyPwm failed status " + xhr.status);
+        }
+        // After the firmware finishes the reapply pass it has rebuilt its
+        // PwmManager failure table. Re-pull /systemInfo (lightweight) so we
+        // can update the per-pin error highlights.
+        if (xhr.status === 200) {
+            setTimeout(refreshPwmAttachErrors, 250);
+        }
+    };
+    xhr.send();
+}
+
+/**
+ * Lightweight re-fetch of /systemInfo whose only purpose is to update the
+ * pwmAttachErrors collection and re-paint the pin highlight overlay. Does
+ * NOT chain into getPinSettings/getUserSettings.
+ */
+function refreshPwmAttachErrors() {
+    get("system info (pwm errors)", EndPointType.System.uri, function(xhr) {
+        if (!xhr.response) return;
+        if (Array.isArray(xhr.response.pwmAttachErrors)) {
+            systemInfo.pwmAttachErrors = xhr.response.pwmAttachErrors;
+        } else {
+            systemInfo.pwmAttachErrors = [];
+        }
+        applyPwmAttachErrorHighlights();
+    });
+    // Also re-fetch the pinout. PwmManager may have shifted the
+    // backend (LEDC<->MCPWM) for some pins as a result of the reapply,
+    // and the firmware can update CHANNEL hints to match. Pull the
+    // current truth so the GUI's timer/channel cells stay aligned with
+    // what's actually running on hardware.
+    get("Pinout (post-reapply)", EndPointType.Pins.uri, function(xhr) {
+        if (!xhr.response) return;
+        pinoutSettings = xhr.response;
+        setPinoutSettings();
+        try { lastPinoutSnapshot = JSON.parse(JSON.stringify(pinoutSettings)); }
+        catch(e) {}
+    });
+}
+
+/**
+ * Walk every *_PIN <input> in the DOM. If its current numeric value matches
+ * a pin reported in systemInfo.pwmAttachErrors, paint it with the
+ * pwmAttachError class and tooltip the reason. Pins that are no longer on
+ * the failure list have their highlight cleared.
+ */
+function applyPwmAttachErrorHighlights() {
+    document.querySelectorAll('.pwmAttachError').forEach(function(el) {
+        el.classList.remove('pwmAttachError');
+        if (el.dataset.pwmErrTooltip) {
+            el.removeAttribute('title');
+            delete el.dataset.pwmErrTooltip;
+        }
+    });
+    if (!systemInfo || !Array.isArray(systemInfo.pwmAttachErrors) || !systemInfo.pwmAttachErrors.length) {
+        return;
+    }
+    var pinInputs = document.querySelectorAll('input[id$="_PIN"]');
+    systemInfo.pwmAttachErrors.forEach(function(err) {
+        if (err == null || typeof err.pin !== 'number' || err.pin < 0) return;
+        pinInputs.forEach(function(inp) {
+            if (parseInt(inp.value, 10) !== err.pin) return;
+            inp.classList.add('pwmAttachError');
+            inp.title = "PWM attach failed for '" + (err.name || '?') +
+                "' @ " + err.freq + " Hz / " + err.resolution + "-bit. " +
+                "No free LEDC timer or MCPWM operator available after auto-fallback. " +
+                "Try a different pin, or change the timer freq/resolution to match an existing one.";
+            inp.dataset.pwmErrTooltip = '1';
+        });
+    });
+}
+
+/**
+ * Compare the current pinoutSettings against the last-persisted snapshot
+ * and decide whether the change requires a firmware restart. Returns true
+ * if any non-hot-swappable pin field changed; in that case the caller
+ * should call setRestartRequired() to surface the indicator.
+ */
+function pinChangeRequiresRestart() {
+    for (const key of Object.keys(pinoutSettings)) {
+        if (pinoutSettings[key] === lastPinoutSnapshot[key]) continue;
+        // For arrays (BUTTON_SET_PINS) compare via JSON
+        if (typeof pinoutSettings[key] === 'object') {
+            if (JSON.stringify(pinoutSettings[key]) === JSON.stringify(lastPinoutSnapshot[key])) continue;
+        }
+        if (!PWM_HOTSWAP_PIN_FIELDS.has(key)) {
+            logdebug("Pin change requires restart (non-hot-swap field: " + key + ")");
+            return true;
+        }
+    }
+    return false;
 }
 function postWifiSettings(debounce, callback) {
     updateUserSettings(debounce, EndPointType.Wifi.uri, wifiSettings, callback);
@@ -357,21 +520,31 @@ function initWebSocket() {
 		var wsUri = (hasFeature(BuildFeature.HTTPS) ? "wss://" : "ws://") + window.location.host + "/ws";
 		if (typeof MozWebSocket == 'function')
 			WebSocket = MozWebSocket;
-		if ( websocket )
-			websocket.close();
+		if ( websocket ) {
+			// Detach handlers before closing so this deliberate close
+			// doesn't trigger onclose -> startServerPoll, which would
+			// re-chain getUserSettings -> initWebSocket and reload-loop.
+			websocket.onopen = null;
+			websocket.onclose = null;
+			websocket.onerror = null;
+			websocket.onmessage = null;
+			try { websocket.close(); } catch(e) {}
+		}
 		websocket = new WebSocket( wsUri );
 		websocket.onopen = function (evt) {
 			//xtpConnected = true;
 			logdebug("CONNECTED");
-            if(restartClicked) {
-                getUserSettings();
-                restartClicked = false;
-            }
+            // The polling chain (getSystemInfo -> ... -> getUserSettings -> initWebSocket)
+            // already refreshed everything before we got here, so just clear the
+            // restart flag and hide loading. Calling getUserSettings() here would
+            // re-enter initWebSocket() and cause a reload loop.
+            restartClicked = false;
             hideLoading();
             if(serverPollingTimeOut) {
                 clearTimeout(serverPollingTimeOut);
                 serverPollingTimeOut = null;
             }
+            serverPollRetryCount = 0;
 			//updateSettingsUI();
 		};
 		websocket.onclose = function (evt) {
@@ -436,6 +609,9 @@ function wsCallBackFunction(evt) {
             //     break;
             case "batteryStatus":
                 wsBatteryStatus(data);
+                break;
+            case "powerStatus":
+                wsPowerStatus(data);
                 break;
             case "debug":
 				var message = data["message"];
@@ -595,9 +771,13 @@ function postDeviceType(deviceType) {
     xhr.send();
 }
 
-function onRestartClick(optionalMessage)
+function onReapplyPwmClick()
 {
-    var warningmessage = "Device restarting...";
+    requestReapplyPwm(true /*showToast*/);
+}
+
+function onRestartClick(optionalMessage)
+{    var warningmessage = "Device restarting...";
     if(optionalMessage) {
         warningmessage += optionalMessage;
     }
@@ -802,8 +982,16 @@ function setSystemInfo() {
     toggleBluetoothSettings();
 
     if(systemInfo["moduleType"] == ModuleType.S3) {
+        // ESP32-S3 GPIOs: 0-21 and 26-48 are usable. 22-25 do not exist on the chip.
+        // Only GPIO 46 is strictly input-only. GPIO 0, 45, 46 are strapping pins (use with caution).
+        // GPIOs 47 and 48 are valid MCPWM-capable outputs.
         validPWMpins = [];
-        for(let i=1;i<44;i++) {
+        for(let i=0;i<=21;i++) {
+            if(i === 46) continue; // input-only (defensive; not in this range)
+            validPWMpins.push(i);
+        }
+        for(let i=26;i<=48;i++) {
+            if(i === 46) continue; // input-only
             validPWMpins.push(i);
         }
         inputOnlypins = [46];
@@ -812,7 +1000,54 @@ function setSystemInfo() {
         adc2Pins = [11,12,13,14,15,16,17,18,19,20];
     }
 
+    // Refresh the "PWM availible on:" hint text so it reflects the actual
+    // platform — the HTML default is the WROOM32 list. ESP32-S3 has nearly
+    // every GPIO PWM-capable, so the hardcoded copy was misleading.
+    updatePwmAvailableText();
+
     document.getElementById('lastRebootReason').value = systemInfo.lastRebootReason;
+
+    // Build the manual PWM test panel now that validPWMpins and
+    // systemInfo.availableTimers are populated.
+    if (typeof PwmTest !== 'undefined') {
+        try { PwmTest.setup(); } catch (e) { console.warn('PwmTest.setup', e); }
+    }
+}
+
+/**
+ * Render the current `validPWMpins` array as a compact human-readable range
+ * string ("2,4,5,12-19,21-23,...") and write it into #pwmAvailableInfo.
+ * Called after `setSystemInfo` has populated `validPWMpins` for the active
+ * platform (WROOM32 vs S3).
+ */
+function updatePwmAvailableText() {
+    const target = document.getElementById('pwmAvailableInfo');
+    if(!target) return;
+    if(!Array.isArray(validPWMpins) || validPWMpins.length === 0) {
+        target.textContent = "PWM availible on: (none)";
+        return;
+    }
+    // Sort numerically and collapse contiguous runs into "a-b" ranges.
+    const pins = validPWMpins.slice().sort((a,b) => a - b);
+    const parts = [];
+    let runStart = pins[0];
+    let runEnd = pins[0];
+    for(let i = 1; i < pins.length; i++) {
+        if(pins[i] === runEnd + 1) {
+            runEnd = pins[i];
+        } else {
+            parts.push(runStart === runEnd ? `${runStart}` : `${runStart}-${runEnd}`);
+            runStart = runEnd = pins[i];
+        }
+    }
+    parts.push(runStart === runEnd ? `${runStart}` : `${runStart}-${runEnd}`);
+
+    let label = `PWM availible on: ${parts.join(',')}`;
+    if(systemInfo["moduleType"] == ModuleType.S3) {
+        // S3-specific guidance — strapping pins and missing 22-25.
+        label += " (GPIO 22-25 don't exist on S3; 0, 45, 46 are strapping pins — use with caution)";
+    }
+    target.textContent = label;
 }
 function setWifiSettings() {
     document.getElementById("ssid").value = wifiSettings["ssid"];
@@ -883,7 +1118,11 @@ function setPinoutSettings() {
     document.getElementById('Internal_Temp_PIN').value = pinoutSettings["Internal_Temp_PIN"];
     document.getElementById('i2cSda_PIN').value = pinoutSettings["i2cSda_PIN"];
     document.getElementById('i2cScl_PIN').value = pinoutSettings["i2cScl_PIN"];
-
+    document.getElementById('Voltage_3V3_PIN').value = pinoutSettings["Voltage_3V3_PIN"];
+    document.getElementById('Voltage_5V_PIN').value = pinoutSettings["Voltage_5V_PIN"];
+    document.getElementById('Voltage_Battery_PIN').value = pinoutSettings["Voltage_Battery_PIN"];
+    document.getElementById('Voltage_Motor_PIN').value = pinoutSettings["Voltage_Motor_PIN"];
+    document.getElementById('Voltage_Bus_PIN').value = pinoutSettings["Voltage_Bus_PIN"];
 
     setPinChannel("Vibe0_CHANNEL", pinoutSettings["Vibe0_CHANNEL"]);
     setPinChannel("Vibe1_CHANNEL", pinoutSettings["Vibe1_CHANNEL"]);
@@ -895,6 +1134,9 @@ function setPinoutSettings() {
     setPinChannel("Heater_CHANNEL", pinoutSettings["Heater_CHANNEL"]);
     setPinChannel("Case_Fan_CHANNEL", pinoutSettings["Case_Fan_CHANNEL"]);
     validatePwmDriverContention();
+    // After every (re)render, re-paint pin error overlays from the latest
+    // PwmManager failure table snapshot (carried in systemInfo).
+    applyPwmAttachErrorHighlights();
 }
 function setUserSettings()
 {
@@ -1740,9 +1982,21 @@ function setupTimerChannels() {
         const element = elements[index];
         removeAllChildren(element);
         for(let i=0;i<systemInfo.timerChannels.length;i++) {
+            const ch = systemInfo.timerChannels[i];
             const option = document.createElement("option");
-            option.innerText = systemInfo.timerChannels[i].name;
-            option.value = systemInfo.timerChannels[i].value;
+            // Relabel HIGH*/LOW* internal names as LEDC:N / MCPWM:N so the
+            // user sees what hardware actually drives the output. The
+            // "channel index" surfaced is per-driver (0..7) extracted from
+            // the trailing CH<n> suffix of the original channel name.
+            if (ch.value === -1 || ch.driver === undefined) {
+                option.innerText = ch.name; // "None"
+            } else {
+                const m = String(ch.name || '').match(/CH(\d+)/i);
+                const idx = m ? m[1] : ch.value;
+                const driverLabel = (ch.driver === ESPTimer.PwmDriver.MCPWM) ? "MCPWM" : "LEDC";
+                option.innerText = `${driverLabel}:${idx}`;
+            }
+            option.value = ch.value;
             element.appendChild(option);
         }
     }
@@ -1798,6 +2052,20 @@ function disablePinValidation() {
 	updateUserSettings();
 }
 
+/**
+ * Toggle the "Advanced settings" UI mode. When off (default) the timer-
+ * channel selectors, PWM driver/frequency editor and manual reapply
+ * button are hidden — the firmware auto-allocates LEDC channels via
+ * PwmManager so end users only need to choose pins. State is persisted
+ * to localStorage and restored at next page load.
+ */
+function toggleAdvancedSettings() {
+    var cb = document.getElementById('advancedSettings');
+    var on = cb && cb.checked;
+    document.body.classList.toggle('advanced-mode', !!on);
+    try { localStorage.setItem('advancedMode', on ? '1' : '0'); } catch(e) {}
+}
+
 function setPinChannel(id, value) {
     let element = document.getElementById(id);
     element.value = value;
@@ -1808,7 +2076,13 @@ function onSelectPinChannel(element) {
     // let option = selectElement.options[selectElement.selectedIndex];
     // option.disabled = true
     toggleEnableTimerChannels(element);
-    setRestartRequired();
+    // Channel changes hot-swap via PwmManager (postPinoutSettings auto-fires
+    // /reapplyPwm). Only flag a restart if a non-hot-swap field changed —
+    // here that should never be true for a CHANNEL select, but the diff
+    // check keeps behaviour robust if the field set is later expanded.
+    if (pinChangeRequiresRestart()) {
+        setRestartRequired();
+    }
 	postPinoutSettings();
     validatePwmDriverContention();
 }
@@ -1841,7 +2115,13 @@ function updatePins()
             pinoutSettings["PitchLeftServo_PIN"] = pinValues.pitchLeft;
             pinoutSettings["PitchRightServo_PIN"] = pinValues.pitchRight;
             updateCommonPins(pinValues);
-            setRestartRequired();
+            // Diff-based restart flag: only set when a non-hot-swap pin
+            // (BLDC, I2C, voltage monitor, temp, twist feedback, fan,
+            // heater, button-set, display reset) actually changed value.
+            // PWM-output pins/channels reapply live via PwmManager.
+            if (pinChangeRequiresRestart()) {
+                setRestartRequired();
+            }
             postPinoutSettings(0);
         }
     }, defaultDebounce);
@@ -1863,8 +2143,11 @@ function updateCommonPins(pinValues) {
     pinoutSettings["Internal_Temp_PIN"] = pinValues.internalTemp;
     pinoutSettings["i2cSda_PIN"] = pinValues.i2cSda;
     pinoutSettings["i2cScl_PIN"] = pinValues.i2cScl;
-    //     pinoutSettings["Battery_Voltage_PIN"] = pinValues.Battery_Voltage_PIN;
-    // }
+    pinoutSettings["Voltage_3V3_PIN"] = pinValues.voltage3v3;
+    pinoutSettings["Voltage_5V_PIN"] = pinValues.voltage5v;
+    pinoutSettings["Voltage_Battery_PIN"] = pinValues.voltageBattery;
+    pinoutSettings["Voltage_Motor_PIN"] = pinValues.voltageMotor;
+    pinoutSettings["Voltage_Bus_PIN"] = pinValues.voltageBus;
 
 }
 // function updateNonPWMPins(assignedPins) {
@@ -2014,6 +2297,14 @@ function validatePWMPin(pin, pinName, assignedPins, duplicatePins, pwmErrors) {
         validatePin(pin, pinName, assignedPins, duplicatePins)
         if(validPWMpins.indexOf(pin) == -1)
             pwmErrors.push(pinName+" pin: "+pin);
+    }
+}
+function validateAnalogPin(pin, pinName, assignedPins, duplicatePins, invalidPins) {
+    if(pin > -1) {
+        validatePin(pin, pinName, assignedPins, duplicatePins, true, invalidPins);
+        if(adc1Pins.indexOf(pin) === -1 && adc2Pins.indexOf(pin) === -1) {
+            invalidPins.push(pinName + " pin: " + pin + " is not an ADC-capable pin.");
+        }
     }
 }
 /**
@@ -2181,6 +2472,12 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
         validatePin(pinValues.twistFeedBack, "Twist feedback", assignedPins, duplicatePins, true, invalidPins);
     }
 
+    validateAnalogPin(pinValues.voltage3v3, "3.3V monitor", assignedPins, duplicatePins, invalidPins);
+    validateAnalogPin(pinValues.voltage5v, "5V monitor", assignedPins, duplicatePins, invalidPins);
+    validateAnalogPin(pinValues.voltageBattery, "Battery monitor", assignedPins, duplicatePins, invalidPins);
+    validateAnalogPin(pinValues.voltageMotor, "Motor monitor", assignedPins, duplicatePins, invalidPins);
+    validateAnalogPin(pinValues.voltageBus, "Bus monitor", assignedPins, duplicatePins, invalidPins);
+
     if(Buttons.isButtonSetsEnabled()) {
         for(var i=0; i<pinValues.buttonSets.length; i++) {
             var buttonSetPin = pinValues.buttonSets[i];
@@ -2227,6 +2524,11 @@ function getCommonPinValues(pinValues) {
     pinValues.temp = parseInt(document.getElementById('Temp_PIN').value);
     pinValues.internalTemp = parseInt(document.getElementById('Internal_Temp_PIN').value);
     pinValues.twistFeedBack = parseInt(document.getElementById('TwistFeedBack_PIN').value);
+    pinValues.voltage3v3 = parseInt(document.getElementById('Voltage_3V3_PIN').value);
+    pinValues.voltage5v = parseInt(document.getElementById('Voltage_5V_PIN').value);
+    pinValues.voltageBattery = parseInt(document.getElementById('Voltage_Battery_PIN').value);
+    pinValues.voltageMotor = parseInt(document.getElementById('Voltage_Motor_PIN').value);
+    pinValues.voltageBus = parseInt(document.getElementById('Voltage_Bus_PIN').value);
 
     var buttonSetPins = document.getElementsByName('buttonSetPins');
     pinValues.buttonSets = [];

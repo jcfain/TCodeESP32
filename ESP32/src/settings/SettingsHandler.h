@@ -23,6 +23,7 @@ SOFTWARE. */
 #pragma once
 
 #include <sstream>
+#include <memory>
 #include <WiFi.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
@@ -42,6 +43,7 @@ SOFTWARE. */
 #include "channelMap.hpp"
 #include "settingConstants.h"
 #include "settingsFactory.h"
+#include "tcode/PwmManager.h"
 
 #define DESERIALIZE_SIZE 32768
 #define SERIALIZE_SIZE 24576
@@ -290,9 +292,6 @@ public:
         JsonObject INControl = boardTypes.add<JsonObject>();
         INControl["name"] = "IN-Control";
         INControl["value"] = (uint8_t)BoardType::ISAAC;
-        JsonObject SR6PCB = boardTypes.add<JsonObject>();
-        SR6PCB["name"] = "SR6PCB";
-        SR6PCB["value"] = (uint8_t)BoardType::SR6PCB;
 #elif MOTOR_TYPE == 1
         JsonObject SSR1PCB = boardTypes.add<JsonObject>();
         SSR1PCB["name"] = "SSR1PCB";
@@ -307,6 +306,11 @@ public:
         JsonObject N8R8 = boardTypes.add<JsonObject>();
         N8R8["name"] = "S3 N8R8";
         N8R8["value"] = (uint8_t)BoardType::N8R8;
+#endif
+#if MOTOR_TYPE == 0
+        JsonObject SR6PCB = boardTypes.add<JsonObject>();
+        SR6PCB["name"] = "SR6PCB";
+        SR6PCB["value"] = (uint8_t)BoardType::SR6PCB;
 #endif
 #endif
         int motorType = MOTOR_TYPE_DEFAULT;
@@ -418,6 +422,10 @@ public:
                 JsonObject timerChannelObj = timerChannels.add<JsonObject>();
                 timerChannelObj["name"] = timer->channels[j].name;
                 timerChannelObj["value"] = timer->channels[j].channel;
+                // Surface the timer's preferred PWM driver so the GUI can
+                // relabel options as "LEDC:N" / "MCPWM:N" instead of the
+                // old HIGH*/LOW* naming.
+                timerChannelObj["driver"] = (int8_t)timer->pwmDriver;
             }
         }
         // MCPWM capacity: 2 groups × 3 operators × 2 generators = 12 max outputs
@@ -456,12 +464,43 @@ public:
         doc["apMode"] = apMode;
         doc["defaultIP"] = m_settingsFactory->getAPModeIP();
 
-        // Measure required size, then serialize directly — avoids having
-        // both the JsonDocument and a large String/buffer on the heap at once.
+        // Surface PWM attach failures so the GUI can flag the offending pins
+        // (couldn't allocate any LEDC channel / MCPWM operator at the
+        // requested freq+resolution after auto-fallback).
+        {
+            PwmManager& pm = PwmManager::instance();
+            JsonArray pwmErrors = doc["pwmAttachErrors"].to<JsonArray>();
+            const PwmManager::Failure* fails = pm.failures();
+            for (int i = 0; i < pm.failureCount(); i++)
+            {
+                JsonObject e = pwmErrors.add<JsonObject>();
+                e["name"] = fails[i].name;
+                e["pin"] = fails[i].pin;
+                e["freq"] = fails[i].freq;
+                e["resolution"] = fails[i].resolution;
+                e["triedFirst"] = (uint8_t)fails[i].triedFirst; // 1=MCPWM, 2=LEDC
+            }
+        }
+
+        // Measure required size, then serialize into a single fixed-size heap
+        // allocation. Serializing directly into a String causes ArduinoJson's
+        // String writer to call String::concat() on every flush, which in turn
+        // calls realloc() and can crash inside the allocator under heap
+        // fragmentation pressure (especially as the payload has grown). One
+        // malloc + one assignment avoids the realloc churn.
         size_t jsonLen = measureJson(doc);
-        buf.reserve(jsonLen);
-        serializeJson(doc, buf);
+        std::unique_ptr<char[]> raw(new (std::nothrow) char[jsonLen + 1]);
+        if (!raw)
+        {
+            LogHandler::error(Tags::Settings, "getSystemInfo: failed to allocate %u bytes", (unsigned)(jsonLen + 1));
+            buf = "";
+            doc.clear();
+            return;
+        }
+        size_t written = serializeJson(doc, raw.get(), jsonLen + 1);
+        raw[written] = '\0';
         doc.clear();
+        buf = raw.get();
         if (LogHandler::getLogLevel() == LogLevel::VERBOSE)
             Serial.printf("SystemInfo: %s\n", buf.c_str());
         // buf[0] = {0};

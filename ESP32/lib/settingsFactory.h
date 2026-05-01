@@ -260,7 +260,7 @@ public:
         }
         else
         {
-            LogHandler::error(Tags::SettingsFactory, "Get value key not found: %s", name);
+            LogHandler::verbose(Tags::SettingsFactory, "Get value key not found: %s", name);
             return SettingFile::NONE;
         }
     }
@@ -326,7 +326,7 @@ public:
         }
         else
         {
-            LogHandler::error(Tags::SettingsFactory, "Get value key not found: %s", name);
+            LogHandler::verbose(Tags::SettingsFactory, "Get value key not found: %s", name);
         }
         return 0;
     }
@@ -685,6 +685,12 @@ public:
         if (!name || !strcmp(name, LOG_LEVEL_SETTING))
         {
             getValue(LOG_LEVEL_SETTING, logLevel);
+            // Push the new value into LogHandler so the runtime filter
+            // actually changes. Without this, the setting was persisted
+            // but the in-memory log threshold stayed at whatever
+            // main.cpp set at boot (INFO), so DEBUG-tagged messages were
+            // filtered out even after the GUI selected Debug.
+            LogHandler::setLogLevel(static_cast<LogLevel>(logLevel));
             if (targeted)
             {
                 initCommonMessages(name);
@@ -1222,6 +1228,18 @@ private:
                                                                                {BATTERY_LEVEL_NUMERIC, "Battery level numeric", "Display the battery level in numeric form", SettingType::Boolean, BATTERY_LEVEL_NUMERIC_DEFAULT, RestartRequired::YES, {SettingProfile::Battery}},
                                                                                {BATTERY_VOLTAGE_MAX, "Battery voltage max", "The max voltage for the battery", SettingType::Double, BATTERY_VOLTAGE_MAX_DEFAULT, RestartRequired::YES, {SettingProfile::Battery}},
                                                                                {BATTERY_CAPACITY_MAX, "Battery capcity max", "The battery max capacity", SettingType::Number, BATTERY_CAPACITY_MAX_DEFAULT, RestartRequired::YES, {SettingProfile::Battery}},
+                                                                               {POWER_MONITOR_3V3_DIVIDER_RATIO, "3v3 divider ratio", "Voltage divider ratio for 3.3V monitor (e.g. 0.099 for 22k/222k)", SettingType::Float, POWER_MONITOR_3V3_DIVIDER_RATIO_DEFAULT, RestartRequired::YES, {SettingProfile::Analog}},
+                                                                               {POWER_MONITOR_5V_DIVIDER_RATIO, "5v divider ratio", "Voltage divider ratio for 5V monitor", SettingType::Float, POWER_MONITOR_5V_DIVIDER_RATIO_DEFAULT, RestartRequired::YES, {SettingProfile::Analog}},
+                                                                               {POWER_MONITOR_BATTERY_DIVIDER_RATIO, "Battery divider ratio", "Voltage divider ratio for battery monitor", SettingType::Float, POWER_MONITOR_BATTERY_DIVIDER_RATIO_DEFAULT, RestartRequired::YES, {SettingProfile::Analog}},
+                                                                               {POWER_MONITOR_MOTOR_DIVIDER_RATIO, "Motor divider ratio", "Voltage divider ratio for motor monitor", SettingType::Float, POWER_MONITOR_MOTOR_DIVIDER_RATIO_DEFAULT, RestartRequired::YES, {SettingProfile::Analog}},
+                                                                               {POWER_MONITOR_BUS_DIVIDER_RATIO, "Bus divider ratio", "Voltage divider ratio for VBUS monitor", SettingType::Float, POWER_MONITOR_BUS_DIVIDER_RATIO_DEFAULT, RestartRequired::YES, {SettingProfile::Analog}},
+                                                                               {POWER_MONITOR_3V3_OFFSET, "3v3 offset", "Offset added after divider conversion for 3.3V monitor", SettingType::Float, POWER_MONITOR_3V3_OFFSET_DEFAULT, RestartRequired::YES, {SettingProfile::Analog}},
+                                                                               {POWER_MONITOR_5V_OFFSET, "5v offset", "Offset added after divider conversion for 5V monitor", SettingType::Float, POWER_MONITOR_5V_OFFSET_DEFAULT, RestartRequired::YES, {SettingProfile::Analog}},
+                                                                               {POWER_MONITOR_BATTERY_OFFSET, "Battery offset", "Offset added after divider conversion for battery monitor", SettingType::Float, POWER_MONITOR_BATTERY_OFFSET_DEFAULT, RestartRequired::YES, {SettingProfile::Analog}},
+                                                                               {POWER_MONITOR_MOTOR_OFFSET, "Motor offset", "Offset added after divider conversion for motor monitor", SettingType::Float, POWER_MONITOR_MOTOR_OFFSET_DEFAULT, RestartRequired::YES, {SettingProfile::Analog}},
+                                                                               {POWER_MONITOR_BUS_OFFSET, "Bus offset", "Offset added after divider conversion for VBUS monitor", SettingType::Float, POWER_MONITOR_BUS_OFFSET_DEFAULT, RestartRequired::YES, {SettingProfile::Analog}},
+                                                                               {POWER_MONITOR_VBUS_NOMINAL, "VBUS nominal", "Nominal VBUS supply voltage used for percentage display", SettingType::Float, POWER_MONITOR_VBUS_NOMINAL_DEFAULT, RestartRequired::YES, {SettingProfile::Analog}},
+                                                                               {POWER_MONITOR_VMOTOR_NOMINAL, "VMOTOR nominal", "Nominal VMOTOR voltage used for percentage display (commonly 6, 9, or 20)", SettingType::Float, POWER_MONITOR_VMOTOR_NOMINAL_DEFAULT, RestartRequired::YES, {SettingProfile::Analog}},
                                                                                {VOICE_ENABLED, "Voice enabled", "Enable voice control", SettingType::Boolean, VOICE_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Voice}},
                                                                                {VOICE_MUTED, "Voice muted", "Voice talk back muted", SettingType::Boolean, VOICE_MUTED_DEFAULT, RestartRequired::YES, {SettingProfile::Voice}},
                                                                                {VOICE_WAKE_TIME, "Voice wake time", "How long to keep the voice module awake listening for commands", SettingType::Number, VOICE_WAKE_TIME_DEFAULT, RestartRequired::YES, {SettingProfile::Voice}},
@@ -1236,45 +1254,52 @@ private:
     SettingFileInfo m_pinsFileInfo =
         {
             false, PIN_SETTINGS_PATH, SettingFile::Pins, JsonDocument(), {// PWM
-                                                                          {RIGHT_SERVO_PIN, "Right servo PIN", "Pin the right servo is on", SettingType::Number, RIGHT_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {RIGHT_SERVO_CHANNEL, "Right servo channel", "Timer channel the right servo is on", SettingType::Number, RIGHT_SERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {LEFT_SERVO_PIN, "Left servo PIN", "Pin the left servo is on", SettingType::Number, LEFT_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {LEFT_SERVO_CHANNEL, "Left servo channel", "Timer channel the left servo is on", SettingType::Number, LEFT_SERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {RIGHT_UPPER_SERVO_PIN, "Right upper servo PIN", "Pin the right upper servo is on", SettingType::Number, RIGHT_UPPER_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {RIGHT_UPPER_SERVO_CHANNEL, "Right upper servo channel", "Timer channel the right upper servo is on", SettingType::Number, RIGHT_UPPER_SERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {LEFT_UPPER_SERVO_PIN, "Left upper servo PIN", "Pin the left servo is on", SettingType::Number, LEFT_UPPER_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {LEFT_UPPER_SERVO_CHANNEL, "Left upper servo channel", "Timer channel the left servo is on", SettingType::Number, LEFT_UPPER_SERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {PITCH_LEFT_SERVO_PIN, "Pitch left servo PIN", "Pin the pitch left servo is on", SettingType::Number, PITCH_LEFT_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {PITCH_LEFT_SERVO_CHANNEL, "Pitch left servo channel", "Timer channel the pitch left servo is on", SettingType::Number, PITCH_LEFT_SERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {PITCH_RIGHTSERVO_PIN, "Pitch right servo PIN", "Pin the pitch right servo is on", SettingType::Number, PITCH_RIGHTSERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {PITCH_RIGHTSERVO_CHANNEL, "Pitch right servo channel", "Timer channel the pitch right servo is on", SettingType::Number, PITCH_RIGHTSERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {VALVE_SERVO_PIN, "Valve servo PIN", "Pin the valve servo is on", SettingType::Number, VALVE_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {VALVE_SERVO_CHANNEL, "Valve servo channel", "Timer channel the valve servo is on", SettingType::Number, VALVE_SERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {TWIST_SERVO_PIN, "Twist servo PIN", "Pin the twist servo is on", SettingType::Number, TWIST_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {TWIST_SERVO_CHANNEL, "Twist servo channel", "Timer channel the twist servo is on", SettingType::Number, TWIST_SERVO_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {SQUEEZE_PIN, "Squeeze servo PIN", "Pin the squeeze servo is on", SettingType::Number, SQUEEZE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {SQUEEZE_CHANNEL, "Squeeze servo channel", "Timer channel the squeeze servo is on", SettingType::Number, SQUEEZE_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {VIBE0_PIN, "Vibe1 PIN", "Pin the vibe 1 is on", SettingType::Number, VIBE0_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {VIBE0_CHANNEL, "Vibe1 channel", "Timer channel the vibe 1 is on", SettingType::Number, VIBE0_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {VIBE1_PIN, "Vibe2 PIN", "Pin the vibe 2 is on", SettingType::Number, VIBE1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {VIBE1_CHANNEL, "Vibe2 channel", "Timer channel the vibe 2 is on", SettingType::Number, VIBE1_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {VIBE2_PIN, "Vibe3 PIN", "Pin the vibe 3 is on", SettingType::Number, VIBE2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {VIBE2_CHANNEL, "Vibe3 channel", "Timer channel the vibe 3 is on", SettingType::Number, VIBE2_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {VIBE3_PIN, "Vibe4 PIN", "Pin the vibe 4 is on", SettingType::Number, VIBE3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
-                                                                          {VIBE3_CHANNEL, "Vibe4 channel", "Timer channel the vibe 4 is on", SettingType::Number, VIBE3_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {RIGHT_SERVO_PIN, "Right servo PIN", "Pin the right servo is on", SettingType::Number, RIGHT_SERVO_PIN_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {RIGHT_SERVO_CHANNEL, "Right servo channel", "Timer channel the right servo is on", SettingType::Number, RIGHT_SERVO_CHANNEL_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {LEFT_SERVO_PIN, "Left servo PIN", "Pin the left servo is on", SettingType::Number, LEFT_SERVO_PIN_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {LEFT_SERVO_CHANNEL, "Left servo channel", "Timer channel the left servo is on", SettingType::Number, LEFT_SERVO_CHANNEL_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {RIGHT_UPPER_SERVO_PIN, "Right upper servo PIN", "Pin the right upper servo is on", SettingType::Number, RIGHT_UPPER_SERVO_PIN_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {RIGHT_UPPER_SERVO_CHANNEL, "Right upper servo channel", "Timer channel the right upper servo is on", SettingType::Number, RIGHT_UPPER_SERVO_CHANNEL_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {LEFT_UPPER_SERVO_PIN, "Left upper servo PIN", "Pin the left servo is on", SettingType::Number, LEFT_UPPER_SERVO_PIN_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {LEFT_UPPER_SERVO_CHANNEL, "Left upper servo channel", "Timer channel the left servo is on", SettingType::Number, LEFT_UPPER_SERVO_CHANNEL_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {PITCH_LEFT_SERVO_PIN, "Pitch left servo PIN", "Pin the pitch left servo is on", SettingType::Number, PITCH_LEFT_SERVO_PIN_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {PITCH_LEFT_SERVO_CHANNEL, "Pitch left servo channel", "Timer channel the pitch left servo is on", SettingType::Number, PITCH_LEFT_SERVO_CHANNEL_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {PITCH_RIGHTSERVO_PIN, "Pitch right servo PIN", "Pin the pitch right servo is on", SettingType::Number, PITCH_RIGHTSERVO_PIN_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {PITCH_RIGHTSERVO_CHANNEL, "Pitch right servo channel", "Timer channel the pitch right servo is on", SettingType::Number, PITCH_RIGHTSERVO_CHANNEL_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {VALVE_SERVO_PIN, "Valve servo PIN", "Pin the valve servo is on", SettingType::Number, VALVE_SERVO_PIN_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {VALVE_SERVO_CHANNEL, "Valve servo channel", "Timer channel the valve servo is on", SettingType::Number, VALVE_SERVO_CHANNEL_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {TWIST_SERVO_PIN, "Twist servo PIN", "Pin the twist servo is on", SettingType::Number, TWIST_SERVO_PIN_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {TWIST_SERVO_CHANNEL, "Twist servo channel", "Timer channel the twist servo is on", SettingType::Number, TWIST_SERVO_CHANNEL_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {SQUEEZE_PIN, "Squeeze servo PIN", "Pin the squeeze servo is on", SettingType::Number, SQUEEZE_PIN_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {SQUEEZE_CHANNEL, "Squeeze servo channel", "Timer channel the squeeze servo is on", SettingType::Number, SQUEEZE_CHANNEL_DEFAULT, RestartRequired::NO, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {VIBE0_PIN, "Vibe1 PIN", "Pin the vibe 1 is on", SettingType::Number, VIBE0_PIN_DEFAULT, RestartRequired::NO, {SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {VIBE0_CHANNEL, "Vibe1 channel", "Timer channel the vibe 1 is on", SettingType::Number, VIBE0_CHANNEL_DEFAULT, RestartRequired::NO, {SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {VIBE1_PIN, "Vibe2 PIN", "Pin the vibe 2 is on", SettingType::Number, VIBE1_PIN_DEFAULT, RestartRequired::NO, {SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {VIBE1_CHANNEL, "Vibe2 channel", "Timer channel the vibe 2 is on", SettingType::Number, VIBE1_CHANNEL_DEFAULT, RestartRequired::NO, {SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {VIBE2_PIN, "Vibe3 PIN", "Pin the vibe 3 is on", SettingType::Number, VIBE2_PIN_DEFAULT, RestartRequired::NO, {SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {VIBE2_CHANNEL, "Vibe3 channel", "Timer channel the vibe 3 is on", SettingType::Number, VIBE2_CHANNEL_DEFAULT, RestartRequired::NO, {SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {VIBE3_PIN, "Vibe4 PIN", "Pin the vibe 4 is on", SettingType::Number, VIBE3_PIN_DEFAULT, RestartRequired::NO, {SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {VIBE3_CHANNEL, "Vibe4 channel", "Timer channel the vibe 4 is on", SettingType::Number, VIBE3_CHANNEL_DEFAULT, RestartRequired::NO, {SettingProfile::PWM, SettingProfile::Pin}},
                                                                           {CASE_FAN_PIN, "Case fan PIN", "Pin the case fan is on", SettingType::Number, CASE_FAN_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
                                                                           {CASE_FAN_CHANNEL, "Case fan channel", "Timer channel the case fan is on", SettingType::Number, CASE_FAN_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
                                                                           {HEATER_PIN, "Heater PIN", "Pin the heater is on", SettingType::Number, HEATER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature, SettingProfile::Pin, SettingProfile::PWM}},
                                                                           {HEATER_CHANNEL, "Heater channel", "Timer channel the heater is on", SettingType::Number, HEATER_CHANNEL_DEFAULT, RestartRequired::YES, {SettingProfile::Temperature, SettingProfile::Pin, SettingProfile::PWM}},
                                                                           // Analog
                                                                           {TWIST_FEEDBACK_PIN, "Twist feedback PIN", "The twist feedback pin", SettingType::Number, TWIST_FEEDBACK_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Pin}},
-                                                                          {LUBE_BUTTON_PIN, "Lube button PIN", "Pin the lube button is on", SettingType::Number, LUBE_BUTTON_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::PWM, SettingProfile::Pin}},
+                                                                          {LUBE_BUTTON_PIN, "Lube button PIN", "Pin the lube button is on", SettingType::Number, LUBE_BUTTON_PIN_DEFAULT, RestartRequired::NO, {SettingProfile::PWM, SettingProfile::Pin}},
                                                                           {INTERNAL_TEMP_PIN, "Internal temp PIN", "Pin the internal temp sensor is on", SettingType::Number, INTERNAL_TEMP_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Analog, SettingProfile::Pin}},
                                                                           {DISPLAY_RST_PIN, "Display Rst PIN", "Reset pin for the display", SettingType::Number, DISPLAY_RST_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Display, SettingProfile::Pin}},
                                                                           {TEMP_PIN, "Temp pin", "Pin the sleeve temperture is on", SettingType::Number, TEMP_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Pin, SettingProfile::Analog}},
                                                                           {I2C_SDA_PIN, "I2C SDA PIN", "Pin of the I2C SDA", SettingType::Number, I2C_SDA_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::System, SettingProfile::Pin}},
                                                                           {I2C_SCL_PIN, "I2C SCL PIN", "Pin of the I2C SCL", SettingType::Number, I2C_SCL_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::System, SettingProfile::Pin}},
                                                                           {BUTTON_SET_PINS, "Button set pins", "Pins for each button set. (Max 4)", SettingType::ArrayInt, BUTTON_SET_PINS_DEFAULT, RestartRequired::YES, {SettingProfile::Pin, SettingProfile::Analog}},
+                                                                          {VOLTAGE_3V3_PIN, "3v3 voltage monitor PIN", "Analog pin used to monitor the 3.3V rail via divider", SettingType::Number, -1, RestartRequired::YES, {SettingProfile::Analog, SettingProfile::Pin}},
+                                                                          {VOLTAGE_5V_PIN, "5v voltage monitor PIN", "Analog pin used to monitor the 5V rail via divider", SettingType::Number, -1, RestartRequired::YES, {SettingProfile::Analog, SettingProfile::Pin}},
+                                                                          {VOLTAGE_BATTERY_PIN, "Battery voltage monitor PIN", "Analog pin used to monitor battery voltage via divider", SettingType::Number, -1, RestartRequired::YES, {SettingProfile::Analog, SettingProfile::Pin}},
+                                                                          {VOLTAGE_MOTOR_PIN, "Motor voltage monitor PIN", "Analog pin used to monitor motor voltage via divider", SettingType::Number, -1, RestartRequired::YES, {SettingProfile::Analog, SettingProfile::Pin}},
+                                                                          {VOLTAGE_BUS_PIN, "Bus voltage monitor PIN", "Analog pin used to monitor bus voltage via divider", SettingType::Number, -1, RestartRequired::YES, {SettingProfile::Analog, SettingProfile::Pin}},
+                                                                          {SERVO_VOLTAGE_ENABLE_PIN, "Servo voltage enable PIN", "Digital pin to control servo voltage output (SR6PCB only)", SettingType::Number, SERVO_VOLTAGE_ENABLE_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Pin}},
+                                                                          {SERVO_VOLTAGE_ENABLE_STATE, "Servo voltage enable state", "Enable/disable servo voltage output (SR6PCB only)", SettingType::Boolean, SERVO_VOLTAGE_ENABLE_STATE_DEFAULT, RestartRequired::NO, {SettingProfile::System}},
                                                                           // BLDC
                                                                           {BLDC_ENCODER_PIN, "Encoder PIN", "Pin the BLDC encoder is on", SettingType::Number, BLDC_ENCODER_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
                                                                           {BLDC_CHIPSELECT_PIN, "Chipselect PIN", "Pin the BLDC chip select is on", SettingType::Number, BLDC_CHIPSELECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
@@ -1282,27 +1307,24 @@ private:
                                                                           {BLDC_HALLEFFECT_PIN, "Halleffect PIN", "Pin the hall effect is on", SettingType::Number, BLDC_HALLEFFECT_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin}},
                                                                           {BLDC_PWMCHANNEL1_PIN, "PWM channel1 PIN", "Pin for the BLDC PWM 1", SettingType::Number, BLDC_PWMCHANNEL1_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
                                                                           {BLDC_PWMCHANNEL2_PIN, "PWM channel2 PIN", "Pin for the BLDC PWM 2", SettingType::Number, BLDC_PWMCHANNEL2_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
-                                                                          {BLDC_PWMCHANNEL3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}}
-#if CONFIG_IDF_TARGET_ESP32
-                                                                          ,
-                                                                          {ESP_H_TIMER0_FREQUENCY, "High timer 0 frequency", "Frequency for the high timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_H_TIMER1_FREQUENCY, "High timer 1 frequency", "Frequency for the high timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_H_TIMER2_FREQUENCY, "High timer 2 frequency", "Frequency for the high timer 2", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_H_TIMER3_FREQUENCY, "High timer 3 frequency", "Frequency for the high timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_H_TIMER0_DRIVER, "High timer 0 driver", "PWM driver for high timer 0 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::MCPWM, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_H_TIMER1_DRIVER, "High timer 1 driver", "PWM driver for high timer 1 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::MCPWM, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_H_TIMER2_DRIVER, "High timer 2 driver", "PWM driver for high timer 2 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::MCPWM, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_H_TIMER3_DRIVER, "High timer 3 driver", "PWM driver for high timer 3 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::MCPWM, RestartRequired::YES, {SettingProfile::Timer}}
-#endif
-                                                                          ,
-                                                                          {ESP_L_TIMER0_FREQUENCY, "Low timer 0 frequency", "Frequency for the low timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_L_TIMER1_FREQUENCY, "Low timer 1 frequency", "Frequency for the low timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_L_TIMER2_FREQUENCY, "Low timer 2 frequency", "Frequency for the low timer 2", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_L_TIMER3_FREQUENCY, "Low timer 3 frequency", "Frequency for the low timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_L_TIMER0_DRIVER, "Low timer 0 driver", "PWM driver for low timer 0 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::LEDC, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_L_TIMER1_DRIVER, "Low timer 1 driver", "PWM driver for low timer 1 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::LEDC, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_L_TIMER2_DRIVER, "Low timer 2 driver", "PWM driver for low timer 2 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::LEDC, RestartRequired::YES, {SettingProfile::Timer}},
-                                                                          {ESP_L_TIMER3_DRIVER, "Low timer 3 driver", "PWM driver for low timer 3 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::LEDC, RestartRequired::YES, {SettingProfile::Timer}}} };
+                                                                          {BLDC_PWMCHANNEL3_PIN, "PWM channel3 PIN", "Pin for the BLDC PWM 3", SettingType::Number, BLDC_PWMCHANNEL3_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc, SettingProfile::Pin, SettingProfile::PWM}},
+                                                                          // HIGH timers (MCPWM default) — present on both classic ESP32 and ESP32-S3
+                                                                          {ESP_H_TIMER0_FREQUENCY, "High timer 0 frequency", "Frequency for the high timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_H_TIMER1_FREQUENCY, "High timer 1 frequency", "Frequency for the high timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_H_TIMER2_FREQUENCY, "High timer 2 frequency", "Frequency for the high timer 2", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_H_TIMER3_FREQUENCY, "High timer 3 frequency", "Frequency for the high timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_H_TIMER0_DRIVER, "High timer 0 driver", "PWM driver for high timer 0 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::MCPWM, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_H_TIMER1_DRIVER, "High timer 1 driver", "PWM driver for high timer 1 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::MCPWM, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_H_TIMER2_DRIVER, "High timer 2 driver", "PWM driver for high timer 2 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::MCPWM, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_H_TIMER3_DRIVER, "High timer 3 driver", "PWM driver for high timer 3 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::MCPWM, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_L_TIMER0_FREQUENCY, "Low timer 0 frequency", "Frequency for the low timer 0", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_L_TIMER1_FREQUENCY, "Low timer 1 frequency", "Frequency for the low timer 1", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_L_TIMER2_FREQUENCY, "Low timer 2 frequency", "Frequency for the low timer 2", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_L_TIMER3_FREQUENCY, "Low timer 3 frequency", "Frequency for the low timer 3", SettingType::Number, ESP_TIMER_FREQUENCY_DEFAULT, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_L_TIMER0_DRIVER, "Low timer 0 driver", "PWM driver for low timer 0 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::LEDC, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_L_TIMER1_DRIVER, "Low timer 1 driver", "PWM driver for low timer 1 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::LEDC, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_L_TIMER2_DRIVER, "Low timer 2 driver", "PWM driver for low timer 2 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::LEDC, RestartRequired::NO, {SettingProfile::Timer}},
+                                                                          {ESP_L_TIMER3_DRIVER, "Low timer 3 driver", "PWM driver for low timer 3 (" PWM_DRIVER_HELP ")", SettingType::Number, (int8_t)PwmDriver::LEDC, RestartRequired::NO, {SettingProfile::Timer}}} };
 
     SettingsFactory()
     {
@@ -1562,6 +1584,18 @@ private:
             return saveToDisk(m_pinsFileInfo);
         }
         break;
+        case BoardType::SR6PCB:
+        {
+            PinMapSR6PCB* pinMap = PinMapSR6PCB::getInstance();
+            pinMap->overideDefaults();
+            for (const Setting& setting : m_pinsFileInfo.settings)
+                defaultToJson(&setting, m_pinsFileInfo.doc);
+            m_pinsFileInfo.initialized = true;
+            syncSR6AndCommonPinsToDisk(pinMap);
+            loadDefaultChannelsForDeviceType();
+            return saveToDisk(m_pinsFileInfo);
+        }
+        break;
         default:
         {
             bool ret = loadDefault(m_pinsFileInfo);
@@ -1607,26 +1641,17 @@ private:
             setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
             setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
             setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(LEFT_UPPER_SERVO_PIN, -1);
             setValue(LEFT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
             setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
-            setValue(PITCH_RIGHTSERVO_PIN, -1);
             setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
             setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
             setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH5);
-            setValue(SQUEEZE_PIN, -1);
             setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(VIBE0_PIN, -1);
             setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(VIBE1_PIN, -1);
             setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(VIBE2_PIN, -1);
             setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(VIBE3_PIN, -1);
             setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(CASE_FAN_PIN, -1);
             setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(HEATER_PIN, -1);
             setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
 #endif
             break;
@@ -1661,20 +1686,13 @@ private:
             setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
             setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH5);
             setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
-            setValue(VALVE_SERVO_PIN, -1);
             setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(SQUEEZE_PIN, -1);
             setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(VIBE0_PIN, -1);
             setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(VIBE1_PIN, -1);
             setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(VIBE2_PIN, -1);
             setValue(VIBE2_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(VIBE3_PIN, -1);
             setValue(VIBE3_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
             setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH7);
-            setValue(HEATER_PIN, -1);
             setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
 #endif
             break;
@@ -1706,21 +1724,14 @@ private:
             setValue(CASE_FAN_CHANNEL, (int8_t)ESPTimerChannelNum::LOW2_CH4);
             setValue(HEATER_CHANNEL, (int8_t)ESPTimerChannelNum::LOW3_CH6);
 #elif CONFIG_IDF_TARGET_ESP32S3
-            setValue(RIGHT_SERVO_PIN, -1);
             setValue(RIGHT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(LEFT_SERVO_PIN, -1);
             setValue(LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(RIGHT_UPPER_SERVO_PIN, -1);
             setValue(RIGHT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(LEFT_UPPER_SERVO_PIN, -1);
             setValue(LEFT_UPPER_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
-            setValue(PITCH_LEFT_SERVO_PIN, -1);
             setValue(PITCH_LEFT_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
             setValue(TWIST_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH0);
-            setValue(VALVE_SERVO_PIN, -1);
             setValue(VALVE_SERVO_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
             setValue(PITCH_RIGHTSERVO_CHANNEL, (int8_t)ESPTimerChannelNum::LOW0_CH1);
-            setValue(SQUEEZE_PIN, -1);
             setValue(SQUEEZE_CHANNEL, (int8_t)ESPTimerChannelNum::NONE);
             setValue(VIBE0_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH2);
             setValue(VIBE1_CHANNEL, (int8_t)ESPTimerChannelNum::LOW1_CH3);
@@ -1873,9 +1884,13 @@ private:
         getValue(UDP_SERVER_PORT, udpServerPort);
         getValue(WEBSERVER_PORT, webServerPort);
 
-        // Build a unique hostname: tcode_ + 8 hex chars derived from the chip MAC
-        uint32_t chipId = (uint32_t)(ESP.getEfuseMac() & 0xFFFFFFFF);
-        snprintf(hostname, HOST_NAME_LEN, "tcode_%08x", chipId);
+        // Use configured hostname from settings. If unset, fall back to a unique default.
+        getValue(HOST_NAME, hostname, HOST_NAME_LEN);
+        if (hostname[0] == '\0')
+        {
+            uint32_t chipId = (uint32_t)(ESP.getEfuseMac() & 0xFFFFFFFF);
+            snprintf(hostname, HOST_NAME_LEN, "tcode_%08x", chipId);
+        }
 
         getValue(FRIENDLY_NAME, friendlyName, FRIENDLY_NAME_LEN);
         getValue(AP_MODE_SSID, apModeSSID, SSID_LEN);
@@ -1883,7 +1898,47 @@ private:
 
         getValue(DEVICE_TYPE, m_deviceType);
         getValue(BOARD_TYPE_SETTING, m_boardType);
+        applyPowerMonitorBoardDefaults();
         loadCommonLiveCache();
+    }
+
+    void applyPowerMonitorBoardDefaults()
+    {
+        if (m_boardType != BoardType::SR6PCB)
+            return;
+
+        float ratio3v3 = POWER_MONITOR_3V3_DIVIDER_RATIO_DEFAULT;
+        float ratio5v = POWER_MONITOR_5V_DIVIDER_RATIO_DEFAULT;
+        float ratioBattery = POWER_MONITOR_BATTERY_DIVIDER_RATIO_DEFAULT;
+        float ratioMotor = POWER_MONITOR_MOTOR_DIVIDER_RATIO_DEFAULT;
+        float ratioBus = POWER_MONITOR_BUS_DIVIDER_RATIO_DEFAULT;
+        getValue(POWER_MONITOR_3V3_DIVIDER_RATIO, ratio3v3);
+        getValue(POWER_MONITOR_5V_DIVIDER_RATIO, ratio5v);
+        getValue(POWER_MONITOR_BATTERY_DIVIDER_RATIO, ratioBattery);
+        getValue(POWER_MONITOR_MOTOR_DIVIDER_RATIO, ratioMotor);
+        getValue(POWER_MONITOR_BUS_DIVIDER_RATIO, ratioBus);
+
+        bool updated = false;
+        auto setDefaultIfUnchanged = [this, &updated](const char* name, float value)
+            {
+                if (value > 0.999f && value < 1.001f)
+                {
+                    setValue(name, 0.099f);
+                    updated = true;
+                }
+            };
+
+        setDefaultIfUnchanged(POWER_MONITOR_3V3_DIVIDER_RATIO, ratio3v3);
+        setDefaultIfUnchanged(POWER_MONITOR_5V_DIVIDER_RATIO, ratio5v);
+        setDefaultIfUnchanged(POWER_MONITOR_BATTERY_DIVIDER_RATIO, ratioBattery);
+        setDefaultIfUnchanged(POWER_MONITOR_MOTOR_DIVIDER_RATIO, ratioMotor);
+        setDefaultIfUnchanged(POWER_MONITOR_BUS_DIVIDER_RATIO, ratioBus);
+
+        if (updated)
+        {
+            LogHandler::info(Tags::SettingsFactory, "Applied SR6PCB power monitor divider defaults (0.099)");
+            saveCommon();
+        }
     }
 
     void loadPinCache()
@@ -1905,6 +1960,33 @@ private:
             break;
         default:
             m_currentPinMap = loadOSRPins();
+        }
+
+        // Per-board hardware-fixed pin overrides.
+        // The SR6PCB has the I2C bus hard-wired to GPIO2 (SDA) / GPIO1 (SCL)
+        // at the schematic level, so force those regardless of any stale
+        // value persisted on disk from a prior build that defaulted to the
+        // generic S3 layout (13/12). Without this override Wire.begin() ends
+        // up driving an unrelated GPIO and the I2C scan reports no devices
+        // even when peripherals are physically attached.
+        if (m_currentPinMap)
+        {
+            BoardType boardType;
+            getValue(BOARD_TYPE_SETTING, boardType);
+            if (boardType == BoardType::SR6PCB)
+            {
+                if (m_currentPinMap->i2cSda() != 2 || m_currentPinMap->i2cScl() != 1)
+                {
+                    LogHandler::warning(Tags::SettingsFactory,
+                        "SR6PCB I2C pins were %d/%d, forcing to schematic-fixed 2/1",
+                        (int)m_currentPinMap->i2cSda(), (int)m_currentPinMap->i2cScl());
+                    m_currentPinMap->setI2cSda(2);
+                    m_currentPinMap->setI2cScl(1);
+                    setValue(I2C_SDA_PIN, (int8_t)2);
+                    setValue(I2C_SCL_PIN, (int8_t)1);
+                    saveToDisk(m_pinsFileInfo);
+                }
+            }
         }
     }
 
@@ -1968,6 +2050,21 @@ private:
         pinMap->setI2cSda(pin);
         getValue(I2C_SCL_PIN, pin);
         pinMap->setI2cScl(pin);
+
+        getValue(VOLTAGE_3V3_PIN, pin);
+        pinMap->setVoltageMonitor(VoltageMonitors::VOLTAGE_3V3, pin);
+        getValue(VOLTAGE_5V_PIN, pin);
+        pinMap->setVoltageMonitor(VoltageMonitors::VOLTAGE_5V, pin);
+        getValue(VOLTAGE_BATTERY_PIN, pin);
+        pinMap->setVoltageMonitor(VoltageMonitors::VOLTAGE_BATTERY, pin);
+        getValue(VOLTAGE_MOTOR_PIN, pin);
+        pinMap->setVoltageMonitor(VoltageMonitors::VOLTAGE_MOTOR, pin);
+        getValue(VOLTAGE_BUS_PIN, pin);
+        pinMap->setVoltageMonitor(VoltageMonitors::VOLTAGE_BUS, pin);
+
+        getValue(SERVO_VOLTAGE_ENABLE_PIN, pin);
+        pinMap->setServoVoltageEnable(pin);
+
         std::vector<int> vec;
         getValueVector(BUTTON_SET_PINS, vec);
         for (size_t i = 0; i < vec.size(); i++)
@@ -2011,6 +2108,8 @@ private:
         getValue(ESP_L_TIMER3_DRIVER, timerDriver);
         pinMap->setTimerDriver(7, static_cast<PwmDriver>(timerDriver));
 #elif CONFIG_IDF_TARGET_ESP32S3
+        // ESP32-S3: LOW (LEDC default) timers occupy slots 0..3, HIGH (MCPWM
+        // default) timers occupy slots 4..7 — order matches m_timers[] in pinMap.h.
         getValue(ESP_L_TIMER0_FREQUENCY, timerFreq);
         pinMap->setTimerFrequency(0, timerFreq);
         getValue(ESP_L_TIMER0_DRIVER, timerDriver);
@@ -2027,6 +2126,22 @@ private:
         pinMap->setTimerFrequency(3, timerFreq);
         getValue(ESP_L_TIMER3_DRIVER, timerDriver);
         pinMap->setTimerDriver(3, static_cast<PwmDriver>(timerDriver));
+        getValue(ESP_H_TIMER0_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(4, timerFreq);
+        getValue(ESP_H_TIMER0_DRIVER, timerDriver);
+        pinMap->setTimerDriver(4, static_cast<PwmDriver>(timerDriver));
+        getValue(ESP_H_TIMER1_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(5, timerFreq);
+        getValue(ESP_H_TIMER1_DRIVER, timerDriver);
+        pinMap->setTimerDriver(5, static_cast<PwmDriver>(timerDriver));
+        getValue(ESP_H_TIMER2_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(6, timerFreq);
+        getValue(ESP_H_TIMER2_DRIVER, timerDriver);
+        pinMap->setTimerDriver(6, static_cast<PwmDriver>(timerDriver));
+        getValue(ESP_H_TIMER3_FREQUENCY, timerFreq);
+        pinMap->setTimerFrequency(7, timerFreq);
+        getValue(ESP_H_TIMER3_DRIVER, timerDriver);
+        pinMap->setTimerDriver(7, static_cast<PwmDriver>(timerDriver));
 #endif
     }
     PinMapSSR1 *loadSSR1Pins()
@@ -2158,6 +2273,14 @@ private:
         setValue(TEMP_PIN, pinMap->sleeveTemp());
         setValue(I2C_SDA_PIN, pinMap->i2cSda());
         setValue(I2C_SCL_PIN, pinMap->i2cScl());
+
+        setValue(VOLTAGE_3V3_PIN, pinMap->voltageMonitor(VoltageMonitors::VOLTAGE_3V3));
+        setValue(VOLTAGE_5V_PIN, pinMap->voltageMonitor(VoltageMonitors::VOLTAGE_5V));
+        setValue(VOLTAGE_BATTERY_PIN, pinMap->voltageMonitor(VoltageMonitors::VOLTAGE_BATTERY));
+        setValue(VOLTAGE_MOTOR_PIN, pinMap->voltageMonitor(VoltageMonitors::VOLTAGE_MOTOR));
+        setValue(VOLTAGE_BUS_PIN, pinMap->voltageMonitor(VoltageMonitors::VOLTAGE_BUS));
+
+        setValue(SERVO_VOLTAGE_ENABLE_PIN, pinMap->servoVoltageEnable());
 #if CONFIG_IDF_TARGET_ESP32
         setValue(ESP_H_TIMER0_FREQUENCY, pinMap->getTimerFrequency(0));
         setValue(ESP_H_TIMER0_DRIVER, (int8_t)pinMap->getTimer(0)->pwmDriver);
@@ -2176,6 +2299,7 @@ private:
         setValue(ESP_L_TIMER3_FREQUENCY, pinMap->getTimerFrequency(7));
         setValue(ESP_L_TIMER3_DRIVER, (int8_t)pinMap->getTimer(7)->pwmDriver);
 #elif CONFIG_IDF_TARGET_ESP32S3
+        // ESP32-S3: LOW slots 0..3, HIGH slots 4..7 (matches loadCommonPins).
         setValue(ESP_L_TIMER0_FREQUENCY, pinMap->getTimerFrequency(0));
         setValue(ESP_L_TIMER0_DRIVER, (int8_t)pinMap->getTimer(0)->pwmDriver);
         setValue(ESP_L_TIMER1_FREQUENCY, pinMap->getTimerFrequency(1));
@@ -2184,6 +2308,14 @@ private:
         setValue(ESP_L_TIMER2_DRIVER, (int8_t)pinMap->getTimer(2)->pwmDriver);
         setValue(ESP_L_TIMER3_FREQUENCY, pinMap->getTimerFrequency(3));
         setValue(ESP_L_TIMER3_DRIVER, (int8_t)pinMap->getTimer(3)->pwmDriver);
+        setValue(ESP_H_TIMER0_FREQUENCY, pinMap->getTimerFrequency(4));
+        setValue(ESP_H_TIMER0_DRIVER, (int8_t)pinMap->getTimer(4)->pwmDriver);
+        setValue(ESP_H_TIMER1_FREQUENCY, pinMap->getTimerFrequency(5));
+        setValue(ESP_H_TIMER1_DRIVER, (int8_t)pinMap->getTimer(5)->pwmDriver);
+        setValue(ESP_H_TIMER2_FREQUENCY, pinMap->getTimerFrequency(6));
+        setValue(ESP_H_TIMER2_DRIVER, (int8_t)pinMap->getTimer(6)->pwmDriver);
+        setValue(ESP_H_TIMER3_FREQUENCY, pinMap->getTimerFrequency(7));
+        setValue(ESP_H_TIMER3_DRIVER, (int8_t)pinMap->getTimer(7)->pwmDriver);
 #endif
     }
 
@@ -2450,7 +2582,7 @@ private:
         }
         else
         {
-            LogHandler::debug(Tags::SettingsFactory, "sendMessage: message_callback not set");
+            LogHandler::verbose(Tags::SettingsFactory, "sendMessage: message_callback not set");
         }
     }
 

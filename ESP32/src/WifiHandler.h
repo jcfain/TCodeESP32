@@ -92,7 +92,15 @@ public:
 								   { this->WiFiEvent(event, info); });
 		WiFi.mode(WIFI_STA);
 		WiFi.setSleep(false);
-		WiFi.setHostname(m_settingsFactory->getHostname());
+		const char *hostname = m_settingsFactory->getHostname();
+		if (!WiFi.setHostname(hostname))
+		{
+			LogHandler::warning(Tags::Wifi, "Failed to apply hostname '%s'; using existing/default hostname", hostname);
+		}
+		else
+		{
+			LogHandler::info(Tags::Wifi, "Using hostname: %s", hostname);
+		}
 		bool isStatic = false;
 		m_settingsFactory->getValue(STATICIP, isStatic);
 		if (isStatic)
@@ -140,9 +148,8 @@ public:
 		LogHandler::info(Tags::Wifi, "Establishing connection to %s", ssid);
 		if (WiFi.status() == WL_CONNECTED && strcmp(WiFi.SSID().c_str(), ssid) == 0)
 		{
-			LogHandler::info(Tags::Wifi, "Already connected to %s", ssid);
-			m_connectingInProgress = false;
-			return true;
+			LogHandler::info(Tags::Wifi, "Already connected to %s, reconnecting to renew DHCP hostname", ssid);
+			WiFi.disconnect(false, false);
 		}
 		if (pass[0] == '\0')
 			WiFi.begin(ssid);

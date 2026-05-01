@@ -70,7 +70,7 @@ protected:
 
         m_valveServoPin = pinMap->valve();
         m_valveServoChannel = pinMap->valveChannel();
-        if (m_valveServoPin > -1 && m_valveServoChannel > -1)
+        if (m_valveServoPin > -1)
         {
             m_tcode->AxisInput("A1", VALVE_DEFAULT, 'I', 3000);
             m_tcode->RegisterAxis("A1", "Suck");
@@ -86,7 +86,7 @@ protected:
 
         m_twistServoPin = pinMap->twist();
         m_twistServoChannel = pinMap->twistChannel();
-        if (m_twistServoPin > -1 && m_twistServoChannel > -1)
+        if (m_twistServoPin > -1)
         {
             m_tcode->RegisterAxis("R0", "Twist");
             int freq = pinMap->getChannelFrequency(m_twistServoChannel);
@@ -100,7 +100,7 @@ protected:
 
         m_squeezeServoPin = pinMap->squeeze();
         m_squeezeServoChannel = pinMap->squeezeChannel();
-        if (m_squeezeServoPin > -1 && m_squeezeServoChannel > -1)
+        if (m_squeezeServoPin > -1)
         {
             m_tcode->RegisterAxis("A3", "Squeeze");
             int freq = pinMap->getChannelFrequency(m_squeezeServoChannel);
@@ -119,14 +119,14 @@ protected:
             m_lubeButtonPin = pinMap->lubeButton();
             m_vib1Pin = pinMap->vibe1();
             m_vib1Channel = pinMap->vibe1Channel();
-            if (m_lubeButtonPin > -1 && m_vib1Pin > -1 && m_vib1Channel > -1)
+            if (m_lubeButtonPin > -1 && m_vib1Pin > -1)
             {
                 m_tcode->RegisterAxis("A2", "Lube");
                 m_tcode->AxisInput("A2", 0, ' ', 0);
                 pinMode(m_lubeButtonPin, m_settingsFactory->getLubeButtonPinMode());
 
                 int freq = pinMap->getChannelFrequency(m_vib1Channel);
-                attachLedcPin("lube", m_vib1Pin, freq, m_vib1Channel, 8);
+                attachLedcPin("lube", m_vib1Pin, freq, m_vib1Channel);
                 // m_vib1_Int = frequencyToMicroseconds(freq);
                 lubeRegistered = true;
             }
@@ -135,11 +135,11 @@ protected:
         // Set vibration PWM pins
         m_vib0Pin = pinMap->vibe0();
         m_vib0Channel = pinMap->vibe0Channel();
-        if (m_vib0Pin > -1 && m_vib0Channel > -1)
+        if (m_vib0Pin > -1)
         {
             m_tcode->RegisterAxis("V0", "Vibe1");
             int freq = pinMap->getChannelFrequency(m_vib0Channel);
-            attachLedcPin("vib 1", m_vib0Pin, freq, m_vib0Channel, 8);
+            attachLedcPin("vib 1", m_vib0Pin, freq, m_vib0Channel);
             // m_vib0_Int = frequencyToMicroseconds(freq);
         }
         else
@@ -151,11 +151,11 @@ protected:
         {
             m_vib1Pin = pinMap->vibe1();
             m_vib1Channel = pinMap->vibe1Channel();
-            if (m_vib1Pin > -1 && m_vib1Channel > -1)
+            if (m_vib1Pin > -1)
             {
                 m_tcode->RegisterAxis("V1", "Vibe2");
                 int freq = pinMap->getChannelFrequency(m_vib1Channel);
-                attachLedcPin("vib 2", m_vib1Pin, freq, m_vib1Channel, 8);
+                attachLedcPin("vib 2", m_vib1Pin, freq, m_vib1Channel);
                 // m_vib1_Int = frequencyToMicroseconds(freq);
             }
             else
@@ -165,11 +165,11 @@ protected:
         }
         m_vib2Pin = pinMap->vibe2();
         m_vib2Channel = pinMap->vibe2Channel();
-        if (m_vib2Pin > -1 && m_vib2Channel > -1)
+        if (m_vib2Pin > -1)
         {
             m_tcode->RegisterAxis("V2", "Vibe3");
             int freq = pinMap->getChannelFrequency(m_vib2Channel);
-            attachLedcPin("vib 3", m_vib2Pin, freq, m_vib2Channel, 8);
+            attachLedcPin("vib 3", m_vib2Pin, freq, m_vib2Channel);
             // m_vib2_Int = frequencyToMicroseconds(freq);
         }
         else
@@ -178,11 +178,11 @@ protected:
         }
         m_vib3Pin = pinMap->vibe3();
         m_vib3Channel = pinMap->vibe3Channel();
-        if (m_vib3Pin > -1 && m_vib3Channel > -1)
+        if (m_vib3Pin > -1)
         {
             m_tcode->RegisterAxis("V3", "Vibe4");
             int freq = pinMap->getChannelFrequency(m_vib3Channel);
-            attachLedcPin("vib 4", m_vib3Pin, freq, m_vib3Channel, 8);
+            attachLedcPin("vib 4", m_vib3Pin, freq, m_vib3Channel);
             // m_vib3_Int = frequencyToMicroseconds(freq);
         }
         else
@@ -271,9 +271,14 @@ protected:
             pin = m_squeezeServoPin;
             servoInt = m_squeezeServo_Int;
             zeroMicros = m_settingsFactory->getSqueezeServo_ZERO();
-        }
-        if (pin < 0 || servoInt < 0)
+        } else {
+            LogHandler::warning(Tags::Motor, "identifyServo: unknown servo name '%s'", servoName);
             return;
+        }
+        if (pin < 0 || servoInt < 0) {
+            LogHandler::warning(Tags::Motor, "identifyServo '%s' aborted: pin<0 or servoInt<0", servoName);
+            return;
+        }
         struct WiggleParams {
             MotorHandler0_3 *self;
             int8_t pin;
@@ -281,8 +286,12 @@ protected:
             int    zeroMicros;
         };
         auto* params = new WiggleParams{ this, pin, servoInt, zeroMicros };
+        // 4 KiB stack: LogHandler::info pulls newlib vsnprintf in (~2 KiB).
         xTaskCreate([](void* arg) {
             auto* p = static_cast<WiggleParams*>(arg);
+            // Block the motor loop from overwriting our PWM duty for the
+            // ~2 s wiggle window.
+            MotorHandler::setIdentifying(true);
             constexpr int OFFSET_US = 100;
             uint32_t hiDuty  = static_cast<uint32_t>(map(p->zeroMicros + OFFSET_US, 0, p->servoInt, 0, (int)p->self->m_servoPWMMaxDuty));
             uint32_t loDuty  = static_cast<uint32_t>(map(p->zeroMicros - OFFSET_US, 0, p->servoInt, 0, (int)p->self->m_servoPWMMaxDuty));
@@ -293,9 +302,10 @@ protected:
                 vTaskDelay(pdMS_TO_TICKS(500));
             }
             p->self->writeServo(p->pin, midDuty);
+            MotorHandler::setIdentifying(false);
             delete p;
             vTaskDelete(nullptr);
-        }, "servoWiggle", 2048, params, 1, nullptr);
+        }, "servoWiggle", 4096, params, 1, nullptr);
     }
 
 private:
@@ -326,6 +336,9 @@ private:
     int m_valveServo_Int = -1;
 
     bool m_manualLubeOverride = false;
+    // Last duty written to the lube output. Used for debug-log edge
+    // detection so we don't spam the log every loop iteration.
+    int m_lastLubeDuty = -1;
 
     // Not used/////////
     // int m_vib0_Int = -1;
@@ -567,11 +580,11 @@ private:
         {
             if (cmd > 0 && cmd <= TCODE_MAX)
             {
-                ledcWrite(pwmChannel, map(cmd, 1, TCODE_MAX, 31, 255));
+                writeVibe8((uint8_t)pwmChannel, (uint8_t)map(cmd, 1, TCODE_MAX, 31, 255));
             }
             else
             {
-                ledcWrite(pwmChannel, 0);
+                writeVibe8((uint8_t)pwmChannel, 0);
             }
             // Vibe timeout functions - shuts the vibne channels down if not commanded for a specified interval
             if (m_settingsFactory->getVibTimeoutEnabled())
@@ -588,6 +601,7 @@ private:
         {
             return;
         }
+        const bool prevPressed = m_manualLubeOverride;
         switch (m_settingsFactory->getLubeButtonPinMode())
         {
         case INPUT_PULLDOWN:
@@ -602,16 +616,34 @@ private:
         default:
             m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
         }
+        if (m_manualLubeOverride != prevPressed)
+        {
+            // Log on edges only — keeps the loop quiet.
+            LogHandler::debug(Tags::Motor, "Lube button %s (pin %d)",
+                m_manualLubeOverride ? "pressed" : "released", (int)m_lubeButtonPin);
+        }
         if (m_manualLubeOverride)
         {
+            const int amount = m_settingsFactory->getLubeAmount();
+            if (m_manualLubeOverride != prevPressed || amount != m_lastLubeDuty)
+            {
+                LogHandler::debug(Tags::Motor, "Lube PWM (manual) -> pin %d duty %d",
+                    (int)m_vib1Pin, amount);
+                m_lastLubeDuty = amount;
+            }
 #ifdef ESP_ARDUINO3
-            ledcWrite(m_vib1Pin, m_settingsFactory->getLubeAmount());
+            writeVibe8((uint8_t)m_vib1Pin, (uint8_t)amount);
         }
         else
         {
-            ledcWrite(m_vib1Pin, 0);
+            if (prevPressed && m_lastLubeDuty != 0)
+            {
+                LogHandler::debug(Tags::Motor, "Lube PWM (manual off) -> pin %d duty 0", (int)m_vib1Pin);
+                m_lastLubeDuty = 0;
+            }
+            writeVibe8((uint8_t)m_vib1Pin, 0);
 #else
-            ledcWrite(m_vib1Channel, m_settingsFactory->getLubeAmount());
+            ledcWrite(m_vib1Channel, amount);
         }
         else
         {
@@ -625,10 +657,17 @@ private:
             {
                 if (cmd > 0 && cmd <= TCODE_MAX)
                 {
+                    const int duty = map(cmd, 1, TCODE_MAX, 127, 255);
+                    if (duty != m_lastLubeDuty)
+                    {
+                        LogHandler::debug(Tags::Motor, "Lube PWM (axis A2) -> pin %d duty %d (cmd %d)",
+                            (int)m_vib1Pin, duty, cmd);
+                        m_lastLubeDuty = duty;
+                    }
 #ifdef ESP_ARDUINO3
-                    ledcWrite(m_vib1Pin, map(cmd, 1, TCODE_MAX, 127, 255));
+                    writeVibe8((uint8_t)m_vib1Pin, (uint8_t)duty);
 #else
-                    ledcWrite(m_vib1Channel, map(cmd, 1, TCODE_MAX, 127, 255));
+                    ledcWrite(m_vib1Channel, duty);
 #endif
                 }
                 if (millis() - m_tcode->AxisLast("A2") > 500)

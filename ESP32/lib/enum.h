@@ -54,7 +54,7 @@ enum class BoardType: int
 #if MOTOR_TYPE == 1
 #define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SSR1PCB=5"
 #else
-#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SR6MB=3, InControl=4"
+#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SR6MB=3, InControl=4, SR6PCB=6"
 #endif
 
 enum class MotorType: int
@@ -132,7 +132,6 @@ enum class ESPTimerChannelNum: int8_t {
     HIGH2_CH5,
     HIGH3_CH6,
     HIGH3_CH7,
-#endif
     LOW0_CH0,
     LOW0_CH1,
     LOW1_CH2,
@@ -141,5 +140,35 @@ enum class ESPTimerChannelNum: int8_t {
     LOW2_CH5,
     LOW3_CH6,
     LOW3_CH7,
+#elif CONFIG_IDF_TARGET_ESP32S3
+    // ESP32-S3: keep LOW (LEDC) channels at 0..7 so they map to valid LEDC
+    // channel numbers; HIGH (MCPWM) channels follow as 8..15 — MCPWM ignores
+    // the raw channel number at attach time so any unique value works.
+    LOW0_CH0,
+    LOW0_CH1,
+    LOW1_CH2,
+    LOW1_CH3,
+    LOW2_CH4,
+    LOW2_CH5,
+    LOW3_CH6,
+    LOW3_CH7,
+    HIGH0_CH0,
+    HIGH0_CH1,
+    HIGH1_CH2,
+    HIGH1_CH3,
+    HIGH2_CH4,
+    HIGH2_CH5,
+    HIGH3_CH6,
+    HIGH3_CH7,
+#endif
+    MAX
+};
+
+enum class VoltageMonitors : int8_t {
+    VOLTAGE_3V3,
+    VOLTAGE_5V,
+    VOLTAGE_BATTERY,
+    VOLTAGE_MOTOR,
+    VOLTAGE_BUS,
     MAX
 };

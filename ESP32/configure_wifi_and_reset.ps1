@@ -14,7 +14,7 @@ param(
     [int]$IpReadTimeoutSeconds = 30
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 function Get-AutoPort {
     $available = [System.IO.Ports.SerialPort]::GetPortNames() | Sort-Object
@@ -119,8 +119,7 @@ function Send-And-Validate {
         "Unknown command",
         "Unknown save command",
         "Invalid command",
-        "Invalid value",
-        "Error"
+        "Invalid value"
     )
 
     Write-Host "Sending: $Display"

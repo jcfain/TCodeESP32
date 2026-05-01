@@ -64,7 +64,11 @@
 #ifdef CONFIG_IDF_TARGET_ESP32
     #define MAX_TIMERS 8
 #elif CONFIG_IDF_TARGET_ESP32S3
-    #define MAX_TIMERS 4
+    // 4 LOW (LEDC default) + 4 HIGH (MCPWM default).
+    // ESP32-S3 LEDC supports 8 channels (0..7); MCPWM supports up to 12 outputs
+    // (channel numbers above 7 are used as identifiers only — MCPWM ignores the
+    // channel value at attach time).
+#define MAX_TIMERS 8
 #endif
 
 #define MAX_CHANNELS (MAX_TIMERS << 1)

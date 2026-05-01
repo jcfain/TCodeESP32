@@ -33,6 +33,7 @@
 	<div id="menu" class="menu menu-hidden">
 		<div id="menu-content" class="menu-content menu-hidden">
 			<button id="resetBtn" class="formButton" name="reset" onclick="onRestartClick()">Restart device</button>
+			<button id="reapplyPwmBtn" class="formButton advancedOnly" onclick="onReapplyPwmClick()" title="Hot-reattach all PWM outputs (servos, vibe, lube) using current settings without rebooting.">Reapply PWM</button>
 			<button id="exportBtn" class="formButton" onclick="exportToJsonFile()">Export settings</button>
 			<button id="importBtn" class="formButton" onclick="openImportSettingsFileDialog()">Import settings</button>
 			<button id="resetSettingsBtn" class="formButton resetAllSettings" onclick="onDefaultClick()">Reset ALL settings</button>
@@ -411,7 +412,7 @@
 								<input id="maxServoRange" type="number" min="140" max="360" oninput="updateMaxServoRange()">
 							</div>
 						</div>
-						<div class="tRow">
+						<div class="tRow advancedOnly">
 							<div class="tCell">
 								<span></span>
 							</div>
@@ -430,7 +431,7 @@
 								<div class="tCell">
 									<span>ZERO (&#181;)</span>
 								</div>
-								<div class="tCell">
+								<div class="tCell advancedOnly">
 									<span>Timer Channel</span>
 								</div>
 								<div class="tCell">
@@ -447,7 +448,7 @@
 								<div class="tCell">
 									<input id="RightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 								</div>
-								<div class="tCell">
+								<div class="tCell advancedOnly">
 									<select id="RightServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
 								</div>
 								<div class="tCell">
@@ -464,7 +465,7 @@
 								<div class="tCell">
 									<input id="LeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 								</div>
-								<div class="tCell">
+								<div class="tCell advancedOnly">
 									<select id="LeftServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
 								</div>
 								<div class="tCell">
@@ -481,7 +482,7 @@
 								<div class="tCell">
 									<input id="RightUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 								</div>
-								<div class="tCell">
+								<div class="tCell advancedOnly">
 									<select id="RightUpperServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
 								</div>
 								<div class="tCell">
@@ -499,7 +500,7 @@
 								<div class="tCell">
 									<input id="LeftUpperServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 								</div>
-								<div class="tCell">
+								<div class="tCell advancedOnly">
 									<select id="LeftUpperServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
 								</div>
 								<div class="tCell">
@@ -516,7 +517,7 @@
 								<div class="tCell">
 									<input id="PitchLeftServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 								</div>
-								<div class="tCell">
+								<div class="tCell advancedOnly">
 									<select id="PitchLeftServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
 								</div>
 								<div class="tCell">
@@ -533,7 +534,7 @@
 								<div class="tCell">
 									<input id="PitchRightServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 								</div>
-								<div class="tCell">
+								<div class="tCell advancedOnly">
 									<select id="PitchRightServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
 								</div>
 								<div class="tCell">
@@ -550,7 +551,7 @@
 								<div class="tCell">
 									<input id="ValveServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 								</div>
-								<div class="tCell">
+								<div class="tCell advancedOnly">
 									<select id="ValveServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
 								</div>
 								<div class="tCell">
@@ -567,7 +568,7 @@
 								<div class="tCell">
 									<input id="TwistServo_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 								</div>
-								<div class="tCell">
+								<div class="tCell advancedOnly">
 									<select id="TwistServo_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
 								</div>
 								<div class="tCell">
@@ -584,7 +585,7 @@
 								<div class="tCell">
 									<input id="Squeeze_ZERO" class="tcode_max" type="number" min="1" max="9999" oninput="updateZeros()">
 								</div>
-								<div class="tCell">
+								<div class="tCell advancedOnly">
 									<select id="Squeeze_CHANNEL" name="timerChannels" oninput="onSelectPinChannel(this)"></select>
 								</div>
 								<div class="tCell">
@@ -602,6 +603,14 @@
 						</div>
 						<div class="tRow">
 							<div class="tCell">
+								<span title="Show expert-only options: per-output timer/channel assignment, manual PWM reapply, and the timer-frequency editor. Leave off to let the firmware auto-allocate channels and timers from the pins you choose.">Advanced settings</span>
+							</div>
+							<div class="tCell">
+								<input id="advancedSettings" type="checkbox" onchange="toggleAdvancedSettings()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
 								<span>Disable PIN validation</span>
 							</div>
 							<div class="tCell">
@@ -610,7 +619,7 @@
 						</div>
 						<div class="tRow pwmAvaliblePinRow">
 							<div class="tCell" colspan="3">
-								<span class="instruction-text">
+								<span id="pwmAvailableInfo" class="instruction-text">
 									PWM availible on: 2,4,5,12-19,21-23,25-27,32,33
 								</span>
 							</div>
@@ -704,7 +713,7 @@
 								<input id="Vibe0_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
-						<div class="tRow">
+						<div class="tRow advancedOnly">
 							<div class="tCell">
 								<span>Vibe 1 timer channel</span>
 							</div>
@@ -720,7 +729,7 @@
 								<input id="Vibe1_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
-						<div class="tRow">
+						<div class="tRow advancedOnly">
 							<div class="tCell">
 								<span>Vibe 2 timer channel</span>
 							</div>
@@ -736,7 +745,7 @@
 								<input id="Vibe2_PIN" type="number"  min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
-						<div class="tRow">
+						<div class="tRow advancedOnly">
 							<div class="tCell">
 								<span>Vibe 3 timer channel</span>
 							</div>
@@ -752,7 +761,7 @@
 								<input id="Vibe3_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
-						<div class="tRow">
+						<div class="tRow advancedOnly">
 							<div class="tCell">
 								<span>Vibe 4 timer channel</span>
 							</div>
@@ -861,6 +870,46 @@
 								<input id="i2cScl_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>3.3V monitor PIN (ADC)</span>
+							</div>
+							<div class="tCell">
+								<input id="Voltage_3V3_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>5V monitor PIN (ADC)</span>
+							</div>
+							<div class="tCell">
+								<input id="Voltage_5V_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>Battery monitor PIN (ADC)</span>
+							</div>
+							<div class="tCell">
+								<input id="Voltage_Battery_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>Motor monitor PIN (ADC)</span>
+							</div>
+							<div class="tCell">
+								<input id="Voltage_Motor_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span>Bus monitor PIN (ADC)</span>
+							</div>
+							<div class="tCell">
+								<input id="Voltage_Bus_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
+							</div>
+						</div>
 					</div>
 				</div>
 				<div id="tempSettingsDisplayTable" class="formTable build_temprature">
@@ -894,7 +943,7 @@
 								<input id="Heater_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
-						<div class="tRow">
+						<div class="tRow advancedOnly">
 							<div class="tCell">
 								<span>Heater timer channel</span>
 							</div>
@@ -1037,7 +1086,7 @@
 								<input id="Case_Fan_PIN" type="number" min="-1" oninput="updatePins()">
 							</div>
 						</div>
-						<div class="tRow fan-control">
+						<div class="tRow fan-control advancedOnly">
 							<div class="tCell">
 								<span>Fan pin timer channel</span>
 							</div>
@@ -1228,6 +1277,89 @@
 						Other LTC2944 I2C modules with the address 0x64 may work.<br>
 					</span>
 				</div>
+				<div id="powerMonitorTable" class="formTable">
+					<div id="powerMonitorTableBody">
+						<div>
+							<div class="tHeader">
+								<h3>Power monitor</h3>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>3.3V rail</span></div>
+							<div class="tCell"><input id="powerVoltage3v3" type="text" readonly value="Unset" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>5V rail</span></div>
+							<div class="tCell"><input id="powerVoltage5v" type="text" readonly value="Unset" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>Battery rail</span></div>
+							<div class="tCell"><input id="powerVoltageBattery" type="text" readonly value="Unset" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>Motor rail</span></div>
+							<div class="tCell"><input id="powerVoltageMotor" type="text" readonly value="Unset" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span title="Enable VMOTOR supply (SR6PCB GPIO 15)">VMOTOR enable</span></div>
+							<div class="tCell"><input id="vmotorEnabled" type="checkbox" onclick="setVmotorEnabled()"></input></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>Bus rail</span></div>
+							<div class="tCell"><input id="powerVoltageBus" type="text" readonly value="Unset" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>3.3V divider ratio</span></div>
+							<div class="tCell"><input id="powerMonitor3v3DividerRatio" type="number" min="0.0001" step="0.0001" oninput="setPowerMonitorSettings()" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>5V divider ratio</span></div>
+							<div class="tCell"><input id="powerMonitor5vDividerRatio" type="number" min="0.0001" step="0.0001" oninput="setPowerMonitorSettings()" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>Battery divider ratio</span></div>
+							<div class="tCell"><input id="powerMonitorBatteryDividerRatio" type="number" min="0.0001" step="0.0001" oninput="setPowerMonitorSettings()" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>Motor divider ratio</span></div>
+							<div class="tCell"><input id="powerMonitorMotorDividerRatio" type="number" min="0.0001" step="0.0001" oninput="setPowerMonitorSettings()" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>Bus divider ratio</span></div>
+							<div class="tCell"><input id="powerMonitorBusDividerRatio" type="number" min="0.0001" step="0.0001" oninput="setPowerMonitorSettings()" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>3.3V offset (V)</span></div>
+							<div class="tCell"><input id="powerMonitor3v3Offset" type="number" step="0.001" oninput="setPowerMonitorSettings()" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>5V offset (V)</span></div>
+							<div class="tCell"><input id="powerMonitor5vOffset" type="number" step="0.001" oninput="setPowerMonitorSettings()" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>Battery offset (V)</span></div>
+							<div class="tCell"><input id="powerMonitorBatteryOffset" type="number" step="0.001" oninput="setPowerMonitorSettings()" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>Motor offset (V)</span></div>
+							<div class="tCell"><input id="powerMonitorMotorOffset" type="number" step="0.001" oninput="setPowerMonitorSettings()" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>Bus offset (V)</span></div>
+							<div class="tCell"><input id="powerMonitorBusOffset" type="number" step="0.001" oninput="setPowerMonitorSettings()" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>VBUS nominal (V)</span></div>
+							<div class="tCell"><input id="powerMonitorVBusNominal" type="number" min="0" step="0.1" oninput="setPowerMonitorSettings()" /></div>
+						</div>
+						<div class="tRow">
+							<div class="tCell"><span>VMOTOR nominal (V)</span></div>
+							<div class="tCell"><input id="powerMonitorVMotorNominal" type="number" min="0" step="0.1" oninput="setPowerMonitorSettings()" /></div>
+						</div>
+						<br>
+						<span class="instruction-text">SR6PCB note: 22k/222k divider ratio is 0.099. Typical VBUS is 20V USB-PD. VMOTOR is often 6V or 9V for servos and up to 20V for BLDC.</span>
+					</div>
+				</div>
 				<div id="motionGeneratorSettingsTable" class="formTable v3Only">
 					<div id="motionGeneratorSettingsTableBody">
 						<div>
@@ -1328,6 +1460,47 @@
 					</span>
 				</div>
 				<div id="channelTestsTable" class="formTable">
+				</div>
+				<div id="pwmTestTable" class="formTable advancedOnly">
+					<div>
+						<div class="tHeader">
+							<h3 title="Manually drive any PWM-capable pin. Bypasses motor/vibe routing — useful for verifying that a specific pad actually toggles. After Apply, the pin stays bound until you press Stop or reboot.">Test PWM output (advanced)</h3>
+						</div>
+					</div>
+					<div class="tRow">
+						<div class="tCell"><span>Pin</span></div>
+						<div class="tCell"><select id="pwmTestPin"></select></div>
+					</div>
+					<div class="tRow">
+						<div class="tCell"><span title="Force the LEDC peripheral or the MCPWM peripheral. Bypasses the auto-fallback used during normal allocation.">Driver</span></div>
+						<div class="tCell"><select id="pwmTestDriver"></select></div>
+					</div>
+					<div class="tRow">
+						<div class="tCell"><span title="Informational — Arduino-3 LEDC and MCPWM V5 auto-pick the timer based on freq+resolution. This dropdown surfaces what hardware timers are available.">Timer (info)</span></div>
+						<div class="tCell"><select id="pwmTestTimer"></select></div>
+					</div>
+					<div class="tRow">
+						<div class="tCell"><span>Frequency (Hz)</span></div>
+						<div class="tCell"><input id="pwmTestFreq" type="number" min="1" max="80000000" step="1" value="50"></div>
+					</div>
+					<div class="tRow">
+						<div class="tCell"><span>Resolution (bits)</span></div>
+						<div class="tCell"><input id="pwmTestResolution" type="number" min="1" max="20" step="1" value="14"></div>
+					</div>
+					<div class="tRow">
+						<div class="tCell"><span>Duty</span></div>
+						<div class="tCell">
+							<input id="pwmTestDuty" type="range" min="0" max="100" step="0.1" value="0">
+							<span id="pwmTestDutyOutput">0%</span>
+						</div>
+					</div>
+					<div class="tRow">
+						<div class="tCell">
+							<button id="pwmTestApplyBtn" class="formButton" type="button" title="Bind the pin to the chosen peripheral and write the duty %. Overrides any current motor/vibe assignment on this pin.">Apply</button>
+							<button id="pwmTestStopBtn" class="formButton" type="button" title="Detach the pin (high-Z input). Normal motor/vibe routing returns only after a reboot or Reapply PWM.">Stop</button>
+						</div>
+						<div class="tCell"><span id="pwmTestStatus" class="instruction-text"></span></div>
+					</div>
 				</div>
 				<div id="channelRangesTable" class="formTable">
 					<div>

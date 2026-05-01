@@ -25,6 +25,7 @@ SOFTWARE. */
 // #include <AsyncJson.h>
 #include <mutex>
 #include <list>
+#include <string>
 #include <PsychicHttp.h>
 // #include "HTTP/WebSocketBase.h"
 #include "settings/SettingsHandler.h"
@@ -111,12 +112,14 @@ public:
             std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
             m_lastSend = millis();
 
-            char commandJson[MAX_COMMAND];
-            compileCommand(commandJson, command, message);
+            const size_t messageLen = message ? strlen(message) : 0;
+            const size_t required = strlen(command) + messageLen + 64;
+            std::string commandJson(required, '\0');
+            compileCommand(commandJson.data(), commandJson.size(), command, message);
             // if(client)
             //     client->text(commandJson);
             // else
-            ws.sendAll(commandJson);
+            ws.sendAll(commandJson.c_str());
         }
     }
 

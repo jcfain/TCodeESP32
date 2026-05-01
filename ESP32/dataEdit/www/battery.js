@@ -27,6 +27,21 @@ function batterySetup() {
     document.getElementById('batteryLevelNumeric').checked = userSettings["batteryLevelNumeric"];
     //document.getElementById('batteryVoltageMax').value = userSettings["batteryVoltageMax"];
     document.getElementById('batteryCapacityMax').value = userSettings["batteryCapacityMax"];
+
+    document.getElementById('powerMonitor3v3DividerRatio').value = userSettings["powerMonitor3v3DividerRatio"];
+    document.getElementById('powerMonitor5vDividerRatio').value = userSettings["powerMonitor5vDividerRatio"];
+    document.getElementById('powerMonitorBatteryDividerRatio').value = userSettings["powerMonitorBatteryDividerRatio"];
+    document.getElementById('powerMonitorMotorDividerRatio').value = userSettings["powerMonitorMotorDividerRatio"];
+    document.getElementById('powerMonitorBusDividerRatio').value = userSettings["powerMonitorBusDividerRatio"];
+
+    document.getElementById('powerMonitor3v3Offset').value = userSettings["powerMonitor3v3Offset"];
+    document.getElementById('powerMonitor5vOffset').value = userSettings["powerMonitor5vOffset"];
+    document.getElementById('powerMonitorBatteryOffset').value = userSettings["powerMonitorBatteryOffset"];
+    document.getElementById('powerMonitorMotorOffset').value = userSettings["powerMonitorMotorOffset"];
+    document.getElementById('powerMonitorBusOffset').value = userSettings["powerMonitorBusOffset"];
+
+    document.getElementById('powerMonitorVBusNominal').value = userSettings["powerMonitorVBusNominal"];
+    document.getElementById('powerMonitorVMotorNominal').value = userSettings["powerMonitorVMotorNominal"];
 }
 
 function wsBatteryStatus(data) {
@@ -35,11 +50,49 @@ function wsBatteryStatus(data) {
     var batteryCapacityRemainingPercentage = status["batteryCapacityRemainingPercentage"];
     var batteryCapacityRemaining = status["batteryCapacityRemaining"];
     var batteryTemperature = status["batteryTemperature"];
-    
+
     document.getElementById("batteryVoltage").value = batteryVoltage;
     document.getElementById("batteryCapacityRemaining").value = batteryCapacityRemaining;
     document.getElementById("batteryCapacityRemainingPercentage").value = batteryCapacityRemainingPercentage;
     document.getElementById("batteryTemperature").value = batteryTemperature;
+}
+
+function wsPowerStatus(data) {
+    var status = data["message"] || {};
+
+    setPowerVoltageField("powerVoltage3v3", status["Voltage_3V3"]);
+    setPowerVoltageField("powerVoltage5v", status["Voltage_5V"]);
+    setPowerVoltageField("powerVoltageBattery", status["Voltage_Battery"]);
+    setPowerVoltageField("powerVoltageMotor", status["Voltage_Motor"]);
+    setPowerVoltageField("powerVoltageBus", status["Voltage_Bus"]);
+
+    // Update VMOTOR enable state if available
+    if (status["servoVoltageEnabled"] !== undefined) {
+        const vmotorEnabledElement = document.getElementById("vmotorEnabled");
+        if (vmotorEnabledElement) {
+            vmotorEnabledElement.checked = status["servoVoltageEnabled"];
+        }
+    }
+}
+
+function setPowerVoltageField(elementId, sourceStatus) {
+    var element = document.getElementById(elementId);
+    if(!element)
+        return;
+    if(!sourceStatus) {
+        element.value = "Unset";
+        return;
+    }
+    var adcVoltage = sourceStatus["adcVoltage"];
+    var railVoltage = sourceStatus["railVoltage"];
+    var pin = sourceStatus["pin"];
+    var percentage = sourceStatus["percentage"];
+    if(adcVoltage === undefined || railVoltage === undefined || pin === undefined) {
+        element.value = "Unknown";
+        return;
+    }
+    element.value = railVoltage.toFixed(2) + " V (ADC " + adcVoltage.toFixed(3) + "V @ pin " + pin + ")" +
+        (percentage !== undefined ? " [" + percentage.toFixed(1) + "%]" : "");
 }
 
 function toggleBatterySettings(batteryEnabled) {
@@ -55,7 +108,32 @@ function setBatterySettings() {
     userSettings["batteryCapacityMax"] = parseFloat(document.getElementById('batteryCapacityMax').value);
     setRestartRequired();
     updateUserSettings();
-}	
+}
+
+function setPowerMonitorSettings() {
+    userSettings["powerMonitor3v3DividerRatio"] = parseFloat(document.getElementById('powerMonitor3v3DividerRatio').value);
+    userSettings["powerMonitor5vDividerRatio"] = parseFloat(document.getElementById('powerMonitor5vDividerRatio').value);
+    userSettings["powerMonitorBatteryDividerRatio"] = parseFloat(document.getElementById('powerMonitorBatteryDividerRatio').value);
+    userSettings["powerMonitorMotorDividerRatio"] = parseFloat(document.getElementById('powerMonitorMotorDividerRatio').value);
+    userSettings["powerMonitorBusDividerRatio"] = parseFloat(document.getElementById('powerMonitorBusDividerRatio').value);
+
+    userSettings["powerMonitor3v3Offset"] = parseFloat(document.getElementById('powerMonitor3v3Offset').value);
+    userSettings["powerMonitor5vOffset"] = parseFloat(document.getElementById('powerMonitor5vOffset').value);
+    userSettings["powerMonitorBatteryOffset"] = parseFloat(document.getElementById('powerMonitorBatteryOffset').value);
+    userSettings["powerMonitorMotorOffset"] = parseFloat(document.getElementById('powerMonitorMotorOffset').value);
+    userSettings["powerMonitorBusOffset"] = parseFloat(document.getElementById('powerMonitorBusOffset').value);
+
+    userSettings["powerMonitorVBusNominal"] = parseFloat(document.getElementById('powerMonitorVBusNominal').value);
+    userSettings["powerMonitorVMotorNominal"] = parseFloat(document.getElementById('powerMonitorVMotorNominal').value);
+
+    setRestartRequired();
+    updateUserSettings();
+}
 function setBatteryFull() {
     sendWebsocketCommand("setBatteryFull");
+}
+
+function setVmotorEnabled() {
+    const enabled = document.getElementById('vmotorEnabled').checked;
+    sendWebsocketCommand("setServoVoltageEnabled", enabled ? "true" : "false");
 }

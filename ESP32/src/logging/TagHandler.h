@@ -62,6 +62,7 @@ namespace Tags
         PinMap,
         Filesystem,
         MessageQueue,
+        Power,
         LAST,
     };
     const tag_t INVALID = LAST;
@@ -136,6 +137,7 @@ namespace Tags
         "pin-map",
         "filesystem",
         "message-queue",
+        "power",
     };
 
     constexpr const char* AvailableTags[] = {
@@ -169,6 +171,7 @@ namespace Tags
         "pin-map",
         "filesystem",
         "message-queue",
+        "power",
     };
 
     std::string as_str(uint32_t tag_mask)

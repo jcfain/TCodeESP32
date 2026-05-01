@@ -47,7 +47,9 @@ SOFTWARE. */
 #include "network/WifiHandler.h"
 #include "sensors/TemperatureHandler.h"
 #include "display/DisplayHandler.h"
+#if BLUETOOTH_TCODE
 #include "bluetooth/BluetoothHandler.h"
+#endif
 #include "tcode/MotorHandler.h"
 
 #if MOTOR_TYPE == 0
@@ -75,6 +77,7 @@ SOFTWARE. */
 #include "tasks/TaskHandler.h"
 
 #include "sensors/BatteryHandler.h"
+#include "PowerHandler.h"
 #include "motion/MotionHandler.hpp"
 #include "sensors/VoiceHandler.hpp"
 #include "sensors/ButtonHandler.hpp"
@@ -152,6 +155,7 @@ WifiHandler wifi;
 UdpHandler udpHandler;
 ButtonHandler buttonHandler;
 BatteryHandler batteryHandler;
+PowerHandler powerHandler;
 HTTPBase *webHandler = nullptr;
 WebSocketBase *webSocketHandler = nullptr;
 bool networkingStarted = false;
@@ -295,6 +299,10 @@ static void motorTaskFunc(void *param)
 	MotorCommand cmd;
 	for (;;)
 	{
+		// Service any pending hot-reattach (#reapply-pwm) before draining
+		// the command queue so re-attached pins immediately accept writes.
+		handler->serviceReapply();
+
 		// Drain any queued TCode commands before each control cycle
 		while (xQueueReceive(motorCmdQueue, &cmd, 0) == pdTRUE)
 		{
@@ -356,6 +364,7 @@ void setup()
 #elif MOTOR_TYPE == 1
 	motorHandler = (tcodeVersion == TCodeVersion::v0_3) ? static_cast<MotorHandler *>(&motorHandlerV03) : static_cast<MotorHandler *>(&motorHandlerV04);
 #endif
+	MotorHandler::setActive(motorHandler);
 	LogHandler::info(Tags::Main, "Selected motor handler for TCode version: %s", settingsFactory->getTcodeVersionString());
 
 	Serial.println("BOOT: SerialHandler::init");
@@ -374,6 +383,24 @@ void setup()
 	LogHandler::info(Tags::Main, "UDP handler initialized");
 	taskManager.priority(&batteryHandler); // Telemetry polling
 	LogHandler::info(Tags::Main, "Battery handler initialized");
+	taskManager.priority(&powerHandler); // Analog rail telemetry polling
+	LogHandler::info(Tags::Main, "Power handler initialized");
+
+	batteryHandler.setMessageCallback([](float capacityRemainingPercentage, float capacityRemaining, float voltage, float temperature)
+		{
+			if (!webSocketHandler)
+				return;
+			char payload[256] = { 0 };
+			snprintf(payload, sizeof(payload), "{\"batteryCapacityRemainingPercentage\":%.2f,\"batteryCapacityRemaining\":%.2f,\"batteryVoltage\":%.3f,\"batteryTemperature\":%.2f}",
+				capacityRemainingPercentage, capacityRemaining, voltage, temperature);
+			webSocketHandler->sendCommand("batteryStatus", payload);
+		});
+	powerHandler.setMessageCallback([](const char* payload)
+		{
+			if (!webSocketHandler || !payload)
+				return;
+			webSocketHandler->sendCommand("powerStatus", payload);
+		});
 	// Handles advanced fuctions (motor, ota, wifi, etc)
 	Serial.println("BOOT: OperatingModeHandler::init");
 	OperatingModeHandler::init();

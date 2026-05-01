@@ -105,6 +105,40 @@ public:
         return false;
     }
 
+    /**
+     * Detach a previously-attached pin: disable + delete its generator and
+     * comparator, decrement the operator's gen_count, and free the operator/
+     * timer once empty. Pin is forced LOW before teardown.
+     *
+     * @return true if pin was attached and successfully detached
+     */
+    bool detachPin(int gpio_num)
+    {
+#ifdef MCPWM_V5
+        return detachV5(gpio_num);
+#else
+        // Legacy IDF: per-pin teardown not implemented. The mcpwm_init/timer
+        // model doesn't make per-pin detach safe without full driver state
+        // tracking we don't have. Treat as best-effort.
+        (void)gpio_num;
+        return false;
+#endif
+    }
+
+    /** Detach every tracked pin. */
+    void detachAll()
+    {
+        while (m_count > 0)
+        {
+            int gpio = m_outputs[m_count - 1].gpio_num;
+            if (!detachPin(gpio))
+            {
+                // detach failed; drop the slot to avoid an infinite loop.
+                m_count--;
+            }
+        }
+    }
+
 private:
     MCPWMServo() = default;
 
@@ -115,6 +149,9 @@ private:
     {
         int gpio_num = -1;
         mcpwm_cmpr_handle_t comparator = nullptr;
+        mcpwm_gen_handle_t generator = nullptr;
+        int8_t group = -1;
+        int8_t op = -1;
     };
 
     struct TimerSlot
@@ -233,9 +270,72 @@ private:
 
         m_opers[grp][op].gen_count++;
 
-        m_outputs[m_count].gpio_num = gpio_num;
+        m_outputs[m_count].gpio_num   = gpio_num;
         m_outputs[m_count].comparator = cmp;
+        m_outputs[m_count].generator  = gen;
+        m_outputs[m_count].group      = (int8_t)grp;
+        m_outputs[m_count].op         = (int8_t)op;
         m_count++;
+        return true;
+    }
+
+    bool detachV5(int gpio_num)
+    {
+        int idx = -1;
+        for (int i = 0; i < m_count; i++)
+        {
+            if (m_outputs[i].gpio_num == gpio_num) { idx = i; break; }
+        }
+        if (idx < 0) return false;
+
+        ServoOutput &o = m_outputs[idx];
+
+        // Force pin LOW so a connected servo doesn't see a stale duty.
+        if (o.generator)
+        {
+            mcpwm_generator_set_force_level(o.generator, 0, true);
+        }
+
+        // Tear down generator and comparator.
+        if (o.generator)
+            mcpwm_del_generator(o.generator);
+        if (o.comparator)
+            mcpwm_del_comparator(o.comparator);
+
+        // Decrement operator's generator count, free the operator if empty.
+        int8_t grp = o.group;
+        int8_t op  = o.op;
+        if (grp >= 0 && op >= 0)
+        {
+            if (m_opers[grp][op].gen_count > 0)
+                m_opers[grp][op].gen_count--;
+            if (m_opers[grp][op].gen_count == 0 && m_opers[grp][op].handle)
+            {
+                mcpwm_del_operator(m_opers[grp][op].handle);
+                m_opers[grp][op].handle = nullptr;
+            }
+
+            // If all operators in the group are empty, free the timer too.
+            bool grpEmpty = true;
+            for (int i = 0; i < 3; i++)
+            {
+                if (m_opers[grp][i].handle) { grpEmpty = false; break; }
+            }
+            if (grpEmpty && m_timers[grp].handle)
+            {
+                mcpwm_timer_start_stop(m_timers[grp].handle, MCPWM_TIMER_STOP_EMPTY);
+                mcpwm_timer_disable(m_timers[grp].handle);
+                mcpwm_del_timer(m_timers[grp].handle);
+                m_timers[grp].handle  = nullptr;
+                m_timers[grp].freq_hz = 0;
+            }
+        }
+
+        // Compact m_outputs.
+        for (int i = idx; i + 1 < m_count; i++)
+            m_outputs[i] = m_outputs[i + 1];
+        m_outputs[m_count - 1] = ServoOutput{};
+        m_count--;
         return true;
     }
 

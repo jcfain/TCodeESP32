@@ -5,6 +5,8 @@
 // #include "LogHandler.h"
 #include "sensors/BatteryHandler.h"
 #include "tcode/MotorHandler.h"
+#include "PowerHandler.h"
+#include "settings/SettingsHandler.h"
 
 class WebSocketBase {
     public:
@@ -39,19 +41,28 @@ protected:
     QueueHandle_t tCodeInQueue;
     std::mutex command_mtx;
 
-    void compileCommand(char* buf, const char* command, const char* message = 0) {
+    void compileCommand(char* buf, size_t bufSize, const char* command, const char* message = 0) {
+        if (!buf || bufSize == 0 || !command) {
+            return;
+        }
         if(LogHandler::getLogLevel() == LogLevel::DEBUG) {
             if(message)
                 Serial.printf("Sending WS commands: %s, Message: %s\n", command, message);
             else
                 Serial.printf("Sending WS commands: %s\n",command);
         }
+        int written = 0;
         if(!message)
-            sprintf(buf, "{ \"command\": \"%s\" }", command);
+            written = snprintf(buf, bufSize, "{ \"command\": \"%s\" }", command);
         else if(strpbrk(message, "{") != nullptr)
-            sprintf(buf, "{ \"command\": \"%s\" , \"message\": %s }", command, message);
+            written = snprintf(buf, bufSize, "{ \"command\": \"%s\" , \"message\": %s }", command, message);
         else
-            sprintf(buf, "{ \"command\": \"%s\" , \"message\": \"%s\" }", command, message);
+            written = snprintf(buf, bufSize, "{ \"command\": \"%s\" , \"message\": \"%s\" }", command, message);
+
+        if (written < 0 || static_cast<size_t>(written) >= bufSize) {
+            LogHandler::warning(Tags::WebSocketServer, "WebSocket payload truncated for command '%s'", command);
+            buf[bufSize - 1] = '\0';
+        }
     }
     void processWebSocketTextMessage(const char* msg)
     {
@@ -81,8 +92,41 @@ protected:
                 }
                 else if (command == "identifyServo") {
                     extern MotorHandler* motorHandler;
+                    extern PowerHandler* powerHandler;
+                    bool shouldRestoreServoPower = false;
+                    if (powerHandler && !powerHandler->isServoVoltageEnabled()) {
+                        powerHandler->setServoVoltageEnabled(true);
+                        shouldRestoreServoPower = true;
+                    }
+
                     if (motorHandler)
                         motorHandler->identifyServo(message.c_str());
+
+                    if (shouldRestoreServoPower && powerHandler) {
+                        struct RestoreServoPowerParams {
+                            PowerHandler* power;
+                        };
+                        auto* params = new RestoreServoPowerParams{ powerHandler };
+                        xTaskCreate([](void* arg) {
+                            auto* p = static_cast<RestoreServoPowerParams*>(arg);
+                            vTaskDelay(pdMS_TO_TICKS(2600));
+                            p->power->setServoVoltageEnabled(false);
+                            delete p;
+                            vTaskDelete(nullptr);
+                            }, "idPwrR", 2048, params, 1, nullptr);
+                    }
+                }
+                else if (command == "setServoVoltageEnabled") {
+                    extern PowerHandler* powerHandler;
+                    if (powerHandler) {
+                        bool enabled = (message == "true");
+                        powerHandler->setServoVoltageEnabled(enabled);
+                        // Persist the state to settings
+                        SettingsFactory* settingsFactory = SettingsFactory::getInstance();
+                        if (settingsFactory) {
+                            settingsFactory->setValue(SERVO_VOLTAGE_ENABLE_STATE, enabled);
+                        }
+                    }
                 }
                 // String* message = jsonObj["message"];
                 // Serial.print("Recieved websocket tcode message: ");

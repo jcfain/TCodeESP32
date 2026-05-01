@@ -33,6 +33,8 @@ SOFTWARE. */
 #include <AsyncJson.h>
 #include "HTTP/HTTPBase.h"
 #include "network/WifiHandler.h"
+#include "tcode/MotorHandler.h"
+#include "tcode/PwmManager.h"
 #include "WebSocketHandler.h"
 #include "logging/TagHandler.h"
 #include "messages/SystemCommandHandler.h"
@@ -211,6 +213,13 @@ public:
                 webSocketHandler->closeAll();
                 SettingsHandler::restart(2); });
 
+        server->on("/reapplyPwm", HTTP_POST, [](AsyncWebServerRequest* request)
+            {
+                LogHandler::info(Tags::Web, "/reapplyPwm requested");
+                MotorHandler::requestReapply();
+                AsyncWebServerResponse* response = request->beginResponse(200, "application/json", "{\"msg\":\"reapplying\"}");
+                request->send(response); });
+
         server->on("/default", HTTP_POST, [this](AsyncWebServerRequest *request)
                    {
                 Serial.println("Settings default");
@@ -312,6 +321,86 @@ public:
                     request->send(response);
                 } }); //, 10000U );//Bad request? increase the size.
 
+                // ----------------------------------------------------------------
+                // /pwmTest — manual override: bind {pin} to LEDC or MCPWM at the
+                // requested freq+resolution and write a duty %. Bypasses normal
+                // settings; only undone by reapplyPwm or reboot. Used by the GUI
+                // "Test PWM output" panel under Advanced settings.
+                // Body: { "pin": <int>, "driver": 0|1, "freq": <hz>,
+                //         "resolution": <bits>, "dutyPct": <0..100> }
+                // ----------------------------------------------------------------
+                AsyncCallbackJsonWebHandler* pwmTestHandler = new AsyncCallbackJsonWebHandler("/pwmTest", [](AsyncWebServerRequest* request, JsonVariant& json)
+                    {
+                        JsonObject obj = json.as<JsonObject>();
+                        int pin = obj["pin"] | -1;
+                        int driver = obj["driver"] | -1; // 0 = MCPWM, 1 = LEDC (matches PwmDriver enum)
+                        int freq = obj["freq"] | 0;
+                        int resolution = obj["resolution"] | 0;
+                        float dutyPct = obj["dutyPct"] | 0.0f;
+
+                        if (pin < 0 || freq <= 0 || resolution <= 0 || resolution > 20 || dutyPct < 0.0f || dutyPct > 100.0f)
+                        {
+                            AsyncWebServerResponse* response = request->beginResponse(400, "application/json",
+                                "{\"msg\":\"Invalid pwmTest payload\"}");
+                            request->send(response);
+                            return;
+                        }
+
+                        PwmManager::Backend wantBackend =
+                            (driver == 0) ? PwmManager::Backend::MCPWM : PwmManager::Backend::LEDC;
+
+                        PwmManager::Backend got = PwmManager::instance().attachExclusive(
+                            "pwmTest", (int8_t)pin, (uint32_t)freq, (uint8_t)resolution, wantBackend);
+
+                        if (got == PwmManager::Backend::NONE)
+                        {
+                            AsyncWebServerResponse* response = request->beginResponse(500, "application/json",
+                                "{\"msg\":\"pwmTest attach failed\"}");
+                            request->send(response);
+                            return;
+                        }
+
+                        uint32_t maxDuty = (resolution >= 32) ? 0xFFFFFFFFu : ((1u << resolution) - 1u);
+                        uint32_t duty = (uint32_t)((dutyPct / 100.0f) * (float)maxDuty + 0.5f);
+                        if (duty > maxDuty) duty = maxDuty;
+                        bool ok = PwmManager::instance().write((int8_t)pin, duty);
+
+                        LogHandler::info(Tags::Web,
+                            "/pwmTest pin=%d driver=%s freq=%d res=%d duty=%u/%u ok=%d",
+                            pin, got == PwmManager::Backend::MCPWM ? "MCPWM" : "LEDC",
+                            freq, resolution, (unsigned)duty, (unsigned)maxDuty, ok);
+
+                        char body[160];
+                        snprintf(body, sizeof(body),
+                            "{\"msg\":\"%s\",\"backend\":\"%s\",\"duty\":%u,\"maxDuty\":%u}",
+                            ok ? "done" : "write failed",
+                            got == PwmManager::Backend::MCPWM ? "MCPWM" : "LEDC",
+                            (unsigned)duty, (unsigned)maxDuty);
+                        AsyncWebServerResponse* response = request->beginResponse(ok ? 200 : 500, "application/json", body);
+                        request->send(response);
+                    });
+
+                // /pwmTestStop — detach the pin so it stops driving (high-Z input).
+                // Body: { "pin": <int> }
+                AsyncCallbackJsonWebHandler* pwmTestStopHandler = new AsyncCallbackJsonWebHandler("/pwmTestStop", [](AsyncWebServerRequest* request, JsonVariant& json)
+                    {
+                        JsonObject obj = json.as<JsonObject>();
+                        int pin = obj["pin"] | -1;
+                        if (pin < 0)
+                        {
+                            AsyncWebServerResponse* response = request->beginResponse(400, "application/json",
+                                "{\"msg\":\"missing pin\"}");
+                            request->send(response);
+                            return;
+                        }
+                        bool ok = PwmManager::instance().detach((int8_t)pin);
+                        pinMode((uint8_t)pin, INPUT);
+                        LogHandler::info(Tags::Web, "/pwmTestStop pin=%d ok=%d", pin, ok);
+                        AsyncWebServerResponse* response = request->beginResponse(200, "application/json",
+                            ok ? "{\"msg\":\"detached\"}" : "{\"msg\":\"not attached\"}");
+                        request->send(response);
+                    });
+
         // //To upload through terminal you can use: curl -F "image=@firmware.bin" esp8266-webupdate.local/update
         // server->on("/update", HTTP_POST, [this](AsyncWebServerRequest *request){
         //         // the request handler is triggered after the upload has finished...
@@ -357,6 +446,8 @@ public:
         server->addHandler(motionProfileUpdateHandler);
         server->addHandler(channelsProfileUpdateHandler);
         server->addHandler(buttonsUpdateHandler);
+        server->addHandler(pwmTestHandler);
+        server->addHandler(pwmTestStopHandler);
 
         server->onNotFound([this](AsyncWebServerRequest *request)
                            {

@@ -58,6 +58,7 @@ const jsBundleOrder = [
     `${input_dir}/range-slider.js`,
     `${input_dir}/esp-timer-setup.js`,
     `${input_dir}/settings.js`,
+    `${input_dir}/pwm-test.js`,
 ];
 
 // CSS files in order

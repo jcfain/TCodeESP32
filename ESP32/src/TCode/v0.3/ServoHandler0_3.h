@@ -79,7 +79,7 @@ public:
 #ifndef ESP_PROG // The default pins for these are used on the debugger board.
         m_leftServoPin = ((PinMapOSR *)pinMap)->leftServo();
         m_lowerLeftServoChannel = ((PinMapOSR *)pinMap)->leftServoChannel();
-        if (m_leftServoPin > -1 && m_lowerLeftServoChannel > -1)
+        if (m_leftServoPin > -1)
         {
             int freq = ((PinMapOSR *)pinMap)->getChannelFrequency(m_lowerLeftServoChannel);
             m_leftServo_Int = frequencyToMicroseconds(freq);
@@ -87,12 +87,12 @@ public:
         }
         else
         {
-            LogHandler::error(_TAG, "Invalid left servo to pin: %d for channel: %d", m_leftServoPin, m_lowerLeftServoChannel);
+            LogHandler::error(_TAG, "Invalid left servo pin: %d (channel: %d)", m_leftServoPin, m_lowerLeftServoChannel);
             m_initFailed = true;
         }
         m_rightServoPin = ((PinMapOSR *)pinMap)->rightServo();
         m_lowerRightServoChannel = ((PinMapOSR *)pinMap)->rightServoChannel();
-        if (m_rightServoPin > -1 && m_lowerRightServoChannel > -1)
+        if (m_rightServoPin > -1)
         {
             int freq = ((PinMapOSR *)pinMap)->getChannelFrequency(m_lowerRightServoChannel);
             m_rightServo_Int = frequencyToMicroseconds(freq);
@@ -100,7 +100,7 @@ public:
         }
         else
         {
-            LogHandler::error(_TAG, "Invalid right servo to pin: %d for channel: %d", m_rightServoPin, m_lowerRightServoChannel);
+            LogHandler::error(_TAG, "Invalid right servo pin: %d (channel: %d)", m_rightServoPin, m_lowerRightServoChannel);
             m_initFailed = true;
         }
 #endif
@@ -108,7 +108,7 @@ public:
         {
             m_leftUpperServoPin = ((PinMapSR6 *)pinMap)->leftUpperServo();
             m_upperLeftServoChannel = ((PinMapSR6 *)pinMap)->leftUpperServoChannel();
-            if (m_leftUpperServoPin > -1 && m_upperLeftServoChannel > -1)
+            if (m_leftUpperServoPin > -1)
             {
                 int freq = ((PinMapSR6 *)pinMap)->getChannelFrequency(m_upperLeftServoChannel);
                 m_leftUpperServo_Int = frequencyToMicroseconds(freq);
@@ -116,13 +116,13 @@ public:
             }
             else
             {
-                LogHandler::error(_TAG, "Invalid left upper servo to pin: %d for channel: %d", m_leftUpperServoPin, m_upperLeftServoChannel);
+                LogHandler::error(_TAG, "Invalid left upper servo pin: %d (channel: %d)", m_leftUpperServoPin, m_upperLeftServoChannel);
                 m_initFailed = true;
             }
 #ifndef ESP_PROG // The default pins for these are used on the debugger board. 12, 13, 14 & 15
             m_rightUpperServoPin = ((PinMapSR6 *)pinMap)->rightUpperServo();
             m_upperRightServoChannel = ((PinMapSR6 *)pinMap)->rightUpperServoChannel();
-            if (m_rightUpperServoPin > -1 && m_upperRightServoChannel > -1)
+            if (m_rightUpperServoPin > -1)
             {
                 int freq = ((PinMapSR6 *)pinMap)->getChannelFrequency(m_upperRightServoChannel);
                 m_rightUpperServo_Int = frequencyToMicroseconds(freq);
@@ -130,12 +130,12 @@ public:
             }
             else
             {
-                LogHandler::error(_TAG, "Invalid right upper servo to pin: %d for channel: %d", m_rightUpperServoPin, m_upperRightServoChannel);
+                LogHandler::error(_TAG, "Invalid right upper servo pin: %d (channel: %d)", m_rightUpperServoPin, m_upperRightServoChannel);
                 m_initFailed = true;
             }
             m_rightPitchServoPin = ((PinMapSR6 *)pinMap)->pitchRight();
             m_rightPitchServoChannel = ((PinMapSR6 *)pinMap)->pitchRightChannel();
-            if (m_rightPitchServoPin > -1 && m_rightPitchServoChannel > -1)
+            if (m_rightPitchServoPin > -1)
             {
                 int freq = ((PinMapSR6 *)pinMap)->getChannelFrequency(m_rightPitchServoChannel);
                 m_pitchRightServo_Int = frequencyToMicroseconds(freq);
@@ -143,14 +143,14 @@ public:
             }
             else
             {
-                LogHandler::error(_TAG, "Invalid right pitch servo to pin: %d for channel: %d", m_rightPitchServoPin, m_rightPitchServoChannel);
+                LogHandler::error(_TAG, "Invalid right pitch servo pin: %d (channel: %d)", m_rightPitchServoPin, m_rightPitchServoChannel);
                 m_initFailed = true;
             }
 #endif
         }
         m_leftPitchServoPin = ((PinMapSR6 *)pinMap)->pitchLeft();
         m_leftPitchServoChannel = ((PinMapSR6 *)pinMap)->pitchLeftChannel();
-        if (m_leftPitchServoPin > -1 && m_leftPitchServoChannel > -1)
+        if (m_leftPitchServoPin > -1)
         {
             int freq = ((PinMapSR6 *)pinMap)->getChannelFrequency(m_leftPitchServoChannel);
             m_pitchLeftServo_Int = frequencyToMicroseconds(freq);
@@ -158,7 +158,7 @@ public:
         }
         else
         {
-            LogHandler::error(_TAG, "Invalid pitch servo to pin: %d for channel: %d", m_leftPitchServoPin, m_leftPitchServoChannel);
+            LogHandler::error(_TAG, "Invalid pitch servo pin: %d (channel: %d)", m_leftPitchServoPin, m_leftPitchServoChannel);
             m_initFailed = true;
         }
 
@@ -202,6 +202,13 @@ public:
     void execute() override
     {
         if (m_initFailed)
+        {
+            return;
+        }
+        // Skip the normal PWM write loop while an Identify wiggle is in
+        // progress — otherwise it overwrites the wiggle duty every ~1 ms
+        // and the user sees no movement.
+        if (isIdentifying())
         {
             return;
         }
@@ -270,8 +277,10 @@ public:
             return;
         }
 
-        if (pin < 0 || servoInt < 0)
+        if (pin < 0 || servoInt < 0) {
+            LogHandler::warning(_TAG, "identifyServo '%s' aborted: pin<0 or servoInt<0", servoName);
             return;
+        }
 
         _startWiggleTask(pin, servoInt, zeroMicros);
     }
@@ -412,6 +421,9 @@ private:
     static void _wiggleTask(void *arg)
     {
         WiggleParams *p = static_cast<WiggleParams *>(arg);
+        // Block the motor loop's executeOSR/executeSR6 writes for the
+        // duration of the wiggle so it doesn't overwrite our duty.
+        MotorHandler::setIdentifying(true);
         constexpr int OFFSET_US = 100;
         uint32_t hiDuty  = static_cast<uint32_t>(map(p->zeroMicros + OFFSET_US, 0, p->servoInt, 0, (int)p->self->m_servoPWMMaxDuty));
         uint32_t loDuty  = static_cast<uint32_t>(map(p->zeroMicros - OFFSET_US, 0, p->servoInt, 0, (int)p->self->m_servoPWMMaxDuty));
@@ -422,6 +434,7 @@ private:
             vTaskDelay(pdMS_TO_TICKS(500));
         }
         p->self->writeServo(p->pin, midDuty);
+        MotorHandler::setIdentifying(false);
         delete p;
         vTaskDelete(nullptr);
     }
@@ -429,7 +442,10 @@ private:
     void _startWiggleTask(int8_t pin, int servoInt, int zeroMicros)
     {
         WiggleParams *params = new WiggleParams{ this, pin, servoInt, zeroMicros };
-        xTaskCreate(_wiggleTask, "servoWiggle", 2048, params, 1, nullptr);
+        // 4 KiB stack: the wiggle path now calls LogHandler::info which
+        // pulls newlib vsnprintf in (~2 KiB by itself). 2 KiB tripped the
+        // FreeRTOS stack canary.
+        xTaskCreate(_wiggleTask, "servoWiggle", 4096, params, 1, nullptr);
     }
 
     // Function to calculate the angle for the main arm servos

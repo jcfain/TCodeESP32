@@ -296,6 +296,11 @@ public:
         N8R8["name"] = "S3 N8R8";
         N8R8["value"] = (uint8_t)BoardType::N8R8;
 #endif
+#if MOTOR_TYPE == 0
+        JsonObject SR6PCB = boardTypes.add<JsonObject>();
+        SR6PCB["name"] = "SR6PCB";
+        SR6PCB["value"] = (uint8_t)BoardType::SR6PCB;
+#endif
 #endif
         int motorType = MOTOR_TYPE_DEFAULT;
         m_settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);
