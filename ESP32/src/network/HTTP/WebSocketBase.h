@@ -4,7 +4,7 @@
 #include <ArduinoJson.h>
 // #include "LogHandler.h"
 #include "sensors/BatteryHandler.h"
-#include "tcode/MotorHandler.h"
+#include "TCode/MotorHandler.h"
 #include "PowerHandler.h"
 #include "settings/SettingsHandler.h"
 

@@ -33,8 +33,8 @@ SOFTWARE. */
 #include <AsyncJson.h>
 #include "HTTP/HTTPBase.h"
 #include "network/WifiHandler.h"
-#include "tcode/MotorHandler.h"
-#include "tcode/PwmManager.h"
+#include "TCode/MotorHandler.h"
+#include "TCode/PwmManager.h"
 #include "WebSocketHandler.h"
 #include "logging/TagHandler.h"
 #include "messages/SystemCommandHandler.h"

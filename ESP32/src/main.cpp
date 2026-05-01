@@ -50,7 +50,7 @@ SOFTWARE. */
 #if BLUETOOTH_TCODE
 #include "bluetooth/BluetoothHandler.h"
 #endif
-#include "tcode/MotorHandler.h"
+#include "TCode/MotorHandler.h"
 
 #if MOTOR_TYPE == 0
 #include "ServoHandler0_3.h"

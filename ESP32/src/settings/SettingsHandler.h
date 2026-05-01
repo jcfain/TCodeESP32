@@ -43,7 +43,7 @@ SOFTWARE. */
 #include "channelMap.hpp"
 #include "settingConstants.h"
 #include "settingsFactory.h"
-#include "tcode/PwmManager.h"
+#include "TCode/PwmManager.h"
 
 #define DESERIALIZE_SIZE 32768
 #define SERIALIZE_SIZE 24576

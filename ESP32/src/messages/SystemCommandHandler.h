@@ -34,7 +34,7 @@ SOFTWARE. */
 #include "logging/TagHandler.h"
 #include "struct/command.hpp"
 #include "settingsFactory.h"
-#include "tcode/MotorHandler.h"
+#include "TCode/MotorHandler.h"
 
 class SystemCommandHandler
 {
