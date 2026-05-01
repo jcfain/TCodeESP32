@@ -58,13 +58,19 @@ jobs:
         shell: pwsh
         run: |
           $base = "$env:USERPROFILE\.platformio\packages"
-          # Toolchain xtensa-esp-elf bin dir holds xtensa-esp32s3-elf-g++.exe
+          # Add toolchain xtensa bin (xtensa-esp32s3-elf-g++.exe)
           $tc = Get-ChildItem -Path "$base" -Directory -Filter "toolchain-xtensa-esp-elf*" -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($tc) {
             $bin = Join-Path $tc.FullName "bin"
             if (Test-Path $bin) { Add-Content -Path $env:GITHUB_PATH -Value $bin; "Added $bin" }
           }
-          # esptool.py is invoked via penv python; make sure penv Scripts dir wins.
+          # Each tool-* package's root is the bin dir for the tool exe
+          # (mklittlefs, esptool, xtensa-esp-elf-gdb, etc.).
+          Get-ChildItem -Path "$base" -Directory -Filter "tool-*" -ErrorAction SilentlyContinue | ForEach-Object {
+            Add-Content -Path $env:GITHUB_PATH -Value $_.FullName
+            "Added $($_.FullName)"
+          }
+          # Make sure pio penv Scripts wins for pioarduino's Python helpers.
           $penv = "$env:USERPROFILE\.platformio\penv\Scripts"
           if (Test-Path $penv) { Add-Content -Path $env:GITHUB_PATH -Value $penv; "Added $penv" }
 
