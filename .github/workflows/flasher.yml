@@ -58,40 +58,67 @@ jobs:
         shell: pwsh
         run: |
           $base = "$env:USERPROFILE\.platformio\packages"
-          $dirs = @(
-            "$base\toolchain-xtensa-esp-elf\bin",
-            "$base\tool-esptoolpy",
-            "$base\tool-mklittlefs"
-          )
-          foreach ($d in $dirs) {
-            if (Test-Path $d) {
-              "Adding $d"
-              Add-Content -Path $env:GITHUB_PATH -Value $d
-            }
+          # Toolchain xtensa-esp-elf bin dir holds xtensa-esp32s3-elf-g++.exe
+          $tc = Get-ChildItem -Path "$base" -Directory -Filter "toolchain-xtensa-esp-elf*" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($tc) {
+            $bin = Join-Path $tc.FullName "bin"
+            if (Test-Path $bin) { Add-Content -Path $env:GITHUB_PATH -Value $bin; "Added $bin" }
           }
+          # esptool.py is invoked via penv python; make sure penv Scripts dir wins.
+          $penv = "$env:USERPROFILE\.platformio\penv\Scripts"
+          if (Test-Path $penv) { Add-Content -Path $env:GITHUB_PATH -Value $penv; "Added $penv" }
+
+      - name: Pre-install esptool from PyPI (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # pioarduino tries to "uv pip install -e tool-esptoolpy" but that
+          # package isn't a Python project — falling back to a PyPI esptool
+          # makes the bootloader/partitions emit step succeed.
+          pip install --upgrade "esptool>=4.7"
 
       - name: Build firmware + filesystem (sr6_pcb)
         working-directory: ESP32
+        env:
+          # The repo's platformio.ini sets build_cache_dir = ./cache, which is
+          # .gitignored. On a cold CI runner the cache is empty, and the
+          # pioarduino builder skips emitting bootloader.bin/partitions.bin if
+          # it can't find them in the cache. Disable the cache for CI builds.
+          PLATFORMIO_BUILD_CACHE_DIR: ""
         run: |
           pio run -e sr6_pcb
           pio run -t buildfs -e sr6_pcb
+          echo "--- .pio/build/sr6_pcb/ contents ---"
+          ls -la .pio/build/sr6_pcb/ || true
 
       - name: Stage firmware bundle (sr6_pcb)
         working-directory: ESP32
         run: |
           dest=flasher/python/firmware/sr6_pcb
           mkdir -p "$dest"
-          cp .pio/build/sr6_pcb/bootloader.bin   "$dest/"
-          cp .pio/build/sr6_pcb/partitions.bin   "$dest/"
-          cp .pio/build/sr6_pcb/firmware.bin     "$dest/"
-          # Filesystem image name varies by board (spiffs.bin or littlefs.bin)
+          # Bootloader / partitions: prefer the build-output copies, fall back
+          # to anything pioarduino staged in framework-arduinoespressif32-libs.
+          find_first() {
+            local name="$1"
+            shift
+            for p in "$@"; do
+              if [ -f "$p" ]; then echo "$p"; return 0; fi
+            done
+            # Last-ditch glob through the toolchain.
+            find ~/.platformio/packages -type f -name "$name" 2>/dev/null | head -n1
+          }
+          bl=$(find_first bootloader.bin .pio/build/sr6_pcb/bootloader.bin)
+          pt=$(find_first partitions.bin .pio/build/sr6_pcb/partitions.bin)
+          [ -n "$bl" ] && cp "$bl" "$dest/bootloader.bin" || { echo "::error::no bootloader.bin"; exit 1; }
+          [ -n "$pt" ] && cp "$pt" "$dest/partitions.bin" || { echo "::error::no partitions.bin"; exit 1; }
+          cp .pio/build/sr6_pcb/firmware.bin "$dest/"
           if [ -f .pio/build/sr6_pcb/littlefs.bin ]; then
             cp .pio/build/sr6_pcb/littlefs.bin "$dest/"
-          else
+          elif [ -f .pio/build/sr6_pcb/spiffs.bin ]; then
             cp .pio/build/sr6_pcb/spiffs.bin "$dest/littlefs.bin"
           fi
-          # boot_app0 ships with the framework
           cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin "$dest/" || true
+          ls -la "$dest"
 
       - name: Install flasher dev deps
         working-directory: ESP32/flasher/python
