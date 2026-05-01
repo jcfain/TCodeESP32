@@ -45,6 +45,31 @@ jobs:
           python -m pip install --upgrade pip
           pip install platformio
 
+      - name: Install build toolchain (warm pio cache)
+        working-directory: ESP32
+        # Force pio to materialise every package referenced by the env so
+        # the toolchain/esptool bins are guaranteed on disk before the build
+        # spawns subprocesses (Windows runners otherwise drop them from PATH).
+        run: |
+          pio pkg install -e sr6_pcb
+
+      - name: Add pio toolchain to PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $base = "$env:USERPROFILE\.platformio\packages"
+          $dirs = @(
+            "$base\toolchain-xtensa-esp-elf\bin",
+            "$base\tool-esptoolpy",
+            "$base\tool-mklittlefs"
+          )
+          foreach ($d in $dirs) {
+            if (Test-Path $d) {
+              "Adding $d"
+              Add-Content -Path $env:GITHUB_PATH -Value $d
+            }
+          }
+
       - name: Build firmware + filesystem (sr6_pcb)
         working-directory: ESP32
         run: |
