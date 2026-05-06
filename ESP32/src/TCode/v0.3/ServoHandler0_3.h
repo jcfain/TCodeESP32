@@ -48,10 +48,12 @@ public:
             SettingsHandler::addPersistentError(setupError);
             return false;
         }
-        if(m_deviceType == DeviceType::TVIBE) {
+        if(m_deviceType == DeviceType::TVIBE) 
+        {
             LogHandler::info(_TAG, "Setting up motor for device type TVibe");
             setupCommon();
             m_tcode->sendMessage("Ready!");
+            m_initialized = true;
             return true;
         }
         setupCommon();
