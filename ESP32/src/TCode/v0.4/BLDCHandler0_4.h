@@ -18,7 +18,7 @@
 #pragma once
 
 #include <SimpleFOC.h>
-#include <SimpleFOCDrivers.h> 
+#include <SimpleFOCDrivers.h>
 #include <encoders/mt6701/MagneticSensorMT6701SSI.h>
 
 #include "TCode0_4.h"
@@ -71,10 +71,10 @@ public:
     {
         bootmode = true;
         LogHandler::error(_TAG, "Sorry TCode v4 is probably broken at this point");
-        return false; // This isnt ready any where near
+        m_initFailed = true; return; // This isnt ready any where near
         m_settingsFactory = SettingsFactory::getInstance();
         // PinMapInfo pinMapInfo = m_settingsFactory->getPins();
-        PinMapSSR1 *pinMap = PinMapSSR1::getInstance();
+        PinMapSSR1PCB *pinMap = PinMapSSR1PCB::getInstance();
         int pullyCircumference = -1;
         m_settingsFactory->getValue(BLDC_MOTORA_PULLEY_CIRCUMFERENCE, pullyCircumference);
         int strokeLength = -1;
@@ -105,7 +105,7 @@ public:
             {
                 LogHandler::error(Tags::Motor, "Invalid ChipSelect pin %d", pinMap->chipSelect());
                 m_initFailed = true;
-                return false;
+                m_initFailed = true; return;
             }
         }
         else if (encoderType == BLDCEncoderType::PWM)
@@ -120,7 +120,7 @@ public:
             {
                 LogHandler::error(Tags::Motor, "Invalid encoder pin %d", pinMap->encoder());
                 m_initFailed = true;
-                return false;
+                m_initFailed = true; return;
             }
         }
         else
@@ -135,7 +135,7 @@ public:
             {
                 LogHandler::error(Tags::Motor, "Invalid ChipSelect pin %d", pinMap->chipSelect());
                 m_initFailed = true;
-                return false;
+                m_initFailed = true; return;
             }
         }
         // BLDC motor & driver instance
@@ -307,7 +307,7 @@ public:
         }
     }
 
-    void setMessageCallback(TCODE_FUNCTION_PTR_T function) override
+    void setMessageCallback(TCodeCommandCallback function) override
     {
         m_tcode->setMessageCallback(function);
     }

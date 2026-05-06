@@ -35,7 +35,7 @@ public:
     ServoHandler0_4() : MotorHandler0_4(new TCode0_4()) {}
     // Setup function
     // This is run once, when the arduino starts
-    bool setup() override
+    void setup() override
     {
         LogHandler::debug(_TAG, "Setting up servo handler v4");
         m_settingsFactory = SettingsFactory::getInstance();
@@ -44,14 +44,15 @@ public:
         if(m_deviceType == DeviceType::NONE)
         {
             LogHandler::error(_TAG, "No device type selected. Visit the web config or use the command to set a device before starting the firmware.");
-            return false;
+            m_initFailed = true;
+            return;
         }
         if (m_deviceType == DeviceType::TVIBE)
         {
             LogHandler::info(_TAG, "Setting up motor for device type TVibe");
             setupCommon();
             m_tcode->sendMessage("Ready!");
-            return true;
+            return;
         }
         LogHandler::debug(_TAG, "MS_PER_RAD: %d", ms_per_rad);
 
@@ -181,10 +182,10 @@ public:
         {
             m_tcode->sendMessage("Ready!");
         }
-        return true;
+        return;
     }
 
-    void setMessageCallback(TCODE_FUNCTION_PTR_T function) override
+    void setMessageCallback(TCodeCommandCallback function) override
     {
         m_tcode->setMessageCallback(function);
     }

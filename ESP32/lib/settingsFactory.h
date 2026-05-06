@@ -27,6 +27,7 @@ SOFTWARE. */
 #include <LittleFS.h>
 
 #include "enum.h"
+#include "callback.h"
 #include "jsonConverters.h"
 // // #include "LogHandler.h"
 #include "setting.h"
@@ -1114,27 +1115,16 @@ public:
                 return false;
             }
         }
-        LogHandler::info(m_TAG, "[changeDeviceType] Settings pinout default");
+        LogHandler::info(Tags::SettingsFactory, "[changeDeviceType] Settings pinout default");
         setValue(DEVICE_TYPE, newType);
         bool retValue = saveCommon() && defaultPinout();
         // Override for new device type AFTER default!
         if(motorType == MotorType::BLDC)
         {
-            if (newType == DeviceType::SSR2)
-            {
-                LogHandler::info(m_TAG, "[changeDeviceType] Overriding default settings for SSR2");
-                setValue(BLDC_MOTORA_ENCODER, BLDCEncoderType::SPI);
-                setValue(BLDC_MOTORB_ENCODER, BLDCEncoderType::SPI);
-                setValue(BLDC_MOTORA_VOLTAGE, 12.0f);
-                setValue(BLDC_MOTORA_SUPPLY, 12.0f);
-                setValue(BLDC_MOTORB_VOLTAGE, 12.0f);
-                setValue(BLDC_MOTORB_SUPPLY, 12.0f);
-                retValue = saveCommon();
-            }
-            PinMapSSR* pinMap = PinMapSSR::getInstance();
+            PinMapSSR1PCB* pinMap = PinMapSSR1PCB::getInstance();
             pinMap->setDeviceType(newType);
             m_pinsFileInfo.initialized = true;
-            syncSSRAndCommonPinsToDisk(pinMap);
+            syncSSR1AndCommonPinsToDisk(pinMap);
             loadDefaultChannelsForDeviceType();
             retValue = saveToDisk(m_pinsFileInfo);
         }
@@ -1163,6 +1153,8 @@ private:
     ButtonSet buttonSets[MAX_BUTTON_SETS];
 
     SettingsChangeCallback message_callback = 0;
+    bool m_initialized = false;
+    bool m_restartRequired = false;
 
     SemaphoreHandle_t m_networkSemaphore;
     SemaphoreHandle_t m_commonSemaphore;
@@ -2173,14 +2165,14 @@ private:
         pinMap->setTimerDriver(7, static_cast<PwmDriver>(timerDriver));
 #endif
     }
-    PinMapSSR1 *loadSSR1Pins()
+    PinMapSSR1PCB* loadSSR1Pins()
     {
         if (!m_pinsFileInfo.initialized)
         {
             LogHandler::error(Tags::SettingsFactory, "loadSSR1Pins called before initialized");
             return 0;
         }
-        PinMapSSR1 *pinMap = PinMapSSR1::getInstance();
+        PinMapSSR1PCB* pinMap = PinMapSSR1PCB::getInstance();
         // Propagate the board type from settings so consumers
         // that inspect pinMap->boardType() see the correct value
         // (e.g. SSR1PCB) instead of the compile-time DEVKIT default.
@@ -2361,7 +2353,7 @@ private:
 #endif
     }
 
-    void syncSSR1AndCommonPinsToDisk(const PinMapSSR1 *pinMap)
+    void syncSSR1AndCommonPinsToDisk(const PinMapSSR1PCB* pinMap)
     {
         if (!m_pinsFileInfo.initialized)
         {

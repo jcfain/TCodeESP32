@@ -317,7 +317,7 @@ protected:
         m_deviceType = deviceType;
         m_boardType = boardType;
     }
-    const char* m_TAG = TagHandler::PinMap;
+    const Tags::tag_t m_TAG = Tags::PinMap;
     DeviceType m_deviceType;
     BoardType m_boardType;
     ESPTimer m_timers[MAX_TIMERS] = {
@@ -397,12 +397,12 @@ protected:
 #endif
 #if CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C6
         { ESP_L_TIMER0_FREQUENCY, "Low 0", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 0 CH0", ESPTimerChannelNum::LOW0_CH0}, 
+                {"Low 0 CH0", ESPTimerChannelNum::LOW0_CH0},
                 {"Low 0 CH1", ESPTimerChannelNum::LOW0_CH1}
             }
         },
         { ESP_L_TIMER1_FREQUENCY, "Low 1", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 1 CH2", ESPTimerChannelNum::LOW1_CH2}, 
+                {"Low 1 CH2", ESPTimerChannelNum::LOW1_CH2},
                 {"Low 1 CH3", ESPTimerChannelNum::LOW1_CH3}
             }
         },
@@ -411,7 +411,7 @@ protected:
             }
         },
         { ESP_L_TIMER3_FREQUENCY, "Low 3", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 3 CH5", ESPTimerChannelNum::LOW2_CH5}, 
+                {"Low 3 CH5", ESPTimerChannelNum::LOW2_CH5},
             }
         }
     };
@@ -519,7 +519,7 @@ public:
     int8_t motorBPwmChannel3() const { return m_twistPwmChannel3; }
     void setLeftPwmChannel3(const int8_t &pwmChannel3) { m_twistPwmChannel3 = pwmChannel3; }
 
-    void setDeviceType(DeviceType type) override 
+    void setDeviceType(DeviceType type) override
     {
         if (type == DeviceType::NONE)
         {
@@ -535,7 +535,7 @@ public:
             setPwmChannel1(BLDC_PWMCHANNEL1_PIN_DEFAULT);
             setPwmChannel2(BLDC_PWMCHANNEL2_PIN_DEFAULT);
             setPwmChannel3(BLDC_PWMCHANNEL3_PIN_DEFAULT);
-        } 
+        }
         else if(type == DeviceType::SSR2)
         {
             m_deviceType = type;
@@ -559,8 +559,8 @@ public:
             setCaseFan(-1);
             setHeater(-1);
             setTwistFeedBack(-1);
-        } 
-        else 
+        }
+        else
         {
             LogHandler::error(m_TAG, "[PinMapSSR.setDevice Invalid device type %i", (int)type);
         }
@@ -575,7 +575,7 @@ private:
     int8_t m_pwmChannel1 = BLDC_PWMCHANNEL1_PIN_DEFAULT;
     int8_t m_pwmChannel2 = BLDC_PWMCHANNEL2_PIN_DEFAULT;
     int8_t m_pwmChannel3 = BLDC_PWMCHANNEL3_PIN_DEFAULT;
-    
+
     int8_t m_twistEncoder = BLDC_B_ENCODER_PIN_DEFAULT;
     int8_t m_twistChipSelect = BLDC_B_CHIPSELECT_PIN_DEFAULT;
     int8_t m_twistEnable = BLDC_B_ENABLE_PIN_DEFAULT;

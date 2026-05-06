@@ -78,8 +78,6 @@ SOFTWARE. */
 #include "sensors/VoiceHandler.hpp"
 #include "sensors/ButtonHandler.hpp"
 
-InitHandler* initHandler;
-BenchHandler* benchHandler;
 TickType_t pxPreviousWakeTime = millis();
 
 // This has issues running with the webserver.
@@ -384,7 +382,7 @@ void setup()
 	taskManager.priority(&powerHandler); // Analog rail telemetry polling
 	LogHandler::info(Tags::Main, "Power handler initialized");
 
-	batteryHandler.setMessageCallback([](float capacityRemainingPercentage, float capacityRemaining, float voltage, float temperature)
+	batteryHandler.setMessageCallback([](const float& capacityRemainingPercentage, const float& capacityRemaining, const float& voltage, const float& temperature)
 		{
 			if (!webSocketHandler)
 				return;
@@ -433,28 +431,6 @@ void setup()
 
 	LogHandler::info(Tags::Main, "Tasks registered");
 	Serial.println("BOOT: setup complete");
-}
-
-void stop()
-{
-	// TODO: should empty all buffers on while stopped?
-	// movement[0] = {0};
-	// udpData[0] = {0};
-	// webSocketData[0] = {0};
-	// serialData[0] = {0};
-	// commandTCodeData[0] = {0};// empty command data?
-#if BLE_TCODE
-	// bleData[0] = {0};
-#endif
-#if BLUETOOTH_TCODE
-	// bluetoothData[0] = {0};
-#endif
-	if (dStopped)// Only execute stop once
-		return;
-	size_t len = 7;
-	char stop[len] = "DSTOP\n";
-	readTCode(stop, len);
-	dStopped = true;
 }
 
 void loop()

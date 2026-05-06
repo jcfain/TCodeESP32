@@ -1,7 +1,7 @@
 #pragma once
 #include "enum.h"
 // IMPORTANT: The pins in this file may be overriden in th pinMap class depending on the board/device type selected
-#ifdef MOTOR_TYPE_SERVO
+#if MOTOR_TYPE == 0
 // Common PWM
 #define VALVE_SERVO_PIN_DEFAULT 25
 #define VALVE_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::HIGH3_CH6
@@ -38,7 +38,7 @@
 #define BRUSHED_MOTOR_A_PIN_DEFAULT -1
 #define BRUSHED_MOTOR_B_PIN_DEFAULT -1
 
-#elif defined MOTOR_TYPE_BLDC
+#elif MOTOR_TYPE == 1
 // Common PWM
 #define VALVE_SERVO_PIN_DEFAULT 12
 #define VALVE_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::HIGH3_CH6

@@ -58,6 +58,7 @@ protected:
 
         m_tcode->setup(FIRMWARE_VERSION_NAME);
         int vibeResolution, lubeResolution;
+        int servoResolution;
         m_settingsFactory->getValue(SERVO_RESOLUTION, servoResolution);
         m_settingsFactory->getValue(VIBE_RESOLUTION, vibeResolution);
         m_settingsFactory->getValue(LUBE_RESOLUTION, lubeResolution);
@@ -521,56 +522,6 @@ private:
             }
             writeServo(m_valveServoPin, map(m_settingsFactory->getValveServo_ZERO() + valve, 0, m_valveServo_Int, 0, m_servoPWMMaxDuty));
         }
-        tLast = t;
-        xLast = xLin;
-        // Use suck command if most recent
-        bool suck;
-        if (m_tcode->AxisLast("A1") >= m_tcode->AxisLast("A0")) 
-        {
-            suck = true;
-            valveCmd = suckCmd;
-        } 
-        else 
-        {
-            suck = false;
-        }
-        // Set valve position
-        if (suck) 
-        {
-            if (upVel < -5) 
-            {
-                valveCmd = 0;  
-            } 
-            else if ( upVel < 0 ) 
-            {
-                valveCmd = map(100*upVel, 0, -500, suckCmd, 0);
-            }
-        }
-        valvePos = (9*valvePos + map(valveCmd, TCODE_MIN, TCODE_MAX, 0, 1000))/10;
-
-        int valve;
-        valve  = valvePos - 500;
-        valve  = constrain(valve, -500, 500);
-        if (m_settingsFactory->getInverseValve()) 
-        { 
-            valve = -valve; 
-        }
-        if(m_settingsFactory->getValveServo90Degrees())
-        {
-            if (m_settingsFactory->getInverseValve()) 
-            { 
-                valve = map(valve,0,500,-500,500);
-            } 
-            else
-            {
-                valve = map(valve,-500,0,-500,500);
-            }
-        }
-        #ifdef ESP_ARDUINO3
-        ledcWrite(m_valveServoPin, map(m_settingsFactory->getValveServo_ZERO() + valve,0,m_valveServo_Int,0,m_servoPWMMaxDuty));
-        #else
-        ledcWrite(m_valveServoChannel, map(m_settingsFactory->getValveServo_ZERO() + valve,0,m_valveServo_Int,0,m_servoPWMMaxDuty));
-        #endif
     }
 
     void executeVibe(int index)

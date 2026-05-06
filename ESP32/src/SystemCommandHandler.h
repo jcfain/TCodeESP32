@@ -677,7 +677,7 @@ private:
 		return command;
 	}
 
-	void send(const char* tcode) override 
+	void send(const char* tcode) override
 	{
 		if(tCodeQueue)
         	xQueueSend(tCodeQueue, tcode, 0);

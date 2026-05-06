@@ -2037,7 +2037,7 @@ function updateBLDCUseHallSensor() {
 }
 function updateBLDCTwistSettings() {
     Utils.debounce("updateBLDCTwistSettings", () => {
-        if(validateFloatControl("BLDC_TwistMultiplier", userSettings, "BLDC_TwistMultiplier") && 
+        if(validateFloatControl("BLDC_TwistMultiplier", userSettings, "BLDC_TwistMultiplier") &&
             validateFloatControl("BLDC_TwistLimit", userSettings, "BLDC_TwistLimit")
         ) {
             updateUserSettings(0);
@@ -2046,9 +2046,9 @@ function updateBLDCTwistSettings() {
 }
 function updateBLDCSettings() {
     Utils.debounce("updateBLDCSettings", () => {
-        if(validateIntControl("BLDC_RailLength", userSettings, "BLDC_RailLength") && 
-            validateIntControl("BLDC_StrokeLength", userSettings, "BLDC_StrokeLength") && 
-            validateFloatControl("BLDC_LowPassFilter", userSettings, "BLDC_LowPassFilter") && 
+        if(validateIntControl("BLDC_RailLength", userSettings, "BLDC_RailLength") &&
+            validateIntControl("BLDC_StrokeLength", userSettings, "BLDC_StrokeLength") &&
+            validateFloatControl("BLDC_LowPassFilter", userSettings, "BLDC_LowPassFilter") &&
             validateFloatControl("BLDC_PIDProportionalConstant", userSettings, "BLDC_PIDProportionalConstant")
         ) {
             setRestartRequired();
@@ -2511,7 +2511,7 @@ function validatePwmDriverContention() {
 /**
  * Validates the pin number values in the forms inputs.
  * Shows an error and returns the pin values or undefined if error
- * 
+ *
  * BLDC does not return ALL pins..
 */
 function validatePins() {
@@ -2524,14 +2524,14 @@ function validatePins() {
     var pwmErrors = [];
     var invalidPins = [];
     var pinValues = [];
-    if(systemInfo.motorType == MotorType.BLDC) 
+    if(systemInfo.motorType == MotorType.BLDC)
     {
         assignCommonBLDCPins(assignedPins);
         motorA.getBLDCPinValues(pinValues);
         if(motorB)
         {
             motorB.getBLDCPinValues(pinValues);
-        }   
+        }
     } else {
         getServoPinValues(pinValues);
     }
@@ -2539,7 +2539,7 @@ function validatePins() {
     if(userSettings["disablePinValidation"])
         return pinValues;
 
-    if(systemInfo.motorType == MotorType.BLDC) 
+    if(systemInfo.motorType == MotorType.BLDC)
     {
         motorA.validateBLDCPins(pinValues, assignedPins, duplicatePins, pwmErrors, invalidPins);
         if(motorB)
@@ -2603,7 +2603,7 @@ function assignCommonBLDCPins(assignedPins) {
             }
         }
     }
-    else 
+    else
     {
         //assignedPins.push({name:"SPI1", pin:5});
         assignedPins.push({name:name+" SPI CLK", pin:18});
@@ -2899,7 +2899,7 @@ function setTempSettings() {
 }
 function setInternalTempSettings() {
     const enabled = document.getElementById('tempInternalEnabled').checked;
-    if(!userSettings["tempInternalEnabled"] && enabled) 
+    if(!userSettings["tempInternalEnabled"] && enabled)
     {
         if(!validatePins())
             return;
@@ -3392,28 +3392,28 @@ function checkMigrateData(key, value, firmwareVersion) {
                 return BoardType.ISAAC;
             }
         }
-    } else if(key == "deviceType") { 
+    } else if(key == "deviceType") {
         if(!firmwareVersion || firmwareVersion < 0.497) {
             if(value == 0) {
-                return DeviceType.OSR; 
+                return DeviceType.OSR;
             } else if(value == 1) {
-                return DeviceType.SR6; 
+                return DeviceType.SR6;
             } else if(value == 2) {
-                return DeviceType.SSR1; 
+                return DeviceType.SSR1;
             } else if(value == 3) {
-                return DeviceType.TVIBE; 
+                return DeviceType.TVIBE;
             } else if(value == 4) {
-                return DeviceType.SSR2; 
+                return DeviceType.SSR2;
             }
         }
-    } else if(key == "BLDC_Encoder") { 
+    } else if(key == "BLDC_Encoder") {
         if(!firmwareVersion || firmwareVersion < 0.497) {
             if(value == 0) {
-                return BLDCEncoderType.MT6701; 
+                return BLDCEncoderType.MT6701;
             } else if(value == 1) {
-                return BLDCEncoderType.SPI; 
+                return BLDCEncoderType.SPI;
             } else if(value == 2) {
-                return BLDCEncoderType.PWM; 
+                return BLDCEncoderType.PWM;
             }
         }
     }

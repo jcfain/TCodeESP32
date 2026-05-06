@@ -24,21 +24,12 @@ SOFTWARE. */
 #include <mutex>
 #include <string>
 #include "logging/TagHandler.h"
+#include "enum.h"
 
-enum class LogLevel
-{
-    NONE,
-    ERROR,
-    WARNING,
-    INFO,
-    DEBUG,
-    VERBOSE
-};
 #define LOG_LEVEL_HELP "Sets system log level.\nValid values are: NONE=0, ERROR=1, WARNING=2, INFO=3, DEBUG=4, VERBOSE=5"
 
 using LOG_FUNCTION_PTR_T = void (*)(const char *input, size_t length,
-                                    LogLevel level);
-using LogCallback = LOG_FUNCTION_PTR_T;
+    LogLevel level);
 
 class LogHandler
 {
@@ -202,7 +193,7 @@ private:
         return logger_instance;
     }
 
-    LogCallback m_message_callback = 0;
+    LOG_FUNCTION_PTR_T m_message_callback = 0;
     LogLevel m_currentLogLevel = LogLevel::INFO;
     SemaphoreHandle_t m_xMutex = xSemaphoreCreateMutex();
     uint32_t m_includedTags = 0; // 0 means include all

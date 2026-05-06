@@ -341,7 +341,7 @@ public:
         }
     }
 
-    void setMessageCallback(TCODE_FUNCTION_PTR_T function) override
+    void setMessageCallback(TCodeCommandCallback function) override
     {
         m_tcode->setMessageCallback(function);
     }

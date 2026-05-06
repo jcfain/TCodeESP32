@@ -26,12 +26,7 @@ SOFTWARE. */
 #include "logging/LogHandler.h"
 #include "logging/TagHandler.h"
 #include "tasks/TaskHandler.h"
-
-enum class TemperatureType
-{
-	INTERNAL,
-	SLEEVE
-};
+#include "enum.h"
 
 using TEMPERATURE_STATE_FUNCTION_PTR_T = void (*)(TemperatureType type, const char* status, float tempC);
 

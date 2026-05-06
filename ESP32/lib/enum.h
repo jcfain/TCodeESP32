@@ -1,14 +1,14 @@
 #pragma once
 #include <cstdint>
 
-enum class LogLevel 
-{ 
+enum class LogLevel
+{
     NONE,
     ERROR,
     WARNING,
     INFO,
     DEBUG,
-    VERBOSE 
+    VERBOSE
 };
 
 enum class SettingType
@@ -64,7 +64,7 @@ enum class TCodeVersion: int
 };
 
 #ifdef MOTOR_TYPE_BLDC
-enum class BLDCMotorPosition 
+enum class BLDCMotorPosition
 {
     A,
     B

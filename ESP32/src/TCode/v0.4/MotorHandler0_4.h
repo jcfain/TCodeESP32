@@ -57,6 +57,7 @@ protected:
         m_tcode->setup(FIRMWARE_VERSION_NAME);
 
         int vibeResolution, lubeResolution;
+        int servoResolution;
         m_settingsFactory->getValue(SERVO_RESOLUTION, servoResolution);
         m_settingsFactory->getValue(VIBE_RESOLUTION, vibeResolution);
         m_settingsFactory->getValue(LUBE_RESOLUTION, lubeResolution);

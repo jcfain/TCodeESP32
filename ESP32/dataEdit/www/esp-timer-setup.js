@@ -37,8 +37,8 @@ ESPTimer = {
         this.modal = document.getElementById("espTimerSetupModal");
         let table = Utils.createModalTableSection(this.modal, "Timer setup");
         let availableTimers = systemInfo["availableTimers"];
-        // We dont know what the resolution of the attached device at this point. 
-        // Maybe with a lookup and a bit of a redesign we can validate the frequency. 
+        // We dont know what the resolution of the attached device at this point.
+        // Maybe with a lookup and a bit of a redesign we can validate the frequency.
         // For now, the user needs to know what they are doing here.
         //const maxHz = Math.floor(80000000 / (2 ** systemInfo.servoPWMResolution));// 2^16bit = 65536. 80000000(80Mhz) ÷ 65536 = 1220.703125. floor = 1220
         for (let index = 0; index < availableTimers.length; index++) {
@@ -96,10 +96,10 @@ ESPTimer = {
         const helpTextNodeDiv = document.createElement("div");
         helpTextNodeDiv.style = "font-size: 0.6em;"
         const freqMhz = systemInfo.apbClockFrequency / 1000000;
-        helpTextNodeDiv.innerHTML = 
+        helpTextNodeDiv.innerHTML =
 `
 To calculate the MAXIMUM frequency for your chip (Not the servo)
-<br>use the formula: 
+<br>use the formula:
 <br>&nbsp&nbsp&nbsp&nbsp ${systemInfo.apbClockFrequency} ÷ (2^resolution)
 <br>The max resolution for your chip is ${systemInfo.maxPWMResolution} bit
 <br>The APB clock frequency is ${freqMhz} Mhz

@@ -27,7 +27,7 @@
 #include "E22/config.h"
 #endif
 
-#if !defined(MOTOR_TYPE_SERVO) && !defined(MOTOR_TYPE_BLDC)
+#if !defined(MOTOR_TYPE)
     #error "Invalid motor type"
 #endif
 
