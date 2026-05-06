@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@ SOFTWARE. */
 #include "logging/TagHandler.h"
 #include "struct/command.hpp"
 #include "settingsFactory.h"
+#include "TCodeInterface.h"
 
 class SystemCommandHandler {
 public:
@@ -194,9 +195,9 @@ public:
         }
         if(!xQueueReceive(tCodeQueue, buf, 0)) {
             buf[0] = {0};
-			return false;
+			return 0;
         }
-		return true;
+		return strnlen(buf, MAX_COMMAND);
     }
 
 private:
@@ -314,7 +315,7 @@ private:
 			SettingsHandler::setMotionEnabled(!enabled);
 			LogHandler::debug(Tags::SystemCommand, !enabled ? "Motion enabled" : "Motion disabled");
 			if(!enabled) {
-				writeTCode("DSTOP\n");
+				send("DSTOP\n");
 			}
 			return true;
 		});
@@ -676,7 +677,8 @@ private:
 		return command;
 	}
 
-	void writeTCode(const char tcode[MAX_COMMAND]) {
+	void send(const char* tcode) override 
+	{
 		if(tCodeQueue)
         	xQueueSend(tCodeQueue, tcode, 0);
 	}

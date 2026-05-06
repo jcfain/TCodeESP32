@@ -4,11 +4,11 @@
 // -----------------------------
 // Class to handle each axis
 // -----------------------------
-class Axis {
+class TCodeAxis0_3 {
 
   public:
   // Setup function
-  Axis() {
+  TCodeAxis0_3() {
 
     // Set default dynamic parameters
     rampStartTime = 0;

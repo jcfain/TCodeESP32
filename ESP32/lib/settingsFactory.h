@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -56,6 +56,7 @@ public:
             return false;
         loadCommonCache();
         loadPinCache();
+        m_initialized = true;
         return true;
     }
 
@@ -87,6 +88,7 @@ public:
     }
     // Cached requires restart
     // DeviceType getDeviceType() const { return m_deviceType; }
+    bool restartRequired() const { return m_restartRequired; };
     int getUdpServerPort() const { return udpServerPort; }
     int getWebServerPort() const { return webServerPort; }
     const char *getHostname() const { return hostname; }
@@ -164,7 +166,7 @@ public:
         return motionProfiles;
     }
 
-    void setMessageCallback(SETTING_STATE_FUNCTION_PTR_T f)
+    void setMessageCallback(SettingsChangeCallback f)
     {
         LogHandler::debug(Tags::SettingsFactory, "setMessageCallback");
         if (f == nullptr)
@@ -253,9 +255,9 @@ public:
                 LogHandler::error(Tags::SettingsFactory, "getValue T called before pins file initialized");
                 return SettingFile::NONE;
             }
-            xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
+            xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
             value = m_pinsFileInfo.doc[name].as<T>();
-            xSemaphoreGive(m_commonSemaphore);
+            xSemaphoreGive(m_pinSemaphore);
             return SettingFile::Pins;
         }
         else
@@ -1079,7 +1081,7 @@ public:
         else if (boardType == BoardType::SSR1PCB)
         {
             setValue(DEVICE_TYPE, DeviceType::SSR1);
-            setValue(BLDC_ENCODER, BLDCEncoderType::MT6701);
+            setValue(BLDC_MOTORA_ENCODER, BLDCEncoderType::MT6701);
         }
         LogHandler::info(Tags::SettingsFactory, "[changeBoardType] Settings pinout default");
         setValue(BOARD_TYPE_SETTING, boardType);
@@ -1098,7 +1100,7 @@ public:
         getValue(MOTOR_TYPE_SETTING, motorType);
         if (motorType == MotorType::Servo)
         {
-            if (newType == DeviceType::SSR1)
+            if (newType == DeviceType::SSR1 || newType == DeviceType::SSR2)
             {
                 LogHandler::error(Tags::SettingsFactory, "[changeDeviceType] Invalid device type (%ld) for current motor. Valid device types are %s", value, DEVICE_TYPES_HELP);
                 return false;
@@ -1106,15 +1108,37 @@ public:
         }
         else if (motorType == MotorType::BLDC)
         {
-            if (newType != DeviceType::SSR1)
+            if (newType != DeviceType::NONE && newType != DeviceType::SSR1 && newType != DeviceType::SSR2)
             {
                 LogHandler::error(Tags::SettingsFactory, "[changeDeviceType] Invalid device type (%ld) for current motor. Valid device types are %s", value, DEVICE_TYPES_HELP);
                 return false;
             }
         }
-        Serial.println("Settings pinout default");
+        LogHandler::info(m_TAG, "[changeDeviceType] Settings pinout default");
         setValue(DEVICE_TYPE, newType);
-        return saveCommon() && defaultPinout();
+        bool retValue = saveCommon() && defaultPinout();
+        // Override for new device type AFTER default!
+        if(motorType == MotorType::BLDC)
+        {
+            if (newType == DeviceType::SSR2)
+            {
+                LogHandler::info(m_TAG, "[changeDeviceType] Overriding default settings for SSR2");
+                setValue(BLDC_MOTORA_ENCODER, BLDCEncoderType::SPI);
+                setValue(BLDC_MOTORB_ENCODER, BLDCEncoderType::SPI);
+                setValue(BLDC_MOTORA_VOLTAGE, 12.0f);
+                setValue(BLDC_MOTORA_SUPPLY, 12.0f);
+                setValue(BLDC_MOTORB_VOLTAGE, 12.0f);
+                setValue(BLDC_MOTORB_SUPPLY, 12.0f);
+                retValue = saveCommon();
+            }
+            PinMapSSR* pinMap = PinMapSSR::getInstance();
+            pinMap->setDeviceType(newType);
+            m_pinsFileInfo.initialized = true;
+            syncSSRAndCommonPinsToDisk(pinMap);
+            loadDefaultChannelsForDeviceType();
+            retValue = saveToDisk(m_pinsFileInfo);
+        }
+        return retValue;
     }
 
     bool defaultPinout()
@@ -1138,11 +1162,12 @@ private:
     MotionProfile motionProfiles[MAX_MOTION_PROFILE_COUNT];
     ButtonSet buttonSets[MAX_BUTTON_SETS];
 
-    SETTING_STATE_FUNCTION_PTR_T message_callback = 0;
+    SettingsChangeCallback message_callback = 0;
 
     SemaphoreHandle_t m_networkSemaphore;
     SemaphoreHandle_t m_commonSemaphore;
     SemaphoreHandle_t m_pinSemaphore;
+    SemaphoreHandle_t m_debugInfoSemaphore;
 
     SettingFileInfo m_networkFileInfo =
         {
@@ -1533,6 +1558,10 @@ private:
         {
             std::vector<int8_t> vec = {BUTTON_SET_PINS_1, BUTTON_SET_PINS_2, BUTTON_SET_PINS_3, BUTTON_SET_PINS_4};
             doc[BUTTON_SET_PINS] = vec;
+            return true;
+        } else if(!strcmp(setting->name, DEBUG_INFO_LAST_BOOT_REASONS)) {
+            std::vector<const char*> vec = { };
+            doc[DEBUG_INFO_LAST_BOOT_REASONS] = vec;
             return true;
         }
         LogHandler::error(Tags::SettingsFactory, "No default vector set for: %s", setting->name);
@@ -2174,6 +2203,19 @@ private:
         pinMap->setPwmChannel2(pin);
         getValue(BLDC_PWMCHANNEL3_PIN, pin);
         pinMap->setPwmChannel3(pin);
+
+        getValue(BLDC_B_ENCODER_PIN, pin);
+        pinMap->setLeftEncoder(pin);
+        getValue(BLDC_B_CHIPSELECT_PIN, pin);
+        pinMap->setLeftChipSelect(pin);
+        getValue(BLDC_B_ENABLE_PIN, pin);
+        pinMap->setLeftEnable(pin);
+        getValue(BLDC_B_PWMCHANNEL1_PIN, pin);
+        pinMap->setLeftPwmChannel1(pin);
+        getValue(BLDC_B_PWMCHANNEL2_PIN, pin);
+        pinMap->setLeftPwmChannel2(pin);
+        getValue(BLDC_B_PWMCHANNEL3_PIN, pin);
+        pinMap->setLeftPwmChannel3(pin);
         return pinMap;
     }
     PinMapOSR *loadOSRPins()
@@ -2334,6 +2376,12 @@ private:
         setValue(BLDC_PWMCHANNEL1_PIN, pinMap->pwmChannel1());
         setValue(BLDC_PWMCHANNEL2_PIN, pinMap->pwmChannel2());
         setValue(BLDC_PWMCHANNEL3_PIN, pinMap->pwmChannel3());
+        setValue(BLDC_B_ENCODER_PIN, pinMap->motorBEncoder());
+        setValue(BLDC_B_CHIPSELECT_PIN, pinMap->motorBChipSelect());
+        setValue(BLDC_B_ENABLE_PIN, pinMap->motorBEnable());
+        setValue(BLDC_B_PWMCHANNEL1_PIN, pinMap->motorBPwmChannel1());
+        setValue(BLDC_B_PWMCHANNEL2_PIN, pinMap->motorBPwmChannel2());
+        setValue(BLDC_B_PWMCHANNEL3_PIN, pinMap->motorBPwmChannel3());
         savePins();
     }
 

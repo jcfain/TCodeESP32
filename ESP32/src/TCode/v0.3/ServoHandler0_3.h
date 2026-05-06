@@ -37,6 +37,7 @@ public:
     // This is run once, when the arduino starts
     void setup() override
     {
+
         LogHandler::debug(_TAG, "Setting up servo handler v3");
         m_settingsFactory = SettingsFactory::getInstance();
 
@@ -49,6 +50,7 @@ public:
             m_tcode->sendMessage("Ready!");
             return;
         }
+        setupCommon();
         LogHandler::debug(_TAG, "MS_PER_RAD: %d", ms_per_rad);
 
         // Set SR6 arms to startup positions
@@ -80,6 +82,31 @@ public:
         m_leftServoPin = ((PinMapOSR *)pinMap)->leftServo();
         m_lowerLeftServoChannel = ((PinMapOSR *)pinMap)->leftServoChannel();
         if (m_leftServoPin > -1)
+        {
+            int freq = ((PinMapOSR *)pinMap)->getChannelFrequency(m_lowerLeftServoChannel);
+            m_leftServo_Int = frequencyToMicroseconds(freq);
+            attachServoPin("left servo", m_leftServoPin, freq, m_lowerLeftServoChannel, pinMap->getTimerDriverForChannel(m_lowerLeftServoChannel));
+        }
+        else
+        {
+            LogHandler::error(_TAG, "Invalid left servo pin: %d (channel: %d)", m_leftServoPin, m_lowerLeftServoChannel);
+            m_initFailed = true;
+        }
+        m_rightServoPin = ((PinMapOSR *)pinMap)->rightServo();
+        m_lowerRightServoChannel = ((PinMapOSR *)pinMap)->rightServoChannel();
+        if (m_rightServoPin > -1)
+        {
+            int freq = ((PinMapOSR *)pinMap)->getChannelFrequency(m_lowerRightServoChannel);
+            m_rightServo_Int = frequencyToMicroseconds(freq);
+            attachServoPin("right servo", m_rightServoPin, freq, m_lowerRightServoChannel, pinMap->getTimerDriverForChannel(m_lowerRightServoChannel));
+        }
+        else
+        {
+            LogHandler::error(_TAG, "Invalid right servo pin: %d (channel: %d)", m_rightServoPin, m_lowerRightServoChannel);
+            m_initFailed = true;
+        }
+#endif
+        if (m_deviceType == DeviceType::SR6)
         {
             int freq = ((PinMapOSR *)pinMap)->getChannelFrequency(m_lowerLeftServoChannel);
             m_leftServo_Int = frequencyToMicroseconds(freq);

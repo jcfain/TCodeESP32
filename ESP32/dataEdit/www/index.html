@@ -25,7 +25,7 @@
 	</div>
 	<div id="errorMessage" hidden="true">
 		<div class="error">
-			<span class="errorHeader">Oops!</span>
+			<span class="errorHeader">Doh!</span>
 			<span id="errorText" class="errorText"></span>
 			<button class="errorButton" onclick="closeError()"><span class="x">X</span></button>
 		</div>
@@ -264,7 +264,7 @@
 
 						<!---------------------------------- BLDC -------------------------------------------------->
 
-						<div class="tRow BLDCOnly hidden">
+						<div id="EncoderType" class="tRow BLDCOnly hidden">
 							<div class="tCell">
 								<span title="Choose the encoder you have">Encoder</span>
 							</div>
@@ -272,12 +272,12 @@
 								<select name="BLDC_Encoder" id="BLDC_Encoder" onchange="setEncoderType()"> </select>
 							</div>
 						</div>
-						<div class="tRow BLDCOnly hidden">
+						<div class="tRow BLDCOnly ">
 							<div class="tCell">
 								<span title="Check this if you use a hall effect sensor">Use hall effect</span>
 							</div>
 							<div class="tCell">
-								<input id="BLDC_UseHallSensor" type="checkbox" name="encoder_type" onclick="updateBLDCSettings()"></input>
+								<input id="BLDC_UseHallSensor" type="checkbox" name="encoder_type" onclick="updateBLDCUseHallSensor()"></input>
 							</div>
 						</div>
 						<div class="tRow BLDCOnly hidden">
@@ -361,7 +361,7 @@
 								<input id="BLDC_PWMchannel3_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
 							</div>
 						</div>
-						<div id="HallEffect" class="tRow BLDCOnly hidden">
+						<div id="HallEffect" class="tRow BLDCOnly hidden hallEffect">
 							<div class="tCell">
 								<span>Hall effect PIN</span>
 							</div>
@@ -387,20 +387,52 @@
 						</div>
 						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
-								<span>Rail length (mm)</span>
+								<span>PID proportional const</span> 
+							</div>
+							<div class="tCell">
+								<input id="BLDC_PIDProportionalConstant" type="number" min="0" max="1.00000" step="0.00001" oninput="updateBLDCSettings()">
+							</div>
+						</div>
+						<div class="tRow BLDCOnly hidden">
+							<div class="tCell">
+								<span>Low pass filter</span> 
+							</div>
+							<div class="tCell">
+								<input id="BLDC_LowPassFilter" type="number" min="0" max="1.000" step="0.001" oninput="updateBLDCSettings()">
+							</div>
+						</div>
+						<div class="tRow BLDCOnly SSR1Only hidden">
+							<div class="tCell">
+								<span>Rail length (mm)</span> 
 							</div>
 							<div class="tCell">
 								<input id="BLDC_RailLength" type="number" min="0" max="2147483647" oninput="updateBLDCSettings()">
 							</div>
 						</div>
-						<div class="tRow BLDCOnly hidden">
+						<div class="tRow BLDCOnly SSR1Only hidden">
 							<div class="tCell">
 								<span>Stroke length (mm)</span>
 							</div>
 							<div class="tCell">
 								<input id="BLDC_StrokeLength" type="number" min="0" max="2147483647" oninput="updateBLDCSettings()">
 							</div>
-						</div>
+						</div> 
+						<div class="tRow BLDCOnly SSR2Only hidden">
+							<div class="tCell">
+								<span>Twist Multiplier</span> 
+							</div>
+							<div class="tCell">
+								<input id="BLDC_TwistMultiplier" type="number" min="0.00" max="2147483647" step="0.01" oninput="updateBLDCTwistSettings()">
+							</div>
+						</div> 
+						<div class="tRow BLDCOnly SSR2Only hidden">
+							<div class="tCell">
+								<span>Twist Limit</span> 
+							</div>
+							<div class="tCell">
+								<input id="BLDC_TwistLimit" type="number" min="0.000" max="1.000" step="0.001" oninput="updateBLDCTwistSettings()">
+							</div>
+						</div> 
 
 						<!--------------------------------------- END BLDC ----------------------------------------------------->
 
@@ -410,6 +442,14 @@
 							</div>
 							<div class="tCell">
 								<input id="maxServoRange" type="number" min="140" max="360" oninput="updateMaxServoRange()">
+							</div>
+						</div>
+						<div class="tRow advancedOnly">
+							<div class="tCell" title="The servo resolution for all servos">
+								<span>Servo resolution (bit)</span> 
+							</div>
+							<div class="tCell">
+								<input id="servoResolution" type="number" min="1" max="16" oninput="setPWMResolution()">
 							</div>
 						</div>
 						<div class="tRow advancedOnly">
@@ -705,6 +745,14 @@
 								<input id="analogTwist" type="checkbox" onchange="updateAnalogTwist()">
 							</div>
 						</div>
+						<div class="tRow ">
+							<div class="tCell" title="The servo resolution for all servos">
+								<span>Vibe resolution (bit)</span> 
+							</div>
+							<div class="tCell">
+								<input id="vibeResolution" type="number" min="1" max="16" oninput="setPWMResolution()">
+							</div>
+						</div>
 						<div class="tRow">
 							<div class="tCell">
 								<span>Vibe 1 PIN</span>
@@ -791,6 +839,14 @@
 							</div>
 							<div class="tCell">
 								<input id="lubeEnabled" type="checkbox" onchange="updateLubeEnabled()">
+							</div>
+						</div>
+						<div class="tRow ">
+							<div class="tCell" title="The servo resolution for all servos">
+								<span>Lube resolution (bit)</span> 
+							</div>
+							<div class="tCell">
+								<input id="lubeResolution" type="number" min="1" max="16" oninput="setPWMResolution()">
 							</div>
 						</div>
 						<div class="tRow">
@@ -1634,6 +1690,22 @@
 								<input id="lastRebootReason" type="text" readonly>
 							</div>
 						</div>
+						<div class="lastRebootReasonDiv">
+							<table class="lastRebootReasonTable">
+								<thead>
+									<tr>
+										<th colspan="2">Last reboot reasons</th>
+									</tr>
+									<tr>
+										<th>Event ID</th>
+										<th>Reason</th>
+									</tr>
+									<tbody id="lastBootReasons">
+									</tbody>
+								</thead>
+							</table>
+						</div>
+						<button type="button" onclick="clearRebootReasons()">Clear reboot reasons</button>
 					</div>
 				</div>
 			</div>

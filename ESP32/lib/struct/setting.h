@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,49 +26,8 @@ SOFTWARE. */
 //#include <variant>
 #include <mpark/variant.hpp>
 //#include <variant.hpp>
+#include "enum.h"
 
-enum class SettingType
-{
-    NONE,
-    Boolean,
-    Number,
-    String,
-    Float,
-    Double,
-    ArrayString,
-    ArrayInt,
-    MAX
-};
-
-enum class SettingProfile
-{
-    System,
-    Wireless,
-    Wifi,
-    Button,
-    MotionProfile,
-    Temperature,
-    Display,
-    Servo,
-    Pin,
-    Timer,
-    Bldc,
-    Battery,
-    Voice,
-    PWM,
-    Analog,
-    Bluetooth,
-    Ble,
-    ChannelRanges,
-    Vib,
-    Disabled,
-    MAX
-};
-
-enum class RestartRequired {
-    NO,
-    YES
-};
 
 struct Setting
 {
@@ -95,7 +54,8 @@ enum class SettingFile
     Pins,
     MotionProfile,
     ButtonSet,
-    ESPTimers
+    ESPTimers,
+    DebugInfo
 };
 
 class SettingFileInfo {

@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,10 +35,10 @@ SOFTWARE. */
 class MDNSHandler
 {
 public:
-    void setup(const char *hostName, const char *friendlyName, const int udpPort, const uint8_t webPort = 0, const uint8_t securePort = 0)
+    void setup(const char* hostName, const char* friendlyName, const int udpPort, const uint8_t webPort = 0, const uint8_t securePort = 0)
     {
         if (!MDNSInitialized)
-            startMDNS(hostName, friendlyName, webPort, udpPort);
+            startMDNS(hostName, friendlyName, udpPort, webPort, securePort);
     }
     void stop()
     {
@@ -52,7 +52,7 @@ public:
 private:
     static constexpr Tags::tag_t _TAG = Tags::Mdns;
     bool MDNSInitialized = false;
-    void startMDNS(const char *hostName, const char *friendlyName, const int udpPort, const uint8_t webPort = 0, const uint8_t securePort = 0)
+    void startMDNS(const char* hostName, const char* friendlyName, const int udpPort, const uint8_t webPort = 0, const uint8_t securePort = 0)
     {
         LogHandler::info(_TAG, "Setting up MDNS");
         if (MDNSInitialized)

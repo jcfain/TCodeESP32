@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -77,7 +77,7 @@ public:
 	{
 		return _apMode;
 	}
-	bool connect(const char *ssid, const char *pass)
+	bool connect(const char* ssid, const char* pass)
 	{
 		LogHandler::info(Tags::Wifi, "Setting up wifi");
 		m_settingsFactory = SettingsFactory::getInstance();
@@ -89,10 +89,13 @@ public:
 		if (onApEventID != 0)
 			WiFi.removeEvent(onApEventID);
 		onApEventID = WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info)
-								   { this->WiFiEvent(event, info); });
+			{ this->WiFiEvent(event, info); });
 		WiFi.mode(WIFI_STA);
+		WifiBand band = (WifiBand)WIFI_BAND_SETTING_DEFAULT;
+		m_settingsFactory->getValue(WIFI_BAND_SETTING, band);
+		WiFi.setBandMode(toWiFiBandMode(band));
 		WiFi.setSleep(false);
-		const char *hostname = m_settingsFactory->getHostname();
+		const char* hostname = m_settingsFactory->getHostname();
 		if (!WiFi.setHostname(hostname))
 		{
 			LogHandler::warning(Tags::Wifi, "Failed to apply hostname '%s'; using existing/default hostname", hostname);
@@ -105,7 +108,7 @@ public:
 		m_settingsFactory->getValue(STATICIP, isStatic);
 		if (isStatic)
 		{
-			const char *ipAddressString = m_settingsFactory->getValue(LOCALIP);
+			const char* ipAddressString = m_settingsFactory->getValue(LOCALIP);
 			LogHandler::info(Tags::Wifi, "Setting static IP settings: %s", ipAddressString);
 			IPAddress ipAddress;
 			if (!ipAddress.fromString(ipAddressString))
@@ -114,28 +117,28 @@ public:
 				return false;
 			}
 			IPAddress gateway;
-			const char *gatewayString = m_settingsFactory->getValue(GATEWAY);
+			const char* gatewayString = m_settingsFactory->getValue(GATEWAY);
 			if (!gateway.fromString(gatewayString))
 			{
 				LogHandler::error(Tags::Wifi, "Invalid static gateway address: %s", gatewayString);
 				return false;
 			}
 			IPAddress subnet;
-			const char *subnetString = m_settingsFactory->getValue(SUBNET);
+			const char* subnetString = m_settingsFactory->getValue(SUBNET);
 			if (!subnet.fromString(subnetString))
 			{
 				LogHandler::error(Tags::Wifi, "Invalid static subnet address: %s", subnetString);
 				return false;
 			}
 			IPAddress dns1 = (uint32_t)0;
-			const char *dns1String = m_settingsFactory->getValue(DNS1);
+			const char* dns1String = m_settingsFactory->getValue(DNS1);
 			if (strlen(dns1String) > 0 && !dns1.fromString(dns1String))
 			{
 				LogHandler::error(Tags::Wifi, "Invalid static dns1 address: %s", dns1String);
 				return false;
 			}
 			IPAddress dns2 = (uint32_t)0;
-			const char *dns2String = m_settingsFactory->getValue(DNS2);
+			const char* dns2String = m_settingsFactory->getValue(DNS2);
 			if (strlen(dns2String) > 0 && !dns2.fromString(dns2String))
 			{
 				LogHandler::error(Tags::Wifi, "Invalid static dns2 address: %s", dns2String);
@@ -313,7 +316,7 @@ public:
 		}
 	}
 
-	bool startAp(const char *ssid, const char *pass, const uint8_t &channel, const bool &hidden, const char *ip, const char *subnet, const char *gateway)
+	bool startAp(const char* ssid, const char* pass, const uint8_t& channel, const bool& hidden, const char* ip, const char* subnet, const char* gateway)
 	{
 		// WiFi.disconnect(true, true);
 		LogHandler::info(Tags::Wifi, "Starting in APMode: SSID: %s, Hidden: %u, Channel: %u, IP: %s, Subnet: %s, Gateway: %s", ssid, hidden, channel, ip, subnet, gateway);
@@ -327,7 +330,7 @@ public:
 		if (onApEventID != 0)
 			WiFi.removeEvent(onApEventID);
 		onApEventID = WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info)
-								   { this->WiFiEvent(event, info); });
+			{ this->WiFiEvent(event, info); });
 		IPAddress ip_;
 		ip_.fromString(ip);
 		IPAddress subnet_;
@@ -345,7 +348,7 @@ public:
 		SettingsHandler::printWebAddress(WiFi.softAPIP().toString().c_str());
 		return true;
 	}
-	void setWiFiStatusCallback(WIFI_STATUS_FUNCTION_PTR_T f)
+	void setWiFiStatusCallback(std::function<void(WiFiStatus, WiFiReason)> f)
 	{
 		wifiStatus_callback = f == nullptr ? 0 : f;
 	}
@@ -371,7 +374,7 @@ public:
 
 private:
 	WIFI_STATUS_FUNCTION_PTR_T wifiStatus_callback;
-	SettingsFactory *m_settingsFactory;
+	SettingsFactory* m_settingsFactory;
 	int connectTimeOut = 10000;
 	int onApEventID = 0;
 	static int8_t _rssi;
@@ -397,7 +400,7 @@ private:
 	//  }
 	void printMac()
 	{
-// char macAddress[18] = {0};
+		// char macAddress[18] = {0};
 #ifdef ESP_ARDUINO3
 		// strlcpy(macAddress, Network.macAddress().c_str(), sizeof(macAddress));
 		LogHandler::info(Tags::Wifi, "Mac: %s", Network.macAddress().c_str());
@@ -405,6 +408,25 @@ private:
 		// strlcpy(macTemp, WiFi.macAddress().c_str(), sizeof(macTemp));
 		LogHandler::info(Tags::Wifi, "Mac: %s", WiFi.macAddress().c_str());
 #endif
+	}
+	wifi_band_mode_t toWiFiBandMode(WifiBand band)
+	{
+		switch (band)
+		{
+		case WifiBand::AUTO:
+			return wifi_band_mode_t::WIFI_BAND_MODE_AUTO;
+		case WifiBand::MODE24ghz:
+			return wifi_band_mode_t::WIFI_BAND_MODE_2G_ONLY;
+#if SOC_WIFI_SUPPORT_5G
+		case WifiBand::MODE5ghz:
+			return wifi_band_mode_t::WIFI_BAND_MODE_5G_ONLY;
+#endif
+#if SOC_WIFI_SUPPORT_6G
+		case WifiMode::MODE6ghz:
+			return wifi_band_mode_t::WIFI_BAND_MODE_6G_ONLY;
+#endif
+		}
+		return wifi_band_mode_t::WIFI_BAND_MODE_AUTO;
 	}
 };
 bool WifiHandler::_apMode = false;

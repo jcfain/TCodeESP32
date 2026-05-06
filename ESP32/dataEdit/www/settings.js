@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,6 @@ var motionProviderSettings = {};
 var buttonSettings = {};
 var channelsProfileSettings = {};
 var debounceTimeouts = {};
-var upDateTimeout;
-var upDatePinsTimeout;
 var restartRequired = false;
 var documentLoaded = false;
 var debugEnabled = true;
@@ -63,12 +61,14 @@ var importSettingsInputElement;
 var websocket;
 const EndPointType = {
     System: { uri: "/systemInfo"},
+    DebugInfo: { uri: "/debugInfo"},
     Common: {uri: "/settings"},
     Pins: {uri: "/pins"},
     Wifi: {uri: "/wifiSettings"},
     MotionProfile: {uri: "/motionProfiles"},
     Buttons: {uri: "/buttonSettings"},
     ChannelProfiles: {uri: "/channelsProfile"},
+    Ping: {uri: "/ping"},
 }
 const TCodeVersion = {
     V3: 0,
@@ -106,9 +106,12 @@ let BoardType = {
     SSR1PCB: 5
 };
 let DeviceType = {
-    OSR: 0,
-    SR6: 1,
-    SSR1: 2
+    NONE: 0,
+    OSR: 1,
+    SR6: 2,
+    SSR1: 3,
+    SSR2: 4,
+    TVIBE: 5
 };
 let BLEDeviceType = {
     TCODE: 0,
@@ -119,9 +122,10 @@ let BLELoveDeviceType = {
     EDGE: 0
 };
 let BLDCEncoderType = {
-    MT6701: 0,
-    SPI: 1,
-    PWM: 2
+    NONE: 0,
+    MT6701: 1,
+    SPI: 2,
+    PWM: 3
 };
 const TCodeModifierType = {
     INTERVAL: "I",
@@ -144,6 +148,8 @@ var startUpHostName;
 var startUpWebPort;
 var startUpStaticIP;
 var startUpLocalIP;
+var motorA;
+var motorB;
 const defaultDebounce = 3000;
 
 //PWM availible on: 2,4,5,12-19,21-23,25-27,32-33
@@ -151,6 +157,7 @@ let validPWMpins = [2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33];
 let inputOnlypins = [34,35,36,39];
 let adc1Pins = [36,37,38,39,32,33,34,35];
 let adc2Pins = [4,0,2,15,13,12,14,27,25,26];
+let invalidPinsGlobal = [6, 7, 8, 9, 10, 11]; // ESP32 SPI flash https://randomnerdtutorials.com/esp32-pinout-reference-gpios/
 
 document.addEventListener("DOMContentLoaded", function() {
     // Restore the "Advanced settings" toggle from localStorage BEFORE
@@ -172,8 +179,14 @@ function logdebug(message) {
         console.log(message);
 }
 function get(name, uri, callback, callbackFail) {
+    request("GET", name, uri, callback, callbackFail)
+}
+function post(name, uri, callback, callbackFail) {
+    request("POST", name, uri, callback, callbackFail)
+}
+function request(method, name, uri, callback, callbackFail) {
 	var xhr = new XMLHttpRequest();
-	xhr.open('GET', uri, true);
+	xhr.open(method, uri, true);
 	xhr.responseType = 'json';
 	xhr.onload = function() {
         var status = xhr.status;
@@ -205,13 +218,28 @@ function onDocumentLoad() {
     // debugTextElement = document.getElementById("debugText");
     // debugTextElement.scrollTop = debugTextElement.scrollHeight;
 }
-
-function getSystemInfo(chain) {
+function pingDevice() {
     let polling = false;
     if(serverPollingTimeOut) {
         polling = true;
         clearTimeout(serverPollingTimeOut);
         serverPollingTimeOut = null;
+    }
+    post("ping", EndPointType.Ping.uri, function(xhr) {
+        result = xhr.response;
+        if(!result || result.status === "restarting") {
+            startServerPoll();
+        } else {
+            location.reload();
+        }
+    }, function(xhr) {
+        startServerPoll();
+    });
+}
+
+function getSystemInfo(chain) {
+    if(serverPollingTimeOut) {
+        return;
     }
     showLoading("Loading system info...");
     get("system info", EndPointType.System.uri, function(xhr) {
@@ -227,9 +255,28 @@ function getSystemInfo(chain) {
         } else
             setSystemInfo();
         if(chain)
-            getPinSettings(chain);        else if(!polling)
+            getDebugInfo(chain);
+        else if(!polling)
             hideLoading();
         serverPollRetryCount = 0;
+    }, function(xhr) {
+        if(!polling)
+            showError("Error getting system info!");
+        startServerPoll();
+    });
+}
+function getDebugInfo(chain) {
+    if(serverPollingTimeOut) {
+        return;
+    }
+    showLoading("Loading debug info...");
+    get("debug info", EndPointType.DebugInfo.uri, function(xhr) {
+        const debugInfo = xhr.response;
+        setDebugInfo(debugInfo);
+        if(chain)
+            getPinSettings(chain);
+        else
+            hideLoading();
     }, function(xhr) {
         if(!polling)
             showError("Error getting system info!");
@@ -744,8 +791,10 @@ function postBoardType(newBoardType) {
                 showError("Error setting pinout default!");
             } else {
                 showInfoSuccess("Board changed!");
-                getPinSettings();
-                showRestartRequired();
+                // getPinSettings();
+                // showRestartRequired();
+                showLoading("Restarting...");
+                startServerPoll();
             }
         }
     }
@@ -763,8 +812,10 @@ function postDeviceType(deviceType) {
                 showError("Error setting pinout default!");
             } else {
                 showInfoSuccess("Device changed!");
-                getPinSettings();
-                showRestartRequired();
+                // getPinSettings();
+                // showRestartRequired();
+                showLoading("Restarting...");
+                startServerPoll();
             }
         }
     }
@@ -830,6 +881,8 @@ function onRestartClick(optionalMessage)
                         window.location.href = url;
                     }, 10000);
                     //startServerPoll(url);
+                } else {
+                    startServerPoll();
                 }
                 hideRestartRequired();
             } else {
@@ -854,6 +907,9 @@ function isOSR() {
 function isSSR1() {
     return userSettings["deviceType"] == DeviceType.SSR1;
 }
+function isSSR2() {
+    return userSettings["deviceType"] == DeviceType.SSR2;
+}
 function isBoardType(boardType) {
     return userSettings["boardType"] === boardType;
 }
@@ -868,41 +924,25 @@ function isBLDCSPI() {
 }
 
 function startServerPoll() {
-    if(serverPollRetryCount > 10) {
-        showLoading("Waiting for restart timed out<br>Please manually refresh the page when the device is back online.");
+    if(serverPollRetryCount == 10) {
+        showLoading("Connection timed out<br>Please manually refresh the page when the device is back online.");
         return;
     }
+    const message = "Looking for device" + (serverPollRetryCount == 0 ? "..." : ": " + (serverPollRetryCount + 1) + "/10");
+    showLoading(message);
     if(serverPollingTimeOut)
         clearTimeout(serverPollingTimeOut);
     serverPollRetryCount++;
-    serverPollingTimeOut = setTimeout(function() {getSystemInfo(true);}, 2000);
-}
-function checkForServer() {
-    // if(serverPollingTimeOut) {
-    //     clearTimeout(serverPollingTimeOut);
-    //     serverPollingTimeOut = null;
-    // }
-    // if(serverPollRetryCount > 10) {
-    //     showLoading("Websocket timed out. Please refresh the page for full functionality.");
-    //     return;
-    // }
-    // if(isWebSocketConnected() && websocket.readyState !== WebSocket.CONNECTING) {
-    //     logdebug("Websocket closed retrying..");
-    //     initWebSocket();
-    //     serverPollRetryCount++;
-    //     serverPollingTimeOut = setTimeout(checkForServer, 2000);
-    // } else if(isWebSocketConnected()) {
-    //     logdebug("Websocket open..");
-    //     if(serverPollingTimeOut) {
-    //         clearTimeout(serverPollingTimeOut);
-    //         serverPollingTimeOut = null;
-    //     }
-    // }
+    serverPollingTimeOut = setTimeout(function() {
+        pingDevice();
+    }, 2000);
 }
 
 function setSystemInfo() {
     if(!systemInfo)
         showError("Error getting system info!");
+    if(systemInfo.restartRequired)
+        showRestartRequired();
     document.getElementById('version').value = systemInfo.esp32Version;
     document.getElementById('macAddressSystemInfo').value = systemInfo.mac;
     document.getElementById('ipAddressSystemInfo').value = systemInfo.localIP;
@@ -986,6 +1026,7 @@ function setSystemInfo() {
         // Only GPIO 46 is strictly input-only. GPIO 0, 45, 46 are strapping pins (use with caution).
         // GPIOs 47 and 48 are valid MCPWM-capable outputs.
         validPWMpins = [];
+        invalidPinsGlobal = []; // I dont know what pins can be used or not
         for(let i=0;i<=21;i++) {
             if(i === 46) continue; // input-only (defensive; not in this range)
             validPWMpins.push(i);
@@ -1049,6 +1090,42 @@ function updatePwmAvailableText() {
     }
     target.textContent = label;
 }
+
+function setDebugInfo(debugInfo) {
+
+    const tbody = document.getElementById('lastBootReasons');
+
+    removeAllChildren(tbody);
+    if(!debugInfo || !debugInfo.lastBootReasons || !debugInfo.lastBootReasons.length)
+    {
+        const tr = document.createElement("tr");
+        const tdNone = document.createElement("td");
+        tdNone.colSpan = "2";
+        tdNone.innerText = "These are not the droids you're looking for. Move along..."
+        tr.appendChild(tdNone);
+        tbody.appendChild(tr);
+        return;
+    }
+    debugInfo.lastBootReasons.sort((a, b) => b.eventID-a.eventID);
+    debugInfo.lastBootReasons.forEach(x => {
+        const tr = document.createElement("tr");
+        const tdDate = document.createElement("td");
+        const tdReason = document.createElement("td");
+        tdDate.innerText = x["eventID"];
+        tdReason.innerText = x["reason"];
+        tr.appendChild(tdDate);
+        tr.appendChild(tdReason);
+        tbody.appendChild(tr);
+    });
+}
+
+function clearRebootReasons()
+{
+    post("Clear reboot reasons", EndPointType.DebugInfo.uri, () => {
+        getDebugInfo();
+    });
+}
+
 function setWifiSettings() {
     document.getElementById("ssid").value = wifiSettings["ssid"];
     document.getElementById("wifiPass").value = wifiSettings["wifiPass"];
@@ -1082,7 +1159,7 @@ function setWifiSettings() {
 }
 function setPinoutSettings() {
     if(systemInfo.motorType === MotorType.BLDC) {
-        BLDCMotor.setupPins();
+        // BLDC Pins are set in UserSettings
     } else {
         document.getElementById("RightServo_PIN").value = pinoutSettings["RightServo_PIN"];
         document.getElementById("LeftServo_PIN").value = pinoutSettings["LeftServo_PIN"];
@@ -1175,9 +1252,14 @@ function setUserSettings()
 
     document.getElementById('boardType').value = userSettings["boardType"];
     const isSSR1PCB = isBoardType(BoardType.SSR1PCB);
-    document.getElementById("deviceType").disabled = isBoardType(BoardType.CRIMZZON) || isBoardType(BoardType.ISAAC) || isSSR1PCB;
-    document.getElementById("BLDC_Encoder").disabled = isSSR1PCB;
-
+    const deviceTypeElement = document.getElementById("deviceType");
+	deviceTypeElement.value = userSettings["deviceType"];
+    deviceTypeElement.disabled = isBoardType(BoardType.CRIMZZON) || isBoardType(BoardType.ISAAC) || isSSR1PCB;
+    if(userSettings.deviceType == DeviceType.NONE) {
+        deviceTypeElement.classList.add("pulse-yellow");
+    } else {
+        deviceTypeElement.classList.remove("pulse-yellow");
+    }
 	document.getElementById("maxServoRange").value = userSettings["maxServoRange"];
 
 	document.getElementById("feedbackTwist").checked = userSettings["feedbackTwist"];
@@ -1229,8 +1311,19 @@ function setUserSettings()
 	document.getElementById("Display_I2C_Address").value = userSettings["Display_I2C_Address"];
     document.getElementById("Display_I2C_Address_text").value = userSettings["Display_I2C_Address"];
 	// document.getElementById("heaterFailsafeTime").value = userSettings["heaterFailsafeTime"];
+    var servoResolution = document.getElementById("servoResolution");
+	servoResolution.value = userSettings["servoResolution"];
+    servoResolution.max = systemInfo.maxPWMResolution
+    var vibeResolution = document.getElementById("vibeResolution");
+	vibeResolution.value = userSettings["vibeResolution"];
+    vibeResolution.max = systemInfo.maxPWMResolution
+    var lubeResolution = document.getElementById("lubeResolution");
+	lubeResolution.value = userSettings["lubeResolution"];
+    lubeResolution.max = systemInfo.maxPWMResolution
 	document.getElementById("heaterThreshold").value = userSettings["heaterThreshold"];
-	document.getElementById("heaterResolution").value = userSettings["heaterResolution"];
+    var heaterResolution = document.getElementById("heaterResolution")
+	heaterResolution.value = userSettings["heaterResolution"];
+    heaterResolution.max = systemInfo.maxPWMResolution
 
 	// document.getElementById("Display_Rst_PIN").readOnly = newtoungeHatExists;
 
@@ -1239,7 +1332,9 @@ function setUserSettings()
     document.getElementById('fanControlEnabled').checked = userSettings["fanControlEnabled"];
     document.getElementById('internalTempForFan').value = userSettings["internalTempForFan"];
     document.getElementById('internalMaxTemp').value = userSettings["internalMaxTemp"];
-    document.getElementById('caseFanResolution').value = userSettings["caseFanResolution"];
+    var caseFanResolution = document.getElementById("caseFanResolution")
+	caseFanResolution.value = userSettings["caseFanResolution"];
+    caseFanResolution.max = systemInfo.maxPWMResolution
     document.getElementById('caseFanMaxPWM').value = userSettings["caseFanMaxPWM"];
 
     document.getElementById('vibTimeout').value = userSettings["vibTimeout"];
@@ -1268,6 +1363,7 @@ function setUserSettings()
     documentLoaded = true;
     //document.getElementById('debugLink').hidden = !userSettings["debug"];
 }
+
 function removeAllChildren(element) {
     if(!element) {
         return;
@@ -1400,7 +1496,6 @@ function updateUserSettings(debounceInMs, uri, objectToSave, callback)
             xhr.setRequestHeader('Content-Type', 'application/json');
             var body = JSON.stringify(objectToSave);
             xhr.send(body);
-            upDateTimeout = null;
         }, debounceInMs);
     }
 }
@@ -1443,7 +1538,6 @@ function isValidIP(ip) {
 function isValidHostName(hostname) {
     return hostname && hostname.match(/^(?![0-9]+$)(?!.*-$)(?!-)[a-zA-Z0-9-_]{1,63}$/g)
 }
-updateAPModeSettings
 function showRestartRequired() {
     //document.getElementById('requiresRestart').hidden = false;
     document.getElementById('resetBtn').classList.add("restart-required");
@@ -1915,6 +2009,69 @@ function updateFriendlyName()
     setRestartRequired();
     postWifiSettings();
 }
+
+// These encoder functions could be removed in the future if multiple encoders are added
+function setEncoderType() {
+    const element = document.getElementById("BLDC_Encoder");
+    userSettings["BLDC_Encoder"] = parseInt(element.value);
+    toggleBLDCEncoderOptions();
+    if(userSettings.BLDC_Encoder != BLDCEncoderType.NONE)
+    {
+        element.classList.remove("pulse-yellow");
+    }
+    else
+    {
+        element.classList.add("pulse-yellow");
+    }
+    setRestartRequired();
+    updateUserSettings(0);
+}
+function updateBLDCUseHallSensor() {
+    userSettings["BLDC_UseHallSensor"] = document.getElementById("BLDC_UseHallSensor").checked;
+    Utils.toggleControlVisibilityByClassName("hallEffect", userSettings["BLDC_UseHallSensor"]);
+    if(validatePins())
+    {
+        setRestartRequired();
+        updateUserSettings();
+    }
+}
+function updateBLDCTwistSettings() {
+    Utils.debounce("updateBLDCTwistSettings", () => {
+        if(validateFloatControl("BLDC_TwistMultiplier", userSettings, "BLDC_TwistMultiplier") && 
+            validateFloatControl("BLDC_TwistLimit", userSettings, "BLDC_TwistLimit")
+        ) {
+            updateUserSettings(0);
+        }
+    }, defaultDebounce);
+}
+function updateBLDCSettings() {
+    Utils.debounce("updateBLDCSettings", () => {
+        if(validateIntControl("BLDC_RailLength", userSettings, "BLDC_RailLength") && 
+            validateIntControl("BLDC_StrokeLength", userSettings, "BLDC_StrokeLength") && 
+            validateFloatControl("BLDC_LowPassFilter", userSettings, "BLDC_LowPassFilter") && 
+            validateFloatControl("BLDC_PIDProportionalConstant", userSettings, "BLDC_PIDProportionalConstant")
+        ) {
+            setRestartRequired();
+            updateUserSettings(0);
+        }
+    }, defaultDebounce);
+}
+function toggleBLDCEncoderOptions() {
+    Utils.toggleControlVisibilityByClassName("BLDCPWM", userSettings["BLDC_Encoder"] == BLDCEncoderType.PWM);
+    Utils.toggleControlVisibilityByClassName("BLDCSPI", isBLDCSPI());
+}
+function setupEncoderTypes() {
+    const element = document.getElementById("BLDC_Encoder");
+    removeAllChildren(element);
+    for(let i=0;i<systemInfo.encoderTypes.length;i++) {
+        const option = document.createElement("option");
+        option.innerText = systemInfo.encoderTypes[i].name;
+        option.value = systemInfo.encoderTypes[i].value;
+        element.appendChild(option);
+        BLDCEncoderType[systemInfo.encoderTypes[i].name] = systemInfo.encoderTypes[i].value;
+    }
+}
+////////////////////////////////////////////////////////////////////////////////////////
 function setupBoardTypes() {
     const boardTypeElement = document.getElementById('boardType');
     removeAllChildren(boardTypeElement);
@@ -1924,23 +2081,6 @@ function setupBoardTypes() {
         boardTypeOption.value = systemInfo.boardTypes[i].value;
         boardTypeElement.appendChild(boardTypeOption);
         BoardType[systemInfo.boardTypes[i].name] = systemInfo.boardTypes[i].value;
-    }
-}
-function setEncoderType() {
-    userSettings["BLDC_Encoder"] = parseInt(document.getElementById('BLDC_Encoder').value);
-    toggleBLDCEncoderOptions();
-    setRestartRequired();
-    updateUserSettings(0);
-}
-function setupEncoderTypes() {
-    const element = document.getElementById('BLDC_Encoder');
-    removeAllChildren(element);
-    for(let i=0;i<systemInfo.encoderTypes.length;i++) {
-        const option = document.createElement("option");
-        option.innerText = systemInfo.encoderTypes[i].name;
-        option.value = systemInfo.encoderTypes[i].value;
-        element.appendChild(option);
-        BLDCEncoderType[systemInfo.encoderTypes[i].name] = systemInfo.encoderTypes[i].value;
     }
 }
 function setBoardType() {
@@ -1968,11 +2108,19 @@ function setupDeviceTypes() {
 }
 function setDeviceType() {
     var element = document.getElementById('deviceType');
-    let newValue = element.value;// Parsed to int in the backend
-    if(confirm("This will reset the current pinout to default. Continue?")) {
+    let newValue = parseInt(element.value);// Parsed to int in the backend
+    if(confirm("This will reset the device specific settings to default and reboot. Continue?")) {
         postDeviceType(newValue);
     } else {
         element.value = userSettings["deviceType"];
+    }
+    if(userSettings.deviceType != DeviceType.NONE)
+    {
+        element.classList.remove("pulse-yellow");
+    }
+    else
+    {
+        element.classList.add("pulse-yellow");
     }
 }
 
@@ -2108,12 +2256,18 @@ function updatePins()
     {
         var pinValues = validatePins();
         if(pinValues) {
-            pinoutSettings["RightServo_PIN"] = pinValues.rightPin;
-            pinoutSettings["LeftServo_PIN"] = pinValues.leftPin;
-            pinoutSettings["RightUpperServo_PIN"] = pinValues.rightUpper;
-            pinoutSettings["LeftUpperServo_PIN"] = pinValues.leftUpper;
-            pinoutSettings["PitchLeftServo_PIN"] = pinValues.pitchLeft;
-            pinoutSettings["PitchRightServo_PIN"] = pinValues.pitchRight;
+            if(systemInfo.motorType == MotorType.BLDC) {
+                motorA.updateBLDCPins(pinValues);
+                if(motorB)
+                    motorB.updateBLDCPins(pinValues);
+            } else {
+                pinoutSettings["RightServo_PIN"] = pinValues.rightPin;
+                pinoutSettings["LeftServo_PIN"] = pinValues.leftPin;
+                pinoutSettings["RightUpperServo_PIN"] = pinValues.rightUpper;
+                pinoutSettings["LeftUpperServo_PIN"] = pinValues.leftUpper;
+                pinoutSettings["PitchLeftServo_PIN"] = pinValues.pitchLeft;
+                pinoutSettings["PitchRightServo_PIN"] = pinValues.pitchRight;
+            }
             updateCommonPins(pinValues);
             // Diff-based restart flag: only set when a non-hot-swap pin
             // (BLDC, I2C, voltage monitor, temp, twist feedback, fan,
@@ -2148,6 +2302,9 @@ function updateCommonPins(pinValues) {
     pinoutSettings["Voltage_Battery_PIN"] = pinValues.voltageBattery;
     pinoutSettings["Voltage_Motor_PIN"] = pinValues.voltageMotor;
     pinoutSettings["Voltage_Bus_PIN"] = pinValues.voltageBus;
+    if(systemInfo.motorType == MotorType.BLDC)
+        pinoutSettings["BLDC_HallEffect_PIN"] = pinValues.BLDC_HallEffect_PIN;
+    // pinoutSettings["Battery_Voltage_PIN"] = pinValues.Battery_Voltage_PIN;
 
 }
 // function updateNonPWMPins(assignedPins) {
@@ -2225,63 +2382,66 @@ function setElementsIntMinAndMax(minElement, maxElement) {
     minElement.setAttribute('max', parseInt(maxElement.value) - 1);
     maxElement.setAttribute('min', parseInt(minElement.value) + 1);
 }
-/** additionalValidations takes a parameter with the value */
-function validateIntControl(controlIDOrElement, settingsObject, settingVariableName, additionalValidations) {
-    var control = controlIDOrElement;
+
+/** Returns {valid: bool, control: HTLMNode | string, message: string} */
+function validateInput(controlIDOrElement) {
+    let control = controlIDOrElement;
     if(typeof controlIDOrElement === "string") {
         control = document.getElementById(controlIDOrElement);
     }
+    if(control.checkValidity()) {
+        return {valid: true, control: control, message: message};
+    }
+    var message = control.validationMessage;
+    if(!message) {
+        message = control.errorText;
+    }
+    return {valid: false, control: control, message: message};
+}
+
+/** additionalValidations takes a parameter with the value */
+function validateIntControl(controlIDOrElement, settingsObject, settingVariableName, additionalValidations) {
+    const validObj = validateInput(controlIDOrElement);
+    const control = validObj.control;
     clearErrors(control.id);
-    if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
+    if(additionalValidations && additionalValidations(control.value) || validObj.valid) {
         settingsObject[settingVariableName] = parseInt(control.value);
         return true;
     }
-    var message = control.validationMessage;
-    if(!message) {
-        message = control.errorText;
-    }
-    showError(`<div name="${control.id}"> ${control.id} is invalid: ${message ??  ""}</div>`);
+    showError(`<div name="${control.id}"> ${control.id} is invalid: ${validObj.message ??  ""}</div>`);
     return false;
 }
+
 /** additionalValidations takes a parameter with the value */
 function validateFloatControl(controlIDOrElement, settingsObject, settingVariableName, additionalValidations) {
-    var control = controlIDOrElement;
-    if(typeof controlIDOrElement === "string") {
-        control = document.getElementById(controlIDOrElement);
-    }
+    const validObj = validateInput(controlIDOrElement);
+    const control = validObj.control;
     clearErrors(control.id);
-    if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
+    if(additionalValidations && additionalValidations(control.value) || validObj.valid) {
         settingsObject[settingVariableName] = parseFloat(control.value);
         return true;
     }
-    var message = control.validationMessage;
-    if(!message) {
-        message = control.errorText;
-    }
-    showError(`<div name="${control.id}"> ${control.id} is invalid: ${message ??  ""}</div>`);
+    showError(`<div name="${control.id}"> ${control.id} is invalid: ${validObj.message ??  ""}</div>`);
     return false;
 }
 /** additionalValidations takes a parameter with the value */
 function validateStringControl(controlIDOrElement, settingsObject, settingVariableName, additionalValidations) {
-    var control = controlIDOrElement;
-    if(typeof controlIDOrElement === "string") {
-        control = document.getElementById(controlIDOrElement);
-    }
+    const validObj = validateInput(controlIDOrElement);
+    const control = validObj.control;
     clearErrors(control.id);
-    if(additionalValidations && additionalValidations(control.value) || control.checkValidity()) {
+    if(additionalValidations && additionalValidations(control.value) || validObj.valid) {
         settingsObject[settingVariableName && settingVariableName.trim().length ? settingVariableName : controlID] = control.value;
         return true;
     }
-    var message = control.validationMessage;
-    if(!message) {
-        message = control.errorText;
-    }
-    showError(`<div name="${control.id}"> ${control.id} is invalid: ${message ??  ""}</div>`);
+    showError(`<div name="${control.id}"> ${control.id} is invalid: ${validObj.message ??  ""}</div>`);
     return false;
 }
 
 function validatePin(pin, pinName, assignedPins, duplicatePins, isInput, invalidPins) {
-    if(pin > -1) {
+    if(!Number.isInteger(pin) || pin < -1 || invalidPinsGlobal.indexOf(pin) > -1) {
+        invalidPins.push(pinName+" pin: "+pin);
+        return;
+    } else if(pin > -1) {
         let pinDupeIndex = assignedPins.findIndex(x => x.pin === pin);
         if(pinDupeIndex > -1) {
             duplicatePins.push(pinName+" pin and "+assignedPins[pinDupeIndex].name);
@@ -2292,9 +2452,12 @@ function validatePin(pin, pinName, assignedPins, duplicatePins, isInput, invalid
         assignedPins.push({name:pinName, pin:pin});
     }
 }
-function validatePWMPin(pin, pinName, assignedPins, duplicatePins, pwmErrors) {
-    if(pin > -1) {
-        validatePin(pin, pinName, assignedPins, duplicatePins)
+function validatePWMPin(pin, pinName, assignedPins, duplicatePins, pwmErrors, invalidPins) {
+    if(!Number.isInteger(pin) || pin < -1 || invalidPinsGlobal.indexOf(pin) > -1) {
+        invalidPins.push(pinName+" pin: "+pin);
+        return;
+    } else if(pin > -1) {
+        validatePin(pin, pinName, assignedPins, duplicatePins, false, invalidPins)
         if(validPWMpins.indexOf(pin) == -1)
             pwmErrors.push(pinName+" pin: "+pin);
     }
@@ -2348,6 +2511,8 @@ function validatePwmDriverContention() {
 /**
  * Validates the pin number values in the forms inputs.
  * Shows an error and returns the pin values or undefined if error
+ * 
+ * BLDC does not return ALL pins..
 */
 function validatePins() {
     if(systemInfo.motorType == MotorType.BLDC) {
@@ -2357,24 +2522,43 @@ function validatePins() {
     var assignedPins = [];
     var duplicatePins = [];
     var pwmErrors = [];
-    var pinValues = getServoPinValues();
+    var invalidPins = [];
+    var pinValues = [];
+    if(systemInfo.motorType == MotorType.BLDC) 
+    {
+        assignCommonBLDCPins(assignedPins);
+        motorA.getBLDCPinValues(pinValues);
+        if(motorB)
+        {
+            motorB.getBLDCPinValues(pinValues);
+        }   
+    } else {
+        getServoPinValues(pinValues);
+    }
+    getCommonPinValues(pinValues);
     if(userSettings["disablePinValidation"])
         return pinValues;
 
-    validatePWMPin(pinValues.rightPin, "Right servo", assignedPins, duplicatePins, pwmErrors);
+    if(systemInfo.motorType == MotorType.BLDC) 
+    {
+        motorA.validateBLDCPins(pinValues, assignedPins, duplicatePins, pwmErrors, invalidPins);
+        if(motorB)
+            motorB.validateBLDCPins(pinValues, assignedPins, duplicatePins, pwmErrors, invalidPins);
+    } else {
+        validatePWMPin(pinValues.rightPin, "Right servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
 
-    // OSR / SR6
-    validatePWMPin(pinValues.leftPin, "Left servo", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.pitchLeft, "Pitch left servo", assignedPins, duplicatePins, pwmErrors);
+        // OSR / SR6
+        validatePWMPin(pinValues.leftPin, "Left servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+        validatePWMPin(pinValues.pitchLeft, "Pitch left servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
 
-    // SR6
-    validatePWMPin(pinValues.rightUpper, "Right upper servo", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.leftUpper, "Left upper servo", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.pitchRight, "Pitch right servo", assignedPins, duplicatePins, pwmErrors);
+        // SR6
+        validatePWMPin(pinValues.rightUpper, "Right upper servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+        validatePWMPin(pinValues.leftUpper, "Left upper servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+        validatePWMPin(pinValues.pitchRight, "Pitch right servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    }
 
-    validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors);
+    validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors, invalidPins);
 
-    var invalidPins = [];
     validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues);
 
     if (duplicatePins.length || pwmErrors.length || invalidPins.length) {
@@ -2400,22 +2584,51 @@ function validatePins() {
     return pinValues;
 }
 
+// TODO do something with these hardcoded numbers.
+// Move them to readonly constants in system settings maybe.
+function assignCommonBLDCPins(assignedPins) {
+    if(isModuleType(ModuleType.S3))
+    {
+        if(isBoardType(BoardType.ZERO)) {
+            if(isBLDCSPI()) {
+                assignedPins.push({name: name+" SPI MOSI", pin:11});
+            }
+        } else {
+            // TODO validate this for N8R8
+            //assignedPins.push({name:"SPI1", pin:5});
+            assignedPins.push({name:name+" SPI CLK", pin:18});
+            assignedPins.push({name:name+" SPI MISO", pin:19});
+            if(isBLDCSPI()) {
+                assignedPins.push({name:name+" SPI MOSI", pin:23});
+            }
+        }
+    }
+    else 
+    {
+        //assignedPins.push({name:"SPI1", pin:5});
+        assignedPins.push({name:name+" SPI CLK", pin:18});
+        assignedPins.push({name:name+" SPI MISO", pin:19});
+        if(isBLDCSPI()) {
+            assignedPins.push({name:name+" SPI MOSI", pin:23});
+        }
+    }
+}
 
-function validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors) {
-    validatePWMPin(pinValues.twistServo, "Twist servo", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.squeezeServo, "Squeeze servo", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.valveServo, "Valve servo", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.vibe0, "Vibe 1", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.vibe1, "Vibe 2", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.vibe2, "Vibe 3", assignedPins, duplicatePins, pwmErrors);
-    validatePWMPin(pinValues.vibe3, "Vibe 4", assignedPins, duplicatePins, pwmErrors);
+function validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors, invalidPins) {
+    validatePWMPin(pinValues.twistServo, "Twist servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.squeezeServo, "Squeeze servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.valveServo, "Valve servo", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.vibe0, "Vibe 1", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.vibe1, "Vibe 2", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.vibe2, "Vibe 3", assignedPins, duplicatePins, pwmErrors, invalidPins);
+    validatePWMPin(pinValues.vibe3, "Vibe 4", assignedPins, duplicatePins, pwmErrors, invalidPins);
 
     if(userSettings.tempSleeveEnabled) {
-        validatePWMPin(pinValues.heat, "Heater", assignedPins, duplicatePins, pwmErrors);
+        validatePWMPin(pinValues.heat, "Heater", assignedPins, duplicatePins, pwmErrors, invalidPins);
     }
 
     if(userSettings.fanControlEnabled) {
-        validatePWMPin(pinValues.caseFanPin, "Case fan ", assignedPins, duplicatePins, pwmErrors);
+        validatePWMPin(pinValues.caseFanPin, "Case fan ", assignedPins, duplicatePins, pwmErrors, invalidPins);
     }
 }
 /** Does not show an error. Just returns true/false */
@@ -2437,8 +2650,8 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
         if(pinValues.i2cSda < 0) {
             invalidPins.push("I2C SDA pin: "+pinValues.i2cSda + " and I2C modules enabled: " + enabledValues.join(","));
         }
-        validatePin(pinValues.i2cSda, "I2C SDA", assignedPins, duplicatePins);
-        validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins);
+        validatePin(pinValues.i2cSda, "I2C SDA", assignedPins, duplicatePins, false, invalidPins);
+        validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins, false, invalidPins);
     } else if(isMotorType(MotorType.BLDC) && isBLDCSPI()) {
         if(pinValues.i2cScl < 0) {
             invalidPins.push("I2C SCL pin: "+pinValues.i2cScl);
@@ -2446,14 +2659,14 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
         if(pinValues.i2cSda < 0) {
             invalidPins.push("I2C SDA pin: "+pinValues.i2cSda);
         }
-        validatePin(pinValues.i2cSda, "I2C SDA", assignedPins, duplicatePins);
-        validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins);
+        validatePin(pinValues.i2cSda, "I2C SDA", assignedPins, duplicatePins, false, invalidPins);
+        validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins, false, invalidPins);
     }
 
     validatePin(pinValues.lubeButton, "Lube button", assignedPins, duplicatePins, true, invalidPins);
 
     if(userSettings.tempSleeveEnabled) {
-        validatePin(pinValues.temp, "Temp", assignedPins, duplicatePins, true, invalidPins);
+        validatePin(pinValues.temp, "Sleeve Temp", assignedPins, duplicatePins, true, invalidPins);
     }
     if(userSettings.tempInternalEnabled) {
         validatePin(pinValues.internalTemp, "Internal temp", assignedPins, duplicatePins, true, invalidPins);
@@ -2485,20 +2698,22 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
         }
     }
 
+    if(userSettings["BLDC_UseHallSensor"] && systemInfo.motorType == MotorType.BLDC) {
+        validatePin(pinValues.BLDC_HallEffect_PIN, "Hall effect", assignedPins, duplicatePins, false, invalidPins);
+    }
+
     if(duplicatePins.length || invalidPins.length)
         return false;
     return true;
 }
 
-function getServoPinValues() {
-    var pinValues = {};
+function getServoPinValues(pinValues = {}) {
     pinValues.rightPin = parseInt(document.getElementById('RightServo_PIN').value);
     pinValues.leftPin = parseInt(document.getElementById('LeftServo_PIN').value);
     pinValues.rightUpper = parseInt(document.getElementById('RightUpperServo_PIN').value);
     pinValues.leftUpper = parseInt(document.getElementById('LeftUpperServo_PIN').value);
     pinValues.pitchRight = parseInt(document.getElementById('PitchRightServo_PIN').value);
     pinValues.pitchLeft = parseInt(document.getElementById('PitchLeftServo_PIN').value);
-    getCommonPinValues(pinValues);
     return pinValues;
 }
 
@@ -2535,6 +2750,8 @@ function getCommonPinValues(pinValues) {
     buttonSetPins.forEach((node, index) => {
         pinValues.buttonSets[index] = parseInt(document.getElementById('buttonSetPin'+index).value);;
     });
+    if(systemInfo.motorType == MotorType.BLDC)
+        pinValues.BLDC_HallEffect_PIN = parseInt(document.getElementById("BLDC_HallEffect_PIN").value);
 }
 
 function updateZeros()
@@ -2615,13 +2832,13 @@ function updateZeros()
             userSettings["PitchRightServo_ZERO"] = PitchRightServo_ZERO;
             userSettings["ValveServo_ZERO"] = ValveServo_ZERO;
             userSettings["TwistServo_ZERO"] = TwistServo_ZERO;
-            updateUserSettings();
+            updateUserSettings(0);
         }
         else
         {
             showError("<div name='zeroValidation'>Zeros NOT saved due to invalid input.<br><div style='margin-left: 25px;'>The values should be between "+minZero+" and "+maxZero+" for the following:<br><div style='color: white; margin-left: 25px;'>"+invalidValues.join("<br>")+"</div></div></div>");
         }
-    }, 2000);
+    }, defaultDebounce);
 }
 function updateLubeAmount()
 {
@@ -2681,7 +2898,13 @@ function setTempSettings() {
     updateUserSettings();
 }
 function setInternalTempSettings() {
-    userSettings["tempInternalEnabled"] = document.getElementById('tempInternalEnabled').checked;
+    const enabled = document.getElementById('tempInternalEnabled').checked;
+    if(!userSettings["tempInternalEnabled"] && enabled) 
+    {
+        if(!validatePins())
+            return;
+    }
+    userSettings["tempInternalEnabled"] = enabled;
     setRestartRequired();
     updateUserSettings();
 }
@@ -2699,6 +2922,17 @@ function setVoiceSettings() {
         setRestartRequired();
         updateUserSettings(0);
     }
+}
+function setPWMResolution() {
+    debounceInput("setPWMResolution", function() {
+        if(validateIntControl("servoResolution", userSettings, "servoResolution")
+            && validateIntControl("vibeResolution", userSettings, "vibeResolution")
+            && validateIntControl("lubeResolution", userSettings, "lubeResolution"))
+        {
+            setRestartRequired();
+            updateUserSettings(0);
+        }
+    }, defaultDebounce);
 }
 function setFanControl() {
     debounceInput("caseFanSettings", function() {
@@ -2889,12 +3123,19 @@ function toggleStaticIPSettings(isStatic)
 }
 function toggleDeviceOptions(deviceType)
 {
-    var osrOnly = document.getElementsByClassName('osrOnly');
-    var sr6Only = document.getElementsByClassName('sr6Only');
-    for(var i=0;i < sr6Only.length; i++)
-        sr6Only[i].style.display = deviceType == DeviceType.SR6 && deviceType != DeviceType.SSR1 ? "flex" : "none";
-    for(var i=0;i < osrOnly.length; i++)
-        osrOnly[i].style.display = deviceType == DeviceType.OSR && deviceType != DeviceType.SSR1 ? "flex" : "none";
+    if(systemInfo.motorType === MotorType.Servo) {
+        // var osrOnly = document.getElementsByClassName('osrOnly');
+        // var sr6Only = document.getElementsByClassName('sr6Only');
+        // for(var i=0;i < sr6Only.length; i++)
+        //     sr6Only[i].style.display = deviceType == DeviceType.SR6 && deviceType != DeviceType.SSR1 ? "flex" : "none";
+        // for(var i=0;i < osrOnly.length; i++)
+        //     osrOnly[i].style.display = deviceType == DeviceType.OSR && deviceType != DeviceType.SSR1 ? "flex" : "none";
+        Utils.toggleControlVisibilityByClassName('osrOnly', deviceType == DeviceType.OSR);
+        Utils.toggleControlVisibilityByClassName('sr6Only', deviceType == DeviceType.SR6);
+    } else {
+        Utils.toggleControlVisibilityByClassName('SSR1Only', deviceType == DeviceType.SSR1);
+        Utils.toggleControlVisibilityByClassName('SSR2Only', deviceType == DeviceType.SSR2);
+    }
 }
 
 function toggleNonTCodev3Options()
@@ -3151,6 +3392,30 @@ function checkMigrateData(key, value, firmwareVersion) {
                 return BoardType.ISAAC;
             }
         }
+    } else if(key == "deviceType") { 
+        if(!firmwareVersion || firmwareVersion < 0.497) {
+            if(value == 0) {
+                return DeviceType.OSR; 
+            } else if(value == 1) {
+                return DeviceType.SR6; 
+            } else if(value == 2) {
+                return DeviceType.SSR1; 
+            } else if(value == 3) {
+                return DeviceType.TVIBE; 
+            } else if(value == 4) {
+                return DeviceType.SSR2; 
+            }
+        }
+    } else if(key == "BLDC_Encoder") { 
+        if(!firmwareVersion || firmwareVersion < 0.497) {
+            if(value == 0) {
+                return BLDCEncoderType.MT6701; 
+            } else if(value == 1) {
+                return BLDCEncoderType.SPI; 
+            } else if(value == 2) {
+                return BLDCEncoderType.PWM; 
+            }
+        }
     }
     return value;
 }
@@ -3242,6 +3507,21 @@ function handleImportRenames(key, value, firmwareVersion) {
         case "msPerRad":
             if(value == 425)// 425 is msPerRad for 270 servo.
                 userSettings.maxServoRange = 270
+            return;
+        case "BLDC_MotorA_VoltageLimit":
+            userSettings.BLDC_Motor_VoltageLimit = value
+            return;
+        case "BLDC_MotorA_SupplyVoltage":
+            userSettings.BLDC_Motor_SupplyVoltage = value
+            return;
+        case "BLDC_MotorA_Current":
+            userSettings.BLDC_Motor_Current = value
+            return;
+        case "BLDC_MotorA_ParametersKnown":
+            userSettings.BLDC_Motor_ParametersKnown = value
+            return;
+        case "BLDC_MotorA_ZeroElecAngle":
+            userSettings.BLDC_Motor_ZeroElecAngle = value
             return;
     }
     if(key.endsWith("_PIN")) {

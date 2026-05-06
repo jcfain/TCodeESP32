@@ -1,6 +1,60 @@
 #pragma once
 #include <cstdint>
 
+enum class LogLevel 
+{ 
+    NONE,
+    ERROR,
+    WARNING,
+    INFO,
+    DEBUG,
+    VERBOSE 
+};
+
+enum class SettingType
+{
+    NONE,
+    Boolean,
+    Number,
+    String,
+    Float,
+    Double,
+    ArrayString,
+    ArrayInt,
+    MAX
+};
+
+enum class SettingProfile
+{
+    System,
+    Wireless,
+    Wifi,
+    Button,
+    MotionProfile,
+    Temperature,
+    Display,
+    Servo,
+    Pin,
+    Timer,
+    Bldc,
+    Battery,
+    Voice,
+    PWM,
+    Analog,
+    Bluetooth,
+    Ble,
+    ChannelRanges,
+    Vib,
+    Disabled,
+    Readonly,
+    MAX
+};
+
+enum class RestartRequired {
+    NO,
+    YES
+};
+
 enum class TCodeVersion: int
 {
     //v0_2,
@@ -8,6 +62,19 @@ enum class TCodeVersion: int
     v0_4,
     MAX
 };
+
+#ifdef MOTOR_TYPE_BLDC
+enum class BLDCMotorPosition 
+{
+    A,
+    B
+};
+enum class BLDCBootMode {
+    CALIBRATE,
+    HOMING,
+    NORMAL
+};
+#endif
 
 // enum class LogLevel {
 //     ERROR,
@@ -36,6 +103,9 @@ enum class ModuleType: int
 {
     WROOM32,
     S3,
+    C5,
+    C6,
+    E22,
     MAX
 };
 #define MODULE_TYPES_HELP "WROOM32=0, S3=1"
@@ -49,12 +119,15 @@ enum class BoardType: int
     ISAAC,
     SSR1PCB,
     SR6PCB,
+    DEVKIT_C5,
+    DEVKIT_C6,
+    DEVKIT_E22,
     MAX
 };
-#if MOTOR_TYPE == 1
-#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SSR1PCB=5"
+#ifdef MOTOR_TYPE_BLDC
+#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SSR1PCB=5, DEVKITC6=6, DEVKITC61=7"
 #else
-#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SR6MB=3, InControl=4, SR6PCB=6"
+#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SR6MB=3, InControl=4, SR6PCB=6, DEVKITC6=7, DEVKITC61=8"
 #endif
 
 enum class MotorType: int
@@ -68,20 +141,23 @@ enum class MotorType: int
 
 enum class DeviceType: int
 {
+    NONE,
     OSR,
     SR6,
     SSR1,
+    SSR2,
     TVIBE,
     MAX
 };
 
-#if MOTOR_TYPE == 1
-#define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: SSR1=2"
+#ifdef MOTOR_TYPE_BLDC
+#define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: SSR1=2, SSR2=3"
 #else
-#define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: OSR=0, SR6=1, TVIBE=3"
+#define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: OSR=0, SR6=1, TVIBE=5"
 #endif
 
 enum class BLDCEncoderType: int {
+    NONE,
     MT6701,
     SPI,
     PWM,
@@ -120,6 +196,22 @@ enum class PwmDriver : int8_t {
     LEDC = 1
 };
 #define PWM_DRIVER_HELP "MCPWM=0, LEDC=1"
+
+enum class WifiBand {
+    AUTO,
+    MODE24ghz,
+    MODE5ghz,
+    MODE6ghz,
+    MAX
+};
+#if SOC_WIFI_SUPPORT_5G
+#define WIFI_MODE_HELP "AUTO=0, 2.4ghz=1, 5ghz=2"
+#elif SOC_WIFI_SUPPORT_6G
+#define WIFI_MODE_HELP "AUTO=0, 2.4ghz=1, 5ghz=2, 6ghz=3"
+#else
+#define WIFI_MODE_HELP "AUTO=0, 2.4ghz=1"
+#endif
+
 
 enum class ESPTimerChannelNum: int8_t {
     NONE = -1,
@@ -171,4 +263,9 @@ enum class VoltageMonitors : int8_t {
     VOLTAGE_MOTOR,
     VOLTAGE_BUS,
     MAX
+};
+
+enum class TemperatureType {
+	INTERNAL,
+	SLEEVE
 };

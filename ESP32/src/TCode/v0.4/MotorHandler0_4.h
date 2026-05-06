@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -56,7 +56,12 @@ protected:
 
         m_tcode->setup(FIRMWARE_VERSION_NAME);
 
-        m_servoPWMMaxDuty = static_cast<uint32_t>(pow(2, SERVO_PWM_RES) - 1);
+        int vibeResolution, lubeResolution;
+        m_settingsFactory->getValue(SERVO_RESOLUTION, servoResolution);
+        m_settingsFactory->getValue(VIBE_RESOLUTION, vibeResolution);
+        m_settingsFactory->getValue(LUBE_RESOLUTION, lubeResolution);
+
+        m_servoPWMMaxDuty = static_cast<uint32_t>(pow(2, servoResolution) - 1);
         m_settingsFactory->getValue(MAX_SERVO_RANGE, maxServoRange);
         if (!maxServoRange)
         {
@@ -65,6 +70,10 @@ protected:
         }
         ms_per_rad = 114592 / maxServoRange;
         LogHandler::debug(Tags::Motor, "MS_PER_RAD: %d", ms_per_rad);
+        LogHandler::debug(Tags::Motor, "Servo Resolution: %d", servoResolution);
+        LogHandler::debug(Tags::Motor, "Vibe Resolution: %d", vibeResolution);
+        LogHandler::debug(Tags::Motor, "Lube Resolution: %d", lubeResolution);
+
 
         m_valveServoPin = pinMap->valve();
         m_valveServoChannel = pinMap->valveChannel();

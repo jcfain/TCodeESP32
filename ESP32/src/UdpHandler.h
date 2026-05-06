@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -87,13 +87,13 @@ public:
 		}
 	}
 
-	static void udpCallback(void *arg, AsyncUDPPacket &packet)
+	static void udpCallback(void* arg, AsyncUDPPacket& packet)
 	{
-		UdpHandler *udp = static_cast<UdpHandler *>(arg);
+		UdpHandler* udp = static_cast<UdpHandler*>(arg);
 		// LogHandler::verbose(udp->Tags::Udp, "UDP recieve: %s", packet.data());
 		udp->_lastConnectedPort = packet.remotePort();
 		udp->_lastConnectedIP = packet.remoteIP();
-		udp->packetBuffer[0] = {0};
+		udp->packetBuffer[0] = { 0 };
 
 		memcpy(udp->packetBuffer, packet.data(), packet.length());
 		// size_t len = packet.readBytes(udp->packetBuffer, sizeof(packetBuffer));
@@ -102,7 +102,7 @@ public:
 			LogHandler::error(Tags::Udp, "UDP queue full");
 	}
 
-	void CommandCallback(const char *in)
+	void CommandCallback(const char* in)
 	{ // This overwrites the callback for message return
 		if (udpInitialized && _lastConnectedPort > 0)
 		{
@@ -116,11 +116,11 @@ public:
 		}
 	}
 
-	void read(char *buf)
+	void read(char* buf)
 	{
 		if (!udpInitialized)
 		{
-			buf[0] = {0};
+			buf[0] = { 0 };
 			return;
 		}
 		if (xQueueReceive(m_TCodeQueue, buf, 0))
@@ -130,7 +130,7 @@ public:
 		else
 		{
 			// LogHandler::error(Tags::Udp, "Failed to read from queue");
-			buf[0] = {0};
+			buf[0] = { 0 };
 			return;
 		}
 	}
@@ -144,6 +144,6 @@ private:
 	IPAddress _lastConnectedIP;
 	int _lastConnectedPort = 0;
 	bool udpInitialized = false;
-	char packetBuffer[MAX_COMMAND] = {0}; // buffer to hold incoming packet
+	char packetBuffer[MAX_COMMAND] = { 0 }; // buffer to hold incoming packet
 	char jsonIdentifier[2] = "{";
 };

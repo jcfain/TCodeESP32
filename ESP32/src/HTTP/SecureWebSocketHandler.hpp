@@ -17,11 +17,11 @@ public:
     void setup(HTTPSServer& httpsServer) {
         LogHandler::info(Tags::SecureWebSocketServer, "Setting up secure webSocket");
         tCodeInQueue = xQueueCreate(5, sizeof(char[255]));
-        if(!tCodeInQueue || tCodeInQueue == NULL) {
+        if (!tCodeInQueue || tCodeInQueue == NULL) {
             LogHandler::error(Tags::SecureWebSocketServer, "Error creating the tcode queue");
         }
         // Initialize the slots
-        for(int i = 0; i < MAX_CLIENTS; i++) activeClients[i] = nullptr;
+        for (int i = 0; i < MAX_CLIENTS; i++) activeClients[i] = nullptr;
         instanceRef = this;
         setSecureWebSocketMessageCallback(onMessage);
         isInitialized = true;
@@ -37,20 +37,21 @@ public:
     {
         if (f == nullptr) {
             secure_websocket_message_callback = 0;
-        } else {
+        }
+        else {
             secure_websocket_message_callback = f;
         }
     }
 
     void CommandCallback(const char* in) override
     { //This overwrites the callback for message return
-        if(isInitialized && hasClients())
+        if (isInitialized && hasClients())
             sendCommand(in);
     }
 
     void sendCommand(const char* command, const char* message = 0) override
     {
-        if(isInitialized && command_mtx.try_lock()) {
+        if (isInitialized && command_mtx.try_lock()) {
             std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
             m_lastSend = millis();
 
@@ -59,13 +60,13 @@ public:
             // if(client)
             //     send(commandJson, SEND_TYPE_TEXT);
             // else
-                sendText(commandJson);
+            sendText(commandJson);
         }
     }
 
     void closeAll() override
     {
-        for(int i = 0; i < MAX_CLIENTS; i++) {
+        for (int i = 0; i < MAX_CLIENTS; i++) {
             activeClients[i]->close();
         }
     }
@@ -75,17 +76,17 @@ private:
     static SecureWebSocketHandler* instanceRef;
 
     void sendText(const char* message) {
-        for(int i = 0; i < MAX_CLIENTS; i++) {
-        if (activeClients[i] != nullptr) {
-            activeClients[i]->send(message, activeClients[i]->SEND_TYPE_TEXT);
+        for (int i = 0; i < MAX_CLIENTS; i++) {
+            if (activeClients[i] != nullptr) {
+                activeClients[i]->send(message, activeClients[i]->SEND_TYPE_TEXT);
+            }
         }
     }
-    }
     bool hasClients() {
-            for(int i = 0; i < MAX_CLIENTS; i++) {
-                if(activeClients[i] != nullptr)
-                    return true;
-            }
+        for (int i = 0; i < MAX_CLIENTS; i++) {
+            if (activeClients[i] != nullptr)
+                return true;
+        }
         return false;
     }
 

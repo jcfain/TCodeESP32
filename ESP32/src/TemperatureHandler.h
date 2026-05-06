@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -168,7 +168,7 @@ public:
 		oneWireInternal.begin(m_internalTempPin);
 		sensorsInternal.setOneWire(&oneWireInternal);
 		sensorsInternal.begin();
-		if (!sensorsSleeve.getAddress(internalDeviceAddress, 0))
+		if (!sensorsInternal.getAddress(internalDeviceAddress, 0))
 		{
 			LogHandler::error(_TAG, "No temp sensor found on internal bus (index 0).");
 			sleeveTempInitialized = false;

@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,24 +25,20 @@ Utils = {
     round2(value) {
         return Math.round(value * 100) / 100;
     },
-    _debounces: [{name: "Debounce1", timeout: 0, delay: 0, paramsArray: undefined}],
+    _debounces: {},
     debounce(name, methodToDebounce, delayInMS, ...methodToDebounceParamsArray) {
         if(this._debounces[name]) {
-            Object.keys(this._debounces).forEach(x => {
-                clearTimeout(this._debounces[x].timeout);
-            });
+            clearTimeout(this._debounces[name].timeout);
         } else {
-            this._debounces[name] = {name: name, timeout: 0, delay: delayInMS, paramsArray: methodToDebounceParamsArray};
+            this._debounces[name] = {name: name, timeout: 0, delay: delayInMS, paramsArray: methodToDebounceParamsArray, method: methodToDebounce};
         }
-        Object.keys(this._debounces).forEach(x => {
-            this._debounces[x].timeout = setTimeout(() => {
-                if(this._debounces[x].paramsArray)
-                    methodToDebounce(...this._debounces[x].paramsArray);
-                else
-                    methodToDebounce();
-                delete this._debounces[x];
-            }, this._debounces[x].delay);
-        });
+        this._debounces[name].timeout = setTimeout(() => {
+            if(this._debounces[name].paramsArray)
+                this._debounces[name].method(...this._debounces[name].paramsArray);
+            else
+                this._debounces[name].method();
+            delete this._debounces[name];
+        }, this._debounces[name].delay);
     },
     /** If isVisible is undefined the element will be toggled */
     toggleElementShown(element, isVisible, animate) {
@@ -109,13 +105,16 @@ Utils = {
         }
         return cell;
     },
-    createFormButtonRow(rowID, buttonID, buttonLabel) {
+    createFormButtonRow(rowID, buttonID, buttonLabel, callback) {
         const row = this.createFormRow(rowID);
         const emptyCell = this.createFormCell();
         const buttonCell = this.createFormCell();
         const button = document.createElement("button");
         button.innerText = buttonLabel;
         button.id = buttonID;
+        if(callback) {
+            button.onclick = callback;
+        }
         buttonCell.appendChild(button);
         row.appendChild(emptyCell);
         row.appendChild(buttonCell);
@@ -169,20 +168,23 @@ Utils = {
         }
         return input;
     },
-    createNumericInput(id, value, min, max, callback) {
+    createNumericInput(id, value, min, max, step, callback) {
         const input = document.createElement("input");
         input.type = "number";
         if(id) {
             input.id = id;
         }
-        if(value) {
+        if(value !== undefined && value !== null) {
             input.value = value;
         }
-        if(min) {
+        if(min !== undefined && min !== null) {
             input.min = min;
         }
-        if(max) {
+        if(max !== undefined && max !== null) {
             input.max = max;
+        }
+        if(step !== undefined && step !== null) {
+            input.step = step;
         }
         if(callback) {
             input.oninput = callback;
@@ -209,11 +211,11 @@ Utils = {
         row.appendChild(valueCell);
         return {row: row, input: input, nameCell: nameCell, valueCell: valueCell};
     },
-    createNumericFormRow(rowID, name, inputID, value, min, max, callback) {
+    createNumericFormRow(rowID, name, inputID, value, min, max, step, callback) {
         const row = this.createFormRow(rowID);
         const nameCell = this.createFormCell(0, name);
         const valueCell = this.createFormCell();
-        const input = this.createNumericInput(inputID, value, min, max, callback);
+        const input = this.createNumericInput(inputID, value, min, max, step, callback);
         valueCell.appendChild(input);
         row.appendChild(nameCell);
         row.appendChild(valueCell);

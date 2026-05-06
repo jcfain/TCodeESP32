@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,24 +24,17 @@ SOFTWARE. */
 
 #include <Arduino.h>
 
-void defaultCallback(const char* input) // Default callback used by TCode uses serial communication
-{
-    if (Serial)
-    {
-        Serial.println(input);
-    }
-}
 
 class TCodeBase {
 public:
 	virtual void setup(const char* firmware) = 0;
 	virtual void read(byte inByte) = 0;
 	virtual void read(const String &input) = 0;
-	virtual void setMessageCallback(TCODE_FUNCTION_PTR_T f) // Sets the callback function used by TCode
+	virtual void setMessageCallback(TCodeCommandCallback f) // Sets the callback function used by TCode
 	{
 		if (f == nullptr)
 		{
-			message_callback = &defaultCallback;
+			message_callback = 0;
 		}
 		else
 		{
@@ -61,8 +54,23 @@ public:
         // 	message_callback(buf);
 		// 	return;
 		// }
+		LogHandler::debug("TcodeBase", "[sendMessage] %s", input);
+		if(!message_callback)
+		{
+			LogHandler::debug("TcodeBase", "[sendMessage] callback not defined");
+			message_callback = std::bind(&TCodeBase::defaultCallback, this, std::placeholders::_1);
+		}
+
         message_callback(input);
     }
 protected: 
-    TCODE_FUNCTION_PTR_T message_callback = &defaultCallback;
+    std::function<void(const char*)> message_callback = 0;
+private: 
+	void defaultCallback(const char* input) // Default callback used by TCode uses serial communication
+	{
+		if (Serial)
+		{
+			Serial.println(input);
+		}
+	}
 };

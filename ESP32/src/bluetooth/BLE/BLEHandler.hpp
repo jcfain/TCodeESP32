@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,8 +38,9 @@ SOFTWARE. */
 #include "BLEHandlerTCode.h"
 #include "BLEHandlerLove.h"
 #include "BLEHandlerHC.h"
+#include "TCodeInterface.h"
 
-class BLEHandler
+class BLEHandler: public TCodeInterface
 {
 public:
     BLEHandler()
@@ -114,7 +115,12 @@ public:
     //     }
     // }
 
-    void read(char *buf)
+    size_t available() override
+    {
+        return m_TCodeQueue && uxQueueMessagesWaiting(m_TCodeQueue);
+    }
+
+    size_t read(char *buf) override
     {
         // if(m_tcodeCharacteristic->getDataLength()) {
         //     const char* value = m_tcodeCharacteristic->getValue().c_str();
@@ -132,7 +138,16 @@ public:
         {
             // LogHandler::error(Tags::BLE, "Failed to read from queue");
             buf[0] = {0};
+            return 0;
         }
+        // LogHandler::verbose(_TAG, "Recieve tcode: %s", buf);
+        return strnlen(buf, MAX_COMMAND);
+    }
+
+    void send(const char *in) override
+    {
+        if(m_subHandler)
+            m_subHandler->CommandCallback(in);
     }
 
     bool isConnected()

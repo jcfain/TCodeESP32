@@ -18,7 +18,7 @@
 #pragma once
 
 #include <SimpleFOC.h>
-#include <SimpleFOCDrivers.h>
+#include <SimpleFOCDrivers.h> 
 #include <encoders/mt6701/MagneticSensorMT6701SSI.h>
 
 #include "TCode0_4.h"
@@ -70,11 +70,13 @@ public:
     void setup() override
     {
         bootmode = true;
+        LogHandler::error(_TAG, "Sorry TCode v4 is probably broken at this point");
+        return false; // This isnt ready any where near
         m_settingsFactory = SettingsFactory::getInstance();
         // PinMapInfo pinMapInfo = m_settingsFactory->getPins();
         PinMapSSR1 *pinMap = PinMapSSR1::getInstance();
         int pullyCircumference = -1;
-        m_settingsFactory->getValue(BLDC_PULLEY_CIRCUMFERENCE, pullyCircumference);
+        m_settingsFactory->getValue(BLDC_MOTORA_PULLEY_CIRCUMFERENCE, pullyCircumference);
         int strokeLength = -1;
         m_settingsFactory->getValue(BLDC_STROKELENGTH, strokeLength);
         int railLength = -1;
@@ -103,7 +105,7 @@ public:
             {
                 LogHandler::error(Tags::Motor, "Invalid ChipSelect pin %d", pinMap->chipSelect());
                 m_initFailed = true;
-                return;
+                return false;
             }
         }
         else if (encoderType == BLDCEncoderType::PWM)
@@ -118,7 +120,7 @@ public:
             {
                 LogHandler::error(Tags::Motor, "Invalid encoder pin %d", pinMap->encoder());
                 m_initFailed = true;
-                return;
+                return false;
             }
         }
         else
@@ -133,7 +135,7 @@ public:
             {
                 LogHandler::error(Tags::Motor, "Invalid ChipSelect pin %d", pinMap->chipSelect());
                 m_initFailed = true;
-                return;
+                return false;
             }
         }
         // BLDC motor & driver instance
@@ -192,9 +194,10 @@ public:
         LogHandler::debug(Tags::Motor, "Voltage: %f", motorAVoltage);
         driverA->voltage_limit = motorAVoltage;
         // power supply voltage [V]
-        double supplyAVoltage = BLDC_MOTORA_SUPPLY_DEFAULT;
-        m_settingsFactory->getValue(BLDC_MOTORA_SUPPLY, supplyAVoltage);
-        driverA->voltage_power_supply = supplyAVoltage;
+        double supplyVoltage = BLDC_MOTORA_SUPPLY_DEFAULT;
+        m_settingsFactory->getValue(BLDC_MOTORA_SUPPLY, supplyVoltage);
+        LogHandler::debug(_TAG, "Voltage supply: %f", supplyVoltage);
+        driverA->voltage_power_supply = supplyVoltage;
         // driver init
         driverA->init();
 
@@ -486,6 +489,7 @@ private:
     SettingsFactory *m_settingsFactory;
     bool m_useHallSensor = false;
     int8_t m_hallSensorPin = -1;
+    DeviceType m_deviceType;
     // Drive Parameters
 
     // The control code needs to know the angle of the motor relative to the encoder - "Zero elec. angle".

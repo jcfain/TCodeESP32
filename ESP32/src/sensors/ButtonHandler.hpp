@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -45,20 +45,20 @@ public:
         buttonIndexMap[3] = 4096;
     }
 
-    void init(uint16_t analogDebounce, const char bootButtonCommand[MAX_COMMAND], ButtonSet *buttonSets)
+    void init(uint16_t analogDebounce, const char bootButtonCommand[MAX_COMMAND], ButtonSet* buttonSets)
     {
         if (m_initialized)
         {
             return;
         }
         buttonAnalogDebounce = analogDebounce;
-        m_buttonQueue = xQueueCreate(MAX_BUTTON_SETS * MAX_BUTTONS, sizeof(struct ButtonModel *));
+        m_buttonQueue = xQueueCreate(MAX_BUTTON_SETS * MAX_BUTTONS, sizeof(struct ButtonModel*));
         if (m_buttonQueue == NULL)
         {
             LogHandler::error(Tags::Button, "Error creating the debug queue");
         }
         bool bootButtonEnabled = BOOT_BUTTON_ENABLED_DEFAULT;
-        SettingsFactory *settingsFactory = SettingsFactory::getInstance();
+        SettingsFactory* settingsFactory = SettingsFactory::getInstance();
         settingsFactory->getValue(BOOT_BUTTON_ENABLED, bootButtonEnabled);
         if (bootButtonEnabled)
             initBootbutton(bootButtonCommand);
@@ -69,7 +69,7 @@ public:
         m_initialized = true;
     }
 
-    void initAnalogButtons(ButtonSet *buttonSets)
+    void initAnalogButtons(ButtonSet* buttonSets)
     {
         for (int i = 0; i < MAX_BUTTON_SETS; i++)
         {
@@ -116,7 +116,7 @@ public:
         }
         else
         {
-            bootButtonModel.command[0] = {0};
+            bootButtonModel.command[0] = { 0 };
         }
         xSemaphoreGive(xMutex);
     }
@@ -136,12 +136,12 @@ public:
         buttonAnalogDebounce = debounce;
     }
 
-    void read(ButtonModel *&buf)
+    void read(ButtonModel*& buf)
     {
-        void *recieve;
+        void* recieve;
         if (xQueueReceive(m_buttonQueue, &(recieve), 0))
         {
-            buf = (ButtonModel *)recieve;
+            buf = (ButtonModel*)recieve;
             LogHandler::debug(Tags::Button, "Recieve command in button queue: %s: %s", buf->name, buf->command);
         }
         else
@@ -155,8 +155,8 @@ public:
         BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
         xSemaphoreTakeFromISR(xMutex, &pxHigherPriorityTaskWoken);
         digitalRead(digitalPinToInterrupt(0)) == HIGH ? bootButtonModel.press() : bootButtonModel.release();
-        struct ButtonModel *pxMessage = &(bootButtonModel); // Why did I have to do all this!?
-        xQueueSendFromISR(m_buttonQueue, (void *)&pxMessage, &pxHigherPriorityTaskWoken);
+        struct ButtonModel* pxMessage = &(bootButtonModel); // Why did I have to do all this!?
+        xQueueSendFromISR(m_buttonQueue, (void*)&pxMessage, &pxHigherPriorityTaskWoken);
         xSemaphoreGiveFromISR(xMutex, &pxHigherPriorityTaskWoken);
         if (pxHigherPriorityTaskWoken)
         {
@@ -166,10 +166,10 @@ public:
 
     void setup() override
     {
-        SettingsFactory *settingsFactory = SettingsFactory::getInstance();
+        SettingsFactory* settingsFactory = SettingsFactory::getInstance();
         this->init(settingsFactory->getButtonAnalogDebounce(),
-                            settingsFactory->getBootButtonCommand(),
-                            settingsFactory->getButtonSets());
+            settingsFactory->getBootButtonCommand(),
+            settingsFactory->getButtonSets());
     }
 
     void loop() override
@@ -216,6 +216,8 @@ private:
             {
                 for (int j = 0; j < MAX_BUTTONS; j++)
                 {
+                    if (strnlen(m_buttonSets[i].buttons[j].command, MAX_COMMAND) == 0)
+                        continue;
                     auto value = analogRead(m_buttonSets[i].pin);
                     auto index = m_buttonSets[i].buttons[j].index;
                     // LogHandler causes stack overflow.
@@ -226,8 +228,8 @@ private:
                         // LogHandler::debug(Tags::Button, "Button '%s' pressed: %u, set index: %u button index: %u", m_buttonSets[i].buttons[j].name, value, i, j);
                         //  xSemaphoreTake(xMutex, portMAX_DELAY);
                         m_buttonSets[i].buttons[j].press();
-                        struct ButtonModel *pxMessage = &(m_buttonSets[i].buttons[j]); // Why did I have to do all this!?
-                        xQueueSend(m_buttonQueue, (void *)&pxMessage, portMAX_DELAY);
+                        struct ButtonModel* pxMessage = &(m_buttonSets[i].buttons[j]); // Why did I have to do all this!?
+                        xQueueSend(m_buttonQueue, (void*)&pxMessage, portMAX_DELAY);
                         // xSemaphoreGive(xMutex);
                         return true;
                     }
@@ -235,8 +237,8 @@ private:
                     {
                         // LogHandler::debug(Tags::Button, "Button '%s' released", m_buttonSets[i].buttons[j].name);
                         m_buttonSets[i].buttons[j].release();
-                        struct ButtonModel *pxMessage = &(m_buttonSets[i].buttons[j]); // Why did I have to do all this!?
-                        xQueueSend(m_buttonQueue, (void *)&pxMessage, portMAX_DELAY);
+                        struct ButtonModel* pxMessage = &(m_buttonSets[i].buttons[j]); // Why did I have to do all this!?
+                        xQueueSend(m_buttonQueue, (void*)&pxMessage, portMAX_DELAY);
                     }
                 }
             }

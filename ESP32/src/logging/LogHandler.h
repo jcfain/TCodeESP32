@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 #pragma once
 #include <Arduino.h>
-
 #include <mutex>
 #include <string>
 #include "logging/TagHandler.h"
@@ -39,6 +38,8 @@ enum class LogLevel
 
 using LOG_FUNCTION_PTR_T = void (*)(const char *input, size_t length,
                                     LogLevel level);
+using LogCallback = LOG_FUNCTION_PTR_T;
+
 class LogHandler
 {
 public:
@@ -201,7 +202,7 @@ private:
         return logger_instance;
     }
 
-    LOG_FUNCTION_PTR_T m_message_callback = 0;
+    LogCallback m_message_callback = 0;
     LogLevel m_currentLogLevel = LogLevel::INFO;
     SemaphoreHandle_t m_xMutex = xSemaphoreCreateMutex();
     uint32_t m_includedTags = 0; // 0 means include all

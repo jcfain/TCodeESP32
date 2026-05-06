@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@ SOFTWARE. */
 #include "settings/SettingsHandler.h"
 #include "tasks/TaskHandler.h"
 
-using VOICE_COMMAND_FUNCTION_PTR_T = void (*)(const char *tcodeCommand);
+using VOICE_COMMAND_FUNCTION_PTR_T = void (*)(const char* tcodeCommand);
 
 class VoiceHandler : public TaskHandler::Task
 {
@@ -57,7 +57,7 @@ public:
         }
         _isConnected = true;
         LogHandler::info(Tags::Voice, "Begin ok!");
-        SettingsFactory *settingsFactory = SettingsFactory::getInstance();
+        SettingsFactory* settingsFactory = SettingsFactory::getInstance();
         if (settingsFactory->getVoiceVolume() > 0)
         {
             setVolume(settingsFactory->getVoiceVolume());
@@ -111,9 +111,9 @@ public:
         asr.playByCMDID(value);
     }
 
-    static void startLoop(void *parameter)
+    static void startLoop(void* parameter)
     {
-        ((VoiceHandler *)parameter)->loop();
+        ((VoiceHandler*)parameter)->loop();
     }
 
     void setMessageCallback(VOICE_COMMAND_FUNCTION_PTR_T f)
@@ -198,7 +198,7 @@ private:
         }
     }
 
-    void sendMessage(const char *message)
+    void sendMessage(const char* message)
     {
         if (message_callback)
             message_callback(message);

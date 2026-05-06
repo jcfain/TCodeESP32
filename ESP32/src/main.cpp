@@ -1,6 +1,6 @@
-/* MIT License
+﻿/* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,6 @@ SOFTWARE. */
 #include "esp_idf_version.h"
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 #define ESP_ARDUINO3
-#endif
-#if DEBUG_BUILD
-#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
-#include "esp_log.h"
 #endif
 #include <Arduino.h>
 #include <EEPROM.h>
@@ -82,6 +78,8 @@ SOFTWARE. */
 #include "sensors/VoiceHandler.hpp"
 #include "sensors/ButtonHandler.hpp"
 
+InitHandler* initHandler;
+BenchHandler* benchHandler;
 TickType_t pxPreviousWakeTime = millis();
 
 // This has issues running with the webserver.
@@ -284,7 +282,7 @@ void ensureNetworkingAvailable()
 #endif
 }
 
-// Dedicated motor control task – runs on PRO_CPU so it is never blocked
+// Dedicated motor control task â€“ runs on PRO_CPU so it is never blocked
 // by WiFi / networking / web-server work that lives on APP_CPU.
 static void motorTaskFunc(void *param)
 {
@@ -309,7 +307,7 @@ static void motorTaskFunc(void *param)
 			handler->read(cmd.data, cmd.len);
 		}
 
-		// Execute motor control (sensor read → FOC → move)
+		// Execute motor control (sensor read â†’ FOC â†’ move)
 		handler->execute();
 
 		// Yield for 1 tick (~1 ms) so the IDLE task can feed the watchdog
@@ -331,7 +329,7 @@ void feedMotorCommand(const char *cmd, size_t len)
 	motorCmd.data[copyLen] = '\0';
 	motorCmd.len = copyLen;
 
-	// Non-blocking send – if the queue is full the command is dropped.
+	// Non-blocking send â€“ if the queue is full the command is dropped.
 	xQueueSend(motorCmdQueue, &motorCmd, 0);
 }
 
@@ -430,17 +428,39 @@ void setup()
 	}
 	else
 	{
-		LogHandler::error(Tags::Main, "Motor handler not initialized – skipping motor task");
+		LogHandler::error(Tags::Main, "Motor handler not initialized â€“ skipping motor task");
 	}
 
 	LogHandler::info(Tags::Main, "Tasks registered");
 	Serial.println("BOOT: setup complete");
 }
 
+void stop()
+{
+	// TODO: should empty all buffers on while stopped?
+	// movement[0] = {0};
+	// udpData[0] = {0};
+	// webSocketData[0] = {0};
+	// serialData[0] = {0};
+	// commandTCodeData[0] = {0};// empty command data?
+#if BLE_TCODE
+	// bleData[0] = {0};
+#endif
+#if BLUETOOTH_TCODE
+	// bluetoothData[0] = {0};
+#endif
+	if (dStopped)// Only execute stop once
+		return;
+	size_t len = 7;
+	char stop[len] = "DSTOP\n";
+	readTCode(stop, len);
+	dStopped = true;
+}
+
 void loop()
 {
 	// Cooperatively poll all communication / sensor tasks on APP_CPU (Core 1).
-	// Motor control runs on its own FreeRTOS task (PRO_CPU) – nothing to do here.
+	// Motor control runs on its own FreeRTOS task (PRO_CPU) â€“ nothing to do here.
 	TaskHandler::global().core1Tasks().poll();
 
 	if (!networkingBringupAttempted && millis() >= NETWORK_BRINGUP_DELAY_MS)

@@ -7,54 +7,58 @@
 #include "TCode/MotorHandler.h"
 #include "PowerHandler.h"
 #include "settings/SettingsHandler.h"
+#include "TCodeInterface.h"
 
-class WebSocketBase {
-    public:
-    virtual void CommandCallback(const char* in) = 0;
+class WebSocketBase : public TCodeInterface {
+public:
     virtual void sendCommand(const char* command, const char* message = 0) = 0;
     virtual void closeAll() = 0;
 
-    void getTCode(char* webSocketData)
+    size_t available() override
     {
-        if(!tCodeInQueue || tCodeInQueue == NULL)
+        return m_TCodeQueue && uxQueueMessagesWaiting(m_TCodeQueue);
+    }
+
+    size_t read(char* buf)  override
+    {
+        if (!m_TCodeQueue || m_TCodeQueue == NULL)
         {
-            if(millis() >= lastMessage + messageLimit) {
+            if (millis() >= lastMessage + messageLimit) {
                 lastMessage = millis();
-                LogHandler::error(Tags::WebSocketServer, "TCode queue was null");
+                LogHandler::error(Tags::WebSocketServer, "Websocket TCode queue was null");
             }
-            return;
+            return 0;
         }
-        if (xQueueReceive(tCodeInQueue, webSocketData, 0))
+        if (!xQueueReceive(m_TCodeQueue, buf, 0))
         {
-            //tcode->toCharArray(webSocketData, tcode->length() + 1);
-            // Serial.print("Top tcode: ");
-            // Serial.println(webSocketData);
+            buf[0] = { 0 };
+            return 0;
         }
-        else
-        {
-            webSocketData[0] = {0};
-        }
+        //tcode->toCharArray(webSocketData, tcode->length() + 1);
+        // Serial.print("Top tcode: ");
+        // Serial.println(webSocketData);
+        return strnlen(buf, MAX_COMMAND);
     }
 
 protected:
     bool isInitialized = false;
-    QueueHandle_t tCodeInQueue;
+    QueueHandle_t m_TCodeQueue;
     std::mutex command_mtx;
 
     void compileCommand(char* buf, size_t bufSize, const char* command, const char* message = 0) {
         if (!buf || bufSize == 0 || !command) {
             return;
         }
-        if(LogHandler::getLogLevel() == LogLevel::DEBUG) {
-            if(message)
+        if (LogHandler::getLogLevel() == LogLevel::DEBUG) {
+            if (message)
                 Serial.printf("Sending WS commands: %s, Message: %s\n", command, message);
             else
-                Serial.printf("Sending WS commands: %s\n",command);
+                Serial.printf("Sending WS commands: %s\n", command);
         }
         int written = 0;
-        if(!message)
+        if (!message)
             written = snprintf(buf, bufSize, "{ \"command\": \"%s\" }", command);
-        else if(strpbrk(message, "{") != nullptr)
+        else if (strpbrk(message, "{") != nullptr)
             written = snprintf(buf, bufSize, "{ \"command\": \"%s\" , \"message\": %s }", command, message);
         else
             written = snprintf(buf, bufSize, "{ \"command\": \"%s\" , \"message\": \"%s\" }", command, message);
@@ -87,7 +91,7 @@ protected:
             {
                 String command = jsonObj["command"].as<String>();
                 String message = jsonObj["message"].as<String>();
-                if(command == "setBatteryFull") {
+                if (command == "setBatteryFull") {
                     BatteryHandler::setBatteryToFull();
                 }
                 else if (command == "identifyServo") {
@@ -131,8 +135,8 @@ protected:
                 // String* message = jsonObj["message"];
                 // Serial.print("Recieved websocket tcode message: ");
                 // Serial.println(message->c_str());
-                // if(tCodeInQueue == NULL)return;
-                // xQueueSend(tCodeInQueue, &message, 0);
+                // if(m_TCodeQueue == NULL)return;
+                // xQueueSend(m_TCodeQueue, &message, 0);
             }
             // else
             // {
@@ -141,7 +145,7 @@ protected:
             //     SettingsHandler::processTCodeJson(tcode, msg);
             //     // Serial.print("tcode JSON converted:");
             //     // Serial.println(tcode);
-            //     xQueueSend(tCodeInQueue, tcode, 0);
+            //     xQueueSend(m_TCodeQueue, tcode, 0);
             // }
         }
     }

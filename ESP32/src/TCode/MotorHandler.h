@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,10 +34,10 @@ SOFTWARE. */
 class MotorHandler
 {
 public:
-    virtual void setup() = 0;
+    virtual bool setup() = 0;
     virtual void read(byte inByte) = 0;
-    virtual void read(const String &input) = 0;
-    virtual void read(const char *input, size_t len) = 0;
+    virtual void read(const String& input) = 0;
+    virtual void read(const char* input, size_t len) = 0;
     virtual void execute() = 0;
     virtual void setMessageCallback(TCODE_FUNCTION_PTR_T function) = 0;
 
@@ -75,8 +75,8 @@ public:
         LogHandler::info(Tags::Motor, "reapplyPwm: re-running setup()");
         setup();
         LogHandler::info(Tags::Motor, "reapplyPwm: complete (LEDC=%d, MCPWM=%d)",
-                         PwmManager::instance().ledcCount(),
-                         PwmManager::instance().mcpwmCount());
+            PwmManager::instance().ledcCount(),
+            PwmManager::instance().mcpwmCount());
     }
 
     /**
@@ -104,13 +104,13 @@ public:
      * Register the active motor handler so static helpers (e.g. command
      * handlers) can route reapply requests at it.
      */
-    static void setActive(MotorHandler *handler) { s_active = handler; }
-    static MotorHandler *getActive() { return s_active; }
+    static void setActive(MotorHandler* handler) { s_active = handler; }
+    static MotorHandler* getActive() { return s_active; }
 
 protected:
     static volatile bool s_reapplyRequested;
     static volatile bool s_identifyActive;
-    static MotorHandler *s_active;
+    static MotorHandler* s_active;
     /**
      * Attach a servo-frequency PWM output via the unified PwmManager.
      *
@@ -120,8 +120,8 @@ protected:
      * @param driver   PwmDriver hint from the timer config. MCPWM tries MCPWM
      *                 first then auto-falls-back to LEDC; LEDC skips MCPWM.
      */
-    void attachServoPin(const char *name, uint8_t pin, uint32_t freq,
-                        int8_t channel = -1, PwmDriver driver = PwmDriver::MCPWM)
+    void attachServoPin(const char* name, uint8_t pin, uint32_t freq,
+        int8_t channel = -1, PwmDriver driver = PwmDriver::MCPWM)
     {
         (void)channel;
         PwmManager::instance().attachServo(name, (int8_t)pin, freq, SERVO_PWM_RES, driver);
@@ -146,7 +146,7 @@ protected:
      *                 resolution match). Power users can override via the
      *                 advanced settings interface.
      */
-    void attachLedcPin(const char *name, uint8_t pin, uint32_t freq, int8_t channel = -1, uint8_t res = SERVO_PWM_RES)
+    void attachLedcPin(const char* name, uint8_t pin, uint32_t freq, int8_t channel = -1, uint8_t res = SERVO_PWM_RES)
     {
         (void)channel;
         PwmManager::instance().attachLedc(name, (int8_t)pin, freq, res);
@@ -190,4 +190,4 @@ protected:
 // Static member definitions (header-only class -> use inline storage).
 inline volatile bool MotorHandler::s_reapplyRequested = false;
 inline volatile bool MotorHandler::s_identifyActive = false;
-inline MotorHandler *MotorHandler::s_active = nullptr;
+inline MotorHandler* MotorHandler::s_active = nullptr;

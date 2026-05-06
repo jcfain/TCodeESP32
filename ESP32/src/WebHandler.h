@@ -1,6 +1,6 @@
-/* MIT License
+﻿/* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -165,18 +165,11 @@ public:
                    {
                 auto boardTypeString = request->pathArg(0);
                 int boardType = boardTypeString.isEmpty() ? (int)BoardType::DEVKIT : boardTypeString.toInt();
-                // if(boardType == (int)BoardType::CRIMZZON || boardType == (int)BoardType::ISAAC) {
-                //     m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SR6);
-                // } else if(boardType == (int)BoardType::SSR1PCB) {
-                //     m_settingsFactory->setValue(DEVICE_TYPE, DeviceType::SSR1);
-                //     m_settingsFactory->setValue(BLDC_ENCODER, BLDCEncoderType::MT6701);
-                // }
-                // Serial.println("Settings pinout default");
-                // m_settingsFactory->setValue(BOARD_TYPE_SETTING, boardType);
                 if(m_settingsFactory->changeBoardType(boardType))
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
+			        SettingsHandler::restart(5);
                 } 
                 else 
                 {
@@ -186,14 +179,18 @@ public:
         server->on("^\\/changeDevice\\/([0-9]+)$", HTTP_POST, [this](AsyncWebServerRequest *request)
                    {
                 auto deviceTypeString = request->pathArg(0);
-                int deviceType = deviceTypeString.isEmpty() ? (int)DeviceType::OSR : deviceTypeString.toInt();
-                // Serial.println("Settings pinout default");
-                // m_settingsFactory->setValue(DEVICE_TYPE, deviceType);
-                // if(m_settingsFactory->saveCommon() && m_settingsFactory->defaultPinout())
+                int deviceType = deviceTypeString.isEmpty() ? 
+                #ifdef MOTOR_TYPE_SERVO
+                (int)DeviceType::OSR 
+                #else
+                (int)DeviceType::NONE 
+                #endif
+                : deviceTypeString.toInt();
 				if (m_settingsFactory->changeDeviceType(deviceType))
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
+			        SettingsHandler::restart(5);
                 } 
                 else 
                 {
@@ -222,6 +219,8 @@ public:
                    {
                 Serial.println("Settings default");
                 if(m_settingsFactory->resetAll()) {
+                    String message = "{\"msg\":\"restarting\",\"apMode\":";
+                    message += SettingsHandler::restart ? "true}" : "false}";
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
 			        SettingsHandler::restart(5);
@@ -368,8 +367,9 @@ public:
         server->onNotFound([this](AsyncWebServerRequest *request)
                            {
                 if (handleStaticFile(request)) return;
-                Serial.printf("AsyncWebServerRequest Not found: %s", request->url().c_str());
-                if (request->method() == HTTP_OPTIONS) {
+                Serial.printf("AsyncWebServerRequest Not found: %s\n", request->url().c_str());
+                if (request->method() == AsyncWebRequestMethod::AsyncWebRequestMethodType::HTTP_OPTIONS) {
+                //if (request->method() == HTTP_OPTIONS) {
                     request->send(200);
                 } else {
                     AsyncWebServerResponse *response = request->beginResponse(404, "application/text", String("AsyncWebServerRequest Not found") + request->url());

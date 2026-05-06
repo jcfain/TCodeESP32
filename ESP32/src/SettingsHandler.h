@@ -1,6 +1,6 @@
 /* MIT License
 
-Copyright (c) 2024 Jason C. Fain
+Copyright (c) 2026 Jason C. Fain
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,7 @@ SOFTWARE. */
 #include <vector>
 #include <map>
 #include <Wire.h>
+#include "soc/rtc.h"
 // // #include "LogHandler.h"
 #include "utils.h"
 #include "logging/TagHandler.h"
@@ -42,6 +43,7 @@ SOFTWARE. */
 #include "channelMap.hpp"
 #include "settingConstants.h"
 #include "settingsFactory.h"
+#include "callback.h"
 
 #define DESERIALIZE_SIZE 32768
 #define SERIALIZE_SIZE 24576
@@ -52,7 +54,9 @@ class SettingsHandler
 {
 public:
     static bool initialized;
-    static int restartRequired;
+    static int restartInSecs;
+    static inline const char* errorInfo[10];
+    static inline size_t errorInfoIndex = 0;
     static bool saving;
     static bool motionPaused;
     static bool fullBuild;
@@ -110,7 +114,7 @@ public:
         initialized = true;
     }
 
-    static void setMessageCallback(SETTING_STATE_FUNCTION_PTR_T f)
+    static void setMessageCallback(SettingsChangeCallback f)
     {
         LogHandler::debug(_TAG, "setMessageCallback");
         if (f == nullptr)
@@ -123,9 +127,19 @@ public:
         }
     }
 
-    // static bool isBoardType(BoardType value) {
-    //     return m_settingsFactory->getBoardType() == value;
-    // }
+    /// The errors added will only print if the main setup fails for some reason.
+    /// Otherwise use LogHandler::error
+    static void addPersistentError(const char* value)
+    {
+        if(errorInfoIndex >= 10)
+        {
+            LogHandler::error("Too many errors in buffer! The last added erro is: %s", value);
+            return;
+        }
+        //LogHandler::debug("Add persistent error: %s", value);
+        errorInfo[errorInfoIndex] = value;
+        errorInfoIndex++;
+    }
 
     static void printFree(bool forcePrint = false)
     {
@@ -266,9 +280,9 @@ public:
         JsonObject v03 = tcodeVersions.add<JsonObject>();
         v03["name"] = "v0.3";
         v03["value"] = TCodeVersion::v0_3;
-        JsonObject v04 = tcodeVersions.add<JsonObject>();
-        v04["name"] = "v0.4 (Experimental)";
-        v04["value"] = TCodeVersion::v0_4;
+        // JsonObject v04 = tcodeVersions.add<JsonObject>();
+        // v04["name"] = "v0.4 (Experimental)";
+        // v04["value"] = TCodeVersion::v0_4;
         JsonArray boardTypes = doc["boardTypes"].to<JsonArray>();
 #if CONFIG_IDF_TARGET_ESP32
         JsonObject devkit = boardTypes.add<JsonObject>();
@@ -302,6 +316,24 @@ public:
         SR6PCB["value"] = (uint8_t)BoardType::SR6PCB;
 #endif
 #endif
+    JsonArray wifiBands = doc["wifiBands"].to<JsonArray>();
+    JsonObject modeAuto = wifiBands.add<JsonObject>();
+    modeAuto["name"] = "Auto";
+    modeAuto["value"] = (uint8_t)WifiBand::AUTO;
+    JsonObject mode24g = wifiBands.add<JsonObject>();
+    mode24g["name"] = "2.4ghz";
+    mode24g["value"] = (uint8_t)WifiBand::MODE24ghz;
+
+	#if SOC_WIFI_SUPPORT_5G
+    JsonObject mode5g = wifiBands.add<JsonObject>();
+    mode5g["name"] = "5ghz";
+    mode5g["value"] = (uint8_t)WifiBand::MODE5ghz;
+    #endif
+	#if SOC_WIFI_SUPPORT_6G
+    JsonObject mode6g = wifiBands.add<JsonObject>();
+    mode6g["name"] = "56ghz";
+    c5Demode6gvkit["value"] = (uint8_t)WifiMode::MODE6ghz;
+    #endif
         int motorType = MOTOR_TYPE_DEFAULT;
         m_settingsFactory->getValue(MOTOR_TYPE_SETTING, motorType);
         doc["motorType"] = motorType;
@@ -326,6 +358,8 @@ public:
             systemI2CAddressesJsonArray.add(buf);
         }
 
+        int deviceType = DEVICE_TYPE_DEFAULT;
+        m_settingsFactory->getValue(DEVICE_TYPE, deviceType);
         JsonArray deviceTypes = doc["deviceTypes"].to<JsonArray>();
         JsonObject defaultDevice = deviceTypes.add<JsonObject>();
 #if MOTOR_TYPE == 0
@@ -342,11 +376,17 @@ public:
         defaultDevice["value"] = DeviceType::SSR1;
         JsonArray encoderTypes = doc["encoderTypes"].to<JsonArray>();
         JsonObject defaultEncoder = encoderTypes.add<JsonObject>();
-        defaultEncoder["name"] = "MT6701 SSI";
-        defaultEncoder["value"] = BLDCEncoderType::MT6701;
-        JsonObject PWM = encoderTypes.add<JsonObject>();
-        PWM["name"] = "PWM";
-        PWM["value"] = BLDCEncoderType::PWM;
+        defaultEncoder["name"] = "NONE";
+        defaultEncoder["value"] = BLDCEncoderType::NONE;
+        if(static_cast<DeviceType>(deviceType) != DeviceType::SSR2)
+        {
+            JsonObject MT6701 = encoderTypes.add<JsonObject>();
+            MT6701["name"] = "MT6701 SSI";
+            MT6701["value"] = BLDCEncoderType::MT6701;
+            JsonObject PWM = encoderTypes.add<JsonObject>();
+            PWM["name"] = "PWM";
+            PWM["value"] = BLDCEncoderType::PWM;
+        }
         JsonObject SPI = encoderTypes.add<JsonObject>();
         SPI["name"] = "SPI";
         SPI["value"] = BLDCEncoderType::SPI;
@@ -430,6 +470,8 @@ public:
         }
         doc["chipID"] = chipId;
 
+        doc["maxPWMResolution"] = MAX_PWM_RESOLUTION;
+        doc["apbClockFrequency"] =  rtc_clk_apb_freq_get();
         doc["decoyPass"] = DECOY_PASS;
         doc["apMode"] = apMode;
         doc["defaultIP"] = m_settingsFactory->getAPModeIP();
@@ -1282,11 +1324,8 @@ private:
     static SemaphoreHandle_t m_settingsMutex;
     static SETTING_STATE_FUNCTION_PTR_T message_callback;
     // Use http://arduinojson.org/assistant to compute the capacity.
-    // static const size_t readCapacity = JSON_OBJECT_SIZE(100) + 2000;
-    // static const size_t saveCapacity = JSON_OBJECT_SIZE(100);
     static const int deserializeSize = 32768;
     static const int serializeSize = 24576;
-    // 3072
 
     static bool motionEnabled;
     static int motionSelectedProfileIndex;
@@ -2431,16 +2470,14 @@ SemaphoreHandle_t SettingsHandler::m_wifiMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_buttonsMutex = xSemaphoreCreateMutex();
 SemaphoreHandle_t SettingsHandler::m_settingsMutex = xSemaphoreCreateMutex();
 bool SettingsHandler::initialized = false;
-int SettingsHandler::restartRequired = -1;
+int SettingsHandler::restartInSecs = -1;
 bool SettingsHandler::saving = false;
 bool SettingsHandler::motionPaused = false;
 bool SettingsHandler::fullBuild = false;
 bool SettingsHandler::apMode = false;
 
-// BoardType SettingsHandler::boardType = BoardType::DEVKIT;
 BuildFeature SettingsHandler::buildFeatures[(int)BuildFeature::MAX_FEATURES];
 std::vector<int> SettingsHandler::systemI2CAddresses;
-SETTING_STATE_FUNCTION_PTR_T SettingsHandler::message_callback = 0;
 ChannelMap SettingsHandler::channelMap;
 
 char SettingsHandler::currentIP[IP_ADDRESS_LEN] = LOCALIP_DEFAULT;
