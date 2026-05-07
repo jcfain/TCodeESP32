@@ -187,14 +187,23 @@ public:
         // Max DC voltage allowed - default voltage_limit
         double motorAVoltage = BLDC_MOTORA_VOLTAGE_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, motorAVoltage);
-        LogHandler::debug(Tags::Motor, "Voltage: %f", motorAVoltage);
+        LogHandler::info(Tags::Motor, "BLDC voltage_limit: %f", motorAVoltage);
         driverA->voltage_limit = motorAVoltage;
         // power supply voltage [V]
         double supplyAVoltage = BLDC_MOTORA_SUPPLY_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_SUPPLY, supplyAVoltage);
+        LogHandler::info(Tags::Motor, "BLDC voltage_power_supply: %f", supplyAVoltage);
         driverA->voltage_power_supply = supplyAVoltage;
         // driver init
-        driverA->init();
+        int driverInitStatus = driverA->init();
+        LogHandler::info(Tags::Motor, "BLDCDriver3PWM->init() returned: %d (1=ok, 0=fail)", driverInitStatus);
+        // Force the driver into the enabled state so the gate-driver chip
+        // is actually receiving its EN signal during alignment. Some boards
+        // (and some SimpleFOC code paths) leave this de-asserted until the
+        // first move(); without it the alignment voltage is never reflected
+        // on the motor windings and we get "Failed to notice movement".
+        driverA->enable();
+        LogHandler::info(Tags::Motor, "BLDCDriver3PWM enabled (EN pin %d driven HIGH)", pinMap->enable());
 
         // limiting motor movements
         double motorACurrent = BLDC_MOTORA_CURRENT_DEFAULT;
