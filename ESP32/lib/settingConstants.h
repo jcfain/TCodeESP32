@@ -240,19 +240,19 @@
 #define BLDC_LOWPASS_FILTER "BLDC_LowPassFilter"
 #define BLDC_TWIST_LIMIT "BLDC_TwistLimit"
 
-#define BLDC_MOTORA_ENCODER "BLDC_Encoder"
-#define BLDC_MOTORA_PULLEY_CIRCUMFERENCE "BLDC_Pulley_Circumference"
-#define BLDC_MOTORA_VOLTAGE "BLDC_Motor_VoltageLimit"
-#define BLDC_MOTORA_SUPPLY  "BLDC_Motor_SupplyVoltage"
-#define BLDC_MOTORA_CURRENT "BLDC_Motor_Current"
-#define BLDC_MOTORA_ZEROELECANGLE "BLDC_Motor_ZeroElecAngle"
+// MotorA aliases follow the pre-merge MillibyteProducts naming convention so
+// existing saved settings load correctly. Do not redefine BLDC_MOTORA_VOLTAGE,
+// BLDC_MOTORA_SUPPLY, BLDC_MOTORA_CURRENT, or BLDC_MOTORA_ZEROELECANGLE here;
+// those are already defined above.
+#define BLDC_MOTORA_ENCODER BLDC_ENCODER
+#define BLDC_MOTORA_PULLEY_CIRCUMFERENCE BLDC_PULLEY_CIRCUMFERENCE
 
 #define BLDC_MOTORB_ENCODER "BLDC_BEncoder"
 #define BLDC_MOTORB_PULLEY_CIRCUMFERENCE "BLDC_BPulley_Circumference"
-#define BLDC_MOTORB_VOLTAGE "BLDC_BMotor_VoltageLimit"
-#define BLDC_MOTORB_SUPPLY  "BLDC_BMotor_SupplyVoltage"
-#define BLDC_MOTORB_CURRENT "BLDC_BMotor_Current"
-#define BLDC_MOTORB_ZEROELECANGLE "BLDC_BMotor_ZeroElecAngle"
+#define BLDC_MOTORB_VOLTAGE "BLDC_MotorB_VoltageLimit"
+#define BLDC_MOTORB_SUPPLY  "BLDC_MotorB_SupplyVoltage"
+#define BLDC_MOTORB_CURRENT "BLDC_MotorB_Current"
+#define BLDC_MOTORB_ZEROELECANGLE "BLDC_MotorB_ZeroElecAngle"
 
 #define STATICIP "staticIP"
 #define LOCALIP "localIP"
