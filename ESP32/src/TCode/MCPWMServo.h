@@ -176,6 +176,19 @@ private:
         uint32_t period_ticks = 1u << resolution_bits;
         uint32_t resolution_hz = freq_hz * period_ticks;
 
+        // MCPWM_TIMER_CLK_SRC_DEFAULT is the PLL/APB-derived 160 MHz clock on
+        // classic ESP32 and 80 MHz on S3/C3. If `resolution_hz` exceeds the
+        // source clock, IDF's `mcpwm_new_timer` computes prescale = src/res = 0
+        // and the timer init divides by prescale → IntegerDivideByZero panic.
+        // Servo-style configs (50 Hz @ 14-bit ≈ 819 kHz) sit far below this
+        // limit; this guard blocks misuse like vibe @ 8 kHz / 15-bit
+        // (262 MHz) from triggering an unhandled exception.
+        constexpr uint32_t MCPWM_MAX_RESOLUTION_HZ = 80'000'000u;
+        if (resolution_hz == 0 || resolution_hz > MCPWM_MAX_RESOLUTION_HZ)
+        {
+            return false;
+        }
+
         // Find a group whose timer matches this frequency (or is free) AND still has
         // an operator slot available.  A group that matches frequency but is fully
         // occupied must be skipped so we can try the other group.
