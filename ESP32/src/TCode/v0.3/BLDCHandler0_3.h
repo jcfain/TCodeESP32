@@ -19,7 +19,6 @@
 
 #include <SimpleFOC.h>
 #include <SimpleFOCDrivers.h>
-// #include <SimpleFOCDebug.h>
 #include <encoders/mt6701/MagneticSensorMT6701SSI.h>
 #include "TCode0_3.h"
 #include "settings/SettingsHandler.h"
@@ -27,7 +26,6 @@
 #include "MotorHandler0_3.h"
 #include "logging/TagHandler.h"
 #include "settingsFactory.h"
-#include "BLDCTCodeSensorSPI.h"
 
 // Control constants
 // (a.k.a. magic numbers for Eve)
@@ -73,7 +71,7 @@ public:
         bootmode = true;
         m_settingsFactory = SettingsFactory::getInstance();
         // PinMapInfo pinMapInfo = m_settingsFactory->getPins();
-        PinMapSSR1 *pinMap = PinMapSSR1::getInstance();
+        PinMapSSR1PCB *pinMap = PinMapSSR1PCB::getInstance();
         int pullyCircumference = -1;
         m_settingsFactory->getValue(BLDC_PULLEY_CIRCUMFERENCE, pullyCircumference);
         int strokeLength = -1;
@@ -142,11 +140,6 @@ public:
         // BLDCDriver3PWM driver = BLDCDriver3PWM(pwmA, pwmB, pwmC, Enable(optional));
         LogHandler::info(Tags::Motor, "Setup BLDC PWM pins 1: %d, 2: %d, 3: %d, enable: %d", pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
         driverA = new BLDCDriver3PWM(pinMap->pwmChannel1(), pinMap->pwmChannel2(), pinMap->pwmChannel3(), pinMap->enable());
-        if(motorB)
-        {
-            LogHandler::info(_TAG, "Setup Motor B BLDC pins PWM1: %d, PWM2: %d, PWM3: %d, enable: %d", pinMap->motorBPwmChannel1(), pinMap->motorBPwmChannel2(), pinMap->motorBPwmChannel3(), pinMap->motorBEnable());
-            driverB = new BLDCDriver3PWM(pinMap->motorBPwmChannel1(), pinMap->motorBPwmChannel2(), pinMap->motorBPwmChannel3(), pinMap->motorBEnable());
-        }
 
         // Start serial connection and report status
         m_tcode->setup(FIRMWARE_VERSION_NAME);
@@ -155,10 +148,7 @@ public:
         // EEPROM.begin(320); Done in TCode class
 
         // Register device axes
-        m_tcode->RegisterAxis(TCODE_CHANNEL_STROKE, "Up");
-        if(m_deviceType == DeviceType::SSR2)
-            m_tcode->RegisterAxis(TCODE_CHANNEL_TWIST, "Twist");
-
+        m_tcode->RegisterAxis("L0", "Up");
         m_settingsFactory->getValue(BLDC_USEHALLSENSOR, m_useHallSensor);
         m_hallSensorPin = pinMap->hallEffect();
         if (m_useHallSensor && m_hallSensorPin > -1)
@@ -199,28 +189,12 @@ public:
         m_settingsFactory->getValue(BLDC_MOTORA_VOLTAGE, motorAVoltage);
         LogHandler::debug(Tags::Motor, "Voltage: %f", motorAVoltage);
         driverA->voltage_limit = motorAVoltage;
-        // motorA->voltage_limit = motorAVoltage;
         // power supply voltage [V]
         double supplyAVoltage = BLDC_MOTORA_SUPPLY_DEFAULT;
         m_settingsFactory->getValue(BLDC_MOTORA_SUPPLY, supplyAVoltage);
         driverA->voltage_power_supply = supplyAVoltage;
-
-        if(driverB)
-        {
-            double motorBVoltage = BLDC_MOTORB_VOLTAGE_DEFAULT;
-            m_settingsFactory->getValue(BLDC_MOTORB_VOLTAGE, motorBVoltage);
-            LogHandler::debug(_TAG, "Motor B Voltage: %f", motorBVoltage);
-            driverB->voltage_limit = motorBVoltage;
-            // motorB->voltage_limit = motorAVoltage;
-            // power supply voltage [V]
-            double supplyBVoltage = BLDC_MOTORB_SUPPLY_DEFAULT;
-            m_settingsFactory->getValue(BLDC_MOTORB_SUPPLY, supplyBVoltage);
-            driverB->voltage_power_supply = supplyBVoltage;
-        }
         // driver init
         driverA->init();
-        if(driverB)
-            driverB->init();
 
         // limiting motor movements
         double motorACurrent = BLDC_MOTORA_CURRENT_DEFAULT;
@@ -248,26 +222,12 @@ public:
             motorA->linkSensor(sensorSPI);
             LogHandler::debug(Tags::Motor, "linkSensor sensorSPI");
         }
-
-        // link the motor to the sensor
-        motorA->linkSensor(sensorA);
-        if(motorB && sensorB)
-            motorB->linkSensor(sensorB);
         // link the motor and the driver
         motorA->linkDriver(driverA);
-        if(motorB && driverB)
-            motorB->linkDriver(driverB);
 
         // initialize motor
         motorA->init();
-        if(motorB)
-            motorB->init();
-
         motorA->useMonitoring(Serial);
-        if(motorB)
-            motorB->useMonitoring(Serial);
-        //if(LogHandler::getLogLevel() == LogLevel::DEBUG)
-            SimpleFOCDebug::enable(&Serial);
 
         // init current sense
         bool paramsKnown = BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT;
@@ -379,10 +339,10 @@ public:
         // Collect inputs
         // These functions query the t-code object for the position/level at a specified time
         // Number recieved will be an integer, 0-9999
-        int strokeTCode = channelRead(TCODE_CHANNEL_STROKE);
+        int xLin = channelRead("L0");
         if (m_settingsFactory->getInverseStroke())
         {
-            strokeTCode = 9999 - strokeTCode;
+            xLin = 9999 - xLin;
         }
         // LogHandler::verbose(Tags::Motor, "xLin: %ld", xLin);
 
@@ -523,7 +483,6 @@ private:
     SettingsFactory *m_settingsFactory;
     bool m_useHallSensor = false;
     int8_t m_hallSensorPin = -1;
-    BLDCBootMode m_bootmode = BLDCBootMode::CALIBRATE;
     // Drive Parameters
 
     // The control code needs to know the angle of the motor relative to the encoder - "Zero elec. angle".
@@ -531,15 +490,6 @@ private:
     // This will be displayed in the serial monitor each time the device starts up.
     // If the device is noticably faster in one direction the angle is out of alignment, try increasing or decreasing it by small increments (eg +/- 0.1).
     Direction MotorA_SensorDirection = Direction::CW; // Do not change. If the motor is showing CCW rotate the motor connector 180 degrees to reverse the motor.
-    // BLDC motorA & driver instance
-    BLDCMotor* motorA = 0;
-    BLDCDriver3PWM* driverA = 0;
-    BLDCEncoderType encoderAType = (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
-    Sensor* sensorA = 0;
-    float zeroAngleA = 0.00;
-    float sensorAngleA = 0.00;
-    float m_motorAnglePositionA = 0.00;
-    float motorVoltageA = 0.00;
 
     // BLDC motor & driver instance
     BLDCMotor *motorA;
@@ -551,10 +501,11 @@ private:
     MagneticSensorSPI *sensorSPI = 0;
 
     // Position variables
-    //float zeroAngle = 0.00;
-    //float xPosition = 0.00;
+    float zeroAngle = 0.00;
+    float xPosition = 0.00;
+    bool bootmode = true;
     unsigned long startTime = 0;
-    //float motorVoltage = 0.00;
+    float motorVoltage = 0.00;
 
     // Stall detection
     float m_stallAngle = 0.00;
