@@ -138,6 +138,7 @@ var testDeviceDisableModifier = false;
 var testDeviceModifierValue = "1000";
 var restartClicked = false;
 var serverPollingTimeOut = null;
+var polling = false;
 var staticIPAddressTimeout = null;
 var hostnameTimeout = null;
 var serverPollRetryCount = 0;
@@ -219,7 +220,7 @@ function onDocumentLoad() {
     // debugTextElement.scrollTop = debugTextElement.scrollHeight;
 }
 function pingDevice() {
-    let polling = false;
+    polling = false;
     if(serverPollingTimeOut) {
         polling = true;
         clearTimeout(serverPollingTimeOut);
@@ -278,8 +279,18 @@ function getDebugInfo(chain) {
         else
             hideLoading();
     }, function(xhr) {
+        // Debug info is non-essential; if the endpoint is missing or fails,
+        // just continue the load chain instead of looping into a poll.
+        if(xhr && xhr.status === 404) {
+            if(chain) {
+                getPinSettings(chain);
+                return;
+            }
+            hideLoading();
+            return;
+        }
         if(!polling)
-            showError("Error getting system info!");
+            showError("Error getting debug info!");
         startServerPoll();
     });
 }
