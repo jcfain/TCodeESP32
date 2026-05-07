@@ -1197,7 +1197,9 @@ private:
                                                                                {BLDC_MOTORA_PARAMETERSKNOWN, "Motor A parameters known", "BLDC Motor A params known", SettingType::Boolean, BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
                                                                                {BLDC_MOTORA_ZEROELECANGLE, "Motor A ZeroElecAngle", "BLDC Motor A ZeroElecAngle", SettingType::Float, BLDC_MOTORA_ZEROELECANGLE_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
                                                                                {BLDC_RAILLENGTH, "Rail length", "SSR1 rail length", SettingType::Number, BLDC_RAILLENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}},
-                                                                               {BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc}}
+            { BLDC_STROKELENGTH, "Stroke length", "SSR1 stroke length", SettingType::Number, BLDC_STROKELENGTH_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc} },
+            { BLDC_PID_PROPORTIONAL_CONST, "PID proportional const", "P-controller gain for the BLDC position loop", SettingType::Float, BLDC_PID_PROPORTIONAL_CONST_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc} },
+            { BLDC_LOWPASS_FILTER, "Low pass filter", "Low-pass filter coefficient (0..1) for BLDC voltage smoothing", SettingType::Float, BLDC_LOWPASS_FILTER_DEFAULT, RestartRequired::YES, {SettingProfile::Bldc} }
 #elif MOTOR_TYPE == 0
                                                                                ,
                                                                                {RIGHT_SERVO_ZERO, "Right servo zero", "The zero calibration for the right servo", SettingType::Number, RIGHT_SERVO_ZERO_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},

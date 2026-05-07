@@ -29,8 +29,8 @@
 
 // Control constants
 // (a.k.a. magic numbers for Eve)
-#define P_CONST 0.002            // Motor PID proportional constant
-#define LOW_PASS 0.8             // Low pass filter factor for static noise reduction ( number < 1, 0 = none)
+// P_CONST and LOW_PASS are now sourced from BLDC_PID_PROPORTIONAL_CONST and
+// BLDC_LOWPASS_FILTER settings (defaults in settingConstants.h).
 #define MAX_CONTROL_VOLTAGE 3.0f // Maximum voltage the P-controller can command in normal operation
 
 #define STALL_ANGLE_THRESHOLD 0.05f        // Minimum angle change (rad) to count as movement
@@ -85,10 +85,19 @@ public:
         ENDSTOP_START_OFFSET = 2 * 3.14159 * (railLength - strokeLength) / (2 * pullyCircumference); // Offset angle from bottom endstop on startup (rad)
         LogHandler::debug(Tags::Motor, "ENDSTOP_START_OFFSET: %f", ENDSTOP_START_OFFSET);
 
+        // Control loop tunables (loaded once at boot)
+        m_pConst = BLDC_PID_PROPORTIONAL_CONST_DEFAULT;
+        m_settingsFactory->getValue(BLDC_PID_PROPORTIONAL_CONST, m_pConst);
+        m_lowPass = BLDC_LOWPASS_FILTER_DEFAULT;
+        m_settingsFactory->getValue(BLDC_LOWPASS_FILTER, m_lowPass);
+        LogHandler::info(Tags::Motor, "BLDC P-const: %f, LowPass: %f", m_pConst, m_lowPass);
+
         // Begin tracking encoder
+        // SSR1PCB always ships with an MT6701 SSI encoder, so the encoder
+        // type is hardcoded here. Any saved BLDC_Encoder value is ignored
+        // (the web UI also locks the dropdown for SSR1PCB).
         BLDCEncoderType encoderType = BLDCEncoderType::MT6701;
-        m_settingsFactory->getValue(BLDC_ENCODER, encoderType);
-        LogHandler::debug(Tags::Motor, "Encoder type: %d", encoderType);
+        LogHandler::debug(Tags::Motor, "Encoder type: %d (forced MT6701 SSI for SSR1PCB)", encoderType);
 
         if (encoderType == BLDCEncoderType::MT6701)
         {
@@ -407,7 +416,7 @@ public:
                     m_stallAngle = angle;
                     m_stallStartMs = millis();
                 }
-                motorVoltageNew = P_CONST * (xLin - xPosition);
+                motorVoltageNew = m_pConst * (xLin - xPosition);
             }
             else
             {
@@ -422,7 +431,7 @@ public:
                     m_stallAngle = angle;
                     m_stallStartMs = millis();
                 }
-                motorVoltageNew = P_CONST * (xLin - xPosition);
+                motorVoltageNew = m_pConst * (xLin - xPosition);
                 if (motorVoltageNew < -0.5)
                 {
                     motorVoltageNew = -0.5;
@@ -432,7 +441,7 @@ public:
         }
         else
         {
-            motorVoltageNew = P_CONST * (xLin - xPosition);
+            motorVoltageNew = m_pConst * (xLin - xPosition);
             // Clamp voltage to prevent full-speed runaway
             if (motorVoltageNew > MAX_CONTROL_VOLTAGE)
                 motorVoltageNew = MAX_CONTROL_VOLTAGE;
@@ -440,7 +449,7 @@ public:
                 motorVoltageNew = -MAX_CONTROL_VOLTAGE;
         }
         // Low pass filter to reduce motor noise
-        motorVoltage = LOW_PASS * motorVoltage + (1 - LOW_PASS) * motorVoltageNew;
+        motorVoltage = m_lowPass * motorVoltage + (1 - m_lowPass) * motorVoltageNew;
 
         // Encoder stall detection: only trigger when motor has significant
         // position error (should be moving) but encoder shows no change.
@@ -492,6 +501,9 @@ private:
     SettingsFactory *m_settingsFactory;
     bool m_useHallSensor = false;
     int8_t m_hallSensorPin = -1;
+    // Tunables loaded from settings at boot
+    float m_pConst = BLDC_PID_PROPORTIONAL_CONST_DEFAULT;
+    float m_lowPass = BLDC_LOWPASS_FILTER_DEFAULT;
     // Drive Parameters
 
     // The control code needs to know the angle of the motor relative to the encoder - "Zero elec. angle".

@@ -22,7 +22,23 @@ SOFTWARE. */
 
 BLDCMotor = {
     setup() {
-        document.getElementById("BLDC_Encoder").value = userSettings["BLDC_Encoder"];
+        var encoderEl = document.getElementById("BLDC_Encoder");
+        encoderEl.value = userSettings["BLDC_Encoder"];
+        // SSR1PCB always ships with an MT6701 SSI encoder; lock the dropdown
+        // to that selection (BLDCEncoderType::MT6701 = 1).
+        if (typeof isBoardType === "function" && isBoardType(BoardType.SSR1PCB)) {
+            encoderEl.value = 1; // MT6701 SSI
+            encoderEl.disabled = true;
+            encoderEl.title = "SSR1PCB ships with an MT6701 SSI encoder; this is fixed.";
+            // Persist if the saved value is wrong so other consumers see MT6701
+            if (userSettings["BLDC_Encoder"] !== 1) {
+                userSettings["BLDC_Encoder"] = 1;
+                if (typeof updateUserSettings === "function") updateUserSettings();
+            }
+        } else {
+            encoderEl.disabled = false;
+            encoderEl.title = "";
+        }
         document.getElementById("BLDC_UseHallSensor").checked = userSettings["BLDC_UseHallSensor"];
         document.getElementById("BLDC_Pulley_Circumference").value = userSettings["BLDC_Pulley_Circumference"];
         document.getElementById("BLDC_MotorA_VoltageLimit").value = Utils.round2(userSettings["BLDC_MotorA_VoltageLimit"]);
@@ -32,6 +48,10 @@ BLDCMotor = {
         document.getElementById("BLDC_MotorA_ParametersKnown").checked = userSettings["BLDC_MotorA_ParametersKnown"];
         document.getElementById("BLDC_RailLength").value = userSettings["BLDC_RailLength"];
         document.getElementById("BLDC_StrokeLength").value = userSettings["BLDC_StrokeLength"];
+        if (userSettings["BLDC_PIDProportionalConstant"] !== undefined)
+            document.getElementById("BLDC_PIDProportionalConstant").value = userSettings["BLDC_PIDProportionalConstant"];
+        if (userSettings["BLDC_LowPassFilter"] !== undefined)
+            document.getElementById("BLDC_LowPassFilter").value = userSettings["BLDC_LowPassFilter"];
 
         toggleBLDCEncoderOptions();
         Utils.toggleControlVisibilityByID("HallEffect", userSettings["BLDC_UseHallSensor"]);
@@ -59,17 +79,23 @@ function updateBLDCSettings() {
     userSettings["BLDC_MotorA_ParametersKnown"] = document.getElementById("BLDC_MotorA_ParametersKnown").checked;
     userSettings["BLDC_RailLength"] = parseInt(document.getElementById('BLDC_RailLength').value);
     userSettings["BLDC_StrokeLength"] = parseInt(document.getElementById('BLDC_StrokeLength').value);
+    var pidEl = document.getElementById('BLDC_PIDProportionalConstant');
+    if (pidEl && pidEl.value !== "")
+        userSettings["BLDC_PIDProportionalConstant"] = parseFloat(pidEl.value);
+    var lpEl = document.getElementById('BLDC_LowPassFilter');
+    if (lpEl && lpEl.value !== "")
+        userSettings["BLDC_LowPassFilter"] = parseFloat(lpEl.value);
     Utils.toggleControlVisibilityByID("ZeroElecAngle", userSettings["BLDC_MotorA_ParametersKnown"]);
     setRestartRequired();
     updateUserSettings();
 }
 
 function updateBLDCPins() {
-    if(upDateTimeout !== null) 
+    if(upDateTimeout !== null)
     {
         clearTimeout(upDateTimeout);
     }
-    upDateTimeout = setTimeout(() => 
+    upDateTimeout = setTimeout(() =>
     {
         var pinValues = validateBLDCPins();
         if(pinValues) {
@@ -101,7 +127,7 @@ function getBLDCPinValues() {
 }
 
 function validateBLDCPins() {
-    clearErrors("pinValidation"); 
+    clearErrors("pinValidation");
     var assignedPins = [];
     var duplicatePins = [];
     var pwmErrors = [];
@@ -125,7 +151,7 @@ function validateBLDCPins() {
             }
         }
     }
-    else 
+    else
     {
         //assignedPins.push({name:"SPI1", pin:5});
         assignedPins.push({name:"SPI CLK", pin:18});
@@ -143,7 +169,7 @@ function validateBLDCPins() {
     // }
     validatePin(pinValues.BLDC_Encoder_PIN, "Encoder", assignedPins, duplicatePins);
 
-    
+
     // if(pinValues.BLDC_ChipSelect_PIN > -1) {
     //     pinDupeIndex = assignedPins.findIndex(x => x.pin === pinValues.BLDC_ChipSelect_PIN);
     //     if(pinDupeIndex > -1)
@@ -199,7 +225,7 @@ function validateBLDCPins() {
         // }
         validatePin(pinValues.BLDC_HallEffect_PIN, "HallEffect", assignedPins, duplicatePins);
     }
-    
+
     validateCommonPWMPins(assignedPins, duplicatePins, pinValues, pwmErrors);
 
     var invalidPins = [];
@@ -217,10 +243,10 @@ function validateBLDCPins() {
         if (pwmErrors.length) {
             if(duplicatePins.length || invalidPins.length) {
                 errorString += "<br>";
-            } 
+            }
             errorString += "<div style='margin-left: 25px;'>The following pins are invalid PWM pins:<br><div style='color: white; margin-left: 25px;'>"+pwmErrors.join("<br>")+"</div></div>";
         }
-        
+
         errorString += "</div>";
         showError(errorString);
         return undefined;
