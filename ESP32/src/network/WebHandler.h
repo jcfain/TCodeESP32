@@ -105,6 +105,28 @@ public:
         server->on("/buttonSettings", HTTP_GET, [](AsyncWebServerRequest *request)
                    { request->send(LittleFS, BUTTON_SETTINGS_PATH, "application/json"); });
 
+        server->on("/debugInfo", HTTP_GET, [](AsyncWebServerRequest* request)
+            {
+                if (LittleFS.exists(DEBUG_INFO_PATH)) {
+                    request->send(LittleFS, DEBUG_INFO_PATH, "application/json");
+                }
+                else {
+                    // No debug info recorded yet; return an empty doc so the
+                    // client can populate its UI without treating it as a fault.
+                    request->send(200, "application/json", "{\"" DEBUG_INFO_LAST_BOOT_REASONS "\":[]}");
+                }
+            });
+
+        server->on("/debugInfo", HTTP_POST, [](AsyncWebServerRequest* request)
+            {
+                // Clear the persisted debug info file so the client can reset
+                // recorded boot reasons.
+                if (LittleFS.exists(DEBUG_INFO_PATH)) {
+                    LittleFS.remove(DEBUG_INFO_PATH);
+                }
+                request->send(200, "application/json", "{\"msg\":\"done\"}");
+            });
+
         // server->on("/log", HTTP_GET, [this](AsyncWebServerRequest *request)
         // {
         //     Serial.println("Get log...");
