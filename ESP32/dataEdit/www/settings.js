@@ -1170,7 +1170,7 @@ function setWifiSettings() {
 }
 function setPinoutSettings() {
     if(systemInfo.motorType === MotorType.BLDC) {
-        // BLDC Pins are set in UserSettings
+        BLDCMotor.setupPins();
     } else {
         document.getElementById("RightServo_PIN").value = pinoutSettings["RightServo_PIN"];
         document.getElementById("LeftServo_PIN").value = pinoutSettings["LeftServo_PIN"];
