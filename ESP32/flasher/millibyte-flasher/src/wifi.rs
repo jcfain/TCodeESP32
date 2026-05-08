@@ -33,10 +33,13 @@ pub fn push_credentials(
     send(&mut serial, &format!("#wifi-pass:{password}\n"), log)?;
     expect(&mut serial, &["pass", "OK"], 3, log)?;
 
-    send(&mut serial, "#save\n", log)?;
+    // The firmware uses `$save` (system command, $-prefix) for persisting
+    // settings, but `#restart` (value command, #-prefix) for reboot. Don't
+    // unify these — the firmware will reject the wrong prefix silently.
+    send(&mut serial, "$save\n", log)?;
     expect(&mut serial, &["Saved", "saved", "OK"], 3, log)?;
 
-    send(&mut serial, "#reset\n", log)?;
+    send(&mut serial, "#restart\n", log)?;
 
     // After reboot, watch for the IP banner. Standard format on this firmware
     // is roughly: "WiFi connected. IP address: 192.168.x.y".
