@@ -77,6 +77,18 @@ public:
         {
             pinMap = PinMapOSR::getInstance();
         }
+        // Diagnostic: dump what the pinMap accessors are about to return so we
+        // can correlate against /pins JSON when chasing scrambled-attach bugs.
+        if (m_deviceType == DeviceType::SR6)
+        {
+            PinMapSR6* sr6 = (PinMapSR6*)pinMap;
+            LogHandler::info(_TAG,
+                "ServoHandler v3 pre-attach: instance=%p right=%d left=%d pitchL=%d pitchR=%d upR=%d upL=%d",
+                (void*)sr6,
+                (int)sr6->rightServo(), (int)sr6->leftServo(),
+                (int)sr6->pitchLeft(), (int)sr6->pitchRight(),
+                (int)sr6->rightUpperServo(), (int)sr6->leftUpperServo());
+        }
 // Lower Left Servo
 #ifndef ESP_PROG // The default pins for these are used on the debugger board.
         m_leftServoPin = ((PinMapOSR *)pinMap)->leftServo();

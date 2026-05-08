@@ -56,13 +56,20 @@ protected:
 
         m_tcode->setup(FIRMWARE_VERSION_NAME);
 
-        int vibeResolution, lubeResolution;
-        int servoResolution;
+        // See MotorHandler0_3::setupCommon for rationale: default these to the
+        // compile-time resolution so a missing settings key cannot leave
+        // m_servoPWMMaxDuty as UINT32_MAX.
+        int servoResolution = SERVO_PWM_RES;
+        int vibeResolution = SERVO_PWM_RES;
+        int lubeResolution = SERVO_PWM_RES;
         m_settingsFactory->getValue(SERVO_RESOLUTION, servoResolution);
         m_settingsFactory->getValue(VIBE_RESOLUTION, vibeResolution);
         m_settingsFactory->getValue(LUBE_RESOLUTION, lubeResolution);
+        if (servoResolution <= 0 || servoResolution > 16) servoResolution = SERVO_PWM_RES;
+        if (vibeResolution  <= 0 || vibeResolution  > 16) vibeResolution  = SERVO_PWM_RES;
+        if (lubeResolution  <= 0 || lubeResolution  > 16) lubeResolution  = SERVO_PWM_RES;
 
-        m_servoPWMMaxDuty = static_cast<uint32_t>(pow(2, servoResolution) - 1);
+        m_servoPWMMaxDuty = static_cast<uint32_t>((1UL << servoResolution) - 1);
         m_settingsFactory->getValue(MAX_SERVO_RANGE, maxServoRange);
         if (!maxServoRange)
         {

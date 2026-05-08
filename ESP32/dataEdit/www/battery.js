@@ -57,6 +57,14 @@ function wsBatteryStatus(data) {
     document.getElementById("batteryTemperature").value = batteryTemperature;
 }
 
+// Timestamp of the most recent user toggle of the VMOTOR enable checkbox.
+// While inside the hold-off window we ignore servoVoltageEnabled values from
+// powerStatus broadcasts so the UI stays authoritative and a stale broadcast
+// (emitted before the firmware processed the toggle) can't snap the checkbox
+// back to the previous state.
+var vmotorEnabledLastUserToggleMs = 0;
+const VMOTOR_TOGGLE_HOLDOFF_MS = 2500;
+
 function wsPowerStatus(data) {
     var status = data["message"] || {};
 
@@ -66,11 +74,15 @@ function wsPowerStatus(data) {
     setPowerVoltageField("powerVoltageMotor", status["Voltage_Motor"]);
     setPowerVoltageField("powerVoltageBus", status["Voltage_Bus"]);
 
-    // Update VMOTOR enable state if available
+    // Update VMOTOR enable state if available, but defer to the user during
+    // the post-click hold-off so an in-flight broadcast can't undo their toggle.
     if (status["servoVoltageEnabled"] !== undefined) {
         const vmotorEnabledElement = document.getElementById("vmotorEnabled");
         if (vmotorEnabledElement) {
-            vmotorEnabledElement.checked = status["servoVoltageEnabled"];
+            const sinceToggle = Date.now() - vmotorEnabledLastUserToggleMs;
+            if (sinceToggle >= VMOTOR_TOGGLE_HOLDOFF_MS) {
+                vmotorEnabledElement.checked = status["servoVoltageEnabled"];
+            }
         }
     }
 }
@@ -135,5 +147,8 @@ function setBatteryFull() {
 
 function setVmotorEnabled() {
     const enabled = document.getElementById('vmotorEnabled').checked;
+    // Mark the click time so wsPowerStatus ignores the next few broadcasts and
+    // the user's choice remains authoritative.
+    vmotorEnabledLastUserToggleMs = Date.now();
     sendWebsocketCommand("setServoVoltageEnabled", enabled ? "true" : "false");
 }

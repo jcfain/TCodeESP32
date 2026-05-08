@@ -142,6 +142,7 @@ var polling = false;
 var staticIPAddressTimeout = null;
 var hostnameTimeout = null;
 var upDateTimeout = null;
+var upDatePinsTimeout = null;
 var serverPollRetryCount = 0;
 var channelSliderList = [];
 var restartingAndChangingAddress = false;
@@ -193,7 +194,12 @@ function request(method, name, uri, callback, callbackFail) {
 	xhr.onload = function() {
         var status = xhr.status;
         if (status !== 200) {
-			showError("Error loading "+name+"!");
+            // Suppress error toast while we're polling for the device to come
+            // back online (e.g. after restart). The poll loop intentionally
+            // probes a possibly-down endpoint and a popup on every retry just
+            // creates a noisy "Error loading ping!" loop.
+            if(!polling && !serverPollingTimeOut)
+                showError("Error loading "+name+"!");
             if(callbackFail)
                 callbackFail(xhr);
 		} else {
