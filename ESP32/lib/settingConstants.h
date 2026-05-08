@@ -5,6 +5,7 @@
 
 //#define GET_DEFAULT(X)
 
+#define SYSTEM_SETTINGS_PATH "/systemSettings.json"
 #define COMMON_SETTINGS_PATH "/userSettings.json"
 #define PIN_SETTINGS_PATH "/pins.json"
 #define ESP_TIMER_SETTINGS_PATH "/espTimers.json"

@@ -53,6 +53,12 @@ class WebHandler : public HTTPBase {
             LogHandler::debug(_TAG, "Finished webSocket");
             m_settingsFactory = SettingsFactory::getInstance();
             LogHandler::debug(_TAG, "Setting up endpoints");
+            
+
+            server->on("/systemSettings", HTTP_GET, [this](AsyncWebServerRequest *request)
+            {
+                sendChunked(request, SYSTEM_SETTINGS_PATH);
+            });
             server->on("/wifiSettings", HTTP_GET, [](AsyncWebServerRequest *request) 
             {
                 char info[700];
@@ -272,6 +278,22 @@ class WebHandler : public HTTPBase {
                 request->send(response);
             });
 
+            AsyncCallbackJsonWebHandler* systemSettingsUpdateHandler = new AsyncCallbackJsonWebHandler("/systemSettings", [this](AsyncWebServerRequest *request, JsonVariant &json)
+			{
+                Serial.println("API save system settings...");
+                JsonObject jsonObj = json.as<JsonObject>();
+                if (m_settingsFactory->saveSystem(jsonObj)) 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
+                    request->send(response);
+                } 
+                else 
+                {
+                    AsyncWebServerResponse *response = request->beginResponse(500, "application/json", "{\"msg\":\"Error saving system settings\"}");
+                    request->send(response);
+                }
+            });
+
             AsyncCallbackJsonWebHandler* settingsUpdateHandler = new AsyncCallbackJsonWebHandler("/settings", [this](AsyncWebServerRequest *request, JsonVariant &json)
 			{
                 Serial.println("API save settings...");
@@ -308,7 +330,7 @@ class WebHandler : public HTTPBase {
 			{
                 Serial.println("API save wifi settings...");
                 JsonObject jsonObj = json.as<JsonObject>();
-                if (m_settingsFactory->saveWifi(jsonObj)) 
+                if (m_settingsFactory->saveNetwork(jsonObj)) 
                 {
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"msg\":\"done\"}");
                     request->send(response);
@@ -408,6 +430,8 @@ class WebHandler : public HTTPBase {
             //     }
             // });
 
+            
+            server->addHandler(systemSettingsUpdateHandler);
             server->addHandler(settingsUpdateHandler);
             server->addHandler(pinsHandler);
             server->addHandler(wifiUpdateHandler);

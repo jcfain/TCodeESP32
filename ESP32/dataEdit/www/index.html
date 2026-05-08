@@ -1386,11 +1386,19 @@
 								<button id="clearFiltersButton" onclick="clearTags('log-exclude-tags')">Clear excluded</button>
 							</div>
 						</div>
-						<!-- <div class="tRow" id="debugLink">
-							<div class="tCell" colspan="3">
-								<textarea id="debugText" class="log-reader" readonly></textarea>
+						<!-- <div class="tRow ">
+							<div class="tCell">
+								<span title="Enable web client messages">Include Web client messages in log</span> 
+							</div>
+							<div class="tCell">
+								<input id="includeWebClientmessages" type="checkbox" onclick=""></input>
 							</div>
 						</div> -->
+						<div class="tRow" id="debugLink">
+							<div class="tCell" colspan="3">
+								<textarea id="loggingText" class="log-reader" readonly></textarea>
+							</div>
+						</div>
 						<div class="lastRebootReasonDiv">
 							<table class="lastRebootReasonTable">
 								<thead>

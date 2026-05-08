@@ -21,6 +21,7 @@ public:
         // digitalWrite(5, LOW);// Turn off on-board blue led
         serialHandler = new SerialHandler();
         serialHandler->setup();
+        LogHandler::init();
         Serial.printf("Startup DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
         #if DEBUG_BUILD == 1
@@ -66,7 +67,7 @@ public:
             return false;
         }
         LogHandler::debug(TagHandler::Main, "Settings factory  DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-        // LogHandler::setLogLevel(LogLevel::DEBUG);
+        LogHandler::setLogLevel(settingsFactory->getLogLevel());
 
         const PinMap *pinMap = settingsFactory->getPins();
         if(!pinMap)
@@ -636,7 +637,7 @@ private:
     // {
     // #if WIFI_TCODE
     //     // if(webSocketHandler) {
-    //     // 	webSocketHandler->sendDebug(in, level);
+    //     // 	webSocketHandler->sendLog(in, level);
     //     // }
     // #endif
     // }

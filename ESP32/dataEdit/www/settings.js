@@ -21,6 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 var userSettings = {};
+var systemSettings = {};
 var wifiSettings = {};
 var pinoutSettings = {};
 var systemInfo = {};
@@ -37,6 +38,7 @@ var websocket;
 const EndPointType = {
     System: { uri: "/systemInfo"},
     DebugInfo: { uri: "/debugInfo"},
+    SystemSettings: { uri: "/systemSettings"},
     Common: {uri: "/settings"},
     Pins: {uri: "/pins"},
     Wifi: {uri: "/wifiSettings"},
@@ -106,7 +108,8 @@ const TCodeModifierType = {
     INTERVAL: "I",
     SPEED: "S"
 }
-dubugMessages = [];
+var loggingTextElement = null;
+var logMessages = [];
 var tcodeVersions = [];
 var testDeviceUseIModifier = false;
 var testDeviceDisableModifier = false;
@@ -140,10 +143,6 @@ document.addEventListener("DOMContentLoaded", function() {
     hideLoading();
 });
 
-function logdebug(message) {
-    if(debugEnabled)
-        console.log(message);
-}
 function get(name, uri, callback, callbackFail) {
     request("GET", name, uri, callback, callbackFail)
 }
@@ -181,8 +180,8 @@ function onDocumentLoad() {
     getSystemInfo(true);
     createImportSettingsInputElement();
     
-    // debugTextElement = document.getElementById("debugText");
-    // debugTextElement.scrollTop = debugTextElement.scrollHeight;
+    loggingTextElement = document.getElementById("loggingText");
+    loggingTextElement.scrollTop = loggingTextElement.scrollHeight;
 }
 function pingDevice() {
     let polling = false;
@@ -221,7 +220,7 @@ function getSystemInfo(chain) {
         } else
             setSystemInfo();
         if(chain)
-            getDebugInfo(chain);
+            getSystemSettings(chain);
         else if(!polling)
             hideLoading();
         serverPollRetryCount = 0;
@@ -231,24 +230,46 @@ function getSystemInfo(chain) {
         startServerPoll();
     });
 }
-function getDebugInfo(chain) {
+
+function getSystemSettings(chain) {
     if(serverPollingTimeOut) {
         return;
     }
+    showLoading("Loading system settings...");
+    get("system settings", EndPointType.SystemSettings.uri, function(xhr) {
+        systemSettings = xhr.response;
+        if(!systemSettings) {
+            showError("Error getting system settings!");
+        }
+        else
+            setSystemSettings();
+        if(chain)
+            getDebugInfo(chain);
+        else
+            hideLoading();
+    }, function(xhr) {
+        showError("Error getting system settings!");
+    });
+}
+
+function getDebugInfo(chain) {
     showLoading("Loading debug info...");
     get("debug info", EndPointType.DebugInfo.uri, function(xhr) {
         const debugInfo = xhr.response;
-        setDebugInfo(debugInfo);
+        if(!debugInfo) {
+            showError("Error getting debug info!");
+        }
+        else
+            setDebugInfo(debugInfo);
         if(chain)
             getPinSettings(chain);
         else
             hideLoading();
     }, function(xhr) {
-        if(!polling)
-            showError("Error getting system info!");
-        startServerPoll();
+        showError("Error getting debug info!");
     });
 }
+
 function getPinSettings(chain) {
     showLoading("Loading pinout...");
     get("Pinout settings", EndPointType.Pins.uri, function(xhr) {
@@ -262,6 +283,8 @@ function getPinSettings(chain) {
             getWifiSettings(chain);
         else
             hideLoading();
+    }, function(xhr) {
+        showError("Error getting pinout!");
     });
 }
 
@@ -283,6 +306,8 @@ function getWifiSettings(chain) {
             getMotionProviderSettings(chain);
         else
             hideLoading();
+    }, function(xhr) {
+        showError("Error getting wifi settings!");
     });
 }
 
@@ -297,6 +322,8 @@ function getMotionProviderSettings(chain) {
             getButtonSettings(chain);
         else
             hideLoading();
+    }, function(xhr) {
+        showError("Error getting motion provider settings!");
     });
 }
 
@@ -311,6 +338,8 @@ function getButtonSettings(chain) {
             getChannelsProfileSettings(chain);
         else
             hideLoading();
+    }, function(xhr) {
+        showError("Error getting button settings!");
     });
 }
 
@@ -325,6 +354,8 @@ function getChannelsProfileSettings(chain) {
             getUserSettings();
         else
             hideLoading();
+    }, function(xhr) {
+        showError("Error getting channels profile settings!");
     });
 }
 
@@ -344,6 +375,9 @@ function postAndValidatePinoutSettings(debounce, callback) {
 }
 function postPinoutSettings(debounce, callback) {
     updateUserSettings(debounce, EndPointType.Pins.uri, pinoutSettings, callback);
+}
+function postSystemSettings(debounce, callback) {
+    updateUserSettings(debounce, EndPointType.SystemSettings.uri, systemSettings, callback);
 }
 function postWifiSettings(debounce, callback) {
     updateUserSettings(debounce, EndPointType.Wifi.uri, wifiSettings, callback);
@@ -385,12 +419,14 @@ function getUserSettings() {
     showLoading("Loading common settings...");
     get("common settings", EndPointType.Common.uri, function(xhr) {
         userSettings = xhr.response;
-        if(!userSettings || userSettings["TCodeVersion"] == undefined) {
+        if(!userSettings || userSettings["inverseStroke"] == undefined) {
             showError("Error getting user settings!");
         } 
         else
             setUserSettings();
         initWebSocket();
+    }, function(xhr) {
+        showError("Error getting user settings!");
     });
 }
 
@@ -432,7 +468,6 @@ function initWebSocket() {
 		};
 		websocket.onmessage = function (evt) {
 			wsCallBackFunction(evt);
-			logdebug("MESSAGE RECIEVED: "+ evt.data);
 		};
 		websocket.onerror = function (evt) {
             if(!serverPollingTimeOut && !restartingAndChangingAddress) {
@@ -455,6 +490,8 @@ function initWebSocket() {
 function wsCallBackFunction(evt) {
 	try {
 		var data = JSON.parse(evt.data);
+        if(data["command"] != "log")
+		    logdebug("WEBSOCKET MESSAGE RECIEVED: "+ evt.data);
 		switch(data["command"]) {
 			case "sleeveTempStatus":
 				var status = data["message"];
@@ -479,9 +516,9 @@ function wsCallBackFunction(evt) {
             case "batteryStatus":
                 wsBatteryStatus(data);
                 break;
-            case "debug":
+            case "log":
 				var message = data["message"];
-                debug(message);
+                log(message);
                 break;
             case "channelRangesEnabled":
 				var enabled = data["message"];
@@ -495,13 +532,20 @@ function wsCallBackFunction(evt) {
 	}
 }
 
-function debug(message) {
-    if(debugTextElement) {
-        if(dubugMessages.length > 1000)
-            dubugMessages.shift();
-        dubugMessages.push(message);
-        debugTextElement.value = dubugMessages.join("\n");
-        debugTextElement.scrollTop = debugTextElement.scrollHeight;
+function logdebug(message) {
+    if(debugEnabled) {
+        console.log(message);
+        log("[Web client]: "+message);
+    }
+}
+
+function log(message) {
+    if(loggingTextElement) {
+        // if(logMessages.length > 1000)
+        //     logMessages.shift();
+        logMessages.push(message);
+        loggingTextElement.value = logMessages.join("\n");
+        loggingTextElement.scrollTop = loggingTextElement.scrollHeight;
     }
 }
 
@@ -521,8 +565,8 @@ function debounceInput(debounceRefName, callBack, debounceInMs)
 function setLogLevelUI() {
     const clearTagsButton = document.getElementById('clearTagsButton');
     const clearFiltersButton = document.getElementById('clearFiltersButton');
-    const selectedIncludes = userSettings["log-include-tags"];
-    const selectedExcludes = userSettings["log-exclude-tags"];
+    const selectedIncludes = systemSettings["log-include-tags"];
+    const selectedExcludes = systemSettings["log-exclude-tags"];
     clearTagsButton.disabled = !selectedIncludes?.length;
     clearFiltersButton.disabled = !selectedExcludes?.length;
 
@@ -530,32 +574,32 @@ function setLogLevelUI() {
     clearFiltersButton.innerText = "Clear excluded" + (selectedExcludes.length ? ": "+ selectedExcludes.length : "");
 }
 function setLogLevel() {
-    userSettings["logLevel"] = parseInt(document.getElementById('logLevel').value);
+    systemSettings["logLevel"] = parseInt(document.getElementById('logLevel').value);
     const selectedIncludes = document.querySelectorAll('#log-include-tags option:checked');
-    userSettings["log-include-tags"] =  Array.from(selectedIncludes).map(el => el.value);
+    systemSettings["log-include-tags"] =  Array.from(selectedIncludes).map(el => el.value);
 
     const selectedExcludes = document.querySelectorAll('#log-exclude-tags option:checked');
-    userSettings["log-exclude-tags"] = Array.from(selectedExcludes).map(el => el.value);
+    systemSettings["log-exclude-tags"] = Array.from(selectedExcludes).map(el => el.value);
 
     setLogLevelUI();
     //document.getElementById("log-exclude-tags").disabled = selectedIncludes.length > 0;
-    // if(userSettings["logLevel"] == LogLevel.VERBOSE)
+    // if(systemSettings["logLevel"] == LogLevel.VERBOSE)
     //     alert("There are not enough resources to send VERBOSE messages to the site.\nUse serial to view them.")
-	updateUserSettings();
+	postSystemSettings();
 }
 function clearTags(name) {
-    userSettings[name] = [];
+    systemSettings[name] = [];
     var element = document.getElementById(name);
     for (var i = 0; i < element.options.length; i++) {
         element.options[i].selected = false;
     }
     setLogLevelUI();
-	updateUserSettings();
+	postSystemSettings();
 }
 function clearLog() {
-    if(debugTextElement) {
-        dubugMessages = [];
-        debugTextElement.value = "";
+    if(loggingTextElement) {
+        logMessages = [];
+        loggingTextElement.value = "";
     }
 }
 
@@ -714,19 +758,19 @@ function isWebSocketConnected() {
 }
 
 function isSR6() {
-    return userSettings["deviceType"] == DeviceType.SR6;
+    return systemSettings["deviceType"] == DeviceType.SR6;
 }
 function isOSR() {
-    return userSettings["deviceType"] == DeviceType.OSR;
+    return systemSettings["deviceType"] == DeviceType.OSR;
 }
 function isSSR1() {
-    return userSettings["deviceType"] == DeviceType.SSR1;
+    return systemSettings["deviceType"] == DeviceType.SSR1;
 }
 function isSSR2() {
-    return userSettings["deviceType"] == DeviceType.SSR2;
+    return systemSettings["deviceType"] == DeviceType.SSR2;
 }
 function isBoardType(boardType) {
-    return userSettings["boardType"] === boardType;
+    return systemSettings["boardType"] === boardType;
 }
 function isModuleType(moduleType) {
     return systemInfo["moduleType"] == moduleType;
@@ -845,6 +889,34 @@ function setSystemInfo() {
         
         adc1Pins = [1,2,3,4,5,6,7,8,9,10];
         adc2Pins = [11,12,13,14,15,16,17,18,19,20];
+    }
+}
+function setSystemSettings()
+{
+    document.getElementById('TCodeVersion').value = systemSettings["TCodeVersion"];
+    setLogLevelUI();
+    toggleNonTCodev3Options();
+    toggleDeviceOptions(systemSettings["deviceType"]);
+    
+    document.getElementById('logLevel').value = systemSettings["logLevel"];
+
+    var includedElement = document.getElementById('log-include-tags');
+    for (var i = 0; i < includedElement.options.length; i++) {
+        includedElement.options[i].selected = systemSettings["log-include-tags"].indexOf(includedElement.options[i].value) >= 0;
+    }
+    var excludedElement = document.getElementById('log-exclude-tags');
+    for (var i = 0; i < excludedElement.options.length; i++) {
+        excludedElement.options[i].selected = systemSettings["log-exclude-tags"].indexOf(excludedElement.options[i].value) >= 0;
+    }
+    document.getElementById('boardType').value = systemSettings["boardType"];
+    const isSSR1PCB = isBoardType(BoardType.SSR1PCB);
+    const deviceTypeElement = document.getElementById("deviceType");
+	deviceTypeElement.value = systemSettings["deviceType"];
+    deviceTypeElement.disabled = isBoardType(BoardType.CRIMZZON) || isBoardType(BoardType.ISAAC) || isSSR1PCB;
+    if(systemSettings["deviceType"] == DeviceType.NONE) {
+        deviceTypeElement.classList.add("pulse-yellow");
+    } else {
+        deviceTypeElement.classList.remove("pulse-yellow");
     }
 }
 
@@ -968,10 +1040,6 @@ function setPinoutSettings() {
 }
 function setUserSettings()
 {
-    document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
-    setLogLevelUI();
-    toggleNonTCodev3Options();
-    toggleDeviceOptions(userSettings["deviceType"]);
     toggleFeedbackTwistSettings(userSettings["feedbackTwist"]);
     toggleBatterySettings(userSettings["batteryLevelEnabled"]);
     MotionGenerator.setEnabledStatus();
@@ -1001,16 +1069,6 @@ function setUserSettings()
 
     //updateSpeedUI(userSettings["speed"]);
     
-    document.getElementById('boardType').value = userSettings["boardType"];
-    const isSSR1PCB = isBoardType(BoardType.SSR1PCB);
-    const deviceTypeElement = document.getElementById("deviceType");
-	deviceTypeElement.value = userSettings["deviceType"];
-    deviceTypeElement.disabled = isBoardType(BoardType.CRIMZZON) || isBoardType(BoardType.ISAAC) || isSSR1PCB;
-    if(userSettings.deviceType == DeviceType.NONE) {
-        deviceTypeElement.classList.add("pulse-yellow");
-    } else {
-        deviceTypeElement.classList.remove("pulse-yellow");
-    }
 	document.getElementById("maxServoRange").value = userSettings["maxServoRange"];
 	
 	document.getElementById("feedbackTwist").checked = userSettings["feedbackTwist"];
@@ -1037,7 +1095,7 @@ function setUserSettings()
         document.getElementById("BLDC_LowPassFilter").value = userSettings["BLDC_LowPassFilter"];
         Utils.toggleControlVisibilityByClassName("hallEffect", userSettings["BLDC_UseHallSensor"]);
         if(!motorA)
-            motorA = new BLDCMotor(userSettings.deviceType);// No name due to settings property name and html node ids.
+            motorA = new BLDCMotor(systemSettings["deviceType"]);// No name due to settings property name and html node ids.
         motorA.setup();
         document.getElementById("BLDC_HallEffect_PIN").value = pinoutSettings["BLDC_HallEffect_PIN"];
         motorA.setupPins();
@@ -1049,7 +1107,7 @@ function setUserSettings()
             const motorABLDCNode = Utils.createFormButtonRow("motorAButtonRow", "bldcRightSettingsButton", motorALabel, function() { 
                 motorA.ModalNode.show() 
             });
-            motorABLDCNode.button.disabled = userSettings.deviceType == DeviceType.NONE;
+            motorABLDCNode.button.disabled = systemSettings["deviceType"] == DeviceType.NONE;
             motorABLDCNode.row.classList.add("BLDCOnly");
             const siblingNode = document.getElementById("EncoderType");
             siblingNode.insertAdjacentElement('afterend', motorABLDCNode.row);
@@ -1057,7 +1115,7 @@ function setUserSettings()
         if(isSSR2())
         {
             if(!motorB)
-                motorB = new BLDCMotor(userSettings.deviceType, "B");
+                motorB = new BLDCMotor(systemSettings["deviceType"], "B");
             motorB.setup();
             motorB.setupPins();
             const motorBSettingsButton = document.getElementById("motorBButtonRow");
@@ -1144,17 +1202,6 @@ function setUserSettings()
     document.getElementById('vibTimeoutEnabled').checked = userSettings["vibTimeoutEnabled"];
 
     batterySetup();
-    
-    document.getElementById('logLevel').value = userSettings["logLevel"];
-
-    var includedElement = document.getElementById('log-include-tags');
-    for (var i = 0; i < includedElement.options.length; i++) {
-        includedElement.options[i].selected = userSettings["log-include-tags"].indexOf(includedElement.options[i].value) >= 0;
-    }
-    var excludedElement = document.getElementById('log-exclude-tags');
-    for (var i = 0; i < excludedElement.options.length; i++) {
-        excludedElement.options[i].selected = userSettings["log-exclude-tags"].indexOf(excludedElement.options[i].value) >= 0;
-    }
     
     document.getElementById('voiceEnabled').checked = userSettings['voiceEnabled'];
     document.getElementById('voiceMuted').checked = userSettings['voiceMuted'];
@@ -1647,7 +1694,7 @@ function deleteAllChildren(parentNode) {
     }
 }
 function isTCodeV3() {
-    return userSettings["TCodeVersion"] >= TCodeVersion.V3;
+    return systemSettings["TCodeVersion"] >= TCodeVersion.V3;
 }
 function hasTCodeV2()  {
     return hasFeature(BuildFeature.HAS_TCODE_V2);
@@ -1876,13 +1923,13 @@ function setupBoardTypes() {
 function setBoardType() {
     var element = document.getElementById('boardType');
     if(confirm("This will reset the current pinout to default and you will need to restart the device. Continue?")) {
-        userSettings["boardType"] = parseInt(element.value);
+        systemSettings["boardType"] = parseInt(element.value);
         const isSSR1PCB = isBoardType(BoardType.SSR1PCB);
         document.getElementById("deviceType").disabled = isBoardType(BoardType.CRIMZZON) || isBoardType(BoardType.ISAAC) || isSSR1PCB;
         document.getElementById("BLDC_Encoder").disabled = isSSR1PCB;
-        postBoardType(userSettings["boardType"]);
+        postBoardType(systemSettings["boardType"]);
     } else {
-        element.value = userSettings["boardType"];
+        element.value = systemSettings["boardType"];
     }
 }
 function setupDeviceTypes() {
@@ -1902,9 +1949,9 @@ function setDeviceType() {
     if(confirm("This will reset the device specific settings to default and reboot. Continue?")) {
         postDeviceType(newValue);
     } else {
-        element.value = userSettings["deviceType"];
+        element.value = systemSettings["deviceType"];
     }
-    if(userSettings.deviceType != DeviceType.NONE)
+    if(systemSettings["deviceType"] != DeviceType.NONE)
     {
         element.classList.remove("pulse-yellow");
     }
@@ -2934,11 +2981,11 @@ function setBLELoveDeviceType() {
 
 function setTCodeVersion() 
 {
-    userSettings["TCodeVersion"] = parseInt(document.getElementById('TCodeVersion').value);
+    systemSettings["TCodeVersion"] = parseInt(document.getElementById('TCodeVersion').value);
     toggleNonTCodev3Options()
     // setupChannelSliders();
 	setRestartRequired();
-	updateUserSettings();
+	postSystemSettings();
 }
 
 function setRestartRequired() {
@@ -3025,9 +3072,9 @@ function importSettings() {
                     handleImportRenames(key, importedValue, json["esp32VersionNum"])
             });
             // If the new build doesnt have the old TCode version in it, set it to the latest version.
-            if(tcodeVersions.findIndex(x => x.value == userSettings.TCodeVersion) == -1) {
-                userSettings.TCodeVersion = latestTCodeVersion;
-                document.getElementById('TCodeVersion').value = userSettings["TCodeVersion"];
+            if(tcodeVersions.findIndex(x => x.value == systemSettings["TCodeVersion"]) == -1) {
+                systemSettings["TCodeVersion"] = latestTCodeVersion;
+                document.getElementById('TCodeVersion').value = systemSettings["TCodeVersion"];
                 toggleNonTCodev3Options();
             }
             setWifiSettings();
@@ -3154,9 +3201,9 @@ function handleImportRenames(key, value, firmwareVersion) {
         return;
         case "sr6Mode":
         if(isMotorType(MotorType.BLDC))
-            userSettings.deviceType = DeviceType.SSR1
+            systemSettings["deviceType"] = DeviceType.SSR1
         else
-            userSettings.deviceType = value ? DeviceType.SR6 : DeviceType.OSR;
+            systemSettings["deviceType"] = value ? DeviceType.SR6 : DeviceType.OSR;
         return;
         case "BLDC_UsePWM": 
             userSettings.BLDC_Encoder = value ? BLDCEncoderType.PWM : BLDCEncoderType.SPI;

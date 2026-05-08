@@ -28,7 +28,6 @@ SOFTWARE. */
 //#include <variant.hpp>
 #include "enum.h"
 
-
 struct Setting
 {
     const char* name;
@@ -49,6 +48,7 @@ struct Setting
 enum class SettingFile
 {
     NONE,
+    System,
     Common,
     Network,
     Pins,
@@ -64,6 +64,8 @@ public:
     const char* path;
     SettingFile file;
     JsonDocument doc;
+    std::function<void()> onload;
+    std::function<void()> onchange;
     const std::vector<Setting> settings;
     const Setting* getSetting(const char* name) {
         std::vector<Setting>::const_iterator it = 

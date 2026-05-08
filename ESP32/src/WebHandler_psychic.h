@@ -234,7 +234,7 @@ class WebHandler : public HTTPBase {
 			{
                 Serial.println("API save wifi settings...");
                 JsonObject jsonObj = json.as<JsonObject>();
-                if (m_settingsFactory->saveWifi(jsonObj)) 
+                if (m_settingsFactory->saveNetwork(jsonObj)) 
                 {
                     return request->reply(200, "application/json", "{\"msg\":\"done\"}");
                 } 

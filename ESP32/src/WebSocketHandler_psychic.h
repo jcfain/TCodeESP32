@@ -79,7 +79,7 @@ class WebSocketHandler : public WebSocketBase {
                 sendCommand(in);
         }
 
-        // void sendDebug(const char* message, LogLevel level) {
+        // void sendLog(const char* message, LogLevel level) {
             // if (level != LogLevel::VERBOSE && isInitialized && debugInQueue != NULL && uxQueueMessagesWaiting(debugInQueue) < 10 && serial_mtx.try_lock()) {
             //     std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
             //         // char messageToSend[MAX_COMMAND];
@@ -183,7 +183,7 @@ class WebSocketHandler : public WebSocketBase {
         // static QueueHandle_t debugInQueue;
         static int m_lastSend;
         // static TaskHandle_t* emptyQueueHandle;
-        // static bool emptyQueueRunning;
+        // static bool sendLogTaskRunning;
 
         // static void emptyQueue(void *webSocketHandler) {
         //     while (true) {
@@ -200,7 +200,7 @@ class WebSocketHandler : public WebSocketBase {
         //     vTaskDelete(NULL);
         // }
 };
-// bool WebSocketHandler::emptyQueueRunning = false;
+// bool WebSocketHandler::sendLogTaskRunning = false;
 // QueueHandle_t WebSocketHandler::debugInQueue;
 int WebSocketHandler::m_lastSend = 0;
 // TaskHandle_t* WebSocketHandler::emptyQueueHandle = NULL;

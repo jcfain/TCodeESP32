@@ -8,8 +8,14 @@
 
 class WebSocketBase : public TCodeInterface {
     public:
-    virtual void sendCommand(const char* command, const char* message = 0) = 0;
+    void init() 
+    {
+        isBaseInitialized = true;
+    }
+
+    virtual void sendCommand(const char* command, const char* message = 0, size_t len = MAX_COMMAND) = 0;
     virtual void closeAll() = 0;
+    virtual void sendLogTask(void *webSocketHandler) = 0;
 
     size_t available() override
     {
@@ -37,12 +43,16 @@ class WebSocketBase : public TCodeInterface {
         return strnlen(buf, MAX_COMMAND);
     }
 
+    static void startLoggingTask(void *taskStartParameters)
+    {
+        ((WebSocketBase*)taskStartParameters)->sendLogTask(taskStartParameters);
+    }
+
 protected:
-    bool isInitialized = false;
     QueueHandle_t m_TCodeQueue;
     std::mutex command_mtx;
 
-    void compileCommand(char* buf, const char* command, const char* message = 0) {
+    void compileCommand(char* buf, const char* command, const char* message = 0, size_t len = MAX_COMMAND) {
         if(LogHandler::getLogLevel() == LogLevel::DEBUG) {
             if(message)
                 Serial.printf("Sending WS commands: %s, Message: %s\n", command, message);
@@ -50,12 +60,13 @@ protected:
                 Serial.printf("Sending WS commands: %s\n",command);
         }
         if(!message)
-            sprintf(buf, "{ \"command\": \"%s\" }", command);
+            snprintf(buf, len, "{ \"command\": \"%s\" }", command);
         else if(strpbrk(message, "{") != nullptr)
-            sprintf(buf, "{ \"command\": \"%s\" , \"message\": %s }", command, message);
+            snprintf(buf, len, "{ \"command\": \"%s\" , \"message\": %s }", command, message);
         else
-            sprintf(buf, "{ \"command\": \"%s\" , \"message\": \"%s\" }", command, message);
+            snprintf(buf, len, "{ \"command\": \"%s\" , \"message\": \"%s\" }", command, message);
     }
+
     void processWebSocketTextMessage(const char* msg) 
     {
         if(strpbrk(msg, "{") == nullptr)  
@@ -116,17 +127,10 @@ protected:
         }
     }
 
+
 private:
     const char* _TAG = "webSocket-base";
-    // std::mutex serial_mtx;
-    // static QueueHandle_t debugInQueue;
-    // static TaskHandle_t* emptyQueueHandle;
-    // static bool emptyQueueRunning;
+    bool isBaseInitialized = false;
     int messageLimit = 5000;
     unsigned long lastMessage = millis();
 };
-
-
-// bool WebSocketBase::emptyQueueRunning = false;
-// QueueHandle_t WebSocketBase::debugInQueue;
-// TaskHandle_t* WebSocketBase::emptyQueueHandle = NULL;

@@ -31,6 +31,7 @@ SOFTWARE. */
 // #include "LogHandler.h"
 #include "TagHandler.h"
 #include "BatteryHandler.h"
+#include "TaskHandler.hpp"
 
 AsyncWebSocket ws("/ws");
 
@@ -40,260 +41,240 @@ struct WebSocketCommand {
 };
 
 class WebSocketHandler : public WebSocketBase {
-    public: 
-        void setup(AsyncWebServer* server) {
-            LogHandler::info(_TAG, "Setting up webSocket");
-            ws.onEvent([&](AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
-                onWsEvent(server, client, type, arg, data, len);
-            });
-            server->addHandler(&ws);
-            m_TCodeQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
-            if(m_TCodeQueue == NULL) {
-                LogHandler::error(_TAG, "Error creating the tcode queue");
-            }
-            // debugInQueue = xQueueCreate(10, sizeof(char[MAX_COMMAND]));
-            // if(debugInQueue == NULL) {
-            //     LogHandler::error(_TAG, "Error creating the debug queue");
-            // }
-            // xTaskCreate(this->emptyQueue, "emptyDebugQueue", 2042, this, tskIDLE_PRIORITY, emptyQueueHandle);
-            isInitialized = true;
+public: 
+    void setup(AsyncWebServer* server) 
+    {
+        LogHandler::info(_TAG, "Setting up webSocket");
+        ws.onEvent([&](AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
+            onWsEvent(server, client, type, arg, data, len);
+        });
+        server->addHandler(&ws);
+        m_TCodeQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
+        if(m_TCodeQueue == NULL) {
+            LogHandler::error(_TAG, "Error creating the tcode queue");
         }
-        
-        void send(const char* in) override {
-            if(isInitialized && ws.count() > 0)
-                sendCommand(in);
-        }
+        TaskHandler::getInstance()->startWebsocketLogging(this);
+        isInitialized = true;
+    }
+    
+    void send(const char* in) override 
+    {
+        if(isInitialized && ws.count() > 0)
+            sendCommand(in);
+    }
 
-        // void sendDebug(const char* message, LogLevel level) {
-            // if (level != LogLevel::VERBOSE && isInitialized && debugInQueue != NULL && uxQueueMessagesWaiting(debugInQueue) < 10 && serial_mtx.try_lock()) {
-            //     std::lock_guard<std::mutex> lck(serial_mtx, std::adopt_lock);
-            //         // char messageToSend[MAX_COMMAND];
-            //         // if(sizeof(message) > 253) {
-            //         //     strncpy(messageToSend, message, 253);
-            //         //     messageToSend[254] = '\0';
-            //         //     Serial.println("truncated");
-            //         // } else {
-            //         //     strcpy(messageToSend, message);
-            //         //     messageToSend[strlen(message)] = '\0';
-            //         // }
-            //         // if(level >= LogLevel::DEBUG) {
-            //         //     Serial.print("insert to q: ");
-            //         //     Serial.println(message);
-            //         // }
-            //         xQueueSend(debugInQueue, message, 0);
-            // }
-        // }
-
-        void sendCommand(const char* command, const char* message = 0) override
+    void sendCommand(const char* command, const char* message = 0, size_t len = MAX_COMMAND) override
+    {
+        if(isInitialized && command_mtx.try_lock()) 
         {
-            if(isInitialized && command_mtx.try_lock()) {
-                std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
-                m_lastSend = millis();
+            std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
+            m_lastSend = millis();
 
-                char commandJson[MAX_COMMAND];
-                compileCommand(commandJson, command, message);
-                // if(client)
-                //     client->text(commandJson);
-                // else
-                    ws.textAll(commandJson);
-            }
+            char commandJson[MAX_COMMAND];
+            compileCommand(commandJson, command, message);
+            // if(client)
+            //     client->text(commandJson);
+            // else
+                ws.textAll(commandJson);
         }
+    }
 
-        // // Did not work last I tried it. Gave up.
-        // // template <size_t N>
-        // // void sendCommands(WebSocketCommand (&commands)[N], AsyncWebSocketClient* client = 0)
-        // // {
-        // //     if(isInitialized && command_mtx.try_lock()) {
-        // //         std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
-        // //         m_lastSend = millis();
+    // // Did not work last I tried it. Gave up.
+    // // template <size_t N>
+    // // void sendCommands(WebSocketCommand (&commands)[N], AsyncWebSocketClient* client = 0)
+    // // {
+    // //     if(isInitialized && command_mtx.try_lock()) {
+    // //         std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
+    // //         m_lastSend = millis();
 
-        // //         char commandsJson[MAX_COMMAND];
-        // //         std::strcat(commandsJson, "[");
-        // //         for (int i = 0; i < N; i++) 
-        // //         {
-        // //             if(commands[i].command) {
-        // //                 char commandJson[128];
-        // //                 compileCommand(commandJson, commands[i].command, commands[i].message);
-        // //                 Serial.print("compileCommand: ");
-        // //                 Serial.println(commandJson);
-        // //                 std::strcat(commandsJson, commandJson);
-        // //                 if(i < N-1)
-        // //                     std::strcat(commandsJson, ",");
-        // //             }
-        // //         }
-        // //         std::strcat(commandsJson, "]");
-        // //         Serial.print("commandsJson: ");
-        // //         Serial.println(commandsJson);
-        // //         if(client)
-        // //             client->text(commandsJson);
-        // //         else
-        // //             ws.textAll(commandsJson);
-        // //     }
-        // // }
+    // //         char commandsJson[MAX_COMMAND];
+    // //         std::strcat(commandsJson, "[");
+    // //         for (int i = 0; i < N; i++) 
+    // //         {
+    // //             if(commands[i].command) {
+    // //                 char commandJson[128];
+    // //                 compileCommand(commandJson, commands[i].command, commands[i].message);
+    // //                 Serial.print("compileCommand: ");
+    // //                 Serial.println(commandJson);
+    // //                 std::strcat(commandsJson, commandJson);
+    // //                 if(i < N-1)
+    // //                     std::strcat(commandsJson, ",");
+    // //             }
+    // //         }
+    // //         std::strcat(commandsJson, "]");
+    // //         Serial.print("commandsJson: ");
+    // //         Serial.println(commandsJson);
+    // //         if(client)
+    // //             client->text(commandsJson);
+    // //         else
+    // //             ws.textAll(commandsJson);
+    // //     }
+    // // }
 
-        // void getTCode(char* webSocketData) 
-        // {
-        //     if(m_TCodeQueue == NULL)
-        //     {
-        //         LogHandler::error(_TAG, "TCode queue was null");
-        //         return;
-        //     } 
-		// 	if(xQueueReceive(m_TCodeQueue, webSocketData, 0)) 
-        //     {
-        //         //tcode->toCharArray(webSocketData, tcode->length() + 1);
-        //         // Serial.print("Top tcode: ");
-        //         // Serial.println(webSocketData);
-        //     }
-        //     else 
-        //     {
-      	//         webSocketData[0] = {0};
-        //     }
-        //     ws.cleanupClients();
-        // }
+    // void getTCode(char* webSocketData) 
+    // {
+    //     if(m_TCodeQueue == NULL)
+    //     {
+    //         LogHandler::error(_TAG, "TCode queue was null");
+    //         return;
+    //     } 
+    // 	if(xQueueReceive(m_TCodeQueue, webSocketData, 0)) 
+    //     {
+    //         //tcode->toCharArray(webSocketData, tcode->length() + 1);
+    //         // Serial.print("Top tcode: ");
+    //         // Serial.println(webSocketData);
+    //     }
+    //     else 
+    //     {
+    //         webSocketData[0] = {0};
+    //     }
+    //     ws.cleanupClients();
+    // }
 
-        void closeAll() override
+    void sendLogTask(void *webSocketHandler) override
+    {
+        sendLogTaskRunning = true;
+        Serial.printf("[sendLogTask]\n");
+        char lastMessage[LogHandler::internal_buffer_length];
+        while (sendLogTaskRunning) 
         {
-            for (AsyncWebSocketClient *pClient : m_clients)
-                pClient->close();
+            if(ws.count() > 0) 
+            {
+                if(LogHandler::getLog(lastMessage)) 
+                {
+                    ((WebSocketHandler*)webSocketHandler)->sendCommand("log", lastMessage);
+                }
+            }
+            vTaskDelay(100/portTICK_PERIOD_MS);
         }
+        Serial.printf("[sendLogTask]: end\n");
+        vTaskDelete(NULL);
+    }
 
-    private:
-        bool isInitialized = false;
-        // std::mutex serial_mtx;
-        // std::mutex command_mtx;
-        const char* _TAG = TagHandler::WebsocketsHandler;
+    void closeAll() override
+    {
+        for (AsyncWebSocketClient *pClient : m_clients)
+            pClient->close();
+    }
+
+private:
+    bool isInitialized = false;
+    // std::mutex command_mtx;
+    const char* _TAG = TagHandler::WebsocketsHandler;
 // unsigned long lastCall;
-        std::list<AsyncWebSocketClient *> m_clients;
-        // QueueHandle_t m_TCodeQueue;
-        // static QueueHandle_t debugInQueue;
-        static int m_lastSend;
-        // static TaskHandle_t* emptyQueueHandle;
-        // static bool emptyQueueRunning;
+    std::list<AsyncWebSocketClient *> m_clients;
+    // QueueHandle_t m_TCodeQueue;
+    // static QueueHandle_t debugInQueue;
+    // std::mutex serial_mtx;
+    bool sendLogTaskRunning = false;
 
-        // static void emptyQueue(void *webSocketHandler) {
-        //     while (true) {
-        //         if(ws.count() > 0 && millis() - m_lastSend > 50 && uxQueueMessagesWaiting(debugInQueue)) {
-		// 		    char lastMessage[MAX_COMMAND];
-        //             if(xQueueReceive(debugInQueue, lastMessage, 0)) {
-        //                 if(LogHandler::getLogLevel() == LogLevel::VERBOSE)
-        //                     Serial.printf("read from q: %s\n", lastMessage);
-        //                 ((WebSocketHandler*)webSocketHandler)->sendCommand("debug", lastMessage);
-        //             }
-        //         }
-        // 	    vTaskDelay(100/portTICK_PERIOD_MS);
-        //     }
-        //     vTaskDelete(NULL);
-        // }
+    std::mutex serial_mtx;
+    int m_lastSend;
 
-        void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len)
+    void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len)
+    {
+        if(type == WS_EVT_CONNECT)
         {
-            if(type == WS_EVT_CONNECT)
+            LogHandler::debug(_TAG, "ws[%s][%u] connect\n", server->url(), client->id());
+            //client->printf("Hello Client %u :)", client->id());
+            // client->ping();
+            // client->client()->setNoDelay(true);
+            m_clients.push_back(client);
+        } 
+        else if(type == WS_EVT_DISCONNECT)
+        {
+            LogHandler::debug(_TAG, "ws[%s][%u] disconnect\n", server->url(), client->id());
+            m_clients.remove(client);
+        } 
+        else if(type == WS_EVT_ERROR)
+        {
+            LogHandler::debug(_TAG, "ws[%s][%u] error(%u): %s\n", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
+        } 
+        else if(type == WS_EVT_PONG)
+        {
+            LogHandler::debug(_TAG, "ws[%s][%u] pong[%u]: %s\n", server->url(), client->id(), len, (len)?(char*)data:"");
+        } 
+        else if(type == WS_EVT_DATA)
+        {
+            AwsFrameInfo * info = (AwsFrameInfo*)arg;
+            //String msg = "";
+            if(info->final && info->index == 0 && info->len == len)
             {
-                LogHandler::debug(_TAG, "ws[%s][%u] connect\n", server->url(), client->id());
-                //client->printf("Hello Client %u :)", client->id());
-                // client->ping();
-                // client->client()->setNoDelay(true);
-                m_clients.push_back(client);
-            } 
-            else if(type == WS_EVT_DISCONNECT)
-            {
-                LogHandler::debug(_TAG, "ws[%s][%u] disconnect\n", server->url(), client->id());
-                m_clients.remove(client);
-            } 
-            else if(type == WS_EVT_ERROR)
-            {
-                LogHandler::debug(_TAG, "ws[%s][%u] error(%u): %s\n", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
-            } 
-            else if(type == WS_EVT_PONG)
-            {
-                LogHandler::debug(_TAG, "ws[%s][%u] pong[%u]: %s\n", server->url(), client->id(), len, (len)?(char*)data:"");
-            } 
-            else if(type == WS_EVT_DATA)
-            {
-                AwsFrameInfo * info = (AwsFrameInfo*)arg;
-                //String msg = "";
-                if(info->final && info->index == 0 && info->len == len)
+                //the whole message is in a single frame and we got all of it's data
+                //Serial.printf("ws[%s][%u] %s-message[%llu]: ", server->url(), client->id(), (info->opcode == WS_TEXT)?"text":"binary", info->len);
+
+                // if(info->opcode == WS_TEXT)
+                // {
+                //     for(size_t i=0; i < info->len; i++) 
+                //     {
+                //         msg += (char) data[i];
+                //     }
+                // } 
+                // else 
+                // {
+                //     char buff[3];
+                //     for(size_t i=0; i < info->len; i++) 
+                //     {
+                //         sprintf(buff, "%02x ", (uint8_t) data[i]);
+                //         msg += buff ;
+                //     }
+                // }
+                // Serial.printf("%s\n",msg.c_str());
+
+                if(info->opcode == WS_TEXT) 
                 {
-                    //the whole message is in a single frame and we got all of it's data
-                    //Serial.printf("ws[%s][%u] %s-message[%llu]: ", server->url(), client->id(), (info->opcode == WS_TEXT)?"text":"binary", info->len);
+                    data[len] = 0;
+                    processWebSocketTextMessage((char*) data);
+                }
+                else
+                    client->binary("I got your binary message");
+            } 
+            else 
+            {
+            //message is comprised of multiple frames or the frame is split into multiple packets
+                // if(info->index == 0)
+                // {
+                //     if(info->num == 0)
+                //         Serial.printf("ws[%s][%u] %s-message start\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
+                //     Serial.printf("ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
+                // }
 
-                    // if(info->opcode == WS_TEXT)
-                    // {
-                    //     for(size_t i=0; i < info->len; i++) 
-                    //     {
-                    //         msg += (char) data[i];
-                    //     }
-                    // } 
-                    // else 
-                    // {
-                    //     char buff[3];
-                    //     for(size_t i=0; i < info->len; i++) 
-                    //     {
-                    //         sprintf(buff, "%02x ", (uint8_t) data[i]);
-                    //         msg += buff ;
-                    //     }
-                    // }
-                    // Serial.printf("%s\n",msg.c_str());
+                // Serial.printf("ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT)?"text":"binary", info->index, info->index + len);
 
-                    if(info->opcode == WS_TEXT) 
-                    {
-                        data[len] = 0;
-                        processWebSocketTextMessage((char*) data);
-                    }
-                    else
-                        client->binary("I got your binary message");
-                } 
-                else 
+                // if(info->opcode == WS_TEXT)
+                // {
+                //     for(size_t i=0; i < len; i++) 
+                //     {
+                //         msg += (char) data[i];
+                //     }
+                // } 
+                // else 
+                // {
+                //     char buff[3];
+                //     for(size_t i=0; i < len; i++) 
+                //     {
+                //         sprintf(buff, "%02x ", (uint8_t) data[i]);
+                //         msg += buff ;
+                //     }
+                // }
+                // Serial.printf("%s\n",msg.c_str());
+
+                if((info->index + len) == info->len)
                 {
-                //message is comprised of multiple frames or the frame is split into multiple packets
-                    // if(info->index == 0)
-                    // {
-                    //     if(info->num == 0)
-                    //         Serial.printf("ws[%s][%u] %s-message start\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
-                    //     Serial.printf("ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
-                    // }
-
-                    // Serial.printf("ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT)?"text":"binary", info->index, info->index + len);
-
-                    // if(info->opcode == WS_TEXT)
-                    // {
-                    //     for(size_t i=0; i < len; i++) 
-                    //     {
-                    //         msg += (char) data[i];
-                    //     }
-                    // } 
-                    // else 
-                    // {
-                    //     char buff[3];
-                    //     for(size_t i=0; i < len; i++) 
-                    //     {
-                    //         sprintf(buff, "%02x ", (uint8_t) data[i]);
-                    //         msg += buff ;
-                    //     }
-                    // }
-                    // Serial.printf("%s\n",msg.c_str());
-
-                    if((info->index + len) == info->len)
+                    //Serial.printf("ws[%s][%u] frame[%u] end[%llu]\n", server->url(), client->id(), info->num, info->len);
+                    if(info->final)
                     {
-                        //Serial.printf("ws[%s][%u] frame[%u] end[%llu]\n", server->url(), client->id(), info->num, info->len);
-                        if(info->final)
+                        //Serial.printf("ws[%s][%u] %s-message end\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
+                        if(info->message_opcode == WS_TEXT) 
                         {
-                            //Serial.printf("ws[%s][%u] %s-message end\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
-                            if(info->message_opcode == WS_TEXT) 
-                            {
-                                data[len] = 0;
-                                processWebSocketTextMessage((char*)data);
-                            }
-                            else
-                                client->binary("I got your binary message");
+                            data[len] = 0;
+                            processWebSocketTextMessage((char*)data);
                         }
+                        else
+                            client->binary("I got your binary message");
                     }
                 }
             }
         }
+    }
 };
-
-// bool WebSocketHandler::emptyQueueRunning = false;
-// QueueHandle_t WebSocketHandler::debugInQueue;
-int WebSocketHandler::m_lastSend = 0;
-// TaskHandle_t* WebSocketHandler::emptyQueueHandle = NULL;

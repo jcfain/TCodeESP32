@@ -33,11 +33,51 @@ class LogHandler {
 public:
     static const int internal_buffer_length = 1024;
 
+    static void init() 
+    {
+        Serial.println("[LogHandler::init]");
+        if(m_logQueue) 
+        {
+            return;
+            // vQueueDelete(m_logQueue);
+            // m_logQueue = 0;
+        }
+        // LogLevel level = getInstance().getLogLevel();
+        // if(level > LogLevel::NONE)
+        // {
+        //     int queueSize = 25;
+        //     if(level == LogLevel::VERBOSE) {
+        //         queueSize = 200;
+        //     } else if(level == LogLevel::DEBUG) {
+        //         queueSize = 100;
+        //     }
+            m_logQueue = xQueueCreate(100, sizeof(char[MAX_COMMAND]));
+            if(m_logQueue == NULL) 
+            {
+                Serial.println("[LogHandler::init] Error creating the log queue");
+            }
+        // }
+    }
+
+    static bool getLog(char* log) {
+        if(m_logQueue) 
+        {
+            if(xQueueReceive(m_logQueue, log, 0) == pdTRUE) 
+            {
+                if(getLogLevel() == LogLevel::VERBOSE)
+                    Serial.printf("[LogHandler::getLog] read from q: %s\n", log);
+                return true;
+            }
+        }
+        return false;
+    }
+
     static void setLogLevel(LogLevel logLevel) {
         if(logLevel != getInstance().m_currentLogLevel)
         {
-			Serial.printf("Log level changed to: %d\n", (uint8_t)logLevel);
+			Serial.printf("[LogHandler::setLogLevel] Log level changed to: %d\n", (uint8_t)logLevel);
             getInstance().m_currentLogLevel = logLevel;
+            //init();
         }
     }
 
@@ -54,7 +94,7 @@ public:
         });
         if (position == log.m_tags.end()) {
             log.m_tags.push_back(tag);
-            Serial.printf("LogHandler: add include: %s\n", tag);
+            Serial.printf("[LogHandler::addInclude] add include: %s\n", tag);
         } else
             return false;
         return true;
@@ -79,7 +119,7 @@ public:
         });
         if (position != log.m_tags.end()) {
             log.m_tags.erase(position);
-            Serial.printf("LogHandler: remove include: %s\n", tag);
+            Serial.printf("[LogHandler::removeInclude] remove include: %s\n", tag);
         } else
             return false;
         return true;
@@ -94,7 +134,7 @@ public:
         });
         if (position == log.m_filters.end()) {// == myVector.end() means the element was not found
             log.m_filters.push_back(tag);
-            Serial.printf("LogHandler: add exclude: %s\n", tag);
+            Serial.printf("[LogHandler::addExclude] add exclude: %s\n", tag);
             // Serial.println(m_filters.size());
         } else {
             // Serial.println(m_filters.size());
@@ -122,7 +162,7 @@ public:
         });
         if (position != log.m_filters.end()) {// == myVector.end() means the element was not found
             log.m_filters.erase(position);
-            Serial.printf("LogHandler: remove exclude: %s\n", tag);
+            Serial.printf("[LogHandler::removeExclude] remove exclude: %s\n", tag);
             // Serial.println(m_filters.size());
         } else {
             // Serial.println(m_filters.size());
@@ -220,6 +260,7 @@ private:
         static LogHandler logger_instance;
         return logger_instance;
     }
+    static inline QueueHandle_t m_logQueue = 0;
 
     LogCallback m_message_callback = 0;
     LogLevel m_currentLogLevel = LogLevel::INFO;
@@ -232,68 +273,82 @@ private:
     bool m_filterDuplicates = false;
 
     static void parseMessage(const char *valueFormat, const char *level,
-                             const char *tag, LogLevel logLevel, va_list vArgs) {
+                             const char *tag, LogLevel logLevel, va_list vArgs) 
+    {
         LogHandler &log = getInstance();
-		if (strlen(valueFormat) > internal_buffer_length) {
-			Serial.println("Log value too big for buffer");
+		if (strlen(valueFormat) > internal_buffer_length) 
+        {
+			Serial.println("[LogHandler::parseMessage] Log value too big for buffer");
 			return;
 		}
 		char temp[internal_buffer_length] = {'\0'};
 		int len = vsnprintf(temp, internal_buffer_length - 1, valueFormat, vArgs);
 
-		if (len < 0) {
-			Serial.println("Error printing vargs");
+		if (len < 0) 
+        {
+			Serial.println("[LogHandler::parseMessage] Error printing vargs");
 			return;
 		}
-
-		for (size_t i = internal_buffer_length - 1; i >= 0; --i) {
+		for (size_t i = internal_buffer_length - 1; i >= 0; --i) 
+        {
 			if ((temp[i] != '\n') && (temp[i] != '\r') && (temp[i] != ' ') &&
-				(i < len)) {
+				(i < len)) 
+            {
 				break;
 			}
 			temp[i] = 0;
 		}
+		char temp2[internal_buffer_length] = {'\0'};
+        len = snprintf(temp2, internal_buffer_length, "%s %s: %s", level, tag, temp);
 
-		if (log.m_filterDuplicates) {
+		if (len < 0) 
+        {
+			Serial.println("[LogHandler::parseMessage] Error printing with tag");
+			return;
+		}
+
+		if (log.m_filterDuplicates) 
+        {
 			switch (logLevel) {
             case LogLevel::NONE:
             case LogLevel::INFO:
             case LogLevel::WARNING:
                     break;
 			case LogLevel::ERROR:
-				if (strcmp(log.m_lastError, temp) == 0)
+				if (strcmp(log.m_lastError, temp2) == 0)
 					return;
 				break;
 			case LogLevel::VERBOSE:
-				if (strcmp(log.m_lastVerbose, temp) == 0)
+				if (strcmp(log.m_lastVerbose, temp2) == 0)
 					return;
 				break;
 			case LogLevel::DEBUG:
-				if (strcmp(log.m_lastDebug, temp) == 0)
+				if (strcmp(log.m_lastDebug, temp2) == 0)
 					return;
 				break;
 			}
 		}
-
-		Serial.printf("%s %s: %s\n", level, tag, temp);
-		switch (logLevel) {
-        case LogLevel::NONE:
-        case LogLevel::INFO:
-        case LogLevel::WARNING:
+		Serial.printf("%s\n", temp2);
+		switch (logLevel) 
+        {
+            case LogLevel::NONE:
+            case LogLevel::INFO:
+            case LogLevel::WARNING:
+                    break;
+            case LogLevel::ERROR:
+                strncpy(log.m_lastError, temp2, internal_buffer_length);
                 break;
-		case LogLevel::ERROR:
-			strncpy(log.m_lastError, temp, internal_buffer_length);
-			break;
-		case LogLevel::VERBOSE:
-			strncpy(log.m_lastVerbose, temp, internal_buffer_length);
-			break;
-		case LogLevel::DEBUG:
-			strncpy(log.m_lastDebug, temp, internal_buffer_length);
-			break;
+            case LogLevel::VERBOSE:
+                strncpy(log.m_lastVerbose, temp2, internal_buffer_length);
+                break;
+            case LogLevel::DEBUG:
+                strncpy(log.m_lastDebug, temp2, internal_buffer_length);
+                break;
 		}
 
+        storeLog(temp2, len, logLevel);
 		if (log.m_message_callback)
-			log.m_message_callback(temp, len, logLevel);
+			log.m_message_callback(temp2, len, logLevel);
     }
 
     static bool isTagged(const char *tag) {
@@ -320,5 +375,57 @@ private:
         bool tagged = isTagged(tag);
         bool filtered = isFiltered(tag);
         return tagged && !filtered;
+    }
+
+    static void storeLog(const char* message, size_t len, LogLevel level)
+    {
+        int maxLen = MAX_COMMAND;
+        if (m_logQueue) 
+        {
+            if(len > maxLen) 
+            {
+                int sendChunks = len / maxLen;
+                int sent = 0;
+                int amountToSend = maxLen / sendChunks;
+                for(int i = 0; i < sendChunks; i++)
+                {
+                    char messageToSend[amountToSend];
+                    strncpy(messageToSend, message + sent, amountToSend);
+                    messageToSend[maxLen] = '\0';
+                    if(level >= LogLevel::DEBUG) 
+                        Serial.printf("[LogHandler::storeLog] truncated: %s\n", message + sent);
+                    if(xQueueSend(m_logQueue, messageToSend, 0) != pdTRUE) 
+                    {
+                        Serial.printf("[LogHandler::storeLog] Error sending log message: %s\n", message + sent);
+                    }
+                    sent += amountToSend;
+                }
+                int mod = len % maxLen;
+                if(mod)
+                {
+                    char messageToSend[mod];
+                    strncpy(messageToSend, message + sent, mod);
+                    if(level >= LogLevel::DEBUG) 
+                        Serial.printf("[LogHandler::storeLog] truncated mod: %s\n", message + sent);
+                    if(xQueueSend(m_logQueue, messageToSend, 0) != pdTRUE) 
+                    {
+                        Serial.printf("[LogHandler::storeLog] Error sending log message mod: %s\n", message + sent);
+                    }
+                    sent += mod;
+                }
+            } 
+            else 
+            {
+                if(xQueueSend(m_logQueue, message, 0) != pdTRUE) 
+                {
+                    Serial.printf("[LogHandler::storeLog] Error sending log message");
+                }
+            }
+            // if(level >= LogLevel::VERBOSE) 
+            // {
+            //     Serial.printf("[LogHandler::storeLog] insert to q: %s\n", message);
+            // }
+        }
+        // sendCommand("log", message, len);
     }
 };

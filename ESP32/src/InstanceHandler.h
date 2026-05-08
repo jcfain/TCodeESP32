@@ -173,11 +173,12 @@ void profileChangeCallback(uint8_t profile)
 
 void logCallBack(const char *input, const size_t& length, const LogLevel& level)
 {
-#if WIFI_TCODE
-    // if(webSocketHandler) {
-    // 	webSocketHandler->sendDebug(in, level);
+// #if WIFI_TCODE
+    // if(webSocketHandler) 
+    // {
+    // 	webSocketHandler->sendLog(input, length, level);
     // }
-#endif
+// #endif
 }
 
 #if BUILD_TEMP
@@ -424,7 +425,7 @@ void settingChangeCallback(const SettingProfile &profile, const char *settingTha
 //     void operator()(const char* in, LogLevel level) const {
 //         #if WIFI_TCODE
 //             // if(webSocketHandler) {
-//             // 	webSocketHandler->sendDebug(in, level);
+//             // 	webSocketHandler->sendLog(in, level);
 //             // }
 //         #endif
 //     }

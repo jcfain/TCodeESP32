@@ -4,6 +4,7 @@
 #include "LogHandler.h"
 #include "DisplayHandler.h"
 #include "VoiceHandler.hpp"
+#include "WebSocketBase.h"
 #if SECURE_WEB
 #include "HTTPSHandler.hpp"
 #include "WebHandler.h"
@@ -37,6 +38,22 @@ public:
 		{
 			LogHandler::error(TagHandler::Main, "Could not start display task.");
 		}
+    }
+    void startDisplayAnimationTask(DisplayHandler* displayHandler) 
+    {
+        // LogHandler::debug(TagHandler::Main, "Start Display Animation task");
+        //     auto status = xTaskCreatePinnedToCore(
+        //         DisplayHandler::startAnimationDontPanic,/* Function to implement the task */
+        //         "DisplayTask", /* Name of the task */
+        //         10000,  /* Stack size in words */
+        //         displayHandler,  /* Task input parameter */
+        //         25,  /* Priority of the task */
+        //         &animationTask,  /* Task handle. */
+        //         APP_CPU_NUM); /* Core where the task should run */
+        // if (status != pdPASS)
+        // {
+        //     LogHandler::error(TagHandler::Main, "Could not start Display Animation task.");
+        // }
     }
 #endif
 #if BUILD_TEMP
@@ -107,7 +124,6 @@ public:
             LogHandler::error(TagHandler::Main, "Could not start voice task.");
         }
     }
-
 #if SECURE_WEB
     void startHTTPSTask(WebHandler* webHandler) 
     {
@@ -127,27 +143,29 @@ public:
     }
 #endif
 
-    void startDisplayAnimationTask(DisplayHandler* displayHandler) 
+void startWebsocketLogging(WebSocketBase* webSocketBase) 
+{
+    LogHandler::debug(TagHandler::Main, "Start web socket logging");
+    auto webSocketLoggingStatus = xTaskCreatePinnedToCore(
+        WebSocketBase::startLoggingTask,  /* Function to implement the task */
+        "WebsocketLoggingTask",			  /* Name of the task */
+        configMINIMAL_STACK_SIZE * 4, /* Stack size in words */
+        webSocketBase,			  /* Task input parameter */
+        1,						  /* Priority of the task */
+        &webSocketLoggingTask,	  /* Task handle. */
+        TASK_CPU_NUM);			  /* Core where the task should run */
+    if (webSocketLoggingStatus != pdPASS)
     {
-        // LogHandler::debug(TagHandler::Main, "Start Display Animation task");
-        //     auto status = xTaskCreatePinnedToCore(
-        //         DisplayHandler::startAnimationDontPanic,/* Function to implement the task */
-        //         "DisplayTask", /* Name of the task */
-        //         10000,  /* Stack size in words */
-        //         displayHandler,  /* Task input parameter */
-        //         25,  /* Priority of the task */
-        //         &animationTask,  /* Task handle. */
-        //         APP_CPU_NUM); /* Core where the task should run */
-        // if (status != pdPASS)
-        // {
-        //     LogHandler::error(TagHandler::Main, "Could not start Display Animation task.");
-        // }
+        LogHandler::error(TagHandler::Main, "Could not start websocket logging task.");
     }
+}
+
 private:
     TaskHandle_t batteryTask;
     TaskHandle_t httpsTask;
 
     TaskHandle_t voiceTask;
+    TaskHandle_t webSocketLoggingTask;
 
 
 #if BUILD_DISPLAY

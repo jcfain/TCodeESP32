@@ -53,16 +53,15 @@ public:
         //resetAll();
         if(!loadAllFromDisk())
             return false;
-        loadCommonCache();
-        loadPinCache();
         m_initialized = true;
         return true;
     }
     
     const std::vector<SettingFileInfo*> AllSettings = {
+        &m_systemFileInfo,
         &m_networkFileInfo,
         &m_commonFileInfo,
-        &m_pinsFileInfo// Pins are dependent on common for now. Device type and board type
+        &m_pinsFileInfo// Pins are dependent on system for now. Device type and board type
     };
 
     // Cached (Requires reboot)
@@ -204,7 +203,18 @@ public:
              typename = std::enable_if<!std::is_const<T>::value || std::is_integral<T>::value || std::is_enum<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
     SettingFile getValue(const char* name, T &value)
     {
-        if (m_networkFileInfo.doc[name].is<T>()) 
+        if (m_systemFileInfo.doc[name].is<T>()) 
+        {
+            if(!m_systemFileInfo.initialized) {
+                LogHandler::error(m_TAG, "getValue T called before system file initialized");
+                return SettingFile::NONE;
+            }
+            xSemaphoreTake(m_systemSemaphore, portTICK_PERIOD_MS);
+            value = m_systemFileInfo.doc[name].as<T>();
+            xSemaphoreGive(m_systemSemaphore);
+            return SettingFile::System;
+        } 
+        else if (m_networkFileInfo.doc[name].is<T>()) 
         {
             if(!m_networkFileInfo.initialized) {
                 LogHandler::error(m_TAG, "getValue T called before network file initialized");
@@ -251,7 +261,16 @@ public:
             return SettingFile::NONE;
         }
         strncpy(value, constvalue, len);
-        if (m_networkFileInfo.doc[name].is<const char*>()) 
+        if (m_systemFileInfo.doc[name].is<const char*>()) 
+        {
+            if(!m_systemFileInfo.initialized) {
+                LogHandler::error(m_TAG, "getValue char* len called before system file initialized");
+                return SettingFile::NONE;
+            }
+            LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, value);
+            return SettingFile::System;
+        } 
+        else if (m_networkFileInfo.doc[name].is<const char*>()) 
         {
             if(!m_networkFileInfo.initialized) {
                 LogHandler::error(m_TAG, "getValue char* len called before network file initialized");
@@ -274,7 +293,19 @@ public:
     
     const char* getValue(const char* name)
     {
-        if (m_networkFileInfo.doc[name].is<const char*>()) 
+        if (m_systemFileInfo.doc[name].is<const char*>()) 
+        {
+            if(!m_systemFileInfo.initialized) {
+                LogHandler::error(m_TAG, "getValue char* called before system file initialized");
+                return 0;
+            }
+            xSemaphoreTake(m_systemSemaphore, portTICK_PERIOD_MS);
+            const char* constvalue = m_systemFileInfo.doc[name];
+            LogHandler::debug(m_TAG, "getValue char* common: %s: constvalue: %s", name, constvalue);
+            xSemaphoreGive(m_systemSemaphore);
+            return constvalue;
+        } 
+        else if (m_networkFileInfo.doc[name].is<const char*>()) 
         {
             if(!m_networkFileInfo.initialized) {
                 LogHandler::error(m_TAG, "getValue char* called before network file initialized");
@@ -357,7 +388,25 @@ public:
     SettingFile setValue(const char* name, const T &value) 
     {
         LogHandler::debug(m_TAG, "Enter setValue T: %s", name);
-        if (m_networkFileInfo.doc[name].is<T>())
+        
+        if (m_systemFileInfo.doc[name].is<T>())
+        {
+            if(!m_systemFileInfo.initialized) {
+                LogHandler::error(m_TAG, "setValue T called before system file initialized");
+                return SettingFile::NONE;
+            }
+            T currentValue = m_systemFileInfo.doc[name].as<T>();
+            if(currentValue != value) {
+                LogHandler::debug(m_TAG, "Change system value T: %s", name);
+                xSemaphoreTake(m_systemSemaphore, portTICK_PERIOD_MS);
+                checkRestartRequired(&m_systemFileInfo, name);
+                m_systemFileInfo.doc[name] = value;
+                loadSystemLiveCache(name);
+                xSemaphoreGive(m_systemSemaphore);
+            }
+            return SettingFile::System;
+        }
+        else if (m_networkFileInfo.doc[name].is<T>())
         {
             if(!m_networkFileInfo.initialized) {
                 LogHandler::error(m_TAG, "setValue T called before network file initialized");
@@ -369,7 +418,7 @@ public:
                 xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
                 checkRestartRequired(&m_networkFileInfo, name);
                 m_networkFileInfo.doc[name] = value;
-                //loadWifiLiveCache(name); // Not needed now
+                loadNetworkLiveCache(name);
                 xSemaphoreGive(m_networkSemaphore);
             }
             return SettingFile::Network;
@@ -403,7 +452,7 @@ public:
                 xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
                 checkRestartRequired(&m_pinsFileInfo, name);
                 m_pinsFileInfo.doc[name] = value;
-                //loadPinCache(); // Not needed now
+                loadPinLiveCache();
                 xSemaphoreGive(m_pinSemaphore);
             }
             return SettingFile::Pins;
@@ -429,7 +478,9 @@ public:
             LogHandler::debug(m_TAG, "Change value: %s old value: %s new value: %s", name, currentValue, strcmp(name, AP_MODE_PASS) || strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DONOTCHANGE_DEFAULT) ? value : "<Redacted>");
             fileInfo->doc[name] = value;
             checkRestartRequired(fileInfo, name);
-            if(fileInfo->file == SettingFile::Common) {
+            if(fileInfo->file == SettingFile::System) {
+                loadSystemLiveCache(name);
+            } if(fileInfo->file == SettingFile::Common) {
                 loadCommonLiveCache(name);
             }
         }
@@ -451,7 +502,9 @@ public:
         }
         fileInfo->doc[name] = value;
         checkRestartRequired(fileInfo, name);
-        if(fileInfo->file == SettingFile::Common) {
+        if(fileInfo->file == SettingFile::System) {
+            loadSystemLiveCache(name);
+        } if(fileInfo->file == SettingFile::Common) {
             loadCommonLiveCache(name);
         }
         return fileInfo->file;
@@ -472,13 +525,15 @@ public:
         const Setting* setting = fileInfo->getSetting(name);
         checkRestartRequired(setting, name);
         defaultToJson(setting, fileInfo->doc);
-        if(fileInfo->file == SettingFile::Common) {
+        if(fileInfo->file == SettingFile::System) {
+            loadSystemLiveCache(name);
+        } if(fileInfo->file == SettingFile::Common) {
             loadCommonLiveCache(name);
         }
         switch(fileInfo->file)
         {
             case SettingFile::Network:
-            saveWifi();
+            saveNetwork();
             break;
             case SettingFile::Common:
             saveCommon();
@@ -505,8 +560,8 @@ public:
             if(!saveToDisk(*settingsInfo, fromJson))
                 return false;
         }
-        loadCommonLiveCache();
-        loadPinCache();
+        // loadCommonLiveCache();
+        // loadPinCache();
         return true;;
     }
     bool resetAll() 
@@ -537,7 +592,7 @@ public:
                 }
                 break;
             case SettingFile::Network:
-                if(!saveWifi(fromJson)) {
+                if(!saveNetwork(fromJson)) {
                     return false;
                 }
             case SettingFile::Pins:
@@ -553,6 +608,25 @@ public:
         return true;
     }
 
+    bool saveSystem(JsonObject fromJson = JsonObject())
+    {
+        xSemaphoreTake(m_systemSemaphore, portTICK_PERIOD_MS);
+        bool ret = saveToDisk(m_systemFileInfo, fromJson);
+        xSemaphoreGive(m_systemSemaphore);
+        if(ret) {
+            loadSystemLiveCache();
+        }
+        return ret;
+    }
+    bool resetSystem()
+    {
+        xSemaphoreTake(m_systemSemaphore, portTICK_PERIOD_MS);
+        bool ret = loadDefault(m_systemFileInfo);
+        xSemaphoreGive(m_systemSemaphore);
+        if(ret)
+            loadSystemLiveCache();
+        return ret;
+    }
     bool saveCommon(JsonObject fromJson = JsonObject())
     {
         xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
@@ -573,7 +647,7 @@ public:
         return ret;
     }
 
-    bool saveWifi(JsonObject fromJson = JsonObject())
+    bool saveNetwork(JsonObject fromJson = JsonObject())
     {
         xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
         if(!fromJson.isNull()) 
@@ -597,7 +671,7 @@ public:
         xSemaphoreGive(m_networkSemaphore);
         return ret;
     }
-    bool resetWiFi()
+    bool resetNetwork()
     {
         xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
         bool ret = loadDefault(m_networkFileInfo);
@@ -623,6 +697,31 @@ public:
             loadPinCache();
         return ret;
     }
+
+    void loadSystemLiveCache(const char* name = 0) {
+        if(!m_systemFileInfo.initialized) {
+            LogHandler::error(m_TAG, "loadSystemLiveCache called before initialized");
+            return;
+        }
+        bool targeted = !!name;
+        if(!name || !strcmp(name, LOG_LEVEL_SETTING)) {
+            getValue(LOG_LEVEL_SETTING, logLevel);
+            if(targeted) {initSystemMessages(name); return;}
+        }
+        if(!name || !strcmp(name, LOG_INCLUDETAGS)) {
+            getValue(LOG_INCLUDETAGS, logIncludes);
+            if(targeted) {initSystemMessages(name); return;}
+        }
+        if(!name || !strcmp(name, LOG_INCLUDETAGS)) {
+            getValue(LOG_EXCLUDETAGS, logExcludes);
+            if(targeted) {initSystemMessages(name); return;}
+        }
+        initSystemMessages();
+    }
+
+    void loadNetworkLiveCache(const char* name = 0) {}
+
+    void loadPinLiveCache(const char* name = 0) {}
     
     void loadCommonLiveCache(const char* name = 0) {
         if(!m_commonFileInfo.initialized) {
@@ -630,18 +729,6 @@ public:
             return;
         }
         bool targeted = !!name;
-        if(!name || !strcmp(name, LOG_LEVEL_SETTING)) {
-            getValue(LOG_LEVEL_SETTING, logLevel);
-            if(targeted) {initCommonMessages(name); return;}
-        }
-        if(!name || !strcmp(name, LOG_INCLUDETAGS)) {
-            getValue(LOG_INCLUDETAGS, logIncludes);
-            if(targeted) {initCommonMessages(name); return;}
-        }
-        if(!name || !strcmp(name, LOG_INCLUDETAGS)) {
-            getValue(LOG_EXCLUDETAGS, logExcludes);
-            if(targeted) {initCommonMessages(name); return;}
-        }
         if(!name || !strcmp(name, INVERSE_STROKE)) {
             getValue(INVERSE_STROKE, inverseStroke);
             if(targeted) {initCommonMessages(name); return;}
@@ -842,7 +929,7 @@ public:
         }
         LogHandler::info(m_TAG, "[changeBoardType] Settings pinout default");
         setValue(BOARD_TYPE_SETTING, boardType);
-        return saveCommon() && defaultPinout();
+        return saveSystem() && saveCommon() && defaultPinout();
     }
 
     bool changeDeviceType(int8_t value)
@@ -873,7 +960,7 @@ public:
         }
         LogHandler::info(m_TAG, "[changeDeviceType] Settings pinout default");
         setValue(DEVICE_TYPE, newType);
-        bool retValue = saveCommon() && defaultPinout();
+        bool retValue = saveSystem() && saveCommon() && defaultPinout();
         // Override for new device type AFTER default!
         if(motorType == MotorType::BLDC)
         {
@@ -955,7 +1042,7 @@ public:
     {
         return 
         {
-            false, DEBUG_INFO_PATH, SettingFile::DebugInfo, JsonDocument(), 
+            false, DEBUG_INFO_PATH, SettingFile::DebugInfo, JsonDocument(), 0, 0,
             {
                 { DEBUG_INFO_LAST_BOOT_REASONS, "Last boot reasons", "The reasons for boot up or reboot.", SettingType::ArrayString, DEBUG_INFO_LAST_BOOT_REASONS_DEFAULT, RestartRequired::YES, { SettingProfile::System, SettingProfile::Readonly }},
             }
@@ -975,14 +1062,29 @@ private:
 
     SettingsChangeCallback message_callback = 0;
 
+    SemaphoreHandle_t m_systemSemaphore;
     SemaphoreHandle_t m_networkSemaphore;
     SemaphoreHandle_t m_commonSemaphore;
     SemaphoreHandle_t m_pinSemaphore;
     SemaphoreHandle_t m_debugInfoSemaphore;
 
+    SettingFileInfo m_systemFileInfo = 
+    {
+        false, SYSTEM_SETTINGS_PATH, SettingFile::System, JsonDocument(), [this] () {loadSystemCache();}, [this]() { loadSystemLiveCache(); },
+        {
+            {LOG_LEVEL_SETTING, "Log level", "The loglevel that will output", SettingType::Number, LOG_LEVEL_DEFAULT, RestartRequired::NO, {SettingProfile::System}},
+            {DEVICE_TYPE, "Type of device", "The surrent selected device", SettingType::Number, DEVICE_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
+            {MOTOR_TYPE_SETTING, "Motor type", "The current motor type", SettingType::Number, MOTOR_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
+            {BOARD_TYPE_SETTING, "Board type", "The physical board type", SettingType::Number, BOARD_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
+            {TCODE_VERSION_SETTING, "TCode version", "The version of TCode", SettingType::Number, TCODE_VERSION_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
+            {LOG_INCLUDETAGS, "Log included tags", "Log tags to be included in the output", SettingType::ArrayString, LOG_INCLUDETAGS_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
+            {LOG_EXCLUDETAGS, "Log excluded tags", "Log tags to be excluded in the output", SettingType::ArrayString, LOG_EXCLUDETAGS_DEFAULT, RestartRequired::YES, {SettingProfile::System}}
+        }
+    };
+
     SettingFileInfo m_networkFileInfo = 
     {
-        false, NETWORK_SETTINGS_PATH, SettingFile::Network, JsonDocument(), 
+        false, NETWORK_SETTINGS_PATH, SettingFile::Network, JsonDocument(), [this] () {loadNetworkCache();}, [this] () {loadNetworkLiveCache();},
         {
             {SSID_SETTING, "Wifi ssid", "The ssid of the WiFi AP", SettingType::String, SSID_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
             {WIFI_PASS_SETTING, "Wifi pass", "The password for the WiFi AP", SettingType::String, WIFI_PASS_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
@@ -1019,14 +1121,8 @@ private:
 
     SettingFileInfo m_commonFileInfo = 
     {
-        false, COMMON_SETTINGS_PATH, SettingFile::Common, JsonDocument(), 
+        false, COMMON_SETTINGS_PATH, SettingFile::Common, JsonDocument(), [this]() { loadCommonCache(); }, [this]() { loadCommonLiveCache(); },
         {
-            {DEVICE_TYPE, "Type of device", "The surrent selected device", SettingType::Number, DEVICE_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
-            {MOTOR_TYPE_SETTING, "Motor type", "The current motor type", SettingType::Number, MOTOR_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
-            {BOARD_TYPE_SETTING, "Board type", "The physical board type", SettingType::Number, BOARD_TYPE_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
-            {LOG_LEVEL_SETTING, "Log level", "The loglevel that will output", SettingType::Number, LOG_LEVEL_DEFAULT, RestartRequired::NO, {SettingProfile::System}},
-            //{FULL_BUILD, "Full build", "", SettingType::Boolean, false, RestartRequired::YES, {SettingProfile::System}}, // Not sure what this was for. Doesnt appear to be used anywhere.
-            {TCODE_VERSION_SETTING, "TCode version", "The version of TCode", SettingType::Number, TCODE_VERSION_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
             {MAX_SERVO_RANGE, "Max servo range", "Max range of the servos", SettingType::Number, MAX_SERVO_RANGE_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {CONTINUOUS_TWIST, "Continous twist", "Ignores any feedback signal from a feedback servo", SettingType::Boolean, CONTINUOUS_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {FEEDBACK_TWIST, "Feedback twist", "For feed back servos", SettingType::Boolean, FEEDBACK_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
@@ -1105,8 +1201,6 @@ private:
             {VOICE_MUTED, "Voice muted", "Voice talk back muted", SettingType::Boolean, VOICE_MUTED_DEFAULT, RestartRequired::YES, {SettingProfile::Voice}},
             {VOICE_WAKE_TIME, "Voice wake time", "How long to keep the voice module awake listening for commands", SettingType::Number, VOICE_WAKE_TIME_DEFAULT, RestartRequired::YES, {SettingProfile::Voice}},
             {VOICE_VOLUME, "Voice volume", "The volume of the voice talk back", SettingType::Number, VOICE_VOLUME_DEFAULT, RestartRequired::YES, {SettingProfile::Voice}},
-            {LOG_INCLUDETAGS, "Log included tags", "Log tags to be included in the output", SettingType::ArrayString, LOG_INCLUDETAGS_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
-            {LOG_EXCLUDETAGS, "Log excluded tags", "Log tags to be excluded in the output", SettingType::ArrayString, LOG_EXCLUDETAGS_DEFAULT, RestartRequired::YES, {SettingProfile::System}},
             {BOOT_BUTTON_ENABLED, "Boot button enabled", "Enables the boot button function", SettingType::Boolean, BOOT_BUTTON_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Button}},
             {BOOT_BUTTON_COMMAND, "Boot button command", "Command to execute when the boot button is pressed", SettingType::String, BOOT_BUTTON_COMMAND_DEFAULT, RestartRequired::NO, {SettingProfile::Button}},
             {BUTTON_SETS_ENABLED, "Button sets enabled", "Enables the button sets function", SettingType::Boolean, BUTTON_SETS_ENABLED_DEFAULT, RestartRequired::YES, {SettingProfile::Button}},
@@ -1116,7 +1210,7 @@ private:
 
     SettingFileInfo m_pinsFileInfo = 
     {
-        false, PIN_SETTINGS_PATH, SettingFile::Pins, JsonDocument(), 
+        false, PIN_SETTINGS_PATH, SettingFile::Pins, JsonDocument(), [this]() { loadPinCache(); }, [this]() { loadPinLiveCache(); },
         {
             // PWM
             {RIGHT_SERVO_PIN, "Right servo PIN", "Pin the right servo is on", SettingType::Number, RIGHT_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
@@ -1187,6 +1281,7 @@ private:
     };
 
     SettingsFactory() {
+        m_systemSemaphore = xSemaphoreCreateMutex();
         m_networkSemaphore = xSemaphoreCreateMutex();
         m_commonSemaphore = xSemaphoreCreateMutex();
         m_pinSemaphore = xSemaphoreCreateMutex();
@@ -1291,6 +1386,8 @@ private:
             }
             file.close();
             fileInfo.initialized = true;
+            if(fileInfo.onload)
+                fileInfo.onload();
         }
         //json = doc.as<JsonObject>();
         return true;
@@ -1317,17 +1414,27 @@ private:
 
     bool loadDefault(SettingFile file) 
     {
-        if(file == SettingFile::Network) 
+        if(file == SettingFile::System) 
+        {
+            return loadDefault(m_systemFileInfo);
+        }
+        else if(file == SettingFile::Network) 
         {
             return loadDefault(m_networkFileInfo);
         }
-        if(file == SettingFile::Common) 
+        else if(file == SettingFile::Common) 
         {
             return loadDefault(m_commonFileInfo);
         }
-        if(file == SettingFile::Pins) 
+        else if(file == SettingFile::Pins) 
         {
             return loadDefaultPins();
+        }
+        else if(file == SettingFile::DebugInfo) 
+        {
+            SettingFileInfo debugInfo = getDebugInfo();
+            return loadDefault(debugInfo);
+            
         }
         LogHandler::error(m_TAG, "Unknown file loading default: %ld", (int)file);
         return false;
@@ -1350,12 +1457,12 @@ private:
         if(!strcmp(setting->name, LOG_INCLUDETAGS)) {
             std::vector<const char*> includesVec;
             doc[LOG_INCLUDETAGS] = includesVec;
-            loadCommonLiveCache(LOG_INCLUDETAGS);
+            loadSystemLiveCache(LOG_INCLUDETAGS);
             return true;
         } else if(!strcmp(setting->name, LOG_EXCLUDETAGS)) {
             std::vector<const char*> excludesVec;
             doc[LOG_EXCLUDETAGS] = excludesVec;
-            loadCommonLiveCache(LOG_EXCLUDETAGS);
+            loadSystemLiveCache(LOG_EXCLUDETAGS);
             return true;
         } else if(!strcmp(setting->name, BUTTON_SET_PINS)) {
             std::vector<int8_t> vec = { BUTTON_SET_PINS_1, BUTTON_SET_PINS_2, BUTTON_SET_PINS_3, BUTTON_SET_PINS_4 };
@@ -1611,6 +1718,14 @@ private:
         return true;
     }
 
+    bool loadSystemFromDisk()
+    {
+        xSemaphoreTake(m_systemSemaphore, portTICK_PERIOD_MS);
+        auto ret = load(m_systemFileInfo);
+        xSemaphoreGive(m_systemSemaphore);
+        return ret;
+    }
+
     bool loadCommonFromDisk()
     {
         xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
@@ -1618,7 +1733,7 @@ private:
         xSemaphoreGive(m_commonSemaphore);
         return ret;
     }
-    bool loadWifiFromDisk()
+    bool loadNetworkFromDisk()
     {
         xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
         bool ret = load(m_networkFileInfo);;
@@ -1661,6 +1776,8 @@ private:
         if(LogHandler::getLogLevel() >= LogLevel::DEBUG)
             LogHandler::debug(m_TAG, "File contents: %s", file.readString().c_str());
         file.close();
+        if(fileInfo.onchange)
+            fileInfo.onchange();
         return true;
     }
     
@@ -1695,20 +1812,37 @@ private:
         return false;
     }
 
-    void loadCommonCache() 
+    void loadSystemCache() 
     {
-        if(!m_commonFileInfo.initialized) {
-            LogHandler::error(m_TAG, "loadCommonCache called before initialized");
+        if(!m_systemFileInfo.initialized) {
+            LogHandler::error(m_TAG, "loadSystemCache called before initialized");
             return;
         }
 	    getValue(TCODE_VERSION_SETTING, tcodeVersion);
+        loadSystemLiveCache();
+    }
+
+    void loadNetworkCache() 
+    {
+        if(!m_networkFileInfo.initialized) {
+            LogHandler::error(m_TAG, "loadNetworkCache called before initialized");
+            return;
+        }
 	    getValue(UDP_SERVER_PORT, udpServerPort);
 	    getValue(WEBSERVER_PORT, webServerPort);
 	    getValue(HOST_NAME, hostname, HOST_NAME_LEN);
 	    getValue(FRIENDLY_NAME, friendlyName, FRIENDLY_NAME_LEN);
         getValue(AP_MODE_SSID, apModeSSID, SSID_LEN);
         getValue(AP_MODE_IP, apModeIP, IP_ADDRESS_LEN);
-        
+        loadNetworkLiveCache();
+    }
+
+    void loadCommonCache() 
+    {
+        if(!m_commonFileInfo.initialized) {
+            LogHandler::error(m_TAG, "loadCommonCache called before initialized");
+            return;
+        }
         getValue(DEVICE_TYPE, m_deviceType);
         getValue(BOARD_TYPE_SETTING, m_boardType);
         loadCommonLiveCache();
@@ -2056,6 +2190,20 @@ private:
         for(SettingFileInfo* settingsInfo : AllSettings)
         {
             for(const Setting& setting : settingsInfo->settings)
+            {
+                sendMessage(setting.profiles.front(), setting.name);
+            }
+        }
+    }
+    void initSystemMessages(const char* name = 0) {
+        if(name) {
+            const Setting* setting = m_systemFileInfo.getSetting(name);
+            if(!setting) {
+                return;
+            }
+            sendMessage(setting->profiles.front(), name);
+        } else {
+            for(const Setting& setting : m_systemFileInfo.settings)
             {
                 sendMessage(setting.profiles.front(), setting.name);
             }
