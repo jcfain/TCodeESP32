@@ -74,6 +74,59 @@ jobs:
           path: ESP32/flasher/millibyte-flasher/firmware/${{ matrix.board }}/
           if-no-files-found: error
 
+      # Raw-bin release archive: same files, but renamed and zipped so users
+      # who already have esptool can flash without downloading the full
+      # MillibyteFlasher bundle.
+      - name: Build merged release.bin (esptool)
+        working-directory: ESP32
+        run: |
+          pip install esptool
+          src=flasher/millibyte-flasher/firmware/${{ matrix.board }}
+          python - <<'PY'
+          import json, os, subprocess, sys
+          src = os.environ["SRC"]
+          m = json.load(open(f"{src}/manifest.json"))
+          chip = m["chip"]
+          mode = m.get("flash_mode", "dio")
+          freq = str(m.get("flash_freq", "40m")).lower().replace("mhz", "m")
+          size = m.get("flash_size", "4MB")
+          pairs = []
+          for f in m["files"]:
+              name = f.get("name") or f.get("path")
+              pairs += [f["offset"], f"{src}/{name}"]
+          cmd = [
+              "esptool.py", "--chip", chip, "merge_bin",
+              "-o", f"{src}/release.bin",
+              "--flash_mode", mode, "--flash_freq", freq, "--flash_size", size,
+              *pairs,
+          ]
+          print("+", " ".join(cmd))
+          subprocess.check_call(cmd)
+          PY
+        env:
+          SRC: flasher/millibyte-flasher/firmware/${{ matrix.board }}
+
+      - name: Stage raw-bin archive
+        working-directory: ESP32/flasher/millibyte-flasher
+        run: |
+          board=${{ matrix.board }}
+          src=firmware/$board
+          name=MillibyteFirmware-$board
+          stage=dist-firmware/$name
+          rm -rf "$stage"
+          mkdir -p "$stage"
+          cp "$src/bootloader.bin" "$src/partitions.bin" "$src/firmware.bin" \
+             "$src/boot_app0.bin" "$src/manifest.json" "$src/release.bin" "$stage/"
+          if [ -f "$src/littlefs.bin" ]; then cp "$src/littlefs.bin" "$stage/"; fi
+          (cd dist-firmware && zip -r9 "$name.zip" "$name")
+          ls -la dist-firmware/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-archive-${{ matrix.board }}
+          path: ESP32/flasher/millibyte-flasher/dist-firmware/MillibyteFirmware-${{ matrix.board }}.zip
+          if-no-files-found: error
+
   package:
     name: Package flasher (${{ matrix.os }})
     needs: firmware
