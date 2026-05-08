@@ -48,25 +48,53 @@ jobs:
         working-directory: ESP32
         run: |
           mkdir -p cache
-          pio run -t buildfs -e ${{ matrix.board }}
+          # Build firmware first, then buildfs LAST so that the FS image
+          # cannot be clobbered by a subsequent build step. We also list the
+          # data/ contents to make it obvious in CI logs whether there's
+          # anything to put inside the LittleFS image.
+          echo "::group::data/ contents"
+          find data -type f | xargs -r ls -la
+          echo "::endgroup::"
           pio run -e ${{ matrix.board }}
+          pio run -t buildfs -e ${{ matrix.board }}
           ls -la .pio/build/${{ matrix.board }}/
 
       - name: Stage firmware bundle
         working-directory: ESP32
         run: |
+          set -euo pipefail
           dest=flasher/millibyte-flasher/firmware/${{ matrix.board }}
+          src=.pio/build/${{ matrix.board }}
           mkdir -p "$dest"
-          cp .pio/build/${{ matrix.board }}/bootloader.bin "$dest/"
-          cp .pio/build/${{ matrix.board }}/partitions.bin "$dest/"
-          cp .pio/build/${{ matrix.board }}/firmware.bin   "$dest/"
-          if [ -f .pio/build/${{ matrix.board }}/littlefs.bin ]; then
-            cp .pio/build/${{ matrix.board }}/littlefs.bin "$dest/"
-          elif [ -f .pio/build/${{ matrix.board }}/spiffs.bin ]; then
-            cp .pio/build/${{ matrix.board }}/spiffs.bin "$dest/littlefs.bin"
+          cp "$src/bootloader.bin" "$dest/"
+          cp "$src/partitions.bin" "$dest/"
+          cp "$src/firmware.bin"   "$dest/"
+          if [ -f "$src/littlefs.bin" ]; then
+            cp "$src/littlefs.bin" "$dest/"
+          elif [ -f "$src/spiffs.bin" ]; then
+            cp "$src/spiffs.bin" "$dest/littlefs.bin"
+          else
+            echo "::error::No filesystem image (littlefs.bin / spiffs.bin) was produced for ${{ matrix.board }}"
+            ls -la "$src"
+            exit 1
           fi
           cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin "$dest/"
           ls -la "$dest"
+          # Sanity-check every file referenced in the manifest now exists.
+          python - <<'PY'
+          import json, os, sys
+          dest = os.environ["DEST"]
+          m = json.load(open(f"{dest}/manifest.json"))
+          missing = [f for f in m["files"]
+                     if not os.path.isfile(os.path.join(dest, f.get("name") or f.get("path")))]
+          if missing:
+              for f in missing:
+                  print(f"::error::manifest references missing file: {f}")
+              sys.exit(1)
+          print("All manifest files present.")
+          PY
+        env:
+          DEST: flasher/millibyte-flasher/firmware/${{ matrix.board }}
 
       - uses: actions/upload-artifact@v4
         with:
