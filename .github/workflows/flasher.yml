@@ -47,16 +47,25 @@ jobs:
       - name: Build firmware + filesystem
         working-directory: ESP32
         run: |
+          set -euxo pipefail
           mkdir -p cache
-          # Build firmware first, then buildfs LAST so that the FS image
-          # cannot be clobbered by a subsequent build step. We also list the
-          # data/ contents to make it obvious in CI logs whether there's
-          # anything to put inside the LittleFS image.
           echo "::group::data/ contents"
-          find data -type f | xargs -r ls -la
+          find data -type f -print -exec ls -la {} \;
           echo "::endgroup::"
-          pio run -e ${{ matrix.board }}
+          stash=$(mktemp -d)
+          # Step 1: build the filesystem image and stash it immediately, since
+          # a later `pio run` invocation has been observed to wipe other
+          # artifacts out of .pio/build/<env>/ on some pioarduino releases.
           pio run -t buildfs -e ${{ matrix.board }}
+          for f in littlefs.bin spiffs.bin; do
+            if [ -f .pio/build/${{ matrix.board }}/$f ]; then
+              cp .pio/build/${{ matrix.board }}/$f "$stash/"
+            fi
+          done
+          # Step 2: build firmware/bootloader/partitions.
+          pio run -e ${{ matrix.board }}
+          # Step 3: restore the FS image so staging can pick it up.
+          cp -n "$stash"/*.bin .pio/build/${{ matrix.board }}/ 2>/dev/null || true
           ls -la .pio/build/${{ matrix.board }}/
 
       - name: Stage firmware bundle
