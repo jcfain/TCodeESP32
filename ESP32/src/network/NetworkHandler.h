@@ -40,7 +40,7 @@ public:
 			LogHandler::debug(Tags::Main, "Start https task");
 			webHandler = new HTTPSHandler();
 			webSocketHandler = new SecureWebSocketHandler();
-			TaskHandler::global().priority(static_cast<TaskHandler::Task*>(webHandler));
+			TaskHandler::global().add(static_cast<TaskHandler::Task*>(webHandler));
 #endif
 			webHandler->setup(port, webSocketHandler, apMode);
 			LogHandler::debug(Tags::Main, "Web DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));

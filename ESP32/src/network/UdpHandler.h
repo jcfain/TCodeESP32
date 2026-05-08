@@ -137,7 +137,6 @@ public:
 
 private:
 	TCodeVersion m_tcodeVersion;
-	TaskHandle_t m_task;
 	QueueHandle_t m_TCodeQueue;
 
 	AsyncUDP m_udp;

@@ -106,15 +106,18 @@ namespace TaskHandler
         }
     };
 
-    // Backward-compatible Manager API — now just holds two TaskLists.
-    // The caller is responsible for polling from the appropriate core.
+    // Backward-compatible Manager API — now just holds a single TaskList that
+    // is polled cooperatively from Arduino loop() (Core 1 / APP_CPU). The
+    // motor-control task lives in its own pinned FreeRTOS task on Core 0
+    // (PRO_CPU); see motorTaskFunc in main.cpp. There is no separate Core 0
+    // cooperative list — anything time-critical should be inside the motor
+    // task, not the cooperative poll loop.
     class TaskManager
     {
     private:
         inline static TaskManager *singleton = nullptr;
 
-        TaskList _core0Tasks; // motor-adjacent tasks (serial, buttons)
-        TaskList _core1Tasks; // comms tasks (WiFi, UDP, battery, etc.)
+        TaskList _tasks; // All cooperatively-polled tasks (Core 1 / loop()).
 
         TaskManager() = default;
 
@@ -126,17 +129,17 @@ namespace TaskHandler
             return *singleton;
         }
 
-        // Register tasks — all now polled cooperatively from a single loop per core
-        void critical(Task *task) { _core0Tasks.add(task); }
-        void priority(Task *task) { _core1Tasks.add(task); }
-        void auxiliary(Task *task) { _core1Tasks.add(task); }
+        // Register a cooperatively-polled task. All registration aliases route
+        // here — the legacy critical/priority/auxiliary distinction is gone
+        // because every cooperative task runs on the same core / poll loop.
+        void add(Task* task) { _tasks.add(task); }
+        void priority(Task* task) { _tasks.add(task); }
+        void auxiliary(Task* task) { _tasks.add(task); }
+        void critical(Task* task) { _tasks.add(task); }
+        void realtime(Task* task) { _tasks.add(task); }
+        void lazy(Task* task) { _tasks.add(task); }
 
-        // Aliases
-        void realtime(Task *task) { critical(task); }
-        void lazy(Task *task) { auxiliary(task); }
-
-        TaskList &core0Tasks() { return _core0Tasks; }
-        TaskList &core1Tasks() { return _core1Tasks; }
+        TaskList& tasks() { return _tasks; }
 
         void start() {}  // No-op: caller polls directly
         void update() {} // No-op

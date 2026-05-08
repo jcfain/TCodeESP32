@@ -18,7 +18,7 @@ public:
         if (!_singleton)
         {
             _singleton = new OperatingModeHandler();
-            TaskHandler::global().priority(_singleton);
+            TaskHandler::global().add(_singleton);
         }
     }
     static OperatingModeHandler* global()

@@ -88,6 +88,32 @@ unsigned long restartAtMs = 0;
 bool networkingBringupAttempted = false;
 const unsigned long NETWORK_BRINGUP_DELAY_MS = 3000;
 
+// =====================================================================
+// FreeRTOS task / thread layout
+// ---------------------------------------------------------------------
+// Core 0 (PRO_CPU)
+//   * "motor"           — pinned, prio MOTOR_TASK_PRIORITY (19), stack
+//                         MOTOR_TASK_STACK_SIZE. Owns motor setup() +
+//                         control loop. Drains motorCmdQueue each tick.
+//   * "servoWiggle"     — short-lived, spawned by identifyServo() to
+//                         pulse one servo for visual ID (see
+//                         MotorHandler0_3/0_4 and ServoHandler0_4).
+//
+// Core 1 (APP_CPU)
+//   * Arduino loop()    — cooperative poll() of every TaskHandler::Task
+//                         registered via TaskHandler::global().add().
+//                         Includes: SerialHandler, ButtonHandler,
+//                         WifiHandler, UdpHandler, BatteryHandler,
+//                         PowerHandler, OperatingModeHandler, WebHandler.
+//   * WiFi/IP/AsyncTCP  — internal SDK tasks created by Arduino-ESP32.
+//   * AsyncWebServer    — internal task created by ESPAsyncWebServer.
+//
+// Inter-core communication
+//   * motorCmdQueue     — xQueue used by feedMotorCommand() so any
+//                         core/task can submit a TCode command without
+//                         touching motor-state directly.
+// =====================================================================
+
 // --- Motor task configuration ---
 // Motor control runs on a dedicated FreeRTOS task pinned to PRO_CPU (Core 0).
 // Priority must stay BELOW the WiFi/pp driver tasks (~23) so the WiFi stack
@@ -369,17 +395,17 @@ void setup()
 	TaskHandler::Manager &taskManager = TaskHandler::global();
 	Serial.println("BOOT: Registering tasks");
 	LogHandler::info(Tags::Main, "Initializing tasks");
-	taskManager.priority(&serialHandler); // Serial TCode ingress
+	taskManager.add(&serialHandler); // Serial TCode ingress
 	LogHandler::info(Tags::Main, "Serial handler initialized");
-	taskManager.priority(&buttonHandler); // Button input
+	taskManager.add(&buttonHandler); // Button input
 	LogHandler::info(Tags::Main, "Button handler initialized");
-	taskManager.priority(&wifi); // Network connection state machine
+	taskManager.add(&wifi); // Network connection state machine
 	LogHandler::info(Tags::Main, "WiFi handler initialized");
-	taskManager.priority(&udpHandler); // TCode ingress/egress transport
+	taskManager.add(&udpHandler); // TCode ingress/egress transport
 	LogHandler::info(Tags::Main, "UDP handler initialized");
-	taskManager.priority(&batteryHandler); // Telemetry polling
+	taskManager.add(&batteryHandler); // Telemetry polling
 	LogHandler::info(Tags::Main, "Battery handler initialized");
-	taskManager.priority(&powerHandler); // Analog rail telemetry polling
+	taskManager.add(&powerHandler); // Analog rail telemetry polling
 	LogHandler::info(Tags::Main, "Power handler initialized");
 
 	batteryHandler.setMessageCallback([](const float& capacityRemainingPercentage, const float& capacityRemaining, const float& voltage, const float& temperature)
@@ -437,7 +463,7 @@ void loop()
 {
 	// Cooperatively poll all communication / sensor tasks on APP_CPU (Core 1).
 	// Motor control runs on its own FreeRTOS task (PRO_CPU) â€“ nothing to do here.
-	TaskHandler::global().core1Tasks().poll();
+	TaskHandler::global().tasks().poll();
 
 	if (!networkingBringupAttempted && millis() >= NETWORK_BRINGUP_DELAY_MS)
 	{
