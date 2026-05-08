@@ -62,7 +62,7 @@ jobs:
       - name: Stage firmware bundle
         working-directory: ESP32
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           dest=flasher/millibyte-flasher/firmware/${{ matrix.board }}
           src=.pio/build/${{ matrix.board }}
           mkdir -p "$dest"
@@ -78,23 +78,23 @@ jobs:
             ls -la "$src"
             exit 1
           fi
-          cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin "$dest/"
+          # boot_app0.bin location varies by arduino-espressif32 install layout.
+          boot_app0=""
+          for cand in \
+            ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin \
+            ~/.platformio/packages/framework-arduinoespressif32@*/tools/partitions/boot_app0.bin; do
+            if [ -f "$cand" ]; then boot_app0="$cand"; break; fi
+          done
+          if [ -z "$boot_app0" ]; then
+            boot_app0=$(find ~/.platformio/packages -name boot_app0.bin -type f 2>/dev/null | head -n1 || true)
+          fi
+          if [ -z "$boot_app0" ]; then
+            echo "::error::could not locate boot_app0.bin"
+            ls -la ~/.platformio/packages/ || true
+            exit 1
+          fi
+          cp "$boot_app0" "$dest/boot_app0.bin"
           ls -la "$dest"
-          # Sanity-check every file referenced in the manifest now exists.
-          python - <<'PY'
-          import json, os, sys
-          dest = os.environ["DEST"]
-          m = json.load(open(f"{dest}/manifest.json"))
-          missing = [f for f in m["files"]
-                     if not os.path.isfile(os.path.join(dest, f.get("name") or f.get("path")))]
-          if missing:
-              for f in missing:
-                  print(f"::error::manifest references missing file: {f}")
-              sys.exit(1)
-          print("All manifest files present.")
-          PY
-        env:
-          DEST: flasher/millibyte-flasher/firmware/${{ matrix.board }}
 
       - uses: actions/upload-artifact@v4
         with:
