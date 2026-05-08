@@ -3,7 +3,7 @@
 
 #include "enum.h"
 
-//#define GET_DEFAULT(X)
+// #define GET_DEFAULT(X)
 
 #define COMMON_SETTINGS_PATH "/userSettings.json"
 #define PIN_SETTINGS_PATH "/pins.json"
@@ -15,17 +15,20 @@
 #define DEBUG_INFO_PATH "/debugInfo.json"
 
 // Setting defaults
-
-#ifdef MOTOR_TYPE_SERVO
-    #define DEVICE_TYPE_NAME_DEFAULT "OSR"
-    #define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::OSR
-    #define MOTOR_TYPE_DEFAULT (uint8_t)MotorType::Servo
-#else 
-    #define DEVICE_TYPE_NAME_DEFAULT "NONE"
-    #define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::NONE
-    #define MOTOR_TYPE_DEFAULT (uint8_t)MotorType::BLDC
+#ifndef DEFAULT_DEVICE
+#if MOTOR_TYPE == 0
+#define DEVICE_TYPE_NAME_DEFAULT "OSR"
+#define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::OSR
+#else
+#define DEVICE_TYPE_NAME_DEFAULT "NONE"
+#define DEVICE_TYPE_DEFAULT (uint8_t)DeviceType::SSR1
 #endif
-#define IP_ADDRESS_LEN IP4ADDR_STRLEN_MAX //16
+#else
+#define DEVICE_TYPE_NAME_DEFAULT "OSR"
+#define DEVICE_TYPE_DEFAULT (int)DEFAULT_DEVICE
+#endif
+#define MOTOR_TYPE_DEFAULT MOTOR_TYPE
+#define IP_ADDRESS_LEN IP4ADDR_STRLEN_MAX // 16
 #define SSID_DEFAULT "YOUR SSID HERE"
 #define SSID_LEN 32
 #define WIFI_PASS_DEFAULT "YOUR PASSWORD HERE"
@@ -38,8 +41,21 @@
 #define AP_MODE_IP_DEFAULT "192.168.69.1"
 #define AP_MODE_GATEWAY_DEFAULT "192.168.69.254"
 #define AP_MODE_SUBNET_DEFAULT "255.255.255.0"
+#ifndef DEFAULT_BOARD
+#if CONFIG_IDF_TARGET_ESP32
+#define BOARD_TYPE_DEFAULT (uint8_t)BoardType::N8R8
+#elif CONFIG_IDF_TARGET_ESP32S3
+#ifdef S3_ZERO
+#define BOARD_TYPE_DEFAULT (uint8_t)BoardType::ZERO
+#else
+#define BOARD_TYPE_DEFAULT (uint8_t)BoardType::N8R8
+#endif
+#endif
+#else
+#define BOARD_TYPE_DEFAULT (int)DEFAULT_BOARD
+#endif
 #define LOG_LEVEL_DEFAULT (uint8_t)LogLevel::INFO
-//#define FULL_BUILD_DEFAULT false
+// #define FULL_BUILD_DEFAULT false
 #define TCODE_VERSION_DEFAULT (uint8_t)TCodeVersion::v0_3
 #define UDP_SERVER_PORT_DEFAULT 8000
 #define WEBSERVER_PORT_DEFAULT 80
@@ -67,9 +83,11 @@
 #define BLDC_TWIST_LIMIT_DEFAULT 0.5f
 
 #define BLDC_MOTORA_PULLEY_CIRCUMFERENCE_DEFAULT 60
+#define BLDC_PULLEY_CIRCUMFERENCE_DEFAULT BLDC_MOTORA_PULLEY_CIRCUMFERENCE_DEFAULT
 #define BLDC_MOTORA_VOLTAGE_DEFAULT 20.0f
 #define BLDC_MOTORA_SUPPLY_DEFAULT 20.0f
 #define BLDC_MOTORA_CURRENT_DEFAULT 1.0f
+#define BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT false
 #define BLDC_MOTORA_ZEROELECANGLE_DEFAULT -12345.0f // FOC NOT_SET
 
 #define BLDC_MOTORB_PULLEY_CIRCUMFERENCE_DEFAULT 60
@@ -105,6 +123,7 @@
 #define INVERSE_TWIST_DEFAULT false
 #define LUBE_AMOUNT_DEFAULT 255
 #define LUBE_ENABLED_DEFAULT false
+#define LUBE_BUTTON_PIN_MODE_DEFAULT (uint8_t)LubeButtonPinMode::PULL_UP
 #define DISPLAY_ENABLED_DEFAULT false
 #define SLEEVE_TEMP_DISPLAYED_DEFAULT false
 #define VERSION_DISPLAYED_DEFAULT true
@@ -128,7 +147,7 @@
 #define FAN_CONTROL_ENABLED_DEFAULT false
 // #define CASE_FAN_FREQUENCY_DEFAULT 25
 #define CASE_FAN_RESOLUTION_DEFAULT 10
-#define CASE_FAN_MAX_PWM_DEFAULT 1023// Set for default CASE_FAN_RESOLUTION_DEFAULT 10 bit
+#define CASE_FAN_MAX_PWM_DEFAULT 1023 // Set for default CASE_FAN_RESOLUTION_DEFAULT 10 bit
 #define INTERNAL_TEMP_FOR_FAN_DEFAULT 30.0
 #define INTERNAL_MAX_TEMP_DEFAULT 50.0
 #define TEMP_INTERNAL_ENABLED_DEFAULT false
@@ -136,13 +155,32 @@
 #define BATTERY_LEVEL_NUMERIC_DEFAULT false
 #define BATTERY_VOLTAGE_MAX_DEFAULT 12.6
 #define BATTERY_CAPACITY_MAX_DEFAULT 3500
+#define POWER_MONITOR_3V3_DIVIDER_RATIO_DEFAULT 1.0f
+#define POWER_MONITOR_5V_DIVIDER_RATIO_DEFAULT 1.0f
+#define POWER_MONITOR_BATTERY_DIVIDER_RATIO_DEFAULT 1.0f
+#define POWER_MONITOR_MOTOR_DIVIDER_RATIO_DEFAULT 1.0f
+#define POWER_MONITOR_BUS_DIVIDER_RATIO_DEFAULT 1.0f
+#define POWER_MONITOR_3V3_OFFSET_DEFAULT 0.0f
+#define POWER_MONITOR_5V_OFFSET_DEFAULT 0.0f
+#define POWER_MONITOR_BATTERY_OFFSET_DEFAULT 0.0f
+#define POWER_MONITOR_MOTOR_OFFSET_DEFAULT 0.0f
+#define POWER_MONITOR_BUS_OFFSET_DEFAULT 0.0f
+#define POWER_MONITOR_VBUS_NOMINAL_DEFAULT 20.0f
+#if MOTOR_TYPE == 1
+#define POWER_MONITOR_VMOTOR_NOMINAL_DEFAULT 20.0f
+#else
+#define POWER_MONITOR_VMOTOR_NOMINAL_DEFAULT 9.0f
+#endif
+#define SERVO_VOLTAGE_ENABLE_PIN_DEFAULT -1
+#define SERVO_VOLTAGE_ENABLE_STATE_DEFAULT true
 #define VOICE_ENABLED_DEFAULT false
 #define VOICE_MUTED_DEFAULT false
 #define VOICE_WAKE_TIME_DEFAULT 10
 #define VOICE_VOLUME_DEFAULT 5
 // Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
-#define LOG_INCLUDETAGS_DEFAULT {}
-#define LOG_EXCLUDETAGS_DEFAULT {}
+// Use "" as placeholder — variant<int,char*,float,double,bool> cannot hold {}.
+#define LOG_INCLUDETAGS_DEFAULT ""
+#define LOG_EXCLUDETAGS_DEFAULT ""
 #define DEBUG_INFO_LAST_BOOT_REASONS_DEFAULT {}
 
 #define LAST_BOOT_REASONS_MAX "lastBootReasonsMax"
@@ -171,7 +209,7 @@
 
 #define BOARD_TYPE_SETTING "boardType"
 #define LOG_LEVEL_SETTING "logLevel"
-//#define FULL_BUILD "fullBuild"
+// #define FULL_BUILD "fullBuild"
 #define TCODE_VERSION_SETTING "TCodeVersion"
 #define UDP_SERVER_PORT "udpServerPort"
 #define WEBSERVER_PORT "webServerPort"
@@ -186,7 +224,14 @@
 #define CONTINUOUS_TWIST "continuousTwist"
 #define FEEDBACK_TWIST "feedbackTwist"
 #define ANALOG_TWIST "analogTwist"
-
+#define BLDC_ENCODER "BLDC_Encoder"
+#define BLDC_USEHALLSENSOR "BLDC_UseHallSensor"
+#define BLDC_PULLEY_CIRCUMFERENCE "BLDC_Pulley_Circumference"
+#define BLDC_MOTORA_VOLTAGE "BLDC_MotorA_VoltageLimit"
+#define BLDC_MOTORA_SUPPLY "BLDC_MotorA_SupplyVoltage"
+#define BLDC_MOTORA_CURRENT "BLDC_MotorA_Current"
+#define BLDC_MOTORA_PARAMETERSKNOWN "BLDC_MotorA_ParametersKnown"
+#define BLDC_MOTORA_ZEROELECANGLE "BLDC_MotorA_ZeroElecAngle"
 #define BLDC_RAILLENGTH "BLDC_RailLength"
 #define BLDC_STROKELENGTH "BLDC_StrokeLength"
 #define BLDC_TWIST_MULTIPLIER "BLDC_TwistMultiplier"
@@ -195,19 +240,19 @@
 #define BLDC_LOWPASS_FILTER "BLDC_LowPassFilter"
 #define BLDC_TWIST_LIMIT "BLDC_TwistLimit"
 
-#define BLDC_MOTORA_ENCODER "BLDC_Encoder"
-#define BLDC_MOTORA_PULLEY_CIRCUMFERENCE "BLDC_Pulley_Circumference"
-#define BLDC_MOTORA_VOLTAGE "BLDC_Motor_VoltageLimit"
-#define BLDC_MOTORA_SUPPLY  "BLDC_Motor_SupplyVoltage"
-#define BLDC_MOTORA_CURRENT "BLDC_Motor_Current"
-#define BLDC_MOTORA_ZEROELECANGLE "BLDC_Motor_ZeroElecAngle"
+// MotorA aliases follow the pre-merge MillibyteProducts naming convention so
+// existing saved settings load correctly. Do not redefine BLDC_MOTORA_VOLTAGE,
+// BLDC_MOTORA_SUPPLY, BLDC_MOTORA_CURRENT, or BLDC_MOTORA_ZEROELECANGLE here;
+// those are already defined above.
+#define BLDC_MOTORA_ENCODER BLDC_ENCODER
+#define BLDC_MOTORA_PULLEY_CIRCUMFERENCE BLDC_PULLEY_CIRCUMFERENCE
 
 #define BLDC_MOTORB_ENCODER "BLDC_BEncoder"
 #define BLDC_MOTORB_PULLEY_CIRCUMFERENCE "BLDC_BPulley_Circumference"
-#define BLDC_MOTORB_VOLTAGE "BLDC_BMotor_VoltageLimit"
-#define BLDC_MOTORB_SUPPLY  "BLDC_BMotor_SupplyVoltage"
-#define BLDC_MOTORB_CURRENT "BLDC_BMotor_Current"
-#define BLDC_MOTORB_ZEROELECANGLE "BLDC_BMotor_ZeroElecAngle"
+#define BLDC_MOTORB_VOLTAGE "BLDC_MotorB_VoltageLimit"
+#define BLDC_MOTORB_SUPPLY  "BLDC_MotorB_SupplyVoltage"
+#define BLDC_MOTORB_CURRENT "BLDC_MotorB_Current"
+#define BLDC_MOTORB_ZEROELECANGLE "BLDC_MotorB_ZeroElecAngle"
 
 #define STATICIP "staticIP"
 #define LOCALIP "localIP"
@@ -216,7 +261,7 @@
 #define DNS1 "dns1"
 #define DNS2 "dns2"
 #define MDNS_ENABLED "mdnsEnabled"
-//#define SR6MODE "sr6Mode"
+// #define SR6MODE "sr6Mode"
 #define RIGHT_SERVO_ZERO "RightServo_ZERO"
 #define LEFT_SERVO_ZERO "LeftServo_ZERO"
 #define RIGHT_UPPER_SERVO_ZERO "RightUpperServo_ZERO"
@@ -236,6 +281,7 @@
 #define INVERSE_TWIST "inverseTwist"
 #define LUBE_AMOUNT "lubeAmount"
 #define LUBE_ENABLED "lubeEnabled"
+#define LUBE_BUTTON_PIN_MODE "lubeButtonPinMode"
 #define DISPLAY_ENABLED "displayEnabled"
 #define SLEEVE_TEMP_DISPLAYED "sleeveTempDisplayed"
 #define VERSION_DISPLAYED "versionDisplayed"
@@ -264,6 +310,20 @@
 #define BATTERY_LEVEL_NUMERIC "batteryLevelNumeric"
 #define BATTERY_VOLTAGE_MAX "batteryVoltageMax"
 #define BATTERY_CAPACITY_MAX "batteryCapacityMax"
+#define POWER_MONITOR_3V3_DIVIDER_RATIO "powerMonitor3v3DividerRatio"
+#define POWER_MONITOR_5V_DIVIDER_RATIO "powerMonitor5vDividerRatio"
+#define POWER_MONITOR_BATTERY_DIVIDER_RATIO "powerMonitorBatteryDividerRatio"
+#define POWER_MONITOR_MOTOR_DIVIDER_RATIO "powerMonitorMotorDividerRatio"
+#define POWER_MONITOR_BUS_DIVIDER_RATIO "powerMonitorBusDividerRatio"
+#define POWER_MONITOR_3V3_OFFSET "powerMonitor3v3Offset"
+#define POWER_MONITOR_5V_OFFSET "powerMonitor5vOffset"
+#define POWER_MONITOR_BATTERY_OFFSET "powerMonitorBatteryOffset"
+#define POWER_MONITOR_MOTOR_OFFSET "powerMonitorMotorOffset"
+#define POWER_MONITOR_BUS_OFFSET "powerMonitorBusOffset"
+#define POWER_MONITOR_VBUS_NOMINAL "powerMonitorVBusNominal"
+#define POWER_MONITOR_VMOTOR_NOMINAL "powerMonitorVMotorNominal"
+#define SERVO_VOLTAGE_ENABLE_PIN "servoVoltageEnablePin"
+#define SERVO_VOLTAGE_ENABLE_STATE "servoVoltageEnableState"
 #define VOICE_ENABLED "voiceEnabled"
 #define VOICE_MUTED "voiceMuted"
 #define VOICE_WAKE_TIME "voiceWakeTime"
@@ -303,6 +363,15 @@
 #define ESP_L_TIMER1_FREQUENCY "ESP_L_TIMER1_FREQUENCY"
 #define ESP_L_TIMER2_FREQUENCY "ESP_L_TIMER2_FREQUENCY"
 #define ESP_L_TIMER3_FREQUENCY "ESP_L_TIMER3_FREQUENCY"
+
+#define ESP_H_TIMER0_DRIVER "ESP_H_TIMER0_DRIVER"
+#define ESP_H_TIMER1_DRIVER "ESP_H_TIMER1_DRIVER"
+#define ESP_H_TIMER2_DRIVER "ESP_H_TIMER2_DRIVER"
+#define ESP_H_TIMER3_DRIVER "ESP_H_TIMER3_DRIVER"
+#define ESP_L_TIMER0_DRIVER "ESP_L_TIMER0_DRIVER"
+#define ESP_L_TIMER1_DRIVER "ESP_L_TIMER1_DRIVER"
+#define ESP_L_TIMER2_DRIVER "ESP_L_TIMER2_DRIVER"
+#define ESP_L_TIMER3_DRIVER "ESP_L_TIMER3_DRIVER"
 
 // Readonly
 #define DEBUG_INFO_LAST_BOOT_REASONS "lastBootReasons"

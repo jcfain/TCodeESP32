@@ -4,7 +4,7 @@
 // Decodes T-code commands and uses them to control servos a single brushless motor
 // It can handle:
 //   3x linear channels (L0, L1, L2)
-//   3x rotation channels (R0, R1, R2) 
+//   3x rotation channels (R0, R1, R2)
 //   3x vibration channels (V0, V1, V2)
 //   3x auxilliary channels (A0, A1, A2)
 // This code is designed to drive the SSR1 stroker robot, but is also intended to be
@@ -73,7 +73,7 @@ private:
             }
             break;
             case DeviceCommandType::GetAssignedAxisValues: {
-                
+
             }
             break;
             case DeviceCommandType::GetTCodeVersion: {

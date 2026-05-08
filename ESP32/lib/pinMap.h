@@ -49,6 +49,11 @@
 #define TEMP_PIN "Temp_PIN"
 #define TWIST_FEEDBACK_PIN "TwistFeedBack_PIN"
 #define BUTTON_SET_PINS "Button_Set_PIN"
+#define VOLTAGE_3V3_PIN "Voltage_3V3_PIN"
+#define VOLTAGE_5V_PIN "Voltage_5V_PIN"
+#define VOLTAGE_BATTERY_PIN "Voltage_Battery_PIN"
+#define VOLTAGE_MOTOR_PIN "Voltage_Motor_PIN"
+#define VOLTAGE_BUS_PIN "Voltage_Bus_PIN"
 
 // OSR
 #define RIGHT_SERVO_PIN "RightServo_PIN"
@@ -88,9 +93,9 @@
 
 // class PinMapInfo {
 // public:
-//     PinMapInfo(DeviceType deviceType, BoardType boardType, PinMap* pinMap): 
-//         m_deviceType(deviceType), 
-//         m_boardType(boardType), 
+//     PinMapInfo(DeviceType deviceType, BoardType boardType, PinMap* pinMap):
+//         m_deviceType(deviceType),
+//         m_boardType(boardType),
 //         m_pinMap(pinMap) { }
 
 //     DeviceType deviceType() {
@@ -104,7 +109,7 @@
 //     template<typename T, typename = std::enable_if<std::is_base_of<PinMap, T>::value>>
 //     const T pinMap() {
 //         return static_cast<const T>(m_pinMap);
-//     }  
+//     }
 //     const PinMap* pinMap() {
 //         return m_pinMap;
 //     }
@@ -118,7 +123,7 @@ class PinMap {
 public:
     PinMap(PinMap const&) = delete;
     void operator=(PinMap const&) = delete;
-    
+
     DeviceType deviceType() { return m_deviceType; }
     virtual void setDeviceType(DeviceType deviceType) {  m_deviceType = deviceType; }
     BoardType boardType() { return m_boardType; }
@@ -185,13 +190,13 @@ public:
     void setSleeveTemp(const int8_t &sleeveTemp) { m_sleeveTemp = sleeveTemp; }
 
     int8_t buttonSetPin(int8_t index) const { return m_buttonSetPins[index]; }
-    void setButtonSetPin(const int8_t pin, int8_t index) { 
+    void setButtonSetPin(const int8_t pin, int8_t index) {
         if(index >= MAX_BUTTON_SETS)
         {
-            LogHandler::error("Pin_map", "Invalid index for button set %d", index);
+            LogHandler::error(Tags::PinMap, "Invalid index for button set %d", index);
             return;
         }
-        m_buttonSetPins[index] = pin; 
+        m_buttonSetPins[index] = pin;
     }
 
     int8_t i2cSda() const { return m_i2cSda; }
@@ -200,26 +205,57 @@ public:
     int8_t i2cScl() const { return m_i2cScl; }
     void setI2cScl(const int8_t &i2cScl) { m_i2cScl = i2cScl; }
 
+    int8_t voltageMonitor(VoltageMonitors source) const {
+        const int8_t index = static_cast<int8_t>(source);
+        if (index < 0 || index >= static_cast<int8_t>(VoltageMonitors::MAX)) {
+            LogHandler::error(Tags::PinMap, "Invalid voltage monitor source %d", index);
+            return -1;
+        }
+        return m_voltageMonitors[index];
+    }
+    void setVoltageMonitor(VoltageMonitors source, const int8_t& pin) {
+        const int8_t index = static_cast<int8_t>(source);
+        if (index < 0 || index >= static_cast<int8_t>(VoltageMonitors::MAX)) {
+            LogHandler::error(Tags::PinMap, "Invalid voltage monitor source %d", index);
+            return;
+        }
+        m_voltageMonitors[index] = pin;
+    }
+
+    int8_t servoVoltageEnable() const { return m_servoVoltageEnable; }
+    void setServoVoltageEnable(const int8_t& pin) { m_servoVoltageEnable = pin; }
+
     // void setChannelFrequency(ESPTimerChannelNum channel, int frequency) {
     //     int8_t timer = getTimer(channel);
     //     if(timer > MAX_TIMERS - 1 || timer < 0) {
-    //         LogHandler::error("Pin_map", "Invalid channel '%d' when setting frequency: %d", (int8_t)channel, frequency);
+    //         LogHandler::error(Tags::PinMap, "Invalid channel '%d' when setting frequency: %d", (int8_t)channel, frequency);
     //         return;
     //     }
     //     if(frequency < 0) {
-    //         LogHandler::error("Pin_map", "Invalid frequency '%d' when setting frequency for channel: %d", frequency, (int8_t)channel);
+    //         LogHandler::error(Tags::PinMap, "Invalid frequency '%d' when setting frequency for channel: %d", frequency, (int8_t)channel);
     //         return;
     //     }
     //     m_timerFreq[timer] = frequency;
     // }
     int getChannelFrequency(int8_t channel) const {
-        if(channel < 0 || channel >= (MAX_TIMERS << 1)) {
-            LogHandler::error("Pin_map", "Invalid channel '%d' when getting frequency", channel);
+        // A channel value of -1 means "not assigned in settings" — this is
+        // expected when the user clears a timer-channel cell in the web GUI
+        // or when no channel was ever stored. Return a safe servo-grade
+        // default (50 Hz) silently so the calling handler can still attach
+        // the pin via PwmManager (which auto-allocates the actual hardware
+        // channel/timer). For higher-frequency LEDC consumers (vibe/lube)
+        // PwmManager will reuse a matching timer if 50 Hz isn't ideal — the
+        // unified solver in a follow-up will pick a per-output default.
+        if (channel < 0) {
+            return ESP_TIMER_FREQUENCY_DEFAULT > 0 ? ESP_TIMER_FREQUENCY_DEFAULT : 50;
+        }
+        if (channel >= (MAX_TIMERS << 1)) {
+            LogHandler::error(Tags::PinMap, "Invalid channel '%d' when getting frequency", channel);
             return -1;
         }
         const ESPTimer* timer = getTimer(static_cast<ESPTimerChannelNum>(channel));
         if(!timer) {
-            LogHandler::error("Pin_map", "Invalid channel '%d' when getting frequency", channel);
+            LogHandler::error(Tags::PinMap, "Invalid channel '%d' when getting frequency", channel);
             return -1;
         }
         return timer->frequency;
@@ -227,18 +263,18 @@ public:
 
     void setTimerFrequency(int8_t timerIndex, int frequency) {
         if(timerIndex > MAX_TIMERS - 1 || timerIndex < 0) {
-            LogHandler::error("Pin_map", "Invalid timer index '%d' when setting frequency: %d", timerIndex, frequency);
+            LogHandler::error(Tags::PinMap, "Invalid timer index '%d' when setting frequency: %d", timerIndex, frequency);
             return;
         }
         if(frequency < 0) {
-            LogHandler::error("Pin_map", "Invalid frequency '%d' when setting for timer index: %d", frequency, timerIndex);
+            LogHandler::error(Tags::PinMap, "Invalid frequency '%d' when setting for timer index: %d", frequency, timerIndex);
             return;
         }
         m_timers[timerIndex].frequency = frequency;
     }
     int getTimerFrequency(int8_t timerIndex) const {
         if(timerIndex > MAX_TIMERS - 1 || timerIndex < 0) {
-            //LogHandler::error("Pin_map", "Invalid timer '%d' when getting frequency", timer);
+            //LogHandler::error(Tags::PinMap, "Invalid timer '%d' when getting frequency", timer);
             return -1;
         }
         return m_timers[timerIndex].frequency;
@@ -249,68 +285,124 @@ public:
         }
         return &m_timers[timerIndex];
     }
+    const ESPTimer* getTimer(uint8_t timerIndex) const {
+        if (timerIndex >= MAX_TIMERS || timerIndex < 0) {
+            return 0;
+        }
+        return &m_timers[timerIndex];
+    }
+    void setTimerDriver(int8_t timerIndex, PwmDriver driver) {
+        if (timerIndex < 0 || timerIndex >= MAX_TIMERS) {
+            LogHandler::error(Tags::PinMap, "Invalid timer index '%d' when setting driver", timerIndex);
+            return;
+        }
+        m_timers[timerIndex].pwmDriver = driver;
+    }
+    /**
+     * Returns the configured PWM driver for the timer that owns 'channel'.
+     * Defaults to MCPWM for HIGH timers, LEDC for LOW timers.
+     * When `channel < 0` (unset), defaults to MCPWM so servo paths still
+     * function — LEDC is auto-selected as a fallback by PwmManager when
+     * MCPWM is full. Pure-LEDC consumers (vibe/lube) call attachLedcPin
+     * directly so this hint isn't consulted on their path.
+     */
+    PwmDriver getTimerDriverForChannel(int8_t channel) const {
+        if (channel < 0) return PwmDriver::MCPWM;
+        const ESPTimer* timer = getTimer(static_cast<ESPTimerChannelNum>(channel));
+        if (!timer) return PwmDriver::LEDC;
+        return timer->pwmDriver;
+    }
 protected:
     PinMap(DeviceType deviceType, BoardType boardType) {
         m_deviceType = deviceType;
         m_boardType = boardType;
     }
-    const char* m_TAG = TagHandler::PinMap;
+    const Tags::tag_t m_TAG = Tags::PinMap;
     DeviceType m_deviceType;
     BoardType m_boardType;
     ESPTimer m_timers[MAX_TIMERS] = {
 #if CONFIG_IDF_TARGET_ESP32
+        // HIGH timers default to MCPWM (servo-grade precision)
         { ESP_H_TIMER0_FREQUENCY, "High 0", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High 0 CH0", ESPTimerChannelNum::HIGH0_CH0}, 
+                {"High 0 CH0", ESPTimerChannelNum::HIGH0_CH0},
                 {"High 0 CH1", ESPTimerChannelNum::HIGH0_CH1}
-            }
+            }, PwmDriver::MCPWM
         },
         { ESP_H_TIMER1_FREQUENCY, "High 1", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High 1 CH2", ESPTimerChannelNum::HIGH1_CH2}, 
+                {"High 1 CH2", ESPTimerChannelNum::HIGH1_CH2},
                 {"High 1 CH3", ESPTimerChannelNum::HIGH1_CH3}
-            }
+            }, PwmDriver::MCPWM
         },
         { ESP_H_TIMER2_FREQUENCY, "High 2", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High 2 CH4", ESPTimerChannelNum::HIGH2_CH4}, 
+                {"High 2 CH4", ESPTimerChannelNum::HIGH2_CH4},
                 {"High 2 CH5", ESPTimerChannelNum::HIGH2_CH5}
-            }
+            }, PwmDriver::MCPWM
         },
         { ESP_H_TIMER3_FREQUENCY, "High 3", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"High 3 CH6", ESPTimerChannelNum::HIGH3_CH6}, 
+                {"High 3 CH6", ESPTimerChannelNum::HIGH3_CH6},
                 {"High 3 CH7", ESPTimerChannelNum::HIGH3_CH7}
-            }
+            }, PwmDriver::MCPWM
         },
+        // LOW timers default to LEDC (vibe/misc)
 #endif
 #if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S3
         { ESP_L_TIMER0_FREQUENCY, "Low 0", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 0 CH0", ESPTimerChannelNum::LOW0_CH0}, 
+                {"Low 0 CH0", ESPTimerChannelNum::LOW0_CH0},
                 {"Low 0 CH1", ESPTimerChannelNum::LOW0_CH1}
-            }
+            }, PwmDriver::LEDC
         },
         { ESP_L_TIMER1_FREQUENCY, "Low 1", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 1 CH2", ESPTimerChannelNum::LOW1_CH2}, 
+                {"Low 1 CH2", ESPTimerChannelNum::LOW1_CH2},
                 {"Low 1 CH3", ESPTimerChannelNum::LOW1_CH3}
-            }
+            }, PwmDriver::LEDC
         },
         { ESP_L_TIMER2_FREQUENCY, "Low 2", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 2 CH4", ESPTimerChannelNum::LOW2_CH4}, 
+                {"Low 2 CH4", ESPTimerChannelNum::LOW2_CH4},
                 {"Low 2 CH5", ESPTimerChannelNum::LOW2_CH5}
-            }
+            }, PwmDriver::LEDC
         },
         { ESP_L_TIMER3_FREQUENCY, "Low 3", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 3 CH6", ESPTimerChannelNum::LOW3_CH6}, 
+                {"Low 3 CH6", ESPTimerChannelNum::LOW3_CH6},
                 {"Low 3 CH7", ESPTimerChannelNum::LOW3_CH7}
-            }
+            }, PwmDriver::LEDC
         }
+#if CONFIG_IDF_TARGET_ESP32S3
+        ,
+        // ESP32-S3: HIGH timers default to MCPWM. Listed AFTER the LOW timers
+        // so the channel numbers used by LEDC stay in the 0..7 range supported
+        // by S3 LEDC hardware. MCPWM ignores the raw channel value, so HIGH
+        // channels 8..15 are simply unique identifiers.
+        { ESP_H_TIMER0_FREQUENCY, "High 0", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"High 0 CH0", ESPTimerChannelNum::HIGH0_CH0},
+                {"High 0 CH1", ESPTimerChannelNum::HIGH0_CH1}
+            }, PwmDriver::MCPWM
+        },
+        { ESP_H_TIMER1_FREQUENCY, "High 1", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"High 1 CH2", ESPTimerChannelNum::HIGH1_CH2},
+                {"High 1 CH3", ESPTimerChannelNum::HIGH1_CH3}
+            }, PwmDriver::MCPWM
+        },
+        { ESP_H_TIMER2_FREQUENCY, "High 2", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"High 2 CH4", ESPTimerChannelNum::HIGH2_CH4},
+                {"High 2 CH5", ESPTimerChannelNum::HIGH2_CH5}
+            }, PwmDriver::MCPWM
+        },
+        { ESP_H_TIMER3_FREQUENCY, "High 3", ESP_TIMER_FREQUENCY_DEFAULT, {
+                {"High 3 CH6", ESPTimerChannelNum::HIGH3_CH6},
+                {"High 3 CH7", ESPTimerChannelNum::HIGH3_CH7}
+            }, PwmDriver::MCPWM
+        }
+#endif
     };
 #endif
 #if CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C6
         { ESP_L_TIMER0_FREQUENCY, "Low 0", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 0 CH0", ESPTimerChannelNum::LOW0_CH0}, 
+                {"Low 0 CH0", ESPTimerChannelNum::LOW0_CH0},
                 {"Low 0 CH1", ESPTimerChannelNum::LOW0_CH1}
             }
         },
         { ESP_L_TIMER1_FREQUENCY, "Low 1", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 1 CH2", ESPTimerChannelNum::LOW1_CH2}, 
+                {"Low 1 CH2", ESPTimerChannelNum::LOW1_CH2},
                 {"Low 1 CH3", ESPTimerChannelNum::LOW1_CH3}
             }
         },
@@ -319,7 +411,7 @@ protected:
             }
         },
         { ESP_L_TIMER3_FREQUENCY, "Low 3", ESP_TIMER_FREQUENCY_DEFAULT, {
-                {"Low 3 CH5", ESPTimerChannelNum::LOW2_CH5}, 
+                {"Low 3 CH5", ESPTimerChannelNum::LOW2_CH5},
             }
         }
     };
@@ -327,13 +419,13 @@ protected:
 
     // void setCommonTimers() {
     //     m_timers.timerH3 = {
-    //         ESP_TIMER_FREQUENCY_DEFAULT, 
+    //         ESP_TIMER_FREQUENCY_DEFAULT,
     //         {
-    //             {SQUEEZE_PIN, SqueezeServo_PWM, squeeze()}, 
+    //             {SQUEEZE_PIN, SqueezeServo_PWM, squeeze()},
     //             {TWIST_SERVO_PIN, TwistServo_PWM, twist()}
     //         }
     //     };
- 
+
     // }
 private:
     // PWM
@@ -363,7 +455,11 @@ private:
     int8_t m_sleeveTemp = TEMP_PIN_DEFAULT;
     int8_t m_i2cSda = I2C_SDA_PIN_DEFAULT;
     int8_t m_i2cScl = I2C_SCL_PIN_DEFAULT;
+    int8_t m_voltageMonitors[static_cast<int8_t>(VoltageMonitors::MAX)] = { -1, -1, -1, -1, -1 };
+    int8_t m_servoVoltageEnable = SERVO_VOLTAGE_ENABLE_PIN_DEFAULT;
     int8_t m_buttonSetPins[MAX_BUTTON_SETS] = BUTTON_SET_PINS_DEFAULT;
+    int8_t m_brushedMotorA = -1;
+    int8_t m_brushedMotorB = -1;
 
     virtual void overideDefaults() =0;
 
@@ -423,7 +519,7 @@ public:
     int8_t motorBPwmChannel3() const { return m_twistPwmChannel3; }
     void setLeftPwmChannel3(const int8_t &pwmChannel3) { m_twistPwmChannel3 = pwmChannel3; }
 
-    void setDeviceType(DeviceType type) override 
+    void setDeviceType(DeviceType type) override
     {
         if (type == DeviceType::NONE)
         {
@@ -439,7 +535,7 @@ public:
             setPwmChannel1(BLDC_PWMCHANNEL1_PIN_DEFAULT);
             setPwmChannel2(BLDC_PWMCHANNEL2_PIN_DEFAULT);
             setPwmChannel3(BLDC_PWMCHANNEL3_PIN_DEFAULT);
-        } 
+        }
         else if(type == DeviceType::SSR2)
         {
             m_deviceType = type;
@@ -463,13 +559,13 @@ public:
             setCaseFan(-1);
             setHeater(-1);
             setTwistFeedBack(-1);
-        } 
-        else 
+        }
+        else
         {
             LogHandler::error(m_TAG, "[PinMapSSR.setDevice Invalid device type %i", (int)type);
         }
     }
-protected: 
+protected:
     PinMapSSR(DeviceType deviceType, BoardType boardType) : PinMap(deviceType, boardType) {}
 private:
     int8_t m_encoder = BLDC_ENCODER_PIN_DEFAULT;
@@ -479,7 +575,7 @@ private:
     int8_t m_pwmChannel1 = BLDC_PWMCHANNEL1_PIN_DEFAULT;
     int8_t m_pwmChannel2 = BLDC_PWMCHANNEL2_PIN_DEFAULT;
     int8_t m_pwmChannel3 = BLDC_PWMCHANNEL3_PIN_DEFAULT;
-    
+
     int8_t m_twistEncoder = BLDC_B_ENCODER_PIN_DEFAULT;
     int8_t m_twistChipSelect = BLDC_B_CHIPSELECT_PIN_DEFAULT;
     int8_t m_twistEnable = BLDC_B_ENABLE_PIN_DEFAULT;
@@ -512,7 +608,7 @@ public:
     int8_t pitchLeftChannel() const { return m_pitchLeftChannel; }
     void setPitchLeftChannel(const int8_t &pitchLeftChannel) { m_pitchLeftChannel = pitchLeftChannel; }
 
-protected: 
+protected:
     PinMapOSR(DeviceType deviceType, BoardType boardType) : PinMap(deviceType, boardType) {}
 private:
     int8_t m_pitchLeft = PITCH_LEFT_SERVO_PIN_DEFAULT;
@@ -579,7 +675,7 @@ public:
     int8_t leftUpperServoChannel() const { return m_leftUpperServoChannel; }
     void setLeftUpperServoChannel(const int8_t &channel) { m_leftUpperServoChannel = channel; }
 
-protected: 
+protected:
     PinMapSR6(DeviceType deviceType, BoardType boardType) : PinMapOSR(deviceType, boardType) {}
 private:
     int8_t m_pitchRight = PITCH_RIGHTSERVO_PIN_DEFAULT;
@@ -623,7 +719,7 @@ public:
         // // Vibe3_PIN = json["Vibe3_PIN"] | 32;
         setHeater(5);
     }
-protected: 
+protected:
     PinMapINControl(DeviceType deviceType, BoardType boardType) : PinMapSR6(deviceType, boardType) {}
 };
 
@@ -646,13 +742,13 @@ public:
         // //  EXT_Input3_PIN = 39;
         // //  EXT_Input4_PIN = 36;
 
-        // TODO: How to handle other board setting overrides?
+        // TODO: Add per-board defaults for heater/fan/display settings if needed.
         // heaterResolution = json["heaterResolution"] | 8;
         // caseFanResolution = json["caseFanResolution"] | 10;
         // caseFanFrequency = json["caseFanFrequency"] | 25;
         // Display_Screen_Height = json["Display_Screen_Height"] | 32;
     }
-protected: 
+protected:
     PinMapSR6MB(DeviceType deviceType, BoardType boardType) : PinMapSR6(deviceType, boardType) {}
 };
 
@@ -687,6 +783,50 @@ class PinMapSSR1PCB : public PinMapSSR {
             setHeater(-1);
             setTwistFeedBack(-1);
         }
-    protected: 
+    protected:
         PinMapSSR1PCB(DeviceType deviceType, BoardType boardType) : PinMapSSR(deviceType, boardType) {}
+};
+
+class PinMapSR6PCB : public PinMapSR6 {
+    public:
+        static PinMapSR6PCB* getInstance()
+        {
+            static PinMapSR6PCB instance(DeviceType::SR6, BoardType::SR6PCB);
+            return &instance;
+        }
+        void overideDefaults() override {
+            setI2cSda(2);
+            setI2cScl(1);
+
+            setLeftServo(38);
+            setRightServo(35);
+            setLeftUpperServo(37);
+            setRightUpperServo(48);
+            setPitchLeft(36);
+            setPitchRight(47);
+            setValve(21);
+            setTwist(14);
+            setSqueeze(-1);
+            setVibe0(-1);
+            setVibe1(8);
+            setVibe2(-1);
+            setVibe3(18);
+            setLubeButton(13);
+            setSleeveTemp(-1);
+            setInternalTemp(-1);
+            setCaseFan(-1);
+            setHeater(-1);
+            setTwistFeedBack(-1);
+
+            setVoltageMonitor(VoltageMonitors::VOLTAGE_3V3, 7);
+            setVoltageMonitor(VoltageMonitors::VOLTAGE_5V, 6);
+            setVoltageMonitor(VoltageMonitors::VOLTAGE_BUS, 5);
+            setVoltageMonitor(VoltageMonitors::VOLTAGE_MOTOR, 4);
+            setVoltageMonitor(VoltageMonitors::VOLTAGE_BATTERY, -1);
+
+            setServoVoltageEnable(15);
+
+        }
+    protected:
+        PinMapSR6PCB(DeviceType deviceType, BoardType boardType) : PinMapSR6(deviceType, boardType) {}
 };

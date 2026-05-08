@@ -1,0 +1,286 @@
+name: flasher
+
+on:
+  push:
+    branches: [master, MillibytePlatforms]
+    tags: ['v*']
+    paths:
+      - "ESP32/flasher/millibyte-flasher/**"
+      - "ESP32/platformio.ini"
+      - "ESP32/src/**"
+      - "ESP32/data/**"
+      - "ESP32/dataEdit/**"
+      - "ESP32/boards/**"
+      - ".github/workflows/flasher.yml"
+  pull_request:
+    paths:
+      - "ESP32/flasher/millibyte-flasher/**"
+      - ".github/workflows/flasher.yml"
+  workflow_dispatch:
+  release:
+    types: [published]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  firmware:
+    name: Build firmware (${{ matrix.board }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [sr6_pcb, ssr1_pcb]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install platformio
+        run: |
+          python -m pip install --upgrade pip
+          pip install platformio
+
+      - name: Build firmware + filesystem
+        working-directory: ESP32
+        run: |
+          set -euxo pipefail
+          mkdir -p cache
+          echo "::group::data/ contents"
+          find data -type f -print -exec ls -la {} \;
+          echo "::endgroup::"
+          stash=$(mktemp -d)
+          # Step 1: build the filesystem image and stash it immediately, since
+          # a later `pio run` invocation has been observed to wipe other
+          # artifacts out of .pio/build/<env>/ on some pioarduino releases.
+          pio run -t buildfs -e ${{ matrix.board }}
+          for f in littlefs.bin spiffs.bin; do
+            if [ -f .pio/build/${{ matrix.board }}/$f ]; then
+              cp .pio/build/${{ matrix.board }}/$f "$stash/"
+            fi
+          done
+          # Step 2: build firmware/bootloader/partitions.
+          pio run -e ${{ matrix.board }}
+          # Step 3: restore the FS image so staging can pick it up.
+          cp -n "$stash"/*.bin .pio/build/${{ matrix.board }}/ 2>/dev/null || true
+          ls -la .pio/build/${{ matrix.board }}/
+
+      - name: Stage firmware bundle
+        working-directory: ESP32
+        run: |
+          set -euxo pipefail
+          dest=flasher/millibyte-flasher/firmware/${{ matrix.board }}
+          src=.pio/build/${{ matrix.board }}
+          mkdir -p "$dest"
+          cp "$src/bootloader.bin" "$dest/"
+          cp "$src/partitions.bin" "$dest/"
+          cp "$src/firmware.bin"   "$dest/"
+          if [ -f "$src/littlefs.bin" ]; then
+            cp "$src/littlefs.bin" "$dest/"
+          elif [ -f "$src/spiffs.bin" ]; then
+            cp "$src/spiffs.bin" "$dest/littlefs.bin"
+          else
+            echo "::error::No filesystem image (littlefs.bin / spiffs.bin) was produced for ${{ matrix.board }}"
+            ls -la "$src"
+            exit 1
+          fi
+          # boot_app0.bin location varies by arduino-espressif32 install layout.
+          boot_app0=""
+          for cand in \
+            ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin \
+            ~/.platformio/packages/framework-arduinoespressif32@*/tools/partitions/boot_app0.bin; do
+            if [ -f "$cand" ]; then boot_app0="$cand"; break; fi
+          done
+          if [ -z "$boot_app0" ]; then
+            boot_app0=$(find ~/.platformio/packages -name boot_app0.bin -type f 2>/dev/null | head -n1 || true)
+          fi
+          if [ -z "$boot_app0" ]; then
+            echo "::error::could not locate boot_app0.bin"
+            ls -la ~/.platformio/packages/ || true
+            exit 1
+          fi
+          cp "$boot_app0" "$dest/boot_app0.bin"
+          ls -la "$dest"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.board }}
+          path: ESP32/flasher/millibyte-flasher/firmware/${{ matrix.board }}/
+          if-no-files-found: error
+
+      # Raw-bin release archive: same files, but renamed and zipped so users
+      # who already have esptool can flash without downloading the full
+      # MillibyteFlasher bundle.
+      - name: Build merged release.bin (esptool)
+        working-directory: ESP32
+        run: |
+          pip install esptool
+          src=flasher/millibyte-flasher/firmware/${{ matrix.board }}
+          python - <<'PY'
+          import json, os, subprocess, sys
+          src = os.environ["SRC"]
+          m = json.load(open(f"{src}/manifest.json"))
+          chip = m["chip"]
+          mode = m.get("flash_mode", "dio")
+          freq = str(m.get("flash_freq", "40m")).lower().replace("mhz", "m")
+          size = m.get("flash_size", "4MB")
+          pairs = []
+          for f in m["files"]:
+              name = f.get("name") or f.get("path")
+              pairs += [f["offset"], f"{src}/{name}"]
+          cmd = [
+              "esptool.py", "--chip", chip, "merge_bin",
+              "-o", f"{src}/release.bin",
+              "--flash_mode", mode, "--flash_freq", freq, "--flash_size", size,
+              *pairs,
+          ]
+          print("+", " ".join(cmd))
+          subprocess.check_call(cmd)
+          PY
+        env:
+          SRC: flasher/millibyte-flasher/firmware/${{ matrix.board }}
+
+      - name: Stage raw-bin archive
+        working-directory: ESP32/flasher/millibyte-flasher
+        run: |
+          board=${{ matrix.board }}
+          src=firmware/$board
+          name=MillibyteFirmware-$board
+          stage=dist-firmware/$name
+          rm -rf "$stage"
+          mkdir -p "$stage"
+          cp "$src/bootloader.bin" "$src/partitions.bin" "$src/firmware.bin" \
+             "$src/boot_app0.bin" "$src/manifest.json" "$src/release.bin" "$stage/"
+          if [ -f "$src/littlefs.bin" ]; then cp "$src/littlefs.bin" "$stage/"; fi
+          (cd dist-firmware && zip -r9 "$name.zip" "$name")
+          ls -la dist-firmware/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-archive-${{ matrix.board }}
+          path: ESP32/flasher/millibyte-flasher/dist-firmware/MillibyteFirmware-${{ matrix.board }}.zip
+          if-no-files-found: error
+
+  package:
+    name: Package flasher (${{ matrix.os }})
+    needs: firmware
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: MillibyteFlasher-linux-x86_64
+            ext: ""
+          - os: windows-latest
+            artifact: MillibyteFlasher-windows-x86_64
+            ext: ".exe"
+          - os: macos-latest
+            artifact: MillibyteFlasher-macos-universal
+            ext: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ESP32/flasher/millibyte-flasher
+
+      - name: Linux GUI deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev libgtk-3-dev libxkbcommon-dev libwayland-dev
+
+      - name: Download sr6_pcb firmware
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware-sr6_pcb
+          path: ESP32/flasher/millibyte-flasher/firmware/sr6_pcb
+
+      - name: Download ssr1_pcb firmware
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware-ssr1_pcb
+          path: ESP32/flasher/millibyte-flasher/firmware/ssr1_pcb
+
+      - name: Build (macOS universal)
+        if: runner.os == 'macOS'
+        working-directory: ESP32/flasher/millibyte-flasher
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin
+          cargo build --release --target x86_64-apple-darwin
+          mkdir -p target/release
+          lipo -create \
+            target/aarch64-apple-darwin/release/millibyte-flasher \
+            target/x86_64-apple-darwin/release/millibyte-flasher \
+            -output target/release/millibyte-flasher
+
+      - name: Build (Linux/Windows)
+        if: runner.os != 'macOS'
+        working-directory: ESP32/flasher/millibyte-flasher
+        run: cargo build --release
+
+      - name: Stage distribution
+        working-directory: ESP32/flasher/millibyte-flasher
+        run: |
+          stage="dist/${{ matrix.artifact }}"
+          rm -rf "$stage"
+          mkdir -p "$stage"
+          cp "target/release/millibyte-flasher${{ matrix.ext }}" "$stage/"
+          cp README.md "$stage/" || true
+          mkdir -p "$stage/firmware"
+          cp -R firmware/sr6_pcb  "$stage/firmware/"
+          cp -R firmware/ssr1_pcb "$stage/firmware/"
+          ls -laR "$stage"
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        working-directory: ESP32/flasher/millibyte-flasher/dist
+        run: 7z a "${{ matrix.artifact }}.zip" "${{ matrix.artifact }}"
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        working-directory: ESP32/flasher/millibyte-flasher/dist
+        run: tar -czvf "${{ matrix.artifact }}.tar.gz" "${{ matrix.artifact }}"
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        working-directory: ESP32/flasher/millibyte-flasher/dist
+        run: zip -r9 "${{ matrix.artifact }}.zip" "${{ matrix.artifact }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            ESP32/flasher/millibyte-flasher/dist/${{ matrix.artifact }}.zip
+            ESP32/flasher/millibyte-flasher/dist/${{ matrix.artifact }}.tar.gz
+          if-no-files-found: error
+
+  release:
+    name: Attach to release
+    needs: package
+    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Flatten download tree
+        run: |
+          mkdir -p release
+          find dist -type f \( -name '*.zip' -o -name '*.tar.gz' \) -exec cp {} release/ \;
+          ls -la release/
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          fail_on_unmatched_files: true

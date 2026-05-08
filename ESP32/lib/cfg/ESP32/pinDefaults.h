@@ -1,7 +1,7 @@
 #pragma once
 #include "enum.h"
 // IMPORTANT: The pins in this file may be overriden in th pinMap class depending on the board/device type selected
-#ifdef MOTOR_TYPE_SERVO
+#if MOTOR_TYPE == 0
 // Common PWM
 #define VALVE_SERVO_PIN_DEFAULT 25
 #define VALVE_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::HIGH3_CH6
@@ -30,13 +30,15 @@
 #define TEMP_PIN_DEFAULT 5
 #define I2C_SDA_PIN_DEFAULT 21
 #define I2C_SCL_PIN_DEFAULT 22
-#define BUTTON_SET_PINS_DEFAULT {}// Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
+#define BUTTON_SET_PINS_DEFAULT "" // Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
 #define BUTTON_SET_PINS_1 39
 #define BUTTON_SET_PINS_2 -1
 #define BUTTON_SET_PINS_3 -1
 #define BUTTON_SET_PINS_4 -1
+#define BRUSHED_MOTOR_A_PIN_DEFAULT -1
+#define BRUSHED_MOTOR_B_PIN_DEFAULT -1
 
-#elif defined MOTOR_TYPE_BLDC
+#elif MOTOR_TYPE == 1
 // Common PWM
 #define VALVE_SERVO_PIN_DEFAULT 12
 #define VALVE_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::HIGH3_CH6
@@ -65,11 +67,13 @@
 #define TEMP_PIN_DEFAULT 36
 #define I2C_SDA_PIN_DEFAULT 21
 #define I2C_SCL_PIN_DEFAULT 22
-#define BUTTON_SET_PINS_DEFAULT {}// Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
+#define BUTTON_SET_PINS_DEFAULT "" // Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
 #define BUTTON_SET_PINS_1 39
 #define BUTTON_SET_PINS_2 -1
 #define BUTTON_SET_PINS_3 -1
 #define BUTTON_SET_PINS_4 -1
+#define BRUSHED_MOTOR_A_PIN_DEFAULT -1
+#define BRUSHED_MOTOR_B_PIN_DEFAULT -1
 
 #endif
 

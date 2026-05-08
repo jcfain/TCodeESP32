@@ -1,14 +1,14 @@
 #pragma once
 #include <cstdint>
 
-enum class LogLevel 
-{ 
+enum class LogLevel
+{
     NONE,
     ERROR,
     WARNING,
     INFO,
     DEBUG,
-    VERBOSE 
+    VERBOSE
 };
 
 enum class SettingType
@@ -64,7 +64,7 @@ enum class TCodeVersion: int
 };
 
 #ifdef MOTOR_TYPE_BLDC
-enum class BLDCMotorPosition 
+enum class BLDCMotorPosition
 {
     A,
     B
@@ -118,6 +118,7 @@ enum class BoardType: int
     CRIMZZON,
     ISAAC,
     SSR1PCB,
+    SR6PCB,
     DEVKIT_C5,
     DEVKIT_C6,
     DEVKIT_E22,
@@ -126,7 +127,7 @@ enum class BoardType: int
 #ifdef MOTOR_TYPE_BLDC
 #define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SSR1PCB=5, DEVKITC6=6, DEVKITC61=7"
 #else
-#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SR6MB=3, InControl=4, DEVKITC6=6, DEVKITC61=7"
+#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SR6MB=3, InControl=4, SR6PCB=6, DEVKITC6=7, DEVKITC61=8"
 #endif
 
 enum class MotorType: int
@@ -164,6 +165,14 @@ enum class BLDCEncoderType: int {
 };
 #define BLDC_ENCODER_TYPES_HELP "MT6701=0, SPI=1, PWM=2"
 
+enum class LubeButtonPinMode : int {
+    PULL_UP,
+    PULL_DOWN,
+    FLOAT,
+    MAX
+};
+#define LUBE_BUTTON_PIN_MODE_HELP "PULL_UP=0, PULL_DOWN=1, FLOAT=2"
+
 enum class BLEDeviceType: int {
     TCODE,
     LOVE,
@@ -177,6 +186,16 @@ enum class BLELoveDeviceType: int {
     MAX
 };
 #define BLDC_LOVE_DEVICE_TYPES_HELP "EDGE=0"
+
+/** PWM peripheral driver selection for a timer group.
+ *  MCPWM = 0: use MCPWM hardware (servo-grade precision, limited to 12 outputs).
+ *  LEDC  = 1: use LEDC hardware (general purpose, up to 16 channels).
+ */
+enum class PwmDriver : int8_t {
+    MCPWM = 0,
+    LEDC = 1
+};
+#define PWM_DRIVER_HELP "MCPWM=0, LEDC=1"
 
 enum class WifiBand {
     AUTO,
@@ -205,7 +224,6 @@ enum class ESPTimerChannelNum: int8_t {
     HIGH2_CH5,
     HIGH3_CH6,
     HIGH3_CH7,
-#endif
     LOW0_CH0,
     LOW0_CH1,
     LOW1_CH2,
@@ -214,6 +232,36 @@ enum class ESPTimerChannelNum: int8_t {
     LOW2_CH5,
     LOW3_CH6,
     LOW3_CH7,
+#elif CONFIG_IDF_TARGET_ESP32S3
+    // ESP32-S3: keep LOW (LEDC) channels at 0..7 so they map to valid LEDC
+    // channel numbers; HIGH (MCPWM) channels follow as 8..15 — MCPWM ignores
+    // the raw channel number at attach time so any unique value works.
+    LOW0_CH0,
+    LOW0_CH1,
+    LOW1_CH2,
+    LOW1_CH3,
+    LOW2_CH4,
+    LOW2_CH5,
+    LOW3_CH6,
+    LOW3_CH7,
+    HIGH0_CH0,
+    HIGH0_CH1,
+    HIGH1_CH2,
+    HIGH1_CH3,
+    HIGH2_CH4,
+    HIGH2_CH5,
+    HIGH3_CH6,
+    HIGH3_CH7,
+#endif
+    MAX
+};
+
+enum class VoltageMonitors : int8_t {
+    VOLTAGE_3V3,
+    VOLTAGE_5V,
+    VOLTAGE_BATTERY,
+    VOLTAGE_MOTOR,
+    VOLTAGE_BUS,
     MAX
 };
 

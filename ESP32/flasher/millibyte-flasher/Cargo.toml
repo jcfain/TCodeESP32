@@ -1,0 +1,35 @@
+[package]
+name = "millibyte-flasher"
+version = "0.1.0"
+edition = "2021"
+description = "One-click flasher for Millibyte TCode ESP32 controllers (SR6PCB, SSR1PCB)."
+license = "MIT OR Apache-2.0"
+publish = false
+
+[[bin]]
+name = "millibyte-flasher"
+path = "src/main.rs"
+
+[dependencies]
+# Core flashing engine. Disable default `cli` feature; we drive the API directly.
+espflash = { version = "4", default-features = false, features = ["serialport"] }
+serialport = "4"
+
+# CLI parsing
+clap = { version = "4", features = ["derive"] }
+
+# GUI (single-binary; launched when invoked with no args)
+eframe = { version = "0.29", default-features = false, features = ["default_fonts", "glow"] }
+
+# Plumbing
+anyhow = "1"
+thiserror = "1"
+log = "0.4"
+env_logger = { version = "0.11", default-features = false, features = ["humantime"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

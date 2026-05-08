@@ -106,6 +106,16 @@ bool canConvertFromJson(JsonVariantConst src, const BLELoveDeviceType&) {
   return src.is<uint8_t>();
 }
 
+void convertFromJson(JsonVariantConst src, LubeButtonPinMode& dst) {
+    dst = static_cast<LubeButtonPinMode>(src.as<uint8_t>());
+}
+bool convertToJson(const LubeButtonPinMode& src, JsonVariant dst) {
+    return dst.set(static_cast<uint8_t>(src));
+}
+bool canConvertFromJson(JsonVariantConst src, const LubeButtonPinMode&) {
+    return src.is<uint8_t>();
+}
+
 void convertFromJson(JsonVariantConst src, ESPTimerChannelNum& dst) {
     dst = static_cast<ESPTimerChannelNum>(src.as<int8_t>());
 }
@@ -120,7 +130,7 @@ bool canConvertFromJson(JsonVariantConst src, const ESPTimerChannelNum&) {
 //         dst.push_back(item);
 // }
 // bool convertToJson(const std::vector<const char*>& src, JsonVariant dst) {
-    
+
 //     JsonArray array = dst.to<JsonArray>();
 //     for (const char* item : src)
 //         if(!array.add(item))
@@ -133,7 +143,7 @@ bool canConvertFromJson(JsonVariantConst src, const ESPTimerChannelNum&) {
 //         dst.push_back(item);
 // }
 // bool convertToJson(const std::vector<int>& src, JsonVariant dst) {
-    
+
 //     JsonArray array = dst.to<JsonArray>();
 //     for (const int item : src)
 //         if(!array.add(item))

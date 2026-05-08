@@ -1,0 +1,37 @@
+{
+    "board_id": "sr6_pcb",
+    "display_name": "SR6 PCB (ESP32-S3)",
+    "chip": "esp32s3",
+    "firmware_version": "0.483b",
+    "flash_mode": "dio",
+    "flash_freq": "80m",
+    "flash_size": "4MB",
+    "usb_vid_pid": [
+        "303a:1001",
+        "303a:0002",
+        "10c4:ea60"
+    ],
+    "fs_partition": "spiffs",
+    "files": [
+        {
+            "offset": "0x0000",
+            "name": "bootloader.bin"
+        },
+        {
+            "offset": "0x8000",
+            "name": "partitions.bin"
+        },
+        {
+            "offset": "0xe000",
+            "name": "boot_app0.bin"
+        },
+        {
+            "offset": "0x10000",
+            "name": "firmware.bin"
+        },
+        {
+            "offset": "0x290000",
+            "name": "littlefs.bin"
+        }
+    ]
+}

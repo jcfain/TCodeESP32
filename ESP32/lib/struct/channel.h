@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <ArduinoJson.h>
-#include "settingConstants.h"
+#include "../settingConstants.h"
 
 struct Channel {
     const char* Name;
@@ -30,7 +30,7 @@ struct Channel {
         obj[CHANNEL_IS_SWITCH] = isSwitch;
         obj[CHANNEL_SR6_ONLY] = sr6Only;
     }
-    
+
     void fromJson(const JsonObject& obj) {
         Name = obj[CHANNEL_NAME];
         FriendlyName = obj[CHANNEL_FRIENDLY_NAME];

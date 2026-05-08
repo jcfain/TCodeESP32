@@ -4,7 +4,7 @@
 #include <EEPROM.h>
 #include "TCode/v0.3/TCodeAxis0_3.h"
 #include "TCodeBase.h"
-#include "TagHandler.h"
+#include "logging/TagHandler.h"
 // -----------------------------
 // Class to manage Toy Comms
 // -----------------------------
@@ -180,7 +180,7 @@ public:
 	// }
 
 	// Function to query when an axis was last commanded
-	unsigned long AxisLast(const String &ID) 
+	unsigned long AxisLast(const String &ID)
 	{
 		unsigned long t = 0; // Return time
 		char type = ID.charAt(0);
@@ -230,7 +230,7 @@ public:
 	}
 
 private:
-	const char *_TAG = TagHandler::TCodeHandler;
+	static constexpr Tags::tag_t _TAG = Tags::TCode;
 	// Strings
 	const char *firmwareID;
 	String bufferString; // String to hold incomming commands
