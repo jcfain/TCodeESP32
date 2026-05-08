@@ -1,0 +1,3 @@
+target/
+firmware/sr6_pcb/*.bin
+firmware/ssr1_pcb/*.bin

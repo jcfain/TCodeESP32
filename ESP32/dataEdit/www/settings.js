@@ -233,16 +233,22 @@ function pingDevice() {
         clearTimeout(serverPollingTimeOut);
         serverPollingTimeOut = null;
     }
-    post("ping", EndPointType.Ping.uri, function(xhr) {
-        result = xhr.response;
-        if(!result || result.status === "restarting") {
-            startServerPoll();
-        } else {
-            location.reload();
-        }
-    }, function(xhr) {
-        startServerPoll();
-    });
+    // Probe `/` directly: any HTTP response (200, 302, 404 from a captive
+    // portal, …) means the web server is back up and we should reload. We
+    // bypass the JSON-parsing `request()` helper because the root is HTML and
+    // older firmware has no /ping endpoint, so a 404 there falsely looked
+    // like "device still down" and kept us in the poll loop forever.
+    var xhr = new XMLHttpRequest();
+    try { xhr.open("GET", "/?_=" + Date.now(), true); } catch(e) { startServerPoll(); return; }
+    xhr.timeout = 1500;
+    xhr.onload = function() {
+        // Any answered request proves the device's TCP stack + HTTP server
+        // are running again.
+        location.reload();
+    };
+    xhr.onerror = function() { startServerPoll(); };
+    xhr.ontimeout = function() { startServerPoll(); };
+    try { xhr.send(); } catch(e) { startServerPoll(); }
 }
 
 function getSystemInfo(chain) {

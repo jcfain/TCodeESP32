@@ -242,6 +242,15 @@ public:
                 AsyncWebServerResponse* response = request->beginResponse(200, "application/json", "{\"msg\":\"reapplying\"}");
                 request->send(response); });
 
+        // Lightweight liveness probe used by the web UI's post-restart poll
+        // and by external health checks. GET or POST both work.
+        auto pingHandler = [](AsyncWebServerRequest* request) {
+            AsyncWebServerResponse* response = request->beginResponse(200, "application/json", "{\"status\":\"ok\"}");
+            request->send(response);
+            };
+        server->on("/ping", HTTP_GET, pingHandler);
+        server->on("/ping", HTTP_POST, pingHandler);
+
         server->on("/default", HTTP_POST, [this](AsyncWebServerRequest *request)
                    {
                 Serial.println("Settings default");
