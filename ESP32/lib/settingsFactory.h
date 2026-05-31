@@ -1064,6 +1064,7 @@ public:
 
     bool addLastBootReason(const char* value)
     {
+        xSemaphoreTake(m_debugInfoSemaphore, portTICK_PERIOD_MS);
         SettingFileInfo debugInfo = getDebugInfo();
         if(load(debugInfo))
         {
@@ -1085,22 +1086,79 @@ public:
             JsonObject obj = reasons.add<JsonObject>();
             obj["eventID"] = index;
             obj["reason"] = value;
-            if(saveToDisk(debugInfo))
+            if(saveToDisk(debugInfo)) 
+            {
+                xSemaphoreGive(m_debugInfoSemaphore);
                 return true;
+            }
         }
+        xSemaphoreGive(m_debugInfoSemaphore);
 
         return false;
     }
 
     bool resetLastBootReason()
     {
+        xSemaphoreTake(m_debugInfoSemaphore, portTICK_PERIOD_MS);
         SettingFileInfo debugInfo = getDebugInfo();
         if(load(debugInfo))
         {
             debugInfo.doc[DEBUG_INFO_LAST_BOOT_REASONS].to<JsonArray>();
             if(saveToDisk(debugInfo))
+            {
+                xSemaphoreGive(m_debugInfoSemaphore);
                 return true;
+            }
         }
+        xSemaphoreGive(m_debugInfoSemaphore);
+        return false;
+    }
+
+    bool addMotorStatus(const char* name, const char* value)
+    {
+        xSemaphoreTake(m_debugInfoSemaphore, portTICK_PERIOD_MS);
+        SettingFileInfo debugInfo = getDebugInfo();
+        if(load(debugInfo))
+        {
+            JsonArray array = debugInfo.doc[DEBUG_INFO_MOTOR_STATE].as<JsonArray>();
+            if(array.isNull()) 
+            {
+                array = debugInfo.doc[DEBUG_INFO_MOTOR_STATE].to<JsonArray>();
+            }
+            int index = 1;
+            if(array.size() > 0)
+            {
+                JsonObject lastReason = array[array.size() -1].as<JsonObject>();
+                index = lastReason["eventID"].as<int>() + 1;
+            }
+            JsonObject obj = array.add<JsonObject>();
+            obj["eventID"] = index;
+            obj["name"] = name;
+            obj["message"] = value;
+            if(saveToDisk(debugInfo)) 
+            {
+                xSemaphoreGive(m_debugInfoSemaphore);
+                return true;
+            }
+        }
+        xSemaphoreGive(m_debugInfoSemaphore);
+        return false;
+    }
+
+    bool resetMotorStatus()
+    {
+        xSemaphoreTake(m_debugInfoSemaphore, portTICK_PERIOD_MS);
+        SettingFileInfo debugInfo = getDebugInfo();
+        if(load(debugInfo))
+        {
+            debugInfo.doc[DEBUG_INFO_MOTOR_STATE].to<JsonArray>();
+            if(saveToDisk(debugInfo))
+            {
+                xSemaphoreGive(m_debugInfoSemaphore);
+                return true;
+            }
+        }
+        xSemaphoreGive(m_debugInfoSemaphore);
         return false;
     }
     
@@ -1343,11 +1401,13 @@ private:
             false, DEBUG_INFO_PATH, SettingFile::DebugInfo, JsonDocument(), 0, 0,
             {
                 { DEBUG_INFO_LAST_BOOT_REASONS, "Last boot reasons", "The reasons for boot up or reboot.", SettingType::ArrayString, DEBUG_INFO_LAST_BOOT_REASONS_DEFAULT, RestartRequired::YES, { SettingProfile::System, SettingProfile::Readonly }},
+                { DEBUG_INFO_MOTOR_STATE, "Motor State", "The motor state of the last motor init.", SettingType::ArrayString, DEBUG_INFO_MOTOR_STATE_DEFAULT, RestartRequired::YES, { SettingProfile::System, SettingProfile::Readonly }},
             }
         };
     }
 
     SettingsFactory() {
+        m_debugInfoSemaphore = xSemaphoreCreateMutex();
         m_systemSemaphore = xSemaphoreCreateMutex();
         m_networkSemaphore = xSemaphoreCreateMutex();
         m_commonSemaphore = xSemaphoreCreateMutex();
@@ -1432,27 +1492,25 @@ private:
 
     bool load(SettingFileInfo &fileInfo)
     {
-        LogHandler::info(m_TAG, "Loading file: %s", fileInfo.path);
-        bool fileExists = LittleFS.exists(fileInfo.path);
-        if(!fileExists)
+        LogHandler::debug(m_TAG, "Loading file: %s", fileInfo.path);
+        File file;
+        if(!openFile(fileInfo, file))
         {
-            LogHandler::info(m_TAG, "File %s did not exist", fileInfo.path);
             if(!createJsonFile(fileInfo.path))
                 return false;
             if(!loadDefault(fileInfo.file))
                 return false;
         } else {
-            File file = LittleFS.open(fileInfo.path, FILE_READ, !fileExists);
-            if(!file) {
-                LogHandler::error(m_TAG, "%s failed to open!", fileInfo.path);
-                return false;
-            }
-
-                
-            if(LogHandler::logDeserializationError(m_TAG, deserializeJson(fileInfo.doc, file), file.name())) {
+            if(LogHandler::logDeserializationError(m_TAG, deserializeJson(fileInfo.doc, file), file.name())) 
+            {
                 file.close();
-                createJsonFile(fileInfo.path);
-                return false;
+                // Sometimes the file gets emptied out. 
+                // Brute force recreation at default for now.
+                LogHandler::error(m_TAG, "Sometimes the file gets emptied out. Setting %s to default. Sorry.", fileInfo.path);
+                if(!createJsonFile(fileInfo.path))
+                    return false;
+                if(!loadDefault(fileInfo.file))
+                    return false;
             }
             if(fileInfo.doc.isNull())
             {
@@ -1460,13 +1518,31 @@ private:
                 if(!loadDefault(fileInfo.file))
                     return false;
             }
-            checkFile(fileInfo);
             file.close();
             fileInfo.initialized = true;
+            checkFile(fileInfo);
             if(fileInfo.onload)
                 fileInfo.onload();
         }
         //json = doc.as<JsonObject>();
+        return true;
+    }
+
+    bool openFile(SettingFileInfo &fileInfo, File& file)
+    {
+        LogHandler::info(m_TAG, "Loading file: %s", fileInfo.path);
+        bool fileExists = LittleFS.exists(fileInfo.path);
+        if(!fileExists)
+        {
+            LogHandler::info(m_TAG, "File %s did not exist", fileInfo.path);
+            return false;
+        } else {
+            file = LittleFS.open(fileInfo.path, FILE_READ, !fileExists);
+            if(!file) {
+                LogHandler::error(m_TAG, "%s failed to open!", fileInfo.path);
+                return false;
+            }
+        }
         return true;
     }
     
@@ -1533,7 +1609,7 @@ private:
     /// @return true if file was missing a key
     bool checkFile(SettingFileInfo &fileInfo)
     {
-        LogHandler::info(m_TAG, "Checking file: %s", fileInfo.path);
+        LogHandler::debug(m_TAG, "Checking file: %s", fileInfo.path);
         bool fileChanged = false;
         for(const Setting& setting : fileInfo.settings)
         {
@@ -1849,7 +1925,7 @@ private:
     //template <unsigned int N>
     bool saveToDisk(SettingFileInfo &fileInfo, JsonObject fromJson = JsonObject())
     {
-        LogHandler::info(m_TAG, "Save file: %s", fileInfo.path);
+        LogHandler::debug(m_TAG, "Save file: %s", fileInfo.path);
         if(!fromJson.isNull()) {
             LogHandler::debug(m_TAG, "Saving from override json");
             fileInfo.doc.clear();

@@ -62,20 +62,75 @@ protected:
     std::mutex command_mtx;
     bool sendLogTaskRunning = false;
 
-    void compileCommand(char* buf, const char* command, const char* message = 0, size_t len = MAX_COMMAND) {
-        if(LogHandler::getLogLevel() == LogLevel::DEBUG) {
+    size_t compileCommand(char* buf, const char* command, const char* message = 0, size_t len = MAX_COMMAND) {
+        if(LogHandler::getLogLevel() >= LogLevel::DEBUG) {
             if(message)
                 Serial.printf("Sending WS commands: %s, Message: %s\n", command, message);
             else
                 Serial.printf("Sending WS commands: %s\n",command);
         }
-        if(!message)
-            snprintf(buf, len, "{ \"command\": \"%s\" }", command);
-        else if(strpbrk(message, "{") != nullptr)
-            snprintf(buf, len, "{ \"command\": \"%s\" , \"message\": %s }", command, message);
-        else
-            snprintf(buf, len, "{ \"command\": \"%s\" , \"message\": \"%s\" }", command, message);
+        size_t jsonLen = 0;
+        if(!message) 
+        {
+            jsonLen = snprintf(buf, len, "{\"command\":\"%s\"}", command);
+        } 
+        else if(strpbrk(message, "{") != nullptr) 
+        {
+            jsonLen = snprintf(buf, len, "{\"command\":\"%s\",\"message\":%s}", command, message);
+        }
+        else 
+        {
+            jsonLen = snprintf(buf, len, "{\"command\":\"%s\",\"message\":\"%s\"}", command, message);
+        }
+        sanitize_json(buf, jsonLen);
+        // Serial.printf("Sanitized WS commands: %s, Message: %s\n", command, buf);
+        return jsonLen;
     }
+    void sanitize_json(char* s, size_t len) {
+        for (auto i = 0; i<len; i++) 
+        {
+            switch (s[i]) 
+            {
+                // case '"':
+                case '\\':
+                case '\b':
+                case '\f':
+                case '\n':
+                case '\r':
+                case '\t': 
+                    s[i] = ' '; 
+                break;
+                default:
+                    if ('\x00' <= s[i] && s[i] <= '\x1f') 
+                    {
+                        s[i] = ' ';
+                    }
+            }
+        }
+        s[len] = {0};
+    }
+    // void escape_json(char* s, size_t len) {
+    //     for (auto i = 0; i<len; i++) {
+    //         switch (s[i]) {
+    //         case '"': s[i] = '\\\"'; break;
+    //         case '\\': s[i] = '\\\\'; break;
+    //         case '\b': s[i] = '\\b'; break;
+    //         case '\f': s[i] = '\\f'; break;
+    //         case '\n': s[i] = '\\n'; break;
+    //         case '\r': s[i] = '\\r'; break;
+    //         case '\t': s[i] = '\\t'; break;
+    //         default:
+    //             if ('\x00' <= s[i] && s[i] <= '\x1f') {
+    //                 s[i] = ' ';
+    //                 // Noit sure how to do this without ostream https://stackoverflow.com/questions/7724448/simple-json-string-escape-for-c
+    //             // o << "\\u"
+    //             //   << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(*c);
+    //             } else {
+    //                 // s[i] = *c;
+    //             }
+    //         }
+    //     }
+    // }
 
     void processWebSocketTextMessage(const char* msg) 
     {

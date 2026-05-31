@@ -23,9 +23,11 @@ SOFTWARE. */
 #include <Arduino.h>
 #include <mutex>
 #include <vector>
+#include <ArduinoJson.h>
 
 #include "enum.h"
 #include "callback.h"
+#include "constants.h"
 
 #define LOG_LEVEL_HELP "Sets system log level.\nValid values are: NONE=0, ERROR=1, WARNING=2, INFO=3, DEBUG=4, VERBOSE=5"
 
@@ -191,74 +193,84 @@ public:
 
     static void clearExcludes() { getInstance().m_filters.clear(); }
 
-    static void info(const char *tag, const char *format, ...) {
+    static size_t info(const char *tag, const char *format, ...) {
         LogHandler &log = getInstance();
+        size_t len = 0;
         if (log.m_currentLogLevel >= LogLevel::INFO) {
             xSemaphoreTake(log.m_xMutex, portMAX_DELAY);
             if (isLogged(tag)) {
                 va_list vArgs;
                 va_start(vArgs, format);
-                parseMessage(format, "[INFO]", tag, LogLevel::INFO, vArgs);
+                len = parseMessage(format, "[INFO]", tag, LogLevel::INFO, vArgs);
                 va_end(vArgs);
             }
             xSemaphoreGive(log.m_xMutex);
         }
+        return len;
     }
 
-    static void warning(const char *tag, const char *format, ...) {
+    static size_t warning(const char *tag, const char *format, ...) {
         LogHandler &log = getInstance();
+        size_t len = 0;
         if (log.m_currentLogLevel >= LogLevel::WARNING) {
             xSemaphoreTake(log.m_xMutex, portMAX_DELAY);
             if (isLogged(tag)) {
                 va_list vArgs;
                 va_start(vArgs, format);
-                parseMessage(format, "[WARNING]", tag, LogLevel::WARNING, vArgs);
+                len = parseMessage(format, "[WARNING]", tag, LogLevel::WARNING, vArgs);
                 va_end(vArgs);
             }
             xSemaphoreGive(log.m_xMutex);
         }
+        return len;
     }
 
-    static void error(const char *tag, const char *format, ...) {
+    static size_t error(const char *tag, const char *format, ...) {
         LogHandler &log = getInstance();
+        size_t len = 0;
         if (log.m_currentLogLevel >= LogLevel::ERROR) {
             xSemaphoreTake(log.m_xMutex, portMAX_DELAY);
             if (isLogged(tag)) {
                 va_list vArgs;
                 va_start(vArgs, format);
-                parseMessage(format, "[ERROR]", tag, LogLevel::ERROR, vArgs);
+                len = parseMessage(format, "[ERROR]", tag, LogLevel::ERROR, vArgs);
                 va_end(vArgs);
             }
             xSemaphoreGive(log.m_xMutex);
         }
+        return len;
     }
 
-    static void debug(const char *tag, const char *format, ...) {
+    static size_t debug(const char *tag, const char *format, ...) {
         LogHandler &log = getInstance();
+        size_t len = 0;
         if (log.m_currentLogLevel >= LogLevel::DEBUG) {
             xSemaphoreTake(log.m_xMutex, portMAX_DELAY);
             if (isLogged(tag)) {
                 va_list vArgs;
                 va_start(vArgs, format);
-                parseMessage(format, "[DEBUG]", tag, LogLevel::DEBUG, vArgs);
+                len = parseMessage(format, "[DEBUG]", tag, LogLevel::DEBUG, vArgs);
                 va_end(vArgs);
             }
             xSemaphoreGive(log.m_xMutex);
         }
+        return len;
     }
 
-    static void verbose(const char *tag, const char *format, ...) {
+    static size_t verbose(const char *tag, const char *format, ...) {
         LogHandler &log = getInstance();
+        size_t len = 0;
         if (log.m_currentLogLevel >= LogLevel::VERBOSE) {
             xSemaphoreTake(log.m_xMutex, portMAX_DELAY);
             if (isLogged(tag)) {
                 va_list vArgs;
                 va_start(vArgs, format);
-                parseMessage(format, "[VERBOSE]", tag, LogLevel::VERBOSE, vArgs);
+                len = parseMessage(format, "[VERBOSE]", tag, LogLevel::VERBOSE, vArgs);
                 va_end(vArgs);
             }
             xSemaphoreGive(log.m_xMutex);
         }
+        return len;
     }
 
     static const char *getLastError() { return getInstance().m_lastError; }
@@ -322,14 +334,14 @@ private:
     char m_lastError[internal_buffer_length];
     bool m_filterDuplicates = false;
 
-    static void parseMessage(const char *valueFormat, const char *level,
+    static size_t parseMessage(const char *valueFormat, const char *level,
                              const char *tag, LogLevel logLevel, va_list vArgs) 
     {
         LogHandler &log = getInstance();
 		if (strlen(valueFormat) > internal_buffer_length) 
         {
-			Serial.println("[LogHandler::parseMessage] Log value too big for buffer");
-			return;
+			Serial.println("[LogHandler::parseMessage] Error Log value too big for buffer");
+			return 0;
 		}
 		char temp[internal_buffer_length] = {'\0'};
 		int len = vsnprintf(temp, internal_buffer_length - 1, valueFormat, vArgs);
@@ -337,24 +349,23 @@ private:
 		if (len < 0) 
         {
 			Serial.println("[LogHandler::parseMessage] Error printing vargs");
-			return;
+			return 0;
 		}
-		for (size_t i = internal_buffer_length - 1; i >= 0; --i) 
-        {
-			if ((temp[i] != '\n') && (temp[i] != '\r') && (temp[i] != ' ') &&
-				(i < len)) 
-            {
-				break;
-			}
-			temp[i] = 0;
-		}
+		// for (size_t i = internal_buffer_length - 1; i >= 0; --i) 
+        // {
+		// 	if ((temp[i] != '\n') && (temp[i] != '\r') && (temp[i] != ' ') && (i < len)) 
+        //     {
+		// 		break;
+		// 	}
+		// 	temp[i] = 0;
+		// }
 		char temp2[internal_buffer_length] = {'\0'};
         len = snprintf(temp2, internal_buffer_length, "%s %s: %s", level, tag, temp);
 
 		if (len < 0) 
         {
 			Serial.println("[LogHandler::parseMessage] Error printing with tag");
-			return;
+			return 0;
 		}
 
 		if (log.m_filterDuplicates) 
@@ -366,15 +377,15 @@ private:
                     break;
 			case LogLevel::ERROR:
 				if (strcmp(log.m_lastError, temp2) == 0)
-					return;
+					return 0;
 				break;
 			case LogLevel::VERBOSE:
 				if (strcmp(log.m_lastVerbose, temp2) == 0)
-					return;
+					return 0;
 				break;
 			case LogLevel::DEBUG:
 				if (strcmp(log.m_lastDebug, temp2) == 0)
-					return;
+					return 0;
 				break;
 			}
 		}
@@ -399,6 +410,7 @@ private:
         storeLog(temp2, len, logLevel);
 		if (log.m_message_callback)
 			log.m_message_callback(temp2, len, logLevel);
+        return len;
     }
 
     static bool isTagged(const char *tag) {
@@ -439,18 +451,24 @@ private:
                 int sendChunks = len / maxLen;
                 int sent = 0;
                 int amountToSend = maxLen / sendChunks;
+                if(level >= LogLevel::DEBUG) 
+                    Serial.printf("[LogHandler::storeLog] sendChunks: %i, amountToSend: %i, sent: %i, ", sendChunks, amountToSend, sent);
                 for(int i = 0; i < sendChunks; i++)
                 {
                     // char messageToSend[amountToSend];
+                    if(level >= LogLevel::DEBUG) 
+                        Serial.printf("[LogHandler::storeLog] sendChunks: %i, amountToSend: %i, sent: %i, ", sendChunks, amountToSend, sent);
+                    if((sent + amountToSend) > maxLen)
+                         break;
                     LogMessage logMessage;
                     logMessage.level = level;
                     strncpy(logMessage.message, message + sent, amountToSend);
                     logMessage.message[amountToSend] = '\0';
                     if(level >= LogLevel::DEBUG) 
-                        Serial.printf("[LogHandler::storeLog] truncated: %s\n", message + sent);
+                        Serial.printf("[LogHandler::storeLog] truncated: %s\n", logMessage.message);
                     if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
                     {
-                        Serial.printf("[LogHandler::storeLog] Error sending log message: %s\n", message + sent);
+                        Serial.printf("[LogHandler::storeLog] Error sending log message: %s\n", logMessage.message);
                     }
                     sent += amountToSend;
                 }

@@ -22,6 +22,7 @@ SOFTWARE. */
 
 var userSettings = {};
 var systemSettings = {};
+var debugInfo = {};
 var wifiSettings = {};
 var pinoutSettings = {};
 var systemInfo = {};
@@ -295,7 +296,7 @@ function getSystemSettings(chain) {
 function getDebugInfo(chain) {
     showLoading("Loading debug info...");
     get("debug info", EndPointType.DebugInfo.uri, function(xhr) {
-        const debugInfo = xhr.response;
+        debugInfo = xhr.response;
         if(!debugInfo) {
             showError("Error getting debug info!");
         }
@@ -561,12 +562,12 @@ function wsCallBackFunction(evt) {
             case "verbose":
             case "debug":
             case "warn":
-                log(data["message"]);
+                log("[Firmware] " +data["message"]);
                 break;
             case "error":
-				var message = data["message"];
+				var message = "[Firmware] " +data["message"];
                 log(message);
-                showError("Firmware error: " +message);
+                showError(message);
                 break;
             case "saved":
 				var message = data["message"];
@@ -615,18 +616,18 @@ function toggleWebClientDebug(enabled) {
 
 function logdebug(message) {
     if(debugEnabled) {
-        const messageOut = "[Web client DEBUG]: "+message;
+        const messageOut = "[WebClient] [DEBUG] "+message;
         console.log(messageOut);
         log(messageOut);
     }
 }
 function logWarn(message) {
-    const messageOut = "[Web client WARN]: "+message;
+    const messageOut = "[WebClient] [WARN] "+message;
     console.warn(messageOut);
     log(messageOut);
 }
 function logError(message) {
-    const messageOut = "[Web client ERROR]: "+message;
+    const messageOut = "[WebClient] [ERROR] "+message;
     console.error(messageOut);
     log(messageOut);
 }
@@ -1015,30 +1016,36 @@ function setSystemSettings()
 
 function setDebugInfo(debugInfo) {
 
-    const tbody = document.getElementById('lastBootReasons');
+    const lastBootReasonsBody = document.getElementById('lastBootReasons');
 
-    removeAllChildren(tbody);
-    if(!debugInfo || !debugInfo.lastBootReasons || !debugInfo.lastBootReasons.length)
-    {
+    removeAllChildren(lastBootReasonsBody);
+    if(!debugInfo || !debugInfo.lastBootReasons || !debugInfo.lastBootReasons.length) {
         const tr = document.createElement("tr");
         const tdNone = document.createElement("td");
         tdNone.colSpan = "2";
         tdNone.innerText = "These are not the droids you're looking for. Move along..."
         tr.appendChild(tdNone);
-        tbody.appendChild(tr);
-        return;
+        lastBootReasonsBody.appendChild(tr);
+    } else {
+        debugInfo.lastBootReasons.sort((a, b) => b.eventID-a.eventID);
+        debugInfo.lastBootReasons.forEach(x => {
+            const tr = document.createElement("tr");
+            const tdDate = document.createElement("td");
+            const tdReason = document.createElement("td");
+            tdDate.innerText = x["eventID"];
+            tdReason.innerText = x["reason"];
+            tr.appendChild(tdDate);
+            tr.appendChild(tdReason);
+            lastBootReasonsBody.appendChild(tr);
+        });
     }
-    debugInfo.lastBootReasons.sort((a, b) => b.eventID-a.eventID);
-    debugInfo.lastBootReasons.forEach(x => {
-        const tr = document.createElement("tr");
-        const tdDate = document.createElement("td");
-        const tdReason = document.createElement("td");
-        tdDate.innerText = x["eventID"];
-        tdReason.innerText = x["reason"];
-        tr.appendChild(tdDate);
-        tr.appendChild(tdReason);
-        tbody.appendChild(tr);
-    });
+
+    if(motorA) {
+        motorA.updateMotorStatus(debugInfo["motorState"]);
+    }
+    if(motorB) {
+        motorB.updateMotorStatus(debugInfo["motorState"]);
+    }
 }
 
 function clearRebootReasons()
@@ -1173,6 +1180,7 @@ function setUserSettings()
     {
         const encoderTypeElement = document.getElementById("BLDC_Encoder");
         encoderTypeElement.value = userSettings["BLDC_Encoder"];
+        const isSSR1PCB = isBoardType(BoardType.SSR1PCB);
         encoderTypeElement.disabled = isSSR1PCB;
         if(userSettings.BLDC_Encoder == BLDCEncoderType.NONE) {
             encoderTypeElement.classList.add("pulse-yellow");
@@ -1646,8 +1654,12 @@ function sendDeviceHome() {
     sendTCode(tcode);
 }
 
-function startWebSocketLogging(id, value) {
-    updateSetting(id, SettingType.Boolean, value);
+function startWebSocketLogging(element) {
+    if(element.checked && !confirm("This feature is experimental. It uses up ram and may cause issues. If enabled, make sure to disable before normal use. Continue?")) {
+        element.checked = false;
+        return;
+    }
+    updateSetting(element.id, SettingType.Boolean, element.checked);
 }
 
 function getSliderTCode(channel, sliderValue, useIModifier, modifierValue, disableModifier) {

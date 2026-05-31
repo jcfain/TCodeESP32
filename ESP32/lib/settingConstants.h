@@ -146,6 +146,7 @@
 #define LOG_INCLUDETAGS_DEFAULT {}
 #define LOG_EXCLUDETAGS_DEFAULT {}
 #define DEBUG_INFO_LAST_BOOT_REASONS_DEFAULT {}
+#define DEBUG_INFO_MOTOR_STATE_DEFAULT {}
 
 #define LAST_BOOT_REASONS_MAX "lastBootReasonsMax"
 #define LAST_BOOT_REASONS_MAX_DEFAULT 50
@@ -309,5 +310,6 @@
 
 // Readonly
 #define DEBUG_INFO_LAST_BOOT_REASONS "lastBootReasons"
+#define DEBUG_INFO_MOTOR_STATE "motorState"
 
 ;

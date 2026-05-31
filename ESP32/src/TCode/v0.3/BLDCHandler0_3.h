@@ -29,6 +29,7 @@
 #include "TagHandler.h"
 #include "settingsFactory.h"
 #include "BLDCTCodeSensorSPI.h"
+#include "printX.h"
 
 
 class BLDCHandler0_3 : public MotorHandler0_3 
@@ -355,12 +356,16 @@ public:
         motorA->init();
         if(motorB)
             motorB->init();
-
-        motorA->useMonitoring(Serial);
-        if(motorB)
-            motorB->useMonitoring(Serial);
-        //if(LogHandler::getLogLevel() == LogLevel::DEBUG)
-            SimpleFOCDebug::enable(&Serial);
+        m_settingsFactory->resetMotorStatus();
+        PrintMotorStatus* motorAStatus = new PrintMotorStatus("motorAStatus");
+        motorA->useMonitoring(*motorAStatus);
+        if(motorB) 
+        {
+            PrintMotorStatus* motorBStatus = new PrintMotorStatus("motorBStatus");
+            motorB->useMonitoring(*motorBStatus);
+        }
+        PrintMotorStatus* motorStatus = new PrintMotorStatus("motorStatus");
+        SimpleFOCDebug::enable(motorStatus);
 
         // init current sense
         double zeroElecAngleA = BLDC_MOTORA_ZEROELECANGLE_DEFAULT;
@@ -490,6 +495,37 @@ public:
     }
 
 private:
+    class PrintMotorStatus: public Print {
+        public:
+
+        PrintMotorStatus(const char* name) : m_name(name) {}
+        
+        size_t write(uint8_t buffer)
+        {
+            if (buffer == 0) {
+                return 0;
+            }
+            const char* string = (const char*)&buffer;
+            if(strcmp(string, "\r\n") == 0)
+                return 0;
+            SettingsFactory::getInstance()->addMotorStatus(m_name, string);
+            return LogHandler::info("MotorState", string);
+        }
+
+        size_t write(const uint8_t *buffer, size_t size)
+        {
+            if (buffer == 0) {
+                return 0;
+            }
+            const char* string = (const char*)buffer;
+            if(strcmp(string, "\r\n") == 0)
+                return 0;
+            SettingsFactory::getInstance()->addMotorStatus(m_name, string);
+            return LogHandler::info("MotorState", string);
+        }
+        private:
+        const char* m_name;
+    };
 
     const char* _TAG = TagHandler::BLDCHandler;
     const char* initDeviceTypeError = "No device type selected. Visit the web config or use the command to set a device before starting the firmware.";
@@ -550,8 +586,6 @@ private:
     float angToPos; // Number to convert a motor angle to a 0-10000 axis position
     float topStartOffset; // Angle turned by pulley for a full stroke
     float endStopOffset;  // Offset angle from bottom endstop on startup (rad)
-
-
 
     void executeSSR1(int& strokeTCode) 
     {

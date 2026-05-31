@@ -52,6 +52,7 @@ SettingsFactory *settingsFactory;
 // This has issues running with the webserver.
 // OTAHandler otaHandler;
 bool setupSucceeded = false;
+bool errorLogged = false;
 bool restarting = false;
 
 // char tcodeData[MAX_COMMAND];
@@ -340,11 +341,15 @@ void loop()
 	}
 	if (!setupSucceeded && SettingsHandler::restartInSecs == -1 && !restarting)
 	{
-		LogHandler::error(TagHandler::Main, "There was an issue in setup");
-		if(SettingsHandler::errorInfoIndex)
+		if(!errorLogged)
 		{
-			for(size_t i=0;i<SettingsHandler::errorInfoIndex; i++)
-				LogHandler::error(TagHandler::Main, "\t%s",SettingsHandler::errorInfo[i]);
+			LogHandler::error(TagHandler::Main, "There was an issue in setup");
+			if(SettingsHandler::errorInfoIndex)
+			{
+				for(size_t i=0;i<SettingsHandler::errorInfoIndex; i++)
+					LogHandler::error(TagHandler::Main, "\t%s",SettingsHandler::errorInfo[i]);
+			}
+			errorLogged = true;
 		}
 		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	} else {

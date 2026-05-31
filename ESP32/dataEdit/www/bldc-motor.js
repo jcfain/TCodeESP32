@@ -72,6 +72,7 @@ class BLDCMotor {
         // this.Names.BLDC_HallEffect_PIN = "BLDC_" + name + "HallEffect_PIN";
         // this.Names.HallEffect_Row = name + "HallEffect",
         this.Names.ZeroElecAngle_Row = name + "ZeroElecAngle";
+        this.Names.Status = "motor" + (this.name.length ? this.name : "A") + "Status";
     }
 
     setup() {
@@ -102,6 +103,17 @@ class BLDCMotor {
 
         // this.toggleBLDCEncoderOptions();
         // Utils.toggleControlVisibilityByID(this.Names.HallEffect_Row, userSettings[this.Names.BLDC_UseHallSensor]);
+        
+        const motorStatusNode = Utils.createTextAreaFormRow(this.Names.Status+"Row", "Status", this.Names.Status);
+        motorStatusNode.input.setAttribute("readonly", true);
+        this.ParentNode.appendChild(motorStatusNode.row);
+
+        const motorStateRefreshBtn = Utils.createFormButtonRow(this.Names.Status+"BtnRow", this.Names.Status+"Btn", "Refresh Status", () => {
+            getDebugInfo();
+        });
+        this.ParentNode.appendChild(motorStateRefreshBtn.row);
+
+        this.updateMotorStatus(debugInfo["motorState"]);
         this.initialized = true;
     }
 
@@ -128,6 +140,21 @@ class BLDCMotor {
         this.createBLDCNumericFormNode(this.Names.BLDC_PWMchannel3_PIN, "PWM channel 3 PIN", pinoutSettings[this.Names.BLDC_PWMchannel3_PIN], () => this.updateBLDCPins(), -1, 2147483647);
         // this.createBLDCNumericFormNode(this.Names.BLDC_HallEffect_PIN, "Hall effect PIN", pinoutSettings[this.Names.BLDC_HallEffect_PIN], () => this.updateBLDCPins(), -1, 2147483647, this.Names.HallEffect_Row);
         this.initializedPins = true;
+    }
+
+    updateMotorStatus(array) {
+        const motorStatusNode = document.getElementById(this.Names.Status);
+        motorStatusNode.value = "";
+        if(!array) {
+            motorStatusNode.value = "Unknown";
+            return;
+        }
+        array.forEach(element => {
+            if(element.name === this.Names.Status || element.name === "motorStatus") {
+                motorStatusNode.value += element.message;
+                motorStatusNode.value += "\n";
+            }
+        });
     }
 
     // TODO: move bldc stuff in to here. Follow this pattern moving forward.

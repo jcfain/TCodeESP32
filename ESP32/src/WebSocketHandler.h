@@ -72,11 +72,11 @@ public:
             m_lastSend = millis();
 
             char commandJson[MAX_COMMAND];
-            compileCommand(commandJson, command, message);
+            size_t len = compileCommand(commandJson, command, message);
             // if(client)
             //     client->text(commandJson);
             // else
-                ws.textAll(commandJson);
+                ws.textAll(commandJson, len);
         }
     }
 
