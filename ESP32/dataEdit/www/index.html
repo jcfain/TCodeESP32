@@ -326,7 +326,7 @@
 								<select name="BLDC_Encoder" id="BLDC_Encoder" onchange="setEncoderType()"> </select>
 							</div>
 						</div>
-						<div class="tRow BLDCOnly ">
+						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
 								<span title="Check this if you use a hall effect sensor">Use hall effect</span> 
 							</div>
@@ -395,7 +395,7 @@
 
 						<div class="tRow sr6Only servoOnly hidden">
 							<div class="tCell" title="The max servo range of your main/pitch servos">
-								<span>Main servos max range (&#8451;)</span> 
+								<span>Main servos max range (&#xB0;)</span> 
 							</div>
 							<div class="tCell">
 								<input id="maxServoRange" type="number" min="140" max="360" oninput="updateMaxServoRange()">
@@ -819,7 +819,7 @@
 						</div>
 						<div class="tRow">
 							<div class="tCell">
-								<span>Sleeve temp sensor pin</span> 
+								<span>Sleeve temp sensor PIN</span> 
 							</div>
 							<div class="tCell">
 								<input id="Temp_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
@@ -827,7 +827,7 @@
 						</div>
 						<div class="tRow">
 							<div class="tCell">
-								<span>Heater pin</span> 
+								<span>Heater PIN</span> 
 							</div>
 							<div class="tCell">
 								<input id="Heater_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
@@ -1154,7 +1154,7 @@
 							</div>
 						</div>
 						<div class="tRow">
-							<div class="tCell"><span>Temperature (C)</span></div>
+							<div class="tCell"><span>Temperature (&#8451;)</span></div>
 							<div class="tCell">
 								<input id="batteryTemperature" type="text" readonly value="Unknown" />
 							</div>
@@ -1386,14 +1386,22 @@
 								<button id="clearFiltersButton" onclick="clearTags('log-exclude-tags')">Clear excluded</button>
 							</div>
 						</div>
-						<!-- <div class="tRow ">
+						<div class="tRow ">
 							<div class="tCell">
-								<span title="Enable web client messages">Include Web client messages in log</span> 
+								<span title="Sends backend logging to web client, Warning this will use more ram and could cause issues!">Enable backend logging</span> 
 							</div>
 							<div class="tCell">
-								<input id="includeWebClientmessages" type="checkbox" onclick=""></input>
+								<input id="websocketLoggingEnabled" type="checkbox" onclick="startWebSocketLogging(this.id, this.checked)"></input>
 							</div>
-						</div> -->
+						</div>
+						<div class="tRow ">
+							<div class="tCell">
+								<span title="Web client debug">Enable frontend debug</span> 
+							</div>
+							<div class="tCell">
+								<input id="includeWebClientDebug" type="checkbox" onclick="toggleWebClientDebug(this.checked)"></input>
+							</div>
+						</div>
 						<div class="tRow" id="debugLink">
 							<div class="tCell" colspan="3">
 								<textarea id="loggingText" class="log-reader" readonly></textarea>

@@ -25,6 +25,9 @@ Buttons = {
     setNameDebounce: undefined,
     updateDebounce: undefined,
     setup() {
+        if(!buttonSettings || !buttonSettings["bootButtonCommand"]) {
+            return;
+        }
         document.getElementById("bootButtonEnabled").checked = buttonSettings["bootButtonEnabled"];
         document.getElementById("buttonSetsEnabled").checked = buttonSettings["buttonSetsEnabled"];
         document.getElementById("bootButtonCommand").value = buttonSettings["bootButtonCommand"].replace(" ", "\n");
@@ -54,6 +57,8 @@ Buttons = {
             var label = document.createElement("span");
             label.innerText = "";//buttonSet["name"];
             var button = document.createElement("button");
+            button.name = "editButtonSetButton";
+            button.disabled = !buttonSettings["buttonSetsEnabled"];
             button.id = "ButtonSetEditButton" + setIndex;
             button.innerText = "Edit";
             button.onclick = function(setIndex) {
@@ -135,8 +140,9 @@ Buttons = {
             };
             let span = document.createElement("span");
             span.classList.add("instruction-text")
+            const validPinsString = adc1Pins.join(', ')
             span.innerHTML = `
-            Instructions:<br>
+            Instructions: Valid adc 1 pins: ${validPinsString}<br>
             You can enter any combination of TCode commands separated by spaces in the inputs above.
             For example: '#motion-disable #resume #device-home #ok'
             NOTE: There is currently no way to delay between the command execution.
@@ -164,6 +170,10 @@ Buttons = {
             const setsEnabled = document.getElementById('buttonSetsEnabled').checked;
             if(buttonSettings["buttonSetsEnabled"] != setsEnabled) {
                 buttonSettings["buttonSetsEnabled"] = setsEnabled;
+                const editButtons = document.getElementsByName("editButtonSetButton");
+                for(let i=0; i< editButtons.length; i++) {
+                    editButtons[i].disabled = !setsEnabled;
+                }
                 showRestartRequired();
             }
             

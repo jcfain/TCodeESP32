@@ -78,7 +78,7 @@ public:
                     LogHandler::error(_TAG, "Invalid interupt button pin: %d", buttonPin);
                     continue;
                 };    
-                xTaskCreate(&analog_button_task, "buttonTask", (uint16_t)configMINIMAL_STACK_SIZE, this, 5, &buttonTask);
+                xTaskCreate(&analog_button_task, "buttonTask", (uint16_t)configMINIMAL_STACK_SIZE * 2, this, 5, &buttonTask);
                 return;
                 // LogHandler::debug(_TAG, "Checking button set: %s, pin: %ld", buttonSet.name, buttonPin);
                 // if(buttonSet.pullMode == gpio_pull_mode_t::GPIO_PULLDOWN_ONLY) {

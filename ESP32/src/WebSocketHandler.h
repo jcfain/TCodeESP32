@@ -53,7 +53,8 @@ public:
         if(m_TCodeQueue == NULL) {
             LogHandler::error(_TAG, "Error creating the tcode queue");
         }
-        TaskHandler::getInstance()->startWebsocketLogging(this);
+        if(SettingsFactory::getInstance()->getWebsocketLoggingEnabled())
+            TaskHandler::getInstance()->startWebsocketLogging(this);
         isInitialized = true;
     }
     
@@ -134,15 +135,37 @@ public:
     void sendLogTask(void *webSocketHandler) override
     {
         sendLogTaskRunning = true;
-        Serial.printf("[sendLogTask]\n");
-        char lastMessage[LogHandler::internal_buffer_length];
+        Serial.printf("[sendLogTask]: init\n");
+        // char lastMessage[LogHandler::internal_buffer_length];
+        LogMessage logMessage;
         while (sendLogTaskRunning) 
         {
             if(ws.count() > 0) 
             {
-                if(LogHandler::getLog(lastMessage)) 
+                if(LogHandler::getLog(&logMessage)) 
                 {
-                    ((WebSocketHandler*)webSocketHandler)->sendCommand("log", lastMessage);
+                    // strncpy(lastMessage, logMessage.message, LogHandler::internal_buffer_length);
+                    const char* level = "info";
+                    switch(logMessage.level)
+                    {
+                        case LogLevel::DEBUG:
+                        level = "debug";
+                        break;
+                        case LogLevel::WARNING:
+                        level = "warn";
+                        break;
+                        case LogLevel::ERROR:
+                        level = "error";
+                        break;
+                        case LogLevel::VERBOSE:
+                        level = "verbose";
+                        break;
+                        default:
+                           level = "info" ;
+                        break;
+                    }
+                    // Serial.printf("sending log: level: %s message: %s\n", level, logMessage.message);
+                    ((WebSocketHandler*)webSocketHandler)->sendCommand(level, logMessage.message);
                 }
             }
             vTaskDelay(100/portTICK_PERIOD_MS);
@@ -166,7 +189,6 @@ private:
     // QueueHandle_t m_TCodeQueue;
     // static QueueHandle_t debugInQueue;
     // std::mutex serial_mtx;
-    bool sendLogTaskRunning = false;
 
     std::mutex serial_mtx;
     int m_lastSend;

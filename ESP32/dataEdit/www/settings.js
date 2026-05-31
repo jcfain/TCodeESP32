@@ -31,7 +31,7 @@ var channelsProfileSettings = {};
 var debounceTimeouts = {};
 var restartRequired = false;
 var documentLoaded = false;
-var debugEnabled = true;
+var debugEnabled = JSON.parse(window.localStorage.getItem("debugEnabled"));
 var playSounds = false;
 var importSettingsInputElement;
 var websocket;
@@ -108,6 +108,45 @@ const TCodeModifierType = {
     INTERVAL: "I",
     SPEED: "S"
 }
+
+const SettingType =
+{
+    NONE: 0,
+    Boolean: 1,
+    Number: 2,
+    String: 3,
+    Float: 4,
+    Double: 5,
+    ArrayString: 6,
+    ArrayInt: 7,
+    MAX: 8
+};
+
+const SettingProfile =
+{
+    System: 0,
+    Wireless: 1,
+    Wifi: 2,
+    Button: 3,
+    MotionProfile: 4,
+    Temperature: 5,
+    Display: 6,
+    Servo: 7,
+    Pin: 8,
+    Timer: 9,
+    Bldc: 10,
+    Battery: 11,
+    Voice: 12,
+    PWM: 13,
+    Analog: 14,
+    Bluetooth: 15,
+    Ble: 16,
+    ChannelRanges: 17,
+    Vib: 18,
+    Disabled: 19,
+    Readonly: 20,
+    MAX: 21
+};
 var loggingTextElement = null;
 var logMessages = [];
 var tcodeVersions = [];
@@ -116,6 +155,7 @@ var testDeviceDisableModifier = false;
 var testDeviceModifierValue = "1000";
 var restartClicked = false;
 var serverPollingTimeOut = null;
+let polling = false;
 var staticIPAddressTimeout = null;
 var hostnameTimeout = null;
 var serverPollRetryCount = 0;
@@ -182,9 +222,9 @@ function onDocumentLoad() {
     
     loggingTextElement = document.getElementById("loggingText");
     loggingTextElement.scrollTop = loggingTextElement.scrollHeight;
+    document.getElementById("includeWebClientDebug").checked = debugEnabled;
 }
 function pingDevice() {
-    let polling = false;
     if(serverPollingTimeOut) {
         polling = true;
         clearTimeout(serverPollingTimeOut);
@@ -439,8 +479,7 @@ function initWebSocket() {
 			websocket.close();
 		websocket = new WebSocket( wsUri );
 		websocket.onopen = function (evt) {
-			//xtpConnected = true;
-			logdebug("CONNECTED");
+			logdebug("Websocket CONNECTED");
             if(restartClicked) {
                 getUserSettings();
                 restartClicked = false;
@@ -450,10 +489,9 @@ function initWebSocket() {
                 clearTimeout(serverPollingTimeOut);
                 serverPollingTimeOut = null;
             }
-			//updateSettingsUI();
 		};
-		websocket.onclose = function (evt) {
-			logdebug("DISCONNECTED");
+		websocket.onclose = function (event) {
+			logdebug("Websocket DISCONNECTED");
             
             if(!serverPollingTimeOut && !restartingAndChangingAddress) {
                 let message = "Server disconnected, waiting for restart...";
@@ -463,15 +501,41 @@ function initWebSocket() {
                 showLoading(message);
                 startServerPoll();
             }
-            //alert('Web socket disconnected: To use some features you need to make sure the device is on and connected and refresh the page.');
-			//xtpConnected = false;
+            const closeInfo = {
+                code: event.code,
+                reason: event.reason || '(no reason provided)',
+                wasClean: event.wasClean,
+                timestamp: new Date().toISOString(),
+            };
+            // Map close codes to human-readable descriptions
+            const closeCodeDescriptions = {
+                1000: 'Normal closure',
+                1001: 'Going away (browser navigating or server shutting down)',
+                1002: 'Protocol error',
+                1003: 'Unsupported data type',
+                1005: 'No status received (reserved)',
+                1006: 'Abnormal closure (no close frame received)',
+                1007: 'Invalid frame payload data',
+                1008: 'Policy violation',
+                1009: 'Message too big',
+                1010: 'Missing extension',
+                1011: 'Internal server error',
+                1012: 'Service restart',
+                1013: 'Try again later',
+                1014: 'Bad gateway',
+                1015: 'TLS handshake failure (reserved)',
+            };
+
+            closeInfo.description = closeCodeDescriptions[event.code] || 'Unknown close code';
+
+            logdebug('WebSocket closed:' + JSON.stringify(closeInfo, null, 2));
 		};
 		websocket.onmessage = function (evt) {
 			wsCallBackFunction(evt);
 		};
 		websocket.onerror = function (evt) {
             if(!serverPollingTimeOut && !restartingAndChangingAddress) {
-                showLoading("Server error, waiting for restart...");
+                showLoading("Websocket Server error, waiting for restart...");
                 startServerPoll();
             }
 			//alert('ERROR: ' + evt.data + ", Address: "+wsUri);
@@ -479,7 +543,7 @@ function initWebSocket() {
 		};
 	} catch (exception) {
         if(!serverPollingTimeOut && !restartingAndChangingAddress) {
-            showLoading("Server exception, waiting for restart...");
+            showLoading("Websocket Server exception, waiting for restart...");
             startServerPoll();
         }
         //alert('ERROR: ' + exception + ", Address: "+wsUri);
@@ -490,9 +554,25 @@ function initWebSocket() {
 function wsCallBackFunction(evt) {
 	try {
 		var data = JSON.parse(evt.data);
-        if(data["command"] != "log")
+        if(data["command"] != "log" && data["command"] != "error")
 		    logdebug("WEBSOCKET MESSAGE RECIEVED: "+ evt.data);
 		switch(data["command"]) {
+            case "info":
+            case "verbose":
+            case "debug":
+            case "warn":
+                log(data["message"]);
+                break;
+            case "error":
+				var message = data["message"];
+                log(message);
+                showError("Firmware error: " +message);
+                break;
+            case "saved":
+				var message = data["message"];
+                logdebug("Setting saved: " +message);
+                showInfoSuccess("Setting saved!");
+                break;
 			case "sleeveTempStatus":
 				var status = data["message"];
 				var tempStatus = status["status"];
@@ -516,10 +596,6 @@ function wsCallBackFunction(evt) {
             case "batteryStatus":
                 wsBatteryStatus(data);
                 break;
-            case "log":
-				var message = data["message"];
-                log(message);
-                break;
             case "channelRangesEnabled":
 				var enabled = data["message"];
                 DeviceRangeSlider.updateChannelRangesTemp(enabled == "true");
@@ -528,15 +604,31 @@ function wsCallBackFunction(evt) {
 		}
 	}
 	catch(e) {
-		console.error(e.toString());
+		showError(e.toString());
 	}
+}
+
+function toggleWebClientDebug(enabled) {
+    debugEnabled = enabled;
+    window.localStorage.setItem("debugEnabled", enabled);
 }
 
 function logdebug(message) {
     if(debugEnabled) {
-        console.log(message);
-        log("[Web client]: "+message);
+        const messageOut = "[Web client DEBUG]: "+message;
+        console.log(messageOut);
+        log(messageOut);
     }
+}
+function logWarn(message) {
+    const messageOut = "[Web client WARN]: "+message;
+    console.warn(messageOut);
+    log(messageOut);
+}
+function logError(message) {
+    const messageOut = "[Web client ERROR]: "+message;
+    console.error(messageOut);
+    log(messageOut);
 }
 
 function log(message) {
@@ -899,6 +991,7 @@ function setSystemSettings()
     toggleDeviceOptions(systemSettings["deviceType"]);
     
     document.getElementById('logLevel').value = systemSettings["logLevel"];
+    document.getElementById('websocketLoggingEnabled').checked = systemSettings["websocketLoggingEnabled"];
 
     var includedElement = document.getElementById('log-include-tags');
     for (var i = 0; i < includedElement.options.length; i++) {
@@ -1228,7 +1321,7 @@ function removeByName(name) {
     }
     let nodes = document.getElementsByName(name);
     if(!nodes.length) {
-        console.warn("WARNING: No elemnts found when removing children by name")
+        logWarn("No elements found when removing children by name: "+name);
         return;
     }
     while(nodes[0]) {
@@ -1241,7 +1334,7 @@ function removeByClass(name) {
     }
     let nodes = document.getElementsByClassName(name);
     if(!nodes.length) {
-        console.warn("WARNING: No elemnts found when removing children by class")
+        logWarn("No elements found when removing children by class: "+name);
         return;
     }
     while(nodes[0]) {
@@ -1449,6 +1542,9 @@ function showError(message, name)
     div.innerHTML = message;
     document.getElementById("errorText").appendChild(div);
     document.getElementById("errorMessage").hidden = false;
+    logError(message);
+
+    hideLoading();
 }
 
 function showInfo(message) {
@@ -1496,12 +1592,23 @@ function hideInfo() {
     }
 }
 
+
 function sendWebsocketCommand(command, message) {
     if(!isWebSocketConnected()) {
         startServerPoll();
         return;
     }
-    websocket.send("{\"command\":\""+command+"\", \"message\": \""+message+"\"}")
+    if(typeof message === "object")
+        websocket.send("{\"command\":\""+command+"\", \"message\": "+JSON.stringify(message)+"}")
+    else if(typeof message === "string")
+        websocket.send("{\"command\":\""+command+"\", \"message\": \""+message+"\"}")
+    else 
+        websocket.send("{\"command\":\""+command+"\", \"message\": "+message+"}")
+}
+
+function updateSetting(name, type, newValue) {
+    const settingInfo = {name: name, type: type, value: newValue };
+    sendWebsocketCommand("setting", settingInfo);
 }
 
 function sendTCode(tcode) {
@@ -1537,6 +1644,10 @@ function sendDeviceHome() {
         }
     });
     sendTCode(tcode);
+}
+
+function startWebSocketLogging(id, value) {
+    updateSetting(id, SettingType.Boolean, value);
 }
 
 function getSliderTCode(channel, sliderValue, useIModifier, modifierValue, disableModifier) {
@@ -2039,11 +2150,14 @@ function onSelectPinChannel(element) {
 	postPinoutSettings();
 }
 function toggleEnableTimerChannels(element) {
+    if(element.selectedIndex < 0)
+        return;
     const timerSelects = document.getElementsByName('timerChannels');
     for (let index = 0; index < timerSelects.length; index++) {
         const otherElement = timerSelects[index];
-        if(element.id !== otherElement.id)
+        if(element.id !== otherElement.id) {
             otherElement.options[element.selectedIndex].disabled = element.value > -1;
+        }
     }
 }
 function updatePins() 
@@ -2247,6 +2361,20 @@ function validatePWMPin(pin, pinName, assignedPins, duplicatePins, pwmErrors, in
             pwmErrors.push(pinName+" pin: "+pin);
     }
 }
+
+function validateADCPin(pin, pinName, assignedPins, duplicatePins, invalidPins) {
+    if(pin > -1)
+    {
+        if(adc2Pins.indexOf(pin) > -1) {
+            invalidPins.push(pinName+" pin: "+pin + " is in adc2 and cannot be used with the wifi radio."); 
+        } else if(adc1Pins.indexOf(pin) == -1) {
+            invalidPins.push(pinName+" pin: "+pin + " is not a valid adc pin."); 
+        } else {
+            // isInput is false because Input only pins are included in valid adc pins
+            validatePin(pin, pinName, assignedPins, duplicatePins, false, invalidPins)
+        }
+    }
+}
 /** 
  * Validates the pin number values in the forms inputs. 
  * Shows an error and returns the pin values or undefined if error
@@ -2399,7 +2527,7 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
         validatePin(pinValues.i2cScl, "I2C SCL", assignedPins, duplicatePins, false, invalidPins);
     }
     
-    validatePin(pinValues.lubeButton, "Lube button", assignedPins, duplicatePins, true, invalidPins);
+    validateADCPin(pinValues.lubeButton, "Lube button", assignedPins, duplicatePins, invalidPins);
 
     if(userSettings.tempSleeveEnabled) {
         validatePin(pinValues.temp, "Sleeve Temp", assignedPins, duplicatePins, true, invalidPins);
@@ -2424,7 +2552,7 @@ function validateNonPWMPins(assignedPins, duplicatePins, invalidPins, pinValues)
     if(Buttons.isButtonSetsEnabled()) {
         for(var i=0; i<pinValues.buttonSets.length; i++) {
             var buttonSetPin = pinValues.buttonSets[i];
-            validatePin(buttonSetPin, "Button set "+i, assignedPins, duplicatePins, true, invalidPins);
+            validateADCPin(buttonSetPin, "Button set "+i, assignedPins, duplicatePins, invalidPins);
         }
     }
 

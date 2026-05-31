@@ -43,14 +43,24 @@ class WebSocketBase : public TCodeInterface {
         return strnlen(buf, MAX_COMMAND);
     }
 
+    void sendError(const char* message, size_t len = MAX_COMMAND) 
+    {
+        sendCommand("error", message, len);
+    }
+
     static void startLoggingTask(void *taskStartParameters)
     {
         ((WebSocketBase*)taskStartParameters)->sendLogTask(taskStartParameters);
+    }
+    static void stopLoggingTask(void *taskStartParameters)
+    {
+        ((WebSocketBase*)taskStartParameters)->sendLogTaskRunning = false;
     }
 
 protected:
     QueueHandle_t m_TCodeQueue;
     std::mutex command_mtx;
+    bool sendLogTaskRunning = false;
 
     void compileCommand(char* buf, const char* command, const char* message = 0, size_t len = MAX_COMMAND) {
         if(LogHandler::getLogLevel() == LogLevel::DEBUG) {
@@ -93,11 +103,10 @@ protected:
         }
         else
         {
+            LogHandler::debug(_TAG, "Websocket command in: %s", msg);
             JsonDocument doc; //255
-            DeserializationError error = deserializeJson(doc, msg);
-            if (error) 
+            if (LogHandler::logDeserializationError(_TAG, deserializeJson(doc, msg), "websocket json")) 
             {
-                LogHandler::error(_TAG, "Failed to read websocket json");
                 return;
             }
             JsonObject jsonObj = doc.as<JsonObject>();
@@ -105,9 +114,62 @@ protected:
             if(!jsonObj["command"].isNull()) 
             {
                 String command = jsonObj["command"].as<String>();
-                String message = jsonObj["message"].as<String>();
                 if(command == "setBatteryFull") {
                     BatteryHandler::setBatteryToFull();
+                } else if(command == "setting") {
+                    SettingFile file = SettingFile::NONE;
+                    JsonObject messageObj = jsonObj["message"].as<JsonObject>();
+                    SettingType type = messageObj["type"].as<SettingType>();
+                    const char* name = messageObj["name"].as<const char*>();
+                    switch(type) {
+                        case SettingType::String: {
+                            const char* value = messageObj["value"].as<const char*>();
+                            file = SettingsFactory::getInstance()->setValue(name, value, true);
+                            break;
+                        }
+                        case SettingType::Number: {
+                            int value = messageObj["value"].as<int>();
+                            file = SettingsFactory::getInstance()->setValue(name, value, true);
+                            break;
+                        }
+                        case SettingType::Boolean: {
+                            bool value = messageObj["value"].as<bool>();
+                            file = SettingsFactory::getInstance()->setValue(name, value, true);
+                            break;
+                        }
+                        case SettingType::Float: {
+                            float value = messageObj["value"].as<float>();
+                            file = SettingsFactory::getInstance()->setValue(name, value, true);
+                            break;
+                        }
+                        case SettingType::Double: {
+                            double value = messageObj["value"].as<double>();
+                            file = SettingsFactory::getInstance()->setValue(name, value, true);
+                            break;
+                        }
+                        case SettingType::ArrayInt: {
+                            std::vector<int> value = messageObj["value"].as<std::vector<int>>();
+                            file = SettingsFactory::getInstance()->setValue(name, value, true);
+                            break;
+                        }
+                        case SettingType::ArrayString: {
+                            std::vector<const char*> value = messageObj["value"].as<std::vector<const char*>>();
+                            file = SettingsFactory::getInstance()->setValue(name, value, true);
+                            break;
+                        }
+                        default: {
+                            LogHandler::error(_TAG, "[WebSocketBase] processWebSocketTextMessage: invalid setting type: %i for %s.", type, name);
+                            sendError("Error saving setting!");
+                            return;
+                        }
+                        
+                    }
+                    if(file == SettingFile::NONE) {
+                        LogHandler::error(_TAG, "[WebSocketBase] processWebSocketTextMessage: Setting not found: %s.", name);
+                        sendError("Error saving setting!");
+                        return;
+                    }
+                    sendCommand("saved", name);
                 }
                 // String* message = jsonObj["message"];
                 // Serial.print("Recieved websocket tcode message: ");

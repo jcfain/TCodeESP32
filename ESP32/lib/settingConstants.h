@@ -40,6 +40,7 @@
 #define AP_MODE_GATEWAY_DEFAULT "192.168.69.254"
 #define AP_MODE_SUBNET_DEFAULT "255.255.255.0"
 #define LOG_LEVEL_DEFAULT (uint8_t)LogLevel::INFO
+#define LOG_WEBSOCKET_ENABLED_DEFAULT false
 //#define FULL_BUILD_DEFAULT false
 #define TCODE_VERSION_DEFAULT (uint8_t)TCodeVersion::v0_3
 #define UDP_SERVER_PORT_DEFAULT 8000
@@ -172,6 +173,7 @@
 
 #define BOARD_TYPE_SETTING "boardType"
 #define LOG_LEVEL_SETTING "logLevel"
+#define LOG_WEBSOCKET_ENABLED "websocketLoggingEnabled"
 //#define FULL_BUILD "fullBuild"
 #define TCODE_VERSION_SETTING "TCodeVersion"
 #define UDP_SERVER_PORT "udpServerPort"

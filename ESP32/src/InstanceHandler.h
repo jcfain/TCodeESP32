@@ -271,6 +271,21 @@ void settingChangeCallback(const SettingProfile &profile, const char *settingTha
                 LogHandler::setLogLevel(settingsFactory->getLogLevel());
             #endif
         }
+        else if (!strcmp(settingThatChanged, LOG_WEBSOCKET_ENABLED))
+        {
+            LogHandler::setLogStore(settingsFactory->getWebsocketLoggingEnabled());
+            if(webSocketHandler)
+            {
+                if(settingsFactory->getWebsocketLoggingEnabled())
+                {
+                    TaskHandler::getInstance()->startWebsocketLogging(webSocketHandler);
+                }
+                else
+                {
+                    TaskHandler::getInstance()->stopWebsocketLogging(webSocketHandler);
+                }
+            }
+        }
         else if (!strcmp(settingThatChanged, LOG_INCLUDETAGS))
         {
             LogHandler::setIncludes(settingsFactory->getLogIncludes());

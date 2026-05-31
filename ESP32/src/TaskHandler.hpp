@@ -143,22 +143,32 @@ public:
     }
 #endif
 
-void startWebsocketLogging(WebSocketBase* webSocketBase) 
-{
-    LogHandler::debug(TagHandler::Main, "Start web socket logging");
-    auto webSocketLoggingStatus = xTaskCreatePinnedToCore(
-        WebSocketBase::startLoggingTask,  /* Function to implement the task */
-        "WebsocketLoggingTask",			  /* Name of the task */
-        configMINIMAL_STACK_SIZE * 4, /* Stack size in words */
-        webSocketBase,			  /* Task input parameter */
-        1,						  /* Priority of the task */
-        &webSocketLoggingTask,	  /* Task handle. */
-        TASK_CPU_NUM);			  /* Core where the task should run */
-    if (webSocketLoggingStatus != pdPASS)
+    void startWebsocketLogging(WebSocketBase* webSocketBase) 
     {
-        LogHandler::error(TagHandler::Main, "Could not start websocket logging task.");
+        if(isTaskRunning(webSocketLoggingTask) || !webSocketBase)
+            return;
+        LogHandler::debug(TagHandler::Main, "Start web socket logging");
+        auto webSocketLoggingStatus = xTaskCreatePinnedToCore(
+            WebSocketBase::startLoggingTask,  /* Function to implement the task */
+            "WebsocketLoggingTask",			  /* Name of the task */
+            configMINIMAL_STACK_SIZE * 4, /* Stack size in words */
+            webSocketBase,			  /* Task input parameter */
+            1,						  /* Priority of the task */
+            &webSocketLoggingTask,	  /* Task handle. */
+            TASK_CPU_NUM);			  /* Core where the task should run */
+        if (webSocketLoggingStatus != pdPASS)
+        {
+            LogHandler::error(TagHandler::Main, "Could not start websocket logging task.");
+        }
     }
-}
+    void stopWebsocketLogging(WebSocketBase* webSocketBase) 
+    {
+        if(!isTaskRunning(webSocketLoggingTask) || !webSocketBase)
+            return;
+        LogHandler::debug(TagHandler::Main, "Stop web socket logging");
+        WebSocketBase::stopLoggingTask(webSocketBase);
+    }
+
 
 private:
     TaskHandle_t batteryTask;
@@ -177,4 +187,21 @@ private:
 #if BUILD_TEMP
     TaskHandle_t temperatureTask;
 #endif
+
+    bool isTaskRunning(TaskHandle_t xHandle)
+    {
+        LogHandler::debug(TagHandler::Main, "[TaskHandler] isTaskRunning");
+        if(!xHandle) {
+            LogHandler::debug(TagHandler::Main, "[TaskHandler] isTaskRunning null");
+            return false;
+        }
+        const char* name = pcTaskGetName(xHandle);
+        eTaskState state = eTaskGetState(xHandle);  
+        if(state == eTaskState::eDeleted || state == eTaskState::eInvalid) {
+            LogHandler::debug(TagHandler::Main, "[TaskHandler] isTaskRunning %s deleted or invalid", name);
+            return false;
+        }
+        LogHandler::debug(TagHandler::Main, "[TaskHandler] isTaskRunning %s true", name);
+        return true;
+    }
 };

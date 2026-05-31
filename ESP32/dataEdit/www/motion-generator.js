@@ -23,6 +23,8 @@ SOFTWARE. */
 MotionGenerator = {
     channelTemplates: [],
     setup() {
+        if(!motionProviderSettings)
+            return;
         const motionProfilesElement = document.getElementById('motionProfiles');
         removeAllChildren(motionProfilesElement);
 

@@ -29,6 +29,11 @@ SOFTWARE. */
 
 #define LOG_LEVEL_HELP "Sets system log level.\nValid values are: NONE=0, ERROR=1, WARNING=2, INFO=3, DEBUG=4, VERBOSE=5"
 
+struct LogMessage {
+    LogLevel level;
+    char message[MAX_COMMAND];
+};
+
 class LogHandler {
 public:
     static const int internal_buffer_length = 1024;
@@ -36,12 +41,12 @@ public:
     static void init() 
     {
         Serial.println("[LogHandler::init]");
-        if(m_logQueue) 
-        {
-            return;
-            // vQueueDelete(m_logQueue);
-            // m_logQueue = 0;
-        }
+        // if(m_logQueue) 
+        // {
+        //     return;
+        //     // vQueueDelete(m_logQueue);
+        //     // m_logQueue = 0;
+        // }
         // LogLevel level = getInstance().getLogLevel();
         // if(level > LogLevel::NONE)
         // {
@@ -51,21 +56,34 @@ public:
         //     } else if(level == LogLevel::DEBUG) {
         //         queueSize = 100;
         //     }
-            m_logQueue = xQueueCreate(100, sizeof(char[MAX_COMMAND]));
-            if(m_logQueue == NULL) 
-            {
-                Serial.println("[LogHandler::init] Error creating the log queue");
-            }
         // }
     }
 
-    static bool getLog(char* log) {
+    static void setLogStore(bool enabled) 
+    {
+        m_logStored = enabled;
+        if(m_logStored)
+        {
+            m_logQueue = xQueueCreate(25, sizeof(LogMessage));
+            if(m_logQueue == NULL) 
+            {
+                Serial.println("[LogHandler::setLogStore] Error creating the log queue");
+            }
+        }
+        else if(m_logQueue)
+        {
+            vQueueDelete(m_logQueue);
+            m_logQueue = 0;
+        }
+    }
+
+    static bool getLog(LogMessage* log) {
         if(m_logQueue) 
         {
             if(xQueueReceive(m_logQueue, log, 0) == pdTRUE) 
             {
-                if(getLogLevel() == LogLevel::VERBOSE)
-                    Serial.printf("[LogHandler::getLog] read from q: %s\n", log);
+                // if(getLogLevel() == LogLevel::VERBOSE)
+                //     Serial.printf("[LogHandler::getLog] read from q: %s\n", log->message);
                 return true;
             }
         }
@@ -249,6 +267,37 @@ public:
         getInstance().m_message_callback = f == nullptr ? 0 : f;
     }
 
+    static bool logDeserializationError(const char* tag, DeserializationError error, const char* fileName) 
+    {
+        if (error)
+        {
+            LogHandler::error(tag, "Error deserializing json: %s", fileName);
+            switch (error.code())
+            {
+                case DeserializationError::Code::Ok:
+                    LogHandler::error(tag, "Code: Ok");
+                    break;
+                case DeserializationError::Code::EmptyInput:
+                    LogHandler::error(tag, "Code: EmptyInput");
+                    break;
+                case DeserializationError::Code::IncompleteInput:
+                    LogHandler::error(tag, "Code: IncompleteInput");
+                    break;
+                case DeserializationError::Code::InvalidInput:
+                    LogHandler::error(tag, "Code: InvalidInput");
+                    break;
+                case DeserializationError::Code::NoMemory:
+                    LogHandler::error(tag, "Code: NoMemory");
+                    break;
+                case DeserializationError::Code::TooDeep:
+                    LogHandler::error(tag, "Code: TooDeep");
+                    break;
+            }
+            return true;
+        }
+        return false;
+    }
+
 private:
     LogHandler() {}
 
@@ -261,6 +310,7 @@ private:
         return logger_instance;
     }
     static inline QueueHandle_t m_logQueue = 0;
+    static inline bool m_logStored = false;
 
     LogCallback m_message_callback = 0;
     LogLevel m_currentLogLevel = LogLevel::INFO;
@@ -379,6 +429,8 @@ private:
 
     static void storeLog(const char* message, size_t len, LogLevel level)
     {
+        if(level > LogLevel::DEBUG)
+            return;
         int maxLen = MAX_COMMAND;
         if (m_logQueue) 
         {
@@ -389,12 +441,14 @@ private:
                 int amountToSend = maxLen / sendChunks;
                 for(int i = 0; i < sendChunks; i++)
                 {
-                    char messageToSend[amountToSend];
-                    strncpy(messageToSend, message + sent, amountToSend);
-                    messageToSend[maxLen] = '\0';
+                    // char messageToSend[amountToSend];
+                    LogMessage logMessage;
+                    logMessage.level = level;
+                    strncpy(logMessage.message, message + sent, amountToSend);
+                    logMessage.message[amountToSend] = '\0';
                     if(level >= LogLevel::DEBUG) 
                         Serial.printf("[LogHandler::storeLog] truncated: %s\n", message + sent);
-                    if(xQueueSend(m_logQueue, messageToSend, 0) != pdTRUE) 
+                    if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
                     {
                         Serial.printf("[LogHandler::storeLog] Error sending log message: %s\n", message + sent);
                     }
@@ -403,11 +457,14 @@ private:
                 int mod = len % maxLen;
                 if(mod)
                 {
-                    char messageToSend[mod];
-                    strncpy(messageToSend, message + sent, mod);
+                    // char messageToSend[mod];
+                    LogMessage logMessage;
+                    logMessage.level = level;
+                    strncpy(logMessage.message, message + sent, mod);
+                    logMessage.message[mod] = '\0';
                     if(level >= LogLevel::DEBUG) 
                         Serial.printf("[LogHandler::storeLog] truncated mod: %s\n", message + sent);
-                    if(xQueueSend(m_logQueue, messageToSend, 0) != pdTRUE) 
+                    if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
                     {
                         Serial.printf("[LogHandler::storeLog] Error sending log message mod: %s\n", message + sent);
                     }
@@ -416,9 +473,13 @@ private:
             } 
             else 
             {
-                if(xQueueSend(m_logQueue, message, 0) != pdTRUE) 
+                LogMessage logMessage;
+                logMessage.level = level;
+                strncpy(logMessage.message, message, len);
+                logMessage.message[len] = '\0';
+                if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
                 {
-                    Serial.printf("[LogHandler::storeLog] Error sending log message");
+                    Serial.printf("[LogHandler::storeLog] Error sending log message\n");
                 }
             }
             // if(level >= LogLevel::VERBOSE) 
