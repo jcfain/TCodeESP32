@@ -151,7 +151,7 @@ public:
         auto webSocketLoggingStatus = xTaskCreatePinnedToCore(
             WebSocketBase::startLoggingTask,  /* Function to implement the task */
             "WebsocketLoggingTask",			  /* Name of the task */
-            configMINIMAL_STACK_SIZE * 4, /* Stack size in words */
+            configMINIMAL_STACK_SIZE * 4.5, /* Stack size in words */
             webSocketBase,			  /* Task input parameter */
             1,						  /* Priority of the task */
             &webSocketLoggingTask,	  /* Task handle. */

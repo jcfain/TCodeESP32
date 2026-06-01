@@ -33,7 +33,8 @@ SOFTWARE. */
 
 struct LogMessage {
     LogLevel level;
-    char message[MAX_COMMAND];
+    bool multipart;
+    char message[MAX_LOG_STORE];
 };
 
 class LogHandler {
@@ -439,72 +440,71 @@ private:
         return tagged && !filtered;
     }
 
-    static void storeLog(const char* message, size_t len, LogLevel level)
+    static void storeLog(const char* message, const size_t& len, const LogLevel& level)
     {
-        if(level > LogLevel::DEBUG)
+        if (!m_logQueue) 
             return;
-        int maxLen = MAX_COMMAND;
-        if (m_logQueue) 
+        if(level > LogLevel::DEBUG)// Ignore verbose. Seems to cause issues for now.
+            return;
+        if (!uxQueueSpacesAvailable(m_logQueue)) 
+            return;
+        int maxLen = MAX_LOG_STORE;
+        LogMessage logMessage;
+        logMessage.level = level;
+        if(len > maxLen) 
         {
-            if(len > maxLen) 
+            logMessage.multipart = true;
+            int mod = len % maxLen;
+            int chunkTotal = len - mod;
+            int sendChunks = chunkTotal / maxLen;
+            int sent = 0;
+            int amountToSend = chunkTotal / sendChunks;
+            if(getLogLevel() >= LogLevel::DEBUG) 
             {
-                int sendChunks = len / maxLen;
-                int sent = 0;
-                int amountToSend = maxLen / sendChunks;
-                if(level >= LogLevel::DEBUG) 
-                    Serial.printf("[LogHandler::storeLog] sendChunks: %i, amountToSend: %i, sent: %i, ", sendChunks, amountToSend, sent);
-                for(int i = 0; i < sendChunks; i++)
-                {
-                    // char messageToSend[amountToSend];
-                    if(level >= LogLevel::DEBUG) 
-                        Serial.printf("[LogHandler::storeLog] sendChunks: %i, amountToSend: %i, sent: %i, ", sendChunks, amountToSend, sent);
-                    if((sent + amountToSend) > maxLen)
-                         break;
-                    LogMessage logMessage;
-                    logMessage.level = level;
-                    strncpy(logMessage.message, message + sent, amountToSend);
-                    logMessage.message[amountToSend] = '\0';
-                    if(level >= LogLevel::DEBUG) 
-                        Serial.printf("[LogHandler::storeLog] truncated: %s\n", logMessage.message);
-                    if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
-                    {
-                        Serial.printf("[LogHandler::storeLog] Error sending log message: %s\n", logMessage.message);
-                    }
-                    sent += amountToSend;
-                }
-                int mod = len % maxLen;
-                if(mod)
-                {
-                    // char messageToSend[mod];
-                    LogMessage logMessage;
-                    logMessage.level = level;
-                    strncpy(logMessage.message, message + sent, mod);
-                    logMessage.message[mod] = '\0';
-                    if(level >= LogLevel::DEBUG) 
-                        Serial.printf("[LogHandler::storeLog] truncated mod: %s\n", message + sent);
-                    if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
-                    {
-                        Serial.printf("[LogHandler::storeLog] Error sending log message mod: %s\n", message + sent);
-                    }
-                    sent += mod;
-                }
-            } 
-            else 
+                Serial.printf("[LogHandler::storeLog] len: %i, sendChunks: %i, amountToSend: %i\n", len, sendChunks, amountToSend);
+                Serial.printf("[LogHandler::storeLog] sent: %i\n", sent);
+            }
+            for(int i = 0; i < sendChunks; i++)
             {
-                LogMessage logMessage;
-                logMessage.level = level;
-                strncpy(logMessage.message, message, len);
-                logMessage.message[len] = '\0';
+                // char messageToSend[amountToSend];
+                strncpy(logMessage.message, message + sent, amountToSend);
+                logMessage.message[amountToSend] = '\0';
+                if(getLogLevel() >= LogLevel::DEBUG) 
+                    Serial.printf("[LogHandler::storeLog] truncated: %s, multi: %i\n", logMessage.message, logMessage.multipart);
                 if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
                 {
-                    Serial.printf("[LogHandler::storeLog] Error sending log message\n");
+                    Serial.printf("[LogHandler::storeLog] Error storing log message trancate: %s\n", logMessage.message);
                 }
+                sent += amountToSend;
+                if(getLogLevel() >= LogLevel::DEBUG) 
+                    Serial.printf("[LogHandler::storeLog] sent: %i\n", sent);
             }
-            // if(level >= LogLevel::VERBOSE) 
-            // {
-            //     Serial.printf("[LogHandler::storeLog] insert to q: %s\n", message);
-            // }
+            if(mod)
+            {
+                strncpy(logMessage.message, message + sent, mod);
+                logMessage.message[mod] = '\0';
+                strncat(logMessage.message, "\n", 5);
+                if(getLogLevel() >= LogLevel::DEBUG) 
+                    Serial.printf("[LogHandler::storeLog] truncated mod: %i, message: %s, multi: %i\n", mod, logMessage.message, logMessage.multipart);
+                if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
+                {
+                    Serial.printf("[LogHandler::storeLog] Error storing log message trancate mod: %s\n", logMessage.message);
+                }
+                sent += mod;
+                if(getLogLevel() >= LogLevel::DEBUG) 
+                    Serial.printf("[LogHandler::storeLog] sent: %i\n", sent);
+            }
+        } 
+        else 
+        {
+            logMessage.multipart = false;
+            strncpy(logMessage.message, message, len);
+            logMessage.message[len] = '\0';
+            strncat(logMessage.message, "\n", 5);
+            if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
+            {
+                Serial.printf("[LogHandler::storeLog] Error storing log message\n");
+            }
         }
-        // sendCommand("log", message, len);
     }
 };

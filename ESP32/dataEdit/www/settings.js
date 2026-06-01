@@ -22,7 +22,7 @@ SOFTWARE. */
 
 var userSettings = {};
 var systemSettings = {};
-var debugInfo = {};
+var debugInfoSettings = {};
 var wifiSettings = {};
 var pinoutSettings = {};
 var systemInfo = {};
@@ -149,7 +149,8 @@ const SettingProfile =
     MAX: 21
 };
 var loggingTextElement = null;
-var logMessages = [];
+var incomingMultiPartLogMode = false;
+var incomingMultiPartLog = "";
 var tcodeVersions = [];
 var testDeviceUseIModifier = false;
 var testDeviceDisableModifier = false;
@@ -178,6 +179,42 @@ let adc1Pins = [36,37,38,39,32,33,34,35];
 let adc2Pins = [4,0,2,15,13,12,14,27,25,26];
 let invalidPinsGlobal = [6, 7, 8, 9, 10, 11]; // ESP32 SPI flash https://randomnerdtutorials.com/esp32-pinout-reference-gpios/
 
+function getSettingsFileByFilePath(path)
+{
+    switch(path)
+    {
+        case "/systemSettings.json":
+            return systemSettings;
+        break
+        case "/userSettings.json":
+            return userSettings;
+        break
+        case "/pins.json":
+            return pinoutSettings;
+        break
+        case "/espTimers.json":
+            return timerChannels;
+        break
+        case "/networkSettings.json":
+            return wifiSettings;
+        break
+        case "/buttons.json":
+            return buttonSettings;
+        break
+        case "/motionProfiles.json":
+            return motionProviderSettings;
+        break
+        case "/channels.json":
+            return channelsProfileSettings;
+        break
+        case "/debugInfo.json":
+            return debugInfoSettings;
+        break
+        default:
+            logError("getSettingsFileByFilePath Unknown file specified");
+            return null;
+    }
+}
 document.addEventListener("DOMContentLoaded", function() {
     onDocumentLoad();
     document.getElementById("page-body").style.visibility = "visible";
@@ -296,12 +333,12 @@ function getSystemSettings(chain) {
 function getDebugInfo(chain) {
     showLoading("Loading debug info...");
     get("debug info", EndPointType.DebugInfo.uri, function(xhr) {
-        debugInfo = xhr.response;
-        if(!debugInfo) {
+        debugInfoSettings = xhr.response;
+        if(!debugInfoSettings) {
             showError("Error getting debug info!");
         }
         else
-            setDebugInfo(debugInfo);
+            setDebugInfo(debugInfoSettings);
         if(chain)
             getPinSettings(chain);
         else
@@ -555,24 +592,55 @@ function initWebSocket() {
 function wsCallBackFunction(evt) {
 	try {
 		var data = JSON.parse(evt.data);
-        if(data["command"] != "log" && data["command"] != "error")
+        if(data["command"] != "info" && 
+            data["command"] != "verbose" && 
+            data["command"] != "debug" && 
+            data["command"] != "warn" && 
+            data["command"] != "saveSuccess" && 
+            data["command"] != "saveFail"
+        ) {
 		    logdebug("WEBSOCKET MESSAGE RECIEVED: "+ evt.data);
+        }
 		switch(data["command"]) {
             case "info":
             case "verbose":
             case "debug":
-            case "warn":
-                log("[Firmware] " +data["message"]);
-                break;
+            case "warn": {
+                var message = data["message"];
+                var hasNewLine = message.endsWith("\n");
+                if(!incomingMultiPartLogMode && hasNewLine) {
+                    logRaw("[Firmware] " +data["message"]);
+                } else if(!hasNewLine) {
+                    incomingMultiPartLogMode = true;
+                    incomingMultiPartLog += message;
+                } else {
+                    incomingMultiPartLog += message;
+                    incomingMultiPartLogMode = false;
+                    logRaw("[Firmware] " +incomingMultiPartLog);
+                    incomingMultiPartLog = "";
+                }
+            }
+            break;
             case "error":
 				var message = "[Firmware] " +data["message"];
-                log(message);
+                logRaw(message);
                 showError(message);
                 break;
-            case "saved":
+            case "saveSuccess":
 				var message = data["message"];
-                logdebug("Setting saved: " +message);
+                logdebug("Setting saved: " +message["name"]);
+                const settingsFileInfo = getSettingsFileByFilePath(message["file"]);
+                if(settingsFileInfo)
+                {
+                    settingsFileInfo[message["name"]] = message["value"];
+                }
                 showInfoSuccess("Setting saved!");
+                break;
+            case "saveFail":
+				var message = data["message"];
+                // const settingsFileInfo = getSettingsFileByFilePath(message["file"]);
+                // settingsFileInfo[message["name"]] = message["value"];
+                showError("Setting save error: "+ message["status"]);
                 break;
 			case "sleeveTempStatus":
 				var status = data["message"];
@@ -605,12 +673,13 @@ function wsCallBackFunction(evt) {
 		}
 	}
 	catch(e) {
-		showError(e.toString());
+		showError(`WS Exception: ${e.toString()}${evt ? " Recieved data: " +evt.data : ''}` );
 	}
 }
 
 function toggleWebClientDebug(enabled) {
     debugEnabled = enabled;
+    toggleDebugLoggingText(debugEnabled || systemSettings["websocketLoggingEnabled"])
     window.localStorage.setItem("debugEnabled", enabled);
 }
 
@@ -632,12 +701,16 @@ function logError(message) {
     log(messageOut);
 }
 
+/// Must add new line
+function logRaw(message) {
+    if(loggingTextElement) {
+        loggingTextElement.value += message;
+        loggingTextElement.scrollTop = loggingTextElement.scrollHeight;
+    }
+}
 function log(message) {
     if(loggingTextElement) {
-        // if(logMessages.length > 1000)
-        //     logMessages.shift();
-        logMessages.push(message);
-        loggingTextElement.value = logMessages.join("\n");
+        loggingTextElement.value += message + "\n";
         loggingTextElement.scrollTop = loggingTextElement.scrollHeight;
     }
 }
@@ -990,6 +1063,7 @@ function setSystemSettings()
     setLogLevelUI();
     toggleNonTCodev3Options();
     toggleDeviceOptions(systemSettings["deviceType"]);
+    toggleDebugLoggingText(debugEnabled || systemSettings["websocketLoggingEnabled"]);
     
     document.getElementById('logLevel').value = systemSettings["logLevel"];
     document.getElementById('websocketLoggingEnabled').checked = systemSettings["websocketLoggingEnabled"];
@@ -1614,8 +1688,8 @@ function sendWebsocketCommand(command, message) {
         websocket.send("{\"command\":\""+command+"\", \"message\": "+message+"}")
 }
 
-function updateSetting(name, type, newValue) {
-    const settingInfo = {name: name, type: type, value: newValue };
+function updateSetting(name, type, newValue, file) {
+    const settingInfo = { name: name, type: type, value: newValue, file: file };
     sendWebsocketCommand("setting", settingInfo);
 }
 
@@ -1655,11 +1729,32 @@ function sendDeviceHome() {
 }
 
 function startWebSocketLogging(element) {
-    if(element.checked && !confirm("This feature is experimental. It uses up ram and may cause issues. If enabled, make sure to disable before normal use. Continue?")) {
+    if(element.checked && !confirm(
+        `This feature is experimental. It uses up ram and may cause issues. 
+If enabled, make sure to disable before normal use. Due to resource constraints,
+Verbose messages are not included.
+Continue?
+`)) {
         element.checked = false;
         return;
     }
-    updateSetting(element.id, SettingType.Boolean, element.checked);
+    const loggingTextRow = document.getElementById("loggingTextRow");
+    if((debugEnabled || element.checked)) {
+        loggingTextRow.classList.remove("hidden")
+    } else {
+        loggingTextRow.classList.add("hidden")
+    }
+    toggleDebugLoggingText(debugEnabled || element.checked);
+    updateSetting(element.id, SettingType.Boolean, element.checked, "/systemSettings.json");
+}
+
+function toggleDebugLoggingText(enabled) {
+    const loggingTextRow = document.getElementById("loggingTextRow");
+    if((enabled)) {
+        loggingTextRow.classList.remove("hidden")
+    } else if(!loggingTextRow.classList.contains("hidden")) {
+        loggingTextRow.classList.add("hidden")
+    }
 }
 
 function getSliderTCode(channel, sliderValue, useIModifier, modifierValue, disableModifier) {

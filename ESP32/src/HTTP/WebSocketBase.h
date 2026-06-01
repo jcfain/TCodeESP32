@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <iomanip>
 // #include "LogHandler.h"
 #include "BatteryHandler.h"
 #include "TCodeInterface.h"
@@ -13,7 +14,7 @@ class WebSocketBase : public TCodeInterface {
         isBaseInitialized = true;
     }
 
-    virtual void sendCommand(const char* command, const char* message = 0, size_t len = MAX_COMMAND) = 0;
+    virtual void sendCommand(const char* command, const char* message = 0, size_t commandLen = 25, size_t messageLen = MAX_COMMAND) = 0;
     virtual void closeAll() = 0;
     virtual void sendLogTask(void *webSocketHandler) = 0;
 
@@ -61,15 +62,29 @@ protected:
     QueueHandle_t m_TCodeQueue;
     std::mutex command_mtx;
     bool sendLogTaskRunning = false;
+    static const int COMMAND_PADDING = 100;
 
-    size_t compileCommand(char* buf, const char* command, const char* message = 0, size_t len = MAX_COMMAND) {
-        if(LogHandler::getLogLevel() >= LogLevel::DEBUG) {
+    size_t compileCommand(char* buf, const char* command, const char* message = 0, size_t commandLen = MAX_WS_COMMAND, size_t messageLen = MAX_WS_MESSAGE) {
+        if(commandLen > MAX_WS_COMMAND || strlen(command) > MAX_WS_COMMAND) 
+        {
+            Serial.printf("[WebSocketBase] compileCommand: ERROR Sending WS commands: %s, Message: %s,\nCommand len (%i) it too long! MAX(%i)\n", command, message, commandLen, MAX_WS_COMMAND);
+            return 0;
+        }
+        if(message && (messageLen > MAX_WS_MESSAGE || strlen(message) > MAX_WS_MESSAGE)) 
+        {
+            Serial.printf("[WebSocketBase] compileCommand: ERROR Sending WS commands: %s, Message: %s,\nMessage len (%i) it too long! MAX(%i)\n", command, message, messageLen, MAX_WS_MESSAGE);
+            return 0;
+        }
+        if(LogHandler::getLogLevel() >= LogLevel::DEBUG) 
+        {
             if(message)
-                Serial.printf("Sending WS commands: %s, Message: %s\n", command, message);
+                Serial.printf("[WebSocketBase] compileCommand: Sending WS commands: %s, Message: %s\n", command, message);
             else
-                Serial.printf("Sending WS commands: %s\n",command);
+                Serial.printf("[WebSocketBase] compileCommand: Sending WS commands: %s\n",command);
         }
         size_t jsonLen = 0;
+        size_t len = commandLen + messageLen + COMMAND_PADDING;
+        Serial.printf("WS commands: %s, Message: %s\n", command, message);
         if(!message) 
         {
             jsonLen = snprintf(buf, len, "{\"command\":\"%s\"}", command);
@@ -80,57 +95,67 @@ protected:
         }
         else 
         {
-            jsonLen = snprintf(buf, len, "{\"command\":\"%s\",\"message\":\"%s\"}", command, message);
+            char messageEscaped[MAX_WS_MESSAGE];
+            escape_json(messageEscaped, message, strlen(message));
+            jsonLen = snprintf(buf, len, "{\"command\":\"%s\",\"message\":\"%s\"}", command, messageEscaped);
+            Serial.printf("Sanitized WS commands: %s, Message: %s\n", command, messageEscaped);
         }
-        sanitize_json(buf, jsonLen);
-        // Serial.printf("Sanitized WS commands: %s, Message: %s\n", command, buf);
         return jsonLen;
     }
-    void sanitize_json(char* s, size_t len) {
-        for (auto i = 0; i<len; i++) 
-        {
-            switch (s[i]) 
-            {
-                // case '"':
-                case '\\':
-                case '\b':
-                case '\f':
-                case '\n':
-                case '\r':
-                case '\t': 
-                    s[i] = ' '; 
-                break;
-                default:
-                    if ('\x00' <= s[i] && s[i] <= '\x1f') 
-                    {
-                        s[i] = ' ';
-                    }
-            }
-        }
-        s[len] = {0};
-    }
-    // void escape_json(char* s, size_t len) {
-    //     for (auto i = 0; i<len; i++) {
-    //         switch (s[i]) {
-    //         case '"': s[i] = '\\\"'; break;
-    //         case '\\': s[i] = '\\\\'; break;
-    //         case '\b': s[i] = '\\b'; break;
-    //         case '\f': s[i] = '\\f'; break;
-    //         case '\n': s[i] = '\\n'; break;
-    //         case '\r': s[i] = '\\r'; break;
-    //         case '\t': s[i] = '\\t'; break;
-    //         default:
-    //             if ('\x00' <= s[i] && s[i] <= '\x1f') {
-    //                 s[i] = ' ';
-    //                 // Noit sure how to do this without ostream https://stackoverflow.com/questions/7724448/simple-json-string-escape-for-c
-    //             // o << "\\u"
-    //             //   << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(*c);
-    //             } else {
-    //                 // s[i] = *c;
-    //             }
+
+    // void sanitize_json(char* s, size_t len) {
+    //     char out[len]
+    //     for (auto i = 0; i<len; i++) 
+    //     {
+    //         switch (s[i]) 
+    //         {
+    //             // case '"':
+    //             case '\\':
+    //             case '\b':
+    //             case '\f':
+    //             case '\n':
+    //             case '\r':
+    //             case '\t': 
+    //                 s[i] = ' '; 
+    //             break;
+    //             default:
+    //                 if ('\x00' <= s[i] && s[i] <= '\x1f') 
+    //                 {
+    //                     s[i] = ' ';
+    //                 }
     //         }
     //     }
+    //     s[len] = {0};
     // }
+    // https://stackoverflow.com/questions/7724448/simple-json-string-escape-for-c
+    size_t escape_json(char* out, const char* s, const size_t& len) {
+        std::ostringstream o;
+        for (auto i = 0; i<len; i++) 
+        {
+            switch (s[i]) {
+            case '"': o << "\\\""; break;
+            case '\\': o << "\\\\"; break;
+            case '\b': o << "\\b"; break;
+            case '\f': o << "\\f"; break;
+            case '\n': o << "\\n"; break;
+            case '\r': o << "\\r"; break;
+            case '\t': o << "\\t"; break;
+            default:
+                if ('\x00' <= s[i] && s[i] <= '\x1f') {
+                    o << "\\u"
+                    << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(s[i]);
+                } else {
+                    o << s[i];
+                }
+            }
+        }
+        std::string outStr = o.str();
+        size_t newLen = outStr.length();
+        strncpy(out, outStr.c_str(), newLen);
+        //snprintf(out, newLen, "%s", outStr.c_str());
+        out[newLen] = {0};
+        return newLen;
+    }
 
     void processWebSocketTextMessage(const char* msg) 
     {
@@ -214,17 +239,32 @@ protected:
                         }
                         default: {
                             LogHandler::error(_TAG, "[WebSocketBase] processWebSocketTextMessage: invalid setting type: %i for %s.", type, name);
-                            sendError("Error saving setting!");
+                            // sendError("Error saving setting!");
+                            char returnBuffer[MAX_WS_MESSAGE] = {0};
+                            messageObj["status"] = "Invalid setting type";
+                            size_t returnlen = serializeJson(messageObj, returnBuffer);
+                            sendCommand("saveFail", returnBuffer, MAX_COMMAND_LENGTH, returnlen);
+                            // TODO figure out how to callback in front end to revert UI
+                            // sendCommand("saveFail", returnBuffer, MAX_COMMAND_LENGTH, returnlen);
                             return;
                         }
                         
                     }
                     if(file == SettingFile::NONE) {
                         LogHandler::error(_TAG, "[WebSocketBase] processWebSocketTextMessage: Setting not found: %s.", name);
-                        sendError("Error saving setting!");
+                        // sendError("Error saving setting!");
+                        char returnBuffer[MAX_WS_MESSAGE] = {0};
+                        messageObj["status"] = "Setting not found";
+                        size_t returnlen = serializeJson(messageObj, returnBuffer);
+                        sendCommand("saveFail", returnBuffer, MAX_COMMAND_LENGTH, returnlen);
+                        // TODO figure out how to callback in front end to revert UI
+                        // sendCommand("saveFail", returnBuffer, MAX_COMMAND_LENGTH, returnlen);
                         return;
                     }
-                    sendCommand("saved", name);
+                    char returnBuffer[MAX_WS_MESSAGE] = {0};
+                    messageObj["status"] = "Success";
+                    size_t returnlen = serializeJson(messageObj, returnBuffer);
+                    sendCommand("saveSuccess", returnBuffer, MAX_COMMAND_LENGTH, returnlen);
                 }
                 // String* message = jsonObj["message"];
                 // Serial.print("Recieved websocket tcode message: ");

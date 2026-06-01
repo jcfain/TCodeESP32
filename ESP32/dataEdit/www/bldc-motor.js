@@ -113,7 +113,7 @@ class BLDCMotor {
         });
         this.ParentNode.appendChild(motorStateRefreshBtn.row);
 
-        this.updateMotorStatus(debugInfo["motorState"]);
+        this.updateMotorStatus(debugInfoSettings["motorState"]);
         this.initialized = true;
     }
 

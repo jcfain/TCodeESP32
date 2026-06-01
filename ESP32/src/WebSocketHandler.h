@@ -64,19 +64,18 @@ public:
             sendCommand(in);
     }
 
-    void sendCommand(const char* command, const char* message = 0, size_t len = MAX_COMMAND) override
+    void sendCommand(const char* command, const char* message = 0, size_t commandLen = MAX_WS_COMMAND, size_t messageLen = MAX_WS_MESSAGE) override
     {
         if(isInitialized && command_mtx.try_lock()) 
         {
             std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
             m_lastSend = millis();
 
-            char commandJson[MAX_COMMAND];
-            size_t len = compileCommand(commandJson, command, message);
-            // if(client)
-            //     client->text(commandJson);
-            // else
-                ws.textAll(commandJson, len);
+            char commandJson[commandLen + messageLen + COMMAND_PADDING];
+            size_t len = compileCommand(commandJson, command, message, commandLen, messageLen);
+            if(!len)
+                return;
+            ws.textAll(commandJson, len);
         }
     }
 
@@ -138,34 +137,63 @@ public:
         Serial.printf("[sendLogTask]: init\n");
         // char lastMessage[LogHandler::internal_buffer_length];
         LogMessage logMessage;
+        bool multiSeq = false;
         while (sendLogTaskRunning) 
         {
             if(ws.count() > 0) 
             {
                 if(LogHandler::getLog(&logMessage)) 
                 {
+                    // if(multiSeq && !logMessage.multipart)
+                    //     multiSeq = false;
                     // strncpy(lastMessage, logMessage.message, LogHandler::internal_buffer_length);
                     const char* level = "info";
                     switch(logMessage.level)
                     {
                         case LogLevel::DEBUG:
-                        level = "debug";
+                        {
+                            if(!multiSeq)
+                                level = "debug";
+                            else
+                                level = "debugMulti";
+                        }
                         break;
                         case LogLevel::WARNING:
-                        level = "warn";
+                        {
+                            if(!multiSeq)
+                                level = "warn";
+                            else
+                                level = "warnMulti";
+                        }
                         break;
                         case LogLevel::ERROR:
-                        level = "error";
+                        {
+                            if(!multiSeq)
+                                level = "error";
+                            else
+                                level = "errorMulti";
+                        }
                         break;
                         case LogLevel::VERBOSE:
-                        level = "verbose";
+                        {
+                            if(!multiSeq)
+                                level = "verbose";
+                            else
+                                level = "verboseMulti";
+                        }
                         break;
                         default:
-                           level = "info" ;
+                        {
+                            if(!multiSeq)
+                                level = "info";
+                            else
+                                level = "infoMulti";
+                        }
                         break;
                     }
-                    // Serial.printf("sending log: level: %s message: %s\n", level, logMessage.message);
-                    ((WebSocketHandler*)webSocketHandler)->sendCommand(level, logMessage.message);
+                    // multiSeq = logMessage.multipart;
+                    // Serial.printf("sending log: level: %s message: %s, multi: %i\n", level, logMessage.message, multiSeq);
+                    ((WebSocketHandler*)webSocketHandler)->sendCommand(level, logMessage.message, MAX_WS_COMMAND, MAX_LOG_STORE);
                 }
             }
             vTaskDelay(100/portTICK_PERIOD_MS);

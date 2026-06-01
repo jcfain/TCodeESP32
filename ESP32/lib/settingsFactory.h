@@ -1952,6 +1952,7 @@ private:
         file.close();
         if(fileInfo.onchange)
             fileInfo.onchange();
+        //LogHandler::info(m_TAG, "This is a test log.\tIts going to be a long one. Hopefully greater than 256 (MAX_COMMAND) bytes. Can I do it? Ramble on about how long this message is without running out of steam? Have I hit 256 bytes yet? Nope, My hands are gettinf tired. Whoops a typo. Im not going to fix it because who cares? Not the point. Oh, I hit 256 a while agio. Ok I suppose I need 512 chars now. Thts DOUBLE the max len. Getting close I can feel it. I'm lying, I can see it in my text editor. Oh my, I dont have anything left to say. YES done!");
         return true;
     }
 
