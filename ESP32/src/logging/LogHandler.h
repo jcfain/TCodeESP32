@@ -34,6 +34,7 @@ SOFTWARE. */
 struct LogMessage {
     LogLevel level;
     bool multipart;
+    size_t len;
     char message[MAX_LOG_STORE];
 };
 
@@ -280,12 +281,13 @@ public:
         getInstance().m_message_callback = f == nullptr ? 0 : f;
     }
 
-    static bool logDeserializationError(const char* tag, DeserializationError error, const char* fileName) 
+    static bool logDeserializationError(const char* tag, DeserializationError error, const char* fileName, DeserializationError::Code& code) 
     {
         if (error)
         {
             LogHandler::error(tag, "Error deserializing json: %s", fileName);
-            switch (error.code())
+            code = error.code();
+            switch (code)
             {
                 case DeserializationError::Code::Ok:
                     LogHandler::error(tag, "Code: Ok");
@@ -469,6 +471,7 @@ private:
                 // char messageToSend[amountToSend];
                 strncpy(logMessage.message, message + sent, amountToSend);
                 logMessage.message[amountToSend] = '\0';
+                logMessage.len = amountToSend;
                 if(getLogLevel() >= LogLevel::DEBUG) 
                     Serial.printf("[LogHandler::storeLog] truncated: %s, multi: %i\n", logMessage.message, logMessage.multipart);
                 if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
@@ -484,6 +487,7 @@ private:
                 strncpy(logMessage.message, message + sent, mod);
                 logMessage.message[mod] = '\0';
                 strncat(logMessage.message, "\n", 5);
+                logMessage.len = mod +1;
                 if(getLogLevel() >= LogLevel::DEBUG) 
                     Serial.printf("[LogHandler::storeLog] truncated mod: %i, message: %s, multi: %i\n", mod, logMessage.message, logMessage.multipart);
                 if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
@@ -501,6 +505,7 @@ private:
             strncpy(logMessage.message, message, len);
             logMessage.message[len] = '\0';
             strncat(logMessage.message, "\n", 5);
+            logMessage.len = len +1;
             if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
             {
                 Serial.printf("[LogHandler::storeLog] Error storing log message\n");

@@ -88,6 +88,7 @@ SOFTWARE. */
 SerialHandler *serialHandler;
 SystemCommandHandler *systemCommandHandler = 0;
 MotorHandler *motorHandler = 0;
+TCodeBase* tcode = 0;
 BatteryHandler *batteryHandler = 0;
 MotionHandler *motionHandler = 0;
 VoiceHandler *voiceHandler;
@@ -173,12 +174,12 @@ void profileChangeCallback(uint8_t profile)
 
 void logCallBack(const char *input, const size_t& length, const LogLevel& level)
 {
-// #if WIFI_TCODE
-    // if(webSocketHandler) 
-    // {
-    // 	webSocketHandler->sendLog(input, length, level);
-    // }
-// #endif
+#if WIFI_TCODE
+    if(webSocketHandler && !SettingsFactory::getInstance()->getWebsocketLoggingEnabled() && level == LogLevel::ERROR) 
+    {
+    	webSocketHandler->sendError(input, length);
+    }
+#endif
 }
 
 #if BUILD_TEMP
@@ -189,17 +190,17 @@ void tempChangeCallBack(const TemperatureType& type, const char *message, const 
     {
         if (strpbrk(message, "{") == nullptr)
         {
-            webSocketHandler->sendCommand(message);
+            webSocketHandler->sendCommand(message, strlen(message));
         }
         else
         {
             if (type == TemperatureType::SLEEVE)
             {
-                webSocketHandler->sendCommand("sleeveTempStatus", message);
+                webSocketHandler->sendCommand("sleeveTempStatus", 17, message, strlen(message));
             }
             else
             {
-                webSocketHandler->sendCommand("internalTempStatus", message);
+                webSocketHandler->sendCommand("internalTempStatus", 19, message, strlen(message));
             }
         }
     }
@@ -252,8 +253,11 @@ void batteryVoltageCallback(const float& capacityRemainingPercentage, const floa
 #if WIFI_TCODE
     if (webSocketHandler)
     {
+        // TODO: to test
+        // char tempJson[150];
+        // int len = snprintf(tempJson, 150, "{\"batteryCapacityRemaining\":%f, \"batteryCapacityRemainingPercentage\":%f, \"batteryVoltage\":%f, \"batteryTemperature\":%f}", capacityRemaining, capacityRemainingPercentage, voltage, temperature);
         String statusJson("{\"batteryCapacityRemaining\":\"" + String(capacityRemaining) + "\", \"batteryCapacityRemainingPercentage\":\"" + String(capacityRemainingPercentage) + "\", \"batteryVoltage\":\"" + String(voltage) + "\", \"batteryTemperature\":\"" + String(temperature) + "\"}");
-        webSocketHandler->sendCommand("batteryStatus", statusJson.c_str());
+        webSocketHandler->sendCommand("batteryStatus", 14, statusJson.c_str(), statusJson.length());
     }
 #endif
 }
@@ -374,7 +378,7 @@ void settingChangeCallback(const SettingProfile &profile, const char *settingTha
             // TODO add channe; specific updates when moving to its own save...maybe...
             motionHandler->updateChannelRanges();
         } else if (strcmp(settingThatChanged, "channelRangesEnabled") == 0) {
-            webSocketHandler->sendCommand("channelRangesEnabled", SettingsHandler::getChannelRangesEnabled() ? "true" : "false");
+            webSocketHandler->sendCommand("channelRangesEnabled", 21, SettingsHandler::getChannelRangesEnabled() ? "true" : "false", 6);
         }
         
     }

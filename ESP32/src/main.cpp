@@ -51,7 +51,6 @@ TickType_t pxPreviousWakeTime = millis();
 SettingsFactory *settingsFactory;
 // This has issues running with the webserver.
 // OTAHandler otaHandler;
-bool setupSucceeded = false;
 bool errorLogged = false;
 bool restarting = false;
 
@@ -86,18 +85,18 @@ void setup()
 	// benchHandler->init();
 	// benchHandler->enable();
 	initHandler = InitHandler::getInstance();
-	setupSucceeded = initHandler->init();
+	SettingsHandler::SettingsHandler::setupSucceeded = initHandler->init();
 }
 
 void readTCode(char *tcode, size_t& len)
 {
-	if (motorHandler)
-	{
+	if(!SettingsHandler::SettingsHandler::setupSucceeded)
+		LogHandler::error(TagHandler::MainLoop, "TCode received, but the system had an error during setup: %s, len: %u", tcode, len);
+	else if (motorHandler)
 		motorHandler->read(tcode, len);
-		tcode[0] = {0};
-		//memset(tcode, 0, len);
-		len = 0;
-	}
+	tcode[0] = {0};
+	//memset(tcode, 0, len);
+	len = 0;
 }
 
 void processButton()
@@ -226,7 +225,7 @@ void stop()
 
 void loop()
 {
-	// if(setupSucceeded && SettingsHandler::getSaving()) {
+	// if(SettingsHandler::setupSucceeded && SettingsHandler::getSaving()) {
 	// 	motorHandler->execute();
 	// 	vTaskDelay(250/portTICK_PERIOD_MS);
 	// 	return;
@@ -267,13 +266,13 @@ void loop()
 
 		processCommand();
 
-		if (setupSucceeded)
-		{
+		// if (SettingsHandler::setupSucceeded)
+		// {
 			if (!SettingsHandler::getMotionPaused())
 			{
 				dStopped = false;
 				benchHandler->benchStart(3);
-				if (SettingsHandler::getMotionEnabled())
+				if (SettingsHandler::setupSucceeded && SettingsHandler::getMotionEnabled())
 				{ // Motion overrides all other input
 					processMotionHandlerMovement();
 				}
@@ -322,7 +321,34 @@ void loop()
 				// All motion is paused execute stop.
 				stop();
 			}
-		}
+// 		}
+// 		else {
+// 			if (commandTCodeData_len > 0) {
+// 				LogHandler::error(TagHandler::MainLoop, "System command tcode received. But the system had an error during setup: %s, len: %u", commandTCodeData, commandTCodeData_len);
+// 				readTCode(commandTCodeData, commandTCodeData_len);
+// 			} else if (serialData_len > 0) {
+// 				LogHandler::error(TagHandler::MainLoop, "Serial tcode received. But the system had an error during setup: %s, len: %u", serialData, serialData_len);
+// 				readTCode(serialData, serialData_len);
+// #if WIFI_TCODE == 1
+// 			} else if (webSocketData_len > 0) {
+// 				LogHandler::error(TagHandler::MainLoop, "WebSocket tcode received. But the system had an error during setup: %s, len: %u", webSocketData, webSocketData_len);
+// 				readTCode(webSocketData, webSocketData_len);
+// 			} else if (!SettingsHandler::apMode && udpData_len > 0) {
+// 				LogHandler::error(TagHandler::MainLoop, "Udp tcode received. But the system had an error during setup: %s, len: %u", udpData, udpData_len);
+// 				readTCode(udpData, udpData_len);
+// #endif
+// #if BLE_TCODE
+// 			} else if (bleData_len > 0) {
+// 				LogHandler::error(TagHandler::MainLoop, "BLE tcode received. But the system had an error during setup: %s, len: %u", bleData, bleData_len);
+// 				readTCode(bleData, bleData_len);
+// #endif
+// #if BLUETOOTH_TCODE
+// 			} else if (bluetoothData_len > 0) {
+// 				LogHandler::error(TagHandler::MainLoop, "Bluetooth tcode received. But the system had an error during setup: %s, len: %u", bluetoothData, bluetoothData_len);
+// 				readTCode(bluetoothData, bluetoothData_len);
+// 			}
+// #endif
+// 		}
 
 		benchHandler->benchStart(4);
 		if (motorHandler)
@@ -339,7 +365,7 @@ void loop()
 		benchHandler->benchFinish("Temp check", 5);
 #endif
 	}
-	if (!setupSucceeded && SettingsHandler::restartInSecs == -1 && !restarting)
+	if (!SettingsHandler::setupSucceeded && SettingsHandler::restartInSecs == -1 && !restarting)
 	{
 		if(!errorLogged)
 		{

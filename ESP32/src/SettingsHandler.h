@@ -54,6 +54,7 @@ class SettingsHandler
 {
 public:
     static bool initialized;
+    static inline bool setupSucceeded = false;
     static int restartInSecs;
     static inline const char* errorInfo[10];
     static inline size_t errorInfoIndex = 0;
@@ -235,6 +236,7 @@ public:
         doc["TCodeVersion"] = m_settingsFactory->getTcodeVersion();
         doc["lastRebootReason"] = machine_reset_cause();
         doc["channelRangesEnabled"] = getChannelRangesEnabled();
+        doc["setupSucceeded"] = setupSucceeded;
 
         JsonArray logLevels = doc["logLevels"].to<JsonArray>();
         JsonObject logLevelNone = logLevels.add<JsonObject>();
@@ -1351,13 +1353,36 @@ private:
     }
 
     static bool checkForFileAndLoad(const char* path, JsonDocument &doc, bool &loadDefault) {
-        if(!LittleFS.exists(path)) {
+        if(!LittleFS.exists(path)) 
+        {
             loadDefault = true;
         }
-        if(loadDefault) {
-            defaultJsonFile(path);
+        if(loadDefault) 
+        {
+            if(!defaultJsonFile(path))
+                return false;
         }
-        return loadJsonFromFile(path, doc);
+        DeserializationError::Code code;
+        return loadJsonFromFile(path, doc, code);
+        // I decided against auto resetting defaults.
+        // Need a way to allow the user to choose to set defaults or not.
+        // if(!loadJsonFromFile(path, doc, code)) 
+        // {
+        //     if(code == DeserializationError::Code::EmptyInput)
+        //     {
+        //         // Force a default file
+        //         // Sometimes the file gets emptied out. Wish I knew how...
+        //         LogHandler::error(_TAG, "Sometimes the file gets emptied out. Setting %s to default. Sorry.", path);
+        //         loadDefault = true;
+        //         if(!defaultJsonFile(path))
+        //             return false;
+        //         return loadJsonFromFile(path, doc, code);
+        //     }
+        //     else
+        //         return false;
+        // } 
+        // else
+        //     return true;
     }
 
     static bool defaultJsonFile(const char* path) {
@@ -1381,7 +1406,7 @@ private:
         return true;
     }
 
-    static bool loadJsonFromFile(const char* path, JsonDocument &doc) {
+    static bool loadJsonFromFile(const char* path, JsonDocument &doc, DeserializationError::Code& code) {
         LogHandler::debug(_TAG, "Loading json file %s", path);
         if (!LittleFS.exists(path)) {
             LogHandler::error(_TAG, "%s did not exist!", path);
@@ -1393,42 +1418,12 @@ private:
             LogHandler::error(_TAG, "%s failed to open!", path);
             return false;
         }
-        if(LogDeserializationError(deserializeJson(doc, file), file.name())) {
+        if(LogHandler::logDeserializationError(_TAG, deserializeJson(doc, file), file.name(), code)) {
             file.close();
             return false;
         }
         file.close();
         return true;
-    }
-
-    static bool LogDeserializationError(DeserializationError error, const char* filename) {
-        if (error)
-        {
-            LogHandler::error(_TAG, "Error deserializing json: %s", filename);
-            switch (error.code())
-            {
-            case DeserializationError::Code::Ok:
-                LogHandler::error(_TAG, "Code: Ok");
-                break;
-            case DeserializationError::Code::EmptyInput:
-                LogHandler::error(_TAG, "Code: EmptyInput");
-                break;
-            case DeserializationError::Code::IncompleteInput:
-                LogHandler::error(_TAG, "Code: IncompleteInput");
-                break;
-            case DeserializationError::Code::InvalidInput:
-                LogHandler::error(_TAG, "Code: InvalidInput");
-                break;
-            case DeserializationError::Code::NoMemory:
-                LogHandler::error(_TAG, "Code: NoMemory");
-                break;
-            case DeserializationError::Code::TooDeep:
-                LogHandler::error(_TAG, "Code: TooDeep");
-                break;
-            }
-            return true;
-        }
-        return false;
     }
 
     static void setBuildFeatures()

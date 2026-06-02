@@ -1266,8 +1266,6 @@
 						3. The seventh command (11) will disable motion.
 					</span>
 				</div>
-				<div id="channelTestsTable" class="formTable">
-				</div>
 				<div id="channelRangesTable" class="formTable">		
 					<div>
 						<div class="tHeader">
@@ -1275,6 +1273,46 @@
 						</div>
 					</div>
 					<div id="deviceRangesTable" class="formTable formTableModal"></div>
+				</div>
+				<div id="channelTestsTable" class="formTable">
+				</div>
+				<div id="loggingAndCommandsTable" class="formTable">
+					<div id="systemInfoTableBody">
+						<div>
+							<div class="tHeader">
+								<h3>Logging and Commands</h3>
+							</div>
+						</div>
+						<div class="tRow ">
+							<div class="tCell">
+								<span title="Sends backend logging to web client, Warning this will use more ram and could cause issues!">Enable backend logging</span> 
+							</div>
+							<div class="tCell">
+								<input id="websocketLoggingEnabled" type="checkbox" onclick="startWebSocketLogging(this)"></input>
+							</div>
+						</div>
+						<div class="tRow ">
+							<div class="tCell">
+								<span title="Web client debug">Enable frontend debug</span> 
+							</div>
+							<div class="tCell">
+								<input id="includeWebClientDebug" type="checkbox" onclick="toggleWebClientDebug(this.checked)"></input>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell" colspan="2">
+								<input id="tcodeCommandInput" placeholder="Enter command..." onkeydown="onSendTCodeCommandEnter(event)">
+							</div>
+							<div class="tCell" colspan="1">
+								<button id="sendTCodeCommandButton" onclick="onSendTCodeCommand()">Send</button>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell" colspan="3">
+								<textarea id="loggingText" class="log-reader" readonly></textarea>
+							</div>
+						</div>
+					</div>
 				</div>
 				<div id="systemInfoTable" class="formTable">
 					<div id="systemInfoTableBody">
@@ -1384,27 +1422,6 @@
 							</div>
 							<div class="tCell">
 								<button id="clearFiltersButton" onclick="clearTags('log-exclude-tags')">Clear excluded</button>
-							</div>
-						</div>
-						<div class="tRow ">
-							<div class="tCell">
-								<span title="Sends backend logging to web client, Warning this will use more ram and could cause issues!">Enable backend logging</span> 
-							</div>
-							<div class="tCell">
-								<input id="websocketLoggingEnabled" type="checkbox" onclick="startWebSocketLogging(this)"></input>
-							</div>
-						</div>
-						<div class="tRow ">
-							<div class="tCell">
-								<span title="Web client debug">Enable frontend debug</span> 
-							</div>
-							<div class="tCell">
-								<input id="includeWebClientDebug" type="checkbox" onclick="toggleWebClientDebug(this.checked)"></input>
-							</div>
-						</div>
-						<div class="tRow hidden" id="loggingTextRow">
-							<div class="tCell" colspan="3">
-								<textarea id="loggingText" class="log-reader" readonly></textarea>
 							</div>
 						</div>
 						<div class="lastRebootReasonDiv">

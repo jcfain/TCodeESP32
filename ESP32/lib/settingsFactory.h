@@ -1501,26 +1501,34 @@ private:
             if(!loadDefault(fileInfo.file))
                 return false;
         } else {
-            if(LogHandler::logDeserializationError(m_TAG, deserializeJson(fileInfo.doc, file), file.name())) 
+            DeserializationError::Code code;
+            if(LogHandler::logDeserializationError(m_TAG, deserializeJson(fileInfo.doc, file), file.name(), code)) 
             {
                 file.close();
-                // Sometimes the file gets emptied out. 
-                // Brute force recreation at default for now.
-                LogHandler::error(m_TAG, "Sometimes the file gets emptied out. Setting %s to default. Sorry.", fileInfo.path);
-                if(!createJsonFile(fileInfo.path))
-                    return false;
-                if(!loadDefault(fileInfo.file))
-                    return false;
+                return false;
+                // I decided against auto resetting defaults.
+                // Need a way to allow the user to choose to set defaults or not.
+                // if(code == DeserializationError::Code::EmptyInput)
+                // {
+                //     // Force a default file
+                //     // Sometimes the file gets emptied out. Wish I knew how...
+                //     LogHandler::error(m_TAG, "Sometimes the file gets emptied out. Setting %s to default. Sorry.", fileInfo.path);
+                //     if(!createJsonFile(fileInfo.path))
+                //         return false;
+                //     if(!loadDefault(fileInfo.file))
+                //         return false;
+                // }
+                
             }
-            if(fileInfo.doc.isNull())
-            {
-                LogHandler::info(m_TAG, "File %s is null. Loading default.", fileInfo.path);
-                if(!loadDefault(fileInfo.file))
-                    return false;
-            }
+            // if(fileInfo.doc.isNull())
+            // {
+            //     LogHandler::info(m_TAG, "File %s is null. Loading default.", fileInfo.path);
+            //     if(!loadDefault(fileInfo.file))
+            //         return false;
+            // }
             file.close();
             fileInfo.initialized = true;
-            checkFile(fileInfo);
+            // checkFile(fileInfo);
             if(fileInfo.onload)
                 fileInfo.onload();
         }

@@ -221,6 +221,14 @@ document.addEventListener("DOMContentLoaded", function() {
     hideLoading();
 });
 
+window.addEventListener("error", function (e) {
+   logError(e.error.message);
+   return false;
+});
+window.addEventListener('unhandledrejection', function (e) {
+   logError(e.error.message);
+})
+
 function get(name, uri, callback, callbackFail) {
     request("GET", name, uri, callback, callbackFail)
 }
@@ -609,22 +617,25 @@ function wsCallBackFunction(evt) {
                 var message = data["message"];
                 var hasNewLine = message.endsWith("\n");
                 if(!incomingMultiPartLogMode && hasNewLine) {
-                    logRaw("[Firmware] " +data["message"]);
+                    logRaw(new Date().toISOString() + " " + "[Firmware] " +data["message"]);
                 } else if(!hasNewLine) {
                     incomingMultiPartLogMode = true;
                     incomingMultiPartLog += message;
                 } else {
                     incomingMultiPartLog += message;
                     incomingMultiPartLogMode = false;
-                    logRaw("[Firmware] " +incomingMultiPartLog);
+                    logRaw(new Date().toISOString() + " " + "[Firmware] " +incomingMultiPartLog);
                     incomingMultiPartLog = "";
                 }
             }
             break;
             case "error":
-				var message = "[Firmware] " +data["message"];
-                logRaw(message);
+				var message = "[Firmware] " + data["message"];
+                log(message);
                 showError(message);
+                break;
+            case "tcode":
+                log("[Firmware] [TCode]\n" + data["message"]);
                 break;
             case "saveSuccess":
 				var message = data["message"];
@@ -640,6 +651,7 @@ function wsCallBackFunction(evt) {
 				var message = data["message"];
                 // const settingsFileInfo = getSettingsFileByFilePath(message["file"]);
                 // settingsFileInfo[message["name"]] = message["value"];
+                logRaw(new Date().toISOString() + " " + message);
                 showError("Setting save error: "+ message["status"]);
                 break;
 			case "sleeveTempStatus":
@@ -669,7 +681,8 @@ function wsCallBackFunction(evt) {
 				var enabled = data["message"];
                 DeviceRangeSlider.updateChannelRangesTemp(enabled == "true");
                 break;
-
+            default:
+                logRaw(new Date().toISOString() + " " +data["command"]);
 		}
 	}
 	catch(e) {
@@ -710,7 +723,7 @@ function logRaw(message) {
 }
 function log(message) {
     if(loggingTextElement) {
-        loggingTextElement.value += message + "\n";
+        loggingTextElement.value += new Date().toISOString() + " " + message + "\n";
         loggingTextElement.scrollTop = loggingTextElement.scrollHeight;
     }
 }
@@ -1624,7 +1637,6 @@ function showError(message, name)
     div.innerHTML = message;
     document.getElementById("errorText").appendChild(div);
     document.getElementById("errorMessage").hidden = false;
-    logError(message);
 
     hideLoading();
 }
@@ -1698,6 +1710,10 @@ function sendTCode(tcode) {
         startServerPoll();
         return;
     }
+    if(!systemInfo["setupSucceeded"]) {// TODO: Is this worth trying to resolve in future tcode versions?
+        logWarn(`There was an issue in the firmware setup. The TCode "${tcode}" was ignored.`)
+        return;
+    }
     websocket.send(tcode+String.fromCharCode(10))
 }
 
@@ -1738,22 +1754,30 @@ Continue?
         element.checked = false;
         return;
     }
-    const loggingTextRow = document.getElementById("loggingTextRow");
-    if((debugEnabled || element.checked)) {
-        loggingTextRow.classList.remove("hidden")
-    } else {
-        loggingTextRow.classList.add("hidden")
-    }
     toggleDebugLoggingText(debugEnabled || element.checked);
     updateSetting(element.id, SettingType.Boolean, element.checked, "/systemSettings.json");
 }
 
+function onSendTCodeCommand() {
+    const tcodeCommandInput = document.getElementById("tcodeCommandInput");
+    if(tcodeCommandInput.value.length > 0)
+        sendTCode(tcodeCommandInput.value);
+}
+
+function onSendTCodeCommandEnter(event) {
+    if(event.keyCode === 13) {// enter
+        onSendTCodeCommand();
+    }
+}
+
 function toggleDebugLoggingText(enabled) {
-    const loggingTextRow = document.getElementById("loggingTextRow");
-    if((enabled)) {
-        loggingTextRow.classList.remove("hidden")
-    } else if(!loggingTextRow.classList.contains("hidden")) {
-        loggingTextRow.classList.add("hidden")
+    const loggingTextRows = document.getElementsByName("loggingTextRow");
+    for(let i=0;i<loggingTextRows.length; i++) {
+        if(enabled) {
+            loggingTextRows[i].classList.remove("hidden")
+        } else if(!loggingTextRows[i].classList.contains("hidden")) {
+            loggingTextRows[i].classList.add("hidden")
+        }
     }
 }
 

@@ -60,11 +60,22 @@ public:
     
     void send(const char* in) override 
     {
-        if(isInitialized && ws.count() > 0)
-            sendCommand(in);
+        if(isInitialized && ws.count() > 0) 
+        {
+            // size_t len = strlen(in);
+            // if(len > MAX_WS_MESSAGE)
+            // {
+            //     LogHandler::error(_TAG, "[WebSocketHandler] [send] Return value was too long for buffer: %s", in);
+            //     return;
+            // }
+            // char messageEscaped[MAX_WS_MESSAGE];
+            // size_t lenEscaped = escape_json(messageEscaped, in, len);
+            // ws.textAll(messageEscaped, lenEscaped);
+            sendCommand("tcode", 6, in, strlen(in));
+        }
     }
 
-    void sendCommand(const char* command, const char* message = 0, size_t commandLen = MAX_WS_COMMAND, size_t messageLen = MAX_WS_MESSAGE) override
+    void sendCommand(const char* command, size_t commandLen, const char* message = 0, size_t messageLen = 0) override
     {
         if(isInitialized && command_mtx.try_lock()) 
         {
@@ -72,7 +83,7 @@ public:
             m_lastSend = millis();
 
             char commandJson[commandLen + messageLen + COMMAND_PADDING];
-            size_t len = compileCommand(commandJson, command, message, commandLen, messageLen);
+            size_t len = compileCommand(commandJson, command, commandLen, message, messageLen);
             if(!len)
                 return;
             ws.textAll(commandJson, len);
@@ -193,7 +204,7 @@ public:
                     }
                     // multiSeq = logMessage.multipart;
                     // Serial.printf("sending log: level: %s message: %s, multi: %i\n", level, logMessage.message, multiSeq);
-                    ((WebSocketHandler*)webSocketHandler)->sendCommand(level, logMessage.message, MAX_WS_COMMAND, MAX_LOG_STORE);
+                    ((WebSocketHandler*)webSocketHandler)->sendCommand(level, strlen(level), logMessage.message, logMessage.len);
                 }
             }
             vTaskDelay(100/portTICK_PERIOD_MS);
