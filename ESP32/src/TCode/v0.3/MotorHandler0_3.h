@@ -24,10 +24,11 @@ SOFTWARE. */
 
 #include <Arduino.h>
 #include "Global.h"
-#include "TCode0_3.h"
 #include "SettingsHandler.h"
 #include "TagHandler.h"
-#include "logging/LogHandler.h"
+#include "LogHandler.h"
+#include "MotorHandler.h"
+#include "TCode0_3.h"
 
 class MotorHandler0_3: public MotorHandler {
 public:
@@ -227,8 +228,8 @@ protected:
         } 
         
 
-        read("D0");
-        read("D1");
+        read("D0", 3);
+        read("D1", 3);
     }
 
     void executeCommon(const int xLin) 

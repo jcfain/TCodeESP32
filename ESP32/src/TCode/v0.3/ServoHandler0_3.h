@@ -35,7 +35,8 @@ public:
     ServoHandler0_3() : MotorHandler0_3(new TCode0_3()) { }
     // Setup function
     // This is run once, when the arduino starts
-    bool setup() override {
+    bool setup() override 
+    {
         LogHandler::debug(_TAG, "Setting up servo handler v3");
         m_settingsFactory = SettingsFactory::getInstance();
         
@@ -181,10 +182,10 @@ public:
         m_tcode->setMessageCallback(function);
     }
 
-    void read(const String &input) override
-    {
-        m_tcode->read(input);
-    }
+    // void read(const String &input) override
+    // {
+    //     m_tcode->read(input);
+    // }
     
     void read(const char* input, size_t len) override
     {
@@ -372,7 +373,8 @@ private:
 
     // Function to calculate the angle for the main arm servos
     // Inputs are target x,y coords of receiver pivot in 1/100 of a mm
-    int SetMainServo(float x, float y) {
+    int SetMainServo(float x, float y) 
+    {
         x /= 100; y /= 100;          // Convert to mm
         float gamma = atan2(x,y);    // Angle of line from servo pivot to receiver pivot
         float csq = sq(x) + sq(y);   // Square of distance between servo pivot and receiver pivot
@@ -386,7 +388,8 @@ private:
     // Function to calculate the angle for the pitcher arm servos
     // Inputs are target x,y,z coords of receiver upper pivot in 1/100 of a mm
     // Also pitch in 1/100 of a degree
-    int SetPitchServo(float x, float y, float z, float pitch) {
+    int SetPitchServo(float x, float y, float z, float pitch) 
+    {
         pitch *= 0.0001745; // Convert to radians
         x += 5500*sin(0.2618 + pitch);
         y -= 5500*cos(0.2618 + pitch);

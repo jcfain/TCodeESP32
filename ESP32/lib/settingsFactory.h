@@ -637,6 +637,8 @@ public:
             return false;
         if(!deleteJsonFile(BUTTON_SETTINGS_PATH))
             return false;
+        if(!deleteJsonFile(CHANNELS_SETTINGS_PATH))
+            return false;
         // for(SettingFileInfo* settingsInfo : AllSettings)
         // {
         //     if(!loadDefault(*settingsInfo))
@@ -1527,11 +1529,11 @@ private:
             //         return false;
             // }
             file.close();
-            fileInfo.initialized = true;
             // checkFile(fileInfo);
-            if(fileInfo.onload)
-                fileInfo.onload();
         }
+        fileInfo.initialized = true;
+        if(fileInfo.onload)
+            fileInfo.onload();
         //json = doc.as<JsonObject>();
         return true;
     }

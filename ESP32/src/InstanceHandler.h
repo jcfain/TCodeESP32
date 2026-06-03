@@ -23,7 +23,7 @@ SOFTWARE. */
 #pragma once
 #include "constants.h"
 #include "SerialHandler.h"
-#include <TCode.h>
+#include <TCode.h>// Not sure why this is required here to prevent an undefined reference error...
 #include "LogHandler.h"
 #include "SettingsHandler.h"
 #include "SystemCommandHandler.h"
@@ -40,7 +40,7 @@ SOFTWARE. */
 #if BLUETOOTH_TCODE
 #include "BluetoothHandler.h"
 #endif
-#include "TCode/MotorHandler.h"
+// #include "MotorHandler.h"
 // #include "BLEConfigurationHandler.h"
 
 #ifdef MOTOR_TYPE_SERVO

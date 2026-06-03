@@ -74,14 +74,22 @@ public:
 		}
 	}
 
-	// Function to read off whole strings as input
-	void read(const String &inString) override
+	void read(const char* in) override
 	{
-		bufferString = inString;	 // Replace existing buffer with input string
+		bufferString = String(in);	 // Replace existing buffer with input string
 		bufferString.trim();		 // Remove spaces, etc, from buffer
 		executeString(bufferString); // Execute string
 		bufferString = "";			 // Clear input string
 	}
+
+	// // Function to read off whole strings as input
+	// void read(const String &inString) override
+	// {
+	// 	bufferString = inString;	 // Replace existing buffer with input string
+	// 	bufferString.trim();		 // Remove spaces, etc, from buffer
+	// 	executeString(bufferString); // Execute string
+	// 	bufferString = "";			 // Clear input string
+	// }
 
 	// Function to set an axis
 	void AxisInput(const String &ID, int magnitude, char extension, unsigned long extMagnitude)

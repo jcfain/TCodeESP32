@@ -1,167 +1,226 @@
 
 #pragma once
 
-#include <vector>
-#include "TCodeBaseV4.h"
+// #include <EEPROM.h>
+#include "TCode.h"
 #include "TagHandler.h"
-#include "OutputStream.h"
-#include "EventHandler.h"
+#include "TCodeBase.h"
 
-
-class TCode0_4 : public TCodeBaseV4
+class TCode0_4 : public TCodeBase, public TCode
 {
+	// TCode0_4() {}
 
 public:
+	// Setup function
 	void setup(const char *firmware) override
 	{
 		firmwareID = firmware;
 
 		// #ESP32# Enable EEPROM
-		m_tcode.setOutputStream(&m_outputStream);
-		m_tcode.registerEventObserver(&m_eventHandler);
+		// EEPROM.begin(320);
 
-		// m_tcode.registerInterface(&button);
+		// // Vibe channels start at 0
+		// for (int i = 0; i < CHANNELS; i++)
+		// {
+		// 	Vibration[i].Set(0, ' ', 0);
+		// }
 	}
-
-	// Function to name and activate axis
-	void RegisterAxis(TCodeAxis* axis) override
-	{
-		m_tcode.registerAxis(axis);
-	}
-
-	// void RegisterAxis(const String &ID, const String& axisName) override
-	// {
-	// 	auto itr = std::find_if(m_axisPointers.begin(), m_axisPointers.end(), [axisName](const TCodeAxis* channel) {
-	// 		return !strcmp(channel->getName(), axisName.c_str());
-	// 	});
-	// 	if(itr != m_axisPointers.end())
-	// 		m_tcode.registerAxis(*itr.base());
-	// }
 
 	// Function to read off individual bytes as input
 	void read(byte inByte) override
 	{
-		m_tcode.read(inByte);
+		TCode::byteInput(inByte);
+	}
+	void read(const char* in) override
+	{
+		TCode::stringInput(in);
 	}
 
-	// Function to read off whole strings as input
-	void read(const String &inString) override
-	{
-		m_tcode.read(inString);
+	void getMessages() {
+		if(message_callback) 
+		{
+			// size_t len = 0;
+			// bool limitReached = false;
+  			// while (TCode::available() > 0) 
+			// { 
+			// 	outputBuffer[len++] = TCode::read();
+			// 	if(len == MAX_COMMAND - 1) 
+			// 	{
+			// 		limitReached = true;
+			// 	}
+			// 	if(limitReached || outputBuffer[len] == '\n') 
+			// 	{
+			// 		outputBuffer[len+1] = {0};
+			// 		if(message_callback) 
+			// 			message_callback(outputBuffer);
+			// 		// else
+			// 		// 	Serial.println(outputBuffer);
+			// 		outputBuffer[MAX_COMMAND] = {0};
+			// 	}
+			// 	if(limitReached)
+			// 		len = 0;
+			// }
+			size_t length = TCode::available();
+			if(!length)
+				return;
+			size_t index = 0;
+			char outputBuffer[length] = {0};
+			while (index < length) {
+				int c = TCode::read();
+				if (c < 0 || (char)c == '\n') {
+				break;
+				}
+				outputBuffer[index] = (char)c;
+				index++;
+			}
+			message_callback(outputBuffer);
+		}
 	}
-	void setAxisData(TCodeAxis* channel, const AxisData &data) override {
-		m_tcode.setAxisData(channel->getId(), data);
-	}
-	void setAxisData(TCodeAxis* channel, 
-						const float value, 
-						const AxisExtentionType extentionType, 
-						const unsigned long commandExtension, 
-						AxisRampData rampIn, 
-						AxisRampData rampOut) override
-	{
-		AxisData data = {
-			value,
-			commandExtension,
-			extentionType,
-			rampIn,
-			rampOut
-		};
-		setAxisData(channel, data);
-	}
+	// // Function to read off whole strings as input
+	// void read(const String &inString) override
+	// {
+	// 	bufferString = inString;	 // Replace existing buffer with input string
+	// 	bufferString.trim();		 // Remove spaces, etc, from buffer
+	// 	executeString(bufferString); // Execute string
+	// 	bufferString = "";			 // Clear input string
+	// }
 
-	void setMessageCallback(TCodeCommandCallback f) override
-	{
-		m_eventHandler.registerOnNotify(f);
-		TCodeBaseV4::setMessageCallback(f);
-	}
-	
-    virtual void setAxisData(TCodeAxis* channel, const float value, const AxisExtentionType extentionType, const unsigned long commandExtension) {
-		AxisData data = {
-			value,
-			commandExtension,
-			extentionType,
-			m_DefaultRampData,
-			m_DefaultRampData
-		};
-		setAxisData(channel, data);
-	}
-
-// float lastXLin = 0;
-	// Function to read the current position of an axis
-	uint16_t getChannelPosition(TCodeAxis* channel) override
-	{
-		float value = channel->getPosition();
-        // if(channel->getId().channel == 0 && channel->getId().type == AxisType::Linear && lastXLin != value) {
-        //     Serial.print("getAxisPosition: ");
-        //     Serial.println(value);
-        //     lastXLin = value;
-        // }
-		return value * 10000;
-	}
-
-	// Function to query when an axis was last commanded
-	unsigned long getAxisLastCommandTime(TCodeAxis* channel) override
-	{
-		return channel->getLastCommandTime();
-	}
-
-	void updateInterfaces() {
-		m_tcode.updateInterfaces();
-	}
-
-	void getDeviceSettings(char *settings) override
-	{
-		//m_tcode.
-	}
-protected:
-	EventHandler m_eventHandler;
 private:
 	const char *_TAG = TagHandler::TCodeHandler;
-	OutputStream m_outputStream;
+	// Strings
 	const char *firmwareID;
-	const static int m_axisCount = 11;
-	TCodeManager m_tcode;
+	// char outputBuffer[MAX_COMMAND] = {0};
+	// String bufferString; // String to hold incomming commands
 
-	// std::vector<TCodeAxis*> m_axisPointers;
+	// const static int CHANNELS = 11;
 
-	// AxisId toAxisID(const char* id) {
-	// 	return {toAxisType(id), toAxisChannel(id)};
+	// TCode m_tcode;
+
+
+	// // Function to divide up and execute input string
+	// void executeString(String bufferString)
+	// {
+	// 	int index = bufferString.indexOf(' '); // Look for spaces in string
+	// 	while (index > 0)
+	// 	{
+	// 		readCmd(bufferString.substring(0, index));		  // Read off first command
+	// 		bufferString = bufferString.substring(index + 1); // Remove first command from string
+	// 		bufferString.trim();
+	// 		index = bufferString.indexOf(' '); // Look for next space
+	// 	}
+	// 	readCmd(bufferString); // Read off last command
 	// }
 
-	// AxisType toAxisType(const char* id) {
-	// 	if(!strlen(id)) {
-	// 		return AxisType::None;
+	// // Function to process the individual commands
+	// void readCmd(String command)
+	// {
+
+	// 	// Switch between command types
+	// 	switch (command.charAt(0))
+	// 	{
+	// 	// TCodeAxis0_3 commands
+	// 	case 'L':
+	// 	case 'l':
+	// 	case 'R':
+	// 	case 'r':
+	// 	case 'V':
+	// 	case 'v':
+	// 	case 'A':
+	// 	case 'a':
+	// 		command.toUpperCase();
+	// 		axisCmd(command);
+	// 		break;
+
+	// 	// Device commands
+	// 	case 'D':
+	// 	case 'd':
+	// 		command.toUpperCase();
+	// 		deviceCmd(command);
+	// 		break;
+
+	// 	// Setup commands
+	// 	case '$':
+	// 	case '#':
+	// 		setupCmd(command);
+	// 		break;
 	// 	}
-	// 	if(id[0] == 'L') {
-	// 		return AxisType::Linear;
-	// 	}
-	// 	if(id[0] == 'R') {
-	// 		return AxisType::Rotation;
-	// 	}
-	// 	if(id[0] == 'V') {
-	// 		return AxisType::Vibration;
-	// 	}
-	// 	if(id[0] == 'A') {
-	// 		return AxisType::Auxiliary;
-	// 	}
-	// 	return AxisType::None;
 	// }
 
-	// uint8_t toAxisChannel(const char* id) {
-	// 	if(!strlen(id)) {
-	// 		return 10;// >9 is invalid
-	// 	}
-	// 	int value = atoi(id);
-	// 	return static_cast<uint8_t>(value);
+	// // Function to read and interpret axis commands
+	// void axisCmd(String command)
+	// {
 	// }
 
-	// AxisExtentionType toExtensionType(const char &extension) {
-	// 	if(extension == 'S') {
-	// 		return AxisExtentionType::Speed;
-	// 	} 
-	// 	if(extension == 'I') {
-	// 		return AxisExtentionType::Time;
-	// 	} 
-	// 	return AxisExtentionType::None;
+	// // Function to identify and execute device commands
+	// void deviceCmd(String command)
+	// {
+	// 	int i;
+	// 	// Remove "D"
+	// 	command = command.substring(1);
+
+	// 	// Look for device stop command
+	// 	if (command.substring(0, 4).equalsIgnoreCase("STOP"))
+	// 	{
+	// 		for (i = 0; i < 10; i++)
+	// 		{
+	// 			Linear[i].Stop();
+	// 		}
+	// 		for (i = 0; i < 10; i++)
+	// 		{
+	// 			Rotation[i].Stop();
+	// 		}
+	// 		for (i = 0; i < 10; i++)
+	// 		{
+	// 			Vibration[i].Set(0, ' ', 0);
+	// 		}
+	// 		for (i = 0; i < 10; i++)
+	// 		{
+	// 			Auxiliary[i].Stop();
+	// 		}
+	// 	}
+	// 	else
+	// 	{
+	// 		// Look for numbered device commands
+	// 		int commandNumber = command.toInt();
+	// 		if (commandNumber == 0 && command.charAt(0) != '0')
+	// 		{
+	// 			command = -1;
+	// 		}
+	// 		switch (commandNumber)
+	// 		{
+	// 		case 0:
+	// 		{
+	// 			char firmware[12] = "Firmware v";
+	// 			sendMessage(strcat(firmware, firmwareID));
+	// 		}
+	// 		break;
+
+	// 		case 1:
+	// 			sendMessage("TCode v0.3\n");
+	// 			break;
+
+	// 		case 2:
+	// 			char returnVal[255];
+	// 			getDeviceSettings(returnVal);
+	// 			sendMessage(returnVal);
+	// 			break;
+	// 		}
+	// 	}
+	// }
+
+	// // Function to modify axis preference values
+	// void setupCmd(String command)
+	// {
+	// 	int minVal = 0, maxVal = 0;
+	// 	String minValString, maxValString;
+	// 	bool valid;
+	// 	// If a valid command, save axis preferences to EEPROM
+	// 	if (valid)
+	// 	{
+	// 	}
+	// 	else
+	// 	{
+	// 		sendMessage(command.c_str());
+	// 	}
 	// }
 };

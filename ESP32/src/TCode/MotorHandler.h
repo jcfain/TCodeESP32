@@ -24,15 +24,15 @@ SOFTWARE. */
 
 #include <Arduino.h>
 #include "Global.h"
-#include "TCodeBase.h"
 #include "SettingsHandler.h"
 #include "TagHandler.h"
+#include "TCodeBase.h"
 
 class MotorHandler {
 public:
     virtual bool setup() = 0;
     virtual void read(byte inByte) = 0;
-    virtual void read(const String &input) = 0;
+    // virtual void read(const String &input) = 0;
     virtual void read(const char* input, size_t len) = 0;
     virtual void execute() = 0;
     virtual void setMessageCallback(TCodeCommandCallback function) = 0;// Sets the callback function used by TCode

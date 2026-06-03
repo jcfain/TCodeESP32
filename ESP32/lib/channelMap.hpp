@@ -162,15 +162,13 @@ public:
             //     }
             //     break;
             case TCodeVersion::v0_3:
+            case TCodeVersion::v0_4:
                 for(auto channel : ChannelListV3) {
                     char bufTemp[MAX_COMMAND];
                     formatTCodeChannel(channel, bufTemp, channel.isSwitch ? channel.min : channel.mid, speed);
                     strcat(buf, bufTemp);
                     strcat(buf, " ");
                 }
-                break;
-            case TCodeVersion::v0_4:// Not supported yet
-                //v5ToJson(arr);
                 break;
         }
         strcat(buf, "\n");
@@ -235,11 +233,9 @@ private:
             // case TCodeVersion::v0_2:// Not supported in BLDC
             //     break;
             case TCodeVersion::v0_3:
+            case TCodeVersion::v0_4:
                 //v3ToJson(arr);
                 toJson(ChannelListBLDCV3, arr, sizeof(ChannelListBLDCV3)/sizeof(Channel));
-                break;
-            case TCodeVersion::v0_4:// Not supported yet
-                //v5ToJson(arr);
                 break;
         }
     }
@@ -250,11 +246,8 @@ private:
             //     toJson(ChannelListV2, arr, sizeof(ChannelListV2)/sizeof(Channel));
             //     break;
             case TCodeVersion::v0_3:
-                //v3ToJson(arr);
+            case TCodeVersion::v0_4:
                 toJson(ChannelListV3, arr, sizeof(ChannelListV3)/sizeof(Channel));
-                break;
-            case TCodeVersion::v0_4:// Not supported yet
-                //v5ToJson(arr);
                 break;
         }
     }

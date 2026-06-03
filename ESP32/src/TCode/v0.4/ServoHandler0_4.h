@@ -21,57 +21,65 @@
 
 #pragma once
 
-#include "TCode0_4.h"
-#include "SettingsHandler.h"
 #include "Global.h"
-#include "MotorHandler0_4.h"
-#include "TagHandler.h"
 #include "settingsFactory.h"
+#include "SettingsHandler.h"
+#include "TagHandler.h"
 #include "pinMap.h"
+#include "TCode0_4.h"
+#include "MotorHandler0_4.h"
 
 class ServoHandler0_4 : public MotorHandler0_4 {
 
 public:
-    ServoHandler0_4() : MotorHandler0_4(new TCode0_4()) {}
+    ServoHandler0_4() : MotorHandler0_4(new TCode0_4()) { }
     // Setup function
     // This is run once, when the arduino starts
-    bool setup() override {
-        LogHandler::debug(_TAG, "Setting up servo handler v4");
+    bool setup() override 
+    {
+        LogHandler::debug(_TAG, "Setting up servo handler v3");
         m_settingsFactory = SettingsFactory::getInstance();
+        
         m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
         LogHandler::debug(_TAG, "DEVICE_TYPE: %d", m_deviceType);
         if(m_deviceType == DeviceType::NONE)
         {
             LogHandler::error(_TAG, "No device type selected. Visit the web config or use the command to set a device before starting the firmware.");
+            snprintf(setupError, sizeof setupError, "No device type selected. Visit the web config or use the command to set a device before starting the firmware.");
+            SettingsHandler::addPersistentError(setupError);
             return false;
         }
-        if(m_deviceType == DeviceType::TVIBE) {
+        if(m_deviceType == DeviceType::TVIBE) 
+        {
             LogHandler::info(_TAG, "Setting up motor for device type TVibe");
             setupCommon();
             m_tcode->sendMessage("Ready!");
+            m_initialized = true;
             return true;
         }
+        setupCommon();
         LogHandler::debug(_TAG, "MS_PER_RAD: %d", ms_per_rad);
 
         // Set SR6 arms to startup positions
         if (m_deviceType == DeviceType::SR6) 
         {
-            read("R2750"); 
+             m_tcode->read("R2750"); 
         }
+
         // Register device axes
-        stroke_axis = new TCodeAxis("Stroke", {AxisType::Linear, 0}, 0.5f);
-        m_tcode->RegisterAxis(stroke_axis);
+        stroke = new Axis(TCODE_MID);
+        m_tcode->addAxis("L0", *stroke);
         if (m_deviceType == DeviceType::SR6) 
         {
-            surge_axis = new TCodeAxis("Surge", {AxisType::Linear, 1}, 0.5f);
-            m_tcode->RegisterAxis(surge_axis);
-            sway_axis = new TCodeAxis("Sway", {AxisType::Linear, 2}, 0.5f);
-            m_tcode->RegisterAxis(sway_axis);
+            surge = new Axis(TCODE_MID);
+            m_tcode->addAxis("L1", *surge);
+            sway = new Axis(TCODE_MID);
+            m_tcode->addAxis("L2", *sway);
         }
-        roll_axis = new TCodeAxis("Roll", {AxisType::Rotation, 1}, 0.5f);
-        m_tcode->RegisterAxis(roll_axis);
-        pitch_axis = new TCodeAxis("Pitch", {AxisType::Rotation, 2}, 0.5f);
-        m_tcode->RegisterAxis(pitch_axis);
+        roll = new Axis(TCODE_MID);
+        m_tcode->addAxis("R1", *roll);
+        pitch = new Axis(TCODE_MID);
+        m_tcode->addAxis("R2", *pitch);
         PinMap* pinMap;
         if (m_deviceType == DeviceType::SR6) 
         {
@@ -90,8 +98,11 @@ public:
             m_leftServo_Int = frequencyToMicroseconds(freq);
             attachPin("left servo", m_leftServoPin, freq, m_lowerLeftServoChannel);
         } else {
-            LogHandler::error(_TAG, "Invalid left servo to pin: %d", m_leftServoPin);
-            m_initFailed = true;
+            LogHandler::error(_TAG, "Invalid left servo to pin: %d for channel: %d", m_leftServoPin, m_lowerLeftServoChannel);
+            snprintf(setupError, sizeof setupError, "Invalid left servo to pin: %d for channel: %d", m_leftServoPin, m_lowerLeftServoChannel);
+            SettingsHandler::addPersistentError(setupError);
+            m_initialized = false;
+            return false;
         }
         m_rightServoPin = ((PinMapOSR*)pinMap)->rightServo();
         m_lowerRightServoChannel = ((PinMapOSR*)pinMap)->rightServoChannel();
@@ -100,8 +111,11 @@ public:
             m_rightServo_Int = frequencyToMicroseconds(freq);
             attachPin("right servo", m_rightServoPin, freq, m_lowerRightServoChannel);
         } else {
-            LogHandler::error(_TAG, "Invalid right servo to pin: %d", m_rightServoPin);
-            m_initFailed = true;
+            LogHandler::error(_TAG, "Invalid right servo to pin: %d for channel: %d", m_rightServoPin, m_lowerRightServoChannel);
+            snprintf(setupError, sizeof setupError, "Invalid right servo to pin: %d for channel: %d", m_rightServoPin, m_lowerRightServoChannel);
+            SettingsHandler::addPersistentError(setupError);
+            m_initialized = false;
+            return false;
         }
         #endif
         if(m_deviceType == DeviceType::SR6)
@@ -113,8 +127,11 @@ public:
                 m_leftUpperServo_Int = frequencyToMicroseconds(freq);
                 attachPin("left upper servo", m_leftUpperServoPin, freq, m_upperLeftServoChannel);
             } else {
-                LogHandler::error(_TAG, "Invalid left upper servo to pin: %d", m_leftUpperServoPin);
-                m_initFailed = true;
+                LogHandler::error(_TAG, "Invalid left upper servo to pin: %d for channel: %d", m_leftUpperServoPin, m_upperLeftServoChannel);
+                snprintf(setupError, sizeof setupError, "Invalid left upper servo to pin: %d for channel: %d", m_leftUpperServoPin, m_upperLeftServoChannel);
+                SettingsHandler::addPersistentError(setupError);
+                m_initialized = false;
+                return false;
             }
             #ifndef ESP_PROG// The default pins for these are used on the debugger board. 12, 13, 14 & 15
                 m_rightUpperServoPin = ((PinMapSR6*)pinMap)->rightUpperServo();
@@ -124,8 +141,11 @@ public:
                     m_rightUpperServo_Int = frequencyToMicroseconds(freq);
                     attachPin("right upper servo", m_rightUpperServoPin, freq, m_upperRightServoChannel);
                 } else {
-                    LogHandler::error(_TAG, "Invalid right upper servo to pin: %d", m_rightUpperServoPin);
-                    m_initFailed = true;
+                    LogHandler::error(_TAG, "Invalid right upper servo to pin: %d for channel: %d", m_rightUpperServoPin, m_upperRightServoChannel);
+                    snprintf(setupError, sizeof setupError, "Invalid right upper servo to pin: %d for channel: %d", m_rightUpperServoPin, m_upperRightServoChannel);
+                    SettingsHandler::addPersistentError(setupError);
+                    m_initialized = false;
+                    return false;
                 }
                 m_rightPitchServoPin = ((PinMapSR6*)pinMap)->pitchRight();
                 m_rightPitchServoChannel = ((PinMapSR6*)pinMap)->pitchRightChannel();
@@ -134,8 +154,11 @@ public:
                     m_pitchRightServo_Int = frequencyToMicroseconds(freq);
                     attachPin("right pitch servo", m_rightPitchServoPin, freq, m_rightPitchServoChannel);
                 } else {
-                    LogHandler::error(_TAG, "Invalid right pitch servo to pin: %d", m_rightPitchServoPin);
-                    m_initFailed = true;
+                    LogHandler::error(_TAG, "Invalid right pitch servo to pin: %d for channel: %d", m_rightPitchServoPin, m_rightPitchServoChannel);
+                    snprintf(setupError, sizeof setupError, "Invalid right pitch servo to pin: %d for channel: %d", m_rightPitchServoPin, m_rightPitchServoChannel);
+                    SettingsHandler::addPersistentError(setupError);
+                    m_initialized = false;
+                    return false;
                 }
             #endif
         }
@@ -146,33 +169,34 @@ public:
             m_pitchLeftServo_Int = frequencyToMicroseconds(freq);
             attachPin("pitch servo", m_leftPitchServoPin, freq, m_leftPitchServoChannel);
         } else {
-            LogHandler::error(_TAG, "Invalid pitch servo to pin: %u", m_leftPitchServoPin);
-            m_initFailed = true;
+            LogHandler::error(_TAG, "Invalid pitch servo to pin: %d for channel: %d", m_leftPitchServoPin, m_leftPitchServoChannel);
+            snprintf(setupError, sizeof setupError, "Invalid pitch servo to pin: %d for channel: %d", m_leftPitchServoPin, m_leftPitchServoChannel);
+            SettingsHandler::addPersistentError(setupError);
+            m_initialized = false;
+            return false;
         }
-
-        setupCommon();
         
         // Signal done
-        if(m_initFailed) {
-            m_tcode->sendMessage("Init servos error!");
-        } else {
-            m_tcode->sendMessage("Ready!");
-        }
+        m_initialized = true;
+        m_tcode->sendMessage("Ready!");
         return true;
     }
 
-    void setMessageCallback(TCodeCommandCallback function) override {
+    void setMessageCallback(TCodeCommandCallback function) override 
+    {
         m_tcode->setMessageCallback(function);
     }
 
-    void read(const String &input) override
-    {
-        m_tcode->read(input);
-    }
+    // void read(const String &input) override
+    // {
+    //     m_tcode->read(input);
+    // }
     
     void read(const char* input, size_t len) override
     {
-        for (int i = 0; i < len; i++) {
+        // m_tcode->read(input);
+        for (int i = 0; i < len; i++) 
+        {
             read(input[i]);
         }
     }
@@ -187,23 +211,18 @@ public:
     // }
 // int testVar = -1;
 // int testVar2 = -1;
-int lastXLin = 0;
     void execute() override {
-        if(m_initFailed) {
+        if(!m_initialized) 
             return;
-        }
         if(m_deviceType != DeviceType::TVIBE)
         {
             // Collect inputs
             // These functions query the t-code object for the position/level at a specified time
-            // Number recieved will be an integer, 0-10000
-            xLin = channelRead(stroke_axis);
-            if(lastXLin != xLin) {
-                Serial.println(xLin);
-                lastXLin = xLin;
-            }
-            yRot = channelRead(roll_axis);
-            zRot = channelRead(pitch_axis);
+            // Number recieved will be an integer, 0-9999
+            xLin = channelRead("L0", stroke);
+            yRot = channelRead("R1", roll);
+            zRot = channelRead("R2", pitch);
+            // If you want to mix your servos differently, enter your code below:
 
             if(m_deviceType == DeviceType::OSR)
             {
@@ -215,18 +234,24 @@ int lastXLin = 0;
             }
         }
 
-        executeCommon(xLin);
-        
-        //m_tcode->updateInterfaces();
+        executeCommon(stroke);
+        // Done with servo channels
+
     }
 
 private:
     const char* _TAG = TagHandler::ServoHandler;
     SettingsFactory* m_settingsFactory;
     DeviceType m_deviceType;
-    bool m_initFailed = false;
-    int MainServo_Int;
-    int PitchServo_Int;
+    bool m_initialized = false;
+    char setupError[125];
+
+	// Declare axes
+    Axis* stroke = 0;
+    Axis* surge = 0;
+    Axis* sway = 0;
+    Axis* roll = 0;
+    Axis* pitch = 0;
 
     int8_t m_leftServoPin = -1;
     int8_t m_rightServoPin = -1;
@@ -249,17 +274,13 @@ private:
     int m_pitchLeftServo_Int = -1;
     int m_pitchRightServo_Int = -1;
 
-	TCodeAxis* stroke_axis = 0;
-	TCodeAxis* surge_axis = 0;
-	TCodeAxis* sway_axis = 0;
-	TCodeAxis* roll_axis = 0;
-	TCodeAxis* pitch_axis = 0;
-
     // Declare classes
     // This uses the t-code object above
     // Declare operating variables
     // Position variables
-    int xLin,yLin,zLin;
+    int xLin = 5000,
+        yLin = 5000,
+        zLin = 5000;
     // Rotation variables
     int yRot,zRot;
 
@@ -267,30 +288,28 @@ private:
         // Calculate arm angles
         // Linear scale inputs to servo appropriate numbers
         int stroke,roll,pitch;
-        stroke = map(strokeTcode,0,10000,-350,350);
-        roll   = map(rollTcode,0,10000,-180,180);
-        pitch  = map(pitchTcode,0,10000,-350,350);
-        int leftDuty;
-        int rightDuty;
-        int pitchDuty;
         if(m_settingsFactory->getInverseStroke()) 
         {
-            leftDuty = map(m_settingsFactory->getLeftServo_ZERO() - stroke + roll,0,m_leftServo_Int,0,m_servoPWMMaxDuty);
-            rightDuty = map(m_settingsFactory->getRightServo_ZERO() + stroke + roll,0,m_rightServo_Int,0,m_servoPWMMaxDuty);
-        }
-        else
+            stroke = map(strokeTcode,TCODE_MIN,TCODE_MAX,350,-350);
+            roll   = map(rollTcode,TCODE_MIN,TCODE_MAX,180,-180);
+        } 
+        else 
         {
-            leftDuty = map(m_settingsFactory->getLeftServo_ZERO() + stroke + roll,0,m_leftServo_Int,0,m_servoPWMMaxDuty);
-            rightDuty = map(m_settingsFactory->getRightServo_ZERO() - stroke + roll,0,m_rightServo_Int,0,m_servoPWMMaxDuty);
+            stroke = map(strokeTcode,TCODE_MIN,TCODE_MAX,-350,350);
+            roll   = map(rollTcode,TCODE_MIN,TCODE_MAX,-180,180);
         }
         if(m_settingsFactory->getInversePitch()) 
         {
-            pitchDuty = map(m_settingsFactory->getPitchLeftServo_ZERO() + pitch,0,m_pitchLeftServo_Int,0,m_servoPWMMaxDuty);
+            pitch  = map(pitchTcode,TCODE_MIN,TCODE_MAX,350,-350);
         }
         else
         {
-            pitchDuty = map(m_settingsFactory->getPitchLeftServo_ZERO() - pitch,0,m_pitchLeftServo_Int,0,m_servoPWMMaxDuty);
+            pitch  = map(pitchTcode,TCODE_MIN,TCODE_MAX,-350,350);
         }
+
+        int leftDuty = map(m_settingsFactory->getLeftServo_ZERO() + stroke + roll,0,m_leftServo_Int,0,m_servoPWMMaxDuty);
+        int rightDuty = map(m_settingsFactory->getRightServo_ZERO() - stroke + roll,0,m_rightServo_Int,0,m_servoPWMMaxDuty);
+        int pitchDuty = map(m_settingsFactory->getPitchLeftServo_ZERO() - pitch,0,m_pitchLeftServo_Int,0,m_servoPWMMaxDuty);
 
 #ifndef ESP_PROG
         #ifdef ESP_ARDUINO3
@@ -303,12 +322,12 @@ private:
         ledcWrite(m_leftPitchServoChannel, pitchDuty);
         #endif
 #endif
-    }
+}
 
     void executeSR6(int strokeTcode, int rollTcode, int pitchTcode) 
     {
-        yLin = channelRead(surge_axis);
-        zLin = channelRead(sway_axis);
+        yLin = channelRead("L1", surge);
+        zLin = channelRead("L2", sway);
         // SR6 Kinematics
         // Calculate arm angles
         int roll,pitch,fwd,thrust,side;
@@ -367,7 +386,8 @@ private:
 
     // Function to calculate the angle for the main arm servos
     // Inputs are target x,y coords of receiver pivot in 1/100 of a mm
-    int SetMainServo(float x, float y) {
+    int SetMainServo(float x, float y) 
+    {
         x /= 100; y /= 100;          // Convert to mm
         float gamma = atan2(x,y);    // Angle of line from servo pivot to receiver pivot
         float csq = sq(x) + sq(y);   // Square of distance between servo pivot and receiver pivot
@@ -381,7 +401,8 @@ private:
     // Function to calculate the angle for the pitcher arm servos
     // Inputs are target x,y,z coords of receiver upper pivot in 1/100 of a mm
     // Also pitch in 1/100 of a degree
-    int SetPitchServo(float x, float y, float z, float pitch) {
+    int SetPitchServo(float x, float y, float z, float pitch) 
+    {
         pitch *= 0.0001745; // Convert to radians
         x += 5500*sin(0.2618 + pitch);
         y -= 5500*cos(0.2618 + pitch);

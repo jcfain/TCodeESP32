@@ -29,7 +29,8 @@ class TCodeBase {
 public:
 	virtual void setup(const char* firmware) = 0;
 	virtual void read(byte inByte) = 0;
-	virtual void read(const String &input) = 0;
+	virtual void read(const char* in) = 0;
+	// virtual void read(const String &input) = 0;
 	virtual void setMessageCallback(TCodeCommandCallback f) // Sets the callback function used by TCode
 	{
 		if (f == nullptr)

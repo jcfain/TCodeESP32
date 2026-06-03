@@ -1,9 +1,10 @@
 #pragma once
 
-#include "channel.h"
-
-#define FIRMWARE_VERSION 0.51f
-#define FIRMWARE_VERSION_NAME "0.51b\n"
+#define FIRMWARE_VERSION 0.52f
+#define FIRMWARE_VERSION_NAME "0.52b\n"
+//#define FIRMWARE_NAME "TCode ESP32"
+//#define TCODE_DEVICE_INFO FIRMWARE_NAME " v" FIRMWARE_VERSION_NAME
+// #define TCODE_DEVICE_INFO "TCode ESP32 v0.52b"
 #define MAX_WS_COMMAND 25
 #define MAX_WS_MESSAGE 512
 #define MAX_LOG_STORE 256
@@ -18,15 +19,15 @@
 #define TCODE_HANDSHAKE "D1\n"
 #define TCODE_SETTINGS "D2\n"
 #define WIFI_PASS_DONOTCHANGE_DEFAULT "YOUR PASSWORD HERE"
-#ifdef CONFIG_IDF_TARGET_ESP32S3
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
 #include "S3/config.h"
-#elif CONFIG_IDF_TARGET_ESP32
+#elif defined(CONFIG_IDF_TARGET_ESP32)
 #include "ESP32/config.h"
-#elif CONFIG_IDF_TARGET_ESP32C5
+#elif defined(CONFIG_IDF_TARGET_ESP32C5)
 #include "C5/config.h"
-#elif CONFIG_IDF_TARGET_ESP32C6
+#elif defined(CONFIG_IDF_TARGET_ESP32C6)
 #include "C6/config.h"
-#elif CONFIG_IDF_TARGET_ESP32E22
+#elif defined(CONFIG_IDF_TARGET_ESP32E22)
 #include "E22/config.h"
 #endif
 
@@ -95,6 +96,7 @@
 #define TCODE_CHANNEL_LUBE "A2"
 #define TCODE_CHANNEL_AUX "A3"
 
+#include "channel.h"
 const Channel ChannelMapV3[14] = {
     {"L0","Stroke",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
     {"L1","Surge",false,true,TCODE_MIN,TCODE_MID,TCODE_MAX},

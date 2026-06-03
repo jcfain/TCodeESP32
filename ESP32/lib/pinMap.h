@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "constants.h"
 #include "LogHandler.h"
 #include "TagHandler.h"
 #include "espTimerMap.h"
