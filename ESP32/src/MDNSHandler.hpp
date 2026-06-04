@@ -62,12 +62,13 @@ class MDNSHandler {
                 MDNS.addService("http", "tcp", webPort);
             if(securePort)
                 MDNS.addService("https", "tcp", securePort);
-            if(webPort || securePort) {
-                char hostLen = strlen(hostName) + 7;
-                char domainName[hostLen];
-                sprintf(domainName, "%s.local", hostName);
-                SettingsHandler::printWebAddress(domainName);
-            }
+            // Why is there a webPort || securePort guard here?
+            // if(webPort || securePort) {
+            //     char hostLen = strlen(hostName) + 7;
+            //     char domainName[hostLen];
+            //     sprintf(domainName, "%s.local", hostName);
+            //     SettingsHandler::printWebAddress(domainName);
+            // }
             MDNS.addService("tcode", "udp", udpPort);
             MDNSInitialized = true;
         }

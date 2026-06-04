@@ -71,6 +71,8 @@ protected:
      * and converts the units to microseconds * 1000000
      */
     int frequencyToMicroseconds(int freq) {
+        if(freq <= 0)
+            return 0;
         return 1000000/freq;
     }
 };

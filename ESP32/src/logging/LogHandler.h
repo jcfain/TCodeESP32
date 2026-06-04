@@ -28,12 +28,12 @@ SOFTWARE. */
 #include "enum.h"
 #include "callback.h"
 #include "constants.h"
+#include "utils.h"
 
 #define LOG_LEVEL_HELP "Sets system log level.\nValid values are: NONE=0, ERROR=1, WARNING=2, INFO=3, DEBUG=4, VERBOSE=5"
 
 struct LogMessage {
     LogLevel level;
-    bool multipart;
     size_t len;
     char message[MAX_LOG_STORE];
 };
@@ -275,10 +275,57 @@ public:
         return len;
     }
 
+    /// @brief Logs a message without any formatting
+    /// @param format 
+    /// @param  
+    /// @return 
+    static size_t raw(const char *format = "", ...) {
+        LogHandler &log = getInstance();
+        size_t len = 0;
+        xSemaphoreTake(log.m_xMutex, portMAX_DELAY);
+        va_list vArgs;
+        va_start(vArgs, format);
+        len = parseMessage(format, "", "", LogLevel::NONE, vArgs);
+        va_end(vArgs);
+        xSemaphoreGive(log.m_xMutex);
+        return len;
+    }
+
     static const char *getLastError() { return getInstance().m_lastError; }
 
     static void setMessageCallback(LogCallback f) {
         getInstance().m_message_callback = f == nullptr ? 0 : f;
+    }
+
+    static void printWebAddress(const char* tag, const char* hostAddress, const int& port) 
+    {
+        char webServerportString[7] = {0};
+        snprintf(webServerportString, 7, ":%i", port);
+        LogHandler::info(tag, "Web address: http://%s%s", hostAddress, port == 80 ? "" : webServerportString);
+    }
+
+    static void printFree(bool forcePrint = false) {
+        if(forcePrint || LogHandler::getLogLevel() == LogLevel::DEBUG)
+        {
+            uint32_t freeHEap = ESP.getFreeHeap();
+            uint32_t heapSize = ESP.getHeapSize();
+            //https://esp32.com/viewtopic.php?t=27780
+            //https://github.com/espressif/esp-idf/blob/master/components/heap/include/esp_heap_caps.h#L20-L37
+            //esp_get_free_internal_heap_size
+            LogHandler::raw("Used heap INTERNAL: %u/%u Free: %u\n", heapSize - freeHEap, heapSize, freeHEap);
+            LogHandler::raw("Free psram: %u\n", ESP.getFreePsram());
+            LogHandler::raw("Total Psram: %u\n", ESP.getPsramSize());
+            LogHandler::raw("LittleFS used: %i\n", LittleFS.usedBytes());
+            LogHandler::raw("LittleFS total: %i\n", LittleFS.totalBytes());
+            //LogHandler::debug(_TAG, "Used Psram: %u/%u", ESP.getPsramSize() - ESP.getFreePsram(), ESP.getPsramSize());
+            LogHandler::raw("Sketch size: %u\n", ESP.getSketchSize());
+            LogHandler::raw("Sketch free space: %u\n", ESP.getFreeSketchSpace());
+            LogHandler::raw("DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+            LogHandler::raw("IRAM %u\n", heap_caps_get_free_size(MALLOC_CAP_32BIT));
+            LogHandler::raw("FREE_HEAP Default %u\n", esp_get_free_heap_size());
+            LogHandler::raw("MIN_FREE_HEAP %u\n", esp_get_minimum_free_heap_size() );
+            //uxTaskGetStackHighWaterMark
+        }
     }
 
     static bool logDeserializationError(const char* tag, DeserializationError error, const char* fileName, DeserializationError::Code& code) 
@@ -363,7 +410,10 @@ private:
 		// 	temp[i] = 0;
 		// }
 		char temp2[internal_buffer_length] = {'\0'};
-        len = snprintf(temp2, internal_buffer_length, "%s %s: %s", level, tag, temp);
+        if(logLevel == LogLevel::NONE)
+            len = snprintf(temp2, internal_buffer_length, "%s", temp);
+        else
+            len = snprintf(temp2, internal_buffer_length, "%s %s: %s", level, tag, temp);
 
 		if (len < 0) 
         {
@@ -398,7 +448,7 @@ private:
             case LogLevel::NONE:
             case LogLevel::INFO:
             case LogLevel::WARNING:
-                    break;
+                break;
             case LogLevel::ERROR:
                 strncpy(log.m_lastError, temp2, internal_buffer_length);
                 break;
@@ -450,12 +500,29 @@ private:
             return;
         if (!uxQueueSpacesAvailable(m_logQueue)) 
             return;
+        
+        // LogMessage logMessage;
+        // logMessage.level = level;
+        // Chunker chunker(message, len, MAX_LOG_STORE);
+        // size_t chunkLen = chunker(logMessage.message);
+        // Serial.printf("[LogHandler::storeLog] chunkLen: %u\n", chunkLen);
+        // while(chunkLen > 0) 
+        // {
+        //     logMessage.len = chunkLen;
+        //     if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
+        //     {
+        //         Serial.printf("[LogHandler::storeLog] Error storing log message: %s, len: %u\n", logMessage.message, logMessage.len);
+        //     }
+        //     chunkLen = chunker(logMessage.message);
+        //     Serial.printf("[LogHandler::storeLog] chunkLen: %u\n", chunkLen);
+        // }
+
+
         int maxLen = MAX_LOG_STORE;
         LogMessage logMessage;
         logMessage.level = level;
         if(len > maxLen) 
         {
-            logMessage.multipart = true;
             int mod = len % maxLen;
             int chunkTotal = len - mod;
             int sendChunks = chunkTotal / maxLen;
@@ -473,7 +540,7 @@ private:
                 logMessage.message[amountToSend] = '\0';
                 logMessage.len = amountToSend;
                 if(getLogLevel() >= LogLevel::DEBUG) 
-                    Serial.printf("[LogHandler::storeLog] truncated: %s, multi: %i\n", logMessage.message, logMessage.multipart);
+                    Serial.printf("[LogHandler::storeLog] truncated: %s\n", logMessage.message);
                 if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
                 {
                     Serial.printf("[LogHandler::storeLog] Error storing log message trancate: %s\n", logMessage.message);
@@ -489,7 +556,7 @@ private:
                 strncat(logMessage.message, "\n", 5);
                 logMessage.len = mod +1;
                 if(getLogLevel() >= LogLevel::DEBUG) 
-                    Serial.printf("[LogHandler::storeLog] truncated mod: %i, message: %s, multi: %i\n", mod, logMessage.message, logMessage.multipart);
+                    Serial.printf("[LogHandler::storeLog] truncated mod: %i, message: %s\n", mod, logMessage.message);
                 if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
                 {
                     Serial.printf("[LogHandler::storeLog] Error storing log message trancate mod: %s\n", logMessage.message);
@@ -501,7 +568,6 @@ private:
         } 
         else 
         {
-            logMessage.multipart = false;
             strncpy(logMessage.message, message, len);
             logMessage.message[len] = '\0';
             strncat(logMessage.message, "\n", 5);

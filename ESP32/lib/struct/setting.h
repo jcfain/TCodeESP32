@@ -60,12 +60,29 @@ enum class SettingFile
 
 class SettingFileInfo {
 public:
+    SettingFileInfo(
+        bool initialized, 
+        const char* path,
+        SettingFile file,
+        JsonDocument doc,
+        std::function<void()> onload,
+        std::function<void(const char* name)> onchange,
+        const std::vector<Setting> settings
+    ) : m_semaphore(xSemaphoreCreateMutex()),
+        initialized(initialized), 
+        path(path),
+        file(file),
+        doc(doc),
+        onload(onload),
+        onchange(onchange),
+        settings(settings)
+    {}
     bool initialized;
     const char* path;
     SettingFile file;
     JsonDocument doc;
     std::function<void()> onload;
-    std::function<void()> onchange;
+    std::function<void(const char* name)> onchange;
     const std::vector<Setting> settings;
     const Setting* getSetting(const char* name) {
         std::vector<Setting>::const_iterator it = 
@@ -78,4 +95,12 @@ public:
         }
         return 0;
     }
+    bool take() {
+        return xSemaphoreTake(m_semaphore, portTICK_PERIOD_MS) == pdTRUE;
+    }
+    bool give() {
+        return xSemaphoreGive(m_semaphore) == pdTRUE;
+    }
+private:
+    SemaphoreHandle_t m_semaphore;
 };

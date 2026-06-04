@@ -1280,7 +1280,25 @@
 					<div id="systemInfoTableBody">
 						<div>
 							<div class="tHeader">
-								<h3>Logging and Commands</h3>
+								<h3>Terminal</h3>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell" colspan="2">
+								<input id="tcodeCommandInput" placeholder="Enter command..." onkeydown="onSendTCodeCommandEnter(event)">
+							</div>
+							<div class="tCell" colspan="1">
+								<button id="sendTCodeCommandButton" onclick="onSendTCodeCommand()">Send</button>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell" colspan="3">
+								<textarea id="loggingText" class="log-reader" readonly></textarea>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell" colspan="3">
+								<span id="loggingHelpText">Hint: Use the command #help for a list of comands</span>
 							</div>
 						</div>
 						<div class="tRow ">
@@ -1299,20 +1317,9 @@
 								<input id="includeWebClientDebug" type="checkbox" onclick="toggleWebClientDebug(this.checked)"></input>
 							</div>
 						</div>
-						<div class="tRow">
-							<div class="tCell" colspan="2">
-								<input id="tcodeCommandInput" placeholder="Enter command..." onkeydown="onSendTCodeCommandEnter(event)">
-							</div>
-							<div class="tCell" colspan="1">
-								<button id="sendTCodeCommandButton" onclick="onSendTCodeCommand()">Send</button>
-							</div>
-						</div>
-						<div class="tRow">
-							<div class="tCell" colspan="3">
-								<textarea id="loggingText" class="log-reader" readonly></textarea>
-							</div>
-						</div>
 					</div>
+					<!-- <br>
+					<span class="instruction-text">Instructions:<br>The backend for this uses the temp sensor DS18B20</span> -->
 				</div>
 				<div id="systemInfoTable" class="formTable">
 					<div id="systemInfoTableBody">

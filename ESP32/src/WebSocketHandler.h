@@ -148,58 +148,32 @@ public:
         Serial.printf("[sendLogTask]: init\n");
         // char lastMessage[LogHandler::internal_buffer_length];
         LogMessage logMessage;
-        bool multiSeq = false;
         while (sendLogTaskRunning) 
         {
             if(ws.count() > 0) 
             {
                 if(LogHandler::getLog(&logMessage)) 
                 {
-                    // if(multiSeq && !logMessage.multipart)
-                    //     multiSeq = false;
                     // strncpy(lastMessage, logMessage.message, LogHandler::internal_buffer_length);
                     const char* level = "info";
                     switch(logMessage.level)
                     {
+                        case LogLevel::INFO:
+                            level = "info";
                         case LogLevel::DEBUG:
-                        {
-                            if(!multiSeq)
-                                level = "debug";
-                            else
-                                level = "debugMulti";
-                        }
+                            level = "debug";
                         break;
                         case LogLevel::WARNING:
-                        {
-                            if(!multiSeq)
-                                level = "warn";
-                            else
-                                level = "warnMulti";
-                        }
+                            level = "warn";
                         break;
                         case LogLevel::ERROR:
-                        {
-                            if(!multiSeq)
-                                level = "error";
-                            else
-                                level = "errorMulti";
-                        }
+                            level = "error";
                         break;
                         case LogLevel::VERBOSE:
-                        {
-                            if(!multiSeq)
-                                level = "verbose";
-                            else
-                                level = "verboseMulti";
-                        }
+                            level = "verbose";
                         break;
                         default:
-                        {
-                            if(!multiSeq)
-                                level = "info";
-                            else
-                                level = "infoMulti";
-                        }
+                            level = "log";
                         break;
                     }
                     // multiSeq = logMessage.multipart;

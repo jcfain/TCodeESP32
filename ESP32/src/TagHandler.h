@@ -27,6 +27,8 @@ class TagHandler {
     public:
     static const char* Main;
     static const char* MainLoop;
+    static const char* InitHandler;
+    static const char* InstanceHandler;
     static const char* DisplayHandler;
     static const char* TemperatureHandler;
     static const char* BatteryHandler;
@@ -63,6 +65,8 @@ class TagHandler {
 
 const char* TagHandler::Main = "main";
 const char* TagHandler::MainLoop = "main-loop";
+const char* TagHandler::InitHandler = "init-handler";
+const char* TagHandler::InstanceHandler = "instance-handler";
 const char* TagHandler::DisplayHandler = "display-handler";
 const char* TagHandler::TemperatureHandler = "temperature-handler";
 const char* TagHandler::BatteryHandler = "battery-handler";
@@ -97,6 +101,8 @@ const char* TagHandler::PinMap = "pinmap";
 const std::vector<const char *> TagHandler::AvailableTags = {
     TagHandler::Main,
     TagHandler::MainLoop,
+    TagHandler::InitHandler,
+    TagHandler::InstanceHandler,
     TagHandler::SystemCommandHandler,
     TagHandler::SettingsHandler,
     TagHandler::WifiHandler,

@@ -306,7 +306,6 @@ public:
 		}
 		_apMode = true;
 		LogHandler::info(TagHandler::WifiHandler, "APMode started");
-		SettingsHandler::printWebAddress(WiFi.softAPIP().toString().c_str());
 		return true;
 	}
 	void setWiFiStatusCallback(std::function<void(WiFiStatus, WiFiReason)> f)

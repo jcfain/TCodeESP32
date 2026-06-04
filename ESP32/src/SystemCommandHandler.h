@@ -221,14 +221,14 @@ private:
 	}};
     const Command PRINT_MEMORY{{"Print memory", "#print-mem", "Print the system memory info to serial", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
-			SettingsHandler::printFree(true);
+        	LogHandler::printFree(true);
 			return true;
 		});
 	}};
     const Command SAVE{{"Save", "$save", "Saves all settings", SaveRequired::NO, RestartRequired::NO, SettingType::NONE}, [this]() -> bool {
 		return execute([this]() -> bool {
 			SettingsHandler::saveAll();
-			Serial.println("Settings saved!");
+			LogHandler::raw("Settings saved!\n");
 			return true;
 		});
 	}};
@@ -784,12 +784,12 @@ private:
 
 	bool validateBool(const char* name, bool value, bool currentValue, std::function<bool(bool value)> function,  SaveRequired isSaveRequired = SaveRequired::NO, RestartRequired isRestartRequired = RestartRequired::NO) {
 		if(value && currentValue) {
-			Serial.println("Already on!");
+			LogHandler::raw("Already on!\n");
 			xSemaphoreGive(xMutex);
 			return false;
 		}
 		if(!value && !currentValue) {
-			Serial.println("Already off!");
+			LogHandler::raw("Already off!\n");
 			xSemaphoreGive(xMutex);
 			return false;
 		}
@@ -804,7 +804,7 @@ private:
 
 	bool validateGreaterThanZero(const char* name, int value, std::function<bool(int value)> function,  SaveRequired isSaveRequired = SaveRequired::NO, RestartRequired isRestartRequired = RestartRequired::NO) {
 		if(value < 1) {
-			Serial.printf("Invalid value: %d.", value);
+			LogHandler::raw("Invalid value: %d.\n", value);
 			xSemaphoreGive(xMutex);
 			return false;
 		}
@@ -818,7 +818,7 @@ private:
 	}
 	bool validateGreaterThanNegativeOne(const char* name, int value, std::function<bool(int value)> function, SaveRequired isSaveRequired = SaveRequired::NO, RestartRequired isRestartRequired = RestartRequired::NO) {
 		if(value < 0) {
-			Serial.printf("Invalid value: %d.", value);
+			LogHandler::raw("Invalid value: %d.\n", value);
 			xSemaphoreGive(xMutex);
 			return false;
 		}
@@ -833,7 +833,7 @@ private:
 
 	bool validateMaxLength(const char* name, const char* value, int maxLen, bool valueSensitive, std::function<bool(const char* value)> function,  SaveRequired isSaveRequired = SaveRequired::NO, RestartRequired isRestartRequired = RestartRequired::NO) {
 		if(strlen(value) > maxLen) {
-			Serial.printf("Invalid command: %s max length is: %d\n", name, maxLen);
+			LogHandler::raw("Invalid command: %s max length is: %d\n", name, maxLen);
 			xSemaphoreGive(xMutex);
 			return false;
 		}
@@ -842,7 +842,7 @@ private:
 			if(!valueSensitive)
 				printNewState(name, value);
 			else
-				Serial.printf("%s changed to a value of %d length\n", name, strlen(value));
+				LogHandler::raw("%s changed to a value of %d length\n", name, strlen(value));
 			completeCommand(isRestartRequired, isSaveRequired);
 		}
 		xSemaphoreGive(xMutex);
@@ -850,32 +850,32 @@ private:
 	}
 
 	void printNewState(const char* name, const char* newValue) {
-		Serial.printf("%s changed to: %s\n", name, newValue);
+		LogHandler::raw("%s changed to: %s\n", name, newValue);
 	}
 	void printNewState(const char* name, int newValue) {
-		Serial.printf("%s changed to: %d\n", name, newValue);
+		LogHandler::raw("%s changed to: %d\n", name, newValue);
 	}
 	void printNewState(const char* name, bool newValue) {
-		Serial.printf("%s %s\n", name, newValue ? "enabled" : "disabled");
+		LogHandler::raw("%s %s\n", name, newValue ? "enabled" : "disabled");
 	}
 	void printNewState(const char* name, float newValue) {
-		Serial.printf("%s changed to: %f\n", name, newValue);
+		LogHandler::raw("%s changed to: %f\n", name, newValue);
 	}
 	void completeCommand(RestartRequired isRestartRequired, SaveRequired isSaveRequired) {
 		if((int)isSaveRequired)
-			Serial.println("Execute the command '$save' to store the new value otherwise the value will reset upon reboot.");
+			LogHandler::raw("Execute the command '$save' to store the new value otherwise the value will reset upon reboot.\n");
 		if((int)isRestartRequired) {
-			Serial.println("Restart is required after save");
+			LogHandler::raw("Restart is required after save\n");
 		}
 	}
 	void printCommandHelp() {
 		char buf[MAX_COMMAND] = {0};
-		Serial.println();
-		Serial.println();
-		Serial.println();
-		Serial.println();
-		Serial.println("Available commands:");
-		Serial.println();
+		LogHandler::raw("\n");
+		LogHandler::raw("\n");
+		LogHandler::raw("\n");
+		LogHandler::raw("\n");
+		LogHandler::raw("Available commands:\n");
+		LogHandler::raw("\n");
 		for(Command command : saveCommands) {
 			formatPrintCommand(command, buf, sizeof(buf));
 		}
@@ -895,12 +895,12 @@ private:
 	}
 
 	void printAvailableSettings() {
-		Serial.println();
-		Serial.println();
-		Serial.println();
-		Serial.println();
-		Serial.println("Available settings:");
-		Serial.println();
+		LogHandler::raw("\n");
+		LogHandler::raw("\n");
+		LogHandler::raw("\n");
+		LogHandler::raw("\n");
+		LogHandler::raw("Available settings:\n");
+		LogHandler::raw("\n");
 		char buf[MAX_COMMAND] = {0};
 
 		auto allSettings = m_settingsFactory->AllSettings;
@@ -917,13 +917,13 @@ private:
 	void formatPrintCommand(const Setting& setting, char* buf, const size_t& len) {
 		buf[0] = {0};
 		formatCommand(setting.name, setting.friendlyName, setting.type, buf);
-		Serial.print(buf);
+		LogHandler::raw(buf);
 	}
 
 	void formatPrintCommand(const CommandBase& command, char* buf, const size_t& len) {
 		buf[0] = {0};
 		formatCommand(command.command, command.description, command.valueType, buf);
-		Serial.print(buf);
+		LogHandler::raw(buf);
 	}
 
 	void formatCommand(const char* command, const char* description, const SettingType& valueType, char* buf) {

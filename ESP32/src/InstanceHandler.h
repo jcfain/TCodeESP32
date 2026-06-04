@@ -175,9 +175,12 @@ void profileChangeCallback(uint8_t profile)
 void logCallBack(const char *input, const size_t& length, const LogLevel& level)
 {
 #if WIFI_TCODE
-    if(webSocketHandler && !SettingsFactory::getInstance()->getWebsocketLoggingEnabled() && level == LogLevel::ERROR) 
+    if(webSocketHandler && !SettingsFactory::getInstance()->getWebsocketLoggingEnabled()) 
     {
-    	webSocketHandler->sendError(input, length);
+        if(level == LogLevel::ERROR)
+    	    webSocketHandler->sendError(input, length);
+        else if(level == LogLevel::NONE)
+    	    webSocketHandler->sendRawLog(input, length);
     }
 #endif
 }

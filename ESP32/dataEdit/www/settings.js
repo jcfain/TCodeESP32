@@ -600,7 +600,8 @@ function initWebSocket() {
 function wsCallBackFunction(evt) {
 	try {
 		var data = JSON.parse(evt.data);
-        if(data["command"] != "info" && 
+        if(data["command"] != "log" &&  
+            data["command"] != "info" && 
             data["command"] != "verbose" && 
             data["command"] != "debug" && 
             data["command"] != "warn" && 
@@ -610,6 +611,9 @@ function wsCallBackFunction(evt) {
 		    logdebug("WEBSOCKET MESSAGE RECIEVED: "+ evt.data);
         }
 		switch(data["command"]) {
+            case "log":
+                logRaw(data["message"]);
+                break;
             case "info":
             case "verbose":
             case "debug":
@@ -682,7 +686,7 @@ function wsCallBackFunction(evt) {
                 DeviceRangeSlider.updateChannelRangesTemp(enabled == "true");
                 break;
             default:
-                logRaw(new Date().toISOString() + " " +data["command"]);
+                logRaw(new Date().toISOString() + " " +data["command"]+"\n");
 		}
 	}
 	catch(e) {

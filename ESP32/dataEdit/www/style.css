@@ -347,6 +347,8 @@ button:disabled {
 .log-reader {
   width: 100%;
   min-width: 300px;
+  height: 300px;
+  z-index: 99;
 }
 .servoTable .tCell {
   width: 33%;

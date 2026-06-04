@@ -22,7 +22,7 @@ public:
         serialHandler = new SerialHandler();
         serialHandler->setup();
         LogHandler::init();
-        Serial.printf("Startup DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::info(m_TAG, "Startup DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
         #if DEBUG_BUILD == 1
             LogHandler::setLogLevel(LogLevel::DEBUG);
@@ -32,17 +32,17 @@ public:
         LogHandler::setMessageCallback(logCallBack);
 
         Serial.println();
-        LogHandler::info(TagHandler::Main, "Firmware version: %s", FIRMWARE_VERSION_NAME);
-        // LogHandler::info(TagHandler::Main, "Esp arduino version: %s", ESP_ARDUINO_VERSION_STR);
-        LogHandler::info(TagHandler::Main, "ESP IDF version: %s", esp_get_idf_version());
+        LogHandler::info(m_TAG, "Firmware version: %s", FIRMWARE_VERSION_NAME);
+        // LogHandler::info(m_TAG, "Esp arduino version: %s", ESP_ARDUINO_VERSION_STR);
+        LogHandler::info(m_TAG, "ESP IDF version: %s", esp_get_idf_version());
         uint32_t chipId = 0;
         for (int i = 0; i < 17; i = i + 8)
         {
             chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
         }
-        LogHandler::info(TagHandler::Main, "ESP32 Chip model = %s Rev %d", ESP.getChipModel(), ESP.getChipRevision());
-        LogHandler::info(TagHandler::Main, "This chip has %d cores", ESP.getChipCores());
-        LogHandler::info(TagHandler::Main, "Chip ID: %u", chipId);
+        LogHandler::info(m_TAG, "ESP32 Chip model = %s Rev %d", ESP.getChipModel(), ESP.getChipRevision());
+        LogHandler::info(m_TAG, "This chip has %d cores", ESP.getChipCores());
+        LogHandler::info(m_TAG, "Chip ID: %u", chipId);
         Serial.println();
 
         // esp_log_level_set("*", ESP_LOG_VERBOSE);
@@ -54,31 +54,39 @@ public:
 
         if (!LittleFS.begin(true))
         {
-            LogHandler::error(TagHandler::Main, "An Error has occurred while mounting LittleFS");
+            LogHandler::error(m_TAG, "An Error has occurred while mounting LittleFS");
             return false;
         }
-        LogHandler::debug(TagHandler::Main, "LittleFS DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(m_TAG, "LittleFS DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
         settingsFactory = SettingsFactory::getInstance();
         settingsFactory->setMessageCallback(settingChangeCallback);
-        if (!settingsFactory->init())
+
+        if (!settingsFactory->initNetworking())
         {
-            LogHandler::error(TagHandler::Main, "Failed to load settings...");
+            LogHandler::error(m_TAG, "Failed to load networking settings...");
             return false;
         }
-        LogHandler::debug(TagHandler::Main, "Settings factory  DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        if(!initNetworking())
+            return false;
+        if (!settingsFactory->init())
+        {
+            LogHandler::error(m_TAG, "Failed to load settings...");
+            return false;
+        }
+        LogHandler::debug(m_TAG, "Settings factory  DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         LogHandler::setLogLevel(settingsFactory->getLogLevel());
 
         const PinMap *pinMap = settingsFactory->getPins();
         if(!pinMap)
         {
-            LogHandler::warning(TagHandler::Main, "No pin map defined");
+            LogHandler::warning(m_TAG, "No pin map defined");
             return false;
         }
 
         SettingsHandler::init();
         SettingsHandler::setMessageCallback(settingChangeCallback);
-        LogHandler::debug(TagHandler::Main, "Settings handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(m_TAG, "Settings handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
     #if BLE_TCODE
         settingsFactory->getValue(BLE_ENABLED, bleEnabled);
@@ -133,7 +141,7 @@ public:
 
         systemCommandHandler = new SystemCommandHandler();
         systemCommandHandler->registerExternalCommandCallback(tcodePassthroughCommandCallback);
-        LogHandler::debug(TagHandler::Main, "System command handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(m_TAG, "System command handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
     #ifdef MOTOR_TYPE_SERVO
         if (settingsFactory->getTcodeVersion() == TCodeVersion::v0_3)
@@ -150,7 +158,7 @@ public:
         #endif
         else
         {
-            LogHandler::error(TagHandler::Main, "Invalid TCode version: %ld", settingsFactory->getTcodeVersion());
+            LogHandler::error(m_TAG, "Invalid TCode version: %ld", settingsFactory->getTcodeVersion());
             return false; // TODO: this stops apmode and not what we want
         }
     #elif defined MOTOR_TYPE_BLDC
@@ -167,7 +175,7 @@ public:
     #endif
 
         motorHandler->setMessageCallback(tcodeCommandCallback);
-        LogHandler::debug(TagHandler::Main, "Motor handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(m_TAG, "Motor handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         // SystemCommandHandler::registerOtherCommandCallback(TCodeCommandCallback);
 
     #if BUILD_TEMP
@@ -206,9 +214,9 @@ public:
                                     caseFanMaxPWM);
             temperatureHandler->setMessageCallback(tempChangeCallBack);
             temperatureHandler->setStateChangeCallback(tempStateChangeCallBack);
-            LogHandler::debug(TagHandler::Main, "Start temperature task");
+            LogHandler::debug(m_TAG, "Start temperature task");
             taskHandler->startTemperatureTask(temperatureHandler);
-            LogHandler::debug(TagHandler::Main, "Temp DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+            LogHandler::debug(m_TAG, "Temp DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         }
 
     #endif
@@ -228,107 +236,13 @@ public:
             // 		APP_CPU_NUM); /* Core where the task should run */
             // #endif
         }
-        LogHandler::debug(TagHandler::Main, "Display DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-    #endif
-
-    #if BLE_TCODE
-        if (bleEnabled)
-        {
-            startBLETCode();
-        }
-        else
-        {
-            BLEHandler::disable();
-        }
-        LogHandler::debug(TagHandler::Main, "BLE DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-    #else
-        esp_bt_controller_mem_release(ESP_BT_MODE_BTDM)
-    #endif
-    #if BLUETOOTH_TCODE
-        if (bluetoothEnabled)
-        {
-            startBlueTooth();
-        }
-        else
-        {
-            BluetoothHandler::disable();
-        }
-        LogHandler::debug(TagHandler::Main, "Bluetooth DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-    #else
-        esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
-    #endif
-
-    #if BLE_TCODE || BLUETOOTH_TCODE
-        if (WIFI_TCODE && !COEXIST && (bluetoothEnabled || bleEnabled))
-        {
-            WifiHandler::disable();
-            LogHandler::debug(TagHandler::Main, "Wifi disable DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-        }
-    #endif
-
-    #if WIFI_TCODE
-        if ((!bluetoothEnabled && !bleEnabled) || COEXIST)
-        {
-            char ssid[SSID_LEN];
-            char wifiPass[WIFI_PASS_LEN];
-            bool staticIP;
-            char localIP[IP_ADDRESS_LEN];
-            char gateway[IP_ADDRESS_LEN];
-            char subnet[IP_ADDRESS_LEN];
-            char dns1[IP_ADDRESS_LEN];
-            char dns2[IP_ADDRESS_LEN];
-
-            settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
-            settingsFactory->getValue(WIFI_PASS_SETTING, wifiPass, WIFI_PASS_LEN);
-            settingsFactory->getValue(STATICIP, staticIP);
-            settingsFactory->getValue(LOCALIP, localIP, IP_ADDRESS_LEN);
-            settingsFactory->getValue(GATEWAY, gateway, IP_ADDRESS_LEN);
-            settingsFactory->getValue(SUBNET, subnet, IP_ADDRESS_LEN);
-            settingsFactory->getValue(DNS1, dns1, IP_ADDRESS_LEN);
-            settingsFactory->getValue(DNS2, dns2, IP_ADDRESS_LEN);
-            if (strcmp(wifiPass, WIFI_PASS_DONOTCHANGE_DEFAULT) != 0 && strlen(ssid))
-            {
-                displayPrint("Setting up wifi...");
-                LogHandler::info(TagHandler::Main, "Setting up wifi...");
-                displayPrint("Connecting to: ");
-                LogHandler::info(TagHandler::Main, "Connecting to: %s", ssid);
-                displayPrint(ssid);
-                if (wifi.connect(settingsFactory->getHostname(), ssid, wifiPass))
-                {
-    // 				String ipaddress = wifi.ip().toString();
-    // 				displayPrint("Connected IP: " + ipaddress);
-    // 				LogHandler::info(TagHandler::Main, "Connected IP: %s", ipaddress.c_str());
-    // #if BUILD_DISPLAY
-    // 				displayHandler->setLocalIPAddress(wifi.ip());
-    // #endif
-                    if (!startUDPTCode(settingsFactory->getUdpServerPort()))
-                    {
-                        LogHandler::error(TagHandler::Main, "Error starting UDP server!");
-                        return false;
-                    }
-                    LogHandler::debug(TagHandler::Main, "UDP DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-                    startNetworking(false,
-                            settingsFactory->getWebServerPort(),
-                            settingsFactory->getUdpServerPort(),
-                            settingsFactory->getHostname(),
-                            settingsFactory->getFriendlyName());
-                }
-            }
-            else
-            {
-                startConfigMode(
-                    settingsFactory->getWebServerPort(),
-                    settingsFactory->getUdpServerPort(),
-                    settingsFactory->getHostname(),
-                    settingsFactory->getFriendlyName());
-            }
-        }
+        LogHandler::debug(m_TAG, "Display DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
     #endif
         motionHandler = new MotionHandler();
         motionHandler->setup(settingsFactory->getTcodeVersion());
-        LogHandler::debug(TagHandler::Main, "Motion handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(m_TAG, "Motion handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         loadI2CModules(displayEnabled, batteryLevelEnabled, voiceEnabled);
-        LogHandler::debug(TagHandler::Main, "I2C DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(m_TAG, "I2C DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
         if (bootButtonEnabled || buttonSetsEnabled)
         {
@@ -344,10 +258,10 @@ public:
         {
             return false;
         }
-        LogHandler::debug(TagHandler::Main, "Motor DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(m_TAG, "Motor DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
-        LogHandler::debug(TagHandler::Main, "Setup finished");
-        SettingsHandler::printFree();
+        LogHandler::debug(m_TAG, "Setup finished");
+        LogHandler::printFree();
         m_initialized = true;
         return true;
     }
@@ -356,6 +270,7 @@ public:
 private:
     static inline SettingsFactory *settingsFactory = SettingsFactory::getInstance();
     TaskHandler* taskHandler;
+    const char* m_TAG = TagHandler::InitHandler;
     //CallbackHandler* callbackHandler;
     bool m_initialized = false;
     bool bluetoothEnabled = BLUETOOTH_ENABLED_DEFAULT;
@@ -389,8 +304,109 @@ private:
             }
         }
     }
+    bool initNetworking() 
+    {
+
+    #if BLE_TCODE
+        if (bleEnabled)
+        {
+            startBLETCode();
+        }
+        else
+        {
+            BLEHandler::disable();
+        }
+        LogHandler::debug(m_TAG, "BLE DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    #else
+        esp_bt_controller_mem_release(ESP_BT_MODE_BTDM)
+    #endif
+    #if BLUETOOTH_TCODE
+        if (bluetoothEnabled)
+        {
+            startBlueTooth();
+        }
+        else
+        {
+            BluetoothHandler::disable();
+        }
+        LogHandler::debug(m_TAG, "Bluetooth DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    #else
+        esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
+    #endif
+
+    #if BLE_TCODE || BLUETOOTH_TCODE
+        if (WIFI_TCODE && !COEXIST && (bluetoothEnabled || bleEnabled))
+        {
+            WifiHandler::disable();
+            LogHandler::debug(m_TAG, "Wifi disable DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        }
+    #endif
+
+    #if WIFI_TCODE
+        if ((!bluetoothEnabled && !bleEnabled) || COEXIST)
+        {
+            char ssid[SSID_LEN];
+            char wifiPass[WIFI_PASS_LEN];
+            bool staticIP;
+            char localIP[IP_ADDRESS_LEN];
+            char gateway[IP_ADDRESS_LEN];
+            char subnet[IP_ADDRESS_LEN];
+            char dns1[IP_ADDRESS_LEN];
+            char dns2[IP_ADDRESS_LEN];
+
+            settingsFactory->getValue(SSID_SETTING, ssid, SSID_LEN);
+            settingsFactory->getValue(WIFI_PASS_SETTING, wifiPass, WIFI_PASS_LEN);
+            settingsFactory->getValue(STATICIP, staticIP);
+            settingsFactory->getValue(LOCALIP, localIP, IP_ADDRESS_LEN);
+            settingsFactory->getValue(GATEWAY, gateway, IP_ADDRESS_LEN);
+            settingsFactory->getValue(SUBNET, subnet, IP_ADDRESS_LEN);
+            settingsFactory->getValue(DNS1, dns1, IP_ADDRESS_LEN);
+            settingsFactory->getValue(DNS2, dns2, IP_ADDRESS_LEN);
+            if (strcmp(wifiPass, WIFI_PASS_DONOTCHANGE_DEFAULT) != 0 && strlen(ssid))
+            {
+                displayPrint("Setting up wifi...");
+                LogHandler::info(m_TAG, "Setting up wifi...");
+                displayPrint("Connecting to: ");
+                LogHandler::info(m_TAG, "Connecting to: %s", ssid);
+                displayPrint(ssid);
+                if (wifi.connect(settingsFactory->getHostname(), ssid, wifiPass))
+                {
+    // 				String ipaddress = wifi.ip().toString();
+    // 				displayPrint("Connected IP: " + ipaddress);
+    // 				LogHandler::info(m_TAG, "Connected IP: %s", ipaddress.c_str());
+    // #if BUILD_DISPLAY
+    // 				displayHandler->setLocalIPAddress(wifi.ip());
+    // #endif
+
+
+                    if (!startUDPTCode(settingsFactory->getUdpServerPort()))
+                    {
+                        LogHandler::error(m_TAG, "Error starting UDP server!");
+                        return false;
+                    }
+                    LogHandler::debug(m_TAG, "UDP DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+                    startWebServer(false,
+                            settingsFactory->getWebServerPort(),
+                            settingsFactory->getUdpServerPort(),
+                            settingsFactory->getHostname(),
+                            settingsFactory->getFriendlyName());
+                }
+            }
+            else
+            {
+                startAPMode(
+                    settingsFactory->getWebServerPort(),
+                    settingsFactory->getUdpServerPort(),
+                    settingsFactory->getHostname(),
+                    settingsFactory->getFriendlyName());
+            }
+        }
+    #endif
+        return true;
+    }
+
 #if WIFI_TCODE
-    void startNetworking(const bool &apMode, const int &port, const int &udpPort, const char *hostname, const char *friendlyName)
+    void startWebServer(const bool &apMode, const int &port, const int &udpPort, const char *hostname, const char *friendlyName)
     {
         if((MODULE_CURRENT != ModuleType::WROOM32 || (!bluetoothEnabled && !bleEnabled)) && !webHandler) 
         {
@@ -404,19 +420,24 @@ private:
             taskHandler->startHTTPSTask(webHandler);
     #endif
             webHandler->setup(port, webSocketHandler, apMode);
-            LogHandler::debug(TagHandler::Main, "Web DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+            LogHandler::printWebAddress(m_TAG, WiFi.softAPIP().toString().c_str(), port);
+            LogHandler::debug(m_TAG, "Web DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+            if (!apMode) {// mdns breaks apmode?
+                bool mdnsEnabled = MDNS_ENABLED_DEFAULT;
+                settingsFactory->getValue(MDNS_ENABLED, mdnsEnabled);
+                if(mdnsEnabled)
+                {
+                    mdnsHandler.setup(hostname, friendlyName, udpPort, port);
+                    char hostLen = strlen(hostname) + 7;
+                    char domainName[hostLen];
+                    sprintf(domainName, "%s.local", hostname);
+                    LogHandler::printWebAddress(m_TAG, domainName, port);
+                    LogHandler::debug(m_TAG, "MDNS DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+                }
+            }
         } else {
             displayPrint("WebServer disabled");
-            LogHandler::info(TagHandler::Main, "WebServer disabled due to bluetooth and chip model");
-        }
-        if (!apMode) {// mdns breaks apmode?
-            bool mdnsEnabled = MDNS_ENABLED_DEFAULT;
-            settingsFactory->getValue(MDNS_ENABLED, mdnsEnabled);
-            if(mdnsEnabled)
-            {
-                mdnsHandler.setup(hostname, friendlyName, port, udpPort);
-                LogHandler::debug(TagHandler::Main, "MDNS DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-            }
+            LogHandler::info(m_TAG, "WebServer disabled due to bluetooth and chip model");
         }
     }
 #endif
@@ -469,7 +490,7 @@ private:
     }
 #endif
 
-    void startConfigMode(const int &webPort, const int &udpPort, const char *hostname, const char *friendlyName)
+    void startAPMode(const int &webPort, const int &udpPort, const char *hostname, const char *friendlyName)
     {
 #if WIFI_TCODE
         SettingsHandler::apMode = true;
@@ -490,7 +511,7 @@ private:
         if (wifi.startAp(hostname, settingsFactory->getAPModeSSID(), pass, channel, hidden, settingsFactory->getAPModeIP(), subnet, gateway))
         {
             displayPrint("APMode started");
-            startNetworking(SettingsHandler::apMode, webPort, udpPort, hostname, friendlyName);
+            startWebServer(SettingsHandler::apMode, webPort, udpPort, hostname, friendlyName);
         }
         else
         {
@@ -510,10 +531,10 @@ private:
     {
         if (status == WiFiStatus::CONNECTED)
         {
-            LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiStatus::CONNECTED");
+            LogHandler::debug(m_TAG, "wifiStatusCallBack WiFiStatus::CONNECTED");
             if (reason == WiFiReason::AP_MODE)
             {
-                LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AP_MODE");
+                LogHandler::debug(m_TAG, "wifiStatusCallBack WiFiReason::AP_MODE");
                 // if(bleConfigurationHandler)
                 //   bleConfigurationHandler->stop(); // If a client connects to the ap stop the BLE to save memory.
             }
@@ -522,11 +543,11 @@ private:
         {
             // wifi.dispose();
             // startApMode();
-            LogHandler::debug(TagHandler::Main, "wifiStatusCallBack Not connected");
+            LogHandler::debug(m_TAG, "wifiStatusCallBack Not connected");
             if (reason == WiFiReason::NO_AP || reason == WiFiReason::UNKNOWN)
             {
-                LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::NO_AP || WiFiReason::UNKNOWN");
-                startConfigMode(
+                LogHandler::debug(m_TAG, "wifiStatusCallBack WiFiReason::NO_AP || WiFiReason::UNKNOWN");
+                startAPMode(
                     settingsFactory->getWebServerPort(),
                     settingsFactory->getUdpServerPort(),
                     settingsFactory->getHostname(),
@@ -534,14 +555,14 @@ private:
             }
             else if (reason == WiFiReason::AUTH)
             {
-                LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AUTH");
-                LogHandler::warning(TagHandler::Main, "Connection auth failed: Resetting wifi password and restarting");
+                LogHandler::debug(m_TAG, "wifiStatusCallBack WiFiReason::AUTH");
+                LogHandler::warning(m_TAG, "Connection auth failed: Resetting wifi password and restarting");
                 settingsFactory->defaultValue(WIFI_PASS_SETTING);
                 ESP.restart();
             }
             else if (reason == WiFiReason::AP_MODE)
             {
-                LogHandler::debug(TagHandler::Main, "wifiStatusCallBack WiFiReason::AP_MODE");
+                LogHandler::debug(m_TAG, "wifiStatusCallBack WiFiReason::AP_MODE");
                 // #ifdef !ESP32_DA
                 // if(bleConfigurationHandler)
                 // 	bleConfigurationHandler->setup();
@@ -687,14 +708,14 @@ private:
     //     {
     //         if (type == TemperatureType::SLEEVE)
     //         {
-    //             LogHandler::verbose(TagHandler::Main, "tempStateChangeCallBack heat: %s", state);
+    //             LogHandler::verbose(m_TAG, "tempStateChangeCallBack heat: %s", state);
     //             displayHandler->setHeateState(state);
     //             if (temperatureHandler)
     //                 displayHandler->setHeateStateShort(temperatureHandler->getShortSleeveControlStatus(state));
     //         }
     //         else
     //         {
-    //             LogHandler::verbose(TagHandler::Main, "tempStateChangeCallBack fan: %s", state);
+    //             LogHandler::verbose(m_TAG, "tempStateChangeCallBack fan: %s", state);
     //             displayHandler->setFanState(state);
     //         }
     //     }
@@ -721,7 +742,7 @@ private:
 
     // void settingChangeCallback(const SettingProfile &profile, const char *settingThatChanged)
     // {
-    //     LogHandler::verbose(TagHandler::Main, "settingChangeCallback: %s", settingThatChanged);
+    //     LogHandler::verbose(m_TAG, "settingChangeCallback: %s", settingThatChanged);
     //     if (profile == SettingProfile::System)
     //     {
     //         if (!strcmp(settingThatChanged, LOG_LEVEL_SETTING))
@@ -747,7 +768,7 @@ private:
     //         //} else if(strcmp(settingThatChanged, "motionChannels") == 0) {
     //         // 	motionHandler->setMotionChannels(SettingsHandler::getGetMotionChannels()());
     //         } else if (strcmp(settingThatChanged, MOTION_ENABLED) == 0) {
-    //             LogHandler::verbose(TagHandler::Main, "MOTION_ENABLED: %d", SettingsHandler::getMotionEnabled());
+    //             LogHandler::verbose(m_TAG, "MOTION_ENABLED: %d", SettingsHandler::getMotionEnabled());
     //             motionHandler->setEnabled(SettingsHandler::getMotionEnabled());
     //         }
     //         // else if(strcmp(settingThatChanged, "motionAmplitudeGlobal") == 0)

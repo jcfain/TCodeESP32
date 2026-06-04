@@ -121,6 +121,17 @@ void TCode::stopAll() {
     }
 }
 
+void TCode::setTCodeCallback(TCodeCallback f)
+{
+    if (f == nullptr)
+    {
+        tcode_callback = 0;
+    }
+    else
+    {
+        tcode_callback = f;
+    }
+}
 
 //Top-level command dispatcher
 void TCode::processCommand(const char* cmd) {
@@ -135,9 +146,9 @@ void TCode::processCommand(const char* cmd) {
     // } else if (first == '$') {
     //     processSaveCommand(cmd);
     } else {
-        queueResponse(cmd);
+        if(tcode_callback)
+            tcode_callback(cmd);
     }
-    // anything else is silently ignored
 }
 
 // Function to process axis commands

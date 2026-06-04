@@ -36,8 +36,13 @@ public:
 		TCode::stringInput(in);
 	}
 
+	void setMessageCallback(TCodeCallback f) override
+	{
+		TCode::setTCodeCallback(f);
+	}
+
 	void getMessages() {
-		if(message_callback) 
+		if(tcode_callback) 
 		{
 			// size_t len = 0;
 			// bool limitReached = false;
@@ -63,17 +68,23 @@ public:
 			size_t length = TCode::available();
 			if(!length)
 				return;
+			Serial.printf("TCode_4 getMessages length: %i\n", length);
 			size_t index = 0;
 			char outputBuffer[length] = {0};
-			while (index < length) {
+			while (index < length) 
+			{
 				int c = TCode::read();
-				if (c < 0 || (char)c == '\n') {
-				break;
-				}
 				outputBuffer[index] = (char)c;
 				index++;
+				if (c < 0 || (char)c == '\n') 
+				{
+					break;
+				}
+				Serial.printf("TCode_4 getMessages index: %i\n", index);
 			}
-			message_callback(outputBuffer);
+			outputBuffer[index] = {0};
+			Serial.printf("TCode_4 getMessages send: %s\n", outputBuffer);
+			tcode_callback(outputBuffer);
 		}
 	}
 	// // Function to read off whole strings as input

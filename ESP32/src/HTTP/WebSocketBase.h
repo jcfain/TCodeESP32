@@ -48,6 +48,36 @@ class WebSocketBase : public TCodeInterface {
     {
         sendCommand("error", 6, message, len);
     }
+    void sendRawLog(const char* message, size_t len = MAX_WS_MESSAGE) 
+    {
+        sendCommand("log", 4, message, len);
+    }
+    void sendLog(LogLevel level, const char* message, size_t len = MAX_WS_MESSAGE) {
+
+		switch (level) 
+        {
+            case LogLevel::NONE:
+                sendRawLog(message, len);
+                break;
+            case LogLevel::INFO:
+                sendCommand("info", 5, message, len);
+                break;
+            case LogLevel::WARNING:
+                sendCommand("warn", 5, message, len);
+                break;
+            case LogLevel::ERROR:
+                sendError(message, len);
+                break;
+            case LogLevel::VERBOSE:
+                sendCommand("verbose", 8, message, len);
+                break;
+            case LogLevel::DEBUG:
+                sendCommand("debug", 6, message, len);
+                break;
+            default:
+                break;
+		}
+    }
 
     static void startLoggingTask(void *taskStartParameters)
     {

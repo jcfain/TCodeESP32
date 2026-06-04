@@ -161,6 +161,73 @@ struct StrCompare
    }
 };
 
+struct Chunker {
+    Chunker(const char* in, int len, int maxLen) : in(in), len(len), maxLen(maxLen), sent(0) { }
+
+    // size_t getChunkSize() {
+    //     if(len > maxLen) 
+    //     {
+    //         int mod = len % maxLen;
+    //         int chunkTotal = len - mod;
+    //         int sendChunks = chunkTotal / maxLen;
+    //         int amountToSend = chunkTotal / sendChunks;
+    //         return amountToSend;
+    //     }
+    //     return len;
+    // }
+    
+    size_t operator()(char* out) 
+    {
+        if(sent < len)
+        {
+            if(len > maxLen) 
+            {
+                int mod = len % maxLen;
+                int chunkTotal = len - mod;
+                int sendChunks = chunkTotal / maxLen;
+                int amountToSend = chunkTotal / sendChunks;
+                Serial.printf("[Chunker] len: %i, sendChunks: %i, amountToSend: %i\n", len, sendChunks, amountToSend);
+                Serial.printf("[Chunker] sent: %i\n", sent);
+                if(len - sent > mod)
+                {
+                    // char messageToSend[amountToSend];
+                    strncpy(out, in + sent, amountToSend);
+                    out[amountToSend] = '\0';
+                    Serial.printf("[Chunker] truncated: %s\n", out);
+                    sent += amountToSend;
+                    Serial.printf("[Chunker] sent: %i\n", sent);
+                    return amountToSend;
+                }
+                if(mod)
+                {
+                    strncpy(out, in + sent, mod);
+                    out[mod] = '\0';
+                    strncat(out, "\n", 5);
+                    Serial.printf("[Chunker] truncated mod: %i, message: %s\n", mod, out);
+                    sent += mod;
+                    Serial.printf("[Chunker] sent: %i\n", sent);
+                    return mod +1;
+                }
+            } 
+            else 
+            {
+                strncpy(out, in, len);
+                out[len] = '\0';
+                sent += len;
+                strncat(out, "\n", 5);
+                return len +1;
+            }
+        }
+        return 0;
+    }
+
+private:
+    int sent = 0;
+    const char* in;
+    int len;
+    int maxLen;
+    int currentPos;
+};
 // adc2_channel_t gpioToADC2(int gpioPinc:\Users\jfain\AppData\Local\Programs\Microsoft VS Code\resources\app\out\vs\code\electron-sandbox\workbench\workbench.html) {
 //     switch(gpioPin) {
 //         case 4:

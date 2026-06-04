@@ -41,6 +41,7 @@
 #define TCODE_VERSION_INFO  "TCode v0.4"
 #endif
 
+using TCodeCallback = void (*)(const char *input);
 
 // ============================================
 //           TCODE CLASS
@@ -79,6 +80,12 @@ public:
     // All stop command, used by DSTOP
     void stopAll();
 
+    // Sets the callback function used by TCode
+	void setTCodeCallback(TCodeCallback f);
+
+protected:
+    TCodeCallback tcode_callback;
+
 private:
     // Internal storage — fixed arrays of pointers, one per channel type
     Axis* _Lin[10] = {nullptr};
@@ -108,6 +115,7 @@ private:
 
     // Helper function that turns "L3" into letter='L' and index=3
     bool parseChannel(const char* channel, char& letter, uint8_t& index) const;
+
 };
 
 #endif

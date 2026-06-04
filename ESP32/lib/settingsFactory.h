@@ -48,10 +48,21 @@ public:
         return &factory;
     }
 
+    bool initNetworking() {
+
+        if(!load(m_networkFileInfo))
+            return false;
+        return true;
+    }
+
     bool init() 
     {
         //resetAll();
-        if(!loadAllFromDisk())
+        if(!load(m_systemFileInfo))
+            return false;
+        if(!load(m_commonFileInfo))
+            return false;
+        if(!load(m_pinsFileInfo))// Pins are dependent on system for now.
             return false;
         m_initialized = true;
         return true;
@@ -204,151 +215,198 @@ public:
              typename = std::enable_if<!std::is_const<T>::value || std::is_integral<T>::value || std::is_enum<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
     SettingFile getValue(const char* name, T &value)
     {
-        if (m_systemFileInfo.doc[name].is<T>()) 
+        // Serial.printf("getvalue T name: %s init: %i\n",name, m_systemFileInfo.initialized);
+        // LogHandler::debug(m_TAG, "Enter getValue T: %s", name);
+        SettingFileInfo* fileInfo = getFile(name);
+        if(!fileInfo) 
         {
-            if(!m_systemFileInfo.initialized) 
-            {
-                LogHandler::error(m_TAG, "getValue T called before system file initialized");
-                return SettingFile::NONE;
-            }
-            xSemaphoreTake(m_systemSemaphore, portTICK_PERIOD_MS);
-            value = m_systemFileInfo.doc[name].as<T>();
-            xSemaphoreGive(m_systemSemaphore);
-            return SettingFile::System;
-        } 
-        else if (m_networkFileInfo.doc[name].is<T>()) 
-        {
-            if(!m_networkFileInfo.initialized) 
-            {
-                LogHandler::error(m_TAG, "getValue T called before network file initialized");
-                return SettingFile::NONE;
-            }
-            xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
-            value = m_networkFileInfo.doc[name].as<T>();
-            xSemaphoreGive(m_networkSemaphore);
-            return SettingFile::Network;
-        } 
-        else if (m_commonFileInfo.doc[name].is<T>()) 
-        {
-            if(!m_commonFileInfo.initialized) 
-            {
-                LogHandler::error(m_TAG, "getValue T called before common file initialized");
-                return SettingFile::NONE;
-            }
-            xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
-            value = m_commonFileInfo.doc[name].as<T>();
-            xSemaphoreGive(m_commonSemaphore);
-            return SettingFile::Common;
-        }    
-        else if (m_pinsFileInfo.doc[name].is<T>()) 
-        {
-            if(!m_pinsFileInfo.initialized) 
-            {
-                LogHandler::error(m_TAG, "getValue T called before pins file initialized");
-                return SettingFile::NONE;
-            }
-            xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
-            value = m_pinsFileInfo.doc[name].as<T>();
-            xSemaphoreGive(m_pinSemaphore);
-            return SettingFile::Pins;
-        }    
-        else
-        {
-            LogHandler::error(m_TAG, "getValue T key not found: %s", name);
+            LogHandler::error(m_TAG, "getvalue T file or key not found");
             return SettingFile::NONE;
         }
+        if(!fileInfo->initialized) 
+        {
+            LogHandler::error(m_TAG, "getvalue T called before initialized");
+            return SettingFile::NONE;
+        }
+        value = fileInfo->doc[name].as<T>();
+        return fileInfo->file;
+        // if (m_systemFileInfo.initialized && m_systemFileInfo.doc[name].is<T>()) 
+        // {
+        //     if(!m_systemFileInfo.initialized) 
+        //     {
+        //         LogHandler::error(m_TAG, "getValue T called before system file initialized");
+        //         return SettingFile::NONE;
+        //     }
+        //     m_systemFileInfo.take();
+        //     value = m_systemFileInfo.doc[name].as<T>();
+        //     m_systemFileInfo.give();
+        //     return SettingFile::System;
+        // } 
+        // else if (m_networkFileInfo.initialized && m_networkFileInfo.doc[name].is<T>()) 
+        // {
+        //     if(!m_networkFileInfo.initialized) 
+        //     {
+        //         LogHandler::error(m_TAG, "getValue T called before network file initialized");
+        //         return SettingFile::NONE;
+        //     }
+        //     m_networkFileInfo.take();
+        //     value = m_networkFileInfo.doc[name].as<T>();
+        //     m_networkFileInfo.give();
+        //     return SettingFile::Network;
+        // } 
+        // else if (m_commonFileInfo.initialized && m_commonFileInfo.doc[name].is<T>()) 
+        // {
+        //     if(!m_commonFileInfo.initialized) 
+        //     {
+        //         LogHandler::error(m_TAG, "getValue T called before common file initialized");
+        //         return SettingFile::NONE;
+        //     }
+        //     m_commonFileInfo.take();
+        //     value = m_commonFileInfo.doc[name].as<T>();
+        //     m_commonFileInfo.give();
+        //     return SettingFile::Common;
+        // }    
+        // else if (m_pinsFileInfo.initialized && m_pinsFileInfo.doc[name].is<T>()) 
+        // {
+        //     if(!m_pinsFileInfo.initialized) 
+        //     {
+        //         LogHandler::error(m_TAG, "getValue T called before pins file initialized");
+        //         return SettingFile::NONE;
+        //     }
+        //     m_pinsFileInfo.take();
+        //     value = m_pinsFileInfo.doc[name].as<T>();
+        //     m_pinsFileInfo.give();
+        //     return SettingFile::Pins;
+        // }    
+        // else
+        // {
+        //     LogHandler::error(m_TAG, "getValue T key not found: %s", name);
+        //     return SettingFile::NONE;
+        // }
     }
     
     SettingFile getValue(const char* name, char* value, size_t len)
     {
-        const char* constvalue = getValue(name);
-        if(!constvalue) {
+        SettingFileInfo* fileInfo = getFile(name);
+        if(!fileInfo) 
+        {
+            LogHandler::error(m_TAG, "getValue char* len file or key not found");
             return SettingFile::NONE;
         }
-        strncpy(value, constvalue, len);
-        if (m_systemFileInfo.doc[name].is<const char*>()) 
+        if(!fileInfo->initialized) 
         {
-            if(!m_systemFileInfo.initialized) 
-            {
-                LogHandler::error(m_TAG, "getValue char* len called before system file initialized");
-                return SettingFile::NONE;
-            }
-            LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, value);
-            return SettingFile::System;
-        } 
-        else if (m_networkFileInfo.doc[name].is<const char*>()) 
-        {
-            if(!m_networkFileInfo.initialized) 
-            {
-                LogHandler::error(m_TAG, "getValue char* len called before network file initialized");
-                return SettingFile::NONE;
-            }
-            LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, strcmp(name, AP_MODE_PASS) || strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DONOTCHANGE_DEFAULT) ? value : "<Redacted>");
-            return SettingFile::Network;
-        } 
-        else if (m_commonFileInfo.doc[name].is<const char*>()) 
-        {
-            if(!m_commonFileInfo.initialized) 
-            {
-                LogHandler::error(m_TAG, "getValue char* len called before common file initialized");
-                return SettingFile::NONE;
-            }
-            LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, value);
-            return SettingFile::Common;
+            LogHandler::error(m_TAG, "getValue char* len called before initialized");
+            return SettingFile::NONE;
         }
-        return SettingFile::NONE;
+        const char* constvalue = fileInfo->doc[name];
+        if(!constvalue)
+            return SettingFile::NONE;
+        // LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, constvalue);
+        strncpy(value, constvalue, len);
+        return fileInfo->file;
+    //     const char* constvalue = getValue(name);
+    //     if(!constvalue) {
+    //         return SettingFile::NONE;
+    //     }
+    //     strncpy(value, constvalue, len);
+    //     if (m_systemFileInfo.initialized && m_systemFileInfo.doc[name].is<const char*>()) 
+    //     {
+    //         if(!m_systemFileInfo.initialized) 
+    //         {
+    //             LogHandler::error(m_TAG, "getValue char* len called before system file initialized");
+    //             return SettingFile::NONE;
+    //         }
+    //         LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, value);
+    //         return SettingFile::System;
+    //     } 
+    //     else if (m_networkFileInfo.initialized && m_networkFileInfo.doc[name].is<const char*>()) 
+    //     {
+    //         if(!m_networkFileInfo.initialized) 
+    //         {
+    //             LogHandler::error(m_TAG, "getValue char* len called before network file initialized");
+    //             return SettingFile::NONE;
+    //         }
+    //         LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, strcmp(name, AP_MODE_PASS) || strcmp(name, WIFI_PASS_SETTING) || !strcmp(value, WIFI_PASS_DONOTCHANGE_DEFAULT) ? value : "<Redacted>");
+    //         return SettingFile::Network;
+    //     } 
+    //     else if (m_commonFileInfo.initialized && m_commonFileInfo.doc[name].is<const char*>()) 
+    //     {
+    //         if(!m_commonFileInfo.initialized) 
+    //         {
+    //             LogHandler::error(m_TAG, "getValue char* len called before common file initialized");
+    //             return SettingFile::NONE;
+    //         }
+    //         LogHandler::debug(m_TAG, "getValue char* len %s: value: %s", name, value);
+    //         return SettingFile::Common;
+    //     }
+    //     return SettingFile::NONE;
     }
     
     const char* getValue(const char* name)
     {
-        if (m_systemFileInfo.doc[name].is<const char*>()) 
+        SettingFileInfo* fileInfo = getFile(name);
+        if(!fileInfo) 
         {
-            if(!m_systemFileInfo.initialized) 
-            {
-                LogHandler::error(m_TAG, "getValue char* called before system file initialized");
-                return 0;
-            }
-            xSemaphoreTake(m_systemSemaphore, portTICK_PERIOD_MS);
-            const char* constvalue = m_systemFileInfo.doc[name];
-            LogHandler::debug(m_TAG, "getValue char* common: %s: constvalue: %s", name, constvalue);
-            xSemaphoreGive(m_systemSemaphore);
-            return constvalue;
-        } 
-        else if (m_networkFileInfo.doc[name].is<const char*>()) 
-        {
-            if(!m_networkFileInfo.initialized) 
-            {
-                LogHandler::error(m_TAG, "getValue char* called before network file initialized");
-                return 0;
-            }
-            xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
-            const char* constvalue = m_networkFileInfo.doc[name];
-            LogHandler::debug(m_TAG, "getValue char* wifi: %s: constvalue: %s", name, strcmp(name, AP_MODE_PASS) || strcmp(name, WIFI_PASS_SETTING) || !strcmp(constvalue, WIFI_PASS_DONOTCHANGE_DEFAULT) ? constvalue : "<Redacted>");
-            xSemaphoreGive(m_networkSemaphore);
-            return constvalue;
-        } 
-        else if (m_commonFileInfo.doc[name].is<const char*>()) 
-        {
-            if(!m_commonFileInfo.initialized) 
-            {
-                LogHandler::error(m_TAG, "getValue char* called before common file initialized");
-                return 0;
-            }
-            xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
-            const char* constvalue = m_commonFileInfo.doc[name];
-            LogHandler::debug(m_TAG, "getValue char* common: %s: constvalue: %s", name, constvalue);
-            xSemaphoreGive(m_commonSemaphore);
-            return constvalue;
-        }    
-        else
-        {
-            LogHandler::error(m_TAG, "Get value key not found: %s", name);
+            LogHandler::error(m_TAG, "getValue char* len file or key not found");
+            return 0;
         }
-        return 0;
+        if(!fileInfo->initialized) 
+        {
+            LogHandler::error(m_TAG, "getValue char* len called before initialized");
+            return 0;
+        }
+        const char* constvalue = fileInfo->doc[name];
+        if(!constvalue)
+            return 0;
+        // LogHandler::debug(m_TAG, "getValue char* %s: value: %s", name, constvalue);
+        return constvalue;
+        // if (m_systemFileInfo.initialized && m_systemFileInfo.doc[name].is<const char*>()) 
+        // {
+        //     if(!m_systemFileInfo.initialized) 
+        //     {
+        //         LogHandler::error(m_TAG, "getValue char* called before system file initialized");
+        //         return 0;
+        //     }
+        //     m_systemFileInfo.take();
+        //     const char* constvalue = m_systemFileInfo.doc[name];
+        //     LogHandler::debug(m_TAG, "getValue char* common: %s: constvalue: %s", name, constvalue);
+        //     m_systemFileInfo.give();
+        //     return constvalue;
+        // } 
+        // else if (m_networkFileInfo.initialized && m_networkFileInfo.doc[name].is<const char*>()) 
+        // {
+        //     if(!m_networkFileInfo.initialized) 
+        //     {
+        //         LogHandler::error(m_TAG, "getValue char* called before network file initialized");
+        //         return 0;
+        //     }
+        //     m_networkFileInfo.take();
+        //     const char* constvalue = m_networkFileInfo.doc[name];
+        //     LogHandler::debug(m_TAG, "getValue char* wifi: %s: constvalue: %s", name, strcmp(name, AP_MODE_PASS) || strcmp(name, WIFI_PASS_SETTING) || !strcmp(constvalue, WIFI_PASS_DONOTCHANGE_DEFAULT) ? constvalue : "<Redacted>");
+        //     m_networkFileInfo.give();
+        //     return constvalue;
+        // } 
+        // else if (m_commonFileInfo.initialized && m_commonFileInfo.doc[name].is<const char*>()) 
+        // {
+        //     if(!m_commonFileInfo.initialized) 
+        //     {
+        //         LogHandler::error(m_TAG, "getValue char* called before common file initialized");
+        //         return 0;
+        //     }
+        //     m_commonFileInfo.take();
+        //     const char* constvalue = m_commonFileInfo.doc[name];
+        //     LogHandler::debug(m_TAG, "getValue char* common: %s: constvalue: %s", name, constvalue);
+        //     m_commonFileInfo.give();
+        //     return constvalue;
+        // }    
+        // else
+        // {
+        //     LogHandler::error(m_TAG, "Get value key not found: %s", name);
+        // }
+        // return 0;
     }
     SettingFile getValueVector(const char* name, std::vector<const char*> &value)
     {
-        LogHandler::debug("Getting vector string values: %s", name);
         SettingFileInfo* fileInfo = getFile(name);
         if(!fileInfo) 
         {
@@ -371,7 +429,6 @@ public:
     }
     SettingFile getValueVector(const char* name, std::vector<int> &value)
     {
-        LogHandler::debug("Getting vector int values: %s", name);
         SettingFileInfo* fileInfo = getFile(name);
         if(!fileInfo) 
         {
@@ -402,107 +459,136 @@ public:
              typename = std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value || std::is_same<T, bool>::value>>
     SettingFile setValue(const char* name, const T &value, bool writeToDisk = false) 
     {
-        LogHandler::debug(m_TAG, "Enter setValue T: %s", name);
-        
-        if (m_systemFileInfo.doc[name].is<T>())
+
+        SettingFileInfo* fileInfo = getFile(name);
+        if(!fileInfo) 
         {
-            if(!m_systemFileInfo.initialized) 
-            {
-                LogHandler::error(m_TAG, "setValue T called before system file initialized");
-                return SettingFile::NONE;
-            }
-            T currentValue = m_systemFileInfo.doc[name].as<T>();
-            if(currentValue != value) 
-            {
-                LogHandler::debug(m_TAG, "Change system value T: %s", name);
-                xSemaphoreTake(m_systemSemaphore, portTICK_PERIOD_MS);
-                checkRestartRequired(&m_systemFileInfo, name);
-                m_systemFileInfo.doc[name] = value;
-                loadSystemLiveCache(name);
-                xSemaphoreGive(m_systemSemaphore);
-            }
-            if(writeToDisk && !saveToDisk(m_systemFileInfo)) 
-            {
-                return SettingFile::NONE;
-            }
-            return SettingFile::System;
+            LogHandler::error(m_TAG, "setValue T key not found");
+            return SettingFile::NONE;
         }
-        else if (m_networkFileInfo.doc[name].is<T>())
+        if(!fileInfo->initialized) 
         {
-            if(!m_networkFileInfo.initialized) 
-            {
-                LogHandler::error(m_TAG, "setValue T called before network file initialized");
-                return SettingFile::NONE;
-            }
-            T currentValue = m_networkFileInfo.doc[name].as<T>();
-            if(currentValue != value) 
-            {
-                LogHandler::debug(m_TAG, "Change wifi value T: %s", name);
-                xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
-                checkRestartRequired(&m_networkFileInfo, name);
-                m_networkFileInfo.doc[name] = value;
-                loadNetworkLiveCache(name);
-                xSemaphoreGive(m_networkSemaphore);
-            }
-            if(writeToDisk && !saveToDisk(m_networkFileInfo)) 
-            {
-                return SettingFile::NONE;
-            }
-            return SettingFile::Network;
+            LogHandler::error(m_TAG, "setValue T called before initialized");
+            return SettingFile::NONE;
         }
-        else if (m_commonFileInfo.doc[name].is<T>())
-        {
-            if(!m_commonFileInfo.initialized) 
-            {
-                LogHandler::error(m_TAG, "setValue T called before common file initialized");
-                return SettingFile::NONE;
-            }
-            T currentValue = m_commonFileInfo.doc[name].as<T>();
-            if(currentValue != value) 
-            {
-                LogHandler::debug(m_TAG, "Change common value T: %s", name);
-                xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
-                checkRestartRequired(&m_commonFileInfo, name);
-                m_commonFileInfo.doc[name] = value;
-                loadCommonLiveCache(name);
-                xSemaphoreGive(m_commonSemaphore);
-            }
-            if(writeToDisk && !saveToDisk(m_commonFileInfo)) 
+        T currentValue = fileInfo->doc[name].as<T>();
+        if(fileInfo->doc[name].isNull() || currentValue != value) {
+            fileInfo->doc[name] = value;
+            if(writeToDisk && !saveToDisk(*fileInfo)) 
             {
                 return SettingFile::NONE;
             }
-            return SettingFile::Common;
+            checkRestartRequired(fileInfo, name);
+            if(fileInfo->onchange)
+                fileInfo->onchange(name);
+            // if(fileInfo->file == SettingFile::System) 
+            // {
+            //     loadSystemLiveCache(name);
+            // } 
+            // else if(fileInfo->file == SettingFile::Common) 
+            // {
+            //     loadCommonLiveCache(name);
+            // }
         }
-        else if (m_pinsFileInfo.doc[name].is<T>())
-        {
-            if(!m_pinsFileInfo.initialized) 
-            {
-                LogHandler::error(m_TAG, "setValue T called before pins file initialized");
-                return SettingFile::NONE;
-            }
-            T currentValue = m_pinsFileInfo.doc[name].as<T>();
-            if(currentValue != value) 
-            {
-                LogHandler::debug(m_TAG, "Change pin value T: %s", name);
-                xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
-                checkRestartRequired(&m_pinsFileInfo, name);
-                m_pinsFileInfo.doc[name] = value;
-                loadPinLiveCache();
-                xSemaphoreGive(m_pinSemaphore);
-            }
-            if(writeToDisk && !saveToDisk(m_pinsFileInfo)) 
-            {
-                return SettingFile::NONE;
-            }
-            return SettingFile::Pins;
-        }
-        LogHandler::error(m_TAG, "setValue T key not found: %s", name);
-        return SettingFile::NONE;
+        return fileInfo->file;
+        // if (m_systemFileInfo.initialized && m_systemFileInfo.doc[name].is<T>())
+        // {
+        //     if(!m_systemFileInfo.initialized) 
+        //     {
+        //         LogHandler::error(m_TAG, "setValue T called before system file initialized");
+        //         return SettingFile::NONE;
+        //     }
+        //     T currentValue = m_systemFileInfo.doc[name].as<T>();
+        //     if(currentValue != value) 
+        //     {
+        //         LogHandler::debug(m_TAG, "Change system value T: %s", name);
+        //         m_systemFileInfo.take();
+        //         checkRestartRequired(&m_systemFileInfo, name);
+        //         m_systemFileInfo.doc[name] = value;
+        //         loadSystemLiveCache(name);
+        //         m_systemFileInfo.give();
+        //     }
+        //     if(writeToDisk && !saveToDisk(m_systemFileInfo)) 
+        //     {
+        //         return SettingFile::NONE;
+        //     }
+        //     return SettingFile::System;
+        // }
+        // else if (m_networkFileInfo.initialized && m_networkFileInfo.doc[name].is<T>())
+        // {
+        //     if(!m_networkFileInfo.initialized) 
+        //     {
+        //         LogHandler::error(m_TAG, "setValue T called before network file initialized");
+        //         return SettingFile::NONE;
+        //     }
+        //     T currentValue = m_networkFileInfo.doc[name].as<T>();
+        //     if(currentValue != value) 
+        //     {
+        //         LogHandler::debug(m_TAG, "Change wifi value T: %s", name);
+        //         m_networkFileInfo.take();
+        //         checkRestartRequired(&m_networkFileInfo, name);
+        //         m_networkFileInfo.doc[name] = value;
+        //         loadNetworkLiveCache(name);
+        //         m_networkFileInfo.give();
+        //     }
+        //     if(writeToDisk && !saveToDisk(m_networkFileInfo)) 
+        //     {
+        //         return SettingFile::NONE;
+        //     }
+        //     return SettingFile::Network;
+        // }
+        // else if (m_commonFileInfo.initialized && m_commonFileInfo.doc[name].is<T>())
+        // {
+        //     if(!m_commonFileInfo.initialized) 
+        //     {
+        //         LogHandler::error(m_TAG, "setValue T called before common file initialized");
+        //         return SettingFile::NONE;
+        //     }
+        //     T currentValue = m_commonFileInfo.doc[name].as<T>();
+        //     if(currentValue != value) 
+        //     {
+        //         LogHandler::debug(m_TAG, "Change common value T: %s", name);
+        //         m_commonFileInfo.take();
+        //         checkRestartRequired(&m_commonFileInfo, name);
+        //         m_commonFileInfo.doc[name] = value;
+        //         loadCommonLiveCache(name);
+        //         m_commonFileInfo.give();
+        //     }
+        //     if(writeToDisk && !saveToDisk(m_commonFileInfo)) 
+        //     {
+        //         return SettingFile::NONE;
+        //     }
+        //     return SettingFile::Common;
+        // }
+        // else if (m_pinsFileInfo.initialized && m_pinsFileInfo.doc[name].is<T>())
+        // {
+        //     if(!m_pinsFileInfo.initialized) 
+        //     {
+        //         LogHandler::error(m_TAG, "setValue T called before pins file initialized");
+        //         return SettingFile::NONE;
+        //     }
+        //     T currentValue = m_pinsFileInfo.doc[name].as<T>();
+        //     if(currentValue != value) 
+        //     {
+        //         LogHandler::debug(m_TAG, "Change pin value T: %s", name);
+        //         m_pinsFileInfo.take();
+        //         checkRestartRequired(&m_pinsFileInfo, name);
+        //         m_pinsFileInfo.doc[name] = value;
+        //         loadPinLiveCache();
+        //         m_pinsFileInfo.give();
+        //     }
+        //     if(writeToDisk && !saveToDisk(m_pinsFileInfo)) 
+        //     {
+        //         return SettingFile::NONE;
+        //     }
+        //     return SettingFile::Pins;
+        // }
+        // LogHandler::error(m_TAG, "setValue T key not found: %s", name);
+        // return SettingFile::NONE;
     }
 
     SettingFile setValue(const char* name, const char* value, bool writeToDisk = false) 
     {
-        LogHandler::debug(m_TAG, "Enter setValue const char*: %s", name);
         SettingFileInfo* fileInfo = getFile(name);
         if(!fileInfo) 
         {
@@ -523,14 +609,16 @@ public:
                 return SettingFile::NONE;
             }
             checkRestartRequired(fileInfo, name);
-            if(fileInfo->file == SettingFile::System) 
-            {
-                loadSystemLiveCache(name);
-            } 
-            else if(fileInfo->file == SettingFile::Common) 
-            {
-                loadCommonLiveCache(name);
-            }
+            if(fileInfo->onchange)
+                fileInfo->onchange(name);
+            // if(fileInfo->file == SettingFile::System) 
+            // {
+            //     loadSystemLiveCache(name);
+            // } 
+            // else if(fileInfo->file == SettingFile::Common) 
+            // {
+            //     loadCommonLiveCache(name);
+            // }
         }
         return fileInfo->file;
     }
@@ -674,9 +762,9 @@ public:
 
     bool saveSystem(JsonObject fromJson = JsonObject())
     {
-        xSemaphoreTake(m_systemSemaphore, portTICK_PERIOD_MS);
+        m_systemFileInfo.take();
         bool ret = saveToDisk(m_systemFileInfo, fromJson);
-        xSemaphoreGive(m_systemSemaphore);
+        m_systemFileInfo.give();
         if(ret) {
             loadSystemLiveCache();
         }
@@ -684,18 +772,18 @@ public:
     }
     bool resetSystem()
     {
-        xSemaphoreTake(m_systemSemaphore, portTICK_PERIOD_MS);
+        m_systemFileInfo.take();
         bool ret = loadDefault(m_systemFileInfo);
-        xSemaphoreGive(m_systemSemaphore);
+        m_systemFileInfo.give();
         if(ret)
             loadSystemLiveCache();
         return ret;
     }
     bool saveCommon(JsonObject fromJson = JsonObject())
     {
-        xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
+        m_commonFileInfo.take();
         bool ret = saveToDisk(m_commonFileInfo, fromJson);
-        xSemaphoreGive(m_commonSemaphore);
+        m_commonFileInfo.give();
         if(ret) {
             loadCommonLiveCache();
         }
@@ -703,9 +791,9 @@ public:
     }
     bool resetCommon()
     {
-        xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
+        m_commonFileInfo.take();
         bool ret = loadDefault(m_commonFileInfo);
-        xSemaphoreGive(m_commonSemaphore);
+        m_commonFileInfo.give();
         if(ret)
             loadCommonLiveCache();
         return ret;
@@ -713,7 +801,7 @@ public:
 
     bool saveNetwork(JsonObject fromJson = JsonObject())
     {
-        xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
+        m_networkFileInfo.take();
         if(!fromJson.isNull()) 
         {
             const char* pass = fromJson[WIFI_PASS_SETTING] | DECOY_PASS;
@@ -732,31 +820,31 @@ public:
             }
         }
         bool ret = saveToDisk(m_networkFileInfo, fromJson);
-        xSemaphoreGive(m_networkSemaphore);
+        m_networkFileInfo.give();
         return ret;
     }
     bool resetNetwork()
     {
-        xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
+        m_networkFileInfo.take();
         bool ret = loadDefault(m_networkFileInfo);
-        xSemaphoreGive(m_networkSemaphore);
+        m_networkFileInfo.give();
         return ret;
     }
     
     bool savePins(JsonObject fromJson = JsonObject())
     {
-        xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
+        m_pinsFileInfo.take();
         bool ret = saveToDisk(m_pinsFileInfo, fromJson);
-        xSemaphoreGive(m_pinSemaphore);
+        m_pinsFileInfo.give();
         if(ret)
             loadPinCache();
         return ret;
     }
     bool resetPins()
     {
-        xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
+        m_pinsFileInfo.take();
         bool ret = loadDefaultPins();
-        xSemaphoreGive(m_pinSemaphore);
+        m_pinsFileInfo.give();
         if(ret)
             loadPinCache();
         return ret;
@@ -1066,8 +1154,8 @@ public:
 
     bool addLastBootReason(const char* value)
     {
-        xSemaphoreTake(m_debugInfoSemaphore, portTICK_PERIOD_MS);
         SettingFileInfo debugInfo = getDebugInfo();
+        debugInfo.take();
         if(load(debugInfo))
         {
             JsonArray reasons = debugInfo.doc[DEBUG_INFO_LAST_BOOT_REASONS].as<JsonArray>();
@@ -1090,36 +1178,36 @@ public:
             obj["reason"] = value;
             if(saveToDisk(debugInfo)) 
             {
-                xSemaphoreGive(m_debugInfoSemaphore);
+                debugInfo.give();
                 return true;
             }
         }
-        xSemaphoreGive(m_debugInfoSemaphore);
+        debugInfo.give();
 
         return false;
     }
 
     bool resetLastBootReason()
     {
-        xSemaphoreTake(m_debugInfoSemaphore, portTICK_PERIOD_MS);
         SettingFileInfo debugInfo = getDebugInfo();
+        debugInfo.take();
         if(load(debugInfo))
         {
             debugInfo.doc[DEBUG_INFO_LAST_BOOT_REASONS].to<JsonArray>();
             if(saveToDisk(debugInfo))
             {
-                xSemaphoreGive(m_debugInfoSemaphore);
+                debugInfo.give();
                 return true;
             }
         }
-        xSemaphoreGive(m_debugInfoSemaphore);
+        debugInfo.give();
         return false;
     }
 
     bool addMotorStatus(const char* name, const char* value)
     {
-        xSemaphoreTake(m_debugInfoSemaphore, portTICK_PERIOD_MS);
         SettingFileInfo debugInfo = getDebugInfo();
+        debugInfo.take();
         if(load(debugInfo))
         {
             JsonArray array = debugInfo.doc[DEBUG_INFO_MOTOR_STATE].as<JsonArray>();
@@ -1139,28 +1227,28 @@ public:
             obj["message"] = value;
             if(saveToDisk(debugInfo)) 
             {
-                xSemaphoreGive(m_debugInfoSemaphore);
+                debugInfo.give();
                 return true;
             }
         }
-        xSemaphoreGive(m_debugInfoSemaphore);
+        debugInfo.give();
         return false;
     }
 
     bool resetMotorStatus()
     {
-        xSemaphoreTake(m_debugInfoSemaphore, portTICK_PERIOD_MS);
         SettingFileInfo debugInfo = getDebugInfo();
+        debugInfo.take();
         if(load(debugInfo))
         {
             debugInfo.doc[DEBUG_INFO_MOTOR_STATE].to<JsonArray>();
             if(saveToDisk(debugInfo))
             {
-                xSemaphoreGive(m_debugInfoSemaphore);
+                debugInfo.give();
                 return true;
             }
         }
-        xSemaphoreGive(m_debugInfoSemaphore);
+        debugInfo.give();
         return false;
     }
     
@@ -1177,15 +1265,9 @@ private:
 
     SettingsChangeCallback message_callback = 0;
 
-    SemaphoreHandle_t m_systemSemaphore;
-    SemaphoreHandle_t m_networkSemaphore;
-    SemaphoreHandle_t m_commonSemaphore;
-    SemaphoreHandle_t m_pinSemaphore;
-    SemaphoreHandle_t m_debugInfoSemaphore;
-
     SettingFileInfo m_systemFileInfo = 
     {
-        false, SYSTEM_SETTINGS_PATH, SettingFile::System, JsonDocument(), [this] () {loadSystemCache();}, [this]() { loadSystemLiveCache(); },
+        false, SYSTEM_SETTINGS_PATH, SettingFile::System, JsonDocument(), [this] () {loadSystemCache();}, [this](const char* name) { loadSystemLiveCache(name); },
         {
             {LOG_LEVEL_SETTING, "Log level", "The loglevel that will output", SettingType::Number, LOG_LEVEL_DEFAULT, RestartRequired::NO, {SettingProfile::System}},
             {LOG_WEBSOCKET_ENABLED, "Log output to websocket", "If enabled, most logs get sent to the websocket.", SettingType::Boolean, LOG_WEBSOCKET_ENABLED_DEFAULT, RestartRequired::NO, { SettingProfile::System }},
@@ -1200,7 +1282,7 @@ private:
 
     SettingFileInfo m_networkFileInfo = 
     {
-        false, NETWORK_SETTINGS_PATH, SettingFile::Network, JsonDocument(), [this] () {loadNetworkCache();}, [this] () {loadNetworkLiveCache();},
+        false, NETWORK_SETTINGS_PATH, SettingFile::Network, JsonDocument(), [this] () {loadNetworkCache();}, [this] (const char* name) {loadNetworkLiveCache(name);},
         {
             {SSID_SETTING, "Wifi ssid", "The ssid of the WiFi AP", SettingType::String, SSID_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
             {WIFI_PASS_SETTING, "Wifi pass", "The password for the WiFi AP", SettingType::String, WIFI_PASS_DEFAULT, RestartRequired::YES, {SettingProfile::Wifi, SettingProfile::Wireless}},
@@ -1237,7 +1319,7 @@ private:
 
     SettingFileInfo m_commonFileInfo = 
     {
-        false, COMMON_SETTINGS_PATH, SettingFile::Common, JsonDocument(), [this]() { loadCommonCache(); }, [this]() { loadCommonLiveCache(); },
+        false, COMMON_SETTINGS_PATH, SettingFile::Common, JsonDocument(), [this]() { loadCommonCache(); }, [this](const char* name) { loadCommonLiveCache(name); },
         {
             {MAX_SERVO_RANGE, "Max servo range", "Max range of the servos", SettingType::Number, MAX_SERVO_RANGE_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
             {CONTINUOUS_TWIST, "Continous twist", "Ignores any feedback signal from a feedback servo", SettingType::Boolean, CONTINUOUS_TWIST_DEFAULT, RestartRequired::YES, {SettingProfile::Servo}},
@@ -1326,7 +1408,7 @@ private:
 
     SettingFileInfo m_pinsFileInfo = 
     {
-        false, PIN_SETTINGS_PATH, SettingFile::Pins, JsonDocument(), [this]() { loadPinCache(); }, [this]() { loadPinLiveCache(); },
+        false, PIN_SETTINGS_PATH, SettingFile::Pins, JsonDocument(), [this]() { loadPinCache(); }, [this](const char* name) { loadPinLiveCache(name); },
         {
             // PWM
             {RIGHT_SERVO_PIN, "Right servo PIN", "Pin the right servo is on", SettingType::Number, RIGHT_SERVO_PIN_DEFAULT, RestartRequired::YES, {SettingProfile::Servo, SettingProfile::PWM, SettingProfile::Pin}},
@@ -1408,13 +1490,7 @@ private:
         };
     }
 
-    SettingsFactory() {
-        m_debugInfoSemaphore = xSemaphoreCreateMutex();
-        m_systemSemaphore = xSemaphoreCreateMutex();
-        m_networkSemaphore = xSemaphoreCreateMutex();
-        m_commonSemaphore = xSemaphoreCreateMutex();
-        m_pinSemaphore = xSemaphoreCreateMutex();
-    };
+    SettingsFactory() { };
 
     // Cached (Requires reboot)
     TCodeVersion tcodeVersion;
@@ -1904,31 +1980,31 @@ private:
 
     bool loadSystemFromDisk()
     {
-        xSemaphoreTake(m_systemSemaphore, portTICK_PERIOD_MS);
+        m_systemFileInfo.take();
         auto ret = load(m_systemFileInfo);
-        xSemaphoreGive(m_systemSemaphore);
+        m_systemFileInfo.give();
         return ret;
     }
 
     bool loadCommonFromDisk()
     {
-        xSemaphoreTake(m_commonSemaphore, portTICK_PERIOD_MS);
+        m_commonFileInfo.take();
         auto ret = load(m_commonFileInfo);
-        xSemaphoreGive(m_commonSemaphore);
+        m_commonFileInfo.give();
         return ret;
     }
     bool loadNetworkFromDisk()
     {
-        xSemaphoreTake(m_networkSemaphore, portTICK_PERIOD_MS);
+        m_networkFileInfo.take();
         bool ret = load(m_networkFileInfo);;
-        xSemaphoreGive(m_networkSemaphore);
+        m_networkFileInfo.give();
         return ret;
     }
     bool loadPinsFromDisk()
     {
-        xSemaphoreTake(m_pinSemaphore, portTICK_PERIOD_MS);
+        m_pinsFileInfo.take();
         bool ret = load(m_pinsFileInfo);
-        xSemaphoreGive(m_pinSemaphore);
+        m_pinsFileInfo.give();
         return ret;
     }
 
@@ -1961,13 +2037,14 @@ private:
             LogHandler::debug(m_TAG, "File contents: %s", file.readString().c_str());
         file.close();
         if(fileInfo.onchange)
-            fileInfo.onchange();
-        //LogHandler::info(m_TAG, "This is a test log.\tIts going to be a long one. Hopefully greater than 256 (MAX_COMMAND) bytes. Can I do it? Ramble on about how long this message is without running out of steam? Have I hit 256 bytes yet? Nope, My hands are gettinf tired. Whoops a typo. Im not going to fix it because who cares? Not the point. Oh, I hit 256 a while agio. Ok I suppose I need 512 chars now. Thts DOUBLE the max len. Getting close I can feel it. I'm lying, I can see it in my text editor. Oh my, I dont have anything left to say. YES done!");
+            fileInfo.onchange(0);
+        LogHandler::info(m_TAG, "This is a test log.\tIts going to be a long one. Hopefully greater than 256 (MAX_COMMAND) bytes. Can I do it? Ramble on about how long this message is without running out of steam? Have I hit 256 bytes yet? Nope, My hands are gettinf tired. Whoops a typo. Im not going to fix it because who cares? Not the point. Oh, I hit 256 a while agio. Ok I suppose I need 512 chars now. Thts DOUBLE the max len. Getting close I can feel it. I'm lying, I can see it in my text editor. Oh my, I dont have anything left to say. YES done!");
         return true;
     }
 
     void loadSystemCache() 
     {
+        LogHandler::debug(m_TAG, "SettingsFactory::loadSystemCache");
         if(!m_systemFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadSystemCache called before initialized");
             return;
@@ -1978,6 +2055,7 @@ private:
 
     void loadNetworkCache() 
     {
+        LogHandler::debug(m_TAG, "SettingsFactory::loadNetworkCache");
         if(!m_networkFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadNetworkCache called before initialized");
             return;
@@ -1993,6 +2071,7 @@ private:
 
     void loadCommonCache() 
     {
+        LogHandler::debug(m_TAG, "SettingsFactory::loadCommonCache");
         if(!m_commonFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadCommonCache called before initialized");
             return;
@@ -2003,6 +2082,7 @@ private:
     }
 
     void loadPinCache() {
+        LogHandler::debug(m_TAG, "SettingsFactory::loadPinCache");
         if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadPinCache called before initialized");
             return;
@@ -2033,6 +2113,7 @@ private:
 
     void loadCommonPins(PinMap* pinMap) 
     {
+        LogHandler::debug(m_TAG, "SettingsFactory::loadCommonPins");
         if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadCommonPins called before initialized");
             return;
@@ -2130,6 +2211,7 @@ private:
 
     PinMapSSR* loadSSRPins() 
     {
+        LogHandler::debug(m_TAG, "SettingsFactory::loadSSRPins");
         if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadSSR1Pins called before initialized");
             return 0;
@@ -2170,6 +2252,7 @@ private:
 
     PinMapOSR* loadOSRPins() 
     {
+        LogHandler::debug(m_TAG, "SettingsFactory::loadOSRPins");
         if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadSSR1Pins called before initialized");
             return 0;
@@ -2195,6 +2278,7 @@ private:
     
     PinMapSR6* loadSR6Pins() 
     {
+        LogHandler::debug(m_TAG, "SettingsFactory::loadSR6Pins");
         if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "loadSR6Pins called before initialized");
             return 0;
@@ -2232,6 +2316,7 @@ private:
     
     void syncCommonPinsToDoc(const PinMap* pinMap) 
     {
+        LogHandler::debug(m_TAG, "SettingsFactory::syncCommonPinsToDoc");
         if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "syncCommonPinsToDoc called before initialized");
             return;
@@ -2281,6 +2366,7 @@ private:
 
     void syncSSRAndCommonPinsToDisk(const PinMapSSR* pinMap) 
     {
+        LogHandler::debug(m_TAG, "SettingsFactory::syncSSRAndCommonPinsToDisk");
         if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "syncSSRAndCommonPinsToDisk called before initialized");
             return;
@@ -2304,6 +2390,7 @@ private:
 
     void syncOSRAndCommonPinsToDisk(const PinMapOSR* pinMap) 
     {
+        LogHandler::debug(m_TAG, "SettingsFactory::syncOSRAndCommonPinsToDisk");
         if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "syncOSRAndCommonPinsToDisk called before initialized");
             return;
@@ -2320,6 +2407,7 @@ private:
 
     void syncSR6AndCommonPinsToDisk(const PinMapSR6* pinMap) 
     {
+        LogHandler::debug(m_TAG, "SettingsFactory::syncSR6AndCommonPinsToDisk");
         if(!m_pinsFileInfo.initialized) {
             LogHandler::error(m_TAG, "syncSR6AndCommonPinsToDisk called before initialized");
             return;

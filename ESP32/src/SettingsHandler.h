@@ -130,44 +130,11 @@ public:
         errorInfoIndex++;
     }
 
-    static void printFree(bool forcePrint = false) {
-        if(forcePrint || LogHandler::getLogLevel() == LogLevel::DEBUG)
-        {
-            uint32_t freeHEap = ESP.getFreeHeap();
-            uint32_t heapSize = ESP.getHeapSize();
-            //https://esp32.com/viewtopic.php?t=27780
-            //https://github.com/espressif/esp-idf/blob/master/components/heap/include/esp_heap_caps.h#L20-L37
-            //esp_get_free_internal_heap_size
-            Serial.printf("Used heap INTERNAL: %u/%u Free: %u\n", heapSize - freeHEap, heapSize, freeHEap);
-            Serial.printf("Free psram: %u\n", ESP.getFreePsram());
-            Serial.printf("Total Psram: %u\n", ESP.getPsramSize());
-            Serial.printf("LittleFS used: %i\n", LittleFS.usedBytes());
-            Serial.printf("LittleFS total: %i\n", LittleFS.totalBytes());
-            //LogHandler::debug(_TAG, "Used Psram: %u/%u", ESP.getPsramSize() - ESP.getFreePsram(), ESP.getPsramSize());
-            Serial.printf("Sketch size: %u\n", ESP.getSketchSize());
-            Serial.printf("Sketch free space: %u\n", ESP.getFreeSketchSpace());
-            Serial.printf("DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-            Serial.printf("IRAM %u\n", heap_caps_get_free_size(MALLOC_CAP_32BIT));
-            Serial.printf("FREE_HEAP Default %u\n", esp_get_free_heap_size());
-            Serial.printf("MIN_FREE_HEAP %u\n", esp_get_minimum_free_heap_size() );
-            //uxTaskGetStackHighWaterMark
-        }
-    }
-
 	static void restart(const int delayInSec = 0) {
 		LogHandler::info(_TAG, "Schedule device restart in %ld seconds", delayInSec);
         // Restart in main task loop
 		restartInSecs = delayInSec;
 	}
-
-    static void printWebAddress(const char* hostAddress) 
-    {
-        char webServerportString[6];
-        int webServerPort = 0;
-        m_settingsFactory->getValue(WEBSERVER_PORT, webServerPort);
-        sprintf(webServerportString, ":%d", webServerPort);
-        LogHandler::info(_TAG, "Web address: http://%s%s", hostAddress, webServerPort == 80 ? "" : webServerportString);
-    }
     
     static bool saveAll(JsonObject obj = JsonObject()) 
     {
@@ -179,7 +146,7 @@ public:
     static bool saveAll(const String& data)
     {
         LogHandler::debug(_TAG, "Save frome string");
-        printFree();
+        LogHandler::printFree();
         JsonDocument doc;
     
         DeserializationError error = deserializeJson(doc, data);
@@ -188,7 +155,7 @@ public:
             LogHandler::error(_TAG, "Settings save: Deserialize error: %s", error.c_str());
             return false;
         }
-        printFree();
+        LogHandler::printFree();
         JsonObject obj = doc.as<JsonObject>();
         if (!saveAll(obj))
         {
@@ -1003,10 +970,10 @@ public:
             return false;
         }
         File file = LittleFS.open(path, "r");
-        printFree();
+        LogHandler::printFree();
         String fileStr = file.readString();
         //buf = static_cast<char*>(malloc(fileStr.length() + 1));
-        printFree();
+        LogHandler::printFree();
         LogHandler::info(_TAG, "Create buffer: %u", fileStr.length());
         buf = new char[fileStr.length() + 1];
         strcpy(buf, fileStr.c_str());
@@ -1345,7 +1312,7 @@ private:
             }
             LogHandler::debug(_TAG, "File contents: %s", file.readString().c_str());
             file.close();
-            printFree();
+            LogHandler::printFree();
         }
         saving = false;
         xSemaphoreGive(mutex);
