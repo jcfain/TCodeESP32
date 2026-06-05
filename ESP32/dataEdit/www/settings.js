@@ -52,7 +52,7 @@ const TCodeVersion = {
     V3: 0,
     V4: 1
 }
-const latestTCodeVersion = TCodeVersion.V3;
+const latestTCodeVersion = TCodeVersion.V4;
 const MotorType = {
     Servo: 0,
     BLDC: 1
@@ -483,7 +483,10 @@ function updateALLUserSettings() {
     postCommonSettings(0, updatePinoutChain);
 }
 var updatePinoutChain = function() {
-    postAndValidatePinoutSettings(0, updateWifiSettingsChain);
+    postAndValidatePinoutSettings(0, updateSystemSettingsChain);
+}
+var updateSystemSettingsChain = function() {
+    postSystemSettings(0, updateWifiSettingsChain);
 }
 var updateWifiSettingsChain = function() {
     postWifiSettings(0, updateButtonSettingsChain);
@@ -3282,6 +3285,7 @@ function exportToJsonFile() {
     alert("Wifi password will NOT be exported!");
     const userSettingsCopy = JSON.parse(JSON.stringify(userSettings));
     userSettingsCopy["esp32VersionNum"] = systemInfo.esp32VersionNum;
+    userSettingsCopy["systemSettings"] = systemSettings;
     //userSettingsCopy["wifiPass"] = "YOUR PASSWORD HERE";
     userSettingsCopy["wifiSettings"] = wifiSettings;
     //userSettingsCopy["wifiSettings"].wifiPass = "YOUR PASSWORD HERE";
@@ -3344,6 +3348,7 @@ function importSettings() {
             setUserSettings();
             setPinoutSettings();
             setRestartRequired();
+            setSystemSettings();
             updateALLUserSettings();
         }, false);
 
@@ -3450,6 +3455,9 @@ function handleImportRenames(key, value, firmwareVersion) {
         case "bootButtonCommand":
         buttonSettings.bootButtonCommand = value;
         return;
+        case "systemSettings": 
+        systemSettings = value;
+        return;
         case "buttonSettings": 
         buttonSettings = value;
         // buttonSettings = {...buttonSettings, ...value}; // Merge objects? test this when adding property or removing?
@@ -3492,6 +3500,30 @@ function handleImportRenames(key, value, firmwareVersion) {
             return;
         case "BLDC_MotorA_ZeroElecAngle":
             userSettings.BLDC_Motor_ZeroElecAngle = value
+            return;
+        case "logLevel":
+            systemSettings["logLevel"] = value
+            return;
+        case "websocketLoggingEnabled":
+            systemSettings["websocketLoggingEnabled"] = value
+            return;
+        case "deviceType":
+            systemSettings["deviceType"] = value
+            return;
+        case "motorType":
+            systemSettings["motorType"] = value
+            return;
+        case "boardType":
+            systemSettings["boardType"] = value
+            return;
+        case "TCodeVersion":
+            systemSettings["TCodeVersion"] = value
+            return;
+        case "log-include-tags":
+            systemSettings["log-include-tags"] = value
+            return;
+        case "log-exclude-tags":
+            systemSettings["log-exclude-tags"] = value
             return;
     }
     if(key.endsWith("_PIN")) {
