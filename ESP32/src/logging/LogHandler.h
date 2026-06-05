@@ -40,7 +40,7 @@ struct LogMessage {
 
 class LogHandler {
 public:
-    static const int internal_buffer_length = 1024;
+    static const int internal_buffer_length = 256;
 
     static void init() 
     {
@@ -501,81 +501,81 @@ private:
         if (!uxQueueSpacesAvailable(m_logQueue)) 
             return;
         
-        // LogMessage logMessage;
-        // logMessage.level = level;
-        // Chunker chunker(message, len, MAX_LOG_STORE);
-        // size_t chunkLen = chunker(logMessage.message);
-        // Serial.printf("[LogHandler::storeLog] chunkLen: %u\n", chunkLen);
-        // while(chunkLen > 0) 
-        // {
-        //     logMessage.len = chunkLen;
-        //     if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
-        //     {
-        //         Serial.printf("[LogHandler::storeLog] Error storing log message: %s, len: %u\n", logMessage.message, logMessage.len);
-        //     }
-        //     chunkLen = chunker(logMessage.message);
-        //     Serial.printf("[LogHandler::storeLog] chunkLen: %u\n", chunkLen);
-        // }
-
-
-        int maxLen = MAX_LOG_STORE;
         LogMessage logMessage;
         logMessage.level = level;
-        if(len > maxLen) 
+        Chunker chunker(message, len, MAX_LOG_STORE);
+        size_t chunkLen = chunker(logMessage.message);
+        // Serial.printf("[LogHandler::storeLog] chunkLen: %u\n", chunkLen);
+        while(chunkLen > 0) 
         {
-            int mod = len % maxLen;
-            int chunkTotal = len - mod;
-            int sendChunks = chunkTotal / maxLen;
-            int sent = 0;
-            int amountToSend = chunkTotal / sendChunks;
-            if(getLogLevel() >= LogLevel::DEBUG) 
-            {
-                Serial.printf("[LogHandler::storeLog] len: %i, sendChunks: %i, amountToSend: %i\n", len, sendChunks, amountToSend);
-                Serial.printf("[LogHandler::storeLog] sent: %i\n", sent);
-            }
-            for(int i = 0; i < sendChunks; i++)
-            {
-                // char messageToSend[amountToSend];
-                strncpy(logMessage.message, message + sent, amountToSend);
-                logMessage.message[amountToSend] = '\0';
-                logMessage.len = amountToSend;
-                if(getLogLevel() >= LogLevel::DEBUG) 
-                    Serial.printf("[LogHandler::storeLog] truncated: %s\n", logMessage.message);
-                if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
-                {
-                    Serial.printf("[LogHandler::storeLog] Error storing log message trancate: %s\n", logMessage.message);
-                }
-                sent += amountToSend;
-                if(getLogLevel() >= LogLevel::DEBUG) 
-                    Serial.printf("[LogHandler::storeLog] sent: %i\n", sent);
-            }
-            if(mod)
-            {
-                strncpy(logMessage.message, message + sent, mod);
-                logMessage.message[mod] = '\0';
-                strncat(logMessage.message, "\n", 5);
-                logMessage.len = mod +1;
-                if(getLogLevel() >= LogLevel::DEBUG) 
-                    Serial.printf("[LogHandler::storeLog] truncated mod: %i, message: %s\n", mod, logMessage.message);
-                if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
-                {
-                    Serial.printf("[LogHandler::storeLog] Error storing log message trancate mod: %s\n", logMessage.message);
-                }
-                sent += mod;
-                if(getLogLevel() >= LogLevel::DEBUG) 
-                    Serial.printf("[LogHandler::storeLog] sent: %i\n", sent);
-            }
-        } 
-        else 
-        {
-            strncpy(logMessage.message, message, len);
-            logMessage.message[len] = '\0';
-            strncat(logMessage.message, "\n", 5);
-            logMessage.len = len +1;
+            logMessage.len = chunkLen;
             if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
             {
-                Serial.printf("[LogHandler::storeLog] Error storing log message\n");
+                Serial.printf("[LogHandler::storeLog] Error storing log message: %s, len: %u\n", logMessage.message, logMessage.len);
             }
+            chunkLen = chunker(logMessage.message);
+            // Serial.printf("[LogHandler::storeLog] chunkLen: %u\n", chunkLen);
         }
+
+
+        // int maxLen = MAX_LOG_STORE;
+        // LogMessage logMessage;
+        // logMessage.level = level;
+        // if(len > maxLen) 
+        // {
+        //     int mod = len % maxLen;
+        //     int chunkTotal = len - mod;
+        //     int sendChunks = chunkTotal / maxLen;
+        //     int sent = 0;
+        //     int amountToSend = chunkTotal / sendChunks;
+        //     if(getLogLevel() >= LogLevel::DEBUG) 
+        //     {
+        //         Serial.printf("[LogHandler::storeLog] len: %i, sendChunks: %i, amountToSend: %i\n", len, sendChunks, amountToSend);
+        //         Serial.printf("[LogHandler::storeLog] sent: %i\n", sent);
+        //     }
+        //     for(int i = 0; i < sendChunks; i++)
+        //     {
+        //         // char messageToSend[amountToSend];
+        //         strncpy(logMessage.message, message + sent, amountToSend);
+        //         logMessage.message[amountToSend] = '\0';
+        //         logMessage.len = amountToSend;
+        //         if(getLogLevel() >= LogLevel::DEBUG) 
+        //             Serial.printf("[LogHandler::storeLog] truncated: %s\n", logMessage.message);
+        //         if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
+        //         {
+        //             Serial.printf("[LogHandler::storeLog] Error storing log message trancate: %s\n", logMessage.message);
+        //         }
+        //         sent += amountToSend;
+        //         if(getLogLevel() >= LogLevel::DEBUG) 
+        //             Serial.printf("[LogHandler::storeLog] sent: %i\n", sent);
+        //     }
+        //     if(mod)
+        //     {
+        //         strncpy(logMessage.message, message + sent, mod);
+        //         logMessage.message[mod] = '\0';
+        //         strncat(logMessage.message, "\n", 5);
+        //         logMessage.len = mod +1;
+        //         if(getLogLevel() >= LogLevel::DEBUG) 
+        //             Serial.printf("[LogHandler::storeLog] truncated mod: %i, message: %s\n", mod, logMessage.message);
+        //         if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
+        //         {
+        //             Serial.printf("[LogHandler::storeLog] Error storing log message trancate mod: %s\n", logMessage.message);
+        //         }
+        //         sent += mod;
+        //         if(getLogLevel() >= LogLevel::DEBUG) 
+        //             Serial.printf("[LogHandler::storeLog] sent: %i\n", sent);
+        //     }
+        // } 
+        // else 
+        // {
+        //     strncpy(logMessage.message, message, len);
+        //     logMessage.message[len] = '\0';
+        //     strncat(logMessage.message, "\n", 5);
+        //     logMessage.len = len +1;
+        //     if(xQueueSend(m_logQueue, &logMessage, 0) != pdTRUE) 
+        //     {
+        //         Serial.printf("[LogHandler::storeLog] Error storing log message\n");
+        //     }
+        // }
     }
 };

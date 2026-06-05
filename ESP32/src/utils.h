@@ -162,7 +162,7 @@ struct StrCompare
 };
 
 struct Chunker {
-    Chunker(const char* in, int len, int maxLen) : in(in), len(len), maxLen(maxLen), sent(0) { }
+    Chunker(const char* in, const size_t& len, const size_t& maxLen) : in(in), len(len), maxLen(maxLen), sent(0) { }
 
     // size_t getChunkSize() {
     //     if(len > maxLen) 
@@ -170,8 +170,8 @@ struct Chunker {
     //         int mod = len % maxLen;
     //         int chunkTotal = len - mod;
     //         int sendChunks = chunkTotal / maxLen;
-    //         int amountToSend = chunkTotal / sendChunks;
-    //         return amountToSend;
+    //         int chunkAmount = chunkTotal / sendChunks;
+    //         return chunkAmount;
     //     }
     //     return len;
     // }
@@ -180,33 +180,41 @@ struct Chunker {
     {
         if(sent < len)
         {
-            if(len > maxLen) 
+            int maxLenMinusNewLine = maxLen - 1;
+            if(len > maxLenMinusNewLine) 
             {
-                int mod = len % maxLen;
+                int mod = len % maxLenMinusNewLine;
                 int chunkTotal = len - mod;
-                int sendChunks = chunkTotal / maxLen;
-                int amountToSend = chunkTotal / sendChunks;
-                Serial.printf("[Chunker] len: %i, sendChunks: %i, amountToSend: %i\n", len, sendChunks, amountToSend);
-                Serial.printf("[Chunker] sent: %i\n", sent);
+                int fullChunkCount = chunkTotal / maxLenMinusNewLine;
+                int chunkAmount = chunkTotal / fullChunkCount;
+                // Serial.printf("[Chunker] len: %i, fullChunkCount: %i, chunkAmount: %i\n", len, fullChunkCount, chunkAmount);
+                // if(mod)
+                //     Serial.printf("[Chunker] left over mod: %i, totalChunks: %i\n", mod, fullChunkCount +1);
+                // Serial.printf("[Chunker] sent: %i\n", sent);
                 if(len - sent > mod)
                 {
-                    // char messageToSend[amountToSend];
-                    strncpy(out, in + sent, amountToSend);
-                    out[amountToSend] = '\0';
+                    strncpy(out, in + sent, chunkAmount);
+                    out[chunkAmount] = '\0';
+                    sent += chunkAmount;
                     Serial.printf("[Chunker] truncated: %s\n", out);
-                    sent += amountToSend;
-                    Serial.printf("[Chunker] sent: %i\n", sent);
-                    return amountToSend;
+                    // Serial.printf("[Chunker] sent: %i\n", sent);
+                    return chunkAmount;
                 }
-                if(mod)
+                else if(mod)
                 {
                     strncpy(out, in + sent, mod);
                     out[mod] = '\0';
-                    strncat(out, "\n", 5);
-                    Serial.printf("[Chunker] truncated mod: %i, message: %s\n", mod, out);
+                    strcat(out, "\n");
                     sent += mod;
-                    Serial.printf("[Chunker] sent: %i\n", sent);
+                    Serial.printf("[Chunker] truncated mod: %i, message: %s\n", mod, out);
+                    // Serial.printf("[Chunker] sent: %i\n", sent);
                     return mod +1;
+                }
+                else
+                {
+                    out[0] = '\0';
+                    strcat(out, "\n");
+                    return 2;
                 }
             } 
             else 
@@ -214,7 +222,7 @@ struct Chunker {
                 strncpy(out, in, len);
                 out[len] = '\0';
                 sent += len;
-                strncat(out, "\n", 5);
+                strcat(out, "\n");
                 return len +1;
             }
         }
@@ -222,11 +230,10 @@ struct Chunker {
     }
 
 private:
-    int sent = 0;
     const char* in;
-    int len;
-    int maxLen;
-    int currentPos;
+    const size_t len;
+    const size_t maxLen;
+    size_t sent = 0;
 };
 // adc2_channel_t gpioToADC2(int gpioPinc:\Users\jfain\AppData\Local\Programs\Microsoft VS Code\resources\app\out\vs\code\electron-sandbox\workbench\workbench.html) {
 //     switch(gpioPin) {

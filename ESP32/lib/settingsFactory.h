@@ -2011,7 +2011,7 @@ private:
     //template <unsigned int N>
     bool saveToDisk(SettingFileInfo &fileInfo, JsonObject fromJson = JsonObject())
     {
-        LogHandler::debug(m_TAG, "Save file: %s", fileInfo.path);
+        LogHandler::info(m_TAG, "Save file: %s", fileInfo.path);
         if(!fromJson.isNull()) {
             LogHandler::debug(m_TAG, "Saving from override json");
             fileInfo.doc.clear();
@@ -2038,7 +2038,10 @@ private:
         file.close();
         if(fileInfo.onchange)
             fileInfo.onchange(0);
-        LogHandler::info(m_TAG, "This is a test log.\tIts going to be a long one. Hopefully greater than 256 (MAX_COMMAND) bytes. Can I do it? Ramble on about how long this message is without running out of steam? Have I hit 256 bytes yet? Nope, My hands are gettinf tired. Whoops a typo. Im not going to fix it because who cares? Not the point. Oh, I hit 256 a while agio. Ok I suppose I need 512 chars now. Thts DOUBLE the max len. Getting close I can feel it. I'm lying, I can see it in my text editor. Oh my, I dont have anything left to say. YES done!");
+        // Long log test with mod 47 (I think) leftover past 256(MAX_COMMAND) *2
+        // LogHandler::info(m_TAG, "This is a test log.\tIts going to be a long one. Hopefully greater than 256 (MAX_COMMAND) bytes. Can I do it? Ramble on about how long this message is without running out of steam? Have I hit 256 bytes yet? Nope, My hands are gettinf tired. Whoops a typo. Im not going to fix it because who cares? Not the point. Oh, I hit 256 a while agio. Ok I suppose I need 512 chars now. Thts DOUBLE the max len. Getting close I can feel it. I'm lying, I can see it in my text editor. Oh my, I dont have anything left to say. YES done!");
+        // Long log test without leftover past 512. (This includes the loginfo such as tag and [INFO] which is 25. So (512 - 25) + 1(newline) = 486)
+        // LogHandler::info(m_TAG, "This is a test log. Its going to be a long one. Hopefully greater than 256 (MAX_COMMAND) bytes. Can I do it? Ramble on about how long this message is without running out of steam? Have I hit 256 bytes yet? Nope, My hands are gettinf tired. Whoops a typo. Im not going to fix it because who cares? Not the point. Oh, I hit 256 a while agio. Ok I suppose I need 512 chars now. Thts DOUBLE the max len. Getting close I can feel it. I'm lying, I can see it in my text editor. Oh my, I done");
         return true;
     }
 

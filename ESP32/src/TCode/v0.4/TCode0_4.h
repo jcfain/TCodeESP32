@@ -68,7 +68,7 @@ public:
 			size_t length = TCode::available();
 			if(!length)
 				return;
-			Serial.printf("TCode_4 getMessages length: %i\n", length);
+			// Serial.printf("TCode_4 getMessages length: %i\n", length);
 			size_t index = 0;
 			char outputBuffer[length] = {0};
 			while (index < length) 
@@ -80,7 +80,7 @@ public:
 				{
 					break;
 				}
-				Serial.printf("TCode_4 getMessages index: %i\n", index);
+				// Serial.printf("TCode_4 getMessages index: %i\n", index);
 			}
 			outputBuffer[index] = {0};
 			Serial.printf("TCode_4 getMessages send: %s\n", outputBuffer);
