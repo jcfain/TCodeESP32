@@ -524,7 +524,7 @@ class WebHandler : public HTTPBase {
         }
 
         void sendChunked(AsyncWebServerRequest *request, const char* filePath, const char* mimeType = "application/json", const bool& isGZip = false) {
-		        LogHandler::debug(_TAG,"[sendChunked] Open file: %s\n", filePath);
+		        LogHandler::debug(_TAG,"[sendChunked] Open file: %s", filePath);
                 File file{LittleFS.open(filePath, FILE_READ)};
 
                 AsyncWebServerResponse *response = request->beginChunkedResponse(
@@ -534,7 +534,7 @@ class WebHandler : public HTTPBase {
                         const size_t max_len,
                         const size_t index) mutable -> size_t
                     {
-		                LogHandler::verbose(_TAG,"[beginChunkedResponse] Enter chunked file: %s\n", file.name());
+		                LogHandler::verbose(_TAG,"[beginChunkedResponse] Enter chunked file: %s", file.name());
                         size_t length;
 
                         // Restrict chunk size so we don't run out of RAM
@@ -552,7 +552,7 @@ class WebHandler : public HTTPBase {
 
                         if (length == 0)
                         {
-		                    LogHandler::verbose(_TAG,"[beginChunkedResponse] Close file: %s\n", file.name());
+		                    LogHandler::verbose(_TAG,"[beginChunkedResponse] Close file: %s", file.name());
                             file.close();
                         }
 

@@ -55,12 +55,13 @@ public:
         }
         if(SettingsFactory::getInstance()->getWebsocketLoggingEnabled())
             TaskHandler::getInstance()->startWebsocketLogging(this);
+        m_xMutex = xSemaphoreCreateMutex();
         isInitialized = true;
     }
     
     void send(const char* in) override 
     {
-        if(isInitialized && ws.count() > 0) 
+        if(isInitialized && ws.count()) 
         {
             // size_t len = strlen(in);
             // if(len > MAX_WS_MESSAGE)
@@ -77,9 +78,9 @@ public:
 
     void sendCommand(const char* command, size_t commandLen, const char* message = 0, size_t messageLen = 0) override
     {
-        if(isInitialized && command_mtx.try_lock()) 
+        if(isInitialized && ws.count()) 
         {
-            std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
+            xSemaphoreTake(m_xMutex, portMAX_DELAY);
             m_lastSend = millis();
 
             char commandJson[commandLen + messageLen + COMMAND_PADDING];
@@ -87,6 +88,7 @@ public:
             if(!len)
                 return;
             ws.textAll(commandJson, len);
+            xSemaphoreGive(m_xMutex);
         }
     }
 
@@ -210,7 +212,7 @@ private:
     {
         if(type == WS_EVT_CONNECT)
         {
-            LogHandler::debug(_TAG, "ws[%s][%u] connect\n", server->url(), client->id());
+            LogHandler::debug(_TAG, "ws[%s][%u] connect", server->url(), client->id());
             //client->printf("Hello Client %u :)", client->id());
             // client->ping();
             // client->client()->setNoDelay(true);
@@ -218,16 +220,16 @@ private:
         } 
         else if(type == WS_EVT_DISCONNECT)
         {
-            LogHandler::debug(_TAG, "ws[%s][%u] disconnect\n", server->url(), client->id());
+            LogHandler::debug(_TAG, "ws[%s][%u] disconnect", server->url(), client->id());
             m_clients.remove(client);
         } 
         else if(type == WS_EVT_ERROR)
         {
-            LogHandler::debug(_TAG, "ws[%s][%u] error(%u): %s\n", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
+            LogHandler::debug(_TAG, "ws[%s][%u] error(%u): %s", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
         } 
         else if(type == WS_EVT_PONG)
         {
-            LogHandler::debug(_TAG, "ws[%s][%u] pong[%u]: %s\n", server->url(), client->id(), len, (len)?(char*)data:"");
+            LogHandler::debug(_TAG, "ws[%s][%u] pong[%u]: %s", server->url(), client->id(), len, (len)?(char*)data:"");
         } 
         else if(type == WS_EVT_DATA)
         {

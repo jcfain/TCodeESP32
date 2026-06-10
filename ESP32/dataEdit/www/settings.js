@@ -20,6 +20,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
+var debugEnabled = JSON.parse(window.localStorage.getItem("debugEnabled"));
+var debugAutoScrollDisabled = JSON.parse(window.localStorage.getItem("debugAutoScrollDisabled"));
+
 var userSettings = {};
 var systemSettings = {};
 var debugInfoSettings = {};
@@ -32,7 +35,6 @@ var channelsProfileSettings = {};
 var debounceTimeouts = {};
 var restartRequired = false;
 var documentLoaded = false;
-var debugEnabled = JSON.parse(window.localStorage.getItem("debugEnabled"));
 var playSounds = false;
 var importSettingsInputElement;
 var websocket;
@@ -267,8 +269,9 @@ function onDocumentLoad() {
     createImportSettingsInputElement();
     
     loggingTextElement = document.getElementById("loggingText");
-    loggingTextElement.scrollTop = loggingTextElement.scrollHeight;
+    logdebug("Document loaded");
     document.getElementById("includeWebClientDebug").checked = debugEnabled;
+    document.getElementById("debugAutoScrollDisabled").checked = debugAutoScrollDisabled;
 }
 function pingDevice() {
     if(serverPollingTimeOut) {
@@ -608,6 +611,7 @@ function wsCallBackFunction(evt) {
             data["command"] != "verbose" && 
             data["command"] != "debug" && 
             data["command"] != "warn" && 
+            data["command"] != "error" && 
             data["command"] != "saveSuccess" && 
             data["command"] != "saveFail"
         ) {
@@ -699,8 +703,11 @@ function wsCallBackFunction(evt) {
 
 function toggleWebClientDebug(enabled) {
     debugEnabled = enabled;
-    toggleDebugLoggingText(debugEnabled || systemSettings["websocketLoggingEnabled"])
     window.localStorage.setItem("debugEnabled", enabled);
+}
+function toggleWebClientDebugAutoscroll(enabled) {
+    debugAutoScrollDisabled = enabled;
+    window.localStorage.setItem("debugAutoScrollDisabled", enabled);
 }
 
 function logdebug(message) {
@@ -725,13 +732,15 @@ function logError(message) {
 function logRaw(message) {
     if(loggingTextElement) {
         loggingTextElement.value += message;
-        loggingTextElement.scrollTop = loggingTextElement.scrollHeight;
+        if(!debugAutoScrollDisabled)
+            loggingTextElement.scrollTop = loggingTextElement.scrollHeight;
     }
 }
 function log(message) {
     if(loggingTextElement) {
         loggingTextElement.value += new Date().toISOString() + " " + message + "\n";
-        loggingTextElement.scrollTop = loggingTextElement.scrollHeight;
+        if(!debugAutoScrollDisabled)
+            loggingTextElement.scrollTop = loggingTextElement.scrollHeight;
     }
 }
 
@@ -1083,10 +1092,9 @@ function setSystemSettings()
     setLogLevelUI();
     toggleNonTCodev3Options();
     toggleDeviceOptions(systemSettings["deviceType"]);
-    toggleDebugLoggingText(debugEnabled || systemSettings["websocketLoggingEnabled"]);
     
     document.getElementById('logLevel').value = systemSettings["logLevel"];
-    document.getElementById('websocketLoggingEnabled').checked = systemSettings["websocketLoggingEnabled"];
+    // document.getElementById('websocketLoggingEnabled').checked = systemSettings["websocketLoggingEnabled"];// Removed due to instability in ESP32 S
 
     var includedElement = document.getElementById('log-include-tags');
     for (var i = 0; i < includedElement.options.length; i++) {
@@ -1777,16 +1785,6 @@ function onSendTCodeCommandEnter(event) {
     }
 }
 
-function toggleDebugLoggingText(enabled) {
-    const loggingTextRows = document.getElementsByName("loggingTextRow");
-    for(let i=0;i<loggingTextRows.length; i++) {
-        if(enabled) {
-            loggingTextRows[i].classList.remove("hidden")
-        } else if(!loggingTextRows[i].classList.contains("hidden")) {
-            loggingTextRows[i].classList.add("hidden")
-        }
-    }
-}
 
 function getSliderTCode(channel, sliderValue, useIModifier, modifierValue, disableModifier) {
     var value = percentageToTcode(sliderValue);

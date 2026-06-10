@@ -68,18 +68,18 @@ public:
 
         // Register device axes
         stroke = new Axis(TCODE_MID);
-        m_tcode->addAxis("L0", *stroke);
+        m_tcode->addAxis(TCODE_CHANNEL_STROKE, *stroke);
         if (m_deviceType == DeviceType::SR6) 
         {
             surge = new Axis(TCODE_MID);
-            m_tcode->addAxis("L1", *surge);
+            m_tcode->addAxis(TCODE_CHANNEL_SURGE, *surge);
             sway = new Axis(TCODE_MID);
-            m_tcode->addAxis("L2", *sway);
+            m_tcode->addAxis(TCODE_CHANNEL_SWAY, *sway);
         }
         roll = new Axis(TCODE_MID);
-        m_tcode->addAxis("R1", *roll);
+        m_tcode->addAxis(TCODE_CHANNEL_ROLL, *roll);
         pitch = new Axis(TCODE_MID);
-        m_tcode->addAxis("R2", *pitch);
+        m_tcode->addAxis(TCODE_CHANNEL_PITCH, *pitch);
         PinMap* pinMap;
         if (m_deviceType == DeviceType::SR6) 
         {

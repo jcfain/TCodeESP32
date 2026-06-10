@@ -44,10 +44,6 @@ class WebSocketBase : public TCodeInterface {
         return strnlen(buf, MAX_COMMAND);
     }
 
-    void sendError(const char* message, size_t len = MAX_WS_MESSAGE) 
-    {
-        sendCommand("error", 6, message, len);
-    }
     void sendRawLog(const char* message, size_t len = MAX_WS_MESSAGE) 
     {
         sendCommand("log", 4, message, len);
@@ -66,7 +62,7 @@ class WebSocketBase : public TCodeInterface {
                 sendCommand("warn", 5, message, len);
                 break;
             case LogLevel::ERROR:
-                sendError(message, len);
+                sendCommand("error", 6, message, len);
                 break;
             case LogLevel::VERBOSE:
                 sendCommand("verbose", 8, message, len);
@@ -90,7 +86,7 @@ class WebSocketBase : public TCodeInterface {
 
 protected:
     QueueHandle_t m_TCodeQueue;
-    std::mutex command_mtx;
+    SemaphoreHandle_t m_xMutex;
     bool sendLogTaskRunning = false;
     static const int COMMAND_PADDING = 100;
 
@@ -105,7 +101,7 @@ protected:
             Serial.printf("[WebSocketBase] compileCommand: ERROR Sending WS commands: %s, Message: %s,\nMessage len (%i) it too long! MAX(%i)\n", command, message, messageLen, MAX_WS_MESSAGE);
             return 0;
         }
-        if(LogHandler::getLogLevel() > LogLevel::DEBUG) 
+        if(LogHandler::getLogLevel() > LogLevel::DEBUG && !isLogCommand(command, commandLen)) 
         {
             if(message)
                 Serial.printf("[WebSocketBase] compileCommand: Sending WS commands: %s, Message: %s\n", command, message);
@@ -299,4 +295,15 @@ private:
     bool isBaseInitialized = false;
     int messageLimit = 5000;
     unsigned long lastMessage = millis();
+
+    bool isLogCommand(const char* command, const size_t& len) 
+    {
+        return strncmp(command, "log", len) == 0 ||
+        strncmp(command, "verbose", len) == 0 ||
+        strncmp(command, "debug", len) == 0 ||
+        strncmp(command, "error", len) == 0 ||
+        strncmp(command, "warn", len) == 0 ||
+        strncmp(command, "info", len) == 0;
+    }
+
 };

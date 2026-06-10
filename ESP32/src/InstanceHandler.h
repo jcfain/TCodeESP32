@@ -175,12 +175,9 @@ void profileChangeCallback(uint8_t profile)
 void logCallBack(const char *input, const size_t& length, const LogLevel& level)
 {
 #if WIFI_TCODE
-    if(webSocketHandler && !SettingsFactory::getInstance()->getWebsocketLoggingEnabled()) 
+    if(webSocketHandler) // && !SettingsFactory::getInstance()->getWebsocketLoggingEnabled())  // Removed due to instability in ESP32 S
     {
-        if(level == LogLevel::ERROR)
-    	    webSocketHandler->sendError(input, length);
-        else if(level == LogLevel::NONE)
-    	    webSocketHandler->sendRawLog(input, length);
+    	webSocketHandler->sendLog(level, input, length);   
     }
 #endif
 }
@@ -280,18 +277,19 @@ void settingChangeCallback(const SettingProfile &profile, const char *settingTha
         }
         else if (!strcmp(settingThatChanged, LOG_WEBSOCKET_ENABLED))
         {
-            LogHandler::setLogStore(settingsFactory->getWebsocketLoggingEnabled());
-            if(webSocketHandler)
-            {
-                if(settingsFactory->getWebsocketLoggingEnabled())
-                {
-                    TaskHandler::getInstance()->startWebsocketLogging(webSocketHandler);
-                }
-                else
-                {
-                    TaskHandler::getInstance()->stopWebsocketLogging(webSocketHandler);
-                }
-            }
+            // Removed due to instability in ESP32 S
+            // LogHandler::setLogStore(settingsFactory->getWebsocketLoggingEnabled());
+            // if(webSocketHandler)
+            // {
+            //     if(settingsFactory->getWebsocketLoggingEnabled())
+            //     {
+            //         TaskHandler::getInstance()->startWebsocketLogging(webSocketHandler);
+            //     }
+            //     else
+            //     {
+            //         TaskHandler::getInstance()->stopWebsocketLogging(webSocketHandler);
+            //     }
+            // }
         }
         else if (!strcmp(settingThatChanged, LOG_INCLUDETAGS))
         {

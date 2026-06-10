@@ -1284,6 +1284,11 @@
 							</div>
 						</div>
 						<div class="tRow">
+							<div class="tCell" colspan="3">
+								<textarea id="loggingText" class="log-reader" readonly></textarea>
+							</div>
+						</div>
+						<div class="tRow">
 							<div class="tCell" colspan="2">
 								<input id="tcodeCommandInput" placeholder="Enter command..." onkeydown="onSendTCodeCommandEnter(event)">
 							</div>
@@ -1293,30 +1298,35 @@
 						</div>
 						<div class="tRow">
 							<div class="tCell" colspan="3">
-								<textarea id="loggingText" class="log-reader" readonly></textarea>
-							</div>
-						</div>
-						<div class="tRow">
-							<div class="tCell" colspan="3">
 								<span id="loggingHelpText">Hint: Use the command #help for a list of comands</span>
 							</div>
 						</div>
-						<div class="tRow ">
+						<!-- Removed due to instability in ESP32 S -->
+						<!-- <div class="tRow "> 
 							<div class="tCell">
 								<span title="Sends backend logging to web client, Warning this will use more ram and could cause issues!">Enable backend logging</span> 
 							</div>
 							<div class="tCell">
 								<input id="websocketLoggingEnabled" type="checkbox" onclick="startWebSocketLogging(this)"></input>
 							</div>
-						</div>
+						</div> -->
 						<div class="tRow ">
 							<div class="tCell">
-								<span title="Web client debug">Enable frontend debug</span> 
+								<span title="Web client debug">Enable webclient debug</span> 
 							</div>
 							<div class="tCell">
 								<input id="includeWebClientDebug" type="checkbox" onclick="toggleWebClientDebug(this.checked)"></input>
 							</div>
 						</div>
+						<div class="tRow">
+							<div class="tCell">
+								<span title="Web client debug">Disable auto scroll</span> 
+							</div>
+							<div class="tCell">
+								<input id="debugAutoScrollDisabled" type="checkbox" onclick="toggleWebClientDebugAutoscroll(this.checked)"></input>
+							</div>
+						</div>
+						
 					</div>
 					<!-- <br>
 					<span class="instruction-text">Instructions:<br>The backend for this uses the temp sensor DS18B20</span> -->

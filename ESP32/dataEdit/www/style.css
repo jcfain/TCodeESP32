@@ -348,7 +348,9 @@ button:disabled {
   width: 100%;
   min-width: 300px;
   height: 300px;
-  z-index: 99;
+  z-index: 74;
+  color: #6495ed;
+  background-color: black !important;
 }
 .servoTable .tCell {
   width: 33%;

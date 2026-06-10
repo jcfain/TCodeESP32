@@ -413,7 +413,7 @@ private:
         if(logLevel == LogLevel::NONE)
             len = snprintf(temp2, internal_buffer_length, "%s", temp);
         else
-            len = snprintf(temp2, internal_buffer_length, "%s %s: %s", level, tag, temp);
+            len = snprintf(temp2, internal_buffer_length, "%s %s: %s\n", level, tag, temp);
 
 		if (len < 0) 
         {
@@ -442,7 +442,7 @@ private:
 				break;
 			}
 		}
-		Serial.printf("%s\n", temp2);
+		Serial.printf("%s", temp2);
 		switch (logLevel) 
         {
             case LogLevel::NONE:
@@ -460,7 +460,8 @@ private:
                 break;
 		}
 
-        storeLog(temp2, len, logLevel);
+        // Removed due to instability in ESP32 S
+        //  storeLog(temp2, len, logLevel);
 		if (log.m_message_callback)
 			log.m_message_callback(temp2, len, logLevel);
         return len;

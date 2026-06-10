@@ -32,10 +32,10 @@
 #include "printX.h"
 
 
-class BLDCHandler0_3 : public MotorHandler0_4 
+class BLDCHandler0_4 : public MotorHandler0_4 
 {
 public:
-    BLDCHandler0_3() : MotorHandler0_4(new TCode0_4()) { }
+    BLDCHandler0_4() : MotorHandler0_4(new TCode0_4()) { }
 
     bool setup() override 
     {
@@ -225,9 +225,13 @@ public:
         //EEPROM.begin(320); Done in TCode class
 
         // Register device axes
-        m_tcode->RegisterAxis(TCODE_CHANNEL_STROKE, "Up");
-        if(m_deviceType == DeviceType::SSR2)
-            m_tcode->RegisterAxis(TCODE_CHANNEL_TWIST, "Twist");
+        stroke = new Axis(TCODE_MID);
+        m_tcode->addAxis(TCODE_CHANNEL_STROKE, *stroke);
+        if(m_deviceType == DeviceType::SSR2) 
+        {
+            twist = new Axis(TCODE_MID);
+            m_tcode->addAxis(TCODE_CHANNEL_TWIST, *twist);
+        }
 
         m_settingsFactory->getValue(BLDC_USEHALLSENSOR, m_useHallSensor);
         if(m_useHallSensor)
@@ -443,14 +447,10 @@ public:
     {
         m_tcode->read(inByte);
     }
-
-    void read(const String &input) override 
-    {
-        m_tcode->read(input);
-    }
     
     void read(const char* input, size_t len) override
     {
+        // m_tcode->read(input);
         for (int i = 0; i < len; i++) 
         {
             read(input[i]);
@@ -464,10 +464,12 @@ public:
 
     void execute() override 
     {
+        if(!stroke)
+            return;
         // Collect inputs
         // These functions query the t-code object for the position/level at a specified time
         // Number recieved will be an integer, 0-9999
-        int strokeTCode = channelRead(TCODE_CHANNEL_STROKE);
+        int strokeTCode = channelRead(TCODE_CHANNEL_STROKE, stroke);
         if (m_settingsFactory->getInverseStroke())
         {
             strokeTCode = 9999 - strokeTCode;
@@ -480,7 +482,7 @@ public:
         }
         else if(m_deviceType == DeviceType::SSR2)
         {
-            int twistTCode = channelRead(TCODE_CHANNEL_TWIST);
+            int twistTCode = channelRead(TCODE_CHANNEL_TWIST, twist);
             if (m_settingsFactory->getInverseTwist())
             {
                 twistTCode = 9999 - twistTCode;
@@ -489,7 +491,7 @@ public:
             executeSSR2(strokeTCode, twistTCode);
         }
 
-        executeCommon(strokeTCode);
+        executeCommon(stroke);
        
         log();
     }
@@ -560,6 +562,8 @@ private:
     BLDCMotor* motorB = 0;
     BLDCDriver3PWM* driverB = 0;
     BLDCEncoderType encoderBType = (BLDCEncoderType)BLDC_ENCODER_DEFAULT;
+    Axis* stroke = 0;
+    Axis* twist = 0;
     Sensor* sensorB = 0;
     float zeroAngleB = 0.00;
     float sensorAngleB = 0.00;
@@ -811,18 +815,18 @@ private:
 
     void log() 
     {
-        if(LogHandler::getLogLevel() == LogLevel::VERBOSE) 
+        if(LogHandler::getLogLevel() > LogLevel::DEBUG) 
         {
             unsigned long currentMillis = millis();
             if (currentMillis - previousMillis >= interval) 
             {
                 previousMillis = currentMillis;
-                LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleA: %f \t sensorAngleA: %f\n", 
+                LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleA: %f \t sensorAngleA: %f", 
                     "Motor A", m_motorAnglePositionA, motorVoltageA, m_bootmode, zeroAngleA, sensorAngleA);
                 if(motorB) 
                 {
                     //SIMPLEFOC_DEBUG("Motor B position: %f", m_motorAnglePositionB);
-                    LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleB: %f \t sensorAngleB: %f\n", 
+                    LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleB: %f \t sensorAngleB: %f", 
                         "Motor B", m_motorAnglePositionB, motorVoltageB, m_bootmode, zeroAngleB, sensorAngleB);
                 }                      
                 counter = 0;

@@ -141,7 +141,7 @@ public:
 
         systemCommandHandler = new SystemCommandHandler();
         systemCommandHandler->registerExternalCommandCallback(tcodePassthroughCommandCallback);
-        LogHandler::debug(m_TAG, "System command handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(m_TAG, "System command handler DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
     #ifdef MOTOR_TYPE_SERVO
         if (settingsFactory->getTcodeVersion() == TCodeVersion::v0_3)
@@ -175,7 +175,7 @@ public:
     #endif
 
         motorHandler->setMessageCallback(tcodeCommandCallback);
-        LogHandler::debug(m_TAG, "Motor handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(m_TAG, "Motor handler DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         // SystemCommandHandler::registerOtherCommandCallback(TCodeCommandCallback);
 
     #if BUILD_TEMP
@@ -216,7 +216,7 @@ public:
             temperatureHandler->setStateChangeCallback(tempStateChangeCallBack);
             LogHandler::debug(m_TAG, "Start temperature task");
             taskHandler->startTemperatureTask(temperatureHandler);
-            LogHandler::debug(m_TAG, "Temp DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+            LogHandler::debug(m_TAG, "Temp DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         }
 
     #endif
@@ -236,13 +236,13 @@ public:
             // 		APP_CPU_NUM); /* Core where the task should run */
             // #endif
         }
-        LogHandler::debug(m_TAG, "Display DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(m_TAG, "Display DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
     #endif
         motionHandler = new MotionHandler();
         motionHandler->setup(settingsFactory->getTcodeVersion());
         LogHandler::debug(m_TAG, "Motion handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         loadI2CModules(displayEnabled, batteryLevelEnabled, voiceEnabled);
-        LogHandler::debug(m_TAG, "I2C DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(m_TAG, "I2C DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
         if (bootButtonEnabled || buttonSetsEnabled)
         {

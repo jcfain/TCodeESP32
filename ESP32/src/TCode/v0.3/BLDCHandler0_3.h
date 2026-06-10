@@ -442,11 +442,6 @@ public:
     {
         m_tcode->read(inByte);
     }
-
-    void read(const String &input) override 
-    {
-        m_tcode->read(input);
-    }
     
     void read(const char* input, size_t len) override
     {
@@ -816,12 +811,12 @@ private:
             if (currentMillis - previousMillis >= interval) 
             {
                 previousMillis = currentMillis;
-                LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleA: %f \t sensorAngleA: %f\n", 
+                LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleA: %f \t sensorAngleA: %f", 
                     "Motor A", m_motorAnglePositionA, motorVoltageA, m_bootmode, zeroAngleA, sensorAngleA);
                 if(motorB) 
                 {
                     //SIMPLEFOC_DEBUG("Motor B position: %f", m_motorAnglePositionB);
-                    LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleB: %f \t sensorAngleB: %f\n", 
+                    LogHandler::verbose(_TAG, "%s position: %f \t motorVoltage: %f \t bootmode: %ld \t tcode: %ld \t zeroAngleB: %f \t sensorAngleB: %f", 
                         "Motor B", m_motorAnglePositionB, motorVoltageB, m_bootmode, zeroAngleB, sensorAngleB);
                 }                      
                 counter = 0;

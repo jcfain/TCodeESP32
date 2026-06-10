@@ -237,7 +237,9 @@ protected:
         
 
         read("D0", 3);
+        m_tcode->getMessages();
         read("D1", 3);
+        m_tcode->getMessages();
     }
 
     void executeCommon(Axis* stroke) 
@@ -261,6 +263,8 @@ protected:
 protected:
     uint16_t channelRead(const char* name, Axis* channel) 
     {
+        if(!channel)
+            return TCODE_MID;
         uint16_t value = channel->getPosition();
         if(SettingsHandler::getChannelRangesEnabled()) 
         {

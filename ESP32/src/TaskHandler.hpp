@@ -145,28 +145,30 @@ public:
 
     void startWebsocketLogging(WebSocketBase* webSocketBase) 
     {
-        if(isTaskRunning(webSocketLoggingTask) || !webSocketBase)
-            return;
-        LogHandler::debug(TagHandler::Main, "Start web socket logging");
-        auto webSocketLoggingStatus = xTaskCreatePinnedToCore(
-            WebSocketBase::startLoggingTask,  /* Function to implement the task */
-            "WebsocketLoggingTask",			  /* Name of the task */
-            configMINIMAL_STACK_SIZE * 4.5, /* Stack size in words */
-            webSocketBase,			  /* Task input parameter */
-            1,						  /* Priority of the task */
-            &webSocketLoggingTask,	  /* Task handle. */
-            TASK_CPU_NUM);			  /* Core where the task should run */
-        if (webSocketLoggingStatus != pdPASS)
-        {
-            LogHandler::error(TagHandler::Main, "Could not start websocket logging task.");
-        }
+        // Removed due to instability in ESP32 S
+        // if(isTaskRunning(webSocketLoggingTask) || !webSocketBase)
+        //     return;
+        // LogHandler::debug(TagHandler::Main, "Start web socket logging");
+        // auto webSocketLoggingStatus = xTaskCreatePinnedToCore(
+        //     WebSocketBase::startLoggingTask,  /* Function to implement the task */
+        //     "WebsocketLoggingTask",			  /* Name of the task */
+        //     configMINIMAL_STACK_SIZE * 4.5, /* Stack size in words */
+        //     webSocketBase,			  /* Task input parameter */
+        //     1,						  /* Priority of the task */
+        //     &webSocketLoggingTask,	  /* Task handle. */
+        //     TASK_CPU_NUM);			  /* Core where the task should run */
+        // if (webSocketLoggingStatus != pdPASS)
+        // {
+        //     LogHandler::error(TagHandler::Main, "Could not start websocket logging task.");
+        // }
     }
     void stopWebsocketLogging(WebSocketBase* webSocketBase) 
     {
-        if(!isTaskRunning(webSocketLoggingTask) || !webSocketBase)
-            return;
-        LogHandler::debug(TagHandler::Main, "Stop web socket logging");
-        WebSocketBase::stopLoggingTask(webSocketBase);
+        // Removed due to instability in ESP32 S
+        // if(!isTaskRunning(webSocketLoggingTask) || !webSocketBase)
+        //     return;
+        // LogHandler::debug(TagHandler::Main, "Stop web socket logging");
+        // WebSocketBase::stopLoggingTask(webSocketBase);
     }
 
 
