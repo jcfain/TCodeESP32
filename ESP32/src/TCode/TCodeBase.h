@@ -55,10 +55,10 @@ public:
         // 	message_callback(buf);
 		// 	return;
 		// }
-		LogHandler::debug("TcodeBase", "[sendMessage] %s", input);
+		// LogHandler::debug("TcodeBase", "[sendMessage] %s", input);
 		if(!message_callback)
 		{
-			LogHandler::debug("TcodeBase", "[sendMessage] callback not defined");
+			LogHandler::warning("TcodeBase", "[sendMessage] callback not defined");
 			message_callback = std::bind(&TCodeBase::defaultCallback, this, std::placeholders::_1);
 		}
 
@@ -69,9 +69,6 @@ protected:
 private: 
 	void defaultCallback(const char* input) // Default callback used by TCode uses serial communication
 	{
-		if (Serial)
-		{
-			Serial.println(input);
-		}
+		LogHandler::warning("Default TCode callback", "%s\n", input);
 	}
 };

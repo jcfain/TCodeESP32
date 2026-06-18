@@ -32,7 +32,7 @@
 class ServoHandler0_3 : public MotorHandler0_3 {
 
 public:
-    ServoHandler0_3() : MotorHandler0_3(new TCode0_3()) { }
+    ServoHandler0_3(TCode0_3* tcode) : MotorHandler0_3(tcode) { }
     // Setup function
     // This is run once, when the arduino starts
     bool setup() override 
@@ -53,7 +53,6 @@ public:
         {
             LogHandler::info(_TAG, "Setting up motor for device type TVibe");
             setupCommon();
-            m_tcode->sendMessage("Ready!");
             m_initialized = true;
             return true;
         }
@@ -67,14 +66,14 @@ public:
         }
 
         // Register device axes
-        m_tcode->RegisterAxis("L0", "Up");
+        m_tcode->RegisterAxis(TCODE_CHANNEL_STROKE, "Up");
         if (m_deviceType == DeviceType::SR6) 
         {
-            m_tcode->RegisterAxis("L1", "Forward");
-            m_tcode->RegisterAxis("L2", "Left");
+            m_tcode->RegisterAxis(TCODE_CHANNEL_SURGE, "Forward");
+            m_tcode->RegisterAxis(TCODE_CHANNEL_SWAY, "Left");
         }
-        m_tcode->RegisterAxis("R1", "Roll");
-        m_tcode->RegisterAxis("R2", "Pitch");
+        m_tcode->RegisterAxis(TCODE_CHANNEL_ROLL, "Roll");
+        m_tcode->RegisterAxis(TCODE_CHANNEL_PITCH, "Pitch");
         PinMap* pinMap;
         if (m_deviceType == DeviceType::SR6) 
         {
@@ -173,7 +172,6 @@ public:
         
         // Signal done
         m_initialized = true;
-        m_tcode->sendMessage("Ready!");
         return true;
     }
 
@@ -213,9 +211,9 @@ public:
             // Collect inputs
             // These functions query the t-code object for the position/level at a specified time
             // Number recieved will be an integer, 0-9999
-            xLin = channelRead("L0");
-            yRot = channelRead("R1");
-            zRot = channelRead("R2");
+            xLin = channelRead(TCODE_CHANNEL_STROKE);
+            yRot = channelRead(TCODE_CHANNEL_ROLL);
+            zRot = channelRead(TCODE_CHANNEL_PITCH);
             // If you want to mix your servos differently, enter your code below:
 
             if(m_deviceType == DeviceType::OSR)
@@ -313,8 +311,8 @@ private:
 
     void executeSR6(int strokeTcode, int rollTcode, int pitchTcode) 
     {
-        yLin = channelRead("L1");
-        zLin = channelRead("L2");
+        yLin = channelRead(TCODE_CHANNEL_SWAY);
+        zLin = channelRead(TCODE_CHANNEL_SURGE);
         // SR6 Kinematics
         // Calculate arm angles
         int roll,pitch,fwd,thrust,side;

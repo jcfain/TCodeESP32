@@ -22,7 +22,7 @@ public:
         serialHandler = new SerialHandler();
         serialHandler->setup();
         LogHandler::init();
-        LogHandler::info(m_TAG, "Startup DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::info(m_TAG, "Startup DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
         #if DEBUG_BUILD == 1
             LogHandler::setLogLevel(LogLevel::DEBUG);
@@ -32,7 +32,7 @@ public:
         LogHandler::setMessageCallback(logCallBack);
 
         Serial.println();
-        LogHandler::info(m_TAG, "Firmware version: %s", FIRMWARE_VERSION_NAME);
+        LogHandler::info(m_TAG, TCODE_DEVICE_INFO);
         // LogHandler::info(m_TAG, "Esp arduino version: %s", ESP_ARDUINO_VERSION_STR);
         LogHandler::info(m_TAG, "ESP IDF version: %s", esp_get_idf_version());
         uint32_t chipId = 0;
@@ -57,7 +57,7 @@ public:
             LogHandler::error(m_TAG, "An Error has occurred while mounting LittleFS");
             return false;
         }
-        LogHandler::debug(m_TAG, "LittleFS DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(m_TAG, "LittleFS DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
         settingsFactory = SettingsFactory::getInstance();
         settingsFactory->setMessageCallback(settingChangeCallback);
@@ -74,7 +74,7 @@ public:
             LogHandler::error(m_TAG, "Failed to load settings...");
             return false;
         }
-        LogHandler::debug(m_TAG, "Settings factory  DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(m_TAG, "Settings factory  DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         LogHandler::setLogLevel(settingsFactory->getLogLevel());
 
         const PinMap *pinMap = settingsFactory->getPins();
@@ -86,7 +86,7 @@ public:
 
         SettingsHandler::init();
         SettingsHandler::setMessageCallback(settingChangeCallback);
-        LogHandler::debug(m_TAG, "Settings handler DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        LogHandler::debug(m_TAG, "Settings handler DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
     #if BLE_TCODE
         settingsFactory->getValue(BLE_ENABLED, bleEnabled);
@@ -146,11 +146,13 @@ public:
     #ifdef MOTOR_TYPE_SERVO
         if (settingsFactory->getTcodeVersion() == TCodeVersion::v0_3)
         {
-            motorHandler = new ServoHandler0_3();
+            tcode = new TCode0_3();
+            motorHandler = new ServoHandler0_3(static_cast<TCode0_3*>(tcode));
         }
         else if (settingsFactory->getTcodeVersion() == TCodeVersion::v0_4)
         {
-            motorHandler = new ServoHandler0_4();
+            tcode = new TCode0_4();
+            motorHandler = new ServoHandler0_4(static_cast<TCode0_4*>(tcode));
         }
         #if !DEBUG_BUILD && TCODE_V2
             // else if(settingsFactory->getTcodeVersion() == TCodeVersion::v0_2)
@@ -263,6 +265,11 @@ public:
         LogHandler::debug(m_TAG, "Setup finished");
         LogHandler::printFree();
         m_initialized = true;
+        
+
+        motorHandler->read(TCODE_COMMAND_FIRMWARE, strlen(TCODE_COMMAND_FIRMWARE));
+        motorHandler->read(TCODE_COMMAND_VERSION, strlen(TCODE_COMMAND_VERSION));
+        tcode->sendMessage("Ready!\n");
         return true;
     }
 

@@ -227,10 +227,10 @@ public:
         
         JsonArray tcodeVersions = doc["tcodeVersions"].to<JsonArray>();
         JsonObject v03 = tcodeVersions.add<JsonObject>();
-        v03["name"] = "v0.3 (Deprecated)";
+        v03["name"] = "v0.3";
         v03["value"] = TCodeVersion::v0_3;
         JsonObject v04 = tcodeVersions.add<JsonObject>();
-        v04["name"] = "v0.4";
+        v04["name"] = "v0.4 (beta)";
         v04["value"] = TCodeVersion::v0_4;
         JsonArray boardTypes = doc["boardTypes"].to<JsonArray>();
 #if CONFIG_IDF_TARGET_ESP32
@@ -573,7 +573,7 @@ public:
                 mutableLoadDefault = true;
                 for(int i = 0; i < MAX_MOTION_PROFILE_COUNT; i++) {
                     motionProfiles[i] = MotionProfile(i + 1);
-                    motionProfiles[i].addDefaultChannel("L0");
+                    motionProfiles[i].addDefaultChannel(TCODE_CHANNEL_STROKE);
                     LogHandler::debug(_TAG, "Added new Motion profile for: %s", motionProfiles[i].channels.back().name);
                 }
             } else {

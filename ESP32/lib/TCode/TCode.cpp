@@ -143,11 +143,8 @@ void TCode::processCommand(const char* cmd) {
         processAxisCommand(cmd);
     } else if (first == 'D') {
         processDeviceCommand(cmd);
-    // } else if (first == '$') {
-    //     processSaveCommand(cmd);
-    } else {
-        if(tcode_callback)
-            tcode_callback(cmd);
+    } else if (first == '$' || first == '#') {
+        respond(cmd);
     }
 }
 
@@ -252,17 +249,18 @@ void TCode::processAxisCommand(const char* cmd) {
 // Function to process device commands
 void TCode::processDeviceCommand(const char* cmd) {
     if (strcmp(cmd, "D0") == 0) {
-        queueResponse(TCODE_DEVICE_INFO "\r\n");
+        respond(TCODE_DEVICE_INFO "\r\n");
     } else if (strcmp(cmd, "D1") == 0) {
-        queueResponse(TCODE_VERSION_INFO "\r\n");
+        respond(TCODE_VERSION_INFO "\r\n");
     } else if (strcmp(cmd, "D2") == 0) {
         // TODO: eventually output range values for each axis
-        queueResponse("D2 not implemented yet\r\n");
+        respond("D2 not implemented yet\r\n");
     } else if (strcmp(cmd, "DSTOP") == 0) {
         stopAll();
-        queueResponse("STOP\r\n");
+        respond("STOP\r\n");
+    } else {
+        respond(cmd);
     }
-    // anything else is silently ignored
 }
 
 // Function to process preference save commands
@@ -293,6 +291,13 @@ void TCode::queueResponse(const char* text) {
     }
 }
 
+void TCode::respond(const char *text) {
+    // Serial.printf("respond: %s\n", text);
+    if(tcode_callback)
+        tcode_callback(text);
+    // else 
+    //     Serial.printf("tcode_callback null: %s\n", text);
+}
 
 bool TCode::parseChannel(const char* cmd, char& letter, uint8_t& index) const {
     if (!cmd || strlen(cmd) < 2) return false;

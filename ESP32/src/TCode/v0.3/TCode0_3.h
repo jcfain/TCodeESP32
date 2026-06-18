@@ -422,8 +422,9 @@ private:
 			{
 			case 0:
 			{
-				char firmware[12] = "Firmware v";
-				sendMessage(strcat(firmware, firmwareID));
+				// char firmware[12] = "Firmware v";
+				// sendMessage(strcat(firmware, firmwareID));
+				sendMessage(TCODE_DEVICE_INFO);
 			}
 			break;
 

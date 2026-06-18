@@ -131,19 +131,19 @@ void executeEdgeDevice(std::string rxValue) {
                 memmove(messageBuf, "OK;", 3);
                 m_pTxCharacteristic->setValue(messageBuf, 3);
                 m_pTxCharacteristic->notify();
-                buildTCode("V0", vibration, tcodeBuffer);
+                buildTCode(TCODE_CHANNEL_VIBE1, vibration, tcodeBuffer);
             } else if (rxValue.rfind("Vibrate1:", 0) == 0) {
                 int vibration = std::atoi(rxValue.substr(9).c_str());
                 memmove(messageBuf, "OK;", 3);
                 m_pTxCharacteristic->setValue(messageBuf, 3);
                 m_pTxCharacteristic->notify();
-                buildTCode("V0", vibration, tcodeBuffer);
+                buildTCode(TCODE_CHANNEL_VIBE1, vibration, tcodeBuffer);
             } else if (rxValue.rfind("Vibrate2:", 0) == 0) {
                 int vibration = std::atoi(rxValue.substr(9).c_str());
                 memmove(messageBuf, "OK;", 3);
                 m_pTxCharacteristic->setValue(messageBuf, 3);
                 m_pTxCharacteristic->notify();
-                buildTCode("V1", vibration, tcodeBuffer);
+                buildTCode(TCODE_CHANNEL_VIBE2, vibration, tcodeBuffer);
             } else {
                 LogHandler::warning(TagHandler::BLEHandler, "$Unknown request");        
                 memmove(messageBuf, "ERR;", 4);

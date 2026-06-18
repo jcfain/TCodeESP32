@@ -144,7 +144,6 @@ public:
 		while (!isConnected() && millis() < connectStartTimeout)
 		{
 			vTaskDelay(1000/portTICK_PERIOD_MS);
-			Serial.print(".");
 		}
 		if (millis() >= connectStartTimeout)
 		{

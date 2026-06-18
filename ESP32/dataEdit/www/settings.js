@@ -55,6 +55,7 @@ const TCodeVersion = {
     V4: 1
 }
 const latestTCodeVersion = TCodeVersion.V4;
+const defaultTCodeVersion = TCodeVersion.V3;
 const MotorType = {
     Servo: 0,
     BLDC: 1
@@ -3355,6 +3356,7 @@ function importSettings() {
 }
 
 function checkMigrateData(key, value, firmwareVersion) {
+    // added in v0.4b
     if(!firmwareVersion && key == "TCodeVersion" && value == 1) {
         return TCodeVersion.V3;
     } else if(key == "boardType") { 

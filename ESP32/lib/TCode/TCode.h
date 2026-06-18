@@ -77,11 +77,12 @@ public:
     size_t available() const;
     int read();
 
+    // Sets the callback function used by TCode
+	void setTCodeCallback(TCodeCallback f);
+
     // All stop command, used by DSTOP
     void stopAll();
 
-    // Sets the callback function used by TCode
-	void setTCodeCallback(TCodeCallback f);
 
 protected:
     TCodeCallback tcode_callback;
@@ -112,6 +113,7 @@ private:
 
     // 
     void queueResponse(const char* text);
+    void respond(const char* text);
 
     // Helper function that turns "L3" into letter='L' and index=3
     bool parseChannel(const char* channel, char& letter, uint8_t& index) const;

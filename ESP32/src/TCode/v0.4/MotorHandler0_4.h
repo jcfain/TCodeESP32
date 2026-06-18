@@ -81,9 +81,9 @@ protected:
         if(m_valveServoPin > -1 && m_valveServoChannel > -1) 
         {
             suck = new Axis(TCODE_MID);
-            m_tcode->addAxis("A1", *suck);
+            m_tcode->addAxis(TCODE_CHANNEL_SUCK_LEVEL, *suck);
             valve = new Axis(TCODE_MID);
-            m_tcode->addAxis("A0", *valve);
+            m_tcode->addAxis(TCODE_CHANNEL_SUCK, *valve);
             int freq = pinMap->getChannelFrequency(m_valveServoChannel);
             attachPin("valve servo", m_valveServoPin, freq, m_valveServoChannel);
             m_valveServo_Int = frequencyToMicroseconds(freq);
@@ -117,7 +117,7 @@ protected:
         if(m_squeezeServoPin > -1 && m_squeezeServoChannel > -1) 
         {
             squeeze = new Axis(TCODE_MID);
-            m_tcode->addAxis("A3", *squeeze);
+            m_tcode->addAxis(TCODE_CHANNEL_AUX, *squeeze);
             int freq = pinMap->getChannelFrequency(m_squeezeServoChannel);
             attachPin("aux servo", m_squeezeServoPin, freq, m_squeezeServoChannel);
             m_squeezeServo_Int = frequencyToMicroseconds(freq);
@@ -137,7 +137,7 @@ protected:
             if(m_lubeButtonPin > -1 && m_vib1Pin > -1 && m_vib1Channel > -1) 
             {
                 lube = new Axis(TCODE_MIN);
-                m_tcode->addAxis("A2", *lube);
+                m_tcode->addAxis(TCODE_CHANNEL_LUBE, *lube);
                 pinMode(m_lubeButtonPin, INPUT);
                 int freq = pinMap->getChannelFrequency(m_vib1Channel);
                 attachPin("lube", m_vib1Pin, freq, m_vib1Channel, lubeResolution);
@@ -152,7 +152,7 @@ protected:
         if(m_vib0Pin > -1 && m_vib0Channel > -1) 
         {
             vibration0 = new Axis(TCODE_MIN);
-            m_tcode->addAxis("V0", *vibration0);
+            m_tcode->addAxis(TCODE_CHANNEL_VIBE1, *vibration0);
             int freq = pinMap->getChannelFrequency(m_vib0Channel);
             attachPin("vib 1", m_vib0Pin, freq, m_vib0Channel, vibeResolution);
             // m_vib0_Int = frequencyToMicroseconds(freq);
@@ -169,7 +169,7 @@ protected:
             if(m_vib1Pin > -1 && m_vib1Channel > -1) 
             {
                 vibration1 = new Axis(TCODE_MIN);
-                m_tcode->addAxis("V1", *vibration1);
+                m_tcode->addAxis(TCODE_CHANNEL_VIBE2, *vibration1);
                 int freq = pinMap->getChannelFrequency(m_vib1Channel);
                 attachPin("vib 2", m_vib1Pin, freq, m_vib1Channel, vibeResolution);
                 // m_vib1_Int = frequencyToMicroseconds(freq);
@@ -184,7 +184,7 @@ protected:
         if(m_vib2Pin > -1 && m_vib2Channel > -1) 
         {
             vibration2 = new Axis(TCODE_MIN);
-            m_tcode->addAxis("V2", *vibration2);
+            m_tcode->addAxis(TCODE_CHANNEL_VIBE3, *vibration2);
             int freq = pinMap->getChannelFrequency(m_vib2Channel);
             attachPin("vib 3", m_vib2Pin, freq, m_vib2Channel, vibeResolution);
             // m_vib2_Int = frequencyToMicroseconds(freq);
@@ -198,7 +198,7 @@ protected:
         if(m_vib3Pin > -1 && m_vib3Channel > -1) 
         {
             vibration3 = new Axis(TCODE_MIN);
-            m_tcode->addAxis("V3", *vibration3);
+            m_tcode->addAxis(TCODE_CHANNEL_VIBE4, *vibration3);
             int freq = pinMap->getChannelFrequency(m_vib3Channel);
             attachPin("vib 4", m_vib3Pin, freq, m_vib3Channel, vibeResolution);
             // m_vib3_Int = frequencyToMicroseconds(freq);
@@ -234,12 +234,6 @@ protected:
                 }
             }
         } 
-        
-
-        read("D0", 3);
-        m_tcode->getMessages();
-        read("D1", 3);
-        m_tcode->getMessages();
     }
 
     void executeCommon(Axis* stroke) 
@@ -256,8 +250,6 @@ protected:
             executeLube();
         executeVibe(2);
         executeVibe(3);
-
-        m_tcode->getMessages();
     }
     
 protected:
@@ -433,8 +425,8 @@ private:
         {
             return;
         }
-        valveCmd = channelRead("A0", valve);
-        suckCmd = channelRead("A1", suck);
+        valveCmd = channelRead(TCODE_CHANNEL_SUCK, valve);
+        suckCmd = channelRead(TCODE_CHANNEL_SUCK_LEVEL, suck);
         // Use suck command if most recent
         bool suckMode;
         if (suck->getLast() >= valve->getLast())
@@ -492,7 +484,7 @@ private:
 
     void executeVibe(int index) {
         // These should drive PWM pins connected to vibration motors via MOSFETs or H-bridges.
-        const char* channel = "V0";
+        const char* channel = TCODE_CHANNEL_VIBE1;
         Axis* axis = vibration0;
         #ifdef ESP_ARDUINO3
         int pwmChannel = m_vib0Pin;
@@ -503,7 +495,7 @@ private:
         {
             case 0: 
             {
-                channel = "V0";
+                channel = TCODE_CHANNEL_VIBE1;
                 #ifdef ESP_ARDUINO3
                 pwmChannel = m_vib0Pin;
                 #else
@@ -513,7 +505,7 @@ private:
             }
             case 1: 
             {
-                channel = "V1";
+                channel = TCODE_CHANNEL_VIBE2;
                 axis = vibration1;
                 #ifdef ESP_ARDUINO3
                 pwmChannel = m_vib1Pin;
@@ -524,7 +516,7 @@ private:
             }
             case 2: 
             {
-                channel = "V2";
+                channel = TCODE_CHANNEL_VIBE3;
                 axis = vibration2;
                 #ifdef ESP_ARDUINO3
                 pwmChannel = m_vib2Pin;
@@ -535,7 +527,7 @@ private:
             }
             case 3: 
             {
-                channel = "V3";
+                channel = TCODE_CHANNEL_VIBE4;
                 axis = vibration3;
                 #ifdef ESP_ARDUINO3
                 pwmChannel = m_vib3Pin;
@@ -597,7 +589,7 @@ private:
         }
         if(!m_manualLubeOverride)
         {
-            int cmd = channelRead("A2", lube); 
+            int cmd = channelRead(TCODE_CHANNEL_LUBE, lube); 
             if (cmd > -1) 
             {
                 if (cmd > 0 && cmd <= TCODE_MAX) 
@@ -618,12 +610,13 @@ private:
         }
     }
 
-    void executeSqueeze() {
+    void executeSqueeze() 
+    {
         if(m_squeezeServoPin < 0) 
         {
             return;
         }
-        squeezeCmd = channelRead("A3", squeeze);
+        squeezeCmd = channelRead(TCODE_CHANNEL_AUX, squeeze);
         if(squeezeCmd > -1) 
         {
             int squeeze = map(squeezeCmd,TCODE_MIN,TCODE_MAX,1000,-1000);

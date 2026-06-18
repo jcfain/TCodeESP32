@@ -85,7 +85,7 @@ class SerialHandler : public TCodeInterface
 		if(initialized) 
         {
             LogHandler::verbose(m_TAG, "[send] %s", in);
-            m_serial.println(in);
+            m_serial.printf(in);
 		}
 	}
 

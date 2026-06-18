@@ -1,10 +1,9 @@
 #pragma once
 
-#define FIRMWARE_VERSION 0.52f
-#define FIRMWARE_VERSION_NAME "0.52b\n"
-//#define FIRMWARE_NAME "TCode ESP32"
-//#define TCODE_DEVICE_INFO FIRMWARE_NAME " v" FIRMWARE_VERSION_NAME
-// #define TCODE_DEVICE_INFO "TCode ESP32 v0.52b"
+#define FIRMWARE_VERSION 0.53f
+#define FIRMWARE_VERSION_NAME "0.53b\n"
+#define FIRMWARE_NAME "TCode ESP32 Firmware"
+#define TCODE_DEVICE_INFO FIRMWARE_NAME " v" FIRMWARE_VERSION_NAME
 #define MAX_WS_COMMAND 25
 #define MAX_WS_MESSAGE 512
 #define MAX_LOG_STORE 256
@@ -16,8 +15,9 @@
 #define TCODE_MAX 9999
 #define LOG_PATH "/log.json"
 #define DECOY_PASS "Too bad haxor!"
-#define TCODE_HANDSHAKE "D1\n"
-#define TCODE_SETTINGS "D2\n"
+#define TCODE_COMMAND_FIRMWARE "D0\n"
+#define TCODE_COMMAND_VERSION "D1\n"
+#define TCODE_COMMAND_SETTINGS "D2\n"
 #define WIFI_PASS_DONOTCHANGE_DEFAULT "YOUR PASSWORD HERE"
 #if defined(CONFIG_IDF_TARGET_ESP32S3)
 #include "S3/config.h"
@@ -34,9 +34,6 @@
 #if !defined(MOTOR_TYPE_SERVO) && !defined(MOTOR_TYPE_BLDC)
     #error "Invalid motor type"
 #endif
-
-// Other functions
-#define VALVE_DEFAULT 5000        // Auto-valve default suction level (low-high, 0-9999) 
 
 #define ESP_TIMER_FREQUENCY_DEFAULT 50
 #define ESP_VIB_TIMER_FREQUENCY_DEFAULT 8000
@@ -70,15 +67,15 @@
 
 
 // const Channel ChannelMapV2[9] = {
-//     {"L0","Stroke",0,500,999,false,false,0,500,999},
-//     {"L1","Surge",0,500,999,false,true,0,500,999},
-//     {"L2","Sway",0,500,999,false,true,0,500,999},
+//     {TCODE_CHANNEL_STROKE,"Stroke",0,500,999,false,false,0,500,999},
+//     {TCODE_CHANNEL_SURGE,"Surge",0,500,999,false,true,0,500,999},
+//     {TCODE_CHANNEL_SWAY,"Sway",0,500,999,false,true,0,500,999},
 //     {"L3","Suck",0,500,999,false,false,0,500,999},
-//     {"R0","Twist",0,500,999,false,false,0,500,999},
-//     {"R1","Roll",0,500,999,false,false,0,500,999},
-//     {"R2","Pitch",0,500,999,false,false,0,500,999},
-//     {"V0","Vibe 0",0,500,999,true,false,0,500,999},
-//     {"V1","Vibe 1/Lube",0,500,999,true,false,0,500,999}
+//     {TCODE_CHANNEL_TWIST,"Twist",0,500,999,false,false,0,500,999},
+//     {TCODE_CHANNEL_ROLL,"Roll",0,500,999,false,false,0,500,999},
+//     {TCODE_CHANNEL_PITCH,"Pitch",0,500,999,false,false,0,500,999},
+//     {TCODE_CHANNEL_VIBE1,"Vibe 0",0,500,999,true,false,0,500,999},
+//     {TCODE_CHANNEL_VIBE2,"Vibe 1/Lube",0,500,999,true,false,0,500,999}
 // };
 
 #define TCODE_CHANNEL_STROKE "L0"
@@ -98,31 +95,31 @@
 
 #include "channel.h"
 const Channel ChannelMapV3[14] = {
-    {"L0","Stroke",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"L1","Surge",false,true,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"L2","Sway",false,true,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"R0","Twist",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"R1","Roll",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"R2","Pitch",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"V0","Vibe 1",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"V1","Vibe 2",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"V2","Vibe 3",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"V3","Vibe 4",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"A0","Suck manual",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"A1","Suck level",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"A2","Lube",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"A3","Auxiliary",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX}
+    {TCODE_CHANNEL_STROKE,"Stroke",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_SURGE,"Surge",false,true,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_SWAY,"Sway",false,true,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_TWIST,"Twist",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_ROLL,"Roll",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_PITCH,"Pitch",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_VIBE1,"Vibe 1",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_VIBE2,"Vibe 2",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_AUX,"Vibe 3",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_VIBE4,"Vibe 4",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_SUCK,"Suck manual",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_SUCK_LEVEL,"Suck level",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_LUBE,"Lube",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_AUX,"Auxiliary",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX}
 };
 
 const Channel ChannelMapBLDC[10] = {
-    {"L0","Stroke",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"R0","Twist",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"V0","Vibe 1",true,false,TCODE_MIN,TCODE_MIN,TCODE_MAX},
-    {"V1","Vibe 2",true,false,TCODE_MIN,TCODE_MIN,TCODE_MAX},
-    {"V2","Vibe 3",true,false,TCODE_MIN,TCODE_MIN,TCODE_MAX},
-    {"V3","Vibe 4",true,false,TCODE_MIN,TCODE_MIN,TCODE_MAX},
-    {"A0","Suck manual",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"A1","Suck level",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {"A2","Lube",true,false,TCODE_MIN,TCODE_MIN,TCODE_MAX},
-    {"A3","Auxiliary",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX}
+    {TCODE_CHANNEL_STROKE,"Stroke",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_TWIST,"Twist",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_VIBE1,"Vibe 1",true,false,TCODE_MIN,TCODE_MIN,TCODE_MAX},
+    {TCODE_CHANNEL_VIBE2,"Vibe 2",true,false,TCODE_MIN,TCODE_MIN,TCODE_MAX},
+    {TCODE_CHANNEL_VIBE3,"Vibe 3",true,false,TCODE_MIN,TCODE_MIN,TCODE_MAX},
+    {TCODE_CHANNEL_VIBE4,"Vibe 4",true,false,TCODE_MIN,TCODE_MIN,TCODE_MAX},
+    {TCODE_CHANNEL_SUCK,"Suck manual",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_SUCK_LEVEL,"Suck level",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_LUBE,"Lube",true,false,TCODE_MIN,TCODE_MIN,TCODE_MAX},
+    {TCODE_CHANNEL_AUX,"Auxiliary",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX}
 };

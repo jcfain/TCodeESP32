@@ -39,7 +39,7 @@ SOFTWARE. */
 #include <ESP8266WebServer.h>
 #endif
 #include <LittleFS.h>
-// #include "constants.h"
+#include "constants.h"
 #include "enum.h"
 #include "utils.h"
 #include "InitHandler.h"
