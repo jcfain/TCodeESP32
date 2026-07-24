@@ -84,12 +84,6 @@ public:
 			LogHandler::error(_TAG, "Display is not connected");
     	LogHandler::info(_TAG, "Setting up display finished");
 	}
-
-	void setLocalIPAddress(IPAddress ipAddress)
-	{
-		_ipAddress = ipAddress;
-	}
-
 	void setSleeveTemp(float temp) {
     	LogHandler::verbose(_TAG, "setSleeveTemp: %f", temp);
 		m_sleeveTemp = temp;
@@ -184,7 +178,7 @@ public:
 				if(WifiHandler::isConnected()) {
 					LogHandler::verbose(_TAG, "Enter wifi connected");
 					startLine(headerPadding);
-					display.print(_ipAddress);
+					display.print(SettingsHandler::currentIP);
 
 					drawBatteryLevel();
 					
@@ -319,7 +313,6 @@ private:
 	const char* _TAG = TagHandler::DisplayHandler;
     SettingsFactory* m_settingsFactory;
 	bool m_fanControlEnabled;
-	IPAddress _ipAddress;
 	bool displayConnected = false;
 	int lastUpdate = 0;
 	const int nextUpdate = 1000;

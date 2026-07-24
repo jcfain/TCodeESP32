@@ -427,7 +427,7 @@ private:
             taskHandler->startHTTPSTask(webHandler);
     #endif
             webHandler->setup(port, webSocketHandler, apMode);
-            LogHandler::printWebAddress(m_TAG, WiFi.softAPIP().toString().c_str(), port);
+            LogHandler::printWebAddress(m_TAG, SettingsHandler::currentIP, port);
             LogHandler::debug(m_TAG, "Web DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
             if (!apMode) {// mdns breaks apmode?
                 bool mdnsEnabled = MDNS_ENABLED_DEFAULT;
@@ -581,14 +581,13 @@ private:
     #if BUILD_DISPLAY
             if(displayHandler) 
             {
-                String ipaddress = wifi.ip().toString();
-                displayPrint("Connected IP: " + ipaddress);
-                displayHandler->setLocalIPAddress(wifi.ip());
+                displayPrint("Connected IP: ");
+                displayPrint(SettingsHandler::currentIP);
             }
     #endif
         }
     }
-    void displayPrint(String text)
+    void displayPrint(const char* text)
     {
     #if BUILD_DISPLAY
         if(displayHandler)

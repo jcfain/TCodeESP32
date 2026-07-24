@@ -63,6 +63,18 @@ public:
 
     // General lookup
     Axis* getAxis(const char* channel) const;
+    
+    // Get current position of any axis
+    uint16_t getPosition(char letter, uint8_t index) const;
+    uint16_t getPosition(const char* channel) const;
+
+    // Get current velocity of any axis
+    int32_t getVelocity(char letter, uint8_t index, int perInterval = 100) const;
+    int32_t getVelocity(const char* channel, int perInterval = 100) const;
+
+    // Get current velocity of any axis
+    unsigned long getLast(char letter, uint8_t index) const;
+    unsigned long getLast(const char* channel) const;
 
     // Utility
     uint8_t getRegisteredCount() const { return _count; }

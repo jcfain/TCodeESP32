@@ -1,7 +1,33 @@
 // TCODE AXIS LIBRARY
-// by TempestMAx 1-6-26
+// by TempestMAx 21-7-26
 // This class handles the movement of a single TCode axis
-// v0.1 Experimental build
+// v0.4.1 Experimental build, 1-6-26
+// v0.4.2 setDecelStop() function modified to time specified cubic rebound,
+//        setAxis() function modified - short INTERVAL commands no longer treated
+//        as SHORT commands
+//
+//
+// MIT License
+//
+// Copyright (c) 2021 Richard Unger
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 //
 //
 // MIT License
@@ -78,7 +104,7 @@ int32_t Axis::getVelocity(int perInterval)
     return velocity;
 }
 
-  // Returns the time of the last received command
+// Returns the time of the last received command
 unsigned long Axis::getLast() {
     return startTime;
 }
@@ -106,11 +132,6 @@ bool Axis::setAxis()
 {
     // Skip this function and return a negative if the buffer isn't set
     if (!bufferSet) { return false; }
-
-    // If very short time intervals are being set these are redundant - ignore!
-    if (bufferInputType == InputType::INTERVAL && bufferExtendedParam <= SHORT_MOVE_INTERVAL) {
-        bufferInputType = InputType::SHORT;
-    }
 
     // Starting position for any new movement is always the current position
     uint16_t startPosIn = getPosition();
@@ -235,6 +256,7 @@ void Axis::setCubic(uint32_t durationIn,
                     int32_t startGradient,
                     int32_t endGradient)
 {
+
     duration = durationIn;
     startPos = startPosIn;
     endPos   = endPosIn;
@@ -350,63 +372,41 @@ void Axis::setMotion(uint32_t durationIn,
 }
 
 
-// Parabolic braking routine — called once the previous segment has run past its duration.
-// Pure constant-deceleration quadratic curve (velocity drops linearly to zero).
-void Axis::setDecelStop(uint16_t currentPos, int32_t  currentVel, int32_t decelRate)
+// Cubic "greedy" settle-to-rest.
+// durationIn is treated as a *maximum* allowed settle time (ms).
+// The curve will use a shorter duration if doing so lets the peak
+// exactly kiss the axis limit (10000 or 0) in the direction of travel.
+void Axis::setDecelStop(uint16_t currentPos, int32_t currentVel, uint32_t maxDuration)
 {
-    // Safety: zero velocity or nonsense decel → instant hold
-    if (currentVel == 0 || decelRate <= 0) {
+    if (maxDuration == 0 || currentVel == 0 || currentPos >= 10000 || currentPos <= 0 ) {
         setMotion(0, currentPos, currentPos, false, false);
         return;
     }
 
-    int64_t v0 = currentVel;                     // signed velocity
-    int64_t d  = decelRate;                      // positive deceleration magnitude
-    int64_t dir = (v0 > 0) ? 1LL : ((v0 < 0) ? -1LL : 0LL);
+    // Decide which limit we’re heading toward
+    uint16_t limit = (currentVel > 0) ? 10000 : 0;
 
-    // Simple abs for int64_t (Arduino doesn't always expose llabs cleanly)
-    if (v0 < 0) v0 = -v0;
+    int64_t p0 = (int64_t)currentPos << 16;
+    int64_t limit_fp = (int64_t)limit << 16;
+    int64_t delta = limit_fp - p0;           // signed distance to the limit we want to kiss
 
-    // === KINEMATIC CALCULATION ===
-    // t (in 100 µs units) = v0 / d
-    int64_t t100us = v0 / d;
-    if (t100us <= 0) t100us = 1;
+    // m0 that produces a peak exactly at the limit (from the τ=1/3 extremum)
+    // peak excursion = m0 * 4/27  →  m0 = delta * 27/4
+    int64_t m0_needed = (delta * 27LL) / 4LL;
 
-    // Stopping distance = v0² / (2 d) = (v0 * t100us) / 2
-    int64_t deltaPos = (v0 * t100us) / 2;
+    // m0 = currentVel * duration * 65536 / 100
+    // → duration = m0 * 100 / (currentVel * 65536)
+    int64_t absVel = currentVel; 
+    int64_t durationNeeded = (m0_needed * 100LL) / (absVel * 65536LL);
 
-    int64_t projected = (int64_t)currentPos + dir * deltaPos;
-
-    uint16_t targetPos = (uint16_t)projected;
-    uint32_t brakeDurationUs = (uint32_t)(t100us * 100ULL);
-
-    // === CLAMP HANDLING — increase deceleration if position would overshoot ===
-    if (projected > 10000 || projected < 0) {
-        uint16_t bound = (projected > 10000) ? 10000 : 0;
-        int64_t maxDelta = (int64_t)bound - (int64_t)currentPos;
-
-        // If we're already moving away from the bound, just hold position
-        if (dir * maxDelta <= 0) {
-            setMotion(0, currentPos, currentPos, false, false);
-            return;
-        }
-
-        // Recalculate stronger deceleration to stop exactly at the bound
-        d = (v0 * v0) / (2LL * (maxDelta > 0 ? maxDelta : -maxDelta));
-        if (d < 1) d = 1;
-
-        t100us = v0 / d;
-        if (t100us <= 0) t100us = 1;
-
-        brakeDurationUs = (uint32_t)(t100us * 100ULL);
-        targetPos = bound;
+    uint32_t actualDuration;
+    if (durationNeeded > 0 && durationNeeded < maxDuration) {
+        actualDuration = (uint32_t)durationNeeded;
+    } else {
+        actualDuration = maxDuration;
     }
 
-    // Final safety
-    if (brakeDurationUs == 0) brakeDurationUs = 1;
-
-    // Hand off to quadratic ease-out (flat at end)
-    setMotion(brakeDurationUs, currentPos, targetPos, false, true);
+    setCubic(actualDuration, currentPos, currentPos, currentVel, 0);
 }
 
 
@@ -418,7 +418,7 @@ void Axis::setTimeout() {
 
     // If currently running under a gradient mode, set a deceleration
     if (gradMode || liveMode) {
-        setDecelStop(endPos, getVelocityFromCurve(duration), DECEL_CONST);
+        setDecelStop(endPos, getVelocityFromCurve(duration), DECEL_CYCLE_TIME );
     } else {
         // If we're not doing gradients - simple movement termination
         liveMode = false;                 // Live mode times out here

@@ -1,7 +1,10 @@
 // TCODE AXIS LIBRARY
-// by TempestMAx 1-6-26
+// by TempestMAx 21-7-26
 // This class handles the movement of a single TCode axis
-// v0.1 Experimental build
+// v0.4.1 Experimental build, 1-6-26
+// v0.4.2 setDecelStop() function modified to rebound, now time specified,
+//        setAxis() function modified - short INTERVAL commands no longer treated
+//        as SHORT commands
 //
 //
 // MIT License
@@ -32,7 +35,7 @@
 
 #include <Arduino.h>   // provides uint32_t, uint16_t, etc.
 
-#define DECEL_CONST 20
+#define DECEL_CYCLE_TIME 1000
 #define LIVE_TRIGGER 25
 #define SHORT_MOVE_INTERVAL 50
 #define MEAN_INTERVAL_STEPS 5
@@ -136,10 +139,9 @@ private:
                 bool easeOut = false);       // Is there a ">" ease out parameter on the movement?
 
   // Sets up a smooth deceleration movement.
-  void setDecelStop(uint16_t currentPos,  // Position at the instant braking begins
-                int32_t  currentVel,  // Velocity at the instant braking begins (from getVelocityAtTime(duration))
-                int32_t  decelRate);  // Constant deceleration magnitude in (position units per 100 µs) per 100 µs.
-                                      // Must be > 0. Larger values = quicker, sharper stop.
+  void setDecelStop(uint16_t currentPos,     // Position at the instant braking begins
+                int32_t  currentVel,         // Velocity at the instant braking begins (from getVelocityAtTime(duration))
+                uint32_t maxDuration);       // max deceleration deceleration cycle time.
 
   // Sets up a follow-up movement if a current movement times out.
   void setTimeout();
