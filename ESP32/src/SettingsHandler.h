@@ -230,7 +230,7 @@ public:
         v03["name"] = "v0.3";
         v03["value"] = TCodeVersion::v0_3;
         JsonObject v04 = tcodeVersions.add<JsonObject>();
-        v04["name"] = "v0.4 (beta)";
+        v04["name"] = "v0.4";
         v04["value"] = TCodeVersion::v0_4;
         JsonArray boardTypes = doc["boardTypes"].to<JsonArray>();
 #if CONFIG_IDF_TARGET_ESP32

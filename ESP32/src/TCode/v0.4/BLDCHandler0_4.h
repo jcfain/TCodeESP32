@@ -35,7 +35,7 @@
 class BLDCHandler0_4 : public MotorHandler0_4 
 {
 public:
-    BLDCHandler0_4() : MotorHandler0_4(new TCode0_4()) { }
+    BLDCHandler0_4(TCode0_4* tcode) : MotorHandler0_4(tcode) { }
 
     bool setup() override 
     {

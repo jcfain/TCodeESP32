@@ -166,11 +166,18 @@ public:
     #elif defined MOTOR_TYPE_BLDC
         if (settingsFactory->getTcodeVersion() == TCodeVersion::v0_3)
         {
-            motorHandler = new BLDCHandler0_3();
+            tcode = new TCode0_3();
+            motorHandler = new BLDCHandler0_3(static_cast<TCode0_3*>(tcode));
         }
         else if (settingsFactory->getTcodeVersion() == TCodeVersion::v0_4)
         {
-            motorHandler = new BLDCHandler0_4();
+            tcode = new TCode0_4();
+            motorHandler = new BLDCHandler0_4(static_cast<TCode0_4*>(tcode));
+        }
+        else
+        {
+            LogHandler::error(m_TAG, "Invalid TCode version: %ld", settingsFactory->getTcodeVersion());
+            return false; // TODO: this stops apmode and not what we want
         }
     #else
         #error "Build error! Invalid motor type defined!"

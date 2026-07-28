@@ -130,8 +130,15 @@ class BLDCMotor {
     }
 
     setupPins() {
-        if(this.initializedPins)
+        if(this.initializedPins) {
+            document.getElementById(this.Names.BLDC_ChipSelect_PIN).value = parseInt(pinoutSettings[this.Names.BLDC_ChipSelect_PIN]);
+            document.getElementById(this.Names.BLDC_Encoder_PIN).value = parseInt(pinoutSettings[this.Names.BLDC_Encoder_PIN]);
+            document.getElementById(this.Names.BLDC_Enable_PIN).value = parseInt(pinoutSettings[this.Names.BLDC_Enable_PIN]);
+            document.getElementById(this.Names.BLDC_PWMchannel1_PIN).value = parseInt(pinoutSettings[this.Names.BLDC_PWMchannel1_PIN]);
+            document.getElementById(this.Names.BLDC_PWMchannel2_PIN).value = parseInt(pinoutSettings[this.Names.BLDC_PWMchannel2_PIN]);
+            document.getElementById(this.Names.BLDC_PWMchannel3_PIN).value = parseInt(pinoutSettings[this.Names.BLDC_PWMchannel3_PIN]);
             return;
+        }
         this.createBLDCNumericFormNode(this.Names.BLDC_ChipSelect_PIN, "Chip select PIN", pinoutSettings[this.Names.BLDC_ChipSelect_PIN], () => this.updateBLDCPins(), -1, 2147483647, 1, null, ["BLDCSPI"]);
         this.createBLDCNumericFormNode(this.Names.BLDC_Encoder_PIN, "Encoder PIN", pinoutSettings[this.Names.BLDC_Encoder_PIN], () => this.updateBLDCPins(), -1, 2147483647, 1, null, ["BLDCPWM"]);
         this.createBLDCNumericFormNode(this.Names.BLDC_Enable_PIN, "Enable PIN", pinoutSettings[this.Names.BLDC_Enable_PIN], () => this.updateBLDCPins(), -1, 2147483647);
