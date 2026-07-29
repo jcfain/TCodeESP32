@@ -124,9 +124,9 @@ enum class BoardType: int
     MAX
 };
 #ifdef MOTOR_TYPE_BLDC
-#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SSR1PCB=5, DEVKITC6=6, DEVKITC61=7"
+#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, SSR1PCB=5"
 #else
-#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SR6MB=3, InControl=4, DEVKITC6=6, DEVKITC61=7"
+#define BOARD_TYPES_HELP "Sets system board type and changes the default pinout.\nValid values are: DEVKIT=0, ZERO=1, N8R8=2, SR6MB=3, InControl=4"
 #endif
 
 enum class MotorType: int
@@ -150,9 +150,9 @@ enum class DeviceType: int
 };
 
 #ifdef MOTOR_TYPE_BLDC
-#define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: SSR1=2, SSR2=3"
+#define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: SSR1=3, SSR2=4"
 #else
-#define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: OSR=0, SR6=1, TVIBE=5"
+#define DEVICE_TYPES_HELP "Sets the system device type and resets the pinout\nValid values are: OSR=1, SR6=2, TVIBE=5"
 #endif
 
 enum class BLDCEncoderType: int {
@@ -162,7 +162,7 @@ enum class BLDCEncoderType: int {
     PWM,
     MAX
 };
-#define BLDC_ENCODER_TYPES_HELP "MT6701=0, SPI=1, PWM=2"
+#define BLDC_ENCODER_TYPES_HELP "MT6701=1, SPI=2, PWM=3"
 
 enum class BLEDeviceType: int {
     TCODE,

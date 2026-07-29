@@ -157,13 +157,15 @@ void getTCodeInput()
 
 void processCommand()
 {
+	char* commandTCode = 0;
+	size_t* len = 0;
 	// Read and process tcode $ and # commands
 	if (serialData_len > 0)
 	{
 		if (systemCommandHandler && systemCommandHandler->isCommand(serialData))
 		{
-			// systemCommandHandler->process(serialData);
-			readTCode(serialData, serialData_len);
+			commandTCode = serialData;
+			len = &serialData_len;
 		}
 	}
 #if BLUETOOTH_TCODE
@@ -171,23 +173,30 @@ void processCommand()
 	{
 		if (systemCommandHandler && systemCommandHandler->isCommand(bluetoothData))
 		{
-			// systemCommandHandler->process(bluetoothData);
-			readTCode(bluetoothData, bluetoothData_len);
+			commandTCode = bluetoothData;
+			len = &bluetoothData_len;
 		}
 	}
 #endif
 #if WIFI_TCODE
 	else if (udpData_len > 0 && systemCommandHandler && systemCommandHandler->isCommand(udpData))
 	{
-		// systemCommandHandler->process(udpData);
-		readTCode(udpData, udpData_len);
+		commandTCode = udpData;
+		len = &udpData_len;
 	}
 	else if (webSocketData_len > 0 && systemCommandHandler && systemCommandHandler->isCommand(webSocketData))
 	{
-		// systemCommandHandler->process(webSocketData);
-		readTCode(webSocketData, webSocketData_len);
+		commandTCode = webSocketData;
+		len = &webSocketData_len;
 	}
 #endif
+	if(len) 
+	{
+		if (motorHandler)
+			motorHandler->read(commandTCode, *len);
+		commandTCode[0] = {0};
+		*len = 0;
+	}
 }
 
 void processMotionHandlerMovement()
