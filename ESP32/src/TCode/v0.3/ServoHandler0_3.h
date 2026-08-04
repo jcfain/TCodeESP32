@@ -311,8 +311,8 @@ private:
 
     void executeSR6(int strokeTcode, int rollTcode, int pitchTcode) 
     {
-        yLin = channelRead(TCODE_CHANNEL_SWAY);
-        zLin = channelRead(TCODE_CHANNEL_SURGE);
+        yLin = channelRead(TCODE_CHANNEL_SURGE);
+        zLin = channelRead(TCODE_CHANNEL_SWAY);
         // SR6 Kinematics
         // Calculate arm angles
         int roll,pitch,fwd,thrust,side;
