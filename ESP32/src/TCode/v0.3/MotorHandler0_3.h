@@ -228,13 +228,13 @@ protected:
         } 
     }
 
-    void executeCommon(const int xLin) 
+    void executeCommon(const int strokeTCode) 
     {
         if(!m_tcode || m_initFailed)
             return;
         executeTwist();
         executeSqueeze();
-        executeValve(xLin);
+        executeValve(strokeTCode);
         executeVibe(0);
         if(!lubeRegistered)
             executeVibe(1);
@@ -397,7 +397,7 @@ private:
         }
     }
 
-    void executeValve(int xLin) {
+    void executeValve(int strokeTCode) {
         if(m_valveServoPin < 0) 
         {
             return;
@@ -411,12 +411,12 @@ private:
         float upVelNow;
         if (t > tLast) 
         {
-            upVelNow = xLin - xLast;
+            upVelNow = strokeTCode - xLast;
             upVelNow /= t - tLast;
             upVel = (upVelNow + 9*upVel)/10;
         }
         tLast = t;
-        xLast = xLin;
+        xLast = strokeTCode;
         // Use suck command if most recent
         bool suck;
         if (m_tcode->AxisLast(TCODE_CHANNEL_SUCK_LEVEL) >= m_tcode->AxisLast(TCODE_CHANNEL_SUCK)) 

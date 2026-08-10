@@ -211,22 +211,22 @@ public:
             // Collect inputs
             // These functions query the t-code object for the position/level at a specified time
             // Number recieved will be an integer, 0-9999
-            xLin = channelRead(TCODE_CHANNEL_STROKE);
-            yRot = channelRead(TCODE_CHANNEL_ROLL);
-            zRot = channelRead(TCODE_CHANNEL_PITCH);
+            strokeTCode = channelRead(TCODE_CHANNEL_STROKE);
+            rollTCode = channelRead(TCODE_CHANNEL_ROLL);
+            pitchTCode = channelRead(TCODE_CHANNEL_PITCH);
             // If you want to mix your servos differently, enter your code below:
 
             if(m_deviceType == DeviceType::OSR)
             {
-                executeOSR(xLin, yRot, zRot);
+                executeOSR(strokeTCode, rollTCode, pitchTCode);
             }
             else if(m_deviceType == DeviceType::SR6)
             {
-                executeSR6(xLin, yRot, zRot);
+                executeSR6(strokeTCode, rollTCode, pitchTCode);
             }
         }
 
-        executeCommon(xLin);
+        executeCommon(strokeTCode);
         // Done with servo channels
 
     }
@@ -259,15 +259,12 @@ private:
     int m_pitchLeftServo_Int = -1;
     int m_pitchRightServo_Int = -1;
 
-    // Declare classes
-    // This uses the t-code object above
-    // Declare operating variables
     // Position variables
-    int xLin = 5000,
-        yLin = 5000,
-        zLin = 5000;
+    int strokeTCode = 5000,
+        surgeTCode = 5000,
+        swayTCode = 5000;
     // Rotation variables
-    int yRot,zRot;
+    int rollTCode,pitchTCode;
 
     void executeOSR(int strokeTcode, int rollTcode, int pitchTcode) {
         // Calculate arm angles
@@ -311,8 +308,8 @@ private:
 
     void executeSR6(int strokeTcode, int rollTcode, int pitchTcode) 
     {
-        yLin = channelRead(TCODE_CHANNEL_SWAY);
-        zLin = channelRead(TCODE_CHANNEL_SURGE);
+        surgeTCode = channelRead(TCODE_CHANNEL_SURGE);
+        swayTCode = channelRead(TCODE_CHANNEL_SWAY);
         // SR6 Kinematics
         // Calculate arm angles
         int roll,pitch,fwd,thrust,side;
@@ -320,17 +317,17 @@ private:
         {
             roll = map(rollTcode,TCODE_MIN,TCODE_MAX,3000,-3000);
             pitch = map(pitchTcode,TCODE_MIN,TCODE_MAX,2500,-2500);
-            fwd = map(yLin,TCODE_MIN,TCODE_MAX,3000,-3000);
+            fwd = map(surgeTCode,TCODE_MIN,TCODE_MAX,3000,-3000);
             thrust = map(strokeTcode,TCODE_MIN,TCODE_MAX,6000,-6000);
-            side = map(zLin,TCODE_MIN,TCODE_MAX,3000,-3000);   
+            side = map(swayTCode,TCODE_MIN,TCODE_MAX,3000,-3000);   
         } 
         else 
         {
             roll = map(rollTcode,TCODE_MIN,TCODE_MAX,-3000,3000);
             pitch = map(pitchTcode,TCODE_MIN,TCODE_MAX,-2500,2500);
-            fwd = map(yLin,TCODE_MIN,TCODE_MAX,-3000,3000);
+            fwd = map(surgeTCode,TCODE_MIN,TCODE_MAX,-3000,3000);
             thrust = map(strokeTcode,TCODE_MIN,TCODE_MAX,-6000,6000);
-            side = map(zLin,TCODE_MIN,TCODE_MAX,-3000,3000); 
+            side = map(swayTCode,TCODE_MIN,TCODE_MAX,-3000,3000); 
         }
 
         // Main arms

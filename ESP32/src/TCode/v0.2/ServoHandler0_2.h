@@ -92,9 +92,9 @@ private:
     int tick;
 
     // Position variables
-    float xLin,yLin,zLin;
+    float strokeTCode,surgeTCode,swayTCode;
     // Rotation variables
-    float xRot,yRot,zRot;
+    float xRot,rollTCode,pitchTCode;
     // Vibration variables
     float vibe0,vibe1;
 	
@@ -356,21 +356,21 @@ public:
             // Number recieved will be an integer, 1-1000
                 // Serial.print("SH xLinear ");
                 // Serial.printf("n: 0, t: %lu\n", t);
-            xLin = toy.xLinear(0,t);
-            //Serial.printf("xLin: %u, t: %lu\n", xLin, t);
+            strokeTCode = toy.xLinear(0,t);
+            //Serial.printf("strokeTCode: %u, t: %lu\n", strokeTCode, t);
 
 			// SR6 /////////////////
-			yLin = toy.xLinear(1,t);
-			zLin = toy.xLinear(2,t);
+			surgeTCode = toy.xLinear(1,t);
+			swayTCode = toy.xLinear(2,t);
 			////////////////////////
 
     		suck = toy.xLinear(3,t);
             xRot = toy.xRotate(0,t);
-            yRot = toy.xRotate(1,t);
-            zRot = toy.xRotate(2,t);
-            // Serial.print("zRot ");
-            // Serial.println(zRot);
-            // Serial.printf("zRot: %u, t: %lu\n", zRot, t);
+            rollTCode = toy.xRotate(1,t);
+            pitchTCode = toy.xRotate(2,t);
+            // Serial.print("pitchTCode ");
+            // Serial.println(pitchTCode);
+            // Serial.printf("pitchTCode: %u, t: %lu\n", pitchTCode, t);
             vibe0 = toy.xVibe(0,t);
             vibe1 = toy.xVibe(1,t);
 
@@ -382,9 +382,9 @@ public:
 			if (m_settingsFactory->getAutoValve())
 			{
 				float Vel,ValveCmd,localSuck;
-				Vel = xLin - xLast;
+				Vel = strokeTCode - xLast;
 				Vel = 50*Vel/tick;
-				xLast = xLin;
+				xLast = strokeTCode;
 				localSuck = 20;
 				if (Vel > localSuck) {
 					ValveCmd = Vel-localSuck;
@@ -398,8 +398,8 @@ public:
 			else 
 			{
 				float Vel,ValveCmd;
-				Vel = xLin - xLast;
-				xLast = xLin;
+				Vel = strokeTCode - xLast;
+				xLast = strokeTCode;
 				if (Vel < 0) {
 					ValveCmd = 1000;
 				} else {
@@ -429,11 +429,11 @@ public:
 			{
 				//Serial.print("SR6 mode");
 				int roll,pitch,fwd,thrust,side;
-				roll = map(yRot,0,1000,-3000,3000);
-				pitch = map(zRot,0,1000,-2500,2500);
-				fwd = map(yLin,0,1000,-3000,3000);
-				thrust = map(xLin,0,1000,-6000,6000);
-    			side = map(zLin,0,1000,-3000,3000);
+				roll = map(rollTCode,0,1000,-3000,3000);
+				pitch = map(pitchTCode,0,1000,-2500,2500);
+				fwd = map(surgeTCode,0,1000,-3000,3000);
+				thrust = map(strokeTCode,0,1000,-6000,6000);
+    			side = map(swayTCode,0,1000,-3000,3000);
 
 				// Main
             	int lowerLeftValue,upperLeftValue,pitchLeftValue,pitchRightValue,upperRightValue,lowerRightValue;
@@ -474,9 +474,9 @@ public:
 				// Mix and send servo channels
 				// Linear scale inputs to servo appropriate numbers
 				int stroke,roll,pitch;
-				stroke = map(xLin,1,1000,-350,350);
-				roll   = map(yRot,1,1000,-180,180);
-				pitch  = map(zRot,1,1000,-350,350);  
+				stroke = map(strokeTCode,1,1000,-350,350);
+				roll   = map(rollTCode,1,1000,-180,180);
+				pitch  = map(pitchTCode,1,1000,-350,350);  
 				//valve  = map(valve,1000,1, 1,1000);  
 				//valve  = constrain(xValve, 0, 1000);
 				// Serial.print("m_settingsFactory->continousTwist: ");
@@ -490,7 +490,7 @@ public:
 
 
 				//Serial.printf("a %d, b %d, c %d, d %d, twist %d\n", a,b,c,d,twist);
-				//Serial.printf("zRot %d, yLin %d, yRot %d, zRot %d, xRot %d\n", xLin,yLin,yRot,zRot,xRot);
+				//Serial.printf("pitchTCode %d, surgeTCode %d, rollTCode %d, pitchTCode %d, xRot %d\n", strokeTCode,surgeTCode,rollTCode,pitchTCode,xRot);
 				
 				// Send signals to the servos
 				// Note: 1000 = -45deg, 2000 = +45deg
