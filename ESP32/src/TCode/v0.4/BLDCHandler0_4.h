@@ -17,7 +17,6 @@
 
 
 #pragma once
-
 #include <SimpleFOC.h>
 #include <SimpleFOCDrivers.h>
 // #include <SimpleFOCDebug.h>
@@ -29,7 +28,7 @@
 #include "TagHandler.h"
 #include "settingsFactory.h"
 #include "BLDCTCodeSensorSPI.h"
-#include "printX.h"
+#include "PrintMotorStatus.h"
 
 
 class BLDCHandler0_4 : public MotorHandler0_4 
@@ -58,6 +57,7 @@ public:
         }
         if(m_deviceType == DeviceType::SSR2)
         {
+            LogHandler::debug(_TAG, "[setup] SSR2");
             m_settingsFactory->getValue(BLDC_MOTORB_ENCODER, encoderBType);
             LogHandler::debug(_TAG, "Motor B Encoder type: %d", encoderBType);
             if(encoderBType == BLDCEncoderType::NONE)
@@ -73,6 +73,7 @@ public:
         InitEncoders initEncoder(pinMap->chipSelect(), pinMap->motorBChipSelect(), &SPI);
         if(m_deviceType == DeviceType::SSR1)
         {
+            LogHandler::debug(_TAG, "[setup] SSR1");
             int pullyCircumference = -1;
             m_settingsFactory->getValue(BLDC_MOTORA_PULLEY_CIRCUMFERENCE, pullyCircumference);
             int strokeLength = -1;
@@ -361,14 +362,7 @@ public:
         if(motorB)
             motorB->init();
         m_settingsFactory->resetMotorStatus();
-        PrintMotorStatus* motorAStatus = new PrintMotorStatus("motorAStatus");
-        motorA->useMonitoring(*motorAStatus);
-        if(motorB) 
-        {
-            PrintMotorStatus* motorBStatus = new PrintMotorStatus("motorBStatus");
-            motorB->useMonitoring(*motorBStatus);
-        }
-        PrintMotorStatus* motorStatus = new PrintMotorStatus("motorStatus");
+        PrintMotorStatus<256>* motorStatus = new PrintMotorStatus<256>("motorStatus");
         SimpleFOCDebug::enable(motorStatus);
 
         // init current sense
@@ -394,7 +388,7 @@ public:
                 motorB->zero_electric_angle  = zeroElecAngleB; // rad
             }
         }
-
+        motorStatus->setName("motorAStatus");
         if (motorA->initFOC())  
         {
             LogHandler::info(_TAG, "Motor A FOC init success!");
@@ -409,6 +403,7 @@ public:
         LogHandler::info(_TAG, "BLDC_MotorA_ZeroElecAngle %f", motorA->zero_electric_angle);
         if(motorB)
         {
+            motorStatus->setName("motorBStatus");
             if (motorB->initFOC())  
             {
                 LogHandler::info(_TAG, "Motor B FOC init success!");
@@ -422,6 +417,7 @@ public:
             }
             LogHandler::info(_TAG, "BLDC_MotorB_ZeroElecAngle %f", motorB->zero_electric_angle);
         }
+        motorStatus->setName("motorStatus");
 
         
         // link the motor to the sensor
@@ -497,37 +493,6 @@ public:
     }
 
 private:
-    class PrintMotorStatus: public Print {
-        public:
-
-        PrintMotorStatus(const char* name) : m_name(name) {}
-        
-        size_t write(uint8_t buffer)
-        {
-            if (buffer == 0) {
-                return 0;
-            }
-            const char* string = (const char*)&buffer;
-            if(strcmp(string, "\r\n") == 0)
-                return 0;
-            SettingsFactory::getInstance()->addMotorStatus(m_name, string);
-            return LogHandler::info("MotorState", string);
-        }
-
-        size_t write(const uint8_t *buffer, size_t size)
-        {
-            if (buffer == 0) {
-                return 0;
-            }
-            const char* string = (const char*)buffer;
-            if(strcmp(string, "\r\n") == 0)
-                return 0;
-            SettingsFactory::getInstance()->addMotorStatus(m_name, string);
-            return LogHandler::info("MotorState", string);
-        }
-        private:
-        const char* m_name;
-    };
 
     const char* _TAG = TagHandler::BLDCHandler;
     const char* initDeviceTypeError = "No device type selected. Visit the web config or use the command to set a device before starting the firmware.";
@@ -611,7 +576,7 @@ private:
         }
         // Determine the linear position of the receiver in (0-10000)
         strokePosition = (sensorAngleA - zeroAngleA)*angToPos; 
-        //LogHandler::verbose(_TAG, "zeroAngle: %f", zeroAngle);
+        //LogHandler::verbose(_TAG, "zeroAngleA: %f", zeroAngleA);
 
         // Control constants
         float pidProportionalConst = m_settingsFactory->getBLDCPIDProportionalConst(); // Motor PID proportional constant

@@ -13,7 +13,7 @@
 // Common PWM
 #define VALVE_SERVO_PIN_DEFAULT -1
 #define VALVE_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::NONE
-#define TWIST_SERVO_PIN_DEFAULT 12
+#define TWIST_SERVO_PIN_DEFAULT -1
 #define TWIST_SERVO_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::NONE
 #define SQUEEZE_PIN_DEFAULT -1
 #define SQUEEZE_CHANNEL_DEFAULT (int8_t)ESPTimerChannelNum::NONE
@@ -36,8 +36,8 @@
 #define INTERNAL_TEMP_PIN_DEFAULT -1
 #define DISPLAY_RST_PIN_DEFAULT -1
 #define TEMP_PIN_DEFAULT -1
-#define I2C_SDA_PIN_DEFAULT 8
-#define I2C_SCL_PIN_DEFAULT 9
+#define I2C_SDA_PIN_DEFAULT 13
+#define I2C_SCL_PIN_DEFAULT 12
 #define BUTTON_SET_PINS_DEFAULT {}// Arrays dont work like this. See Settingsfactory::loadDefaultVector for defaults workaround
 #define BUTTON_SET_PINS_1 14
 #define BUTTON_SET_PINS_2 -1

@@ -1570,7 +1570,7 @@ private:
 
     bool load(SettingFileInfo &fileInfo)
     {
-        LogHandler::debug(m_TAG, "Loading file: %s", fileInfo.path);
+        LogHandler::debug(m_TAG, "[load] Loading file: %s", fileInfo.path);
         File file;
         if(!openFile(fileInfo, file))
         {
@@ -1616,16 +1616,16 @@ private:
 
     bool openFile(SettingFileInfo &fileInfo, File& file)
     {
-        LogHandler::info(m_TAG, "Loading file: %s", fileInfo.path);
+        LogHandler::debug(m_TAG, "[openFile] Loading file: %s", fileInfo.path);
         bool fileExists = LittleFS.exists(fileInfo.path);
         if(!fileExists)
         {
-            LogHandler::info(m_TAG, "File %s did not exist", fileInfo.path);
+            LogHandler::info(m_TAG, "[openFile] File %s did not exist", fileInfo.path);
             return false;
         } else {
             file = LittleFS.open(fileInfo.path, FILE_READ, !fileExists);
             if(!file) {
-                LogHandler::error(m_TAG, "%s failed to open!", fileInfo.path);
+                LogHandler::error(m_TAG, "[openFile] %s failed to open!", fileInfo.path);
                 return false;
             }
         }
@@ -2011,30 +2011,30 @@ private:
     //template <unsigned int N>
     bool saveToDisk(SettingFileInfo &fileInfo, JsonObject fromJson = JsonObject())
     {
-        LogHandler::info(m_TAG, "Save file: %s", fileInfo.path);
+        LogHandler::debug(m_TAG, "[saveToDisk] Save file: %s", fileInfo.path);
         if(!fromJson.isNull()) {
-            LogHandler::debug(m_TAG, "Saving from override json");
+            LogHandler::debug(m_TAG, "[saveToDisk] Saving from override json");
             fileInfo.doc.clear();
             fileInfo.doc.set(fromJson);
         }
 
-        LogHandler::debug(m_TAG, "Doc overflowed: %u", fileInfo.doc.overflowed());
+        LogHandler::debug(m_TAG, "[saveToDisk] Doc overflowed: %u", fileInfo.doc.overflowed());
         //LogHandler::debug(m_TAG, "Doc memory: %u", fileInfo.doc.memoryUsage());
         //LogHandler::debug(m_TAG, "Doc capacity: %u", fileInfo.doc.capacity());
         File file = LittleFS.open(fileInfo.path, FILE_WRITE);
         if (!file )
         {
-            LogHandler::error(m_TAG, "Failed to open file: %s", fileInfo.path);
+            LogHandler::error(m_TAG, "[saveToDisk] Failed to open file: %s", fileInfo.path);
             return false;
         }
         if (!serializeJson(fileInfo.doc, file))
         {
-            LogHandler::error(m_TAG, "Failed to write to file: %s", fileInfo.path);
+            LogHandler::error(m_TAG, "[saveToDisk] Failed to write to file: %s", fileInfo.path);
             file.close();
             return false;
         }
         if(LogHandler::getLogLevel() >= LogLevel::DEBUG)
-            LogHandler::debug(m_TAG, "File contents: %s", file.readString().c_str());
+            LogHandler::debug(m_TAG, "[saveToDisk] File contents: %s", file.readString().c_str());
         file.close();
         if(fileInfo.onchange)
             fileInfo.onchange(0);
@@ -2047,9 +2047,9 @@ private:
 
     void loadSystemCache() 
     {
-        LogHandler::debug(m_TAG, "SettingsFactory::loadSystemCache");
+        LogHandler::debug(m_TAG, "[loadSystemCache]");
         if(!m_systemFileInfo.initialized) {
-            LogHandler::error(m_TAG, "loadSystemCache called before initialized");
+            LogHandler::error(m_TAG, "[loadSystemCache] called before initialized");
             return;
         }
 	    getValue(TCODE_VERSION_SETTING, tcodeVersion);
@@ -2058,9 +2058,9 @@ private:
 
     void loadNetworkCache() 
     {
-        LogHandler::debug(m_TAG, "SettingsFactory::loadNetworkCache");
+        LogHandler::debug(m_TAG, "[loadNetworkCache]");
         if(!m_networkFileInfo.initialized) {
-            LogHandler::error(m_TAG, "loadNetworkCache called before initialized");
+            LogHandler::error(m_TAG, "[loadNetworkCache] called before initialized");
             return;
         }
 	    getValue(UDP_SERVER_PORT, udpServerPort);
@@ -2074,9 +2074,9 @@ private:
 
     void loadCommonCache() 
     {
-        LogHandler::debug(m_TAG, "SettingsFactory::loadCommonCache");
+        LogHandler::debug(m_TAG, "[loadCommonCache]");
         if(!m_commonFileInfo.initialized) {
-            LogHandler::error(m_TAG, "loadCommonCache called before initialized");
+            LogHandler::error(m_TAG, "[loadCommonCache] called before initialized");
             return;
         }
         getValue(DEVICE_TYPE, m_deviceType);
@@ -2085,9 +2085,9 @@ private:
     }
 
     void loadPinCache() {
-        LogHandler::debug(m_TAG, "SettingsFactory::loadPinCache");
+        LogHandler::debug(m_TAG, "[loadPinCache]");
         if(!m_pinsFileInfo.initialized) {
-            LogHandler::error(m_TAG, "loadPinCache called before initialized");
+            LogHandler::error(m_TAG, "[loadPinCache] called before initialized");
             return;
         }
         DeviceType deviceType;
@@ -2116,9 +2116,9 @@ private:
 
     void loadCommonPins(PinMap* pinMap) 
     {
-        LogHandler::debug(m_TAG, "SettingsFactory::loadCommonPins");
+        LogHandler::debug(m_TAG, "[loadCommonPins]");
         if(!m_pinsFileInfo.initialized) {
-            LogHandler::error(m_TAG, "loadCommonPins called before initialized");
+            LogHandler::error(m_TAG, "[loadCommonPins] called before initialized");
             return;
         }
         int8_t pin = -1;
@@ -2214,9 +2214,9 @@ private:
 
     PinMapSSR* loadSSRPins() 
     {
-        LogHandler::debug(m_TAG, "SettingsFactory::loadSSRPins");
+        LogHandler::debug(m_TAG, "[loadSSRPins]");
         if(!m_pinsFileInfo.initialized) {
-            LogHandler::error(m_TAG, "loadSSR1Pins called before initialized");
+            LogHandler::error(m_TAG, "[loadSSR1Pins] called before initialized");
             return 0;
         }
         PinMapSSR* pinMap = PinMapSSR::getInstance();
@@ -2255,9 +2255,9 @@ private:
 
     PinMapOSR* loadOSRPins() 
     {
-        LogHandler::debug(m_TAG, "SettingsFactory::loadOSRPins");
+        LogHandler::debug(m_TAG, "[loadOSRPins]");
         if(!m_pinsFileInfo.initialized) {
-            LogHandler::error(m_TAG, "loadSSR1Pins called before initialized");
+            LogHandler::error(m_TAG, "[loadSSR1Pins] called before initialized");
             return 0;
         }
         PinMapOSR* pinMap = PinMapOSR::getInstance();
@@ -2281,9 +2281,9 @@ private:
     
     PinMapSR6* loadSR6Pins() 
     {
-        LogHandler::debug(m_TAG, "SettingsFactory::loadSR6Pins");
+        LogHandler::debug(m_TAG, "[loadSR6Pins]");
         if(!m_pinsFileInfo.initialized) {
-            LogHandler::error(m_TAG, "loadSR6Pins called before initialized");
+            LogHandler::error(m_TAG, "[loadSR6Pins] called before initialized");
             return 0;
         }
         PinMapSR6* pinMap = PinMapSR6::getInstance();
@@ -2319,9 +2319,9 @@ private:
     
     void syncCommonPinsToDoc(const PinMap* pinMap) 
     {
-        LogHandler::debug(m_TAG, "SettingsFactory::syncCommonPinsToDoc");
+        LogHandler::debug(m_TAG, "[syncCommonPinsToDoc]");
         if(!m_pinsFileInfo.initialized) {
-            LogHandler::error(m_TAG, "syncCommonPinsToDoc called before initialized");
+            LogHandler::error(m_TAG, "[syncCommonPinsToDoc] called before initialized");
             return;
         }
         setValue(VALVE_SERVO_PIN, pinMap->valve());
@@ -2369,9 +2369,9 @@ private:
 
     void syncSSRAndCommonPinsToDisk(const PinMapSSR* pinMap) 
     {
-        LogHandler::debug(m_TAG, "SettingsFactory::syncSSRAndCommonPinsToDisk");
+        LogHandler::debug(m_TAG, "[syncSSRAndCommonPinsToDisk]");
         if(!m_pinsFileInfo.initialized) {
-            LogHandler::error(m_TAG, "syncSSRAndCommonPinsToDisk called before initialized");
+            LogHandler::error(m_TAG, "[syncSSRAndCommonPinsToDisk] called before initialized");
             return;
         }
         syncCommonPinsToDoc(pinMap);
@@ -2393,9 +2393,9 @@ private:
 
     void syncOSRAndCommonPinsToDisk(const PinMapOSR* pinMap) 
     {
-        LogHandler::debug(m_TAG, "SettingsFactory::syncOSRAndCommonPinsToDisk");
+        LogHandler::debug(m_TAG, "[syncOSRAndCommonPinsToDisk]");
         if(!m_pinsFileInfo.initialized) {
-            LogHandler::error(m_TAG, "syncOSRAndCommonPinsToDisk called before initialized");
+            LogHandler::error(m_TAG, "[syncOSRAndCommonPinsToDisk] called before initialized");
             return;
         }
         syncCommonPinsToDoc(pinMap);
@@ -2410,9 +2410,9 @@ private:
 
     void syncSR6AndCommonPinsToDisk(const PinMapSR6* pinMap) 
     {
-        LogHandler::debug(m_TAG, "SettingsFactory::syncSR6AndCommonPinsToDisk");
+        LogHandler::debug(m_TAG, "[syncSR6AndCommonPinsToDisk]");
         if(!m_pinsFileInfo.initialized) {
-            LogHandler::error(m_TAG, "syncSR6AndCommonPinsToDisk called before initialized");
+            LogHandler::error(m_TAG, "[syncSR6AndCommonPinsToDisk] called before initialized");
             return;
         }
         syncCommonPinsToDoc(pinMap);
@@ -2533,27 +2533,27 @@ private:
         {
             case SettingType::Boolean: {
                 doc[setting->name] = static_cast<bool>(value);
-                LogHandler::verbose(m_TAG, "Load bool: %s, value: %ld", setting->name, doc[setting->name].as<bool>());
+                LogHandler::verbose(m_TAG, "[toJson] Load bool: %s, value: %ld", setting->name, doc[setting->name].as<bool>());
             }
             break;
             case SettingType::Number: {
                 doc[setting->name] = static_cast<int>(value);
-                LogHandler::verbose(m_TAG, "Load number: %s, value: %ld", setting->name, doc[setting->name].as<int>());
+                LogHandler::verbose(m_TAG, "[toJson] Load number: %s, value: %ld", setting->name, doc[setting->name].as<int>());
             }
             break;
             case SettingType::Double: {
                 doc[setting->name] = static_cast<double>(value);
-                LogHandler::verbose(m_TAG, "Load double: %s, value: %f", setting->name, doc[setting->name].as<double>());
+                LogHandler::verbose(m_TAG, "[toJson] Load double: %s, value: %f", setting->name, doc[setting->name].as<double>());
             }
             break;
             case SettingType::Float: {
                 doc[setting->name] = static_cast<float>(value);
-                LogHandler::verbose(m_TAG, "Load float: %s, value: %f", setting->name, doc[setting->name].as<float>());
+                LogHandler::verbose(m_TAG, "[toJson] Load float: %s, value: %f", setting->name, doc[setting->name].as<float>());
             }
             break;
             case SettingType::String: {
                 doc[setting->name] = static_cast<char*>(value);
-                LogHandler::verbose(m_TAG, "Load string: %s, value: %s", setting->name, doc[setting->name].as<const char*>());
+                LogHandler::verbose(m_TAG, "[toJson] Load string: %s, value: %s", setting->name, doc[setting->name].as<const char*>());
             }
             break;
             // case SettingType::ArrayString: {
@@ -2573,37 +2573,37 @@ private:
         {
             case SettingType::Boolean: {
                 doc[setting->name] = mpark::get<const bool>(setting->defaultValue);
-                LogHandler::verbose(m_TAG, "Load default bool: %s, value: %ld", setting->name, doc[setting->name].as<bool>());
+                LogHandler::verbose(m_TAG, "[defaultToJson] Load default bool: %s, value: %ld", setting->name, doc[setting->name].as<bool>());
             }
             break;
             case SettingType::Number: {
                 doc[setting->name] = mpark::get<const int>(setting->defaultValue);
-                LogHandler::verbose(m_TAG, "Load default number: %s, value: %ld", setting->name, doc[setting->name].as<int>());
+                LogHandler::verbose(m_TAG, "[defaultToJson] Load default number: %s, value: %ld", setting->name, doc[setting->name].as<int>());
             }
             break;
             case SettingType::Double: {
                 doc[setting->name] = mpark::get<const double>(setting->defaultValue);
-                LogHandler::verbose(m_TAG, "Load default double: %s, value: %f", setting->name, doc[setting->name].as<double>());
+                LogHandler::verbose(m_TAG, "[defaultToJson] Load default double: %s, value: %f", setting->name, doc[setting->name].as<double>());
             }
             break;
             case SettingType::Float: {
                 doc[setting->name] = mpark::get<const float>(setting->defaultValue);
-                LogHandler::verbose(m_TAG, "Load default float: %s, value: %f", setting->name, doc[setting->name].as<float>());
+                LogHandler::verbose(m_TAG, "[defaultToJson] Load default float: %s, value: %f", setting->name, doc[setting->name].as<float>());
             }
             break;
             case SettingType::String: {
                 doc[setting->name] = mpark::get<const char*>(setting->defaultValue);
-                LogHandler::verbose(m_TAG, "Load default string: %s, value: %s", setting->name, doc[setting->name].as<const char*>());
+                LogHandler::verbose(m_TAG, "[defaultToJson] Load default string: %s, value: %s", setting->name, doc[setting->name].as<const char*>());
             }
             break;
             case SettingType::ArrayString: {
                 loadDefaultVector(setting, doc);
-                LogHandler::verbose(m_TAG, "Load default string vector: %s, value size: %ld", setting->name, doc[setting->name].as<JsonArray>().size());
+                LogHandler::verbose(m_TAG, "[defaultToJson] Load default string vector: %s, value size: %ld", setting->name, doc[setting->name].as<JsonArray>().size());
             }
             break;
             case SettingType::ArrayInt: {
                 loadDefaultVector(setting, doc);
-                LogHandler::verbose(m_TAG, "Load default int vector: %s, value size: %ld", setting->name, doc[setting->name].as<JsonArray>().size());
+                LogHandler::verbose(m_TAG, "[defaultToJson] Load default int vector: %s, value size: %ld", setting->name, doc[setting->name].as<JsonArray>().size());
             }
             break;
             case SettingType::NONE: 
@@ -2622,22 +2622,22 @@ private:
         }
         else
         {
-            LogHandler::warning(m_TAG, "sendMessage: message_callback 0");
+            LogHandler::warning(m_TAG, "[sendMessage] message_callback 0");
         }
     }
 
     bool createJsonFile(const char* path) {
-        LogHandler::info(m_TAG, "Creating file %s", path);
+        LogHandler::info(m_TAG, "[createJsonFile] Creating file %s", path);
         if(LittleFS.exists(path)) {
-            LogHandler::info(m_TAG, "File exists, Deleting file %s", path);
+            LogHandler::info(m_TAG, "[createJsonFile] File exists, Deleting file %s", path);
             if(!LittleFS.remove(path)) {
-                LogHandler::error(m_TAG, "Error deleting %s!", path);
+                LogHandler::error(m_TAG, "[createJsonFile] Error deleting %s!", path);
                 return false;
             }
         }
         File newFile = LittleFS.open(path, FILE_WRITE, true);
         if(!newFile) {
-            LogHandler::error(m_TAG, "Error creating %s!", path);
+            LogHandler::error(m_TAG, "[createJsonFile] Error creating %s!", path);
             return false;
         }
         newFile.print("{}");
@@ -2648,9 +2648,9 @@ private:
     
     bool deleteJsonFile(const char* path) {
         if(LittleFS.exists(path)) {
-            LogHandler::info(m_TAG, "Deleting file %s", path);
+            LogHandler::info(m_TAG, "[deleteJsonFile] Deleting file %s", path);
             if(!LittleFS.remove(path)) {
-                LogHandler::error(m_TAG, "Error deleting %s!", path);
+                LogHandler::error(m_TAG, "[deleteJsonFile] Error deleting %s!", path);
                 return false;
             }
         }
