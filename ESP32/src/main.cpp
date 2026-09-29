@@ -325,6 +325,9 @@ static void motorTaskFunc(void *param)
 		// the command queue so re-attached pins immediately accept writes.
 		handler->serviceReapply();
 
+		// Service a UI-requested re-home before the next control cycle
+		handler->serviceRecalibrate();
+
 		// Drain any queued TCode commands before each control cycle
 		while (xQueueReceive(motorCmdQueue, &cmd, 0) == pdTRUE)
 		{
@@ -357,12 +360,43 @@ void feedMotorCommand(const char *cmd, size_t len)
 	xQueueSend(motorCmdQueue, &motorCmd, 0);
 }
 
+// --- Log -> Web UI bridge ---------------------------------------------
+// LogHandler invokes its message callback from inside the logging mutex,
+// in whatever task emitted the log line. Sending over the websocket from
+// that context is unsafe: the websocket send path itself logs (e.g. on
+// payload truncation), which would re-enter LogHandler's non-recursive
+// mutex and deadlock — and a blocking send would stall every task that
+// logs. So the callback only copies the line into a queue (non-blocking,
+// dropped if full) and the Arduino loop() drains it on Core 1, outside the
+// log mutex, forwarding to the websocket as a "debug" command.
+static const uint32_t LOG_WEB_QUEUE_SIZE = 32;
+static const uint32_t LOG_WEB_MAX_LEN = 256;
+struct LogWebMessage
+{
+	char data[LOG_WEB_MAX_LEN];
+};
+static QueueHandle_t logWebQueue = nullptr;
+
+static void webLogCallback(const char *message, size_t length, LogLevel level)
+{
+	(void)length;
+	if (!logWebQueue || !message)
+		return;
+	// VERBOSE is high-volume (e.g. per-tick power samples); keep it serial-only
+	// to avoid flooding the websocket and the browser console.
+	if (level == LogLevel::VERBOSE)
+		return;
+	LogWebMessage m;
+	strlcpy(m.data, message, LOG_WEB_MAX_LEN);
+	xQueueSend(logWebQueue, &m, 0); // non-blocking; drop if full
+}
+
 void setup()
 {
 	Serial.begin(115200);
 	Serial.println("BOOT: setup entered");
 	Serial.println();
-	LogHandler::setLogLevel(LogLevel::INFO);
+	LogHandler::setLogLevel(LogLevel::DEBUG);
 	LogHandler::info(Tags::Main, "Firmware version: %s", FIRMWARE_VERSION_NAME);
 	uint32_t chipId = 0;
 	for (int i = 0; i < 17; i = i + 8)
@@ -431,6 +465,18 @@ void setup()
 	// Create the command queue used by feedMotorCommand() from any core
 	motorCmdQueue = xQueueCreate(MOTOR_CMD_QUEUE_SIZE, sizeof(MotorCommand));
 
+	// Bridge log lines to the web UI debug console. The callback only enqueues
+	// (non-blocking); loop() drains the queue and forwards to the websocket.
+	logWebQueue = xQueueCreate(LOG_WEB_QUEUE_SIZE, sizeof(LogWebMessage));
+	if (logWebQueue)
+	{
+		LogHandler::setMessageCallback(webLogCallback);
+	}
+	else
+	{
+		LogHandler::error(Tags::Main, "Failed to create log web queue; UI log streaming disabled");
+	}
+
 	// Launch motor control on a dedicated FreeRTOS task pinned to PRO_CPU.
 	// Motor setup() + execute() both run on that core so there is zero
 	// contention with WiFi / networking work on APP_CPU.
@@ -464,6 +510,22 @@ void loop()
 	// Cooperatively poll all communication / sensor tasks on APP_CPU (Core 1).
 	// Motor control runs on its own FreeRTOS task (PRO_CPU) â€“ nothing to do here.
 	TaskHandler::global().tasks().poll();
+
+	// Drain queued log lines to the web UI debug console. Runs outside the
+	// LogHandler mutex, so the websocket send (which may itself log) cannot
+	// deadlock. Always dequeue so the queue stays current; only forward when a
+	// websocket exists. sendCommand() is non-blocking (try_lock) and no-ops
+	// when no clients are connected.
+	if (logWebQueue)
+	{
+		LogWebMessage lm;
+		int drained = 0;
+		while (drained++ < 8 && xQueueReceive(logWebQueue, &lm, 0) == pdTRUE)
+		{
+			if (webSocketHandler)
+				webSocketHandler->sendCommand("debug", lm.data);
+		}
+	}
 
 	if (!networkingBringupAttempted && millis() >= NETWORK_BRINGUP_DELAY_MS)
 	{

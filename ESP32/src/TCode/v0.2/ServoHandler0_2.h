@@ -148,6 +148,7 @@ public:
     // This is run once, when the arduino starts
     void setup() override
     {
+		LogHandler::debug(
 		m_settingsFactory = SettingsFactory::getInstance();
         m_settingsFactory->getValue(SERVO_FREQUENCY, MainServo_Freq);
         m_settingsFactory->getValue(PITCH_FREQUENCY, PitchServo_Freq);

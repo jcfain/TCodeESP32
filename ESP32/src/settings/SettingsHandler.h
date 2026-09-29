@@ -118,6 +118,7 @@ public:
         loadButtons(false);
 
         LogHandler::debug(Tags::Settings, "Last reset reason: %s", machine_reset_cause());
+        recordBootReason();
         initialized = true;
     }
 
@@ -2327,6 +2328,68 @@ private:
             return "";
             break;
         }
+    }
+
+    // Append the current boot's reset reason to the persisted history file
+    // (/debugInfo.json) that the web UI reads from the /debugInfo endpoint.
+    // Writing this on every boot (after LittleFS is mounted) is what makes the
+    // reboot history both persist across resets and survive crash loops — the
+    // entry is recorded before any later fault can occur. The file format
+    // matches what setDebugInfo() in the UI expects: an array of
+    // {eventID, reason} objects under the "lastBootReasons" key.
+    static void recordBootReason()
+    {
+        const char *reason = machine_reset_cause();
+
+        JsonDocument doc;
+        if (LittleFS.exists(DEBUG_INFO_PATH))
+        {
+            File in = LittleFS.open(DEBUG_INFO_PATH, FILE_READ);
+            if (in)
+            {
+                DeserializationError err = deserializeJson(doc, in);
+                in.close();
+                if (err)
+                {
+                    LogHandler::warning(Tags::Settings, "Could not parse %s (%s); recreating", DEBUG_INFO_PATH, err.c_str());
+                    doc.clear();
+                }
+            }
+        }
+
+        JsonArray reasons = doc[DEBUG_INFO_LAST_BOOT_REASONS].is<JsonArray>()
+                                ? doc[DEBUG_INFO_LAST_BOOT_REASONS].as<JsonArray>()
+                                : doc[DEBUG_INFO_LAST_BOOT_REASONS].to<JsonArray>();
+
+        // Next event id is one past the highest existing id so the sequence
+        // keeps increasing across reboots even after trimming old entries.
+        uint32_t nextEventId = 1;
+        for (JsonObject entry : reasons)
+        {
+            uint32_t id = entry["eventID"] | 0u;
+            if (id + 1 > nextEventId)
+                nextEventId = id + 1;
+        }
+
+        JsonObject entry = reasons.add<JsonObject>();
+        entry["eventID"] = nextEventId;
+        entry["reason"] = reason;
+
+        // Keep only the most recent LAST_BOOT_REASONS_MAX_DEFAULT entries.
+        while ((int)reasons.size() > LAST_BOOT_REASONS_MAX_DEFAULT)
+        {
+            reasons.remove(0);
+        }
+
+        File out = LittleFS.open(DEBUG_INFO_PATH, FILE_WRITE);
+        if (!out)
+        {
+            LogHandler::error(Tags::Settings, "Failed to open %s to record boot reason", DEBUG_INFO_PATH);
+            return;
+        }
+        serializeJson(doc, out);
+        out.close();
+        LogHandler::info(Tags::Settings, "Boot reason #%u recorded: %s", nextEventId, reason);
     }
 
     // static bool LogDeserializationError(DeserializationError error, const char* filename) {

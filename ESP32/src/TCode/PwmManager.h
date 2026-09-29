@@ -274,6 +274,59 @@ public:
     }
 
     /**
+     * Write a NORMALIZED 16-bit duty (0..65535) to an attached pin.
+     * PwmManager scales the value down to the backend's actual resolution
+     * (which may differ from what was requested — e.g. LEDC auto-bumped
+     * from 8-bit to 14-bit to satisfy a low-frequency constraint).
+     *
+     * The scaling is a simple right-shift: actual = norm >> (16 - res).
+     * This guarantees norm=65535 maps to the exact max duty (2^res - 1)
+     * with no rounding error, and the full [0,max] range is covered.
+     *
+     * Use this as the primary write path — it decouples callers from the
+     * hardware's negotiated resolution.
+     */
+    bool writeNormalized(int8_t pin, uint16_t normDuty)
+    {
+        if (pin < 0)
+            return false;
+        Entry* e = find(pin);
+        if (!e)
+        {
+#ifdef ESP_ARDUINO3
+            ledcWrite((uint8_t)pin, normDuty >> 8);
+            return true;
+#else
+            return false;
+#endif
+        }
+        // Scale 16-bit normalized duty to the backend's actual resolution.
+        uint32_t actual;
+        if (e->resolution == 0 || e->resolution >= 16)
+        {
+            actual = normDuty;
+        }
+        else
+        {
+            actual = (uint32_t)normDuty >> (16 - e->resolution);
+        }
+        switch (e->backend)
+        {
+        case Backend::MCPWM:
+            return MCPWMServo::getInstance().write(pin, actual);
+        case Backend::LEDC:
+#ifdef ESP_ARDUINO3
+            ledcWrite((uint8_t)pin, actual);
+            return true;
+#else
+            return false;
+#endif
+        default:
+            return false;
+        }
+    }
+
+    /**
      * Detach a previously attached pin. Frees the LEDC channel (Arduino-3
      * ledcDetach) and tears down the MCPWM generator/comparator (V5).
      */
@@ -352,6 +405,33 @@ public:
 
     int ledcCount() const { return countByBackend(Backend::LEDC); }
     int mcpwmCount() const { return countByBackend(Backend::MCPWM); }
+
+    /**
+     * Diagnostic: return the count of tracked pins (for systemInfo).
+     */
+    int trackedCount() const { return m_count; }
+
+    /**
+     * Diagnostic: return details for the i-th tracked pin.
+     * Returns nullptr if index is out of range.
+     */
+    struct PinInfo
+    {
+        int8_t   pin;
+        Backend  backend;
+        uint8_t  resolution;
+        uint32_t freq;
+    };
+    bool getPinInfo(int index, PinInfo& out) const
+    {
+        if (index < 0 || index >= m_count)
+            return false;
+        out.pin = m_entries[index].pin;
+        out.backend = m_entries[index].backend;
+        out.resolution = m_entries[index].resolution;
+        out.freq = m_entries[index].freq;
+        return true;
+    }
 
 private:
     PwmManager() = default;
@@ -442,46 +522,72 @@ private:
         pinMode((uint8_t)pin, OUTPUT);
         digitalWrite((uint8_t)pin, LOW);
 
-        // Always use auto-channel allocation. Arduino-3's LEDC manager picks
-        // a free channel and reuses an existing timer when freq+resolution
-        // match. This avoids the S3 channel-out-of-range issue (HIGH* enum
-        // values 8..15 aren't valid LEDC channels) and avoids accidental
-        // channel collisions between servos and vibe outputs.
-        bool ok = ledcAttach((uint8_t)pin, freq, resolution);
+        // Try the requested resolution first. If LEDC can't achieve the
+        // freq+res combo (e.g. 50 Hz @ 8-bit fails on S3 because the timer
+        // prescaler can't divide the clock low enough at that resolution),
+        // auto-bump to higher resolutions up to the hardware max. The
+        // caller doesn't need to know — writeNormalized() scales duties
+        // to whatever resolution was actually negotiated.
+        //
+        // This also lets a low-res request (e.g. vibe @ 8-bit) share a
+        // timer with a high-res request (e.g. servo @ 14-bit) at the same
+        // frequency, because LEDC reuses timers only when BOTH freq AND
+        // resolution match.
+        constexpr uint8_t MAX_LEDC_RES = SOC_LEDC_TIMER_BIT_WIDTH;
+        uint8_t actualRes = resolution;
+        if (actualRes > MAX_LEDC_RES)
+            actualRes = MAX_LEDC_RES;
+        bool ok = false;
+        while (actualRes <= MAX_LEDC_RES)
+        {
+            ok = ledcAttach((uint8_t)pin, freq, actualRes);
+            if (ok)
+                break;
+            actualRes++;
+        }
         if (ok)
         {
-            track(pin, Backend::LEDC, freq, resolution);
+            track(pin, Backend::LEDC, freq, actualRes);
             clearFailure(pin);
-            LogHandler::info(Tags::Motor,
-                "PwmManager: %s -> pin %d, %u Hz, %u-bit, LEDC",
-                name, pin, (unsigned)freq, (unsigned)resolution);
+            if (actualRes != resolution)
+            {
+                LogHandler::info(Tags::Motor,
+                    "PwmManager: %s -> pin %d, %u Hz, %u->%u-bit (auto-bumped), LEDC",
+                    name, pin, (unsigned)freq, (unsigned)resolution, (unsigned)actualRes);
+            }
+            else
+            {
+                LogHandler::info(Tags::Motor,
+                    "PwmManager: %s -> pin %d, %u Hz, %u-bit, LEDC",
+                    name, pin, (unsigned)freq, (unsigned)actualRes);
+            }
             return Backend::LEDC;
         }
 
         // LEDC failed (no free timers, freq+res not achievable, etc.).
-        // Try MCPWM as a fallback for servo-style frequencies if allowed.
-        // MCPWM has its own pool independent of LEDC and uses a 16-bit
-        // counter so common 50 Hz / 14-bit servo configs map cleanly.
+        // Try MCPWM as a fallback. Use the last-tried resolution (which
+        // may have been auto-bumped) so MCPWM gets a value that actually
+        // works for the frequency.
         if (allowMcpwmFallback)
         {
             LogHandler::warning(Tags::Motor,
                 "PwmManager: %s pin %d LEDC full, trying MCPWM fallback",
                 name, pin);
-            if (MCPWMServo::getInstance().attachPin((int)pin, freq, resolution))
+            if (MCPWMServo::getInstance().attachPin((int)pin, freq, actualRes))
             {
-                track(pin, Backend::MCPWM, freq, resolution);
+                track(pin, Backend::MCPWM, freq, actualRes);
                 clearFailure(pin);
                 LogHandler::info(Tags::Motor,
                     "PwmManager: %s -> pin %d, %u Hz, %u-bit, MCPWM (LEDC fallback)",
-                    name, pin, (unsigned)freq, (unsigned)resolution);
+                    name, pin, (unsigned)freq, (unsigned)actualRes);
                 return Backend::MCPWM;
             }
         }
 
         LogHandler::error(Tags::Motor,
-            "PwmManager: %s LEDC attach failed for pin %d @ %u Hz / %u-bit "
+            "PwmManager: %s LEDC attach failed for pin %d @ %u Hz / %u-%u-bit "
             "(LEDC channels in use: %d/%d)",
-            name, pin, (unsigned)freq, (unsigned)resolution,
+            name, pin, (unsigned)freq, (unsigned)resolution, (unsigned)actualRes,
             ledcCount(), (int)SOC_LEDC_CHANNEL_NUM);
         return Backend::NONE;
 #else

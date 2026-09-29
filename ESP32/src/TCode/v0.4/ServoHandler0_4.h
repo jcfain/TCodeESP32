@@ -171,7 +171,10 @@ public:
             m_initFailed = true;
         }
 
-        setupCommon();
+        // Note: setupCommon() was already called at the top of setup() and
+        // attached valve/twist/squeeze/lube/vibe pins. The redundant second
+        // call that was here has been removed — it caused every PWM pin to
+        // be detached and re-attached unnecessarily.
 
         // Signal done
         if (m_initFailed)

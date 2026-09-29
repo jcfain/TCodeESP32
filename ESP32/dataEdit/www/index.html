@@ -387,6 +387,14 @@
 						</div>
 						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
+								<span>Recalibrate</span>
+							</div>
+							<div class="tCell">
+								<button id="recalibrateBtn" class="formButton" onclick="onRecalibrateClick()" title="Re-run the position zeroing routine: the carriage drives to its reference and the axis zero is re-established. Also clears a stall or belt-slip fault.">Recalibrate</button>
+							</div>
+						</div>
+						<div class="tRow BLDCOnly hidden">
+							<div class="tCell">
 								<span>PID proportional const</span>
 							</div>
 							<div class="tCell">
@@ -1676,11 +1684,11 @@
 								<button id="clearFiltersButton" onclick="clearTags('log-exclude-tags')">Clear excluded</button>
 							</div>
 						</div>
-						<!-- <div class="tRow" id="debugLink">
+						<div class="tRow" id="debugLink">
 							<div class="tCell" colspan="3">
 								<textarea id="debugText" class="log-reader" readonly></textarea>
 							</div>
-						</div> -->
+						</div>
 
 						<div class="tRow">
 							<div class="tCell">

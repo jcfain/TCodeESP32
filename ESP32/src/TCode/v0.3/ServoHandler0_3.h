@@ -38,7 +38,7 @@ public:
     void setup() override
     {
 
-        LogHandler::debug(_TAG, "Setting up servo handler v3");
+        LogHandler::debug(Tags::Motor, "ServoHandler0_3::setup");
         m_settingsFactory = SettingsFactory::getInstance();
 
         m_settingsFactory->getValue(DEVICE_TYPE, m_deviceType);
@@ -176,7 +176,10 @@ public:
             m_initFailed = true;
         }
 
-        setupCommon();
+        // Note: setupCommon() was already called at the top of setup() and
+        // attached valve/twist/squeeze/lube/vibe pins. The redundant second
+        // call that was here has been removed — it caused every PWM pin to
+        // be detached and re-attached unnecessarily.
 
         // Signal done
         if (m_initFailed)

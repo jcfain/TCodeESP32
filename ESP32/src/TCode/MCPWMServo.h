@@ -190,14 +190,23 @@ private:
         }
 
         // Find a group whose timer matches this frequency (or is free) AND still has
-        // an operator slot available.  A group that matches frequency but is fully
+        // an operator slot available. A group that matches frequency but is fully
         // occupied must be skipped so we can try the other group.
+        //
+        // POLICY: never spill the same frequency into a second group. MCPWM has
+        // exactly 2 hardware timer groups (one timer each), so each can serve a
+        // different frequency. If we let 50 Hz servos fill BOTH groups, there's
+        // no MCPWM capacity left for 8 kHz vibes, and the overflow servos could
+        // have gone to LEDC just fine. By returning false when the matching-
+        // frequency group is full (instead of creating a timer on the other
+        // group for the same freq), PwmManager's fallback routes the overflow
+        // to LEDC, preserving the second MCPWM group for a different frequency.
         int grp = -1;
         for (int g = 0; g < 2; g++)
         {
-            if (!m_timers[g].handle || m_timers[g].freq_hz == freq_hz)
+            if (m_timers[g].handle && m_timers[g].freq_hz == freq_hz)
             {
-                // Check there is at least one operator with room
+                // Group already runs at this frequency — reuse it if it has room.
                 bool hasRoom = false;
                 for (int o = 0; o < 3; o++)
                 {
@@ -208,6 +217,22 @@ private:
                     }
                 }
                 if (hasRoom)
+                {
+                    grp = g;
+                    break;
+                }
+                // Group matches frequency but is full. DON'T fall through to
+                // the "free group" case — return false so PwmManager can try
+                // LEDC for this pin instead of consuming the other group.
+                return false;
+            }
+        }
+        // No existing group at this frequency — use the first free group.
+        if (grp < 0)
+        {
+            for (int g = 0; g < 2; g++)
+            {
+                if (!m_timers[g].handle)
                 {
                     grp = g;
                     break;

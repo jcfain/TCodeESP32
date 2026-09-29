@@ -45,12 +45,14 @@ protected:
         if (!buf || bufSize == 0 || !command) {
             return;
         }
+        #ifdef DEBUG_WS_COMPILER
         if(LogHandler::getLogLevel() == LogLevel::DEBUG) {
             if(message)
                 Serial.printf("Sending WS commands: %s, Message: %s\n", command, message);
             else
                 Serial.printf("Sending WS commands: %s\n",command);
         }
+        #endif
         int written = 0;
         if(!message)
             written = snprintf(buf, bufSize, "{ \"command\": \"%s\" }", command);

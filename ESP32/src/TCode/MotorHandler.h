@@ -81,6 +81,14 @@ public:
     }
 
     /**
+     * Re-run the position zeroing / homing routine. Only motors that have a
+     * home to find implement it; the default is a no-op so servo handlers do
+     * not need to care. Called from the motor task via serviceRecalibrate()
+     * because it touches the driver and the control loop state.
+     */
+    virtual void recalibrate() {}
+
+    /**
      * Request a hot-reattach of all PWM outputs. Safe to call from any task.
      * The actual reapply runs on the motor task at the top of its next loop
      * via serviceReapply().
@@ -102,6 +110,23 @@ public:
     }
 
     /**
+     * Request a re-home. Safe to call from any task; the routine itself runs
+     * on the motor task at the top of its next loop.
+     */
+    static void requestRecalibrate()
+    {
+        s_recalibrateRequested = true;
+    }
+
+    /** Called by the motor task each loop iteration. */
+    void serviceRecalibrate()
+    {
+        if (!s_recalibrateRequested) return;
+        s_recalibrateRequested = false;
+        recalibrate();
+    }
+
+    /**
      * Register the active motor handler so static helpers (e.g. command
      * handlers) can route reapply requests at it.
      */
@@ -110,8 +135,19 @@ public:
 
 protected:
     static volatile bool s_reapplyRequested;
+    static volatile bool s_recalibrateRequested;
     static volatile bool s_identifyActive;
     static MotorHandler* s_active;
+
+    /**
+     * The max duty value callers compute servo positions against, i.e.
+     * (2^servoResolution - 1). Set by the subclass during setupCommon().
+     * writeServo() normalizes from this domain to 16-bit before routing
+     * through PwmManager::writeNormalized(), so the actual backend
+     * resolution (which may differ from servoResolution if LEDC auto-
+     * bumped) is transparent to callers.
+     */
+    uint32_t m_servoPWMMaxDuty = 0;
     /**
      * Attach a servo-frequency PWM output via the unified PwmManager.
      *
@@ -129,12 +165,21 @@ protected:
     }
 
     /**
-     * Write a duty value to a previously-attached pin (servo or LEDC).
-     * PwmManager routes to the correct backend.
+     * Write a duty value to a previously-attached servo pin.
+     *
+     * The duty is in the caller's domain: [0, m_servoPWMMaxDuty].
+     * This method normalizes it to [0, 65535] and routes through
+     * PwmManager::writeNormalized(), which scales to the backend's
+     * actual resolution (which may differ from m_servoPWMMaxDuty if
+     * LEDC auto-bumped or MCPWM negotiated differently). Callers never
+     * need to know the hardware resolution.
      */
     void writeServo(uint8_t pin, uint32_t duty)
     {
-        PwmManager::instance().write((int8_t)pin, duty);
+        uint16_t norm = 0;
+        if (m_servoPWMMaxDuty > 0)
+            norm = (uint16_t)(((uint64_t)duty * 65535U) / m_servoPWMMaxDuty);
+        PwmManager::instance().writeNormalized((int8_t)pin, norm);
     }
 
     /**
@@ -154,28 +199,19 @@ protected:
     }
 
     /**
-     * Write an 8-bit (0..255) duty value to a vibe / lube pin. Scales the
-     * value up to the channel's actual resolution and routes via
-     * PwmManager so MCPWM-fallback pins also receive the write. Replaces
-     * direct ledcWrite(pin, byteDuty) call sites that broke after we
-     * defaulted the LEDC resolution to SERVO_PWM_RES (14-bit) and after
-     * the LEDC->MCPWM fallback was added.
+     * Write an 8-bit (0..255) duty value to a vibe / lube pin.
+     *
+     * Normalizes to 16-bit (0..65535) and routes through
+     * PwmManager::writeNormalized(), which scales to the backend's
+     * actual resolution. This replaces the old getResolution() +
+     * manual scaling path and works correctly regardless of whether
+     * the pin ended up on LEDC (possibly auto-bumped) or MCPWM.
      */
     void writeVibe8(uint8_t pin, uint8_t duty8)
     {
-        PwmManager& pm = PwmManager::instance();
-        uint8_t res = pm.getResolution((int8_t)pin);
-        if (res == 0) // not attached; PwmManager will swallow the write.
-        {
-            LogHandler::verbose(Tags::Motor,
-                "writeVibe8: pin %u not attached (duty8=%u)",
-                (unsigned)pin, (unsigned)duty8);
-            pm.write((int8_t)pin, duty8);
-            return;
-        }
-        uint32_t maxDuty = (res >= 32) ? 0xFFFFFFFFu : ((1u << res) - 1u);
-        uint32_t scaled = (uint32_t)duty8 * maxDuty / 255u;
-        pm.write((int8_t)pin, scaled);
+        // Map [0,255] -> [0,65535]. 255 * 257 = 65535 exactly.
+        uint16_t norm = (uint16_t)duty8 * 257U;
+        PwmManager::instance().writeNormalized((int8_t)pin, norm);
     }
 
     /**
@@ -190,5 +226,6 @@ protected:
 
 // Static member definitions (header-only class -> use inline storage).
 inline volatile bool MotorHandler::s_reapplyRequested = false;
+inline volatile bool MotorHandler::s_recalibrateRequested = false;
 inline volatile bool MotorHandler::s_identifyActive = false;
 inline MotorHandler* MotorHandler::s_active = nullptr;

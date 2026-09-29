@@ -244,8 +244,7 @@ public:
         // default (50 Hz) silently so the calling handler can still attach
         // the pin via PwmManager (which auto-allocates the actual hardware
         // channel/timer). For higher-frequency LEDC consumers (vibe/lube)
-        // PwmManager will reuse a matching timer if 50 Hz isn't ideal — the
-        // unified solver in a follow-up will pick a per-output default.
+        // use getVibeChannelFrequency() instead.
         if (channel < 0) {
             return ESP_TIMER_FREQUENCY_DEFAULT > 0 ? ESP_TIMER_FREQUENCY_DEFAULT : 50;
         }
@@ -259,6 +258,22 @@ public:
             return -1;
         }
         return timer->frequency;
+    }
+
+    /**
+     * Returns the PWM frequency for vibration/lube outputs. Vibe motors need
+     * a high frequency (typically 8 kHz), not the 50 Hz servo default. When
+     * the channel is unassigned (-1) or its timer still holds the 50 Hz
+     * default, return ESP_VIB_TIMER_FREQUENCY_DEFAULT so the vibe pin is
+     * always driven at an appropriate frequency. If the user has explicitly
+     * set a non-default frequency on the channel's timer, respect that.
+     */
+    int getVibeChannelFrequency(int8_t channel) const {
+        int freq = getChannelFrequency(channel);
+        if (freq <= 0 || freq == ESP_TIMER_FREQUENCY_DEFAULT) {
+            return ESP_VIB_TIMER_FREQUENCY_DEFAULT;
+        }
+        return freq;
     }
 
     void setTimerFrequency(int8_t timerIndex, int frequency) {

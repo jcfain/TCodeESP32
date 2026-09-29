@@ -31,6 +31,7 @@ var debounceTimeouts = {};
 var restartRequired = false;
 var documentLoaded = false;
 var debugEnabled = true;
+var debugTextElement = null;
 var playSounds = false;
 
 // Pin-setting keys whose changes are hot-swappable: the firmware reapplies
@@ -223,8 +224,9 @@ function onDocumentLoad() {
     getSystemInfo(true);
     createImportSettingsInputElement();
 
-    // debugTextElement = document.getElementById("debugText");
-    // debugTextElement.scrollTop = debugTextElement.scrollHeight;
+    debugTextElement = document.getElementById("debugText");
+    if(debugTextElement)
+        debugTextElement.scrollTop = debugTextElement.scrollHeight;
 }
 function pingDevice() {
     polling = false;
@@ -849,6 +851,28 @@ function postDeviceType(deviceType) {
 function onReapplyPwmClick()
 {
     requestReapplyPwm(true /*showToast*/);
+}
+
+/**
+ * Re-run the BLDC position zeroing routine. The carriage drives to its
+ * reference (hall magnet, or the end stop when no hall is fitted) and the
+ * axis zero is re-established. Also the way back from a stall or belt-slip
+ * fault, which leaves the motor disabled on purpose.
+ */
+function onRecalibrateClick()
+{
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/recalibrate", true);
+    xhr.responseType = 'json';
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState !== 4) return;
+        if (xhr.status === 200) {
+            showInfoSuccess("Recalibrating. Keep clear of the rail until the carriage stops moving.");
+        } else {
+            showError("Recalibrate failed (status " + xhr.status + ")");
+        }
+    };
+    xhr.send();
 }
 
 function onRestartClick(optionalMessage)

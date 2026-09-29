@@ -69,6 +69,7 @@ public:
 
     void setup() override
     {
+        LogHandler::debug(Tags::Motor, "BLDCHandler0_4::setup");
         bootmode = true;
         m_settingsFactory = SettingsFactory::getInstance();
         // PinMapInfo pinMapInfo = m_settingsFactory->getPins();
@@ -307,6 +308,28 @@ public:
     void setMessageCallback(TCodeCommandCallback function) override
     {
         m_tcode->setMessageCallback(function);
+    }
+
+    /**
+     * Re-run the homing routine that establishes zeroAngle. Also the recovery
+     * path out of a stall: that leaves the driver disabled and the axis zero
+     * untrustworthy, which is exactly what homing fixes.
+     */
+    void recalibrate() override
+    {
+        if (m_initFailed)
+        {
+            LogHandler::error(Tags::Motor, "Recalibrate ignored: motor setup failed");
+            return;
+        }
+        LogHandler::info(Tags::Motor, "Recalibrate: restarting position zeroing routine");
+        motorA->enable();
+        m_stalled = false;
+        m_stallPinsKilled = false;
+        m_stallStartMs = millis();
+        bootmode = true;
+        startTime = 0; // execute() re-stamps it and restarts the ramp
+        motorVoltage = 0.00;
     }
 
     void execute() override

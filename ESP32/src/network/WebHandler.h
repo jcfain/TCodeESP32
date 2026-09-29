@@ -76,6 +76,39 @@ public:
         server->on("/pins", HTTP_GET, [](AsyncWebServerRequest *request)
                    { request->send(LittleFS, PIN_SETTINGS_PATH, "application/json"); });
 
+        // /pwmState — diagnostic: dump PwmManager's tracked pins, backends,
+        // resolutions, and frequencies. Used to debug PWM routing issues.
+        server->on("/pwmState", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+                PwmManager& pm = PwmManager::instance();
+                String json = "{\"trackedPins\":[";
+                for (int i = 0; i < pm.trackedCount(); i++)
+                {
+                    PwmManager::PinInfo info;
+                    if (pm.getPinInfo(i, info))
+                    {
+                        if (i > 0) json += ",";
+                        json += "{\"pin\":";
+                        json += (int)info.pin;
+                        json += ",\"backend\":\"";
+                        json += (info.backend == PwmManager::Backend::MCPWM) ? "MCPWM" : "LEDC";
+                        json += "\",\"resolution\":";
+                        json += (int)info.resolution;
+                        json += ",\"freq\":";
+                        json += (unsigned)info.freq;
+                        json += "}";
+                    }
+                }
+                json += "],\"ledcCount\":";
+                json += pm.ledcCount();
+                json += ",\"mcpwmCount\":";
+                json += pm.mcpwmCount();
+                json += ",\"failureCount\":";
+                json += pm.failureCount();
+                json += "}";
+                request->send(200, "application/json", json);
+            });
+
         server->on("/systemInfo", HTTP_GET, [](AsyncWebServerRequest *request)
                    {
                 if(SettingsHandler::restartRequired > -1 || !SettingsHandler::initialized) {
@@ -240,6 +273,13 @@ public:
                 LogHandler::info(Tags::Web, "/reapplyPwm requested");
                 MotorHandler::requestReapply();
                 AsyncWebServerResponse* response = request->beginResponse(200, "application/json", "{\"msg\":\"reapplying\"}");
+                request->send(response); });
+
+        server->on("/recalibrate", HTTP_POST, [](AsyncWebServerRequest* request)
+            {
+                LogHandler::info(Tags::Web, "/recalibrate requested");
+                MotorHandler::requestRecalibrate();
+                AsyncWebServerResponse* response = request->beginResponse(200, "application/json", "{\"msg\":\"recalibrating\"}");
                 request->send(response); });
 
         // Lightweight liveness probe used by the web UI's post-restart poll
