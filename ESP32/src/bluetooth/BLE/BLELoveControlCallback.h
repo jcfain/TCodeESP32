@@ -154,7 +154,7 @@ private:
                 memmove(messageBuf, "OK;", 3);
                 m_pTxCharacteristic->setValue(messageBuf, 3);
                 m_pTxCharacteristic->notify();
-                buildTCode("V0", vibration, tcodeBuffer);
+                buildTCode(TCODE_CHANNEL_VIBE1, vibration, tcodeBuffer);
             }
             else if (rxValue.rfind("Vibrate1:", 0) == 0)
             {
@@ -162,7 +162,7 @@ private:
                 memmove(messageBuf, "OK;", 3);
                 m_pTxCharacteristic->setValue(messageBuf, 3);
                 m_pTxCharacteristic->notify();
-                buildTCode("V0", vibration, tcodeBuffer);
+                buildTCode(TCODE_CHANNEL_VIBE1, vibration, tcodeBuffer);
             }
             else if (rxValue.rfind("Vibrate2:", 0) == 0)
             {
@@ -170,7 +170,7 @@ private:
                 memmove(messageBuf, "OK;", 3);
                 m_pTxCharacteristic->setValue(messageBuf, 3);
                 m_pTxCharacteristic->notify();
-                buildTCode("V1", vibration, tcodeBuffer);
+                buildTCode(TCODE_CHANNEL_VIBE2, vibration, tcodeBuffer);
             }
             else
             {

@@ -165,3 +165,102 @@ class Ringbuffer
             return count == N;
         }
 };
+struct Chunker {
+    Chunker(const char* in, const size_t& len, const size_t& maxLen) : in(in), len(len), maxLen(maxLen), sent(0) { }
+
+    // size_t getChunkSize() {
+    //     if(len > maxLen) 
+    //     {
+    //         int mod = len % maxLen;
+    //         int chunkTotal = len - mod;
+    //         int sendChunks = chunkTotal / maxLen;
+    //         int chunkAmount = chunkTotal / sendChunks;
+    //         return chunkAmount;
+    //     }
+    //     return len;
+    // }
+    
+    size_t operator()(char* out) 
+    {
+        if(sent < len)
+        {
+            int maxLenMinusNewLine = maxLen - 1;
+            if(len > maxLenMinusNewLine) 
+            {
+                int mod = len % maxLenMinusNewLine;
+                int chunkTotal = len - mod;
+                int fullChunkCount = chunkTotal / maxLenMinusNewLine;
+                int chunkAmount = chunkTotal / fullChunkCount;
+                // Serial.printf("[Chunker] len: %i, fullChunkCount: %i, chunkAmount: %i\n", len, fullChunkCount, chunkAmount);
+                // if(mod)
+                //     Serial.printf("[Chunker] left over mod: %i, totalChunks: %i\n", mod, fullChunkCount +1);
+                // Serial.printf("[Chunker] sent: %i\n", sent);
+                if(len - sent > mod)
+                {
+                    strncpy(out, in + sent, chunkAmount);
+                    out[chunkAmount] = '\0';
+                    sent += chunkAmount;
+                    Serial.printf("[Chunker] truncated: %s\n", out);
+                    // Serial.printf("[Chunker] sent: %i\n", sent);
+                    return chunkAmount;
+                }
+                else if(mod)
+                {
+                    strncpy(out, in + sent, mod);
+                    out[mod] = '\0';
+                    strcat(out, "\n");
+                    sent += mod;
+                    Serial.printf("[Chunker] truncated mod: %i, message: %s\n", mod, out);
+                    // Serial.printf("[Chunker] sent: %i\n", sent);
+                    return mod +1;
+                }
+                else
+                {
+                    out[0] = '\0';
+                    strcat(out, "\n");
+                    return 2;
+                }
+            } 
+            else 
+            {
+                strncpy(out, in, len);
+                out[len] = '\0';
+                sent += len;
+                strcat(out, "\n");
+                return len +1;
+            }
+        }
+        return 0;
+    }
+
+private:
+    const char* in;
+    const size_t len;
+    const size_t maxLen;
+    size_t sent = 0;
+};
+// adc2_channel_t gpioToADC2(int gpioPinc:\Users\jfain\AppData\Local\Programs\Microsoft VS Code\resources\app\out\vs\code\electron-sandbox\workbench\workbench.html) {
+//     switch(gpioPin) {
+//         case 4:
+//             return ADC2_CHANNEL_0;
+//         case 0:
+//             return ADC2_CHANNEL_1;
+//         case 2:
+//             return ADC2_CHANNEL_2;
+//         case 15:
+//             return ADC2_CHANNEL_3;
+//         case 13:
+//             return ADC2_CHANNEL_4;
+//         case 12:
+//             return ADC2_CHANNEL_5;
+//         case 14:
+//             return ADC2_CHANNEL_6;
+//         case 27:
+//             return ADC2_CHANNEL_7;
+//         case 25:
+//             return ADC2_CHANNEL_8;
+//         case 26:
+//             return ADC2_CHANNEL_9;
+//         default: return ADC2_CHANNEL_MAX;
+//     }
+// }

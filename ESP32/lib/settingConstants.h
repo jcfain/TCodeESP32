@@ -5,6 +5,7 @@
 
 // #define GET_DEFAULT(X)
 
+#define SYSTEM_SETTINGS_PATH "/systemSettings.json"
 #define COMMON_SETTINGS_PATH "/userSettings.json"
 #define PIN_SETTINGS_PATH "/pins.json"
 #define ESP_TIMER_SETTINGS_PATH "/espTimers.json"
@@ -182,6 +183,7 @@
 #define LOG_INCLUDETAGS_DEFAULT ""
 #define LOG_EXCLUDETAGS_DEFAULT ""
 #define DEBUG_INFO_LAST_BOOT_REASONS_DEFAULT {}
+#define DEBUG_INFO_MOTOR_STATE_DEFAULT {}
 
 #define LAST_BOOT_REASONS_MAX "lastBootReasonsMax"
 #define LAST_BOOT_REASONS_MAX_DEFAULT 50
@@ -375,5 +377,6 @@
 
 // Readonly
 #define DEBUG_INFO_LAST_BOOT_REASONS "lastBootReasons"
+#define DEBUG_INFO_MOTOR_STATE "motorState"
 
 ;

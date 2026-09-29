@@ -150,8 +150,7 @@ public:
         // EEPROM.begin(320); Done in TCode class
 
         // Register device axes
-        stroke_axis = new TCodeAxis("Stroke", {AxisType::Linear, 0}, 0.5f);
-        m_tcode->RegisterAxis(stroke_axis);
+        stroke_axis = registerAxis(TCODE_CHANNEL_STROKE, TCODE_MID);
         m_settingsFactory->getValue(BLDC_USEHALLSENSOR, m_useHallSensor);
         m_hallSensorPin = pinMap->hallEffect();
         if (m_useHallSensor && m_hallSensorPin > -1)
@@ -231,7 +230,11 @@ public:
 
         // initialize motor
         motorA->init();
-        motorA->useMonitoring(Serial);
+        // Route SimpleFOC monitor/debug output to the web UI motor status
+        // (debug info DEBUG_INFO_MOTOR_STATE) and the log instead of raw Serial.
+        m_settingsFactory->resetMotorStatus();
+        motorA->useMonitoring(m_motorAStatus);
+        SimpleFOCDebug::enable(&m_motorStatus);
 
         // init current sense
         bool paramsKnown = BLDC_MOTORA_PARAMETERSKNOWN_DEFAULT;
@@ -279,6 +282,7 @@ public:
         }
 
         setupCommon();
+        sendStartupInfo();
 
         // Signal ready to start
         if (m_initFailed)
@@ -290,11 +294,6 @@ public:
     void read(byte inByte) override
     {
         m_tcode->read(inByte);
-    }
-
-    void read(const String &input) override
-    {
-        m_tcode->read(input);
     }
 
     void read(const char *input, size_t len) override
@@ -365,7 +364,7 @@ public:
         // Collect inputs
         // These functions query the t-code object for the position/level at a specified time
         // Number recieved will be an integer, 0-9999
-        int xLin = channelRead(stroke_axis);
+        int xLin = channelRead(TCODE_CHANNEL_STROKE, stroke_axis);
         if (m_settingsFactory->getInverseStroke())
         {
             xLin = 9999 - xLin;
@@ -496,16 +495,69 @@ public:
             if (currentMillis - previousMillis >= interval)
             {
                 previousMillis = currentMillis;
-                LogHandler::verbose(Tags::Motor, "xPosition: %f \t motorVoltage: %f \t bootmode: %ld \t xLin: %ld \t zeroAngle: %f \t angle: %f\n", xPosition, motorVoltage, bootmode, xLin, zeroAngle, angle);
+                LogHandler::verbose(Tags::Motor, "xPosition: %f \t motorVoltage: %f \t bootmode: %ld \t xLin: %ld \t zeroAngle: %f \t angle: %f", xPosition, motorVoltage, bootmode, xLin, zeroAngle, angle);
                 counter = 0;
             }
             counter++;
         }
 
-        executeCommon(xLin);
+        executeCommon(stroke_axis);
     }
 
 private:
+    // Print adapter that forwards SimpleFOC monitor/debug output to the web UI
+    // motor status (SettingsFactory::addMotorStatus) and the log.
+    // SimpleFOC emits numbers one character at a time, so output is buffered
+    // per line: one status entry (and one debug-info save) per line instead of
+    // per character, and no reads past a single, unterminated byte.
+    class PrintMotorStatus : public Print
+    {
+    public:
+        PrintMotorStatus(const char *name) : m_name(name) {}
+
+        size_t write(uint8_t c) override
+        {
+            if (c == 0)
+                return 0;
+            if (c == '\r')
+                return 1;
+            if (c == '\n')
+            {
+                flushLine();
+                return 1;
+            }
+            m_line[m_len++] = (char)c;
+            if (m_len >= sizeof(m_line) - 1)
+                flushLine();
+            return 1;
+        }
+
+        size_t write(const uint8_t *buffer, size_t size) override
+        {
+            if (!buffer)
+                return 0;
+            for (size_t i = 0; i < size; i++)
+                write(buffer[i]);
+            return size;
+        }
+
+    private:
+        void flushLine()
+        {
+            if (!m_len)
+                return;
+            m_line[m_len] = '\0';
+            SettingsFactory::getInstance()->addMotorStatus(m_name, m_line);
+            LogHandler::info(Tags::Motor, "[%s] %s", m_name, m_line);
+            m_len = 0;
+        }
+        const char *m_name;
+        char m_line[128] = {0};
+        size_t m_len = 0;
+    };
+    PrintMotorStatus m_motorAStatus{"motorAStatus"};
+    PrintMotorStatus m_motorStatus{"motorStatus"};
+
     SettingsFactory *m_settingsFactory;
     bool m_useHallSensor = false;
     int8_t m_hallSensorPin = -1;
@@ -526,7 +578,7 @@ private:
     MagneticSensorPWM *sensorPWM = 0;
     MagneticSensorSPI *sensorSPI = 0;
 
-    TCodeAxis *stroke_axis = 0;
+    Axis *stroke_axis = 0;
 
     // Position variables
     float zeroAngle = 0.00;

@@ -272,7 +272,7 @@
 								<select name="BLDC_Encoder" id="BLDC_Encoder" onchange="setEncoderType()"> </select>
 							</div>
 						</div>
-						<div class="tRow BLDCOnly ">
+						<div class="tRow BLDCOnly hidden">
 							<div class="tCell">
 								<span title="Check this if you use a hall effect sensor">Use hall effect</span>
 							</div>
@@ -425,6 +425,15 @@
 								<input id="BLDC_StrokeLength" type="number" min="0" max="2147483647" oninput="updateBLDCSettings()">
 							</div>
 						</div>
+						<div class="tRow BLDCOnly hidden" title="Driver and encoder messages from the last motor initialization">
+							<div class="tCell">
+								<span>Motor status</span>
+							</div>
+							<div class="tCell">
+								<textarea id="motorStatus" readonly></textarea>
+								<button class="formButton" type="button" onclick="getDebugInfo()">Refresh status</button>
+							</div>
+						</div>
 						<div class="tRow BLDCOnly SSR2Only hidden">
 							<div class="tCell">
 								<span>Twist Multiplier</span>
@@ -446,7 +455,7 @@
 
 						<div class="tRow sr6Only servoOnly hidden">
 							<div class="tCell" title="The max servo range of your main/pitch servos">
-								<span>Main servos max range (&#8451;)</span>
+								<span>Main servos max range (&#xB0;)</span> 
 							</div>
 							<div class="tCell">
 								<input id="maxServoRange" type="number" min="140" max="360" oninput="updateMaxServoRange()">
@@ -993,7 +1002,7 @@
 						</div>
 						<div class="tRow">
 							<div class="tCell">
-								<span>Sleeve temp sensor pin</span>
+								<span>Sleeve temp sensor PIN</span> 
 							</div>
 							<div class="tCell">
 								<input id="Temp_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
@@ -1001,7 +1010,7 @@
 						</div>
 						<div class="tRow">
 							<div class="tCell">
-								<span>Heater pin</span>
+								<span>Heater PIN</span> 
 							</div>
 							<div class="tCell">
 								<input id="Heater_PIN" type="number" min="-1" max="2147483647" oninput="updatePins()">
@@ -1328,7 +1337,7 @@
 							</div>
 						</div>
 						<div class="tRow">
-							<div class="tCell"><span>Temperature (C)</span></div>
+							<div class="tCell"><span>Temperature (&#8451;)</span></div>
 							<div class="tCell">
 								<input id="batteryTemperature" type="text" readonly value="Unknown" />
 							</div>
@@ -1687,6 +1696,19 @@
 						<div class="tRow" id="debugLink">
 							<div class="tCell" colspan="3">
 								<textarea id="debugText" class="log-reader" readonly></textarea>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell" colspan="2">
+								<input id="tcodeCommandInput" placeholder="Enter command..." onkeydown="onSendTCodeCommandEnter(event)">
+							</div>
+							<div class="tCell" colspan="1">
+								<button id="sendTCodeCommandButton" onclick="onSendTCodeCommand()">Send</button>
+							</div>
+						</div>
+						<div class="tRow">
+							<div class="tCell" colspan="3">
+								<span id="loggingHelpText">Hint: Use the command #help for a list of commands</span>
 							</div>
 						</div>
 

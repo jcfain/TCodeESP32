@@ -25,22 +25,22 @@ SOFTWARE. */
 #include <Arduino.h>
 #include "soc/soc_caps.h"
 #include "Global.h"
-#include "TCodeBase.h"
 #include "MCPWMServo.h"
 #include "PwmManager.h"
 #include "settings/SettingsHandler.h"
 #include "logging/TagHandler.h"
 #include "callback.h"
+#include "TCodeBase.h"
 
 class MotorHandler
 {
 public:
     virtual void setup() = 0;
     virtual void read(byte inByte) = 0;
-    virtual void read(const String& input) = 0;
+    // virtual void read(const String &input) = 0;
     virtual void read(const char* input, size_t len) = 0;
     virtual void execute() = 0;
-    virtual void setMessageCallback(TCodeCommandCallback function) = 0;
+    virtual void setMessageCallback(TCodeCommandCallback function) = 0; // Sets the callback function used by TCode
 
     /**
      * Wiggle a single physical servo by its slot name ("RightServo", "LeftServo",
@@ -63,7 +63,8 @@ public:
      * Re-apply PWM hardware bindings without rebooting. Default detaches every
      * PwmManager-tracked pin then re-runs setup(). This is safe for handlers
      * whose setup() is idempotent (no leaked allocations on second call).
-     * Handlers that allocate (e.g. v0.4 axes via `new TCodeAxis`) should
+     * Handlers that allocate should either make setup() reuse what it
+     * allocated (v0.4 axes do, via MotorHandler0_4::registerAxis) or
      * override this to avoid leaks.
      *
      * Called from the motor task via serviceReapply() so the actual hardware
@@ -220,6 +221,8 @@ protected:
      */
     int frequencyToMicroseconds(int freq)
     {
+        if (freq <= 0)
+            return 0;
         return 1000000 / freq;
     }
 };

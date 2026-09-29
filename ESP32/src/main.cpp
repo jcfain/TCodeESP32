@@ -422,6 +422,15 @@ void setup()
 #endif
 	MotorHandler::setActive(motorHandler);
 	LogHandler::info(Tags::Main, "Selected motor handler for TCode version: %s", settingsFactory->getTcodeVersionString());
+	// TCode replies (D0/D1/D2, Ready!) go to serial and the web UI terminal.
+	motorHandler->setMessageCallback([](const char *message)
+		{
+			size_t len = strlen(message);
+			if (len > 0 && message[len - 1] == '\n')
+				LogHandler::raw("%s", message);
+			else
+				LogHandler::raw("%s\n", message);
+		});
 
 	Serial.println("BOOT: SerialHandler::init");
 	SerialHandler::init();

@@ -30,20 +30,20 @@ SOFTWARE. */
 #define SERVO_V3_CHANNEL_COUNT 14
 class ChannelMap {
 public:
-    const Channel Stroke = {"L0", "Stroke", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Surge = {"L1", "Surge", false, true, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Sway = {"L2", "Sway", false, true, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Twist = {"R0", "Twist", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Roll = {"R1", "Roll", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Pitch = {"R2", "Pitch", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Vibe1 = {"V0", "Vibe 1", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
-    const Channel Vibe2 = {"V1", "Vibe 2", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
-    const Channel Vibe3 = {"V2", "Vibe 3", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
-    const Channel Vibe4 = {"V3", "Vibe 4", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
-    const Channel SuckManual = {"A0", "Suck manual", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel SuckLevel = {"A1", "Suck level", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
-    const Channel Lube = {"A2", "Lube", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
-    const Channel Squeeze = {"A3", "Aux3", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Stroke = {TCODE_CHANNEL_STROKE, "Stroke", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Surge = {TCODE_CHANNEL_SURGE, "Surge", false, true, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Sway = {TCODE_CHANNEL_SWAY, "Sway", false, true, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Twist = {TCODE_CHANNEL_TWIST, "Twist", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Roll = {TCODE_CHANNEL_ROLL, "Roll", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Pitch = {TCODE_CHANNEL_PITCH, "Pitch", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Vibe1 = {TCODE_CHANNEL_VIBE1, "Vibe 1", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
+    const Channel Vibe2 = {TCODE_CHANNEL_VIBE2, "Vibe 2", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
+    const Channel Vibe3 = {TCODE_CHANNEL_VIBE3, "Vibe 3", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
+    const Channel Vibe4 = {TCODE_CHANNEL_VIBE4, "Vibe 4", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
+    const Channel SuckManual = {TCODE_CHANNEL_SUCK, "Suck manual", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel SuckLevel = {TCODE_CHANNEL_SUCK_LEVEL, "Suck level", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
+    const Channel Lube = {TCODE_CHANNEL_LUBE, "Lube", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX, TCODE_MIN, TCODE_MIN, TCODE_MAX};
+    const Channel Squeeze = {TCODE_CHANNEL_AUX, "Aux3", false, false, TCODE_MIN, TCODE_MID, TCODE_MAX, TCODE_MIN, TCODE_MID, TCODE_MAX};
 
     // Channel ChannelListV2[9] = {
     //     Stroke,
@@ -53,8 +53,8 @@ public:
     //     Twist,
     //     Roll,
     //     Pitch,
-    //     {"V0", "Vibe 0", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX},
-    //     {"V1", "Vibe 1/Lube", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX}
+    //     {TCODE_CHANNEL_VIBE1, "Vibe 0", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX},
+    //     {TCODE_CHANNEL_VIBE2, "Vibe 1/Lube", true, false, TCODE_MIN, TCODE_MIN, TCODE_MAX}
     // };
 
     Channel ChannelListV3[SERVO_V3_CHANNEL_COUNT] = {
@@ -162,15 +162,13 @@ public:
             //     }
             //     break;
             case TCodeVersion::v0_3:
+            case TCodeVersion::v0_4:
                 for(auto channel : ChannelListV3) {
                     char bufTemp[MAX_COMMAND];
                     formatTCodeChannel(channel, bufTemp, channel.isSwitch ? channel.min : channel.mid, speed);
                     strcat(buf, bufTemp);
                     strcat(buf, " ");
                 }
-                break;
-            case TCodeVersion::v0_4:// Not supported yet
-                //v5ToJson(arr);
                 break;
         }
         strcat(buf, "\n");
@@ -235,11 +233,9 @@ private:
             // case TCodeVersion::v0_2:// Not supported in BLDC
             //     break;
             case TCodeVersion::v0_3:
+            case TCodeVersion::v0_4:
                 //v3ToJson(arr);
                 toJson(ChannelListBLDCV3, arr, sizeof(ChannelListBLDCV3)/sizeof(Channel));
-                break;
-            case TCodeVersion::v0_4:// Not supported yet
-                //v5ToJson(arr);
                 break;
         }
     }
@@ -250,11 +246,8 @@ private:
             //     toJson(ChannelListV2, arr, sizeof(ChannelListV2)/sizeof(Channel));
             //     break;
             case TCodeVersion::v0_3:
-                //v3ToJson(arr);
+            case TCodeVersion::v0_4:
                 toJson(ChannelListV3, arr, sizeof(ChannelListV3)/sizeof(Channel));
-                break;
-            case TCodeVersion::v0_4:// Not supported yet
-                //v5ToJson(arr);
                 break;
         }
     }

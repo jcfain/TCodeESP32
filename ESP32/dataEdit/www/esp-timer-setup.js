@@ -30,7 +30,7 @@ ESPTimer = {
         this.modal.show();
     },
     setup() {
-        if(this.initialized) {
+        if(this.initialized || !pinoutSettings) {
             return;
         }
         this.initialized = true;

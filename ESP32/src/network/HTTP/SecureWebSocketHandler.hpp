@@ -48,18 +48,17 @@ public:
             sendCommand(in);
     }
 
-    void sendCommand(const char* command, const char* message = 0) override
+    void sendCommand(const char* command, const char* message = 0, size_t len = MAX_COMMAND) override
     {
         if(isInitialized && command_mtx.try_lock()) {
             std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
             m_lastSend = millis();
 
-            char commandJson[255];
-            compileCommand(commandJson, command, message);
+            const std::string commandJson = compileCommand(command, message);
             // if(client)
             //     send(commandJson, SEND_TYPE_TEXT);
             // else
-                sendText(commandJson);
+                sendText(commandJson.c_str());
         }
     }
 

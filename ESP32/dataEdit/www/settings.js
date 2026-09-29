@@ -1141,6 +1141,14 @@ function updatePwmAvailableText() {
 
 function setDebugInfo(debugInfo) {
 
+    const motorStatusNode = document.getElementById('motorStatus');
+    if(motorStatusNode) {
+        const motorStates = debugInfo && debugInfo.motorState;
+        motorStatusNode.value = motorStates && motorStates.length
+            ? motorStates.map(x => x["message"]).join("\n")
+            : "Unknown";
+    }
+
     const tbody = document.getElementById('lastBootReasons');
 
     removeAllChildren(tbody);
@@ -1705,6 +1713,20 @@ function sendTCode(tcode) {
         return;
     }
     websocket.send(tcode+String.fromCharCode(10))
+}
+
+// Web terminal: sends TCode or $/# system commands; the firmware echoes the
+// response into the log panel.
+function onSendTCodeCommand() {
+    const tcodeCommandInput = document.getElementById("tcodeCommandInput");
+    if(tcodeCommandInput.value.length > 0)
+        sendTCode(tcodeCommandInput.value);
+}
+
+function onSendTCodeCommandEnter(event) {
+    if(event.key === "Enter") {
+        onSendTCodeCommand();
+    }
 }
 
 // Briefly move a single physical servo to identify it.

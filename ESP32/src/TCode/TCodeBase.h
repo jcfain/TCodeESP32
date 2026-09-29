@@ -24,13 +24,15 @@ SOFTWARE. */
 
 #include <Arduino.h>
 #include "callback.h"
+#include "logging/LogHandler.h"
 
 
 class TCodeBase {
 public:
 	virtual void setup(const char* firmware) = 0;
 	virtual void read(byte inByte) = 0;
-	virtual void read(const String &input) = 0;
+	virtual void read(const char* in) = 0;
+	// virtual void read(const String &input) = 0;
 	virtual void setMessageCallback(TCodeCommandCallback f) // Sets the callback function used by TCode
 	{
 		if (f == nullptr)
@@ -55,10 +57,11 @@ public:
         // 	message_callback(buf);
 		// 	return;
 		// }
-		LogHandler::debug(Tags::TCode, "[sendMessage] %s", input);
+		// LogHandler::debug(Tags::TCode, "[sendMessage] %s", input);
 		if(!message_callback)
 		{
-			LogHandler::debug(Tags::TCode, "[sendMessage] callback not defined");
+			// No external callback wired; fall back to raw Serial output (defaultCallback).
+			LogHandler::debug(Tags::TCode, "[sendMessage] callback not defined, using default serial callback");
 			message_callback = std::bind(&TCodeBase::defaultCallback, this, std::placeholders::_1);
 		}
 

@@ -1866,7 +1866,8 @@ private:
         }
         if (loadDefault)
         {
-            defaultJsonFile(path);
+            if (!defaultJsonFile(path))
+                return false;
         }
         return loadJsonFromFile(path, doc);
     }

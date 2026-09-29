@@ -22,6 +22,7 @@ SOFTWARE. */
 
 #pragma once
 #include <Arduino.h>
+#include <ArduinoJson.h>
 
 #define motionUpdateGlobalDefault 100
 #define motionPeriodGlobalDefault 2000

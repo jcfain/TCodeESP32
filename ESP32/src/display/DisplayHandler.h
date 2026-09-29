@@ -92,11 +92,6 @@ public:
 		LogHandler::info(Tags::Display, "Setting up display finished");
 	}
 
-	void setLocalIPAddress(IPAddress ipAddress)
-	{
-		_ipAddress = ipAddress;
-	}
-
 	void setSleeveTemp(float temp)
 	{
 		LogHandler::verbose(Tags::Display, "setSleeveTemp: %f", temp);
@@ -192,7 +187,7 @@ public:
 			{
 				LogHandler::verbose(Tags::Display, "Enter wifi connected");
 				startLine(headerPadding);
-				display.print(_ipAddress);
+				display.print(SettingsHandler::currentIP);
 
 				drawBatteryLevel();
 
@@ -339,7 +334,6 @@ public:
 private:
 	SettingsFactory *m_settingsFactory;
 	bool m_fanControlEnabled;
-	IPAddress _ipAddress;
 	bool displayConnected = false;
 	int lastUpdate = 0;
 	const int nextUpdate = 1000;

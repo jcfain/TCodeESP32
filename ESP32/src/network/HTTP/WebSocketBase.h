@@ -2,11 +2,13 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <string>
 // #include "LogHandler.h"
 #include "sensors/BatteryHandler.h"
 #include "TCode/MotorHandler.h"
 #include "PowerHandler.h"
 #include "settings/SettingsHandler.h"
+#include "messages/SystemCommandHandler.h"
 
 class WebSocketBase {
     public:
@@ -41,9 +43,14 @@ protected:
     QueueHandle_t tCodeInQueue;
     std::mutex command_mtx;
 
-    void compileCommand(char* buf, size_t bufSize, const char* command, const char* message = 0) {
-        if (!buf || bufSize == 0 || !command) {
-            return;
+    // Builds the { "command": ..., "message": ... } envelope sent to the web UI.
+    // A message that is itself a JSON object/array is embedded as-is; anything
+    // else is sent as a JSON string and escaped, so log lines containing quotes,
+    // backslashes or newlines still produce valid JSON on the client.
+    std::string compileCommand(const char* command, const char* message = 0) {
+        std::string json;
+        if (!command) {
+            return json;
         }
         #ifdef DEBUG_WS_COMPILER
         if(LogHandler::getLogLevel() == LogLevel::DEBUG) {
@@ -53,25 +60,80 @@ protected:
                 Serial.printf("Sending WS commands: %s\n",command);
         }
         #endif
-        int written = 0;
-        if(!message)
-            written = snprintf(buf, bufSize, "{ \"command\": \"%s\" }", command);
-        else if(strpbrk(message, "{") != nullptr)
-            written = snprintf(buf, bufSize, "{ \"command\": \"%s\" , \"message\": %s }", command, message);
-        else
-            written = snprintf(buf, bufSize, "{ \"command\": \"%s\" , \"message\": \"%s\" }", command, message);
+        json.reserve(strlen(command) + (message ? strlen(message) : 0) + 32);
+        json += "{ \"command\": \"";
+        appendJsonEscaped(json, command);
+        json += "\"";
+        if (message) {
+            json += " , \"message\": ";
+            if (isJsonValue(message)) {
+                json += message;
+            } else {
+                json += "\"";
+                appendJsonEscaped(json, message);
+                json += "\"";
+            }
+        }
+        json += " }";
+        return json;
+    }
 
-        if (written < 0 || static_cast<size_t>(written) >= bufSize) {
-            LogHandler::warning(Tags::WebSocketServer, "WebSocket payload truncated for command '%s'", command);
-            buf[bufSize - 1] = '\0';
+    static bool isJsonValue(const char* message) {
+        while (*message == ' ' || *message == '\t' || *message == '\r' || *message == '\n')
+            message++;
+        return *message == '{' || *message == '[';
+    }
+
+    // https://stackoverflow.com/questions/7724448/simple-json-string-escape-for-c
+    static void appendJsonEscaped(std::string& out, const char* s) {
+        for (; *s; ++s) {
+            const char c = *s;
+            switch (c) {
+            case '"': out += "\\\""; break;
+            case '\\': out += "\\\\"; break;
+            case '\b': out += "\\b"; break;
+            case '\f': out += "\\f"; break;
+            case '\n': out += "\\n"; break;
+            case '\r': out += "\\r"; break;
+            case '\t': out += "\\t"; break;
+            default:
+                if (static_cast<unsigned char>(c) < 0x20) {
+                    char hex[7];
+                    snprintf(hex, sizeof(hex), "\\u%04x", static_cast<unsigned char>(c));
+                    out += hex;
+                } else {
+                    out += c;
+                }
+            }
         }
     }
     void processWebSocketTextMessage(const char* msg)
     {
         if (strpbrk(msg, "{") == nullptr)
         {
-            LogHandler::verbose(Tags::WebSocketServer, "Websocket tcode in: %s", msg);
             extern void feedMotorCommand(const char* cmd, size_t len);
+            if (m_commandHandler.isCommand(msg))
+            {
+                // $ and # system commands typed into the web UI terminal.
+                // Output is reported through LogHandler::raw.
+                char command[MAX_COMMAND];
+                strlcpy(command, msg, sizeof(command));
+                size_t len = strlen(command);
+                while (len > 0 && (command[len - 1] == '\n' || command[len - 1] == '\r'))
+                    command[--len] = '\0';
+                LogHandler::debug(Tags::WebSocketServer, "Websocket system command in: %s", command);
+                m_commandHandler.process(command);
+                // Some system commands (e.g. #device-home) queue TCode for the motor.
+                char tcode[MAX_COMMAND];
+                while (m_commandHandler.getTCode(tcode))
+                {
+                    size_t tcodeLen = strlen(tcode);
+                    if (tcodeLen > 0)
+                        feedMotorCommand(tcode, tcodeLen);
+                }
+                return;
+            }
+            LogHandler::verbose(Tags::WebSocketServer, "Websocket tcode in: %s", msg);
             feedMotorCommand(msg, strlen(msg));
         }
         else
@@ -150,6 +212,7 @@ protected:
     }
 
 private:
+    SystemCommandHandler m_commandHandler;
     // std::mutex serial_mtx;
     // static QueueHandle_t debugInQueue;
     // static TaskHandle_t* emptyQueueHandle;

@@ -24,10 +24,11 @@ SOFTWARE. */
 
 #include <Arduino.h>
 #include "Global.h"
-#include "TCode0_3.h"
 #include "settings/SettingsHandler.h"
 #include "logging/TagHandler.h"
 #include "logging/LogHandler.h"
+#include "MotorHandler.h"
+#include "TCode0_3.h"
 
 class MotorHandler0_3 : public MotorHandler
 {
@@ -89,9 +90,9 @@ protected:
         m_valveServoChannel = pinMap->valveChannel();
         if (m_valveServoPin > -1)
         {
-            m_tcode->AxisInput("A1", VALVE_DEFAULT, 'I', 3000);
-            m_tcode->RegisterAxis("A1", "Suck");
-            m_tcode->RegisterAxis("A0", "Valve");
+            m_tcode->AxisInput(TCODE_CHANNEL_SUCK_LEVEL, TCODE_MID, 'I', 3000);
+            m_tcode->RegisterAxis(TCODE_CHANNEL_SUCK_LEVEL, "Suck");
+            m_tcode->RegisterAxis(TCODE_CHANNEL_SUCK, "Valve");
             int freq = pinMap->getChannelFrequency(m_valveServoChannel);
             attachServoPin("valve servo", m_valveServoPin, freq, m_valveServoChannel, pinMap->getTimerDriverForChannel(m_valveServoChannel));
             m_valveServo_Int = frequencyToMicroseconds(freq);
@@ -105,7 +106,7 @@ protected:
         m_twistServoChannel = pinMap->twistChannel();
         if (m_twistServoPin > -1)
         {
-            m_tcode->RegisterAxis("R0", "Twist");
+            m_tcode->RegisterAxis(TCODE_CHANNEL_TWIST, "Twist");
             int freq = pinMap->getChannelFrequency(m_twistServoChannel);
             attachServoPin("twist servo", m_twistServoPin, freq, m_twistServoChannel, pinMap->getTimerDriverForChannel(m_twistServoChannel));
             m_twistServo_Int = frequencyToMicroseconds(freq);
@@ -119,7 +120,7 @@ protected:
         m_squeezeServoChannel = pinMap->squeezeChannel();
         if (m_squeezeServoPin > -1)
         {
-            m_tcode->RegisterAxis("A3", "Squeeze");
+            m_tcode->RegisterAxis(TCODE_CHANNEL_AUX, "Squeeze");
             int freq = pinMap->getChannelFrequency(m_squeezeServoChannel);
             attachServoPin("aux servo", m_squeezeServoPin, freq, m_squeezeServoChannel, pinMap->getTimerDriverForChannel(m_squeezeServoChannel));
             m_squeezeServo_Int = frequencyToMicroseconds(freq);
@@ -139,8 +140,8 @@ protected:
             m_vib1Channel = pinMap->vibe1Channel();
             if (m_lubeButtonPin > -1 && m_vib1Pin > -1)
             {
-                m_tcode->RegisterAxis("A2", "Lube");
-                m_tcode->AxisInput("A2", 0, ' ', 0);
+                m_tcode->RegisterAxis(TCODE_CHANNEL_LUBE, "Lube");
+                m_tcode->AxisInput(TCODE_CHANNEL_LUBE, 0, ' ', 0);
                 pinMode(m_lubeButtonPin, m_settingsFactory->getLubeButtonPinMode());
 
                 int freq = pinMap->getVibeChannelFrequency(m_vib1Channel);
@@ -155,7 +156,7 @@ protected:
         m_vib0Channel = pinMap->vibe0Channel();
         if (m_vib0Pin > -1)
         {
-            m_tcode->RegisterAxis("V0", "Vibe1");
+            m_tcode->RegisterAxis(TCODE_CHANNEL_VIBE1, "Vibe1");
             int freq = pinMap->getVibeChannelFrequency(m_vib0Channel);
             attachLedcPin("vib 1", m_vib0Pin, freq, m_vib0Channel, vibeResolution);
             // m_vib0_Int = frequencyToMicroseconds(freq);
@@ -172,7 +173,7 @@ protected:
             m_vib1Channel = pinMap->vibe1Channel();
             if (m_vib1Pin > -1)
             {
-                m_tcode->RegisterAxis("V1", "Vibe2");
+                m_tcode->RegisterAxis(TCODE_CHANNEL_VIBE2, "Vibe2");
                 int freq = pinMap->getVibeChannelFrequency(m_vib1Channel);
                 attachLedcPin("vib 2", m_vib1Pin, freq, m_vib1Channel, vibeResolution);
                 // m_vib1_Int = frequencyToMicroseconds(freq);
@@ -186,7 +187,7 @@ protected:
         m_vib2Channel = pinMap->vibe2Channel();
         if (m_vib2Pin > -1)
         {
-            m_tcode->RegisterAxis("V2", "Vibe3");
+            m_tcode->RegisterAxis(TCODE_CHANNEL_VIBE3, "Vibe3");
             int freq = pinMap->getVibeChannelFrequency(m_vib2Channel);
             attachLedcPin("vib 3", m_vib2Pin, freq, m_vib2Channel, vibeResolution);
             // m_vib2_Int = frequencyToMicroseconds(freq);
@@ -199,7 +200,7 @@ protected:
         m_vib3Channel = pinMap->vibe3Channel();
         if (m_vib3Pin > -1)
         {
-            m_tcode->RegisterAxis("V3", "Vibe4");
+            m_tcode->RegisterAxis(TCODE_CHANNEL_VIBE4, "Vibe4");
             int freq = pinMap->getVibeChannelFrequency(m_vib3Channel);
             attachLedcPin("vib 4", m_vib3Pin, freq, m_vib3Channel, vibeResolution);
             // m_vib3_Int = frequencyToMicroseconds(freq);
@@ -235,20 +236,30 @@ protected:
                 }
             }
         }
+    }
 
-        read("D0");
-        read("D1");
+    /**
+     * Emit the startup D0 (firmware) and D1 (TCode version) responses.
+     * Upstream (c9a1ec6) moved these out of setupCommon() to the very end of
+     * init so they are sent after everything else is set up. Our handlers run
+     * setup() on the motor task, so each handler calls this at the end of its
+     * own setup() instead.
+     */
+    void sendStartupInfo()
+    {
+        read(TCODE_COMMAND_FIRMWARE, strlen(TCODE_COMMAND_FIRMWARE));
+        read(TCODE_COMMAND_VERSION, strlen(TCODE_COMMAND_VERSION));
     }
 
     bool m_initFailed = false;
 
-    void executeCommon(const int xLin)
+    void executeCommon(const int strokeTCode)
     {
         if (!m_tcode || m_initFailed)
             return;
         executeTwist();
         executeSqueeze();
-        executeValve(xLin);
+        executeValve(strokeTCode);
         executeVibe(0);
         if (!lubeRegistered)
             executeVibe(1);
@@ -393,7 +404,7 @@ private:
         {
             return;
         }
-        xRot = channelRead("R0");
+        xRot = channelRead(TCODE_CHANNEL_TWIST);
         if (xRot > -1)
         {
             if (m_isTwistFeedBack && !m_settingsFactory->getContinuousTwist())
@@ -475,14 +486,14 @@ private:
         }
     }
 
-    void executeValve(int xLin)
+    void executeValve(int strokeTCode)
     {
         if (m_valveServoPin < 0)
         {
             return;
         }
-        valveCmd = channelRead("A0");
-        suckCmd = channelRead("A1");
+        valveCmd = channelRead(TCODE_CHANNEL_SUCK);
+        suckCmd = channelRead(TCODE_CHANNEL_SUCK_LEVEL);
         if (valveCmd > -1 || suckCmd > -1)
         {
             // Valve
@@ -492,15 +503,15 @@ private:
             float upVelNow;
             if (t > tLast)
             {
-                upVelNow = xLin - xLast;
+                upVelNow = strokeTCode - xLast;
                 upVelNow /= t - tLast;
                 upVel = (upVelNow + 9 * upVel) / 10;
             }
             tLast = t;
-            xLast = xLin;
+            xLast = strokeTCode;
             // Use suck command if most recent
             bool suck;
-            if (m_tcode->AxisLast("A1") >= m_tcode->AxisLast("A0"))
+            if (m_tcode->AxisLast(TCODE_CHANNEL_SUCK_LEVEL) >= m_tcode->AxisLast(TCODE_CHANNEL_SUCK))
             {
                 suck = true;
                 valveCmd = suckCmd;
@@ -548,7 +559,7 @@ private:
     void executeVibe(int index)
     {
         // These should drive PWM pins connected to vibration motors via MOSFETs or H-bridges.
-        const char *channel = "V0";
+        const char *channel = TCODE_CHANNEL_VIBE1;
 #ifdef ESP_ARDUINO3
         int pwmChannel = m_vib0Pin;
 #else
@@ -558,7 +569,7 @@ private:
         {
         case 0:
         {
-            channel = "V0";
+            channel = TCODE_CHANNEL_VIBE1;
 #ifdef ESP_ARDUINO3
             pwmChannel = m_vib0Pin;
 #else
@@ -568,7 +579,7 @@ private:
         }
         case 1:
         {
-            channel = "V1";
+            channel = TCODE_CHANNEL_VIBE2;
 #ifdef ESP_ARDUINO3
             pwmChannel = m_vib1Pin;
 #else
@@ -578,7 +589,7 @@ private:
         }
         case 2:
         {
-            channel = "V2";
+            channel = TCODE_CHANNEL_VIBE3;
 #ifdef ESP_ARDUINO3
             pwmChannel = m_vib2Pin;
 #else
@@ -588,7 +599,7 @@ private:
         }
         case 3:
         {
-            channel = "V3";
+            channel = TCODE_CHANNEL_VIBE4;
 #ifdef ESP_ARDUINO3
             pwmChannel = m_vib3Pin;
 #else
@@ -678,7 +689,7 @@ private:
         }
         if (!m_manualLubeOverride)
         {
-            int cmd = channelRead("A2");
+            int cmd = channelRead(TCODE_CHANNEL_LUBE);
             if (cmd > -1)
             {
                 if (cmd > 0 && cmd <= TCODE_MAX)
@@ -704,9 +715,9 @@ private:
                     ledcWrite(m_vib1Channel, duty);
 #endif
                 }
-                if (millis() - m_tcode->AxisLast("A2") > 500)
+                if (millis() - m_tcode->AxisLast(TCODE_CHANNEL_LUBE) > 500)
                 {
-                    m_tcode->AxisInput("A2", 0, ' ', 0);
+                    m_tcode->AxisInput(TCODE_CHANNEL_LUBE, 0, ' ', 0);
                 } // Auto cutoff
             }
         }
@@ -718,7 +729,7 @@ private:
         {
             return;
         }
-        squeezeCmd = channelRead("A3");
+        squeezeCmd = channelRead(TCODE_CHANNEL_AUX);
         if (squeezeCmd > -1)
         {
             int squeeze = map(squeezeCmd, TCODE_MIN, TCODE_MAX, 1000, -1000);

@@ -112,10 +112,7 @@ public:
             std::lock_guard<std::mutex> lck(command_mtx, std::adopt_lock);
             m_lastSend = millis();
 
-            const size_t messageLen = message ? strlen(message) : 0;
-            const size_t required = strlen(command) + messageLen + 64;
-            std::string commandJson(required, '\0');
-            compileCommand(commandJson.data(), commandJson.size(), command, message);
+            const std::string commandJson = compileCommand(command, message);
             // if(client)
             //     client->text(commandJson);
             // else

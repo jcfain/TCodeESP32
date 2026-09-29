@@ -173,6 +173,31 @@ public:
         va_end(vArgs);
     }
 
+    /// @brief Logs a message as-is: no level/tag prefix and not subject to the
+    /// log level or tag filters. Used for command output meant for the user
+    /// (serial monitor and web UI terminal).
+    static void raw(const char *format, ...)
+    {
+        LogHandler &log = getInstance();
+        char temp[internal_buffer_length] = {'\0'};
+        va_list vArgs;
+        va_start(vArgs, format);
+        int len = vsnprintf(temp, internal_buffer_length, format, vArgs);
+        va_end(vArgs);
+        if (len < 0)
+            return;
+        if (len >= internal_buffer_length)
+            len = internal_buffer_length - 1;
+        xSemaphoreTake(log.m_xMutex, portMAX_DELAY);
+        Serial.print(temp);
+        // The web UI adds its own line breaks, so drop the trailing one.
+        while (len > 0 && (temp[len - 1] == '\n' || temp[len - 1] == '\r'))
+            temp[--len] = '\0';
+        if (len > 0 && log.m_message_callback)
+            log.m_message_callback(temp, len, LogLevel::NONE);
+        xSemaphoreGive(log.m_xMutex);
+    }
+
     static const char *getLastError() { return getInstance().m_lastError; }
 
     static void setMessageCallback(LOG_FUNCTION_PTR_T f)

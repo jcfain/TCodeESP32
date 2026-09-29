@@ -567,12 +567,50 @@ public:
             return false;
         if (!deleteJsonFile(BUTTON_SETTINGS_PATH))
             return false;
+        if (!deleteJsonFile(CHANNELS_SETTINGS_PATH))
+            return false;
         // for(SettingFileInfo* settingsInfo : AllSettings)
         // {
         //     if(!loadDefault(*settingsInfo))
         //         return false;
         // }
         return true;
+    }
+
+    // Motor init messages (e.g. SimpleFOC driver/encoder status) shown in the
+    // web UI. Stored as {eventID, name, message} objects under "motorState" in
+    // /debugInfo.json, next to the boot reasons written by SettingsHandler.
+    bool addMotorStatus(const char *name, const char *value)
+    {
+        xSemaphoreTake(m_debugInfoSemaphore, portMAX_DELAY);
+        JsonDocument doc;
+        readDebugInfo(doc);
+        JsonArray states = doc[DEBUG_INFO_MOTOR_STATE].is<JsonArray>()
+                               ? doc[DEBUG_INFO_MOTOR_STATE].as<JsonArray>()
+                               : doc[DEBUG_INFO_MOTOR_STATE].to<JsonArray>();
+        int eventId = 1;
+        if (states.size() > 0)
+            eventId = (states[states.size() - 1]["eventID"] | 0) + 1;
+        JsonObject entry = states.add<JsonObject>();
+        entry["eventID"] = eventId;
+        entry["name"] = name;
+        entry["message"] = value;
+        while (states.size() > MAX_MOTOR_STATUS_ENTRIES)
+            states.remove(0);
+        bool saved = writeDebugInfo(doc);
+        xSemaphoreGive(m_debugInfoSemaphore);
+        return saved;
+    }
+
+    bool resetMotorStatus()
+    {
+        xSemaphoreTake(m_debugInfoSemaphore, portMAX_DELAY);
+        JsonDocument doc;
+        readDebugInfo(doc);
+        doc[DEBUG_INFO_MOTOR_STATE].to<JsonArray>();
+        bool saved = writeDebugInfo(doc);
+        xSemaphoreGive(m_debugInfoSemaphore);
+        return saved;
     }
 
     bool save(SettingFile file, JsonObject fromJson = JsonObject())
@@ -1353,7 +1391,39 @@ private:
         m_networkSemaphore = xSemaphoreCreateMutex();
         m_commonSemaphore = xSemaphoreCreateMutex();
         m_pinSemaphore = xSemaphoreCreateMutex();
+        m_debugInfoSemaphore = xSemaphoreCreateMutex();
     };
+
+    static const size_t MAX_MOTOR_STATUS_ENTRIES = 50;
+
+    void readDebugInfo(JsonDocument &doc)
+    {
+        if (!LittleFS.exists(DEBUG_INFO_PATH))
+            return;
+        File in = LittleFS.open(DEBUG_INFO_PATH, FILE_READ);
+        if (!in)
+            return;
+        DeserializationError err = deserializeJson(doc, in);
+        in.close();
+        if (err)
+        {
+            LogHandler::warning(Tags::SettingsFactory, "Could not parse %s (%s); recreating", DEBUG_INFO_PATH, err.c_str());
+            doc.clear();
+        }
+    }
+
+    bool writeDebugInfo(JsonDocument &doc)
+    {
+        File out = LittleFS.open(DEBUG_INFO_PATH, FILE_WRITE);
+        if (!out)
+        {
+            LogHandler::error(Tags::SettingsFactory, "Failed to open %s for writing", DEBUG_INFO_PATH);
+            return false;
+        }
+        serializeJson(doc, out);
+        out.close();
+        return true;
+    }
 
     // Cached (Requires reboot)
     TCodeVersion tcodeVersion;

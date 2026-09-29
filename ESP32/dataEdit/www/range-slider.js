@@ -29,6 +29,8 @@ DeviceRangeSlider = {
   rangeColor: "grey",
   setup() {
     this.channels = getChannelMap();
+    if(!this.channels)
+      return;
     var deviceRangesTable = document.getElementById("deviceRangesTable");
     deleteAllChildren(deviceRangesTable);
 
