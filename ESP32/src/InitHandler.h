@@ -452,7 +452,7 @@ private:
                 {
                     mdnsHandler = new MDNSHandler();
                     mdnsHandler->setup(hostname, friendlyName, udpPort, port);
-                    char hostLen = strlen(hostname) + 7;
+                    size_t hostLen = strlen(hostname) + 7;
                     char domainName[hostLen];
                     sprintf(domainName, "%s.local", hostname);
                     LogHandler::printWebAddress(m_TAG, domainName, port);

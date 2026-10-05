@@ -24,6 +24,7 @@ SOFTWARE. */
 #include "constants.h"
 #include "SerialHandler.h"
 #include <TCode.h>// Not sure why this is required here to prevent an undefined reference error...
+#include <cstddef>
 #include "LogHandler.h"
 #include "SettingsHandler.h"
 #include "SystemCommandHandler.h"
@@ -146,10 +147,12 @@ void tcodePassthroughCommandCallback(const char *in)
     if (systemCommandHandler->isCommand(in))
     {
         // This seems wrong but since we are only calling this from one place its fine for now.
-        char temp[strlen(in) + 2];
+        size_t length = strlen(in);
+        size_t total = length + 2;
+        char temp[total];
         temp[0] = {0};
-        strcpy(temp, in);
-        strcat(temp, "\n");
+        strncpy(temp, in, total);
+        strncat(temp, "\n", total);
 //////////////////////////////////////////////////////////////////////////////////////
 #if BLUETOOTH_TCODE
         if (bluetoothHandler && bluetoothHandler->isConnected())

@@ -24,6 +24,7 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
+#include "constants.h"
 #include "SettingsHandler.h"
 #include "utils.h"
 #include "TagHandler.h"
@@ -91,8 +92,11 @@ public:
 				if(match(valuePair.command, command.command)) {
 					bool error = false;
 					int valueInt = getInt(valuePair.value, error);
-					if(error)
+					if(error) 
+					{
+						xSemaphoreGive(xMutex);
 						return false;
+					}
 					command.callback(valueInt);
 					xSemaphoreGive(xMutex);
 					return true;
@@ -678,8 +682,8 @@ private:
 	}
 
 	struct  CommandValuePair {
-		const char* command;
-		const char* value;
+		char command[MAX_SYSTEM_COMMAND];
+		char value[MAX_SYSTEM_MESSAGE];
 	};
 
 	bool getCommandValue(const char* in, CommandValuePair &valuePair) {
@@ -690,20 +694,31 @@ private:
 				xSemaphoreGive(xMutex);
 				return false;
 			}
-			const char* commandAlone = substr(in, 0, indexofDelim);
-			if(!strlen(commandAlone)) {
+			if(indexofDelim > MAX_SYSTEM_COMMAND) {
+				LogHandler::error(_TAG, "Invalid command format: '%s' Command too long. Max command length: %i", in, MAX_SYSTEM_COMMAND);
+				xSemaphoreGive(xMutex);
+				return false;
+			}
+
+			substr(valuePair.command, in, 0, indexofDelim);
+			if(!strlen(valuePair.command)) {
 				LogHandler::error(_TAG, "Invalid command format: '%s' missing command, correct format is #<command>:<value>", in);
 				xSemaphoreGive(xMutex);
 				return false;
 			}
-			valuePair.command = commandAlone;
-			const char* valueAlone = substr(in, indexofDelim +1, strlen(in));
-			if(!strlen(valueAlone)) {
+			if(strlen(in) - indexofDelim +1 > MAX_SYSTEM_COMMAND) {
+				LogHandler::error(_TAG, "Invalid command format: '%s' Command value too long. Max command value length: %i", in, MAX_SYSTEM_MESSAGE);
+				xSemaphoreGive(xMutex);
+				return false;
+			}
+
+			substr(valuePair.value, in, indexofDelim +1, strlen(in) +1);
+			if(!strlen(valuePair.value)) {
 				LogHandler::error(_TAG, "Invalid command format: '%s' missing value, correct format is #<command>:<value>", in);
 				xSemaphoreGive(xMutex);
 				return false;
 			}
-			valuePair.value = valueAlone;
+
 			return true;
 	}
 

@@ -48,8 +48,7 @@ SOFTWARE. */
 
 InitHandler* initHandler;
 BenchHandler* benchHandler;
-TickType_t pxPreviousWakeTime = millis();
-SettingsFactory *settingsFactory;
+// unsigned long pxPreviousWakeTime = millis();
 // This has issues running with the webserver.
 // OTAHandler otaHandler;
 bool errorLogged = false;
@@ -86,7 +85,7 @@ bool bleEnabled = BLE_ENABLED_DEFAULT;
 
 void setup()
 {
-	benchHandler = benchHandler->getInstance();
+	benchHandler = BenchHandler::getInstance();
 	// benchHandler->init();
 	// benchHandler->enable();
 	initHandler = InitHandler::getInstance();
