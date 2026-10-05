@@ -42,6 +42,7 @@ SOFTWARE. */
 #include "constants.h"
 #include "enum.h"
 #include "utils.h"
+#include "InstanceHandler.h"
 #include "InitHandler.h"
 #include "BenchHandler.hpp"
 
@@ -74,6 +75,10 @@ size_t bluetoothData_len;
 #endif
 char movement[MAX_COMMAND];
 size_t movement_len;
+// #pragma region pot
+// char pot[MAX_COMMAND];
+// size_t pot_len;
+// #pragma endregion
 ButtonModel *buttonCommand = 0;
 bool dStopped = false;
 bool bluetoothEnabled = BLUETOOTH_ENABLED_DEFAULT;
@@ -227,7 +232,8 @@ void stop()
 	if (dStopped)// Only execute stop once
 		return;
 	size_t len = 7;
-	char stop[len] = "DSTOP\n";
+	char stop[7] = {0};
+	strncpy(stop, "DSTOP\n", len);
 	readTCode(stop, len);
 	dStopped = true;
 }
@@ -324,13 +330,41 @@ void loop()
 #endif
 				}
 				benchHandler->benchFinish("Input check", 3);
-			}
-			else
-			{ 
-				// All motion is paused execute stop.
-				stop();
-			}
-// 		}
+// #warning DO NOT RELEASE pot code
+// This is a personal project I was toying with testing PWM with a 10k pot. 
+// I dont see a need for it to be released user facing at this time so
+// its just a simple hard coded blurb here in main. 
+// It could be user facing configurable someday.
+// #pragma region 
+// 				// Temp pot. 
+// 				uint16_t analogValue = analogRead(34);
+// 				// if(analogValue > 0)
+// 				// {
+// 					LogHandler::info(TagHandler::MainLoop, "Pot value: %u", analogValue);
+// 					// deadzone
+// 					if(analogValue <= 2100 && analogValue >= 1950 || analogValue == 4095 || analogValue == 0)
+// 					{
+// 						pot_len = sprintf(pot, "R05000\n");
+// 					} 
+// 					else 
+// 					{
+// 						int tcode = map(analogValue, 1, 4094, TCODE_MAX, TCODE_MIN);
+// 						pot_len = sprintf(pot, "R0%u\n", tcode);
+// 					}
+
+// 					LogHandler::info(TagHandler::MainLoop, "Pit Tcode value: %s", pot);
+// 					readTCode(pot, pot_len);
+// 				// }
+// 			}
+// 			else
+// 			{ 
+// 				// All motion is paused execute stop.
+// 				stop();
+// 			}
+// #pragma endregion
+
+
+		}
 // 		else {
 // 			if (commandTCodeData_len > 0) {
 // 				LogHandler::error(TagHandler::MainLoop, "System command tcode received. But the system had an error during setup: %s, len: %u", commandTCodeData, commandTCodeData_len);

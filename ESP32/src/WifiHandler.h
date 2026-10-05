@@ -77,7 +77,7 @@ public:
 	}
 	bool connect(const char* hostname, const char* ssid, const char* pass)
 	{
-		LogHandler::info(_TAG, "Setting up wifi");
+		LogHandler::info(_TAG, "[connect] wifi host: %s", hostname);
 		m_settingsFactory = SettingsFactory::getInstance();
 		_apMode = false;
 		// Serial.println("Setting mode");

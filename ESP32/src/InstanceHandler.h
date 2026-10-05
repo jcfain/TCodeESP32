@@ -85,18 +85,18 @@ SOFTWARE. */
 
 #include "TaskHandler.hpp"
 
-SerialHandler *serialHandler;
+SerialHandler *serialHandler = 0;
 SystemCommandHandler *systemCommandHandler = 0;
 MotorHandler *motorHandler = 0;
 TCodeBase* tcode = 0;
 BatteryHandler *batteryHandler = 0;
 MotionHandler *motionHandler = 0;
-VoiceHandler *voiceHandler;
+VoiceHandler *voiceHandler = 0;
 ButtonHandler *buttonHandler = 0;
 #if WIFI_TCODE
     Udphandler *udpHandler = 0;
-    WifiHandler wifi;
-    MDNSHandler mdnsHandler;
+    WifiHandler *wifi = 0;
+    MDNSHandler *mdnsHandler = 0;
     HTTPBase *webHandler = 0;
     WebSocketBase *webSocketHandler = 0;
 #endif

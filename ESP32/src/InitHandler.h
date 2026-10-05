@@ -1,5 +1,6 @@
 #pragma once
 #include "InstanceHandler.h"
+#include "LogHandler.h"
 
 class InitHandler
 {
@@ -67,6 +68,16 @@ public:
             LogHandler::error(m_TAG, "Failed to load networking settings...");
             return false;
         }
+        #if BLE_TCODE
+            settingsFactory->getValue(BLE_ENABLED, bleEnabled);
+            
+            // bleEnabled = true;
+        #endif
+        #if BLUETOOTH_TCODE
+            settingsFactory->getValue(BLUETOOTH_ENABLED, bluetoothEnabled);
+            
+            // bluetoothEnabled = true;
+        #endif
         if(!initNetworking())
             return false;
         if (!settingsFactory->init())
@@ -76,6 +87,7 @@ public:
         }
         LogHandler::debug(m_TAG, "Settings factory  DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         LogHandler::setLogLevel(settingsFactory->getLogLevel());
+        // LogHandler::setLogLevel(LogLevel::DEBUG);
 
         const PinMap *pinMap = settingsFactory->getPins();
         if(!pinMap)
@@ -88,20 +100,12 @@ public:
         SettingsHandler::setMessageCallback(settingChangeCallback);
         LogHandler::debug(m_TAG, "Settings handler DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
-    #if BLE_TCODE
-        settingsFactory->getValue(BLE_ENABLED, bleEnabled);
-        
-        //bleEnabled = true;
-    #endif
-    #if BLUETOOTH_TCODE
-        settingsFactory->getValue(BLUETOOTH_ENABLED, bluetoothEnabled);
-        
-        //bluetoothEnabled = true;
-    #endif
-
     #if WIFI_TCODE
-        if ((!bluetoothEnabled && !bleEnabled) || COEXIST)
-            wifi.setWiFiStatusCallback(std::bind(&InitHandler::wifiStatusCallBack, this, std::placeholders::_1, std::placeholders::_2));
+        if ((!bluetoothEnabled && !bleEnabled) || COEXIST) 
+        {
+            wifi = new WifiHandler();
+            wifi->setWiFiStatusCallback(std::bind(&InitHandler::wifiStatusCallBack, this, std::placeholders::_1, std::placeholders::_2));
+        }
     #endif
 
         // Get ConfigurationSettings
@@ -320,7 +324,7 @@ private:
     }
     bool initNetworking() 
     {
-
+        LogHandler::checkHeapIntegrity(m_TAG, "at begining of initNetworking");
     #if BLE_TCODE
         if (bleEnabled)
         {
@@ -348,16 +352,16 @@ private:
         esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
     #endif
 
-    #if BLE_TCODE || BLUETOOTH_TCODE
-        if (WIFI_TCODE && !COEXIST && (bluetoothEnabled || bleEnabled))
-        {
-            WifiHandler::disable();
-            LogHandler::debug(m_TAG, "Wifi disable DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-        }
-    #endif
+    // #if BLE_TCODE || BLUETOOTH_TCODE
+    //     if (WIFI_TCODE && !COEXIST && (bluetoothEnabled || bleEnabled))
+    //     {
+    //         WifiHandler::disable(); // Must call connect before diable. Not needed if we never call connect.
+    //         LogHandler::debug(m_TAG, "Wifi disable DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    //     }
+    // #endif
 
     #if WIFI_TCODE
-        if ((!bluetoothEnabled && !bleEnabled) || COEXIST)
+        if (wifi)
         {
             char ssid[SSID_LEN];
             char wifiPass[WIFI_PASS_LEN];
@@ -383,7 +387,7 @@ private:
                 displayPrint("Connecting to: ");
                 LogHandler::info(m_TAG, "Connecting to: %s", ssid);
                 displayPrint(ssid);
-                if (wifi.connect(settingsFactory->getHostname(), ssid, wifiPass))
+                if (wifi->connect(settingsFactory->getHostname(), ssid, wifiPass))
                 {
     // 				String ipaddress = wifi.ip().toString();
     // 				displayPrint("Connected IP: " + ipaddress);
@@ -415,6 +419,11 @@ private:
                     settingsFactory->getFriendlyName());
             }
         }
+        else
+        {
+            displayPrint("Wifi disabled...");
+            LogHandler::info(m_TAG, "Wifi disabled...");
+        }
     #endif
         return true;
     }
@@ -441,7 +450,8 @@ private:
                 settingsFactory->getValue(MDNS_ENABLED, mdnsEnabled);
                 if(mdnsEnabled)
                 {
-                    mdnsHandler.setup(hostname, friendlyName, udpPort, port);
+                    mdnsHandler = new MDNSHandler();
+                    mdnsHandler->setup(hostname, friendlyName, udpPort, port);
                     char hostLen = strlen(hostname) + 7;
                     char domainName[hostLen];
                     sprintf(domainName, "%s.local", hostname);
@@ -522,7 +532,7 @@ private:
         settingsFactory->getValue(AP_MODE_GATEWAY, gateway, IP_ADDRESS_LEN);
         settingsFactory->getValue(AP_MODE_HIDDEN, hidden);
         settingsFactory->getValue(AP_MODE_CHANNEL, channel);
-        if (wifi.startAp(hostname, settingsFactory->getAPModeSSID(), pass, channel, hidden, settingsFactory->getAPModeIP(), subnet, gateway))
+        if (wifi->startAp(hostname, settingsFactory->getAPModeSSID(), pass, channel, hidden, settingsFactory->getAPModeIP(), subnet, gateway))
         {
             displayPrint("APMode started");
             startWebServer(SettingsHandler::apMode, webPort, udpPort, hostname, friendlyName);

@@ -21,7 +21,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 #pragma once
-
+#define MYNEWT_VAL_BLE_HS_LOG_LVL 1
+#define MYNEWT_VAL_NIMBLE_CPP_LOG_LEVEL 3
+#define MYNEWT_VAL_NIMBLE_CPP_ENABLE_RETURN_CODE_TEXT
+#define MYNEWT_VAL_NIMBLE_CPP_ENABLE_GAP_EVENT_CODE_TEXT
 #include <NimBLEDevice.h>
 #include <NimBLEServer.h>
 #include <NimBLEUtils.h>
@@ -39,21 +42,24 @@ SOFTWARE. */
 #include "BLEHandlerLove.h"
 #include "BLEHandlerHC.h"
 #include "TCodeInterface.h"
-
 class BLEHandler: public TCodeInterface
 {
 public:
     BLEHandler()
     {
         m_TCodeQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
+        if(m_TCodeQueue == NULL)
+            LogHandler::error(_TAG, "Could not create BLE tcode queue");
         m_callBackQueue = xQueueCreate(5, sizeof(char[MAX_COMMAND]));
+        if(m_callBackQueue == NULL)
+            LogHandler::error(_TAG, "Could not create BLE callback queue");
     }
     void setup()
     {
         // auto callbacks = getCaracteristicCallbacks();
         SettingsFactory::getInstance()->getValue(BLE_DEVICE_TYPE, m_bleDeviceType);
 
-        m_subHandler = getHandler();
+        setHandler(m_bleDeviceType);
         m_subHandler->setup(m_TCodeQueue);
 
         // LogHandler::debug(_TAG, "Setting up BLE Characteristics");
@@ -173,7 +179,7 @@ public:
 private:
     // friend class BLETCodeControlCallback;
     // friend class BLELoveControlCallback;
-    static const char *_TAG;
+    static inline const char *_TAG = TagHandler::BLEHandler;
     // const char* BLE_DEVICE_NAME = "TCODE-ESP32";
     // const char* BLE_TCODE_SERVICE_UUID = "ff1b451d-3070-4276-9c81-5dc5ea1043bc";
     // const char* BLE_TCODE_CHARACTERISTIC_UUID = "c5f1543e-338d-47a0-8525-01e3c621359d";
@@ -191,23 +197,29 @@ private:
     // const char* BLE_TCODE_CHARACTERISTIC_UUID2_HC = "00002000-0002-1000-8000-0000101A2B3C";
 
     TaskHandle_t m_bleTask;
-    BLEHandlerBase *getHandler()
+    void setHandler(const BLEDeviceType& type)
     {
-        if (m_bleDeviceType == BLEDeviceType::LOVE)
+        if(m_subHandler) 
+            return;
+        switch(type)
         {
-            LogHandler::info(_TAG, "Setting up BLE Love handler");
-            static BLEHandlerLove bleHandler;
-            return &bleHandler;
+            case BLEDeviceType::LOVE: 
+            {
+                LogHandler::info(_TAG, "Setting up BLE Love handler");
+                m_subHandler = new BLEHandlerLove();
+                break;
+            }
+            case BLEDeviceType::HC:
+            {
+                LogHandler::info(_TAG, "Setting up BLE HC handler");
+                m_subHandler = new BLEHandlerHC();
+                break;
+            }
+            default:
+            {
+                LogHandler::info(_TAG, "Setting up BLE Tcode handler");
+                m_subHandler = new BLEHandlerTCode();
+            }
         }
-        if (m_bleDeviceType == BLEDeviceType::HC)
-        {
-            LogHandler::info(_TAG, "Setting up BLE HC handler");
-            static BLEHandlerHC bleHandler;
-            return &bleHandler;
-        }
-        LogHandler::info(_TAG, "Setting up BLE Tcode handler");
-        static BLEHandlerTCode bleHandler;
-        return &bleHandler;
     };
 };
-const char *BLEHandler::_TAG = TagHandler::BLEHandler;

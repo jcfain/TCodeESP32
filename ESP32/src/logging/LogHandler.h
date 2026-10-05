@@ -304,6 +304,19 @@ public:
         LogHandler::info(tag, "Web address: http://%s%s", hostAddress, port == 80 ? "" : webServerportString);
     }
 
+    // Returns true if the check failed
+    static bool checkHeapIntegrity(const char* tag, const char* event)
+    {
+        info(tag, "Checking integrity for: %s", event);
+        if(!heap_caps_check_integrity_all(false)) 
+        {
+            // heap_caps_check_integrity_addr(0x3ffd763c, true);
+            error(tag, "heap_caps_check_integrity_all failed %s", event);
+            return false;
+        }
+        return true;
+    }
+
     static void printFree(bool forcePrint = false) {
         if(forcePrint || LogHandler::getLogLevel() == LogLevel::DEBUG)
         {

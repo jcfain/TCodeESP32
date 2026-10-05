@@ -1,4 +1,5 @@
 #pragma once
+#include "sdkconfig.h"
 
 #define FIRMWARE_VERSION 0.58f
 #define FIRMWARE_VERSION_NAME "0.58b\n"
@@ -29,6 +30,8 @@
 #include "C6/config.h"
 #elif defined(CONFIG_IDF_TARGET_ESP32E22)
 #include "E22/config.h"
+#else
+#error Target CONFIG_IDF_TARGET is not supported
 #endif
 
 #if !defined(MOTOR_TYPE_SERVO) && !defined(MOTOR_TYPE_BLDC)

@@ -40,24 +40,24 @@ public:
         return m_connected;
     }
 private:
-    #ifdef NIMBLE_LATEST
-    void onConnect(BLEServer* pServer, NimBLEConnInfo& connInfo) override  {
+    #ifdef NIMBLE_V2
+    void onConnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo) override  {
         LogHandler::info(TagHandler::BLEHandler, "A client has connected via BLE: %s",
             connInfo.getAddress().toString().c_str()
         );
     #else
-    void onConnect(BLEServer* pServer, ble_gap_conn_desc* desc) override  {
+    void onConnect(NimBLEServer* pServer, ble_gap_conn_desc* desc) override  {
         LogHandler::info(TagHandler::BLEHandler, "A client has connected via BLE");
     #endif
         m_connected = true;
     };
-    #ifdef NIMBLE_LATEST
-    void onDisconnect(BLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
+    #ifdef NIMBLE_V2
+    void onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
         LogHandler::info(TagHandler::BLEHandler, "A client has disconnected from BLE: %s",
             connInfo.getAddress().toString().c_str()
         );
     #else
-    void onDisconnect(BLEServer* pServer, ble_gap_conn_desc* desc) override  {
+    void onDisconnect(NimBLEServer* pServer, ble_gap_conn_desc* desc) override  {
         LogHandler::info(TagHandler::BLEHandler, "A client has disconnected from BLE");
     #endif
         m_connected = false;

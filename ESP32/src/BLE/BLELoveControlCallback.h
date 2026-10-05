@@ -43,7 +43,7 @@ public:
         SettingsFactory::getInstance()->getValue(BLE_LOVE_DEVICE_TYPE, m_bleLoveDeviceType);
     }
     // At some point this signature will change because its in master so if Bluetooth breaks, check the source class signature.
-    #ifdef NIMBLE_LATEST
+    #ifdef NIMBLE_V2
     void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo)  override {
     #else
     void onWrite(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc)  override {
@@ -61,7 +61,7 @@ public:
 
     };
     
-    #ifdef NIMBLE_LATEST
+    #ifdef NIMBLE_V2
     void onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
     #else
     void onRead(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc) override {
