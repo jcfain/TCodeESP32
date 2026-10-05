@@ -1,8 +1,8 @@
 #pragma once
 #include "sdkconfig.h"
 
-#define FIRMWARE_VERSION 0.58f
-#define FIRMWARE_VERSION_NAME "0.58b\n"
+#define FIRMWARE_VERSION 0.581f
+#define FIRMWARE_VERSION_NAME "0.581b\n"
 #define FIRMWARE_NAME "TCode ESP32 Firmware"
 #define TCODE_DEVICE_INFO FIRMWARE_NAME " v" FIRMWARE_VERSION_NAME
 #define MAX_WS_COMMAND 25

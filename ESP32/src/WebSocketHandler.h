@@ -49,7 +49,7 @@ public:
             onWsEvent(server, client, type, arg, data, len);
         });
         server->addHandler(&ws);
-        m_TCodeQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
+        m_TCodeQueue = xQueueCreate(10, sizeof(char[MAX_COMMAND]));
         if(m_TCodeQueue == NULL) {
             LogHandler::error(_TAG, "Error creating the tcode queue");
         }

@@ -1,6 +1,7 @@
 #pragma once
 #include "InstanceHandler.h"
 #include "LogHandler.h"
+#include "settingsFactory.h"
 
 class InitHandler
 {
@@ -63,31 +64,17 @@ public:
         settingsFactory = SettingsFactory::getInstance();
         settingsFactory->setMessageCallback(settingChangeCallback);
 
-        if (!settingsFactory->initNetworking())
-        {
-            LogHandler::error(m_TAG, "Failed to load networking settings...");
-            return false;
-        }
-        #if BLE_TCODE
-            settingsFactory->getValue(BLE_ENABLED, bleEnabled);
-            
-            // bleEnabled = true;
-        #endif
-        #if BLUETOOTH_TCODE
-            settingsFactory->getValue(BLUETOOTH_ENABLED, bluetoothEnabled);
-            
-            // bluetoothEnabled = true;
-        #endif
-        if(!initNetworking())
+        if(!initNetworking(settingsFactory))
             return false;
         if (!settingsFactory->init())
         {
             LogHandler::error(m_TAG, "Failed to load settings...");
             return false;
         }
+        #if DEBUG_BUILD != 1
+            LogHandler::setLogLevel(settingsFactory->getLogLevel());
+        #endif
         LogHandler::debug(m_TAG, "Settings factory  DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-        LogHandler::setLogLevel(settingsFactory->getLogLevel());
-        // LogHandler::setLogLevel(LogLevel::DEBUG);
 
         const PinMap *pinMap = settingsFactory->getPins();
         if(!pinMap)
@@ -99,14 +86,6 @@ public:
         SettingsHandler::init();
         SettingsHandler::setMessageCallback(settingChangeCallback);
         LogHandler::debug(m_TAG, "Settings handler DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-
-    #if WIFI_TCODE
-        if ((!bluetoothEnabled && !bleEnabled) || COEXIST) 
-        {
-            wifi = new WifiHandler();
-            wifi->setWiFiStatusCallback(std::bind(&InitHandler::wifiStatusCallBack, this, std::placeholders::_1, std::placeholders::_2));
-        }
-    #endif
 
         // Get ConfigurationSettings
         bool fanControlEnabled = FAN_CONTROL_ENABLED_DEFAULT;
@@ -280,6 +259,8 @@ public:
 
         motorHandler->read(TCODE_COMMAND_FIRMWARE, strlen(TCODE_COMMAND_FIRMWARE));
         motorHandler->read(TCODE_COMMAND_VERSION, strlen(TCODE_COMMAND_VERSION));
+
+        LogHandler::checkHeapIntegrity(m_TAG, "at end of init");
         tcode->sendMessage("Ready!\n");
         return true;
     }
@@ -322,19 +303,44 @@ private:
             }
         }
     }
-    bool initNetworking() 
+    bool initNetworking(SettingsFactory* settingsFactory) 
     {
         LogHandler::checkHeapIntegrity(m_TAG, "at begining of initNetworking");
+        if (!settingsFactory->initNetworking())
+        {
+            LogHandler::error(m_TAG, "Failed to load networking settings...");
+            return false;
+        }
+    #if BLE_TCODE
+            settingsFactory->getValue(BLE_ENABLED, bleEnabled);
+            
+            // Uncomment to test BLE
+            // bleEnabled = true;
+    #endif
+    #if BLUETOOTH_TCODE
+            settingsFactory->getValue(BLUETOOTH_ENABLED, bluetoothEnabled);
+            
+            // bluetoothEnabled = true;
+    #endif
+    #if WIFI_TCODE
+            if ((!bluetoothEnabled && !bleEnabled) || COEXIST) 
+            {
+                wifi = new WifiHandler();
+                LogHandler::debug(m_TAG, "Create wifi obj DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+                wifi->setWiFiStatusCallback(std::bind(&InitHandler::wifiStatusCallBack, this, std::placeholders::_1, std::placeholders::_2));
+            }
+    #endif
     #if BLE_TCODE
         if (bleEnabled)
         {
             startBLETCode();
+            LogHandler::debug(m_TAG, "BLE DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         }
         else
         {
             BLEHandler::disable();
+            LogHandler::debug(m_TAG, "BLE DRAM disable heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         }
-        LogHandler::debug(m_TAG, "BLE DRAM heaps free %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
     #else
         esp_bt_controller_mem_release(ESP_BT_MODE_BTDM)
     #endif

@@ -24,6 +24,7 @@ SOFTWARE. */
 #include <mutex>
 #include <vector>
 #include <ArduinoJson.h>
+#include <LittleFS.h>
 
 #include "enum.h"
 #include "callback.h"
@@ -307,7 +308,7 @@ public:
     // Returns true if the check failed
     static bool checkHeapIntegrity(const char* tag, const char* event)
     {
-        info(tag, "Checking integrity for: %s", event);
+        debug(tag, "Checking integrity for: %s", event);
         if(!heap_caps_check_integrity_all(false)) 
         {
             // heap_caps_check_integrity_addr(0x3ffd763c, true);

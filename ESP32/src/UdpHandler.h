@@ -48,7 +48,7 @@ class Udphandler : public TCodeInterface
 		m_tcodeVersion = m_settingsFactory->getTcodeVersion();
 		m_server.onPacket(udpCallback, static_cast<void*>(this));
 		//m_server.onPacket(udpCallback2);
-        m_TCodeQueue = xQueueCreate(25, sizeof(char[MAX_COMMAND]));
+        m_TCodeQueue = xQueueCreate(10, sizeof(char[MAX_COMMAND]));
 		// if(xTaskCreatePinnedToCore(
 		// 	handlerTask,/* Function to implement the task */
 		// 	"UDPTask", /* Name of the task */

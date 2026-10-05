@@ -15,10 +15,12 @@ public:
         //setMotionChannels(SettingsHandler::getMotionChannels());
     }
 
-    void getMovement(char* buf, size_t len) {
+    // Returns number of characters writte.
+    // -1 if error
+    int getMovement(char* buf, size_t len) {
         if(!enabled || !initialized()) {
             buf[0] = {0};
-            return;
+            return 0;
         }
 		xSemaphoreTake(xMutex, portMAX_DELAY);
         buf[0] = {0};
@@ -34,10 +36,11 @@ public:
 		    snprintf(buf, len, "%s%s", buf, " ");
         }
         //strncat(buf, "\n", len);
-		snprintf(buf, len, "%s%s", buf, "\n");
+		int outLen = snprintf(buf, len, "%s%s", buf, "\n");
         //buf[strlen(buf) - 1] = '\0';
         //LogHandler::verbose(TagHandler::MotionHandler, "Exit %s" , buf);
         xSemaphoreGive(xMutex);
+        return outLen;
     }
 
     bool initialized() {
