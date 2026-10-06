@@ -1,11 +1,14 @@
 #pragma once
+#include "sdkconfig.h"
 
-#define FIRMWARE_VERSION 0.57f
-#define FIRMWARE_VERSION_NAME "0.57b\n"
+#define FIRMWARE_VERSION 0.581f
+#define FIRMWARE_VERSION_NAME "0.581b\n"
 #define FIRMWARE_NAME "TCode ESP32 Firmware"
 #define TCODE_DEVICE_INFO FIRMWARE_NAME " v" FIRMWARE_VERSION_NAME
 #define MAX_WS_COMMAND 25
 #define MAX_WS_MESSAGE 512
+#define MAX_SYSTEM_COMMAND 25
+#define MAX_SYSTEM_MESSAGE 100
 #define MAX_LOG_STORE 256
 #define MAX_BUTTON_SETS 4
 #define MAX_BUTTONS 4
@@ -29,6 +32,8 @@
 #include "C6/config.h"
 #elif defined(CONFIG_IDF_TARGET_ESP32E22)
 #include "E22/config.h"
+#else
+#error Target CONFIG_IDF_TARGET is not supported
 #endif
 
 #if !defined(MOTOR_TYPE)

@@ -1933,7 +1933,8 @@ private:
             file.close();
             return false;
         }
-        LogHandler::debug(Tags::SettingsFactory, "File contents: %s", file.readString().c_str());
+        if (LogHandler::getLogLevel() >= LogLevel::DEBUG)
+            LogHandler::debug(Tags::SettingsFactory, "File contents: %s", file.readString().c_str());
         file.close();
         return true;
     }

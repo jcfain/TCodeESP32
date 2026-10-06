@@ -45,17 +45,21 @@ public:
 
     void setup(QueueHandle_t tcodeQueue)
     {
+        LogHandler::checkHeapIntegrity(Tags::BLE, "failed at begining of setup");
         LogHandler::info(Tags::BLE, "Setting up BLE handler: %s", NAME);
-        BLEDevice::init(NAME);
+        NimBLEDevice::init(std::string(NAME));
         esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_DEFAULT, ESP_PWR_LVL_P9);
         esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_P9);
         esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_SCAN ,ESP_PWR_LVL_P9);
         LogHandler::debug(Tags::BLE, "Setting up BLE Create server");
-        BLEServer *pServer = BLEDevice::createServer();
+        LogHandler::checkHeapIntegrity(Tags::BLE, "after NimBLEDevice::init()");
+        NimBLEServer *pServer = NimBLEDevice::createServer();
+        LogHandler::checkHeapIntegrity(Tags::BLE, "after NimBLEDevice::createServer()");
         pServer->setCallbacks(getServerCallbacks());
+        LogHandler::checkHeapIntegrity(Tags::BLE, "after pServer->setCallbacks");
         pServer->advertiseOnDisconnect(true);
 
-        BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+        NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
         pAdvertising->addServiceUUID(SERVICE_UUID);
         pAdvertising->enableScanResponse(true);
         // Functions that help with iPhone connections issue
@@ -63,19 +67,21 @@ public:
         pAdvertising->setPreferredParams(0x06, 0x12);
 
         LogHandler::debug(Tags::BLE, "Setting up BLE service");
-        BLEService *pService = pServer->createService(SERVICE_UUID);
+        NimBLEService *pService = pServer->createService(SERVICE_UUID);
+        LogHandler::checkHeapIntegrity(Tags::BLE, "failed after pServer->createService");
 
         setupCharacteristics(pService, pAdvertising, tcodeQueue);
-
-        LogHandler::debug(Tags::BLE, "Starting BLE service");
-        if(pService->start()) {
-            LogHandler::info(Tags::BLE, "Started BLE service");
-        } else {
-            LogHandler::error(Tags::BLE, "Failed to start BLE service.");
-        }
-
+        LogHandler::checkHeapIntegrity(Tags::BLE, "after setupCharacteristics");
+        
+        // LogHandler::debug(Tags::BLE, "Starting BLE service");
+        // if(pService->start()) {
+        //     LogHandler::info(Tags::BLE, "Started BLE service");
+        // } else {
+        //     LogHandler::error(Tags::BLE, "Failed to start BLE service.");
+        // }
+        
         LogHandler::debug(Tags::BLE, "Starting BLE advertising");
-        if(BLEDevice::startAdvertising())
+        if(pAdvertising->start())
             LogHandler::info(Tags::BLE, "Started BLE server.");
         else
             LogHandler::error(Tags::BLE, "Failed to start BLE advertising.");
@@ -96,5 +102,5 @@ private:
         static ServerCallbacks callbacks;
         return &callbacks;
     };
-    virtual void setupCharacteristics(BLEService *pService, BLEAdvertising *pAdvertising, QueueHandle_t tcodeQueue) = 0;
+    virtual void setupCharacteristics(NimBLEService *pService, NimBLEAdvertising *pAdvertising, QueueHandle_t tcodeQueue) = 0;
 };

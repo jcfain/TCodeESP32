@@ -37,7 +37,7 @@ SOFTWARE. */
 class BLECharacteristicCallbacksBase: public NimBLECharacteristicCallbacks {
 public:
     
-    #ifdef NIMBLE_LATEST
+    #ifdef NIMBLE_V2
     void onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
     #else
     void onRead(NimBLECharacteristic* pCharacteristic, ble_gap_conn_desc* desc) override {
@@ -50,11 +50,14 @@ public:
         Serial.println("Sending notification to clients");
     };
 
+    #ifdef NIMBLE_V2
+    void onStatus(NimBLECharacteristic* pCharacteristic, int code) override {}; // deprecated
+    #endif
     /**
      *  The value returned in code is the NimBLE host return code.
      */
-    #ifdef NIMBLE_LATEST
-    void onStatus(NimBLECharacteristic* pCharacteristic, int code) override  {
+    #ifdef NIMBLE_V2
+    void onStatus(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, int code) override  {
     #else
     void onStatus(NimBLECharacteristic* pCharacteristic, Status s, int code) override  {
     #endif
@@ -65,7 +68,7 @@ public:
         Serial.println(str);
     };
 
-    #ifdef NIMBLE_LATEST
+    #ifdef NIMBLE_V2
     void onSubscribe(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue) override  {
         String str = "Client ID: ";
         str += connInfo.getConnHandle();

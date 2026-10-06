@@ -22,6 +22,7 @@ SOFTWARE. */
 #pragma once
 #include <Arduino.h>
 #include <mutex>
+#include <esp_heap_caps.h>
 #include <string>
 #include "logging/TagHandler.h"
 #include "enum.h"
@@ -205,6 +206,18 @@ public:
         getInstance().m_message_callback = f == nullptr ? 0 : f;
     }
 
+    // Returns false if the heap integrity check failed.
+    static bool checkHeapIntegrity(Tags::tag_t tag, const char *event)
+    {
+        debug(tag, "Checking integrity for: %s", event);
+        if (!heap_caps_check_integrity_all(false))
+        {
+            // heap_caps_check_integrity_addr(0x3ffd763c, true);
+            error(tag, "heap_caps_check_integrity_all failed %s", event);
+            return false;
+        }
+        return true;
+    }
 private:
     LogHandler() {}
 

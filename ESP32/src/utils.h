@@ -32,93 +32,36 @@ SOFTWARE. */
 // // #include "sp_adc/adc_cali.h"
 // #endif
 
-int getposition(const char *array, const size_t& size, const char& c)
-{
-    for (size_t i = 0; i < size; i++)
-    {
-        if (array[i] == c)
-            return (int)i;
-    }
-    return -1;
-}
+int getposition(const char *array, const size_t& size, const char& c);
 
-char* substr(const char* arr, const int& begin, const int& len)
-{
-    char* res = new char[len + 1];
-    for (int i = 0; i < len; i++)
-        res[i] = *(arr + begin + i);
-    res[len] = {0};
-    return res;
-}
+void substr(char* out, const char* in, const int& begin, const int& len);
 
-void strtrim(char* buf) {
-    int start = 0; // number of leading spaces
-    char* buffer = buf;
-    while (*buf && *buf++ == ' ') ++start;
-    while (*buf++); // move to end of string
-    int end = buf - buffer - 1;
-    while (end > 0 && buffer[end - 1] == ' ') --end; // backup over trailing spaces
-    buffer[end] = 0; // remove trailing spaces
-    if (end <= start || start == 0) return; // exit if no leading spaces or string is now empty
-    buf = buffer + start;
-    while ((*buffer++ = *buf++));  // remove leading spaces: K&R
-}
+void strtrim(char* buf);
 
-double round2(const double &value) {
-    return double(int(value * 100 + 0.5) / 100.0);
-}
-float round2(const float &value) {
-    return float(int(value * 100 + 0.5) / 100.0);
-}
+double round2(const double &value);
+float round2(const float &value);
 
-double mapf(const double& x, const double& in_min, const double& in_max, const double& out_min, const double& out_max)
-{
-    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
+double mapf(const double& x, const double& in_min, const double& in_max, const double& out_min, const double& out_max);
 
-void hexToString(const int &inByte, char* buf) {
-    std::stringstream addressString;
-    addressString << "0x" << std::hex << inByte;
-    strcpy(buf, addressString.str().c_str());
-}
+// #ifdef ESP32
+// adc1_channel_t gpioToADC1(const int& gpioPin);
+// #endif
 
-int stringToHex(std::string buff) {
-    return (int)strtol(buff.c_str(), NULL, 0);
-}
+bool contains_duplicate(const std::vector<const char*>& values );
 
-bool startsWith(const char* value, const char* startsWith) {
-    auto startsWithLen = strlen(startsWith);
-    if (startsWithLen && startsWithLen <= strlen(value) && ( strncmp(startsWith,value,startsWithLen) == 0 )) {
-        return true;
-    }
-    return false;
-}
+void hexToString(const int &inByte, char* buf);
 
-bool endsWith(const char *str, const char *suffix)
-{
-    if (!str || !suffix)
-        return false;
-    size_t lenstr = strlen(str);
-    size_t lensuffix = strlen(suffix);
-    if (lensuffix >  lenstr)
-        return false;
-    return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
-}
+int stringToHex(std::string buff);
 
-bool contains(const char* in, const char* contains) {
-    return strstr(in, contains) != nullptr;
-}
+bool startsWith(const char* value, const char* startsWith);
 
-bool match(const char* in, const char* match) {
-    return strcmp(in, match) == 0;
-}
+bool endsWith(const char *str, const char *suffix);
 
-void appendNewline(char* out, const char* input) {
-    strcpy(out, input);
-    if(!endsWith(out, "\n")) {;
-        strcat(out, "\n");
-    }
-}
+bool contains(const char* in, const char* contains);
+
+bool match(const char* in, const char* match);
+
+void appendNewline(char* out, const char* input);
 
 struct StrCompare
 {
@@ -208,7 +151,8 @@ struct Chunker {
                 {
                     strncpy(out, in + sent, mod);
                     out[mod] = '\0';
-                    strcat(out, "\n");
+                    strcat(out, "\n"); // qwen3.8 27b said:  // If out buffer is exactly (mod+1), this overflows. 
+                    // Pretty I removed all usage of this function when I created it. Ignore until its used gain. I think it was working correct...
                     sent += mod;
                     Serial.printf("[Chunker] truncated mod: %i, message: %s\n", mod, out);
                     // Serial.printf("[Chunker] sent: %i\n", sent);

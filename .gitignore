@@ -356,3 +356,4 @@ ESP32/flasher/build*
 /ESP32/build
 /ESP32/flasher/Flash/build
 /ESP32/.dummy
+/ESP32/.continue

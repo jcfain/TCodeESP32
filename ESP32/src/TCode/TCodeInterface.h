@@ -1,7 +1,8 @@
 
     #pragma once
     //#include "math.h"
-    class TCodeInterface
+    #include <stddef.h>
+class TCodeInterface
     {
     public:
         virtual size_t read(char* buf) = 0;

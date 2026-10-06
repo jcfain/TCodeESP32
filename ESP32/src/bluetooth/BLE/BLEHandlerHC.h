@@ -42,27 +42,33 @@ public:
 private:
     const char* CHARACTERISTIC_UUID = "00002000-0001-1000-8000-0000101A2B3C";
     const char* CHARACTERISTIC_UUID2 = "00002000-0002-1000-8000-0000101A2B3C";
-    BLECharacteristic* m_characteristic;
-    BLECharacteristic* m_characteristic2;
+    NimBLECharacteristic* m_characteristic;
+    NimBLECharacteristic* m_characteristic2;
     // Haptics connect UUID's
     // const char* NAME = "OSR-ESP32";
     // const char* SERVICE_UUID = "00004000-0000-1000-8000-0000101A2B3C";
     // const char* CHARACTERISTIC_UUID = "00002000-0001-1000-8000-0000101A2B3C";
     // const char* CHARACTERISTIC_UUID2_HC = "00002000-0002-1000-8000-0000101A2B3C";
 
-    void setupCharacteristics(BLEService *pService, BLEAdvertising *pAdvertising, QueueHandle_t tcodeQueue) override {
-        m_characteristic = new BLECharacteristic(CHARACTERISTIC_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
-        m_characteristic2 = new BLECharacteristic(CHARACTERISTIC_UUID2, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
+    void setupCharacteristics(NimBLEService *pService, NimBLEAdvertising *pAdvertising, QueueHandle_t tcodeQueue) override {
+        LogHandler::checkHeapIntegrity(Tags::BLE, "setupCharacteristics");
+        m_characteristic = new NimBLECharacteristic(CHARACTERISTIC_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
+        LogHandler::checkHeapIntegrity(Tags::BLE, "after m_characteristic");// Error throws here
+        m_characteristic2 = new NimBLECharacteristic(CHARACTERISTIC_UUID2, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
+        LogHandler::checkHeapIntegrity(Tags::BLE, "after m_characteristic2");
         LogHandler::debug(Tags::BLE, "Setting up BLE TCode Characteristic Callbacks");
-        m_characteristic->setCallbacks(getCaracteristicCallbacks(tcodeQueue));
+        m_characteristic->setCallbacks(new BLEHCControlCallback(tcodeQueue));
+        LogHandler::checkHeapIntegrity(Tags::BLE, "after setCallbacks");
         pService->addCharacteristic(m_characteristic);
+        LogHandler::checkHeapIntegrity(Tags::BLE, "after addCharacteristic 1");
         pService->addCharacteristic(m_characteristic2);
+        LogHandler::checkHeapIntegrity(Tags::BLE, "after addCharacteristic 2");
     }
 
-    BLECharacteristicCallbacksBase* getCaracteristicCallbacks(QueueHandle_t tcodeQueue) {
-        static BLEHCControlCallback callbacks(tcodeQueue);
-        return &callbacks;
-    }
+    // BLECharacteristicCallbacksBase* getCaracteristicCallbacks(QueueHandle_t tcodeQueue) {
+    //     static BLEHCControlCallback callbacks(tcodeQueue);
+    //     return &callbacks;
+    // }
     void CommandCallback(const char* in) override {
         // m_characteristic->setValue(in);
         // m_characteristic->notify();

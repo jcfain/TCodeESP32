@@ -40,10 +40,12 @@ public:
     BLEHandlerTCode() : BLEHandlerBase("TCODE-ESP32", "ff1b451d-3070-4276-9c81-5dc5ea1043bc") { }
 private:
     const char* CHARACTERISTIC_UUID = "c5f1543e-338d-47a0-8525-01e3c621359d";
-    BLECharacteristic* m_characteristic;
+    NimBLECharacteristic* m_characteristic = 0;
     
-    void setupCharacteristics(BLEService *pService, BLEAdvertising *pAdvertising, QueueHandle_t tcodeQueue) override {
-        m_characteristic = new BLECharacteristic(CHARACTERISTIC_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
+    void setupCharacteristics(NimBLEService *pService, NimBLEAdvertising *pAdvertising, QueueHandle_t tcodeQueue) override {
+        LogHandler::checkHeapIntegrity(Tags::BLE, "at begining of setupCharacteristics");
+        m_characteristic = new NimBLECharacteristic(CHARACTERISTIC_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
+        LogHandler::checkHeapIntegrity(Tags::BLE, "after new NimBLECharacteristic");
         m_characteristic->setCallbacks(getCaracteristicCallbacks(tcodeQueue));
         pService->addCharacteristic(m_characteristic);
     }
@@ -54,6 +56,7 @@ private:
     }
     void CommandCallback(const char* in) override {
         //m_characteristic->setValue(in);
-        m_characteristic->notify((const uint8_t*)in, strlen(in));
+        if(m_characteristic)
+            m_characteristic->notify((const uint8_t*)in, strlen(in));
     };
 };

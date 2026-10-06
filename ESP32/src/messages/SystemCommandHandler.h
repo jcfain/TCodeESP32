@@ -23,6 +23,7 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
+#include "constants.h"
 #if ESP8266 == 1
 #include <ESP8266WiFi.h>
 #else
@@ -765,36 +766,48 @@ private:
 
 	struct CommandValuePair
 	{
-		const char *command;
-		const char *value;
+		char command[MAX_SYSTEM_COMMAND];
+		char value[MAX_SYSTEM_MESSAGE];
 	};
 
 	bool getCommandValue(const char *in, CommandValuePair &valuePair)
 	{
 		// Commands with values
-		int indexofDelim = getposition(in, strlen(in), DELEMITER_VALUE);
+		size_t inLen = strlen(in);
+		int indexofDelim = getposition(in, inLen, DELEMITER_VALUE);
 		if (indexofDelim == -1)
 		{
 			LogHandler::error(Tags::SystemCommand, "Invalid command format: '%s' missing colon, correct format is #<command>:<value>", in);
 			xSemaphoreGive(xMutex);
 			return false;
 		}
-		const char *commandAlone = substr(in, 0, indexofDelim);
-		if (!strlen(commandAlone))
+		if (indexofDelim >= MAX_SYSTEM_COMMAND)
+		{
+			LogHandler::error(Tags::SystemCommand, "Invalid command format: '%s' Command too long. Max command length: %i", in, MAX_SYSTEM_COMMAND - 1);
+			xSemaphoreGive(xMutex);
+			return false;
+		}
+		substr(valuePair.command, in, 0, indexofDelim);
+		if (!strlen(valuePair.command))
 		{
 			LogHandler::error(Tags::SystemCommand, "Invalid command format: '%s' missing command, correct format is #<command>:<value>", in);
 			xSemaphoreGive(xMutex);
 			return false;
 		}
-		valuePair.command = commandAlone;
-		const char *valueAlone = substr(in, indexofDelim + 1, strlen(in));
-		if (!strlen(valueAlone))
+		size_t valueLen = inLen - indexofDelim - 1;
+		if (valueLen >= MAX_SYSTEM_MESSAGE)
+		{
+			LogHandler::error(Tags::SystemCommand, "Invalid command format: '%s' Command value too long. Max command value length: %i", in, MAX_SYSTEM_MESSAGE - 1);
+			xSemaphoreGive(xMutex);
+			return false;
+		}
+		substr(valuePair.value, in, indexofDelim + 1, valueLen);
+		if (!strlen(valuePair.value))
 		{
 			LogHandler::error(Tags::SystemCommand, "Invalid command format: '%s' missing value, correct format is #<command>:<value>", in);
 			xSemaphoreGive(xMutex);
 			return false;
 		}
-		valuePair.value = valueAlone;
 		return true;
 	}
 

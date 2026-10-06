@@ -95,9 +95,15 @@ public:
 		udp->_lastConnectedIP = packet.remoteIP();
 		udp->packetBuffer[0] = {0};
 
-		memcpy(udp->packetBuffer, packet.data(), packet.length());
+		size_t packetLen = packet.length();
+		if (packetLen == 0 || packetLen >= sizeof(udp->packetBuffer))
+		{
+			LogHandler::error(Tags::Udp, "Ignoring UDP packet, invalid length: %u (max: %u)", packetLen, sizeof(udp->packetBuffer) - 1);
+			return;
+		}
+		memcpy(udp->packetBuffer, packet.data(), packetLen);
 		// size_t len = packet.readBytes(udp->packetBuffer, sizeof(packetBuffer));
-		udp->packetBuffer[packet.length()] = '\0';
+		udp->packetBuffer[packetLen] = '\0';
 		if (xQueueSend(udp->m_TCodeQueue, udp->packetBuffer, 0) != pdTRUE)
 			LogHandler::error(Tags::Udp, "UDP queue full");
 	}

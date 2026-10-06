@@ -40,7 +40,7 @@ class BLEHCControlCallback : public BLECharacteristicCallbacksBase
 public:
     BLEHCControlCallback(QueueHandle_t tcodeQueue) : m_TCodeQueue(tcodeQueue) {}
 // At some point this signature will change because its in master so if Bluetooth breaks, check the source class signature.
-#ifdef NIMBLE_LATEST
+#ifdef NIMBLE_V2
     void onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &connInfo) override
     {
 #else
@@ -90,7 +90,7 @@ public:
             totalBytes = totalBytes * 256 + rxData[n]; // Concatenate and convert to big endian.
         uint16_t tcodeBytes = totalBytes & 0x0000FFFF;
         uint16_t speedBytes = (totalBytes & 0xFFFF0000) >> 16;
-        tcode[MAX_COMMAND] = {0};
+        tcode[0] = {0};
         snprintf(tcode, MAX_COMMAND, "L0%03dI%d\n", tcodeBytes, speedBytes);
 
         LogHandler::verbose(Tags::BLE, "Receive HC tcode: %s", tcode);

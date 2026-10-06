@@ -79,7 +79,7 @@ public:
 	}
 	bool connect(const char *ssid, const char *pass)
 	{
-		LogHandler::info(Tags::Wifi, "Setting up wifi");
+		LogHandler::info(Tags::Wifi, "[connect] Setting up wifi for ssid: %s", ssid);
 		m_settingsFactory = SettingsFactory::getInstance();
 		_apMode = false;
 		m_connectingInProgress = true;
