@@ -24,123 +24,125 @@ SOFTWARE. */
 
 #include <Arduino.h>
 #include "Global.h"
-#include "SettingsHandler.h"
-#include "TagHandler.h"
-#include "LogHandler.h"
+#include "settings/SettingsHandler.h"
+#include "logging/TagHandler.h"
+#include "logging/LogHandler.h"
 #include "MotorHandler.h"
 #include "Axis.h"
 #include "TCode0_4.h"
 
-class MotorHandler0_4: public MotorHandler {
+class MotorHandler0_4 : public MotorHandler
+{
 public:
     MotorHandler0_4() {}
-    MotorHandler0_4(TCode0_4* tcode) : MotorHandler(), m_tcode(tcode) { }
+    MotorHandler0_4(TCode0_4 *tcode) : MotorHandler(), m_tcode(tcode) {}
 
 protected:
-    TCode0_4* m_tcode = 0;
-    uint32_t m_servoPWMMaxDuty;
+    TCode0_4 *m_tcode = 0;
     // Servo microseconds per radian
     // (Standard: 637 μs/rad)
     // (LW-20: 700 μs/rad)
     // 270 2/3 of 637 = 424.666666667
-// const servoDegreeValue180 = 637; 
-// const servoDegreeValue270 = 425; 
-    int ms_per_rad;  // (μs/rad)
-    int maxServoRange;
+    int ms_per_rad; // (μs/rad)
+    uint8_t maxServoRange;
 
-    void setupCommon(const char* ignoredChannels = "") 
+    void setupCommon()
     {
-        if(!m_tcode)
+        LogHandler::debug(Tags::Motor, "MotorHandler0_4::setupCommon");
+        if (!m_tcode)
+        {
             return;
-            
+        }
+
         m_settingsFactory = SettingsFactory::getInstance();
 
-        PinMap* pinMap = m_settingsFactory->getPins();
+        PinMap *pinMap = m_settingsFactory->getPins();
 
         m_tcode->setup(FIRMWARE_VERSION_NAME);
-        int vibeResolution, lubeResolution;
+
+        // See MotorHandler0_3::setupCommon for rationale: default these to the
+        // compile-time resolution so a missing settings key cannot leave
+        // m_servoPWMMaxDuty as UINT32_MAX.
+        int servoResolution = SERVO_PWM_RES;
+        int vibeResolution = SERVO_PWM_RES;
+        int lubeResolution = SERVO_PWM_RES;
         m_settingsFactory->getValue(SERVO_RESOLUTION, servoResolution);
         m_settingsFactory->getValue(VIBE_RESOLUTION, vibeResolution);
         m_settingsFactory->getValue(LUBE_RESOLUTION, lubeResolution);
+        if (servoResolution <= 0 || servoResolution > 16) servoResolution = SERVO_PWM_RES;
+        if (vibeResolution  <= 0 || vibeResolution  > 16) vibeResolution  = SERVO_PWM_RES;
+        if (lubeResolution  <= 0 || lubeResolution  > 16) lubeResolution  = SERVO_PWM_RES;
 
-        m_servoPWMMaxDuty = static_cast<uint32_t>(pow(2, servoResolution) - 1);
+        m_servoPWMMaxDuty = static_cast<uint32_t>((1UL << servoResolution) - 1);
         m_settingsFactory->getValue(MAX_SERVO_RANGE, maxServoRange);
-        if(!maxServoRange)
+        if (!maxServoRange)
         {
-            LogHandler::error(_TAG, "Invalid, max Servo range. Setting to 180...");
+            LogHandler::error(Tags::Motor, "Invalid, max Servo range. Setting to 180...");
             maxServoRange = 180;
         }
-        ms_per_rad = 114592/maxServoRange;
-        LogHandler::debug(_TAG, "MS_PER_RAD: %i", ms_per_rad);
-        LogHandler::debug(_TAG, "Servo Resolution: %i", servoResolution);
-        LogHandler::debug(_TAG, "Vibe Resolution: %i", vibeResolution);
-        LogHandler::debug(_TAG, "Lube Resolution: %i", lubeResolution);
-        
+        ms_per_rad = 114592 / maxServoRange;
+        LogHandler::debug(Tags::Motor, "MS_PER_RAD: %d", ms_per_rad);
+        LogHandler::debug(Tags::Motor, "Servo Resolution: %d", servoResolution);
+        LogHandler::debug(Tags::Motor, "Vibe Resolution: %d", vibeResolution);
+        LogHandler::debug(Tags::Motor, "Lube Resolution: %d", lubeResolution);
+
         m_valveServoPin = pinMap->valve();
         m_valveServoChannel = pinMap->valveChannel();
-        if(m_valveServoPin > -1 && m_valveServoChannel > -1) 
+        if (m_valveServoPin > -1)
         {
-            suck = new Axis(TCODE_MID);
-            m_tcode->addAxis(TCODE_CHANNEL_SUCK_LEVEL, *suck);
-            valve = new Axis(TCODE_MID);
-            m_tcode->addAxis(TCODE_CHANNEL_SUCK, *valve);
+            suck_channel = registerAxis(TCODE_CHANNEL_SUCK_LEVEL, TCODE_MID);
+            valve_channel = registerAxis(TCODE_CHANNEL_SUCK, TCODE_MID);
             int freq = pinMap->getChannelFrequency(m_valveServoChannel);
-            attachPin("valve servo", m_valveServoPin, freq, m_valveServoChannel);
+            attachServoPin("valve servo", m_valveServoPin, freq, m_valveServoChannel, pinMap->getTimerDriverForChannel(m_valveServoChannel));
             m_valveServo_Int = frequencyToMicroseconds(freq);
-        } 
-        else 
+        }
+        else
         {
             m_valveServoPin = -1;
         }
 
-        bool ignoreTwist = contains(ignoredChannels, TCODE_CHANNEL_TWIST);
-        if(!ignoreTwist)
+        m_twistServoPin = pinMap->twist();
+        m_twistServoChannel = pinMap->twistChannel();
+        if (m_twistServoPin > -1)
         {
-            m_twistServoPin = pinMap->twist();
-            m_twistServoChannel = pinMap->twistChannel();
-            if(m_twistServoPin > -1 && m_twistServoChannel > -1) 
-            {
-                twist = new Axis(TCODE_MID);
-                m_tcode->addAxis(TCODE_CHANNEL_TWIST, *twist);
-                int freq = pinMap->getChannelFrequency(m_twistServoChannel);
-                attachPin("twist servo", m_twistServoPin, freq, m_twistServoChannel);
-                m_twistServo_Int = frequencyToMicroseconds(freq);
-            } 
-            else 
-            {
-                m_twistServoPin = -1;
-            }
+            twist_channel = registerAxis(TCODE_CHANNEL_TWIST, TCODE_MID);
+            int freq = pinMap->getChannelFrequency(m_twistServoChannel);
+            attachServoPin("twist servo", m_twistServoPin, freq, m_twistServoChannel, pinMap->getTimerDriverForChannel(m_twistServoChannel));
+            m_twistServo_Int = frequencyToMicroseconds(freq);
+        }
+        else
+        {
+            m_twistServoPin = -1;
         }
 
         m_squeezeServoPin = pinMap->squeeze();
         m_squeezeServoChannel = pinMap->squeezeChannel();
-        if(m_squeezeServoPin > -1 && m_squeezeServoChannel > -1) 
+        if (m_squeezeServoPin > -1)
         {
-            squeeze = new Axis(TCODE_MID);
-            m_tcode->addAxis(TCODE_CHANNEL_AUX, *squeeze);
+            squeeze_channel = registerAxis(TCODE_CHANNEL_AUX, TCODE_MID);
             int freq = pinMap->getChannelFrequency(m_squeezeServoChannel);
-            attachPin("aux servo", m_squeezeServoPin, freq, m_squeezeServoChannel);
+            attachServoPin("aux servo", m_squeezeServoPin, freq, m_squeezeServoChannel, pinMap->getTimerDriverForChannel(m_squeezeServoChannel));
             m_squeezeServo_Int = frequencyToMicroseconds(freq);
-        } 
-        else 
+        }
+        else
         {
             m_squeezeServoPin = -1;
         }
 
-        bool lubeEnabled = false; 
+        bool lubeEnabled = false;
         m_settingsFactory->getValue(LUBE_ENABLED, lubeEnabled);
-        if (lubeEnabled) 
+        if (lubeEnabled)
         {
             m_lubeButtonPin = pinMap->lubeButton();
             m_vib1Pin = pinMap->vibe1();
             m_vib1Channel = pinMap->vibe1Channel();
-            if(m_lubeButtonPin > -1 && m_vib1Pin > -1 && m_vib1Channel > -1) 
+            if (m_lubeButtonPin > -1 && m_vib1Pin > -1)
             {
-                lube = new Axis(TCODE_MIN);
-                m_tcode->addAxis(TCODE_CHANNEL_LUBE, *lube);
-                pinMode(m_lubeButtonPin, INPUT);
-                int freq = pinMap->getChannelFrequency(m_vib1Channel);
-                attachPin("lube", m_vib1Pin, freq, m_vib1Channel, lubeResolution);
+                LogHandler::debug(Tags::Motor, "v0.4: Registering Lube axis and button on pins %d and %d", m_lubeButtonPin, m_vib1Pin);
+                lube_channel = registerAxis(TCODE_CHANNEL_LUBE, TCODE_MIN);
+                pinMode(m_lubeButtonPin, m_settingsFactory->getLubeButtonPinMode());
+                int freq = pinMap->getVibeChannelFrequency(m_vib1Channel);
+                attachLedcPin("lube", m_vib1Pin, freq, m_vib1Channel, lubeResolution);
                 // m_vib1_Int = frequencyToMicroseconds(freq);
                 lubeRegistered = true;
             }
@@ -149,119 +151,154 @@ protected:
         // Set vibration PWM pins
         m_vib0Pin = pinMap->vibe0();
         m_vib0Channel = pinMap->vibe0Channel();
-        if(m_vib0Pin > -1 && m_vib0Channel > -1) 
+        if (m_vib0Pin > -1)
         {
-            vibration0 = new Axis(TCODE_MIN);
-            m_tcode->addAxis(TCODE_CHANNEL_VIBE1, *vibration0);
-            int freq = pinMap->getChannelFrequency(m_vib0Channel);
-            attachPin("vib 1", m_vib0Pin, freq, m_vib0Channel, vibeResolution);
+            vibe0_channel = registerAxis(TCODE_CHANNEL_VIBE1, TCODE_MIN);
+            int freq = pinMap->getVibeChannelFrequency(m_vib0Channel);
+            attachLedcPin("vib 1", m_vib0Pin, freq, m_vib0Channel, vibeResolution);
             // m_vib0_Int = frequencyToMicroseconds(freq);
-        } 
-        else 
+        }
+        else
         {
             m_vib0Pin = -1;
         }
 
-        if(!lubeRegistered) 
+        if (!lubeRegistered)
         {
+            LogHandler::debug(Tags::Motor, "v0.4: Registering Vibe2 axis on pin %d", m_vib1Pin);
             m_vib1Pin = pinMap->vibe1();
             m_vib1Channel = pinMap->vibe1Channel();
-            if(m_vib1Pin > -1 && m_vib1Channel > -1) 
+            if (m_vib1Pin > -1)
             {
-                vibration1 = new Axis(TCODE_MIN);
-                m_tcode->addAxis(TCODE_CHANNEL_VIBE2, *vibration1);
-                int freq = pinMap->getChannelFrequency(m_vib1Channel);
-                attachPin("vib 2", m_vib1Pin, freq, m_vib1Channel, vibeResolution);
+                vibe1_channel = registerAxis(TCODE_CHANNEL_VIBE2, TCODE_MIN);
+                int freq = pinMap->getVibeChannelFrequency(m_vib1Channel);
+                attachLedcPin("vib 2", m_vib1Pin, freq, m_vib1Channel, vibeResolution);
                 // m_vib1_Int = frequencyToMicroseconds(freq);
-            } 
-            else 
+            }
+            else
             {
                 m_vib1Pin = -1;
             }
         }
         m_vib2Pin = pinMap->vibe2();
         m_vib2Channel = pinMap->vibe2Channel();
-        if(m_vib2Pin > -1 && m_vib2Channel > -1) 
+        if (m_vib2Pin > -1)
         {
-            vibration2 = new Axis(TCODE_MIN);
-            m_tcode->addAxis(TCODE_CHANNEL_VIBE3, *vibration2);
-            int freq = pinMap->getChannelFrequency(m_vib2Channel);
-            attachPin("vib 3", m_vib2Pin, freq, m_vib2Channel, vibeResolution);
+            vibe2_channel = registerAxis(TCODE_CHANNEL_VIBE3, TCODE_MIN);
+            int freq = pinMap->getVibeChannelFrequency(m_vib2Channel);
+            attachLedcPin("vib 3", m_vib2Pin, freq, m_vib2Channel, vibeResolution);
             // m_vib2_Int = frequencyToMicroseconds(freq);
-        } 
-        else 
+        }
+        else
         {
             m_vib2Pin = -1;
         }
         m_vib3Pin = pinMap->vibe3();
         m_vib3Channel = pinMap->vibe3Channel();
-        if(m_vib3Pin > -1 && m_vib3Channel > -1) 
+        if (m_vib3Pin > -1)
         {
-            vibration3 = new Axis(TCODE_MIN);
-            m_tcode->addAxis(TCODE_CHANNEL_VIBE4, *vibration3);
-            int freq = pinMap->getChannelFrequency(m_vib3Channel);
-            attachPin("vib 4", m_vib3Pin, freq, m_vib3Channel, vibeResolution);
+            vibe3_channel = registerAxis(TCODE_CHANNEL_VIBE4, TCODE_MIN);
+            int freq = pinMap->getVibeChannelFrequency(m_vib3Channel);
+            attachLedcPin("vib 4", m_vib3Pin, freq, m_vib3Channel, vibeResolution);
             // m_vib3_Int = frequencyToMicroseconds(freq);
-        } 
-        else 
+        }
+        else
         {
             m_vib3Pin = -1;
         }
 
         m_settingsFactory->getValue(FEEDBACK_TWIST, m_isTwistFeedBack);
-        if(m_isTwistFeedBack)
+        if (m_isTwistFeedBack)
         {
             m_twistFeedBackPin = pinMap->twistFeedBack();
-            if(m_twistFeedBackPin > -1) 
+            if (m_twistFeedBackPin > -1)
             {
                 // Initiate position tracking for twist
                 pinMode(m_twistFeedBackPin, INPUT);
                 m_settingsFactory->getValue(ANALOG_TWIST, m_isAnalogTwist);
-                if(!m_isAnalogTwist) 
+                if (!m_isAnalogTwist)
                 {
-                    LogHandler::debug(_TAG, "Attaching interrupt for twist feedback to pin: %u", pinMap->twistFeedBack());
+                    LogHandler::debug(Tags::Motor, "Attaching interrupt for twist feedback to pin: %u", pinMap->twistFeedBack());
                     attachInterrupt(m_twistFeedBackPin, twistChange, CHANGE);
-                    //Serial.print("Setting digital twist "); 
-                    //Serial.println(SettingsHandler::getTwistFeedBack_PIN());
-                } 
+                    // Serial.print("Setting digital twist ");
+                    // Serial.println(SettingsHandler::getTwistFeedBack_PIN());
+                }
                 else
                 {
-                    //Serial.print("Setting analog twist "); 
-                    //Serial.println(SettingsHandler::getTwistFeedBack_PIN());
-        /*             adcAttachPin(SettingsHandler::getTwistFeedBack_PIN());
-                    analogReadResolution(11);
-                    analogSetAttenuation(ADC_6db); */
+                    // Serial.print("Setting analog twist ");
+                    // Serial.println(SettingsHandler::getTwistFeedBack_PIN());
+                    /*             adcAttachPin(SettingsHandler::getTwistFeedBack_PIN());
+                                analogReadResolution(11);
+                                analogSetAttenuation(ADC_6db); */
                 }
             }
-        } 
+        }
     }
 
-    void executeCommon(Axis* stroke) 
+    /**
+     * Create and register a TCode axis on the given channel, or return the
+     * axis already registered there. TCode::addAxis() rejects a channel that
+     * is already taken, so re-running setup() (e.g. reapplyPwm) must reuse the
+     * existing axis rather than allocating a new, unregistered one.
+     */
+    Axis *registerAxis(const char *channel, uint16_t startPos)
     {
-        if(!m_tcode || m_initFailed)
+        if (!m_tcode)
+            return nullptr;
+        Axis *axis = m_tcode->getAxis(channel);
+        if (axis)
+            return axis;
+        axis = new Axis(startPos);
+        if (!m_tcode->addAxis(channel, *axis))
+        {
+            LogHandler::error(Tags::Motor, "Failed to register TCode axis %s", channel);
+            delete axis;
+            return nullptr;
+        }
+        return axis;
+    }
+
+    /**
+     * Emit the startup D0 (firmware) and D1 (TCode version) responses.
+     * Upstream (c9a1ec6) moved these out of setupCommon() to the very end of
+     * init so they are sent after everything else is set up. Our handlers run
+     * setup() on the motor task, so each handler calls this at the end of its
+     * own setup() instead.
+     */
+    void sendStartupInfo()
+    {
+        read(TCODE_COMMAND_FIRMWARE, strlen(TCODE_COMMAND_FIRMWARE));
+        read(TCODE_COMMAND_VERSION, strlen(TCODE_COMMAND_VERSION));
+    }
+
+    bool m_initFailed = false;
+
+    void executeCommon(Axis *stroke)
+    {
+        if (!m_tcode || m_initFailed)
             return;
         executeTwist();
         executeSqueeze();
         executeValve(stroke);
         executeVibe(0);
-        if(!lubeRegistered)
+        if (!lubeRegistered)
             executeVibe(1);
         else
             executeLube();
         executeVibe(2);
         executeVibe(3);
     }
-    
+
 protected:
-    uint16_t channelRead(const char* name, Axis* channel) 
+    uint16_t channelRead(const char *name, Axis *axis)
     {
-        if(!channel)
+        if (!axis)
             return TCODE_MID;
-        uint16_t value = channel->getPosition();
-        if(SettingsHandler::getChannelRangesEnabled()) 
+        uint16_t value = axis->getPosition();
+        if (SettingsHandler::getChannelRangesEnabled())
         {
-            Channel* channel = SettingsHandler::getChannel(name);
-            if(channel && channel->rangeLimitEnabled)
+            Channel *channel = SettingsHandler::getChannel(name);
+            if (channel && channel->rangeLimitEnabled)
             {
                 return map(value, TCODE_MIN, TCODE_MAX, channel->userMin, channel->userMax);
             }
@@ -269,26 +306,56 @@ protected:
         return value;
     }
 
+    void identifyServo(const char* servoName) override
+    {
+        int8_t pin = -1;
+        int servoInt = -1;
+        int zeroMicros = 1500;
+        if (strcmp(servoName, "ValveServo") == 0) {
+            pin = m_valveServoPin;
+            servoInt = m_valveServo_Int;
+            zeroMicros = m_settingsFactory->getValveServo_ZERO();
+        } else if (strcmp(servoName, "TwistServo") == 0) {
+            pin = m_twistServoPin;
+            servoInt = m_twistServo_Int;
+            zeroMicros = m_settingsFactory->getTwistServo_ZERO();
+        } else if (strcmp(servoName, "SqueezeServo") == 0) {
+            pin = m_squeezeServoPin;
+            servoInt = m_squeezeServo_Int;
+            zeroMicros = m_settingsFactory->getSqueezeServo_ZERO();
+        }
+        if (pin < 0 || servoInt < 0)
+            return;
+        struct WiggleParams {
+            MotorHandler0_4 *self;
+            int8_t pin;
+            int    servoInt;
+            int    zeroMicros;
+        };
+        auto* params = new WiggleParams{ this, pin, servoInt, zeroMicros };
+        xTaskCreate([](void* arg) {
+            auto* p = static_cast<WiggleParams*>(arg);
+            constexpr int OFFSET_US = 100;
+            uint32_t hiDuty  = static_cast<uint32_t>(map(p->zeroMicros + OFFSET_US, 0, p->servoInt, 0, (int)p->self->m_servoPWMMaxDuty));
+            uint32_t loDuty  = static_cast<uint32_t>(map(p->zeroMicros - OFFSET_US, 0, p->servoInt, 0, (int)p->self->m_servoPWMMaxDuty));
+            uint32_t midDuty = static_cast<uint32_t>(map(p->zeroMicros,             0, p->servoInt, 0, (int)p->self->m_servoPWMMaxDuty));
+            const uint32_t duties[4] = { hiDuty, loDuty, hiDuty, loDuty };
+            for (int i = 0; i < 4; i++) {
+                p->self->writeServo(p->pin, duties[i]);
+                vTaskDelay(pdMS_TO_TICKS(500));
+            }
+            p->self->writeServo(p->pin, midDuty);
+            delete p;
+            vTaskDelete(nullptr);
+        }, "servoWiggle", 2048, params, 1, nullptr);
+    }
+
 private:
-    const char* _TAG = TagHandler::MotorHandler;
-    bool m_initFailed = false;
-    SettingsFactory* m_settingsFactory;
+    SettingsFactory *m_settingsFactory;
     bool m_isAnalogTwist = false;
     bool m_isTwistFeedBack = false;
-
-    Axis* twist = 0;
-    Axis* vibration0 = 0;
-    Axis* vibration1 = 0;
-    Axis* vibration2 = 0;
-    Axis* vibration3 = 0;
-    Axis* valve = 0;
-    Axis* suck = 0;
-    Axis* lube = 0;
-    Axis* squeeze = 0;
-
     int8_t m_twistFeedBackPin = -1;
     int8_t m_lubeButtonPin = -1;
-
     // Servo pin cache
     int8_t m_twistServoPin = -1;
     int8_t m_squeezeServoPin = -1;
@@ -297,7 +364,7 @@ private:
     int8_t m_vib1Pin = -1;
     int8_t m_vib2Pin = -1;
     int8_t m_vib3Pin = -1;
-    
+
     int8_t m_twistServoChannel = -1;
     int8_t m_squeezeServoChannel = -1;
     int8_t m_valveServoChannel = -1;
@@ -311,53 +378,61 @@ private:
     int m_valveServo_Int = -1;
 
     bool m_manualLubeOverride = false;
+    // Last duty written to the lube output. Used for debug-log edge
+    // detection so we don't spam the log every loop iteration.
+    int m_lastLubeDuty = -1;
+    // Timestamp of the last axis-A2 debug log. The T-code axis ramps the
+    // value every tick (~1 ms), so duty changes every loop iteration.
+    // Logging every tick floods LogHandler (1 KB stack alloc + vsnprintf +
+    // Serial.printf + WS callback) from the high-priority motor task on
+    // Core 0, which thrashes the flash cache and triggers a Cache/MMU
+    // panic. Throttle to one line per 500 ms.
+    unsigned long m_lastLubeLogMs = 0;
 
-    // Not used/////////
-    // int m_vib0_Int = -1;
-    // int m_vib1_Int = -1;
-    // int m_vib2_Int = -1;
-    // int m_vib3_Int = -1;
-    ////////////////////
+    Axis *twist_channel = 0;
+    Axis *squeeze_channel = 0;
+    Axis *vibe0_channel = 0;
+    Axis *vibe1_channel = 0;
+    Axis *vibe2_channel = 0;
+    Axis *vibe3_channel = 0;
+    Axis *valve_channel = 0;
+    Axis *suck_channel = 0;
+    Axis *lube_channel = 0;
 
-    int xRot,squeezeCmd;
+    int xRot, squeezeCmd;
     // Velocity tracker variables, for valve
     float twistServoAngPos = 0.5;
     int twistTurns = 0;
     float twistPos;
 
-    // int lube;
     bool lubeRegistered = false;
-    int valveCmd,suckCmd;
-    int vibe0,vibe1,vibe2,vibe3;
-    float upVel,valvePos;
-    unsigned long tLast;
-    //int xLast;
+    int valveCmd, suckCmd;
+    int vibe0, vibe1, vibe2, vibe3;
+    float valvePos;
     int strokeVel;
 
-    void executeTwist() 
+    void executeTwist()
     {
-        if(m_twistServoPin < 0) 
-        {
+        if (!twist_channel)
             return;
-        }
-        xRot = channelRead(TCODE_CHANNEL_TWIST, twist);
-        if(xRot > -1) 
+        xRot = channelRead(TCODE_CHANNEL_TWIST, twist_channel);
+        if (xRot > -1)
         {
-            if (m_isTwistFeedBack && !m_settingsFactory->getContinuousTwist()) 
+            if (m_isTwistFeedBack && !m_settingsFactory->getContinuousTwist())
             {
                 float angPos;
                 // Calculate twist position
                 if (!m_isAnalogTwist)
-                {  
-                    //noInterrupts();
+                {
+                    // noInterrupts();
                     float dutyCycle = twistPulseLength;
-                    dutyCycle = dutyCycle/lastTwistPulseCycle;
-                    //interrupts();
-                    angPos = (dutyCycle - 0.029)/0.942;
-                        //  Serial.print("angPos "); 
-                        //  Serial.println(angPos);
+                    dutyCycle = dutyCycle / lastTwistPulseCycle;
+                    // interrupts();
+                    angPos = (dutyCycle - 0.029) / 0.942;
+                    //  Serial.print("angPos ");
+                    //  Serial.println(angPos);
                 }
-                else 
+                else
                 {
                     int feedBackValue = analogRead(m_twistFeedBackPin);
                     angPos = feedBackValue / 675.0;
@@ -369,28 +444,34 @@ private:
                     //     Serial.println(angPos);
                     // }
                 }
-                angPos = constrain(angPos,0,1) - 0.5;
-                if (angPos - twistServoAngPos < - 0.8) { twistTurns += 1; }
-                if (angPos - twistServoAngPos > 0.8) { twistTurns -= 1; }
+                angPos = constrain(angPos, 0, 1) - 0.5;
+                if (angPos - twistServoAngPos < -0.8)
+                {
+                    twistTurns += 1;
+                }
+                if (angPos - twistServoAngPos > 0.8)
+                {
+                    twistTurns -= 1;
+                }
                 twistServoAngPos = angPos;
-                twistPos = 1000*(angPos + twistTurns);
+                twistPos = 1000 * (angPos + twistTurns);
             }
 
             // Twist
             int twist;
-            if (m_isTwistFeedBack && !m_settingsFactory->getContinuousTwist()) 
+            if (m_isTwistFeedBack && !m_settingsFactory->getContinuousTwist())
             {
-                twist  = (xRot - map(twistPos,-1500,1500, TCODE_MAX, TCODE_MIN))/5;
-                if(!m_isAnalogTwist) 
-                { 
-                    twist  = constrain(twist, -750, 750);
+                twist = (xRot - map(twistPos, -1500, 1500, TCODE_MAX, TCODE_MIN)) / 5;
+                if (!m_isAnalogTwist)
+                {
+                    twist = constrain(twist, -750, 750);
                 }
-                else 
+                else
                 {
                     int jitter = 1;
                     twist += jitter;
                     jitter *= -1;
-                    if(m_settingsFactory->getInverseTwist())
+                    if (m_settingsFactory->getInverseTwist())
                         twist = -constrain(twist, 500, -500);
                     else
                         twist = -constrain(twist, -500, 500);
@@ -398,233 +479,270 @@ private:
                     //     testVar2 = twist;
                     //     Serial.print("twist: ");
                     //     Serial.println(1500 + twist);
-                    //     Serial.print("map(twistPos,-1500,1500,TCODE_MAX,TCODE_MIN) "); 
+                    //     Serial.print("map(twistPos,-1500,1500,TCODE_MAX,TCODE_MIN) ");
                     //     Serial.println(map(twistPos,-1500,1500,TCODE_MAX,TCODE_MIN));
-                        // Serial.print("map "); 
-                        // Serial.println(map(SettingsHandler::getTwistServo_ZERO() + twist,0,TwistServo_Int,0,m_servoPWMMaxDuty));
+                    // Serial.print("map ");
+                    // Serial.println(map(SettingsHandler::getTwistServo_ZERO() + twist,0,TwistServo_Int,0,m_servoPWMMaxDuty));
                     //}
                 }
-            } 
+            }
             else
             {
-                if(m_settingsFactory->getInverseTwist())
-                    twist = map(xRot, TCODE_MIN, TCODE_MAX,-1000,1000);
+                if (m_settingsFactory->getInverseTwist())
+                    twist = map(xRot, TCODE_MIN, TCODE_MAX, -1000, 1000);
                 else
-                    twist = map(xRot, TCODE_MIN, TCODE_MAX,1000,-1000);
+                    twist = map(xRot, TCODE_MIN, TCODE_MAX, 1000, -1000);
             }
-            #ifdef ESP_ARDUINO3
-            ledcWrite(m_twistServoPin, map(m_settingsFactory->getTwistServo_ZERO() + twist,0,m_twistServo_Int,0,m_servoPWMMaxDuty));
-            #else
-            ledcWrite(m_twistServoChannel, map(m_settingsFactory->getTwistServo_ZERO() + twist,0,m_twistServo_Int,0,m_servoPWMMaxDuty));
-            #endif
+            writeServo(m_twistServoPin, map(m_settingsFactory->getTwistServo_ZERO() + twist, 0, m_twistServo_Int, 0, m_servoPWMMaxDuty));
         }
     }
 
-    void executeValve(Axis* stroke) {
-        if(m_valveServoPin < 0) 
-        {
+    void executeValve(Axis *stroke)
+    {
+        if (m_valveServoPin < 0 || !valve_channel || !suck_channel)
             return;
-        }
-        valveCmd = channelRead(TCODE_CHANNEL_SUCK, valve);
-        suckCmd = channelRead(TCODE_CHANNEL_SUCK_LEVEL, suck);
+        valveCmd = channelRead(TCODE_CHANNEL_SUCK, valve_channel);
+        suckCmd = channelRead(TCODE_CHANNEL_SUCK_LEVEL, suck_channel);
         // Use suck command if most recent
         bool suckMode;
-        if (suck->getLast() >= valve->getLast())
+        if (suck_channel->getLast() >= valve_channel->getLast())
         {
             suckMode = true;
             valveCmd = suckCmd;
-        } 
-        else 
+        }
+        else
         {
             suckMode = false;
         }
         // Set valve position
-        if (suckMode) 
+        if (suckMode)
         {
             // Get receiver velocity
-            strokeVel = stroke->getVelocity();
-            if (strokeVel < -5) 
+            strokeVel = stroke ? stroke->getVelocity() : 0;
+            if (strokeVel < -5)
             {
-                valveCmd = 0;  
-            } else if ( strokeVel < 0 ) 
-            {
-                valveCmd = map(100*strokeVel,0,-500,suckCmd,0);
-            if (valveCmd > 9999) 
-                valveCmd = 9999; 
-            if (valveCmd < 0) 
                 valveCmd = 0;
             }
+            else if (strokeVel < 0)
+            {
+                valveCmd = map(100 * strokeVel, 0, -500, suckCmd, 0);
+                if (valveCmd > TCODE_MAX)
+                    valveCmd = TCODE_MAX;
+                if (valveCmd < 0)
+                    valveCmd = 0;
+            }
         }
-        valvePos = (9*valvePos + map(valveCmd, TCODE_MIN, TCODE_MAX, 0, 1000))/10;
+        valvePos = (9 * valvePos + map(valveCmd, TCODE_MIN, TCODE_MAX, 0, 1000)) / 10;
 
         int valve;
-        valve  = valvePos - 500;
-        valve  = constrain(valve, -500, 500);
-        if (m_settingsFactory->getInverseValve()) 
-        { 
-            valve = -valve; 
-        }
-        if(m_settingsFactory->getValveServo90Degrees())
+        valve = valvePos - 500;
+        valve = constrain(valve, -500, 500);
+        if (m_settingsFactory->getInverseValve())
         {
-            if (m_settingsFactory->getInverseValve()) 
-            { 
-                valve = map(valve,0,500,-500,500);
-            } 
+            valve = -valve;
+        }
+        if (m_settingsFactory->getValveServo90Degrees())
+        {
+            if (m_settingsFactory->getInverseValve())
+            {
+                valve = map(valve, 0, 500, -500, 500);
+            }
             else
             {
-                valve = map(valve,-500,0,-500,500);
+                valve = map(valve, -500, 0, -500, 500);
             }
         }
-        #ifdef ESP_ARDUINO3
-        ledcWrite(m_valveServoPin, map(m_settingsFactory->getValveServo_ZERO() + valve,0,m_valveServo_Int,0,m_servoPWMMaxDuty));
-        #else
-        ledcWrite(m_valveServoChannel, map(m_settingsFactory->getValveServo_ZERO() + valve,0,m_valveServo_Int,0,m_servoPWMMaxDuty));
-        #endif
+        writeServo(m_valveServoPin, map(m_settingsFactory->getValveServo_ZERO() + valve, 0, m_valveServo_Int, 0, m_servoPWMMaxDuty));
     }
 
-    void executeVibe(int index) {
+    void executeVibe(int index)
+    {
         // These should drive PWM pins connected to vibration motors via MOSFETs or H-bridges.
-        const char* channel = TCODE_CHANNEL_VIBE1;
-        Axis* axis = vibration0;
-        #ifdef ESP_ARDUINO3
+        const char *channel = TCODE_CHANNEL_VIBE1;
+#ifdef ESP_ARDUINO3
         int pwmChannel = m_vib0Pin;
-        #else
+#else
         int pwmChannel = m_vib0Channel;
-        #endif
-        switch(index) 
+#endif
+        Axis *vibChannel = 0;
+        switch (index)
         {
-            case 0: 
-            {
-                channel = TCODE_CHANNEL_VIBE1;
-                #ifdef ESP_ARDUINO3
-                pwmChannel = m_vib0Pin;
-                #else
-                pwmChannel = m_vib0Channel;
-                #endif
-                break;
-            }
-            case 1: 
-            {
-                channel = TCODE_CHANNEL_VIBE2;
-                axis = vibration1;
-                #ifdef ESP_ARDUINO3
-                pwmChannel = m_vib1Pin;
-                #else
-                pwmChannel = m_vib1Channel;
-                #endif
-                break;
-            }
-            case 2: 
-            {
-                channel = TCODE_CHANNEL_VIBE3;
-                axis = vibration2;
-                #ifdef ESP_ARDUINO3
-                pwmChannel = m_vib2Pin;
-                #else
-                pwmChannel = m_vib2Channel;
-                #endif
-                break;
-            }
-            case 3: 
-            {
-                channel = TCODE_CHANNEL_VIBE4;
-                axis = vibration3;
-                #ifdef ESP_ARDUINO3
-                pwmChannel = m_vib3Pin;
-                #else
-                pwmChannel = m_vib3Channel;
-                #endif
-                break;
-            }
+        case 0:
+        {
+            channel = TCODE_CHANNEL_VIBE1;
+#ifdef ESP_ARDUINO3
+            pwmChannel = m_vib0Pin;
+#else
+            pwmChannel = m_vib0Channel;
+#endif
+            vibChannel = vibe0_channel;
+            break;
         }
-        if(pwmChannel < 0) 
+        case 1:
         {
+            channel = TCODE_CHANNEL_VIBE2;
+#ifdef ESP_ARDUINO3
+            pwmChannel = m_vib1Pin;
+#else
+            pwmChannel = m_vib1Channel;
+#endif
+            vibChannel = vibe1_channel;
+            break;
+        }
+        case 2:
+        {
+            channel = TCODE_CHANNEL_VIBE3;
+#ifdef ESP_ARDUINO3
+            pwmChannel = m_vib2Pin;
+#else
+            pwmChannel = m_vib2Channel;
+#endif
+            vibChannel = vibe2_channel;
+            break;
+        }
+        case 3:
+        {
+            channel = TCODE_CHANNEL_VIBE4;
+#ifdef ESP_ARDUINO3
+            pwmChannel = m_vib3Pin;
+#else
+            pwmChannel = m_vib3Channel;
+#endif
+            vibChannel = vibe3_channel;
+            break;
+        }
+        }
+        if (!vibChannel || pwmChannel < 0)
             return;
-        }
-        int cmd = channelRead(channel, axis);
-        if(cmd > -1) 
+        int cmd = channelRead(channel, vibChannel);
+        if (cmd > -1)
         {
-            if (cmd > 0 && cmd <= TCODE_MAX) 
+            if (cmd > 0 && cmd <= TCODE_MAX)
             {
-                ledcWrite(pwmChannel, map(cmd,1,TCODE_MAX,31,255));
-            } 
-            else 
+                writeVibe8((uint8_t)pwmChannel, (uint8_t)map(cmd, 1, TCODE_MAX, 31, 255));
+            }
+            else
             {
-                ledcWrite(pwmChannel, 0);
+                writeVibe8((uint8_t)pwmChannel, 0);
             }
             // Vibe timeout functions - shuts the vibe channels down if not commanded for a specified interval
-            if(m_settingsFactory->getVibTimeoutEnabled())
+            if (m_settingsFactory->getVibTimeoutEnabled())
             {
-                if (millis() - axis->getLast() > m_settingsFactory->getVibTimeout()) 
-                { 
-                    axis->prepAxis(0,InputType::INTERVAL,500);
-                    axis->setAxis();
+                if (millis() - vibChannel->getLast() > m_settingsFactory->getVibTimeout())
+                {
+                    vibChannel->prepAxis(0, InputType::INTERVAL, 500);
+                    vibChannel->setAxis();
                 }
             }
         }
     }
 
-    void executeLube() 
+    void executeLube()
     {
-        if(!lubeRegistered || m_vib1Pin < 0) 
+
+        LogHandler::debug(Tags::Motor, "ENTERED executeLube: lubeRegistered=%d, m_vib1Pin=%d", lubeRegistered, m_vib1Pin);
+        if (!lubeRegistered || m_vib1Pin < 0)
         {
             return;
         }
-        m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
-        if (m_manualLubeOverride) 
+        LogHandler::debug(Tags::Motor, "executeLube: m_lubeButtonPin=%d, m_vib1Pin=%d", m_lubeButtonPin, m_vib1Pin);
+        const bool prevPressed = m_manualLubeOverride;
+
+        switch (m_settingsFactory->getLubeButtonPinMode())
         {
+        case INPUT_PULLDOWN:
+            m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
+            break;
+        case INPUT:
+            m_manualLubeOverride = digitalRead(m_lubeButtonPin) == HIGH;
+            break;
+        case INPUT_PULLUP:
+        default:
+            m_manualLubeOverride = digitalRead(m_lubeButtonPin) == LOW;
+            break;
+        }
+        LogHandler::debug(Tags::Motor, "Lube button state: %s (pin %d)", m_manualLubeOverride ? "pressed" : "released", (int)m_lubeButtonPin);
+        if (m_manualLubeOverride != prevPressed)
+        {
+            // Edge-only debug logs to keep the loop quiet.
+            LogHandler::debug(Tags::Motor, "Lube button %s (pin %d)",
+                m_manualLubeOverride ? "pressed" : "released", (int)m_lubeButtonPin);
+        }
+        if (m_manualLubeOverride)
+        {
+            const int amount = m_settingsFactory->getLubeAmount();
+            if (m_manualLubeOverride != prevPressed || amount != m_lastLubeDuty)
+            {
+                LogHandler::debug(Tags::Motor, "v4 Lube PWM (manual) -> pin %d duty %d",
+                    (int)m_vib1Pin, amount);
+                m_lastLubeDuty = amount;
+            }
 #ifdef ESP_ARDUINO3
-            ledcWrite(m_vib1Pin,m_settingsFactory->getLubeAmount());
-        } 
-        else 
-        { 
-            ledcWrite(m_vib1Pin,0);
+            writeVibe8((uint8_t)m_vib1Pin, (uint8_t)amount);
+        }
+        else
+        {
+            if (prevPressed && m_lastLubeDuty != 0)
+            {
+                LogHandler::debug(Tags::Motor, "v4 Lube PWM (manual off) -> pin %d duty 0", (int)m_vib1Pin);
+                m_lastLubeDuty = 0;
+            }
+            writeVibe8((uint8_t)m_vib1Pin, 0);
 #else
-            ledcWrite(m_vib1Channel,m_settingsFactory->getLubeAmount());
-        } 
-        else 
-        { 
-            ledcWrite(m_vib1Channel,0);
+            ledcWrite(m_vib1Channel, amount);
+        }
+        else
+        {
+            ledcWrite(m_vib1Channel, 0);
 #endif
         }
-        if(!m_manualLubeOverride)
+        if (!m_manualLubeOverride && lube_channel)
         {
-            int cmd = channelRead(TCODE_CHANNEL_LUBE, lube); 
-            if (cmd > -1) 
+            int cmd = channelRead(TCODE_CHANNEL_LUBE, lube_channel);
+            if (cmd > -1)
             {
-                if (cmd > 0 && cmd <= TCODE_MAX) 
+                if (cmd > 0 && cmd <= TCODE_MAX)
                 {
+                    const int duty = map(cmd, 1, TCODE_MAX, 127, 255);
+                    if (duty != m_lastLubeDuty)
+                    {
+                        // Throttle: the ramping axis changes duty every
+                        // tick, so log at most once per 500 ms to avoid
+                        // flash-cache thrashing from the motor task.
+                        unsigned long now = millis();
+                        if (now - m_lastLubeLogMs >= 500)
+                        {
+                            LogHandler::debug(Tags::Motor, "v4 Lube PWM (axis A2) -> pin %d duty %d (cmd %d)",
+                                (int)m_vib1Pin, duty, cmd);
+                            m_lastLubeLogMs = now;
+                        }
+                        m_lastLubeDuty = duty;
+                    }
 #ifdef ESP_ARDUINO3
-                    ledcWrite(m_vib1Pin, map(cmd,1,TCODE_MAX,127,255));
+                    writeVibe8((uint8_t)m_vib1Pin, (uint8_t)duty);
 #else
-                    ledcWrite(m_vib1Channel, map(cmd,1,TCODE_MAX,127,255));
+                    ledcWrite(m_vib1Channel, duty);
 #endif
-                } 
-                if (millis() - lube->getLast() > 500) 
-                { 
+                }
+                if (millis() - lube_channel->getLast() > 500)
+                {
                     // Auto cutoff
-                    lube->prepAxis(0,InputType::INTERVAL,100);
-                    lube->setAxis();
-                } 
+                    lube_channel->prepAxis(0, InputType::INTERVAL, 100);
+                    lube_channel->setAxis();
+                }
             }
         }
     }
 
-    void executeSqueeze() 
+    void executeSqueeze()
     {
-        if(m_squeezeServoPin < 0) 
-        {
+        if (!squeeze_channel)
             return;
-        }
-        squeezeCmd = channelRead(TCODE_CHANNEL_AUX, squeeze);
-        if(squeezeCmd > -1) 
+        squeezeCmd = channelRead(TCODE_CHANNEL_AUX, squeeze_channel);
+        if (squeezeCmd > -1)
         {
-            int squeeze = map(squeezeCmd,TCODE_MIN,TCODE_MAX,1000,-1000);
-#ifdef ESP_ARDUINO3
-            ledcWrite(m_squeezeServoPin, map(m_settingsFactory->getSqueezeServo_ZERO() + squeeze,0,m_squeezeServo_Int,0,m_servoPWMMaxDuty));
-#else
-            ledcWrite(m_squeezeServoChannel, map(m_settingsFactory->getSqueezeServo_ZERO() + squeeze,0,m_squeezeServo_Int,0,m_servoPWMMaxDuty));
-#endif
+            int squeeze = map(squeezeCmd, TCODE_MIN, TCODE_MAX, 1000, -1000);
+            writeServo(m_squeezeServoPin, map(m_settingsFactory->getSqueezeServo_ZERO() + squeeze, 0, m_squeezeServo_Int, 0, m_servoPWMMaxDuty));
         }
     }
 };

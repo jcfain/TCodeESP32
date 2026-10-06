@@ -25,8 +25,6 @@ SOFTWARE. */
 
 #include <Arduino.h>
 #include "command.hpp"
-#include "SettingsHandler.h"
-#include "enum.h"
 
 class Commands {
 public:

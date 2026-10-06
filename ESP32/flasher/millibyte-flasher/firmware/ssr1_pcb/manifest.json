@@ -1,0 +1,35 @@
+{
+    "board_id": "ssr1_pcb",
+    "display_name": "SSR1 PCB (ESP32 WROOM)",
+    "chip": "esp32",
+    "firmware_version": "0.0.0-template",
+    "flash_mode": "dio",
+    "flash_freq": "40MHz",
+    "flash_size": "4MB",
+    "usb_vid_pid": [
+        "10c4:ea60",
+        "1a86:7523"
+    ],
+    "files": [
+        {
+            "offset": "0x1000",
+            "name": "bootloader.bin"
+        },
+        {
+            "offset": "0x8000",
+            "name": "partitions.bin"
+        },
+        {
+            "offset": "0xe000",
+            "name": "boot_app0.bin"
+        },
+        {
+            "offset": "0x10000",
+            "name": "firmware.bin"
+        },
+        {
+            "offset": "0x310000",
+            "name": "littlefs.bin"
+        }
+    ]
+}

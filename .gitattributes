@@ -1,0 +1,31 @@
+# Auto-detect text files and normalize line endings on checkout.
+* text=auto
+
+# Shell scripts must always use LF line endings (breaks on Linux with CRLF).
+*.sh           text eol=lf
+*.bash         text eol=lf
+*.py           text eol=lf
+
+# Windows-only files keep CRLF.
+*.bat          text eol=crlf
+*.ps1          text eol=crlf
+*.cmd          text eol=crlf
+
+# PlatformIO / config files: LF.
+*.ini          text eol=lf
+*.json         text eol=lf
+*.csv          text eol=lf
+*.yml          text eol=lf
+*.yaml         text eol=lf
+
+# Binary files.
+*.bin          binary
+*.elf          binary
+*.fw           binary
+*.zip          binary
+*.gz           binary
+*.png          binary
+*.jpg          binary
+*.jpeg         binary
+*.gif          binary
+*.webp         binary

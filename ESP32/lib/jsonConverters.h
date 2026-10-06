@@ -45,26 +45,6 @@ bool canConvertFromJson(JsonVariantConst src, const WifiBand&) {
   return src.is<uint8_t>();
 }
 
-void convertFromJson(JsonVariantConst src, SettingType& dst) {
-    dst = static_cast<SettingType>(src.as<uint8_t>());
-}
-bool convertToJson(const SettingType& src, JsonVariant dst) {
-    return dst.set(static_cast<uint8_t>(src));
-}
-bool canConvertFromJson(JsonVariantConst src, const SettingType&) {
-  return src.is<uint8_t>();
-}
-
-void convertFromJson(JsonVariantConst src, SettingProfile& dst) {
-    dst = static_cast<SettingProfile>(src.as<uint8_t>());
-}
-bool convertToJson(const SettingProfile& src, JsonVariant dst) {
-    return dst.set(static_cast<uint8_t>(src));
-}
-bool canConvertFromJson(JsonVariantConst src, const SettingProfile&) {
-  return src.is<uint8_t>();
-}
-
 void convertFromJson(JsonVariantConst src, BoardType& dst) {
     dst = static_cast<BoardType>(src.as<uint8_t>());
 }
@@ -126,6 +106,16 @@ bool canConvertFromJson(JsonVariantConst src, const BLELoveDeviceType&) {
   return src.is<uint8_t>();
 }
 
+void convertFromJson(JsonVariantConst src, LubeButtonPinMode& dst) {
+    dst = static_cast<LubeButtonPinMode>(src.as<uint8_t>());
+}
+bool convertToJson(const LubeButtonPinMode& src, JsonVariant dst) {
+    return dst.set(static_cast<uint8_t>(src));
+}
+bool canConvertFromJson(JsonVariantConst src, const LubeButtonPinMode&) {
+    return src.is<uint8_t>();
+}
+
 void convertFromJson(JsonVariantConst src, ESPTimerChannelNum& dst) {
     dst = static_cast<ESPTimerChannelNum>(src.as<int8_t>());
 }
@@ -140,7 +130,7 @@ bool canConvertFromJson(JsonVariantConst src, const ESPTimerChannelNum&) {
 //         dst.push_back(item);
 // }
 // bool convertToJson(const std::vector<const char*>& src, JsonVariant dst) {
-    
+
 //     JsonArray array = dst.to<JsonArray>();
 //     for (const char* item : src)
 //         if(!array.add(item))
@@ -153,7 +143,7 @@ bool canConvertFromJson(JsonVariantConst src, const ESPTimerChannelNum&) {
 //         dst.push_back(item);
 // }
 // bool convertToJson(const std::vector<int>& src, JsonVariant dst) {
-    
+
 //     JsonArray array = dst.to<JsonArray>();
 //     for (const int item : src)
 //         if(!array.add(item))

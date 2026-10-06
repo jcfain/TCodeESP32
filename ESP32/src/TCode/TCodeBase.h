@@ -19,10 +19,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
-    
+
 #pragma once
 
 #include <Arduino.h>
+#include "callback.h"
+#include "logging/LogHandler.h"
 
 
 class TCodeBase {
@@ -55,20 +57,24 @@ public:
         // 	message_callback(buf);
 		// 	return;
 		// }
-		// LogHandler::debug("TcodeBase", "[sendMessage] %s", input);
+		// LogHandler::debug(Tags::TCode, "[sendMessage] %s", input);
 		if(!message_callback)
 		{
-			LogHandler::warning("TcodeBase", "[sendMessage] callback not defined");
+			// No external callback wired; fall back to raw Serial output (defaultCallback).
+			LogHandler::debug(Tags::TCode, "[sendMessage] callback not defined, using default serial callback");
 			message_callback = std::bind(&TCodeBase::defaultCallback, this, std::placeholders::_1);
 		}
 
         message_callback(input);
     }
-protected: 
+protected:
     std::function<void(const char*)> message_callback = 0;
-private: 
+private:
 	void defaultCallback(const char* input) // Default callback used by TCode uses serial communication
 	{
-		LogHandler::warning("Default TCode callback", "%s\n", input);
+		if (Serial)
+		{
+			Serial.println(input);
+		}
 	}
 };

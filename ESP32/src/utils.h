@@ -71,6 +71,43 @@ struct StrCompare
    }
 };
 
+template<typename T, size_t N>
+class Ringbuffer
+{
+    private:
+        T buffer[N];
+        size_t head = 0;
+        size_t tail = 0;
+        size_t count = 0;
+    public:
+        bool push(const T& item) {
+            if(count == N) {
+                return false; // Buffer full
+            }
+            buffer[head] = item;
+            head = (head + 1) % N;
+            count++;
+            return true;
+        }
+
+        bool pop(T& item) {
+            if(count == 0) {
+                return false; // Buffer empty
+            }
+            item = buffer[tail];
+            tail = (tail + 1) % N;
+            count--;
+            return true;
+        }
+
+        bool isEmpty() const {
+            return count == 0;
+        }
+
+        bool isFull() const {
+            return count == N;
+        }
+};
 struct Chunker {
     Chunker(const char* in, const size_t& len, const size_t& maxLen) : in(in), len(len), maxLen(maxLen), sent(0) { }
 

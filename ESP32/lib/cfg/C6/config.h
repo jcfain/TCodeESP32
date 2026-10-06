@@ -4,5 +4,7 @@
 #define MAX_PWM_RESOLUTION 14
 #define MAX_TIMERS 6
 #define MAX_CHANNELS 6
+#ifndef DEFAULT_BOARD
 #define BOARD_TYPE_DEFAULT (uint8_t)BoardType::DEVKIT_C6
+#endif
 #define TASK_CPU_NUM PRO_CPU_NUM

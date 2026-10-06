@@ -1,13 +1,29 @@
 
 #pragma once
 
+// constants.h first so the firmware's TCODE_DEVICE_INFO is defined before
+// TCode.h's "Generic TCode Device" fallback (avoids a macro redefinition).
+// Note: lib/TCode/TCode.cpp is compiled on its own and still uses the fallback
+// for its D0 response unless TCODE_DEVICE_INFO is supplied as a build flag.
+#include "constants.h"
 #include "TCode.h"
-#include "TagHandler.h"
+#include "logging/TagHandler.h"
 #include "TCodeBase.h"
 
 class TCode0_4 : public TCodeBase, public TCode
 {
 public:
+	TCode0_4()
+	{
+		// The TCode library reports D0/D1/D2/DSTOP (and $/# passthrough)
+		// through a plain function pointer. Route it through
+		// TCodeBase::sendMessage so responses reach the message callback when
+		// one has been wired, or the default serial callback otherwise (same
+		// behaviour as TCode0_3). Only one TCode0_4 instance exists.
+		s_instance = this;
+		TCode::setTCodeCallback(&TCode0_4::forwardResponse);
+	}
+
 	// Setup function
 	void setup(const char *firmware) override
 	{
@@ -26,66 +42,19 @@ public:
 
 	void setMessageCallback(TCodeCallback f) override
 	{
-		TCode::setTCodeCallback(f);
+		// Library responses are forwarded via forwardResponse -> sendMessage,
+		// which uses this callback.
 		TCodeBase::setMessageCallback(f);
 	}
 
-	// void getMessages() 
-	// {
-	// 	if(tcode_callback) 
-	// 	{
-	// 		// size_t len = 0;
-	// 		// bool limitReached = false;
-  	// 		// while (TCode::available() > 0) 
-	// 		// { 
-	// 		// 	outputBuffer[len++] = TCode::read();
-	// 		// 	if(len == MAX_COMMAND - 1) 
-	// 		// 	{
-	// 		// 		limitReached = true;
-	// 		// 	}
-	// 		// 	if(limitReached || outputBuffer[len] == '\n') 
-	// 		// 	{
-	// 		// 		outputBuffer[len+1] = {0};
-	// 		// 		if(message_callback) 
-	// 		// 			message_callback(outputBuffer);
-	// 		// 		// else
-	// 		// 		// 	Serial.println(outputBuffer);
-	// 		// 		outputBuffer[MAX_COMMAND] = {0};
-	// 		// 	}
-	// 		// 	if(limitReached)
-	// 		// 		len = 0;
-	// 		// }
-
-
-	// 		// size_t length = TCode::available();
-	// 		// if(!length)
-	// 		// 	return;
-	// 		// Serial.printf("TCode_4 getMessages length: %i\n", length);
-	// 		// size_t index = 0;
-	// 		// char outputBuffer[length] = {0};
-	// 		// while (index < length) 
-	// 		// {
-	// 		// 	int c = TCode::read();
-	// 		// 	outputBuffer[index] = (char)c;
-	// 		// 	index++;
-	// 		// 	if (c < 0 || (char)c == '\n') 
-	// 		// 	{
-	// 		// 		break;
-	// 		// 	}
-	// 		// 	// Serial.printf("TCode_4 getMessages index: %i\n", index);
-	// 		// }
-	// 		// outputBuffer[index] = {0};
-
-
-	// 		// TCode::read(outputBuffer);
-	// 		// if(!outputBuffer)
-	// 		// 	return;
-	// 		// Serial.printf("TCode_4 getMessages send: %s\n", outputBuffer);
-	// 		// tcode_callback(outputBuffer);
-	// 	}
-	// }
-
 private:
-	const char *_TAG = TagHandler::TCodeHandler;
+	static void forwardResponse(const char *text)
+	{
+		if (s_instance && text)
+			s_instance->sendMessage(text);
+	}
+
+	static constexpr Tags::tag_t _TAG = Tags::TCode;
 	const char *firmwareID;
+	inline static TCode0_4 *s_instance = nullptr;
 };

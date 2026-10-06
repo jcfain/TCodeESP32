@@ -36,4 +36,5 @@ struct ESPTimer {
     const char* name;
     int frequency;
     ESPTimerChannel channels[2];
+    PwmDriver pwmDriver;  ///< Preferred PWM peripheral for outputs on this timer
 };

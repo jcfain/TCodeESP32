@@ -36,8 +36,14 @@
 #error Target CONFIG_IDF_TARGET is not supported
 #endif
 
-#if !defined(MOTOR_TYPE_SERVO) && !defined(MOTOR_TYPE_BLDC)
+#if !defined(MOTOR_TYPE)
     #error "Invalid motor type"
+#endif
+
+#ifdef CONFIG_IDF_TARGET_ESP32
+#define SERVO_PWM_RES 15  // 16-bit would set period_ticks=65536 which exceeds the ESP32 MCPWM hardware 16-bit limit (max 65535)
+#elif CONFIG_IDF_TARGET_ESP32S3
+#define SERVO_PWM_RES 14
 #endif
 
 #define ESP_TIMER_FREQUENCY_DEFAULT 50
@@ -69,6 +75,15 @@
 //     #define CaseFan_PWM 13
 
 //     #define ValveServo_PWM 14         // Valve Servo
+#ifdef CONFIG_IDF_TARGET_ESP32
+    #define MAX_TIMERS 8
+#elif CONFIG_IDF_TARGET_ESP32S3
+    // 4 LOW (LEDC default) + 4 HIGH (MCPWM default).
+    // ESP32-S3 LEDC supports 8 channels (0..7); MCPWM supports up to 12 outputs
+    // (channel numbers above 7 are used as identifiers only — MCPWM ignores the
+    // channel value at attach time).
+#define MAX_TIMERS 8
+#endif
 
 
 // const Channel ChannelMapV2[9] = {
@@ -108,7 +123,7 @@ const Channel ChannelMapV3[14] = {
     {TCODE_CHANNEL_PITCH,"Pitch",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
     {TCODE_CHANNEL_VIBE1,"Vibe 1",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
     {TCODE_CHANNEL_VIBE2,"Vibe 2",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
-    {TCODE_CHANNEL_AUX,"Vibe 3",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
+    {TCODE_CHANNEL_VIBE3,"Vibe 3",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
     {TCODE_CHANNEL_VIBE4,"Vibe 4",true,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
     {TCODE_CHANNEL_SUCK,"Suck manual",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
     {TCODE_CHANNEL_SUCK_LEVEL,"Suck level",false,false,TCODE_MIN,TCODE_MID,TCODE_MAX},
