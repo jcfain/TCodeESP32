@@ -23,7 +23,11 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
+// DFRobot_DF2301Q.h sets #pragma pack(1) and never restores it, which changes the
+// layout of every class declared in headers included after it (NimBLE among them).
+#pragma pack(push)
 #include "DFRobot_DF2301Q.h"
+#pragma pack(pop)
 #include <Wire.h>
 // #include "LogHandler.h"
 #include "TagHandler.h"
