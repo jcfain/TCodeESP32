@@ -42,6 +42,7 @@ public:
 private:
     const char* CHARACTERISTIC_UUID = "00002000-0001-1000-8000-0000101A2B3C";
     const char* CHARACTERISTIC_UUID2 = "00002000-0002-1000-8000-0000101A2B3C";
+    static constexpr uint32_t ADVERTISED_SERVICE_UUID = 0x4C421900;
     NimBLECharacteristic* m_characteristic;
     NimBLECharacteristic* m_characteristic2;
     // Haptics connect UUID's
@@ -52,9 +53,18 @@ private:
 
     void setupCharacteristics(NimBLEService *pService, NimBLEAdvertising *pAdvertising, QueueHandle_t tcodeQueue) override {
         LogHandler::checkHeapIntegrity(TagHandler::BLEHandler, "setupCharacteristics");
-        m_characteristic = new NimBLECharacteristic(CHARACTERISTIC_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
+        // Advertise the way the Haptics Connect OSR2 firmware does (measured from v0.1.8):
+        // the device name and the 32-bit service UUID 0x4C421900 in the advertising packet.
+        // The base class has already added the 128-bit GATT service UUID, which leaves no
+        // room for the name, so clients that look for "OSR-ESP32" never see it.
+        pAdvertising->enableScanResponse(false);
+        pAdvertising->removeServiceUUID(SERVICE_UUID);
+        pAdvertising->addServiceUUID(NimBLEUUID(ADVERTISED_SERVICE_UUID));
+        pAdvertising->setName(NAME);
+        // Both characteristics are write / write without response on the real device.
+        m_characteristic = new NimBLECharacteristic(CHARACTERISTIC_UUID, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
         LogHandler::checkHeapIntegrity(TagHandler::BLEHandler, "after m_characteristic");// Error throws here
-        m_characteristic2 = new NimBLECharacteristic(CHARACTERISTIC_UUID2, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
+        m_characteristic2 = new NimBLECharacteristic(CHARACTERISTIC_UUID2, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
         LogHandler::checkHeapIntegrity(TagHandler::BLEHandler, "after m_characteristic2");
         LogHandler::debug(TagHandler::BLEHandler, "Setting up BLE TCode Characteristic Callbacks");
         m_characteristic->setCallbacks(new BLEHCControlCallback(tcodeQueue));
