@@ -30,6 +30,7 @@ SOFTWARE. */
 #include "MotorHandler.h"
 #include "Axis.h"
 #include "TCode0_4.h"
+#include "constants.h"
 
 class MotorHandler0_4: public MotorHandler {
 public:
@@ -80,13 +81,21 @@ protected:
         m_valveServoChannel = pinMap->valveChannel();
         if(m_valveServoPin > -1 && m_valveServoChannel > -1) 
         {
-            suck = new Axis(TCODE_MID);
-            m_tcode->addAxis(TCODE_CHANNEL_SUCK_LEVEL, *suck);
-            valve = new Axis(TCODE_MID);
-            m_tcode->addAxis(TCODE_CHANNEL_SUCK, *valve);
-            int freq = pinMap->getChannelFrequency(m_valveServoChannel);
-            attachPin("valve servo", m_valveServoPin, freq, m_valveServoChannel);
-            m_valveServo_Int = frequencyToMicroseconds(freq);
+            Channel* suckChannel = SettingsHandler::getChannel(TCODE_CHANNEL_SUCK_LEVEL);
+            if(suckChannel) 
+            {
+                suck = new Axis(suckChannel->FriendlyName, TCODE_MID);
+                m_tcode->addAxis(TCODE_CHANNEL_SUCK_LEVEL, *suck);
+            }
+            Channel* valveChannel = SettingsHandler::getChannel(TCODE_CHANNEL_SUCK);
+            if(valveChannel) 
+            {
+                valve = new Axis(valveChannel->FriendlyName, TCODE_MID);
+                m_tcode->addAxis(TCODE_CHANNEL_SUCK, *valve);
+                int freq = pinMap->getChannelFrequency(m_valveServoChannel);
+                attachPin("valve servo", m_valveServoPin, freq, m_valveServoChannel);
+                m_valveServo_Int = frequencyToMicroseconds(freq);
+            }
         } 
         else 
         {
@@ -100,11 +109,15 @@ protected:
             m_twistServoChannel = pinMap->twistChannel();
             if(m_twistServoPin > -1 && m_twistServoChannel > -1) 
             {
-                twist = new Axis(TCODE_MID);
-                m_tcode->addAxis(TCODE_CHANNEL_TWIST, *twist);
-                int freq = pinMap->getChannelFrequency(m_twistServoChannel);
-                attachPin("twist servo", m_twistServoPin, freq, m_twistServoChannel);
-                m_twistServo_Int = frequencyToMicroseconds(freq);
+                Channel* twistChannel = SettingsHandler::getChannel(TCODE_CHANNEL_SUCK);
+                if(twistChannel) 
+                {
+                    twist = new Axis(twistChannel->FriendlyName, TCODE_MID);
+                    m_tcode->addAxis(TCODE_CHANNEL_TWIST, *twist);
+                    int freq = pinMap->getChannelFrequency(m_twistServoChannel);
+                    attachPin("twist servo", m_twistServoPin, freq, m_twistServoChannel);
+                    m_twistServo_Int = frequencyToMicroseconds(freq);
+                }
             } 
             else 
             {
@@ -116,11 +129,15 @@ protected:
         m_squeezeServoChannel = pinMap->squeezeChannel();
         if(m_squeezeServoPin > -1 && m_squeezeServoChannel > -1) 
         {
-            squeeze = new Axis(TCODE_MID);
-            m_tcode->addAxis(TCODE_CHANNEL_AUX, *squeeze);
-            int freq = pinMap->getChannelFrequency(m_squeezeServoChannel);
-            attachPin("aux servo", m_squeezeServoPin, freq, m_squeezeServoChannel);
-            m_squeezeServo_Int = frequencyToMicroseconds(freq);
+            Channel* squeezeChannel = SettingsHandler::getChannel(TCODE_CHANNEL_AUX);
+            if(squeezeChannel) 
+            {
+                squeeze = new Axis(squeezeChannel->FriendlyName, TCODE_MID);
+                m_tcode->addAxis(TCODE_CHANNEL_AUX, *squeeze);
+                int freq = pinMap->getChannelFrequency(m_squeezeServoChannel);
+                attachPin("aux servo", m_squeezeServoPin, freq, m_squeezeServoChannel);
+                m_squeezeServo_Int = frequencyToMicroseconds(freq);
+            }
         } 
         else 
         {

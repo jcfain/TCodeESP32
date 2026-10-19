@@ -23,6 +23,8 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
+#include <functional>
+#include "LogHandler.h"
 
 
 class TCodeBase {
@@ -31,7 +33,7 @@ public:
 	virtual void read(byte inByte) = 0;
 	virtual void read(const char* in) = 0;
 	// virtual void read(const String &input) = 0;
-	virtual void setMessageCallback(TCodeCommandCallback f) // Sets the callback function used by TCode
+	virtual void setMessageCallback(std::function<void (const char*)> f) // Sets the callback function used by TCode
 	{
 		if (f == nullptr)
 		{

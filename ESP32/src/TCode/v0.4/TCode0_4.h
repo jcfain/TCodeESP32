@@ -4,10 +4,13 @@
 #include "TCode.h"
 #include "TagHandler.h"
 #include "TCodeBase.h"
+#include "constants.h"
+#include <functional>
 
 class TCode0_4 : public TCodeBase, public TCode
 {
 public:
+    TCode0_4() : TCode(TCODE_DEVICE_INFO) {}
 	// Setup function
 	void setup(const char *firmware) override
 	{
@@ -24,7 +27,7 @@ public:
 		TCode::stringInput(in);
 	}
 
-	void setMessageCallback(TCodeCallback f) override
+	void setMessageCallback(std::function<void (const char*)> f) override
 	{
 		TCode::setTCodeCallback(f);
 		TCodeBase::setMessageCallback(f);

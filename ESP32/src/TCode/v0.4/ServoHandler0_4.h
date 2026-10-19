@@ -22,6 +22,7 @@
 #pragma once
 
 #include "Global.h"
+#include "LogHandler.h"
 #include "settingsFactory.h"
 #include "SettingsHandler.h"
 #include "TagHandler.h"
@@ -65,20 +66,50 @@ public:
         {
             read("R2750\n", 7); 
         }
+        Channel* strokeChannel = SettingsHandler::getChannel(TCODE_CHANNEL_STROKE);
+        Channel* pitchChannel = SettingsHandler::getChannel(TCODE_CHANNEL_PITCH);
+        Channel* rollChannel = SettingsHandler::getChannel(TCODE_CHANNEL_ROLL);
+        if(!strokeChannel) 
+        {
+            LogHandler::error(_TAG, "Error getting stroke channel from channel setup.");
+            return false;
+        }
+        if(!pitchChannel) 
+        {
+            LogHandler::error(_TAG, "Error getting pitch channel from channel setup.");
+            return false;
+        }
+        if(!rollChannel) 
+        {
+            LogHandler::error(_TAG, "Error getting roll channel from channel setup.");
+            return false;
+        }
 
         // Register device axes
-        stroke = new Axis(TCODE_MID);
+        stroke = new Axis(strokeChannel->FriendlyName, TCODE_MID);
         m_tcode->addAxis(TCODE_CHANNEL_STROKE, *stroke);
         if (m_deviceType == DeviceType::SR6) 
         {
-            surge = new Axis(TCODE_MID);
+            Channel* surgeChannel = SettingsHandler::getChannel(TCODE_CHANNEL_SURGE);
+            Channel* swayChannel = SettingsHandler::getChannel(TCODE_CHANNEL_SWAY);
+            if(!surgeChannel) 
+            {
+                LogHandler::error(_TAG, "Error getting surge channel from channel setup.");
+                return false;
+            }
+            if(!swayChannel) 
+            {
+                LogHandler::error(_TAG, "Error getting sway channel from channel setup.");
+                return false;
+            }
+            surge = new Axis(surgeChannel->FriendlyName, TCODE_MID);
             m_tcode->addAxis(TCODE_CHANNEL_SURGE, *surge);
-            sway = new Axis(TCODE_MID);
+            sway = new Axis(swayChannel->FriendlyName, TCODE_MID);
             m_tcode->addAxis(TCODE_CHANNEL_SWAY, *sway);
         }
-        roll = new Axis(TCODE_MID);
+        roll = new Axis(rollChannel->FriendlyName, TCODE_MID);
         m_tcode->addAxis(TCODE_CHANNEL_ROLL, *roll);
-        pitch = new Axis(TCODE_MID);
+        pitch = new Axis(pitchChannel->FriendlyName, TCODE_MID);
         m_tcode->addAxis(TCODE_CHANNEL_PITCH, *pitch);
         PinMap* pinMap;
         if (m_deviceType == DeviceType::SR6) 
