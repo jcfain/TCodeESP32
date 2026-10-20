@@ -149,8 +149,8 @@ void tcodeCommandCallback(TCodeEvent event, const char *in)
     }
     else if(event == TCodeEvent::RANGE_STORE) 
     {
-        TCodeRange range;
-        tcode->parseRange(range, in);
+        // TCodeRange range;
+        // tcode->parseRange(range, in);
     }
     else
     {
