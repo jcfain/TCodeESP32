@@ -166,7 +166,7 @@ public:
         #error "Build error! Invalid motor type defined!"
     #endif
 
-        motorHandler->setMessageCallback(tcodeCommandCallback);
+        tcode->setMessageCallback(tcodeCommandCallback);
         LogHandler::debug(m_TAG, "Motor handler DRAM heaps free %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         // SystemCommandHandler::registerOtherCommandCallback(TCodeCommandCallback);
 

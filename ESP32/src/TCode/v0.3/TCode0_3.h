@@ -2,6 +2,7 @@
 #pragma once
 
 #include <EEPROM.h>
+#include "ESP32/config.h"
 #include "TCode/v0.3/TCodeAxis0_3.h"
 #include "TCodeBase.h"
 #include "TagHandler.h"
@@ -82,6 +83,7 @@ public:
 		bufferString = "";			 // Clear input string
 	}
 
+
 	// // Function to read off whole strings as input
 	// void read(const String &inString) override
 	// {
@@ -90,6 +92,57 @@ public:
 	// 	executeString(bufferString); // Execute string
 	// 	bufferString = "";			 // Clear input string
 	// }
+
+    void formatRange(char *buf, const size_t len, const TCodeRange* ranges, const size_t rangesLen) override
+	{    
+		size_t objSize = sizeof(TCodeRange);
+    
+		char line[len];
+    	for(int i=0; i<rangesLen; i+=objSize) {
+			const TCodeRange* range = &ranges[i];
+			snprintf(line, sizeof(line), "%s-%u-%u ",
+					range->key,
+					range->minValue,
+					range->maxValue);
+    	}
+	}
+
+	// Parse range from $ Save command
+	// Invalid format returns false.
+	bool parseRange(TCodeRange& range, const char* cmd) override  {
+		size_t len = strlen(cmd);
+		// Minimum viable: $L0-0-1  (8 chars). Full form $L0-0000-9999 is 13.
+		if (len < 8) return false;
+
+		char letter;
+		uint8_t index;
+		// cmd+1 is "L0-0000-9999" — parseChannel wants letter + digit
+		if (!parseChannel(cmd + 1, letter, index)) return false;
+
+		// After "$TX" we require a hyphen
+		if (cmd[3] != '-') return false;
+
+		char* endMin;
+		long ymin = strtol(cmd + 4, &endMin, 10);
+		if (endMin == cmd + 4) return false;          // no digits after first hyphen
+		if (*endMin != '-') return false;             // second hyphen required
+
+		char* endMax;
+		long ymax = strtol(endMin + 1, &endMax, 10);
+		if (endMax == endMin + 1) return false;       // no digits after second hyphen
+
+		// Optional: reject leftover junk after the max (spaces already stripped by byteInput)
+		if (*endMax != '\0') return false;
+
+		if (index > 10) return false;                        // valid format, but that channel isn't registered
+
+		range.key[0] = (char)tolower(letter);
+		range.key[1] = (char)('0' + index);
+		range.key[2] = '\0';
+		range.minValue = TCodeCommon::clamp(ymin,0,9999);
+		range.maxValue = TCodeCommon::clamp(ymax,0,9999);
+		return true;
+	}
 
 	// Function to set an axis
 	void AxisInput(const String &ID, int magnitude, char extension, unsigned long extMagnitude)
@@ -596,5 +649,13 @@ private:
 			//  Serial.println(axisName);
 		}
 		return line;
+	}
+	// Helper function that verifies that a channel named at the start of a string is registered
+	bool parseChannel(const char* cmd, char& letter, uint8_t& index) const {
+		if (!cmd || strlen(cmd) < 2) return false;
+		letter = toupper(cmd[0]);
+		if (cmd[1] < '0' || cmd[1] > '9') return false;
+		index = cmd[1] - '0';
+		return (letter == 'L' || letter == 'R' || letter == 'V' || letter == 'A');
 	}
 };

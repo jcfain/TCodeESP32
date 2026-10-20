@@ -25,7 +25,8 @@ SOFTWARE. */
 #include <Arduino.h>
 #include "DFRobot_DF2301Q.h"
 #include <Wire.h>
-// #include "LogHandler.h"
+#include "LogHandler.h"
+#include "SettingsHandler.h"
 #include "TagHandler.h"
 #include "callback.h"
 
@@ -181,9 +182,9 @@ private:
         }
     }
 
-    void sendMessage(const char* message) {
+    void sendMessage( const char* message) {
         if(message_callback)
-            message_callback(message);
+            message_callback(TCodeEvent::OTHER, message);
     }
 };
 

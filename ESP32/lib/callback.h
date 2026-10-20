@@ -1,6 +1,9 @@
 #pragma once
+#include <functional>
 #include <stddef.h>
+#include "TCodeEnum.h"
 #include "enum.h"
+#include "TCodeCommon.h"
 /// Call backs instance share//////////////////////////////////////////////////////////////
 // using TCodeCommandCallback = std::function<void(const char*)>
 // using LogCallback =  std::function<void(const char* in, LogLevel level)>
@@ -11,7 +14,8 @@
 // // using TCodeCommandCallbackPassthrough = std::function<void(const char*)>
 // // using WifiStatusCallBack = std::function<void(WiFiStatus status, WiFiReason reason)>
 
-using TCodeCommandCallback = void (*)(const char *input);
+// using TCodeCommandCallback = void (*)(const char *input);
+// using TCodeCommandCallback = std::function<void (TCodeEvent, const char*)>;
 using LogCallback = void (*)(const char *input, const size_t& length, const LogLevel& level);
 using TempChangeCallback = void (*)(const TemperatureType& type, const char* message, const float& temp);
 using TempChangeStateCallback = void (*)(const TemperatureType& type, const char *state);

@@ -21,6 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 #pragma once
+#include "TCodeEnum.h"
 #include "constants.h"
 #include "SerialHandler.h"
 #include <TCode.h>// Not sure why this is required here to prevent an undefined reference error...
@@ -28,6 +29,7 @@ SOFTWARE. */
 #include "LogHandler.h"
 #include "SettingsHandler.h"
 #include "SystemCommandHandler.h"
+#include "settingsFactory.h"
 #if WIFI_TCODE
 #include "WifiHandler.h"
 #endif
@@ -114,31 +116,45 @@ ButtonHandler *buttonHandler = 0;
     DisplayHandler *displayHandler = 0;
 #endif
 
-
-void tcodeCommandCallback(const char *in)
+void notifyDevice(const char *message)
 {
-
-    if (systemCommandHandler->isCommand(in))
-    {
-        systemCommandHandler->process(in);
-    }
-    else
-    {
 #if BLUETOOTH_TCODE
         if (bluetoothHandler && bluetoothHandler->isConnected())
-            bluetoothHandler->send(in);
+            bluetoothHandler->send(message);
 #endif
 #if BLE_TCODE
         if (bleHandler && bleHandler->isConnected())
-            bleHandler->send(in);
+            bleHandler->send(message);
 #endif
 #if WIFI_TCODE
         if (webSocketHandler)
-            webSocketHandler->send(in);
+            webSocketHandler->send(message);
         if (udpHandler)
-            udpHandler->send(in);
+            udpHandler->send(message);
 #endif
-        serialHandler->send(in);
+        serialHandler->send(message);
+}
+
+void tcodeCommandCallback(TCodeEvent event, const char *in)
+{
+
+    if (event == TCodeEvent::OTHER && systemCommandHandler->isCommand(in))
+    {
+        systemCommandHandler->process(in);
+    }
+    else if(event == TCodeEvent::RANGE_GET) 
+    {
+        // SettingsFactory::getInstance().getR
+        // tcode->formatRange(range, in);
+    }
+    else if(event == TCodeEvent::RANGE_STORE) 
+    {
+        TCodeRange range;
+        tcode->parseRange(range, in);
+    }
+    else
+    {
+        notifyDevice(in);
     }
 }
 
@@ -154,20 +170,7 @@ void tcodePassthroughCommandCallback(const char *in)
         strncpy(temp, in, total);
         strncat(temp, "\n", total);
 //////////////////////////////////////////////////////////////////////////////////////
-#if BLUETOOTH_TCODE
-        if (bluetoothHandler && bluetoothHandler->isConnected())
-            bluetoothHandler->send(temp);
-#endif
-#if BLE_TCODE
-
-#endif
-#if WIFI_TCODE
-        if (webSocketHandler)
-            webSocketHandler->send(temp);
-        if (udpHandler)
-            udpHandler->send(temp);
-#endif
-        serialHandler->send(temp);
+        notifyDevice(temp);
     }
 }
 

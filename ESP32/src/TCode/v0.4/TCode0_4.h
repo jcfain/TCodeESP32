@@ -10,7 +10,7 @@
 class TCode0_4 : public TCodeBase, public TCode
 {
 public:
-    TCode0_4() : TCode(TCODE_DEVICE_INFO) {}
+    TCode0_4() : TCode(TCODE_DEVICE_INFO, millis) {}
 	// Setup function
 	void setup(const char *firmware) override
 	{
@@ -27,10 +27,22 @@ public:
 		TCode::stringInput(in);
 	}
 
-	void setMessageCallback(std::function<void (const char*)> f) override
+	void setMessageCallback(TCodeCommandCallback f) override
 	{
 		TCode::setTCodeCallback(f);
 		TCodeBase::setMessageCallback(f);
+	}
+
+    // Parses out the TCode range from a save comand
+    bool parseRange(TCodeRange& range, const char* cmd) override
+	{
+		return TCode::parseRange(range, cmd);
+	}
+
+    // Formats the TCodeRange object into a tcode string to return to client
+    void formatRange(char *buf, const size_t len, const TCodeRange* ranges, const size_t rangesLen) override
+	{
+		TCode::formatRange(buf, len, ranges, rangesLen);
 	}
 
 	// void getMessages() 

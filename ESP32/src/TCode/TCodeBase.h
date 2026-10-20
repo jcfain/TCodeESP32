@@ -23,8 +23,10 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
-#include <functional>
 #include "LogHandler.h"
+#include "TCodeRange.h"
+#include "TCodeCommon.h"
+#include "callback.h"
 
 
 class TCodeBase {
@@ -32,8 +34,13 @@ public:
 	virtual void setup(const char* firmware) = 0;
 	virtual void read(byte inByte) = 0;
 	virtual void read(const char* in) = 0;
+    // Parses out the TCode range from a save comand
+    virtual bool parseRange(TCodeRange& range, const char* cmd) = 0;
+
+    // Formats the TCodeRange object into a tcode string to return to client
+    virtual void formatRange(char *buf, const size_t len, const TCodeRange* ranges, const size_t rangesLen) = 0;
 	// virtual void read(const String &input) = 0;
-	virtual void setMessageCallback(std::function<void (const char*)> f) // Sets the callback function used by TCode
+	virtual void setMessageCallback(TCodeCommandCallback f) // Sets the callback function used by TCode
 	{
 		if (f == nullptr)
 		{
@@ -61,15 +68,15 @@ public:
 		if(!message_callback)
 		{
 			LogHandler::warning("TcodeBase", "[sendMessage] callback not defined");
-			message_callback = std::bind(&TCodeBase::defaultCallback, this, std::placeholders::_1);
+			message_callback = std::bind(&TCodeBase::defaultCallback, this, std::placeholders::_1, std::placeholders::_2);
 		}
 
-        message_callback(input);
+        message_callback(TCodeEvent::NOTIFY, input);
     }
 protected: 
-    std::function<void(const char*)> message_callback = 0;
+    TCodeCommandCallback message_callback = 0;
 private: 
-	void defaultCallback(const char* input) // Default callback used by TCode uses serial communication
+	void defaultCallback(TCodeEvent event, const char* input) // Default callback used by TCode uses serial communication
 	{
 		LogHandler::warning("Default TCode callback", "%s\n", input);
 	}

@@ -212,11 +212,6 @@ public:
         return true;
     }
 
-    void setMessageCallback(TCodeCommandCallback function) override 
-    {
-        m_tcode->setMessageCallback(function);
-    }
-
     // void read(const String &input) override
     // {
     //     m_tcode->read(input);
