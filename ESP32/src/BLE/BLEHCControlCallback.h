@@ -87,7 +87,9 @@ public:
         uint16_t tcodeBytes = totalBytes & 0x0000FFFF;
         uint16_t speedBytes = (totalBytes & 0xFFFF0000) >> 16;
         tcode[0] = {0};
-        snprintf(tcode, MAX_COMMAND, "L0%03dI%d\n", tcodeBytes, speedBytes);
+        // The position arrives as 0-9999. TCode reads the digits as a decimal fraction, so it
+        // must always be written with four digits: 799 is 0.0799, not 0.799.
+        snprintf(tcode, MAX_COMMAND, "L0%04dI%d\n", tcodeBytes, speedBytes);
         
         LogHandler::verbose(TagHandler::BLEHandler, "Receive HC tcode: %s", tcode);
         if(xQueueSend(m_TCodeQueue, tcode, 0) != pdTRUE) {
