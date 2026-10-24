@@ -23,6 +23,7 @@ SOFTWARE. */
 #pragma once
 
 #include <Arduino.h>
+#include <cstddef>
 #include <sstream>
 #include <vector>
 #include <math.h>
@@ -61,7 +62,7 @@ bool contains(const char* in, const char* contains);
 
 bool match(const char* in, const char* match);
 
-void appendNewline(char* out, const char* input);
+void appendNewline(char* out, const char* input, const size_t& len);
 
 struct StrCompare
 {

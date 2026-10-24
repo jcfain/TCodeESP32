@@ -21,6 +21,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 #include "utils.h"
+#include "LogHandler.h"
+#include <cstddef>
 
 int getposition(const char *array, const size_t& size, const char& c)
 {
@@ -143,11 +145,11 @@ bool match(const char* in, const char* match)
     return strcmp(in, match) == 0;
 }
 
-void appendNewline(char* out, const char* input) 
+void appendNewline(char* out, const char* input, const size_t& len) 
 {
-    strcpy(out, input);
+    strncpy(out, input, len);
     if(!endsWith(out, "\n")) {;
-        strcat(out, "\n");
+        strncat(out, "\n", len);
     }
 }
 // adc2_channel_t gpioToADC2(int gpioPinc:\Users\jfain\AppData\Local\Programs\Microsoft VS Code\resources\app\out\vs\code\electron-sandbox\workbench\workbench.html) {

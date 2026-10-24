@@ -154,7 +154,12 @@ void tcodeCommandCallback(TCodeEvent event, const char *in)
     }
     else
     {
-        notifyDevice(in);
+        // TODO things that get here has had thier newline stripped. Append it back for now.
+        size_t length = strlen(in);
+        size_t newLen = length + 2;
+        char temp[newLen];
+        appendNewline(temp, in, newLen);
+        notifyDevice(temp);
     }
 }
 
@@ -162,13 +167,17 @@ void tcodePassthroughCommandCallback(const char *in)
 {
     if (systemCommandHandler->isCommand(in))
     {
+        // TODO things that get here has had thier newline stripped. Append it back for now.
         // This seems wrong but since we are only calling this from one place its fine for now.
         size_t length = strlen(in);
-        size_t total = length + 2;
-        char temp[total];
-        temp[0] = {0};
-        strncpy(temp, in, total);
-        strncat(temp, "\n", total);
+        size_t newLen = length + 2;
+        char temp[newLen];
+        appendNewline(temp, in, newLen);
+        // size_t total = length + 2;
+        // char temp[total];
+        // temp[0] = {0};
+        // strncpy(temp, in, total);
+        // strncat(temp, "\n", total);
 //////////////////////////////////////////////////////////////////////////////////////
         notifyDevice(temp);
     }
